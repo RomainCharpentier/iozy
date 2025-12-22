@@ -24,3 +24,7 @@ echo "Pour cette session, rechargez avec : source ~/.bashrc"
 echo "Ou redémarrez simplement votre terminal Git Bash"
 
 
+
+
+
+

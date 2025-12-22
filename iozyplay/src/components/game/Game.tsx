@@ -1,0 +1,797 @@
+import { useState, useRef, useEffect } from 'react'
+import QuestionCard from './QuestionCard'
+import Score from './Score'
+import GameSettingsPopup from './GameSettingsPopup'
+import { Category, Question, GameMode, Player } from '../../types'
+import { soundManager } from '../../utils/sounds'
+import { getSocket, connectSocket, isSocketConnected } from '../../utils/socket'
+import { getPlayerId } from '../../utils/playerId'
+import { QuestionService } from '../../services/questionService'
+import { GameService } from '../../services/gameService'
+import { TIMING } from '../../constants/timing'
+
+interface GameProps {
+  questions: Question[]
+  categories: Category[]
+  gameMode: GameMode
+  players: Player[]
+  roomCode?: string | null
+  onEndGame: () => void
+  onRestartWithNewCategories?: (categories: Category[], questions: Question[]) => void
+}
+
+export default function Game({ questions, categories, gameMode, players, roomCode, onEndGame, onRestartWithNewCategories }: GameProps) {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [score, setScore] = useState(0)
+  const [gamePlayers, setGamePlayers] = useState<Player[]>(players)
+  const [showScore, setShowScore] = useState(false)
+  const [isHost, setIsHost] = useState(true)
+  const [gameStarted, setGameStarted] = useState(gameMode === 'solo')
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false)
+  // En mode multijoueur, initialiser avec un tableau vide car les questions viennent du serveur
+  const [gameQuestions, setGameQuestions] = useState<Question[]>(
+    gameMode === 'online' ? [] : questions
+  )
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+  const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
+  // En mode multijoueur, initialiser avec un tableau vide car les questions viennent du serveur
+  const questionsRef = useRef<Question[]>(gameMode === 'online' ? [] : questions)
+  const timeoutRefs = useRef<number[]>([])
+  const isTransitioningRef = useRef(false)
+  const questionAnsweredByRef = useRef<string | null>(null)
+  const timerIntervalRef = useRef<number | null>(null)
+  const gameStartedAtRef = useRef<number | null>(null)
+  const gameDurationMsRef = useRef<number | null>(null)
+  const serverTimeOffsetRef = useRef<number>(0) // Offset entre temps serveur et temps client
+  const waitingForGoRef = useRef<boolean>(false) // Indique si on attend le signal "go"
+  const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
+  const goAtRef = useRef<number | null>(null) // Timestamp du signal "go"
+  const gameStepRef = useRef<string>('loading') // Étape actuelle: loading, ready, starting, playing
+
+  useEffect(() => {
+    if (gameQuestions.length === 0) return
+    questionsRef.current = gameQuestions
+    if (currentQuestionIndex >= gameQuestions.length) {
+      setCurrentQuestionIndex(0)
+    }
+    setShowScore(false)
+    isTransitioningRef.current = false
+    questionAnsweredByRef.current = null
+  }, [gameQuestions])
+
+  useEffect(() => {
+    // En mode solo, utiliser les questions des props
+    if (gameMode === 'solo' && questions.length > 0) {
+      if (gameQuestions.length === 0 || JSON.stringify(gameQuestions) !== JSON.stringify(questions)) {
+        setGameQuestions(questions)
+      }
+    }
+    // En mode multijoueur, les questions viennent uniquement du serveur via game:start
+    // Ne pas utiliser les questions des props pour éviter les conflits
+  }, [questions, gameMode, gameQuestions])
+
+  useEffect(() => {
+    setGamePlayers(players.map(p => ({ ...p, score: 0 })))
+    setShowScore(false)
+    setCurrentQuestionIndex(0)
+  }, [])
+
+  useEffect(() => {
+    if (gameQuestions.length === 0) return
+    if (showScore) return
+    if (isTransitioningRef.current) return
+    
+    const isBeyondLastQuestion = currentQuestionIndex >= gameQuestions.length
+    
+    if (isBeyondLastQuestion) {
+      const timeoutId = window.setTimeout(() => {
+        if (!isTransitioningRef.current) {
+          setShowScore(true)
+        }
+      }, TIMING.REVEAL_DELAY)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [currentQuestionIndex, gameQuestions.length, showScore])
+
+  // Fonction pour quitter le salon proprement
+  const leaveRoom = () => {
+    if (gameMode === 'online' && roomCode) {
+      const socket = getSocket()
+      if (socket && socket.connected) {
+        socket.emit('room:leave', { roomCode })
+      }
+    }
+  }
+
+  const handleMediaReady = () => {
+    if (!gameMode || gameMode !== 'online' || !roomCode) return
+    
+    mediaReadyRef.current = true
+    const socket = getSocket()
+    if (socket?.connected) {
+      socket.emit('game:ready', { roomCode })
+    }
+    
+    if (goAtRef.current && waitingForGoRef.current && gameDurationMsRef.current) {
+      const scheduleStart = () => {
+        let rafId: number | null = null
+        const checkStart = () => {
+          if (Date.now() >= goAtRef.current!) {
+            waitingForGoRef.current = false
+            gameStepRef.current = 'playing'
+            startTimerCalculation(goAtRef.current!, gameDurationMsRef.current!, Date.now())
+            setTimeRemaining(gameDurationMsRef.current! / 1000)
+            if (rafId !== null) cancelAnimationFrame(rafId)
+          } else {
+            rafId = requestAnimationFrame(checkStart)
+          }
+        }
+        rafId = requestAnimationFrame(checkStart)
+      }
+      scheduleStart()
+    }
+  }
+
+  // Nettoyer le timer de calcul du temps restant
+  const clearTimerInterval = () => {
+    if (timerIntervalRef.current !== null) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+  }
+
+  // Démarrer le calcul du temps restant depuis le serveur
+  const startTimerCalculation = (startedAt: number, durationMs: number, receivedAt?: number, serverTimeRemainingMs?: number, serverTime?: number) => {
+    clearTimerInterval()
+    gameStartedAtRef.current = startedAt
+    gameDurationMsRef.current = durationMs
+    
+    const clientNow = Date.now()
+    
+    // Si on a le temps restant calculé par le serveur, l'utiliser directement
+    if (serverTimeRemainingMs !== undefined && serverTime !== undefined && receivedAt) {
+      // Calculer l'offset serveur/client basé sur le temps serveur reçu
+      serverTimeOffsetRef.current = serverTime - receivedAt
+      
+      // Initialiser avec le temps restant du serveur
+      const initialRemaining = serverTimeRemainingMs / 1000
+      setTimeRemaining(initialRemaining)
+      setIsTimeUp(initialRemaining === 0)
+      
+      // Décompter depuis la réception
+      const updateTimer = () => {
+        if (gameDurationMsRef.current === null) return
+        
+        const elapsedSinceReceive = Date.now() - receivedAt
+        const remaining = Math.max(0, (serverTimeRemainingMs - elapsedSinceReceive) / 1000)
+        
+        setTimeRemaining(remaining)
+        setIsTimeUp(remaining === 0)
+      }
+      
+      updateTimer()
+      timerIntervalRef.current = window.setInterval(updateTimer, 100)
+      return
+    }
+    
+    // Fallback : calculer depuis startedAt avec offset estimé
+    if (receivedAt) {
+      serverTimeOffsetRef.current = startedAt - receivedAt
+    } else {
+      serverTimeOffsetRef.current = startedAt - clientNow
+    }
+
+    const updateTimer = () => {
+      if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) return
+
+      const clientNow = Date.now()
+      const serverNow = clientNow + serverTimeOffsetRef.current
+      const elapsed = serverNow - gameStartedAtRef.current
+      const remaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+      
+      setTimeRemaining(remaining)
+      setIsTimeUp(remaining === 0)
+    }
+
+    updateTimer()
+    timerIntervalRef.current = window.setInterval(updateTimer, 100)
+  }
+
+  useEffect(() => {
+    if (gameMode !== 'online' || !roomCode) return
+
+    const socket = getSocket()
+    if (!socket) return
+
+    const playerId = getPlayerId()
+
+    // Gérer beforeunload pour quitter proprement
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      leaveRoom()
+      // Note: Les navigateurs modernes ignorent le message personnalisé
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Attendre que le socket soit connecté avant de continuer
+    if (!socket.connected) {
+      const handleConnect = () => {
+        socket.off('connect', handleConnect)
+        // Rejoindre le salon après reconnexion et demander l'état
+        socket.emit('room:rejoin', { roomCode, playerId })
+        socket.emit('game:get-state', { roomCode })
+      }
+      socket.on('connect', handleConnect)
+      return () => {
+        socket.off('connect', handleConnect)
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+        clearTimerInterval()
+      }
+    }
+
+    const handleRoomState = (state: any) => {
+      if (state.players?.length) {
+        setGamePlayers(state.players)
+        setIsHost(state.players.find((p: Player) => p.id === playerId)?.isHost || false)
+      }
+      
+      if (state.questions?.length) {
+        setGameQuestions(state.questions)
+        questionsRef.current = state.questions
+      }
+      
+      if (state.game && state.phase === 'playing') {
+        setGameStarted(true)
+        setShowScore(false)
+        
+        const gameStep = state.game.step || 'loading'
+        gameStepRef.current = gameStep
+        
+        if (state.game.questionIndex !== undefined) {
+          setCurrentQuestionIndex(state.game.questionIndex)
+        }
+        
+        if (gameStep === 'playing' && state.game.startedAt && state.game.durationMs) {
+          waitingForGoRef.current = false
+          if (state.game.timeRemainingMs !== undefined && state.game.serverTime !== undefined) {
+            startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now(), state.game.timeRemainingMs, state.game.serverTime)
+          } else {
+            startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now())
+          }
+        } else {
+          waitingForGoRef.current = true
+        }
+      } else if (state.phase === 'waiting') {
+        setGameStarted(false)
+        clearTimerInterval()
+      } else if (state.phase === 'finished') {
+        setShowScore(true)
+        clearTimerInterval()
+      } else {
+        clearTimerInterval()
+      }
+    }
+
+    const handleGameStarted = ({ 
+      currentQuestion, 
+      questions: serverQuestions, 
+      questionIndex, 
+      players: updatedPlayers,
+      durationMs
+    }: { 
+      currentQuestion: Question
+      questions?: Question[]
+      questionIndex: number
+      players?: Player[]
+      startedAt?: number
+      durationMs?: number
+    }) => {
+      // Mettre à jour les questions depuis le serveur (source of truth)
+      if (serverQuestions && serverQuestions.length > 0) {
+        setGameQuestions(serverQuestions)
+        questionsRef.current = serverQuestions
+      }
+      
+      setCurrentQuestionIndex(questionIndex)
+      setGameStarted(true)
+      setShowScore(false)
+      
+      // TOUJOURS mettre à jour les joueurs depuis le serveur (source of truth)
+      if (updatedPlayers && Array.isArray(updatedPlayers)) {
+        setGamePlayers(updatedPlayers)
+      }
+      
+      // Réinitialiser l'état de synchronisation
+      waitingForGoRef.current = true
+      mediaReadyRef.current = false
+      goAtRef.current = null
+      gameStepRef.current = 'loading'
+      clearTimerInterval()
+      
+      console.log('[Game] handleGameStarted appelé, attente du signal go...')
+      
+      // Pas de timeout de sécurité - on attend vraiment le signal "go" du serveur
+      
+      // Le timer démarrera au signal "go"
+    }
+
+    const handleGameGo = ({ goAt, startedAt, durationMs }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
+      goAtRef.current = goAt
+      gameDurationMsRef.current = durationMs
+      gameStepRef.current = 'starting'
+      waitingForGoRef.current = true
+      
+      const startGameAtGoTime = () => {
+        waitingForGoRef.current = false
+        gameStepRef.current = 'playing'
+        startTimerCalculation(startedAt, durationMs, Date.now())
+        setTimeRemaining(durationMs / 1000)
+      }
+      
+      const scheduleStart = (targetTime: number) => {
+        let rafId: number | null = null
+        const checkStart = () => {
+          if (Date.now() >= targetTime) {
+            startGameAtGoTime()
+            if (rafId !== null) cancelAnimationFrame(rafId)
+          } else {
+            rafId = requestAnimationFrame(checkStart)
+          }
+        }
+        rafId = requestAnimationFrame(checkStart)
+      }
+      
+      if (mediaReadyRef.current) {
+        scheduleStart(goAt)
+      } else {
+        const checkInterval = window.setInterval(() => {
+          if (mediaReadyRef.current) {
+            clearInterval(checkInterval)
+            scheduleStart(goAt)
+          }
+        }, 16)
+      }
+    }
+
+    // handleMediaReady est défini au niveau du composant, pas besoin de le redéfinir ici
+
+    const handleCorrectAnswer = ({ 
+      playerId, 
+      players: updatedPlayers 
+    }: { 
+      playerId: string
+      playerName: string
+      score: number
+      players?: Player[]
+    }) => {
+      questionAnsweredByRef.current = playerId
+      if (updatedPlayers) {
+        setGamePlayers(updatedPlayers)
+      }
+    }
+
+    const handleNextQuestion = ({ 
+      questions: serverQuestions,
+      questionIndex
+    }: { 
+      currentQuestion?: Question
+      questions?: Question[]
+      questionIndex: number
+      durationMs?: number
+    }) => {
+      if (serverQuestions?.length) {
+        setGameQuestions(serverQuestions)
+        questionsRef.current = serverQuestions
+      }
+      
+      setCurrentQuestionIndex(questionIndex)
+      questionAnsweredByRef.current = null
+      isTransitioningRef.current = false
+      setShowScore(false)
+      
+      waitingForGoRef.current = true
+      mediaReadyRef.current = false
+      goAtRef.current = null
+      clearTimerInterval()
+    }
+
+    const handleGameEnded = ({ players: finalPlayers }: { players: Player[] }) => {
+      setGamePlayers(finalPlayers)
+      setShowScore(true)
+      clearTimerInterval()
+    }
+
+    const handleError = ({ code, message }: { code: string, message: string }) => {
+      alert(`Erreur serveur : ${message}`)
+    }
+
+    // Écouter tous les événements
+    socket.on('room:state', handleRoomState)
+    socket.on('game:start', handleGameStarted)
+    socket.on('game:go', handleGameGo)
+    socket.on('game:next', handleNextQuestion)
+    socket.on('game:correct-answer', handleCorrectAnswer)
+    socket.on('game:end', handleGameEnded)
+    socket.on('error', handleError)
+
+    // Gérer la reconnexion
+    socket.on('reconnect', () => {
+      socket.emit('room:rejoin', { roomCode, playerId })
+    })
+
+    // Demander l'état actuel du jeu
+    socket.emit('game:get-state', { roomCode })
+
+    return () => {
+      socket.off('room:state', handleRoomState)
+      socket.off('game:start', handleGameStarted)
+      socket.off('game:go', handleGameGo)
+      socket.off('game:next', handleNextQuestion)
+      socket.off('game:correct-answer', handleCorrectAnswer)
+      socket.off('game:end', handleGameEnded)
+      socket.off('error', handleError)
+      socket.off('reconnect')
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      clearTimerInterval()
+    }
+  }, [gameMode, roomCode])
+
+  // Le host est maintenant déterminé depuis room:state
+
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId))
+    }
+  }, [])
+
+  const handleTimerUpdate = (timeRemaining: number, isTimeUp: boolean) => {
+    setTimeRemaining(timeRemaining)
+    setIsTimeUp(isTimeUp)
+  }
+
+  const handleAnswer = (isCorrect: boolean, timeRemaining: number, playerId?: string) => {
+    if (showScore) return
+    if (isTransitioningRef.current) return
+
+    isTransitioningRef.current = true
+
+    if (isCorrect) {
+      if (gameMode === 'solo') {
+        setScore(prev => {
+          const newScore = prev + 1
+          return newScore
+        })
+      } else if (gameMode === 'online' && roomCode) {
+        const socket = getSocket()
+        if (socket) {
+          socket.emit('game:answer', {
+            roomCode,
+            answer: gameQuestions[currentQuestionIndex]?.answer || ''
+          })
+        }
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      questionAnsweredByRef.current = null
+
+      setCurrentQuestionIndex(prev => {
+        const totalQuestions = questionsRef.current.length
+        
+        if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
+          isTransitioningRef.current = false
+          return prev + 1
+        } else {
+          isTransitioningRef.current = false
+          setTimeout(() => {
+            setShowScore(true)
+          }, TIMING.REVEAL_DELAY)
+          return prev
+        }
+      })
+    }, TIMING.QUESTION_TRANSITION_DELAY)
+    timeoutRefs.current.push(timeoutId)
+  }
+
+  const handleTimeUp = () => {
+    if (showScore) return
+    if (isTransitioningRef.current) return
+
+    isTransitioningRef.current = true
+    questionAnsweredByRef.current = null
+
+    const timeoutId = window.setTimeout(() => {
+      setCurrentQuestionIndex(prev => {
+        const totalQuestions = questionsRef.current.length
+        
+        if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
+          isTransitioningRef.current = false
+          return prev + 1
+        } else {
+          isTransitioningRef.current = false
+          setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
+          return prev
+        }
+      })
+    }, TIMING.REVEAL_DELAY)
+    timeoutRefs.current.push(timeoutId)
+  }
+
+  const handleRestart = () => {
+    setShowScore(false)
+    setCurrentQuestionIndex(0)
+    setScore(0)
+    questionAnsweredByRef.current = null
+    isTransitioningRef.current = false
+
+    if (gameMode === 'online' && roomCode) {
+      const socket = getSocket()
+      if (socket) {
+        socket.emit('game:restart', { roomCode })
+        setGameStarted(false)
+      }
+    } else {
+      setGamePlayers(players.map(p => ({ ...p, score: 0 })))
+    }
+  }
+
+  const handleModifySettings = () => {
+    setShowScore(false)
+    setShowSettingsPopup(true)
+  }
+
+  const handleSettingsSaved = (newCategories: Category[], newQuestions: Question[], timeLimit: number, questionCount: number) => {
+    setShowSettingsPopup(false)
+    setShowScore(false)
+    setCurrentQuestionIndex(0)
+    setScore(0)
+    questionAnsweredByRef.current = null
+    isTransitioningRef.current = false
+
+    if (gameMode === 'online' && roomCode) {
+      const socket = getSocket()
+      if (socket) {
+        socket.emit('game:restart-with-categories', {
+          roomCode,
+          questions: newQuestions,
+          categories: newCategories,
+          defaultTimeLimit: timeLimit,
+          questionCount: questionCount
+        })
+        setGameStarted(false)
+      }
+    } else {
+      if (onRestartWithNewCategories) {
+        onRestartWithNewCategories(newCategories, newQuestions)
+      } else {
+        window.location.reload()
+      }
+    }
+  }
+
+  const getCurrentTimeLimit = (): number => {
+    if (gameQuestions.length > 0 && gameQuestions[0].timeLimit) {
+      return gameQuestions[0].timeLimit
+    }
+    return TIMING.DEFAULT_TIME_LIMIT
+  }
+
+  // En mode multijoueur, gérer différemment l'absence de questions
+  if (gameMode === 'online') {
+    if (!gameStarted) {
+      return (
+        <div className="no-questions">
+          <div className="loading-state">
+            <h2>En attente du démarrage...</h2>
+            <p>L'hôte va démarrer la partie.</p>
+            <div className="spinner"></div>
+          </div>
+        </div>
+      )
+    }
+    
+    // Si la partie a démarré mais pas encore de questions, attendre
+    if (gameQuestions.length === 0) {
+      return (
+        <div className="no-questions">
+          <div className="loading-state">
+            <h2>Chargement de la partie...</h2>
+            <p>Récupération des questions depuis le serveur.</p>
+            <div className="spinner"></div>
+          </div>
+        </div>
+      )
+    }
+  } else {
+    // En mode solo, vérifier les questions normalement
+    if (gameQuestions.length === 0) {
+      return (
+        <div className="no-questions">
+          <p>Aucune question disponible pour les catégories sélectionnées.</p>
+          <button onClick={onEndGame}>Retour au menu</button>
+        </div>
+      )
+    }
+  }
+
+  if (currentQuestionIndex < 0 || currentQuestionIndex >= gameQuestions.length) {
+    return (
+      <div className="no-questions">
+        <p>Erreur : Index de question invalide.</p>
+        <button onClick={onEndGame}>Retour au menu</button>
+      </div>
+    )
+  }
+
+  const currentQuestion = gameQuestions[currentQuestionIndex]
+
+  if (!currentQuestion) {
+    return (
+      <div className="no-questions">
+        <p>Erreur : Question introuvable.</p>
+        <button onClick={onEndGame}>Retour au menu</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="game" data-testid="game-screen">
+      {/* TopBar: Progression + Timer + Question Index + Bouton Quitter */}
+      <div className="game-topbar" data-testid="game-topbar">
+        <div className="topbar-progress">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${GameService.calculateProgress(currentQuestionIndex, gameQuestions.length)}%` }}
+            />
+          </div>
+        </div>
+        <div className="topbar-question-counter">
+          Question {currentQuestionIndex + 1} / {gameQuestions.length}
+        </div>
+        <div className="topbar-timer">
+          <div className="timer-circle-container-small">
+            <svg className="timer-circle-small" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+              </defs>
+              <circle
+                className="timer-circle-bg-small"
+                cx="50"
+                cy="50"
+                r="45"
+                fill="none"
+                strokeWidth="8"
+              />
+              {timeRemaining > 0 && (
+                <circle
+                  className={`timer-circle-progress-small ${timeRemaining <= 10 ? 'warning' : ''} ${isTimeUp ? 'time-up' : ''}`}
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  strokeWidth="8"
+                  strokeDasharray={`${2 * Math.PI * 45}`}
+                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - (timeRemaining / (currentQuestion.timeLimit || 30)))}`}
+                />
+              )}
+            </svg>
+            <div className={`timer-text-small ${timeRemaining <= 10 && timeRemaining > 0 ? 'warning' : ''} ${isTimeUp ? 'time-up' : ''}`}>
+              {timeRemaining > 0 
+                ? `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`
+                : '--'
+              }
+            </div>
+          </div>
+        </div>
+        <button
+          className="topbar-quit-button"
+          onClick={() => {
+            soundManager.playClick()
+            leaveRoom()
+            onEndGame()
+          }}
+          data-testid="quit-button"
+        >
+          Quitter
+        </button>
+      </div>
+
+      {/* Main: Zone media/waveform centrée */}
+      <div className="game-main" data-testid="game-main">
+        <QuestionCard
+          question={currentQuestion}
+          onAnswer={handleAnswer}
+          onTimeUp={handleTimeUp}
+          gameMode={gameMode}
+          players={gamePlayers}
+          questionAnsweredBy={questionAnsweredByRef.current}
+          shouldPause={showScore || showSettingsPopup}
+          onTimerUpdate={handleTimerUpdate}
+          onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
+          waitingForGo={waitingForGoRef.current}
+          gameStep={gameStepRef.current}
+        />
+      </div>
+
+      {/* BottomBar: Champ réponse + Bouton valider + Hint */}
+      <div className="game-bottombar" data-testid="game-bottombar">
+        {/* Le contenu de la bottom bar est géré par QuestionCard */}
+      </div>
+
+      {/* PlayersPanel: Liste joueurs + score live (desktop uniquement) */}
+      {(gameMode === 'online' && gamePlayers.length > 0) && (
+        <div className="game-players-panel" data-testid="game-players-panel">
+          <div className="players-panel-header">
+            <h3>Joueurs</h3>
+          </div>
+          <div className="players-panel-content">
+            {gamePlayers
+              .sort((a, b) => b.score - a.score)
+              .map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`player-score-item ${questionAnsweredByRef.current === player.id ? 'answered' : ''}`}
+                >
+                  <span className="player-rank">#{index + 1}</span>
+                  <div className="player-name">{player.name}</div>
+                  <div className="player-score-value">{player.score}</div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {(showScore || showSettingsPopup) && (
+        <div className="modal-overlay" onClick={() => {
+          if (showSettingsPopup) {
+            setShowSettingsPopup(false)
+            setShowScore(true)
+          } else {
+            onEndGame()
+          }
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            {showSettingsPopup ? (
+              <GameSettingsPopup
+                isOpen={true}
+                currentCategories={categories}
+                currentTimeLimit={getCurrentTimeLimit()}
+                currentQuestionCount={gameQuestions.length}
+                onSave={handleSettingsSaved}
+                onClose={() => {
+                  setShowSettingsPopup(false)
+                  setShowScore(true)
+                }}
+                gameMode={gameMode}
+              />
+            ) : (
+              <div className="score-popup-content">
+                <Score
+                  score={gameMode === 'solo' ? score : 0}
+                  totalQuestions={gameQuestions.length}
+                  gameMode={gameMode}
+                  players={gamePlayers}
+                  isHost={isHost}
+                  onRestart={handleRestart}
+                  onModifySettings={handleModifySettings}
+                  onQuit={onEndGame}
+                  isPopup={true}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+
+

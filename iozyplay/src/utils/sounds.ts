@@ -4,6 +4,7 @@
 class SoundManager {
   private audioContext: AudioContext | null = null
   private enabled: boolean = true
+  private volume: number = 0.7 // 0-1 (70% par défaut)
 
   constructor() {
     // Initialiser l'audio context quand l'utilisateur interagit avec la page
@@ -40,7 +41,7 @@ class SoundManager {
     oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1) // Mi
     oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2) // Sol
 
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.setValueAtTime(0.3 * this.volume, ctx.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
 
     oscillator.start(ctx.currentTime)
@@ -62,7 +63,7 @@ class SoundManager {
     oscillator.frequency.setValueAtTime(400, ctx.currentTime)
     oscillator.frequency.setValueAtTime(200, ctx.currentTime + 0.2)
 
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.setValueAtTime(0.3 * this.volume, ctx.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
 
     oscillator.start(ctx.currentTime)
@@ -85,7 +86,7 @@ class SoundManager {
     oscillator.frequency.setValueAtTime(150, ctx.currentTime + 0.1)
     oscillator.frequency.setValueAtTime(100, ctx.currentTime + 0.2)
 
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.setValueAtTime(0.3 * this.volume, ctx.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
 
     oscillator.start(ctx.currentTime)
@@ -109,7 +110,7 @@ class SoundManager {
       oscillator.type = 'square' // Son plus perçant
       oscillator.frequency.setValueAtTime(800, ctx.currentTime + i * 0.15)
       
-      gainNode.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.15)
+      gainNode.gain.setValueAtTime(0.4 * this.volume, ctx.currentTime + i * 0.15)
       gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.1)
 
       oscillator.start(ctx.currentTime + i * 0.15)
@@ -133,7 +134,7 @@ class SoundManager {
     oscillator.frequency.setValueAtTime(800, ctx.currentTime)
     oscillator.frequency.setValueAtTime(600, ctx.currentTime + 0.05)
 
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime)
+    gainNode.gain.setValueAtTime(0.2 * this.volume, ctx.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
 
     oscillator.start(ctx.currentTime)
@@ -157,7 +158,7 @@ class SoundManager {
       gainNode.connect(ctx.destination)
 
       oscillator.frequency.setValueAtTime(freq, ctx.currentTime)
-      gainNode.gain.setValueAtTime(0.2, ctx.currentTime + index * 0.1)
+      gainNode.gain.setValueAtTime(0.2 * this.volume, ctx.currentTime + index * 0.1)
       gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.1 + 0.2)
 
       oscillator.start(ctx.currentTime + index * 0.1)
@@ -172,6 +173,16 @@ class SoundManager {
 
   isEnabled(): boolean {
     return this.enabled
+  }
+
+  // Définir le volume (0-100)
+  setVolume(volume: number) {
+    this.volume = Math.max(0, Math.min(1, volume / 100))
+  }
+
+  // Obtenir le volume (0-100)
+  getVolume(): number {
+    return Math.round(this.volume * 100)
   }
 }
 

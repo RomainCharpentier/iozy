@@ -92,3 +92,7 @@ VITE_SOCKET_URL=http://localhost:3001
 - Assurez-vous d'utiliser l'URL complète avec le code du salon
 - Format : `http://localhost:5173?room=ABC123`
 
+
+
+
+

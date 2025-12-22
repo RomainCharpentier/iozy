@@ -37,3 +37,7 @@ Write-Host "PATH utilisateur actuel:" -ForegroundColor Cyan
 [Environment]::GetEnvironmentVariable("Path", "User") -split ";" | Where-Object { $_ -like "*nodejs*" -or $_ -ne "" } | ForEach-Object { Write-Host "  $_" }
 
 
+
+
+
+
