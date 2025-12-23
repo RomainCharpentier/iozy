@@ -52,6 +52,9 @@ export default function QuestionCard({
     if (!question) return
     
     setMediaReady(false)
+    if (gameMode === 'online') {
+      setShouldStartMedia(false)
+    }
     
     if (gameMode === 'solo') {
       setUserAnswer('')
@@ -62,15 +65,17 @@ export default function QuestionCard({
     
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
     setIsTimeUp(false)
-  }, [question.id, question.timeLimit, gameMode, players, waitingForGo])
+  }, [question.id, question.timeLimit, gameMode, players])
   
-  // Démarrer le média quand waitingForGo devient false (signal "go" reçu)
   useEffect(() => {
-    if (gameMode === 'online' && !waitingForGo && !shouldStartMedia) {
-      // Démarrer le média dès que waitingForGo devient false
-      setShouldStartMedia(true)
+    if (gameMode === 'online') {
+      if (waitingForGo) {
+        setShouldStartMedia(false)
+      } else if (!shouldStartMedia) {
+        setShouldStartMedia(true)
+      }
     }
-  }, [waitingForGo, gameMode, shouldStartMedia])
+  }, [waitingForGo, gameMode])
 
   useEffect(() => {
     const hasAnswered = gameMode === 'solo' 
@@ -208,10 +213,10 @@ export default function QuestionCard({
                   <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
                   <p>⏳ Synchronisation...</p>
                   <p style={{ fontSize: '0.9em', opacity: 0.8 }}>
-                    {gameStep === 'loading' && !mediaReady && 'Chargement...'}
-                    {gameStep === 'loading' && mediaReady && 'En attente...'}
-                    {gameStep === 'ready' && 'Prêt !'}
-                    {gameStep === 'starting' && 'Démarrage...'}
+                    {gameStep === 'loading' && !mediaReady && 'Chargement du média...'}
+                    {gameStep === 'loading' && mediaReady && 'En attente des autres joueurs...'}
+                    {gameStep === 'ready' && 'Tous les joueurs sont prêts !'}
+                    {gameStep === 'starting' && 'Démarrage dans quelques instants...'}
                   </p>
                 </div>
               </div>
@@ -219,15 +224,23 @@ export default function QuestionCard({
             <MediaPlayer 
               type={question.type} 
               mediaUrl={question.mediaUrl}
-              autoPlay={gameMode === 'solo' || (gameMode === 'online' && shouldStartMedia && !waitingForGo)}
+              autoPlay={gameMode === 'solo' || (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)}
               showVideo={isTimeUp}
-              restartVideo={isTimeUp || (gameMode === 'online' && shouldStartMedia && !waitingForGo)}
+              restartVideo={isTimeUp || (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)}
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
               onVideoRestarted={() => {}}
-              shouldPause={shouldPause}
+              shouldPause={shouldPause || (gameMode === 'online' && (waitingForGo || !shouldStartMedia || !mediaReady))}
               onMediaReady={() => {
+                // Ne jamais signaler que le média est prêt si on attend le signal "go"
+                if (gameMode === 'online' && waitingForGo) {
+                  return
+                }
+                // Ne signaler que si le média peut vraiment démarrer
+                if (gameMode === 'online' && !shouldStartMedia) {
+                  return
+                }
                 setMediaReady(true)
-                if (onMediaReady) {
+                if (onMediaReady && !waitingForGo && shouldStartMedia) {
                   onMediaReady()
                 }
               }}

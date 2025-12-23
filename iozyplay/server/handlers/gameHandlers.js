@@ -17,6 +17,48 @@ function broadcastRoomState(io, roomCode, room) {
 }
 
 /**
+ * Synchronise un joueur qui rejoint une partie en cours
+ */
+function syncPlayerToGame(socket, room) {
+  if (room.gameState !== 'playing' || !room.game) {
+    return;
+  }
+
+  const gameStartData = {
+    currentQuestion: room.questions[room.game.questionIndex],
+    questions: room.questions,
+    questionIndex: room.game.questionIndex,
+    players: room.players,
+    defaultTimeLimit: room.defaultTimeLimit,
+    durationMs: room.game.durationMs
+  };
+  socket.emit('game:start', gameStartData);
+
+  // Si la partie a déjà démarré, synchroniser directement avec le temps restant
+  if (room.game.startedAt && room.game.durationMs) {
+    const now = Date.now();
+    const elapsed = now - room.game.startedAt;
+    const timeRemainingMs = Math.max(0, room.game.durationMs - elapsed);
+
+    socket.emit('game:sync', {
+      startedAt: room.game.startedAt,
+      durationMs: room.game.durationMs,
+      timeRemainingMs,
+      serverTime: now,
+      questionIndex: room.game.questionIndex
+    });
+  } else if (room.game.goAt) {
+    // La partie attend le signal "go", envoyer les informations de synchronisation
+    socket.emit('game:go', {
+      goAt: room.game.goAt,
+      startedAt: room.game.startedAt || room.game.goAt,
+      durationMs: room.game.durationMs,
+      serverTime: Date.now()
+    });
+  }
+}
+
+/**
  * Envoie une erreur standardisée
  */
 function sendError(socket, code, message) {
@@ -212,23 +254,7 @@ export function setupGameHandlers(socket, io) {
     socket.emit('room:state', roomState);
     
     if (gameState.gameState === 'playing') {
-      socket.emit('game:start', {
-        currentQuestion: gameState.currentQuestion,
-        questions: room.questions,
-        questionIndex: gameState.questionIndex,
-        players: gameState.players,
-        defaultTimeLimit: gameState.defaultTimeLimit,
-        durationMs: gameState.game?.durationMs
-      });
-      
-      if (room.game.goAt) {
-        socket.emit('game:go', {
-          goAt: room.game.goAt,
-          startedAt: room.game.startedAt || room.game.goAt,
-          durationMs: room.game.durationMs,
-          serverTime: Date.now()
-        });
-      }
+      syncPlayerToGame(socket, room);
     } else {
       socket.emit('game:state', { gameState: gameState.gameState });
     }

@@ -78,13 +78,17 @@ export default function YouTubePlayer({
   }, [shouldPause])
 
   useEffect(() => {
-    if (shouldPause && iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
-        'https://www.youtube.com'
-      )
+    if (iframeRef.current?.contentWindow) {
+      if (shouldPause || !autoPlay) {
+        // Mettre en pause si shouldPause est true OU si autoPlay est false
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
+          'https://www.youtube.com'
+        )
+        setIsPlaying(false)
+      }
     }
-  }, [shouldPause])
+  }, [shouldPause, autoPlay])
 
   if (!videoId) {
     return (
@@ -95,9 +99,11 @@ export default function YouTubePlayer({
   }
 
   // URL différente selon si on est en mode reveal (showVideo) ou en mode audio
+  // Ne pas activer autoplay si shouldPause est true ou si autoPlay est false
+  const enableAutoplay = autoPlay && !shouldPause
   const embedUrl = showVideo 
-    ? getYouTubeEmbedUrl(videoId, true, false, false) // Pas de loop en mode reveal
-    : getYouTubeEmbedUrl(videoId, true, false, true)  // Loop en mode audio
+    ? getYouTubeEmbedUrl(videoId, enableAutoplay, false, false) // Pas de loop en mode reveal
+    : getYouTubeEmbedUrl(videoId, enableAutoplay, false, true)  // Loop en mode audio
 
   return (
     <div className="youtube-player" style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 0, padding: 0 }}>
@@ -142,35 +148,44 @@ export default function YouTubePlayer({
               left: 0
             }}
             onLoad={() => {
-              // Auto-play seulement en mode audio initial
-              if (!showVideo && !restartVideo) {
-                setTimeout(() => {
-                  if (iframeRef.current?.contentWindow) {
-                    try {
-                      iframeRef.current.contentWindow.postMessage(
-                        JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-                        'https://www.youtube.com'
-                      )
-                      setIsPlaying(true)
-                      setIsLoading(false)
-                      // Signaler que le média est prêt après le démarrage de la vidéo
-                      if (onMediaReady) {
-                        setTimeout(() => {
+              setIsLoading(false)
+              
+              // Ne démarrer la vidéo que si autoPlay est true ET shouldPause est false
+              if (autoPlay && !shouldPause) {
+                if (!showVideo && !restartVideo) {
+                  // Mode audio initial
+                  setTimeout(() => {
+                    if (iframeRef.current?.contentWindow && autoPlay && !shouldPause) {
+                      try {
+                        iframeRef.current.contentWindow.postMessage(
+                          JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
+                          'https://www.youtube.com'
+                        )
+                        setIsPlaying(true)
+                        if (onMediaReady) {
                           onMediaReady()
-                        }, 300)
+                        }
+                      } catch (error) {
+                        console.error('Erreur lors du démarrage de la vidéo:', error)
                       }
-                    } catch (error) {
-                      console.error('Erreur lors du démarrage de la vidéo:', error)
                     }
-                  }
-                }, 500)
-              } else if (showVideo && restartVideo) {
-                // En mode reveal, la vidéo démarre automatiquement via autoplay dans l'URL
-                // Attendre un peu pour que la vidéo démarre réellement
-                setTimeout(() => {
-                  setIsPlaying(true)
-                  setIsLoading(false)
-                }, 500)
+                  }, 500)
+                } else if (showVideo && restartVideo) {
+                  // En mode reveal, la vidéo démarre automatiquement via autoplay dans l'URL
+                  setTimeout(() => {
+                    setIsPlaying(true)
+                  }, 500)
+                }
+              } else {
+                // Si on ne doit pas démarrer, signaler quand même que le média est prêt (mais en pause)
+                if (onMediaReady && !shouldPause) {
+                  // Ne signaler que si on n'est pas en pause
+                  setTimeout(() => {
+                    if (!shouldPause) {
+                      onMediaReady()
+                    }
+                  }, 500)
+                }
               }
             }}
             onError={(e) => {

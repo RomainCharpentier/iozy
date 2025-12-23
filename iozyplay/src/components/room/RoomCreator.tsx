@@ -98,11 +98,14 @@ export default function RoomCreator({
         setError(null)
       }
 
-      const handleRoomState = ({ players: updatedPlayers }: { players: any[] }) => {
-        setPlayers(updatedPlayers)
-        const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
-        if (myPlayer) {
-          setCurrentPlayerName(myPlayer.name)
+      const handleRoomState = (state: any) => {
+        const updatedPlayers = state.players || []
+        if (Array.isArray(updatedPlayers) && updatedPlayers.length > 0) {
+          setPlayers(updatedPlayers)
+          const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
+          if (myPlayer) {
+            setCurrentPlayerName(myPlayer.name)
+          }
         }
       }
 

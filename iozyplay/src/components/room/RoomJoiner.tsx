@@ -54,7 +54,6 @@ export default function RoomJoiner({
       
       // Si la partie a déjà commencé, rediriger immédiatement
       if (room.phase === 'playing') {
-        console.log('[RoomJoiner] Partie déjà en cours, redirection...')
         setGameStarted(true)
         setTimeout(() => {
           onJoined(roomCode)
@@ -64,14 +63,15 @@ export default function RoomJoiner({
       }
     }
 
-    const handleRoomState = ({ players: updatedPlayers, phase }: { players: any[], phase?: string }) => {
-      setPlayers(updatedPlayers)
-      const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
-      setIsHost(myPlayer?.isHost || false)
+    const handleRoomState = (state: any) => {
+      const updatedPlayers = state.players || []
+      if (Array.isArray(updatedPlayers) && updatedPlayers.length > 0) {
+        setPlayers(updatedPlayers)
+        const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
+        setIsHost(myPlayer?.isHost || false)
+      }
       
-      // Si la partie démarre via room:state, rediriger
-      if (phase === 'playing' && !gameStarted) {
-        console.log('[RoomJoiner] Partie démarrée via room:state, redirection...')
+      if (state.phase === 'playing' && !gameStarted) {
         setGameStarted(true)
         setTimeout(() => {
           onJoined(roomCode)
@@ -80,7 +80,6 @@ export default function RoomJoiner({
     }
 
     const handleGameStarted = () => {
-      console.log('[RoomJoiner] game:start reçu, redirection...')
       setGameStarted(true)
       soundManager.playStart()
       setTimeout(() => {
@@ -89,13 +88,10 @@ export default function RoomJoiner({
     }
 
     const handleError = ({ code, message }: { code: string, message: string }) => {
-      // Ne pas bloquer si c'est l'erreur "GAME_ALREADY_STARTED" car on gère ça dans handleRoomJoined
+      // Ignorer l'erreur "GAME_ALREADY_STARTED" car le serveur envoie l'état de la partie
       if (code === 'GAME_ALREADY_STARTED') {
-        console.log('[RoomJoiner] Partie déjà commencée, mais on continue...')
-        // Ne pas afficher d'alerte, le serveur devrait envoyer l'état de la partie
         return
       }
-      console.error(`[RoomJoiner] Erreur: ${code} - ${message}`)
       alert(`Erreur: ${message}`)
       // Ne pas retourner en arrière pour les erreurs non critiques
       if (code !== 'ROOM_NOT_FOUND') {

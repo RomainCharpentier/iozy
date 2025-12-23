@@ -27,6 +27,7 @@ import { roomRepository } from '../infrastructure/roomRepository.js';
 function broadcastRoomState(io, roomCode, room) {
   const state = getRoomState(room);
   if (state) {
+    // Broadcaster à tous les sockets dans la room
     io.to(roomCode).emit('room:state', state);
   }
 }
@@ -36,6 +37,48 @@ function broadcastRoomState(io, roomCode, room) {
  */
 function sendError(socket, code, message) {
   socket.emit('error', { code, message });
+}
+
+/**
+ * Synchronise un joueur qui rejoint une partie en cours
+ */
+function syncPlayerToGame(socket, room) {
+  if (room.gameState !== 'playing' || !room.game) {
+    return;
+  }
+
+  const gameStartData = {
+    currentQuestion: room.questions[room.game.questionIndex],
+    questions: room.questions,
+    questionIndex: room.game.questionIndex,
+    players: room.players,
+    defaultTimeLimit: room.defaultTimeLimit,
+    durationMs: room.game.durationMs
+  };
+  socket.emit('game:start', gameStartData);
+
+  // Si la partie a déjà démarré, synchroniser directement avec le temps restant
+  if (room.game.startedAt && room.game.durationMs) {
+    const now = Date.now();
+    const elapsed = now - room.game.startedAt;
+    const timeRemainingMs = Math.max(0, room.game.durationMs - elapsed);
+
+    socket.emit('game:sync', {
+      startedAt: room.game.startedAt,
+      durationMs: room.game.durationMs,
+      timeRemainingMs,
+      serverTime: now,
+      questionIndex: room.game.questionIndex
+    });
+  } else if (room.game.goAt) {
+    // La partie attend le signal "go", envoyer les informations de synchronisation
+    socket.emit('game:go', {
+      goAt: room.game.goAt,
+      startedAt: room.game.startedAt || room.game.goAt,
+      durationMs: room.game.durationMs,
+      serverTime: Date.now()
+    });
+  }
 }
 
 export function setupRoomHandlers(socket, io) {
@@ -80,6 +123,8 @@ export function setupRoomHandlers(socket, io) {
       
       const state = getRoomState(room);
       socket.emit('room:joined', { room: state });
+      
+      // Broadcaster immédiatement à tous les autres joueurs
       broadcastRoomState(io, roomCode, room);
       return;
     }
@@ -89,7 +134,6 @@ export function setupRoomHandlers(socket, io) {
     if (!isWaiting(room)) {
       // La partie a déjà commencé, mais on permet quand même la reconnexion
       // Le joueur recevra l'état actuel de la partie
-      console.log(`[Room] Tentative de rejoindre une partie en cours: ${roomCode}, joueur: ${playerId}`);
       
       // Ajouter le joueur quand même (il pourra observer la partie)
       addPlayer(room, playerId, socket.id, playerName);
@@ -98,38 +142,25 @@ export function setupRoomHandlers(socket, io) {
       
       const state = getRoomState(room);
       socket.emit('room:joined', { room: state });
-      
-      if (room.gameState === 'playing' && room.game) {
-        socket.emit('game:start', {
-          currentQuestion: room.questions[room.game.questionIndex],
-          questions: room.questions,
-          questionIndex: room.game.questionIndex,
-          players: room.players,
-          defaultTimeLimit: room.defaultTimeLimit,
-          durationMs: room.game.durationMs
-        });
-        
-        if (room.game.goAt) {
-          socket.emit('game:go', {
-            goAt: room.game.goAt,
-            startedAt: room.game.startedAt || room.game.goAt,
-            durationMs: room.game.durationMs,
-            serverTime: Date.now()
-          });
-        }
-      }
-      
+      syncPlayerToGame(socket, room);
       broadcastRoomState(io, roomCode, room);
       return;
     }
 
     addPlayer(room, playerId, socket.id, playerName);
     roomRepository.update(roomCode, room);
+    
+    // Joindre la room AVANT de broadcaster
     socket.join(roomCode);
     
     const state = getRoomState(room);
     socket.emit('room:joined', { room: state });
-    broadcastRoomState(io, roomCode, room);
+    
+    // Broadcaster à tous les autres joueurs (le nouveau joueur a déjà reçu room:joined)
+    // Utiliser setImmediate pour s'assurer que le socket est bien dans la room
+    setImmediate(() => {
+      broadcastRoomState(io, roomCode, room);
+    });
   });
 
   socket.on('room:rejoin', ({ roomCode, playerId }) => {
@@ -159,30 +190,8 @@ export function setupRoomHandlers(socket, io) {
     
     const state = getRoomState(room);
     socket.emit('room:rejoined', { room: state });
-    
-    if (room.gameState === 'playing' && room.game) {
-      const roomState = getRoomState(room);
-      socket.emit('room:state', roomState);
-      
-      socket.emit('game:start', {
-        currentQuestion: room.questions[room.game.questionIndex],
-        questions: room.questions,
-        questionIndex: room.game.questionIndex,
-        players: room.players,
-        defaultTimeLimit: room.defaultTimeLimit,
-        durationMs: room.game.durationMs
-      });
-      
-      if (room.game.goAt) {
-        socket.emit('game:go', {
-          goAt: room.game.goAt,
-          startedAt: room.game.startedAt || room.game.goAt,
-          durationMs: room.game.durationMs,
-          serverTime: Date.now()
-        });
-      }
-    }
-    
+    socket.emit('room:state', state);
+    syncPlayerToGame(socket, room);
     broadcastRoomState(io, roomCode, room);
   });
 

@@ -169,3 +169,4 @@
 - **Événements** : Tous les événements suivent le format `namespace:action` (ex: `room:create`, `game:start`)
 - **Erreurs** : Format standardisé `{ code, message }` via événement `error`
 
+

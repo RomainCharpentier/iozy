@@ -43,10 +43,10 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const gameStartedAtRef = useRef<number | null>(null)
   const gameDurationMsRef = useRef<number | null>(null)
   const serverTimeOffsetRef = useRef<number>(0) // Offset entre temps serveur et temps client
-  const waitingForGoRef = useRef<boolean>(false) // Indique si on attend le signal "go"
+  const [waitingForGo, setWaitingForGo] = useState<boolean>(gameMode === 'online') // En mode multijoueur, on attend toujours le signal "go" au début
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
   const goAtRef = useRef<number | null>(null) // Timestamp du signal "go"
-  const gameStepRef = useRef<string>('loading') // Étape actuelle: loading, ready, starting, playing
+  const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
 
   useEffect(() => {
     if (gameQuestions.length === 0) return
@@ -108,19 +108,24 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     if (!gameMode || gameMode !== 'online' || !roomCode) return
     
     mediaReadyRef.current = true
+    
     const socket = getSocket()
     if (socket?.connected) {
       socket.emit('game:ready', { roomCode })
     }
     
-    if (goAtRef.current && waitingForGoRef.current && gameDurationMsRef.current) {
+    // Si le signal "go" a déjà été reçu, programmer le démarrage du média au bon moment
+    if (goAtRef.current && waitingForGo && gameDurationMsRef.current) {
       const scheduleStart = () => {
         let rafId: number | null = null
         const checkStart = () => {
-          if (Date.now() >= goAtRef.current!) {
-            waitingForGoRef.current = false
-            gameStepRef.current = 'playing'
-            startTimerCalculation(goAtRef.current!, gameDurationMsRef.current!, Date.now())
+          const now = Date.now()
+          if (now >= goAtRef.current!) {
+            setWaitingForGo(false)
+            setGameStep('playing')
+            // Démarrer le timer seulement quand le média commence vraiment à jouer
+            const actualStartTime = Date.now()
+            startTimerCalculation(actualStartTime, gameDurationMsRef.current!, actualStartTime)
             setTimeRemaining(gameDurationMsRef.current! / 1000)
             if (rafId !== null) cancelAnimationFrame(rafId)
           } else {
@@ -141,31 +146,28 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
   }
 
-  // Démarrer le calcul du temps restant depuis le serveur
-  const startTimerCalculation = (startedAt: number, durationMs: number, receivedAt?: number, serverTimeRemainingMs?: number, serverTime?: number) => {
+  const startTimerCalculation = (
+    startedAt: number, 
+    durationMs: number, 
+    receivedAt?: number, 
+    serverTimeRemainingMs?: number, 
+    serverTime?: number
+  ) => {
     clearTimerInterval()
     gameStartedAtRef.current = startedAt
     gameDurationMsRef.current = durationMs
     
-    const clientNow = Date.now()
-    
-    // Si on a le temps restant calculé par le serveur, l'utiliser directement
+    // Utiliser le temps restant calculé par le serveur si disponible
     if (serverTimeRemainingMs !== undefined && serverTime !== undefined && receivedAt) {
-      // Calculer l'offset serveur/client basé sur le temps serveur reçu
       serverTimeOffsetRef.current = serverTime - receivedAt
-      
-      // Initialiser avec le temps restant du serveur
       const initialRemaining = serverTimeRemainingMs / 1000
       setTimeRemaining(initialRemaining)
       setIsTimeUp(initialRemaining === 0)
       
-      // Décompter depuis la réception
       const updateTimer = () => {
         if (gameDurationMsRef.current === null) return
-        
         const elapsedSinceReceive = Date.now() - receivedAt
         const remaining = Math.max(0, (serverTimeRemainingMs - elapsedSinceReceive) / 1000)
-        
         setTimeRemaining(remaining)
         setIsTimeUp(remaining === 0)
       }
@@ -175,21 +177,16 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       return
     }
     
-    // Fallback : calculer depuis startedAt avec offset estimé
-    if (receivedAt) {
-      serverTimeOffsetRef.current = startedAt - receivedAt
-    } else {
-      serverTimeOffsetRef.current = startedAt - clientNow
-    }
+    // Calculer depuis startedAt avec offset estimé
+    const clientNow = Date.now()
+    serverTimeOffsetRef.current = receivedAt ? startedAt - receivedAt : startedAt - clientNow
 
     const updateTimer = () => {
       if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) return
-
       const clientNow = Date.now()
       const serverNow = clientNow + serverTimeOffsetRef.current
       const elapsed = serverNow - gameStartedAtRef.current
       const remaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
-      
       setTimeRemaining(remaining)
       setIsTimeUp(remaining === 0)
     }
@@ -197,6 +194,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     updateTimer()
     timerIntervalRef.current = window.setInterval(updateTimer, 100)
   }
+
+  // Initialiser waitingForGo en mode multijoueur
+  useEffect(() => {
+    if (gameMode === 'online') {
+      setWaitingForGo(true)
+    } else {
+      setWaitingForGo(false)
+    }
+  }, [gameMode])
 
   useEffect(() => {
     if (gameMode !== 'online' || !roomCode) return
@@ -246,22 +252,22 @@ export default function Game({ questions, categories, gameMode, players, roomCod
         setGameStarted(true)
         setShowScore(false)
         
-        const gameStep = state.game.step || 'loading'
-        gameStepRef.current = gameStep
+        const newGameStep = state.game.step || 'loading'
+        setGameStep(newGameStep)
         
         if (state.game.questionIndex !== undefined) {
           setCurrentQuestionIndex(state.game.questionIndex)
         }
         
         if (gameStep === 'playing' && state.game.startedAt && state.game.durationMs) {
-          waitingForGoRef.current = false
+          setWaitingForGo(false)
           if (state.game.timeRemainingMs !== undefined && state.game.serverTime !== undefined) {
             startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now(), state.game.timeRemainingMs, state.game.serverTime)
           } else {
             startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now())
           }
         } else {
-          waitingForGoRef.current = true
+          setWaitingForGo(true)
         }
       } else if (state.phase === 'waiting') {
         setGameStarted(false)
@@ -288,8 +294,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       startedAt?: number
       durationMs?: number
     }) => {
-      // Mettre à jour les questions depuis le serveur (source of truth)
-      if (serverQuestions && serverQuestions.length > 0) {
+      if (serverQuestions?.length) {
         setGameQuestions(serverQuestions)
         questionsRef.current = serverQuestions
       }
@@ -298,42 +303,37 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       setGameStarted(true)
       setShowScore(false)
       
-      // TOUJOURS mettre à jour les joueurs depuis le serveur (source of truth)
-      if (updatedPlayers && Array.isArray(updatedPlayers)) {
+      if (updatedPlayers?.length) {
         setGamePlayers(updatedPlayers)
       }
       
-      // Réinitialiser l'état de synchronisation
-      waitingForGoRef.current = true
+      setWaitingForGo(true)
       mediaReadyRef.current = false
       goAtRef.current = null
-      gameStepRef.current = 'loading'
+      setGameStep('loading')
       clearTimerInterval()
-      
-      console.log('[Game] handleGameStarted appelé, attente du signal go...')
-      
-      // Pas de timeout de sécurité - on attend vraiment le signal "go" du serveur
-      
-      // Le timer démarrera au signal "go"
     }
 
     const handleGameGo = ({ goAt, startedAt, durationMs }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
       goAtRef.current = goAt
       gameDurationMsRef.current = durationMs
-      gameStepRef.current = 'starting'
-      waitingForGoRef.current = true
+      setGameStep('starting')
+      setWaitingForGo(true)
       
       const startGameAtGoTime = () => {
-        waitingForGoRef.current = false
-        gameStepRef.current = 'playing'
-        startTimerCalculation(startedAt, durationMs, Date.now())
+        setWaitingForGo(false)
+        setGameStep('playing')
+        // Démarrer le timer seulement quand le média commence vraiment à jouer
+        const actualStartTime = Date.now()
+        startTimerCalculation(actualStartTime, durationMs, actualStartTime)
         setTimeRemaining(durationMs / 1000)
       }
       
       const scheduleStart = (targetTime: number) => {
         let rafId: number | null = null
         const checkStart = () => {
-          if (Date.now() >= targetTime) {
+          const now = Date.now()
+          if (now >= targetTime) {
             startGameAtGoTime()
             if (rafId !== null) cancelAnimationFrame(rafId)
           } else {
@@ -343,19 +343,25 @@ export default function Game({ questions, categories, gameMode, players, roomCod
         rafId = requestAnimationFrame(checkStart)
       }
       
+      const waitForMediaAndStart = () => {
+        let rafId: number | null = null
+        const checkMedia = () => {
+          if (mediaReadyRef.current) {
+            scheduleStart(goAt)
+            if (rafId !== null) cancelAnimationFrame(rafId)
+          } else {
+            rafId = requestAnimationFrame(checkMedia)
+          }
+        }
+        rafId = requestAnimationFrame(checkMedia)
+      }
+      
       if (mediaReadyRef.current) {
         scheduleStart(goAt)
       } else {
-        const checkInterval = window.setInterval(() => {
-          if (mediaReadyRef.current) {
-            clearInterval(checkInterval)
-            scheduleStart(goAt)
-          }
-        }, 16)
+        waitForMediaAndStart()
       }
     }
-
-    // handleMediaReady est défini au niveau du composant, pas besoin de le redéfinir ici
 
     const handleCorrectAnswer = ({ 
       playerId, 
@@ -391,9 +397,10 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       isTransitioningRef.current = false
       setShowScore(false)
       
-      waitingForGoRef.current = true
+      setWaitingForGo(true)
       mediaReadyRef.current = false
       goAtRef.current = null
+      setGameStep('loading')
       clearTimerInterval()
     }
 
@@ -408,9 +415,25 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
 
     // Écouter tous les événements
+    const handleGameSync = ({ startedAt, durationMs, timeRemainingMs, serverTime, questionIndex }: { 
+      startedAt: number
+      durationMs: number
+      timeRemainingMs: number
+      serverTime: number
+      questionIndex: number
+    }) => {
+      // Synchronisation directe pour un joueur qui rejoint une partie en cours
+      setWaitingForGo(false)
+      setGameStep('playing')
+      setCurrentQuestionIndex(questionIndex)
+      startTimerCalculation(startedAt, durationMs, Date.now(), timeRemainingMs, serverTime)
+      setTimeRemaining(timeRemainingMs / 1000)
+    }
+
     socket.on('room:state', handleRoomState)
     socket.on('game:start', handleGameStarted)
     socket.on('game:go', handleGameGo)
+    socket.on('game:sync', handleGameSync)
     socket.on('game:next', handleNextQuestion)
     socket.on('game:correct-answer', handleCorrectAnswer)
     socket.on('game:end', handleGameEnded)
@@ -428,6 +451,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       socket.off('room:state', handleRoomState)
       socket.off('game:start', handleGameStarted)
       socket.off('game:go', handleGameGo)
+      socket.off('game:sync', handleGameSync)
       socket.off('game:next', handleNextQuestion)
       socket.off('game:correct-answer', handleCorrectAnswer)
       socket.off('game:end', handleGameEnded)
@@ -459,10 +483,22 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
     if (isCorrect) {
       if (gameMode === 'solo') {
-        setScore(prev => {
-          const newScore = prev + 1
-          return newScore
-        })
+        setScore(prev => prev + 1)
+        const timeoutId = window.setTimeout(() => {
+          questionAnsweredByRef.current = null
+          setCurrentQuestionIndex(prev => {
+            const totalQuestions = questionsRef.current.length
+            if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
+              isTransitioningRef.current = false
+              return prev + 1
+            } else {
+              isTransitioningRef.current = false
+              setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
+              return prev
+            }
+          })
+        }, TIMING.QUESTION_TRANSITION_DELAY)
+        timeoutRefs.current.push(timeoutId)
       } else if (gameMode === 'online' && roomCode) {
         const socket = getSocket()
         if (socket) {
@@ -471,52 +507,43 @@ export default function Game({ questions, categories, gameMode, players, roomCod
             answer: gameQuestions[currentQuestionIndex]?.answer || ''
           })
         }
+        // En mode multijoueur, le serveur décide quand passer à la question suivante
+        // On ne modifie pas currentQuestionIndex ici
+        questionAnsweredByRef.current = null
+        isTransitioningRef.current = false
       }
+    } else {
+      isTransitioningRef.current = false
     }
-
-    const timeoutId = window.setTimeout(() => {
-      questionAnsweredByRef.current = null
-
-      setCurrentQuestionIndex(prev => {
-        const totalQuestions = questionsRef.current.length
-        
-        if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
-          isTransitioningRef.current = false
-          return prev + 1
-        } else {
-          isTransitioningRef.current = false
-          setTimeout(() => {
-            setShowScore(true)
-          }, TIMING.REVEAL_DELAY)
-          return prev
-        }
-      })
-    }, TIMING.QUESTION_TRANSITION_DELAY)
-    timeoutRefs.current.push(timeoutId)
   }
 
   const handleTimeUp = () => {
     if (showScore) return
     if (isTransitioningRef.current) return
 
-    isTransitioningRef.current = true
-    questionAnsweredByRef.current = null
+    if (gameMode === 'solo') {
+      isTransitioningRef.current = true
+      questionAnsweredByRef.current = null
 
-    const timeoutId = window.setTimeout(() => {
-      setCurrentQuestionIndex(prev => {
-        const totalQuestions = questionsRef.current.length
-        
-        if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
-          isTransitioningRef.current = false
-          return prev + 1
-        } else {
-          isTransitioningRef.current = false
-          setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
-          return prev
-        }
-      })
-    }, TIMING.REVEAL_DELAY)
-    timeoutRefs.current.push(timeoutId)
+      const timeoutId = window.setTimeout(() => {
+        setCurrentQuestionIndex(prev => {
+          const totalQuestions = questionsRef.current.length
+          if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
+            isTransitioningRef.current = false
+            return prev + 1
+          } else {
+            isTransitioningRef.current = false
+            setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
+            return prev
+          }
+        })
+      }, TIMING.REVEAL_DELAY)
+      timeoutRefs.current.push(timeoutId)
+    } else if (gameMode === 'online') {
+      // En mode multijoueur, le serveur gère le timer et décide quand passer à la question suivante
+      // Le serveur enverra game:next quand le timer expire
+      questionAnsweredByRef.current = null
+    }
   }
 
   const handleRestart = () => {
@@ -714,8 +741,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           shouldPause={showScore || showSettingsPopup}
           onTimerUpdate={handleTimerUpdate}
           onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
-          waitingForGo={waitingForGoRef.current}
-          gameStep={gameStepRef.current}
+          waitingForGo={waitingForGo}
+          gameStep={gameStep}
         />
       </div>
 

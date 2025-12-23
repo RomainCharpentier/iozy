@@ -59,23 +59,43 @@ export default function MediaPlayer({
   }, [restartVideo, type])
 
   useEffect(() => {
-    if (shouldPause) {
-      if (type === 'video' && videoRef.current) {
+    // Toujours mettre en pause si shouldPause est true OU si autoPlay est false
+    if (shouldPause || !autoPlay) {
+      if (type === 'video' && videoRef.current && !videoRef.current.paused) {
         videoRef.current.pause()
         setIsPlaying(false)
-      } else if (type === 'audio' && audioRef.current) {
+      } else if (type === 'audio' && audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause()
         setIsPlaying(false)
       }
       return
     }
     
-    if (autoPlay && type === 'audio' && audioRef.current) {
-      audioRef.current.play()
-      setIsPlaying(true)
-    } else if (autoPlay && type === 'video' && videoRef.current) {
-      videoRef.current.play()
-      setIsPlaying(true)
+    // Démarrer le média seulement si autoPlay est true ET shouldPause est false
+    if (autoPlay && !shouldPause) {
+      if (type === 'audio' && audioRef.current && audioRef.current.paused) {
+        const playPromise = audioRef.current.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true)
+            })
+            .catch(() => {
+              setIsPlaying(false)
+            })
+        }
+      } else if (type === 'video' && videoRef.current && videoRef.current.paused) {
+        const playPromise = videoRef.current.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true)
+            })
+            .catch(() => {
+              setIsPlaying(false)
+            })
+        }
+      }
     }
   }, [autoPlay, type, shouldPause])
 
@@ -155,10 +175,9 @@ export default function MediaPlayer({
           }}
           onCanPlay={() => {
             setIsLoading(false)
-            if (onMediaReady && !shouldPause) {
-              setTimeout(() => {
-                onMediaReady()
-              }, 100)
+            // Ne signaler que si on peut vraiment démarrer (pas en pause)
+            if (onMediaReady && !shouldPause && autoPlay) {
+              onMediaReady()
             }
           }}
           onLoadStart={() => setIsLoading(true)}
@@ -232,10 +251,9 @@ export default function MediaPlayer({
           }}
           onCanPlay={() => {
             setIsLoading(false)
-            if (onMediaReady && !shouldPause) {
-              setTimeout(() => {
-                onMediaReady()
-              }, 100)
+            // Ne signaler que si on peut vraiment démarrer (pas en pause)
+            if (onMediaReady && !shouldPause && autoPlay) {
+              onMediaReady()
             }
           }}
           onLoadStart={() => setIsLoading(true)}
