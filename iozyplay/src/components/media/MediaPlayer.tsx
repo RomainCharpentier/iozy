@@ -13,6 +13,7 @@ interface MediaPlayerProps {
   timeLimit?: number // Durée du timer pour faire boucler la vidéo si nécessaire
   shouldPause?: boolean
   onMediaReady?: () => void
+  onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
 }
 
 export default function MediaPlayer({ 
@@ -24,7 +25,8 @@ export default function MediaPlayer({
   onVideoRestarted,
   timeLimit,
   shouldPause = false,
-  onMediaReady
+  onMediaReady,
+  onMediaStart
 }: MediaPlayerProps) {
   // Si c'est une URL YouTube, utiliser le composant YouTube
   if (isYouTubeUrl(mediaUrl)) {
@@ -38,6 +40,7 @@ export default function MediaPlayer({
         timeLimit={timeLimit}
         shouldPause={shouldPause}
         onMediaReady={onMediaReady}
+        onMediaStart={onMediaStart}
       />
     )
   }
@@ -59,8 +62,8 @@ export default function MediaPlayer({
   }, [restartVideo, type])
 
   useEffect(() => {
-    // Toujours mettre en pause si shouldPause est true OU si autoPlay est false
-    if (shouldPause || !autoPlay) {
+    // Mettre en pause si shouldPause est true
+    if (shouldPause) {
       if (type === 'video' && videoRef.current && !videoRef.current.paused) {
         videoRef.current.pause()
         setIsPlaying(false)
@@ -73,27 +76,98 @@ export default function MediaPlayer({
     
     // Démarrer le média seulement si autoPlay est true ET shouldPause est false
     if (autoPlay && !shouldPause) {
-      if (type === 'audio' && audioRef.current && audioRef.current.paused) {
-        const playPromise = audioRef.current.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsPlaying(true)
-            })
-            .catch(() => {
-              setIsPlaying(false)
-            })
+      if (type === 'audio' && audioRef.current) {
+        // Vérifier si le média est chargé avant de démarrer
+        if (audioRef.current.readyState >= 2) { // HAVE_CURRENT_DATA ou plus
+          const playPromise = audioRef.current.play()
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setIsPlaying(true)
+                // Appeler onMediaStart immédiatement après le démarrage
+                if (onMediaStart) {
+                  // Petit délai pour s'assurer que le média joue vraiment
+                  setTimeout(() => {
+                    onMediaStart()
+                  }, 100)
+                }
+              })
+              .catch((error) => {
+                console.error('[MediaPlayer] Erreur lors du démarrage de l\'audio:', error)
+                setIsPlaying(false)
+              })
+          }
+        } else {
+          // Attendre que le média soit chargé
+          const onCanPlay = () => {
+            if (audioRef.current && !shouldPause && autoPlay) {
+              const playPromise = audioRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsPlaying(true)
+                    // Appeler onMediaStart immédiatement après le démarrage
+                    if (onMediaStart) {
+                      setTimeout(() => {
+                        onMediaStart()
+                      }, 100)
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('[MediaPlayer] Erreur lors du démarrage de l\'audio après chargement:', error)
+                    setIsPlaying(false)
+                  })
+              }
+            }
+            audioRef.current?.removeEventListener('canplay', onCanPlay)
+          }
+          audioRef.current.addEventListener('canplay', onCanPlay)
         }
-      } else if (type === 'video' && videoRef.current && videoRef.current.paused) {
-        const playPromise = videoRef.current.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsPlaying(true)
-            })
-            .catch(() => {
-              setIsPlaying(false)
-            })
+      } else if (type === 'video' && videoRef.current) {
+        // Vérifier si le média est chargé avant de démarrer
+        if (videoRef.current.readyState >= 2) { // HAVE_CURRENT_DATA ou plus
+          const playPromise = videoRef.current.play()
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setIsPlaying(true)
+                // Appeler onMediaStart immédiatement après le démarrage
+                if (onMediaStart) {
+                  setTimeout(() => {
+                    onMediaStart()
+                  }, 100)
+                }
+              })
+              .catch((error) => {
+                console.error('[MediaPlayer] Erreur lors du démarrage de la vidéo:', error)
+                setIsPlaying(false)
+              })
+          }
+        } else {
+          // Attendre que le média soit chargé
+          const onCanPlay = () => {
+            if (videoRef.current && !shouldPause && autoPlay) {
+              const playPromise = videoRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsPlaying(true)
+                    // Appeler onMediaStart immédiatement après le démarrage
+                    if (onMediaStart) {
+                      setTimeout(() => {
+                        onMediaStart()
+                      }, 100)
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('[MediaPlayer] Erreur lors du démarrage de la vidéo après chargement:', error)
+                    setIsPlaying(false)
+                  })
+              }
+            }
+            videoRef.current?.removeEventListener('canplay', onCanPlay)
+          }
+          videoRef.current.addEventListener('canplay', onCanPlay)
         }
       }
     }
@@ -135,6 +209,27 @@ export default function MediaPlayer({
   }
 
   if (type === 'image') {
+    // Pour les images, appeler onMediaReady dès que l'image est chargée
+    useEffect(() => {
+      if (onMediaReady) {
+        // Pour les images, considérer qu'elles sont prêtes immédiatement
+        // car elles chargent très rapidement
+        const img = new Image()
+        img.onload = () => {
+          if (onMediaReady) {
+            onMediaReady()
+          }
+        }
+        img.onerror = () => {
+          // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
+          if (onMediaReady) {
+            onMediaReady()
+          }
+        }
+        img.src = mediaUrl
+      }
+    }, [mediaUrl, onMediaReady])
+
     return (
       <div className="media-player image-player" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img src={mediaUrl} alt="Blindtest" className="blindtest-image" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '0.5rem' }} />
@@ -167,6 +262,7 @@ export default function MediaPlayer({
         <audio
           ref={audioRef}
           src={mediaUrl}
+          preload="auto"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={() => {
             if (audioRef.current) {
@@ -175,8 +271,9 @@ export default function MediaPlayer({
           }}
           onCanPlay={() => {
             setIsLoading(false)
-            // Ne signaler que si on peut vraiment démarrer (pas en pause)
-            if (onMediaReady && !shouldPause && autoPlay) {
+            // Toujours signaler que le média est prêt (pour envoyer game:ready au serveur)
+            // même si on ne démarre pas la lecture immédiatement
+            if (onMediaReady) {
               onMediaReady()
             }
           }}
@@ -184,7 +281,13 @@ export default function MediaPlayer({
           onWaiting={() => setIsLoading(true)}
           onPlaying={() => setIsLoading(false)}
           onEnded={() => setIsPlaying(false)}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => {
+            setIsPlaying(true)
+            // Appeler onMediaStart quand le média commence vraiment à jouer
+            if (onMediaStart) {
+              onMediaStart()
+            }
+          }}
           onPause={() => setIsPlaying(false)}
         />
         <div className="audio-visualizer-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '600px', margin: '0 auto', padding: '12px', zIndex: 2, height: '140px', minHeight: '140px' }}>
@@ -243,6 +346,7 @@ export default function MediaPlayer({
         <video
           ref={videoRef}
           src={mediaUrl}
+          preload="auto"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={() => {
             if (videoRef.current) {
@@ -251,15 +355,29 @@ export default function MediaPlayer({
           }}
           onCanPlay={() => {
             setIsLoading(false)
-            // Ne signaler que si on peut vraiment démarrer (pas en pause)
-            if (onMediaReady && !shouldPause && autoPlay) {
+            // Toujours signaler que le média est prêt (pour envoyer game:ready au serveur)
+            // même si on ne démarre pas la lecture immédiatement
+            if (onMediaReady) {
               onMediaReady()
             }
           }}
           onLoadStart={() => setIsLoading(true)}
           onWaiting={() => setIsLoading(true)}
-          onPlaying={() => setIsLoading(false)}
+          onPlaying={() => {
+            setIsLoading(false)
+            // Appeler onMediaStart quand la vidéo commence vraiment à jouer
+            if (onMediaStart && !isPlaying) {
+              onMediaStart()
+            }
+          }}
           onEnded={() => setIsPlaying(false)}
+          onPlay={() => {
+            setIsPlaying(true)
+            // Appeler onMediaStart quand la vidéo commence vraiment à jouer
+            if (onMediaStart) {
+              onMediaStart()
+            }
+          }}
           className="blindtest-video"
           style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', borderRadius: '0.5rem' }}
         />

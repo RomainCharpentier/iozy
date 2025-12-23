@@ -37,6 +37,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   // En mode multijoueur, initialiser avec un tableau vide car les questions viennent du serveur
   const questionsRef = useRef<Question[]>(gameMode === 'online' ? [] : questions)
   const timeoutRefs = useRef<number[]>([])
+  const revealTimerStartedRef = useRef<boolean>(false) // Pour éviter de démarrer le timer du reveal plusieurs fois
+  const mediaStartTimeRef = useRef<number | null>(null) // Timestamp quand le média commence vraiment à jouer
   const isTransitioningRef = useRef(false)
   const questionAnsweredByRef = useRef<string | null>(null)
   const timerIntervalRef = useRef<number | null>(null)
@@ -105,37 +107,76 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   }
 
   const handleMediaReady = () => {
-    if (!gameMode || gameMode !== 'online' || !roomCode) return
+    if (!gameMode || gameMode !== 'online' || !roomCode) {
+      return
+    }
     
-    mediaReadyRef.current = true
+    // Éviter d'envoyer plusieurs fois game:ready pour le même média
+    if (mediaReadyRef.current) {
+      return
+    }
     
     const socket = getSocket()
-    if (socket?.connected) {
+    if (!socket?.connected) {
+      console.error('[Game] handleMediaReady: Socket non connecté!', { socket: !!socket, connected: socket?.connected })
+      return
+    }
+    
+    // Vérifier que le joueur est bien dans la room avant d'envoyer game:ready
+    // Si le joueur n'est pas dans la room, le serveur ne pourra pas le trouver
+    // On attend un peu pour laisser le temps au socket de rejoindre la room
+    const checkAndSendReady = () => {
+      // Toujours marquer le média comme prêt et envoyer "ready" au serveur
+      // même si on attend le signal "go" - c'est nécessaire pour la synchronisation
+      mediaReadyRef.current = true
+      
       socket.emit('game:ready', { roomCode })
     }
     
+    // Attendre un peu pour s'assurer que le socket est dans la room
+    // (room:rejoin peut prendre un peu de temps)
+    setTimeout(checkAndSendReady, 500)
+    
     // Si le signal "go" a déjà été reçu, programmer le démarrage du média au bon moment
-    if (goAtRef.current && waitingForGo && gameDurationMsRef.current) {
-      const scheduleStart = () => {
-        let rafId: number | null = null
-        const checkStart = () => {
-          const now = Date.now()
-          if (now >= goAtRef.current!) {
-            setWaitingForGo(false)
-            setGameStep('playing')
-            // Démarrer le timer seulement quand le média commence vraiment à jouer
-            const actualStartTime = Date.now()
-            startTimerCalculation(actualStartTime, gameDurationMsRef.current!, actualStartTime)
-            setTimeRemaining(gameDurationMsRef.current! / 1000)
-            if (rafId !== null) cancelAnimationFrame(rafId)
-          } else {
-            rafId = requestAnimationFrame(checkStart)
-          }
-        }
-        rafId = requestAnimationFrame(checkStart)
+    // (cela sera géré dans handleGameGo)
+  }
+
+  const handleMediaStart = () => {
+    // Le média commence vraiment à jouer maintenant
+    // C'est le bon moment pour démarrer le timer
+    // Cette fonction est appelée pour les deux modes (solo et multi)
+    const currentQuestion = gameQuestions[currentQuestionIndex]
+    let durationMs: number
+    
+    if (gameMode === 'online') {
+      if (!gameDurationMsRef.current) {
+        console.warn('[Game] handleMediaStart: gameDurationMsRef non disponible en mode online')
+        return
       }
-      scheduleStart()
+      durationMs = gameDurationMsRef.current
+    } else {
+      // Mode solo : utiliser la durée de la question
+      if (!currentQuestion) {
+        console.warn('[Game] handleMediaStart: currentQuestion non disponible en mode solo')
+        return
+      }
+      durationMs = (currentQuestion.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
     }
+    
+    const now = Date.now()
+    mediaStartTimeRef.current = now
+    
+    // Réinitialiser les états avant de démarrer le timer
+    setIsTimeUp(false)
+    revealTimerStartedRef.current = false
+    
+    // Initialiser le temps restant correctement AVANT de démarrer le timer
+    const initialRemaining = durationMs / 1000
+    setTimeRemaining(initialRemaining)
+    
+    // Démarrer le timer maintenant que le média joue vraiment
+    // Utiliser la même logique pour les deux modes
+    startTimerCalculation(now, durationMs, now, undefined, undefined)
   }
 
   // Nettoyer le timer de calcul du temps restant
@@ -153,7 +194,17 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     serverTimeRemainingMs?: number, 
     serverTime?: number
   ) => {
+    // Éviter le double démarrage du timer
+    if (gameStartedAtRef.current !== null && gameDurationMsRef.current !== null) {
+      return
+    }
+    
     clearTimerInterval()
+    
+    // Réinitialiser les états au démarrage du timer
+    setIsTimeUp(false)
+    revealTimerStartedRef.current = false
+    
     gameStartedAtRef.current = startedAt
     gameDurationMsRef.current = durationMs
     
@@ -177,21 +228,79 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       return
     }
     
-    // Calculer depuis startedAt avec offset estimé
+    // Calculer depuis startedAt
+    // startedAt est le timestamp serveur où la question commence
     const clientNow = Date.now()
-    serverTimeOffsetRef.current = receivedAt ? startedAt - receivedAt : startedAt - clientNow
-
-    const updateTimer = () => {
-      if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) return
-      const clientNow = Date.now()
-      const serverNow = clientNow + serverTimeOffsetRef.current
-      const elapsed = serverNow - gameStartedAtRef.current
-      const remaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
-      setTimeRemaining(remaining)
-      setIsTimeUp(remaining === 0)
+    
+    // Calculer l'offset entre le temps serveur et le temps client
+    // Si on a serverTime et receivedAt, on peut calculer l'offset exact
+    if (receivedAt && serverTime !== undefined) {
+      // Offset = différence entre temps serveur et temps client au moment de la réception
+      // Cet offset représente la différence entre l'horloge serveur et l'horloge client
+      serverTimeOffsetRef.current = serverTime - receivedAt
+    } else if (receivedAt) {
+      // Si on n'a pas serverTime mais on a receivedAt, estimer l'offset
+      // en supposant que startedAt correspond approximativement au temps client quand on l'a reçu
+      // Mais startedAt peut être dans le futur (goAt), donc on utilise receivedAt comme référence
+      serverTimeOffsetRef.current = startedAt - receivedAt
+    } else {
+      // Fallback : pas d'offset
+      serverTimeOffsetRef.current = 0
     }
 
+    const updateTimer = () => {
+      if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) {
+        return
+      }
+      
+      const clientNow = Date.now()
+      // Calculer le temps écoulé depuis le début de la question
+      // gameStartedAtRef.current est maintenant un timestamp client (pas serveur)
+      // donc on peut le comparer directement avec clientNow
+      const elapsed = Math.max(0, clientNow - gameStartedAtRef.current)
+      // Calculer le temps restant
+      const remaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+      
+      setTimeRemaining(remaining)
+      
+      // isTimeUp devient true seulement quand le temps de guess est complètement écoulé
+      const hasFullyElapsed = elapsed >= gameDurationMsRef.current
+      const newIsTimeUp = hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
+      
+      setIsTimeUp(newIsTimeUp)
+      
+      // Si le timer de guess atteint 0, démarrer le timer du reveal
+      // On vérifie !revealTimerStartedRef.current pour éviter de démarrer le timer plusieurs fois
+      if (newIsTimeUp && !revealTimerStartedRef.current) {
+        revealTimerStartedRef.current = true
+        
+        // Démarrer le timer du reveal (même durée que le guess)
+        if (gameDurationMsRef.current !== null) {
+          const revealDurationMs = gameDurationMsRef.current
+          
+          // Programmer la fin du reveal
+          const revealTimer = setTimeout(() => {
+            // Le serveur devrait gérer le passage à la question suivante
+            // mais on peut aussi appeler onTimeUp pour le mode solo
+            if (gameMode === 'solo') {
+              onTimeUp()
+            }
+          }, revealDurationMs)
+          
+          timeoutRefs.current.push(revealTimer)
+        }
+      }
+      
+      // Si le temps est écoulé, appeler onTimeUp une seule fois (mode solo seulement, avant le reveal)
+      if (newIsTimeUp && !isTimeUp && gameMode === 'solo' && !revealTimerStartedRef.current) {
+        onTimeUp()
+      }
+    }
+
+    // Mettre à jour immédiatement
     updateTimer()
+    
+    // Programmer les mises à jour régulières
     timerIntervalRef.current = window.setInterval(updateTimer, 100)
   }
 
@@ -237,6 +346,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       }
     }
 
+    // S'assurer que le socket est dans la room
+    // Le socket devrait déjà être dans la room via room:join ou room:rejoin,
+    // mais on vérifie et on rejoint si nécessaire
+    if (socket.connected && roomCode) {
+      // Vérifier si le socket est dans la room (socket.rooms n'est pas accessible côté client)
+      // On émet room:rejoin pour s'assurer que le socket est dans la room
+      socket.emit('room:rejoin', { roomCode, playerId })
+    }
+
     const handleRoomState = (state: any) => {
       if (state.players?.length) {
         setGamePlayers(state.players)
@@ -259,13 +377,17 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           setCurrentQuestionIndex(state.game.questionIndex)
         }
         
-        if (gameStep === 'playing' && state.game.startedAt && state.game.durationMs) {
+        // Stocker durationMs pour que handleMediaStart puisse l'utiliser
+        if (state.game.durationMs) {
+          gameDurationMsRef.current = state.game.durationMs
+        }
+        
+        if (newGameStep === 'playing') {
+          // En mode multijoueur, ne pas démarrer le timer ici
+          // Le timer sera démarré dans handleMediaStart quand le média commence vraiment à jouer
           setWaitingForGo(false)
-          if (state.game.timeRemainingMs !== undefined && state.game.serverTime !== undefined) {
-            startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now(), state.game.timeRemainingMs, state.game.serverTime)
-          } else {
-            startTimerCalculation(state.game.startedAt, state.game.durationMs, Date.now())
-          }
+          setIsTimeUp(false)
+          setTimeRemaining(0) // Sera mis à jour dans handleMediaStart
         } else {
           setWaitingForGo(true)
         }
@@ -294,9 +416,12 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       startedAt?: number
       durationMs?: number
     }) => {
+      
       if (serverQuestions?.length) {
         setGameQuestions(serverQuestions)
         questionsRef.current = serverQuestions
+      } else {
+        console.error('[Game] handleGameStarted: Aucune question reçue!')
       }
       
       setCurrentQuestionIndex(questionIndex)
@@ -312,9 +437,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       goAtRef.current = null
       setGameStep('loading')
       clearTimerInterval()
+      
+      // Réinitialiser le timer au démarrage de la partie
+      setIsTimeUp(false)
+      setTimeRemaining(0) // Sera mis à jour quand le timer démarre
+      revealTimerStartedRef.current = false
+      mediaStartTimeRef.current = null
     }
 
-    const handleGameGo = ({ goAt, startedAt, durationMs }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
+    const handleGameGo = ({ goAt, startedAt, durationMs, serverTime }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
       goAtRef.current = goAt
       gameDurationMsRef.current = durationMs
       setGameStep('starting')
@@ -323,10 +454,47 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       const startGameAtGoTime = () => {
         setWaitingForGo(false)
         setGameStep('playing')
-        // Démarrer le timer seulement quand le média commence vraiment à jouer
-        const actualStartTime = Date.now()
-        startTimerCalculation(actualStartTime, durationMs, actualStartTime)
-        setTimeRemaining(durationMs / 1000)
+        
+        // Réinitialiser les états - le timer sera démarré dans handleMediaStart
+        setIsTimeUp(false)
+        revealTimerStartedRef.current = false
+        mediaStartTimeRef.current = null
+        setTimeRemaining(0)
+        
+        // Fallback : si handleMediaStart n'est pas appelé dans les 3 secondes, démarrer le timer quand même
+        const fallbackTimer = setTimeout(() => {
+          if (mediaStartTimeRef.current === null && 
+              gameDurationMsRef.current && 
+              mediaReadyRef.current && 
+              !waitingForGo && 
+              gameStartedAtRef.current === null) {
+            console.warn('[Game] Fallback: onMediaStart pas appelé après 3s, démarrage du timer')
+            const fallbackNow = Date.now()
+            mediaStartTimeRef.current = fallbackNow
+            startTimerCalculation(fallbackNow, gameDurationMsRef.current, fallbackNow, undefined, undefined)
+            setTimeRemaining(gameDurationMsRef.current / 1000)
+            setIsTimeUp(false)
+          }
+        }, 3000)
+        
+        // Nettoyer le fallback si handleMediaStart est appelé
+        const cleanupTimerRef = { current: null as NodeJS.Timeout | null }
+        cleanupTimerRef.current = setInterval(() => {
+          if (mediaStartTimeRef.current !== null || gameStartedAtRef.current !== null) {
+            clearTimeout(fallbackTimer)
+            if (cleanupTimerRef.current) {
+              clearInterval(cleanupTimerRef.current)
+              cleanupTimerRef.current = null
+            }
+          }
+        }, 100)
+        
+        setTimeout(() => {
+          if (cleanupTimerRef.current) {
+            clearInterval(cleanupTimerRef.current)
+            cleanupTimerRef.current = null
+          }
+        }, 4000)
       }
       
       const scheduleStart = (targetTime: number) => {
@@ -345,15 +513,23 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       
       const waitForMediaAndStart = () => {
         let rafId: number | null = null
+        let timeoutId: NodeJS.Timeout | null = null
         const checkMedia = () => {
           if (mediaReadyRef.current) {
             scheduleStart(goAt)
             if (rafId !== null) cancelAnimationFrame(rafId)
+            if (timeoutId !== null) clearTimeout(timeoutId)
           } else {
             rafId = requestAnimationFrame(checkMedia)
           }
         }
         rafId = requestAnimationFrame(checkMedia)
+        
+        // Timeout de sécurité : démarrer le timer même si le média n'est pas prêt après 2 secondes
+        timeoutId = setTimeout(() => {
+          scheduleStart(goAt)
+          if (rafId !== null) cancelAnimationFrame(rafId)
+        }, 2000)
       }
       
       if (mediaReadyRef.current) {
@@ -402,6 +578,13 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       goAtRef.current = null
       setGameStep('loading')
       clearTimerInterval()
+      
+      // Réinitialiser le timer pour la nouvelle question
+      // Le timer sera démarré dans handleMediaStart quand le média commence vraiment à jouer
+      setIsTimeUp(false)
+      setTimeRemaining(0) // Reste à 0 jusqu'à ce que le média démarre
+      revealTimerStartedRef.current = false
+      mediaStartTimeRef.current = null
     }
 
     const handleGameEnded = ({ players: finalPlayers }: { players: Player[] }) => {
@@ -411,7 +594,23 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
 
     const handleError = ({ code, message }: { code: string, message: string }) => {
-      alert(`Erreur serveur : ${message}`)
+      // Si le joueur n'est pas trouvé dans la room, essayer de rejoindre avec room:join
+      if (code === 'PLAYER_NOT_FOUND' && roomCode) {
+        // Essayer de rejoindre la room avec room:join (peut-être que le joueur n'a jamais rejoint)
+        socket.emit('room:join', { 
+          roomCode, 
+          playerId, 
+          playerName: 'Joueur' // Nom par défaut
+        })
+        return
+      }
+      
+      // Pour les autres erreurs, afficher une alerte
+      if (code !== 'GAME_ALREADY_STARTED') {
+        console.error('[Game] Erreur serveur:', { code, message })
+        // Ne pas afficher d'alerte pour les erreurs non critiques
+        // alert(`Erreur serveur : ${message}`)
+      }
     }
 
     // Écouter tous les événements
@@ -423,11 +622,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       questionIndex: number
     }) => {
       // Synchronisation directe pour un joueur qui rejoint une partie en cours
+      // Mais ne pas démarrer le timer ici - attendre handleMediaStart
       setWaitingForGo(false)
       setGameStep('playing')
       setCurrentQuestionIndex(questionIndex)
-      startTimerCalculation(startedAt, durationMs, Date.now(), timeRemainingMs, serverTime)
-      setTimeRemaining(timeRemainingMs / 1000)
+      // Stocker les valeurs pour que handleMediaStart puisse les utiliser
+      gameDurationMsRef.current = durationMs
+      // Ne pas démarrer le timer ici - attendre handleMediaStart
+      setIsTimeUp(false)
+      setTimeRemaining(0) // Sera mis à jour dans handleMediaStart
     }
 
     socket.on('room:state', handleRoomState)
@@ -444,8 +647,43 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       socket.emit('room:rejoin', { roomCode, playerId })
     })
 
-    // Demander l'état actuel du jeu
-    socket.emit('game:get-state', { roomCode })
+    // S'assurer que le socket est dans la room
+    // Attendre d'abord que room:joined ou room:rejoined soit reçu avant de continuer
+    let hasJoinedRoom = false
+    
+    const handleRoomJoinedOrRejoined = () => {
+      if (!hasJoinedRoom) {
+        hasJoinedRoom = true
+        // Demander l'état actuel du jeu une fois qu'on est sûr d'être dans la room
+        socket.emit('game:get-state', { roomCode })
+      }
+    }
+    
+    socket.once('room:joined', handleRoomJoinedOrRejoined)
+    socket.once('room:rejoined', handleRoomJoinedOrRejoined)
+    
+    // Essayer de rejoindre la room
+    socket.emit('room:rejoin', { roomCode, playerId })
+    
+    // Timeout de sécurité : si on ne reçoit pas room:joined/rejoined après 2 secondes,
+    // essayer room:join (peut-être que le joueur n'a jamais rejoint)
+    const joinTimeout = setTimeout(() => {
+      if (!hasJoinedRoom) {
+        socket.emit('room:join', { 
+          roomCode, 
+          playerId, 
+          playerName: 'Joueur' // Nom par défaut si on n'a pas le nom
+        })
+      }
+    }, 2000)
+    
+    // Nettoyer le timeout si on reçoit room:joined/rejoined
+    socket.once('room:joined', () => {
+      clearTimeout(joinTimeout)
+    })
+    socket.once('room:rejoined', () => {
+      clearTimeout(joinTimeout)
+    })
 
     return () => {
       socket.off('room:state', handleRoomState)
@@ -741,8 +979,11 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           shouldPause={showScore || showSettingsPopup}
           onTimerUpdate={handleTimerUpdate}
           onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
+          onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
           waitingForGo={waitingForGo}
           gameStep={gameStep}
+          externalTimeRemaining={gameMode === 'online' ? timeRemaining : undefined}
+          externalIsTimeUp={gameMode === 'online' ? isTimeUp : undefined}
         />
       </div>
 

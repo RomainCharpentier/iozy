@@ -10,6 +10,7 @@ interface YouTubePlayerProps {
   timeLimit?: number // Durée du timer pour faire boucler la vidéo si nécessaire
   shouldPause?: boolean
   onMediaReady?: () => void
+  onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
 }
 
 export default function YouTubePlayer({ 
@@ -20,7 +21,8 @@ export default function YouTubePlayer({
   onVideoRestarted,
   timeLimit,
   shouldPause = false,
-  onMediaReady
+  onMediaReady,
+  onMediaStart
 }: YouTubePlayerProps) {
   const [videoId, setVideoId] = useState<string | null>(null)
   const [showVideo, setShowVideo] = useState(externalShowVideo)
@@ -79,8 +81,8 @@ export default function YouTubePlayer({
 
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
-      if (shouldPause || !autoPlay) {
-        // Mettre en pause si shouldPause est true OU si autoPlay est false
+      if (shouldPause) {
+        // Mettre en pause seulement si shouldPause est true
         iframeRef.current.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
           'https://www.youtube.com'
@@ -88,7 +90,7 @@ export default function YouTubePlayer({
         setIsPlaying(false)
       }
     }
-  }, [shouldPause, autoPlay])
+  }, [shouldPause])
 
   if (!videoId) {
     return (
@@ -150,6 +152,15 @@ export default function YouTubePlayer({
             onLoad={() => {
               setIsLoading(false)
               
+              // Toujours signaler que le média est prêt (pour envoyer game:ready au serveur)
+              // même si on ne démarre pas la lecture immédiatement
+              // Utiliser un délai pour s'assurer que l'iframe YouTube est complètement chargée
+              if (onMediaReady) {
+                setTimeout(() => {
+                  onMediaReady()
+                }, 1000)
+              }
+              
               // Ne démarrer la vidéo que si autoPlay est true ET shouldPause est false
               if (autoPlay && !shouldPause) {
                 if (!showVideo && !restartVideo) {
@@ -162,29 +173,28 @@ export default function YouTubePlayer({
                           'https://www.youtube.com'
                         )
                         setIsPlaying(true)
-                        if (onMediaReady) {
-                          onMediaReady()
+                        // Appeler onMediaStart quand la vidéo commence vraiment à jouer
+                        if (onMediaStart) {
+                          setTimeout(() => {
+                            onMediaStart()
+                          }, 500) // Petit délai pour s'assurer que la vidéo a vraiment démarré
                         }
                       } catch (error) {
                         console.error('Erreur lors du démarrage de la vidéo:', error)
                       }
                     }
-                  }, 500)
+                  }, 1000)
                 } else if (showVideo && restartVideo) {
                   // En mode reveal, la vidéo démarre automatiquement via autoplay dans l'URL
                   setTimeout(() => {
                     setIsPlaying(true)
-                  }, 500)
-                }
-              } else {
-                // Si on ne doit pas démarrer, signaler quand même que le média est prêt (mais en pause)
-                if (onMediaReady && !shouldPause) {
-                  // Ne signaler que si on n'est pas en pause
-                  setTimeout(() => {
-                    if (!shouldPause) {
-                      onMediaReady()
+                    // Appeler onMediaStart quand la vidéo commence vraiment à jouer en mode reveal
+                    if (onMediaStart) {
+                      setTimeout(() => {
+                        onMediaStart()
+                      }, 500) // Petit délai pour s'assurer que la vidéo a vraiment démarré
                     }
-                  }, 500)
+                  }, 1000)
                 }
               }
             }}

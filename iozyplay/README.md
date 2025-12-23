@@ -1,157 +1,208 @@
 # 🎵 Blindtest WebApp
 
-Une application web de blindtest moderne où vous pouvez deviner des séries TV, animes, chansons, films et jeux vidéo !
+A modern web application for blindtest games where you can guess TV series, anime, songs, movies, and video games!
 
-## 🚀 Fonctionnalités
+## 🚀 Features
 
-- **Vrai blindtest** : Écoutez des extraits audio ou regardez des images/vidéos pour deviner
-- **Multi-catégories** : Séries TV, Animes, Chansons, Films, Jeux vidéo
-- **Lecteur média intégré** : Contrôles play/pause pour audio et vidéo
-- **Sélection personnalisée** : Choisissez les catégories que vous souhaitez jouer
-- **Système de score** : Suivez votre progression en temps réel
-- **Interface moderne** : Design épuré et responsive
-- **Feedback immédiat** : Voir la bonne réponse après chaque question
+- **Real blindtest** : Listen to audio clips or watch images/videos to guess
+- **Multiple categories** : TV Series, Anime, Songs, Movies, Video Games
+- **Integrated media player** : Play/pause controls for audio and video
+- **Custom selection** : Choose the categories you want to play
+- **Score system** : Track your progress in real-time
+- **Modern interface** : Clean and responsive design
+- **Immediate feedback** : See the correct answer after each question
+- **Multiplayer mode** : Play online with friends in real-time rooms
+- **Solo mode** : Play alone at your own pace
+- **YouTube support** : Use YouTube videos as media sources
 
 ## 📦 Installation
 
-1. Installez les dépendances :
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Lancez le serveur de développement :
+2. Start the development server:
 ```bash
 npm run dev
 ```
 
-3. Ouvrez votre navigateur à l'adresse indiquée (généralement `http://localhost:5173`)
+3. Open your browser at the indicated address (usually `http://localhost:5173`)
 
-## 🏗️ Build pour production
+## 🌐 Multiplayer Mode
+
+To run the multiplayer mode, you need to start both the frontend and backend:
+
+```bash
+npm run dev:all
+```
+
+This starts both the backend server (port 3001) and the frontend Vite server (port 5173).
+
+### Separate terminals
+
+**Terminal 1 - Backend:**
+```bash
+npm run dev:server
+```
+
+**Terminal 2 - Frontend:**
+```bash
+npm run dev
+```
+
+## 🏗️ Production Build
 
 ```bash
 npm run build
 ```
 
-Les fichiers seront générés dans le dossier `dist/`.
+Files will be generated in the `dist/` folder.
 
-## 📁 Structure du projet
+## 📁 Project Structure
 
 ```
 blindtest-webapp/
 ├── src/
-│   ├── components/       # Composants React
-│   │   ├── CategorySelector.tsx
-│   │   ├── Game.tsx
-│   │   ├── QuestionCard.tsx
-│   │   └── Score.tsx
-│   ├── data/
-│   │   └── questions.json  # Base de données des questions
-│   ├── types.ts           # Types TypeScript
-│   ├── App.tsx            # Composant principal
-│   ├── main.tsx           # Point d'entrée
-│   └── index.css          # Styles globaux
+│   ├── components/       # React components
+│   │   ├── game/         # Game components
+│   │   ├── room/         # Multiplayer room components
+│   │   ├── media/        # Media player components
+│   │   └── ...
+│   ├── domain/           # Business logic (Clean Architecture)
+│   ├── services/         # Service layer
+│   ├── infrastructure/   # External implementations
+│   ├── types.ts          # TypeScript types
+│   ├── App.tsx           # Main component
+│   └── main.tsx          # Entry point
+├── server/               # Backend server
+│   ├── domain/           # Server-side business logic
+│   ├── handlers/         # Socket.io event handlers
+│   └── config/           # Server configuration
+├── public/
+│   └── media/            # Media files directory
 ├── index.html
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts
 ```
 
-## 🎮 Comment jouer
+## 🎮 How to Play
 
-1. Sélectionnez une ou plusieurs catégories
-2. Cliquez sur "Commencer le jeu"
-3. **Écoutez l'audio** ou **regardez l'image/vidéo** pour deviner
-4. Utilisez les contrôles pour jouer/pause les médias
-5. Répondez en sélectionnant la bonne réponse parmi les options
-6. Consultez votre score à la fin de la partie
-7. Rejouez ou retournez au menu principal
+1. Select one or more categories
+2. Click "Start Game"
+3. **Listen to the audio** or **watch the image/video** to guess
+4. Use controls to play/pause media
+5. Type your answer or select from options
+6. View your score at the end of the game
+7. Play again or return to the main menu
 
-## ➕ Ajouter des questions et médias
+### Multiplayer Mode
 
-### Ajouter des médias
+1. Select "🌐 Online" mode
+2. Create a room or join with a room code
+3. Wait for all players to be ready
+4. The host starts the game
+5. All players see the same questions simultaneously
+6. Compete for the highest score!
 
-1. **Placez vos fichiers multimédias** dans le dossier `public/media/` :
-   - Pour les chansons : fichiers audio (`.mp3`, `.wav`, etc.)
-   - Pour les séries/animes/films/jeux : images (`.jpg`, `.png`, etc.) ou vidéos (`.mp4`, etc.)
+## ➕ Adding Questions and Media
 
-2. **Modifiez le fichier** `src/data/questions.json` pour ajouter vos questions :
+### Adding Media
+
+1. **Place your media files** in the `public/media/` folder:
+   - For songs: audio files (`.mp3`, `.wav`, etc.)
+   - For series/anime/movies/games: images (`.jpg`, `.png`, etc.) or videos (`.mp4`, etc.)
+
+2. **Edit the file** `src/data/questions.json` to add your questions:
 
 ```json
 {
   "id": "unique-id",
-  "category": "chansons",
+  "category": "songs",
   "type": "audio",
-  "mediaUrl": "/media/chansons/mon-fichier.mp3",
-  "answer": "Nom de la chanson",
+  "mediaUrl": "/media/songs/my-file.mp3",
+  "answer": "Song Name",
   "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-  "hint": "Indice optionnel"
+  "hint": "Optional hint"
 }
 ```
 
-### Types de médias supportés
+### Supported Media Types
 
-- **`audio`** : Pour les chansons (fichiers `.mp3`, `.wav`, `.ogg`)
-- **`image`** : Pour les séries, animes, films, jeux (fichiers `.jpg`, `.png`, `.gif`, `.webp`)
-- **`video`** : Pour les extraits vidéo (fichiers `.mp4`, `.webm`, `.ogg`)
+- **`audio`** : For songs (`.mp3`, `.wav`, `.ogg` files)
+- **`image`** : For series, anime, movies, games (`.jpg`, `.png`, `.gif`, `.webp` files)
+- **`video`** : For video clips (`.mp4`, `.webm`, `.ogg` files)
 
-### URLs externes
+### External URLs
 
-Vous pouvez aussi utiliser des URLs externes :
+You can also use external URLs:
 
 ```json
 {
-  "mediaUrl": "https://example.com/mon-audio.mp3"
+  "mediaUrl": "https://example.com/my-audio.mp3"
 }
 ```
 
-### Support YouTube
+### YouTube Support
 
-L'application supporte les vidéos YouTube ! Vous pouvez utiliser une URL YouTube et basculer entre le mode vidéo et le mode audio uniquement :
+The application supports YouTube videos! You can use a YouTube URL and toggle between video and audio-only modes:
 
 ```json
 {
   "id": "c7",
-  "category": "chansons",
+  "category": "songs",
   "type": "video",
   "mediaUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-  "answer": "Nom de la chanson",
+  "answer": "Song Name",
   "options": ["Option 1", "Option 2", "Option 3", "Option 4"]
 }
 ```
 
-**Fonctionnalités YouTube** :
-- ✅ Lecture avec vidéo ou audio uniquement
-- ✅ Bouton pour basculer entre les modes
-- ✅ Contrôles play/pause
-- ✅ Support des URLs YouTube (youtube.com/watch, youtu.be, etc.)
+**YouTube Features**:
+- ✅ Play with video or audio-only
+- ✅ Toggle button between modes
+- ✅ Play/pause controls
+- ✅ Support for YouTube URLs (youtube.com/watch, youtu.be, etc.)
 
-Pour utiliser le mode audio uniquement, cliquez sur le bouton "👁️ Vidéo" pour masquer la vidéo et garder uniquement le son.
+To use audio-only mode, click the "👁️ Video" button to hide the video and keep only the sound.
 
-### Structure recommandée
+### Recommended Structure
 
 ```
 public/media/
-├── chansons/
-│   └── vos-chansons.mp3
+├── songs/
+│   └── your-songs.mp3
 ├── series/
-│   └── vos-images.jpg
-├── animes/
-│   └── vos-images.jpg
-├── films/
-│   └── vos-images.jpg
-└── jeux/
-    └── vos-images.jpg
+│   └── your-images.jpg
+├── anime/
+│   └── your-images.jpg
+├── movies/
+│   └── your-images.jpg
+└── games/
+    └── your-images.jpg
 ```
 
-## 🛠️ Technologies utilisées
+## 🛠️ Technologies Used
 
-- **React 18** - Bibliothèque UI
-- **TypeScript** - Typage statique
-- **Vite** - Build tool et dev server
-- **CSS3** - Styles modernes avec variables CSS
+- **React 18** - UI library
+- **TypeScript** - Static typing
+- **Vite** - Build tool and dev server
+- **Socket.io** - Real-time multiplayer communication
+- **Node.js** - Backend server
+- **CSS3** - Modern styles with CSS variables
 
-## 📝 Licence
+## 🏗️ Architecture
 
-Ce projet est libre d'utilisation pour des fins personnelles et éducatives.
+The project follows Clean Architecture principles:
 
+- **Domain** : Pure business logic, no external dependencies
+- **Services** : Facades for domain usage
+- **Infrastructure** : Concrete implementations (localStorage, Socket.io, etc.)
+- **Components** : React presentation layer
 
+See `src/ARCHITECTURE.md` and `server/ARCHITECTURE.md` for more details.
+
+## 📝 License
+
+This project is free to use for personal and educational purposes.

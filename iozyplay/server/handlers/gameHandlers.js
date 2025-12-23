@@ -74,9 +74,28 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
   // Ne programmer le timer que si startedAt est défini (après le "go")
   if (!room.game.startedAt) return;
 
+  // Calculer le temps restant à partir de startedAt
+  const now = Date.now();
+  const elapsed = now - room.game.startedAt;
+  const timeRemaining = Math.max(0, room.game.durationMs - elapsed);
+  
+  console.log('[scheduleNextQuestionTimer] Programmation du timer', {
+    roomCode,
+    startedAt: room.game.startedAt,
+    now,
+    elapsed,
+    durationMs: room.game.durationMs,
+    timeRemaining
+  });
+
   const timer = setTimeout(() => {
     const currentRoom = roomRepository.get(roomCode);
     if (!currentRoom || currentRoom.gameState !== 'playing') return;
+    
+    console.log('[scheduleNextQuestionTimer] Timer déclenché, passage à la question suivante', {
+      roomCode,
+      currentQuestionIndex: currentRoom.game.questionIndex
+    });
     
     const result = nextQuestion(currentRoom);
     if (!result) return;
@@ -113,7 +132,7 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
       
       // Ne pas programmer le timer maintenant, attendre que tous soient prêts
     }
-  }, room.game.durationMs);
+  }, timeRemaining);
   
   roomRepository.setGameTimer(roomCode, timer);
 }
@@ -261,11 +280,31 @@ export function setupGameHandlers(socket, io) {
   });
 
   socket.on('game:ready', ({ roomCode }) => {
+    console.log('[game:ready] Événement reçu', { roomCode, socketId: socket.id });
+    
     const room = roomRepository.get(roomCode);
-    if (!room?.game) return;
+    if (!room?.game) {
+      console.log('[game:ready] Room ou game non trouvé', { roomCode, hasRoom: !!room, hasGame: !!room?.game });
+      return;
+    }
+
+    console.log('[game:ready] Joueurs dans la room', { 
+      roomCode, 
+      players: room.players.map(p => ({ id: p.id, socketId: p.socketId, name: p.name, connected: p.connected })),
+      socketId: socket.id
+    });
 
     const player = findPlayerBySocketId(room, socket.id);
-    if (!player) return;
+    if (!player) {
+      console.log('[game:ready] Joueur non trouvé par socketId', { 
+        roomCode, 
+        socketId: socket.id,
+        players: room.players.map(p => ({ id: p.id, socketId: p.socketId, name: p.name }))
+      });
+      return;
+    }
+
+    console.log('[game:ready] Joueur prêt', { roomCode, playerId: player.id, playerName: player.name, socketId: socket.id });
 
     if (!(room.game.readyPlayers instanceof Set)) {
       room.game.readyPlayers = new Set();
@@ -275,13 +314,27 @@ export function setupGameHandlers(socket, io) {
     roomRepository.update(roomCode, room);
     
     const connectedPlayers = room.players.filter(p => p.connected);
+    const readyPlayers = Array.from(room.game.readyPlayers || []);
     const allReady = connectedPlayers.length > 0 && 
                      connectedPlayers.every(p => room.game.readyPlayers.has(p.id));
+    
+    console.log('[game:ready] État de synchronisation', {
+      roomCode,
+      connectedPlayers: connectedPlayers.length,
+      connectedPlayerIds: connectedPlayers.map(p => p.id),
+      readyPlayers: readyPlayers.length,
+      readyPlayerIds: readyPlayers,
+      allReady,
+      hasGoAt: !!room.game.goAt,
+      check: connectedPlayers.map(p => ({ id: p.id, isReady: room.game.readyPlayers.has(p.id) }))
+    });
     
     if (allReady && !room.game.goAt) {
       const goAt = Date.now() + 1500;
       room.game.goAt = goAt;
       room.game.startedAt = goAt;
+      
+      console.log('[game:ready] ✅ Tous les joueurs sont prêts, envoi de game:go', { roomCode, goAt });
       
       roomRepository.update(roomCode, room);
       scheduleNextQuestionTimer(io, roomCode, room);
@@ -294,6 +347,7 @@ export function setupGameHandlers(socket, io) {
         serverTime: Date.now()
       });
     } else {
+      console.log('[game:ready] ⏳ Pas encore tous prêts ou goAt déjà défini', { allReady, hasGoAt: !!room.game.goAt });
       broadcastRoomState(io, roomCode, room);
     }
   });
