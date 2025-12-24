@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { QuestionService } from '../services/questionService'
-import QuestionEditor from '../components/editor/QuestionEditor'
+import { QuestionService } from '../../services/questionService'
+import QuestionEditor from './EditorPage/QuestionEditor'
 
 export default function EditorPage() {
   const navigate = useNavigate()

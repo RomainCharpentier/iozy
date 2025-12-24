@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Question, Category, MediaType } from '../../types'
 import { isYouTubeUrl } from '../../utils/youtube'
 import { QuestionService } from '../../services/questionService'
-import { CATEGORIES } from '../../constants/categories'
 
 interface QuestionEditorProps {
   questions: Question[]
@@ -30,8 +29,8 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setLocalQuestions(questions)
   }, [questions])
 
-  const filteredQuestions = filterCategory === 'all' 
-    ? localQuestions 
+  const filteredQuestions = filterCategory === 'all'
+    ? localQuestions
     : localQuestions.filter(q => q.category === filterCategory)
 
   // Utiliser QuestionService pour générer l'ID
@@ -160,8 +159,8 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       <div className="editor-filters">
         <label>
           Filtrer par catégorie :
-          <select 
-            value={filterCategory} 
+          <select
+            value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value as Category | 'all')}
           >
             <option value="all">Toutes</option>
@@ -181,7 +180,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         <div className="questions-list">
           <div className="list-header">
             <h3>Liste des questions</h3>
-            <button 
+            <button
               className="add-button"
               onClick={() => {
                 cancelEdit()
@@ -195,14 +194,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           {(showAddForm || editingIndex !== null) && (
             <div className="question-form">
               <h4>{editingIndex !== null ? 'Modifier la question' : 'Nouvelle question'}</h4>
-              
+
               {editingIndex !== null && (
                 <div className="form-info">
                   <span className="info-badge">ID: {localQuestions[editingIndex]?.id}</span>
                   <span className="info-text">(ID généré automatiquement, non modifiable)</span>
                 </div>
               )}
-              
+
               <div className="form-row">
                 <label>
                   Catégorie *
@@ -289,7 +288,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               </label>
 
               <div className="form-actions">
-                <button 
+                <button
                   className="submit-button"
                   onClick={editingIndex !== null ? handleUpdate : handleAdd}
                 >
@@ -336,13 +335,13 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                   </div>
                 </div>
                 <div className="question-card-actions">
-                  <button 
+                  <button
                     className="edit-button"
                     onClick={() => handleEdit(index)}
                   >
                     ✏️ Modifier
                   </button>
-                  <button 
+                  <button
                     className="delete-button"
                     onClick={() => handleDelete(index)}
                   >
@@ -356,7 +355,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           {filteredQuestions.length === 0 && (
             <div className="empty-state">
               <p>📭 Aucune question dans cette catégorie</p>
-              <button 
+              <button
                 className="add-button"
                 onClick={() => {
                   cancelEdit()

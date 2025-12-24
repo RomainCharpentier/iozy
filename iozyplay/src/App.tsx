@@ -1,14 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { GameProvider } from './contexts/GameContext'
-import { QuestionService } from './services/questionService'
-import HomePage from './pages/HomePage'
-import CategorySelectorPage from './pages/CategorySelectorPage'
-import GamePage from './pages/GamePage'
-import EditorPage from './pages/EditorPage'
-import RoomCreatorPage from './pages/RoomCreatorPage'
-import RoomJoinerPage from './pages/RoomJoinerPage'
-import SettingsPage from './pages/SettingsPage'
-import { useEffect } from 'react'
+import { GameProvider } from './lib/game/GameContext'
+import HomePage from './pages/HomePage/HomePage'
+import CategorySelectorPage from './pages/CategorySelectorPage/CategorySelectorPage'
+import GamePage from './pages/GamePage/GamePage'
+import EditorPage from './pages/EditorPage/EditorPage'
+import RoomCreatorPage from './pages/RoomCreatorPage/RoomCreatorPage'
+import RoomJoinerPage from './pages/RoomJoinerPage/RoomJoinerPage'
+import SettingsPage from './pages/SettingsPage/SettingsPage'
 
 function GameOverlay() {
   const location = useLocation()
@@ -26,9 +24,6 @@ function GameOverlay() {
 }
 
 function App() {
-  useEffect(() => {
-    QuestionService.loadQuestions()
-  }, [])
 
   return (
     <GameProvider>

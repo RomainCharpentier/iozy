@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGameState } from '../contexts/GameContext'
-import RoomJoiner from '../components/room/RoomJoiner'
+import RoomJoiner from './RoomJoinerPage/RoomJoiner'
 
 export default function RoomJoinerPage() {
   const navigate = useNavigate()

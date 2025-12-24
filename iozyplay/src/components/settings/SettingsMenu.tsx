@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { settingsService, UserSettings } from '../../services/settingsService'
 import { soundManager } from '../../utils/sounds'
-import '../../styles/design-system.css'
+import '../../../styles/design-system.css'
 import './SettingsMenu.css'
 
 const AVATARS = ['🎮', '🎵', '🎬', '📺', '🎨', '🚀', '⚡', '🔥', '💎', '🌟', '🎯', '🎪']

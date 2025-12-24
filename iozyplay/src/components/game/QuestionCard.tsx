@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Question, GameMode, Player } from '../../types'
 import MediaPlayer from '../media/MediaPlayer'
+import AnswerInput from './AnswerInput'
+import AnswerFeedback from './AnswerFeedback'
+import MediaSyncOverlay from './MediaSyncOverlay'
 import { soundManager } from '../../utils/sounds'
 import { TIMING } from '../../constants/timing'
 
@@ -218,11 +221,6 @@ export default function QuestionCard({
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, playerId?: string) => {
-    if (e.key === 'Enter') {
-      handleSubmit(playerId)
-    }
-  }
 
   const getCategoryEmoji = (category: string) => {
     const emojis: Record<string, string> = {
@@ -258,31 +256,7 @@ export default function QuestionCard({
         {question.mediaUrl && (
           <>
             {waitingForGo && gameMode === 'online' && (
-              <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                background: 'rgba(0, 0, 0, 0.5)',
-                zIndex: 100,
-                borderRadius: '0.5rem',
-                pointerEvents: 'none' // Permettre l'interaction avec le média en dessous
-              }}>
-                <div style={{ textAlign: 'center', color: 'white', background: 'rgba(0, 0, 0, 0.8)', padding: '20px', borderRadius: '0.5rem' }}>
-                  <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
-                  <p>⏳ Synchronisation...</p>
-                  <p style={{ fontSize: '0.9em', opacity: 0.8 }}>
-                    {gameStep === 'loading' && !mediaReady && 'Chargement du média...'}
-                    {gameStep === 'loading' && mediaReady && 'En attente des autres joueurs...'}
-                    {gameStep === 'ready' && 'Tous les joueurs sont prêts !'}
-                    {gameStep === 'starting' && 'Démarrage dans quelques instants...'}
-                  </p>
-                </div>
-              </div>
+              <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
             )}
             <MediaPlayer 
               type={question.type} 
@@ -333,92 +307,39 @@ export default function QuestionCard({
       <div className="text-answer">
         {gameMode === 'solo' ? (
           <>
-            <div className="answer-input-container">
-              <input
-                ref={(el) => { inputRefs.current['solo'] = el }}
-                type="text"
-                placeholder="Tapez votre réponse et appuyez sur Entrée..."
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e)}
-                disabled={isCorrect || isTimeUp}
-                className={`answer-input ${isCorrect ? 'correct' : ''} ${isTimeUp ? 'disabled' : ''}`}
-                aria-label="Zone de saisie de la réponse"
-                autoComplete="off"
-              />
-              {gameMode === 'solo' && attempts > 0 && (
-                <div className="attempts-counter">
-                  {attempts} tent.
-                </div>
-              )}
-              <button
-                onClick={() => {
-                  soundManager.playClick()
-                  handleSubmit()
-                }}
-                disabled={!userAnswer.trim() || isCorrect || isTimeUp}
-                className="submit-button"
-              >
-                Valider
-              </button>
-            </div>
-
-            {isCorrect && (
-              <div className="answer-feedback correct">
-                ✅ Correct ! Vous avez trouvé en {attempts} tentative{attempts > 1 ? 's' : ''} !
-              </div>
-            )}
-
-            {isTimeUp && !isCorrect && (
-              <div className="answer-feedback time-up">
-                ⏱️ Temps écoulé ! La réponse était : <strong>{question.answer}</strong>
-              </div>
-            )}
-
-            {attempts > 0 && !isCorrect && !isTimeUp && (
-              <div className="answer-feedback incorrect">
-                ❌ Incorrect. Réessayez !
-              </div>
-            )}
+            <AnswerInput
+              value={userAnswer}
+              onChange={setUserAnswer}
+              onSubmit={() => handleSubmit()}
+              disabled={isCorrect || isTimeUp}
+              attempts={attempts}
+              showAttempts={true}
+              inputRef={(el) => { inputRefs.current['solo'] = el }}
+            />
+            <AnswerFeedback
+              isCorrect={isCorrect}
+              isTimeUp={isTimeUp}
+              attempts={attempts}
+              correctAnswer={question.answer}
+            />
           </>
         ) : (
           <>
-            <div className="answer-input-container">
-              <input
-                ref={(el) => { inputRefs.current['online'] = el }}
-                type="text"
-                placeholder="Tapez votre réponse et appuyez sur Entrée..."
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e)}
-                disabled={questionAnsweredBy !== null || isTimeUp}
-                className={`answer-input ${questionAnsweredBy !== null ? 'disabled' : ''} ${isTimeUp ? 'disabled' : ''}`}
-                aria-label="Zone de saisie de la réponse"
-                autoComplete="off"
-              />
-              <button
-                onClick={() => {
-                  soundManager.playClick()
-                  handleSubmit()
-                }}
-                disabled={!userAnswer.trim() || questionAnsweredBy !== null || isTimeUp}
-                className="submit-button"
-              >
-                Valider
-              </button>
-            </div>
-
-            {questionAnsweredBy !== null && (
-              <div className="answer-feedback correct">
-                🎉 {players.find(p => p.id === questionAnsweredBy)?.name || 'Quelqu\'un'} a trouvé la bonne réponse !
-              </div>
-            )}
-
-            {isTimeUp && questionAnsweredBy === null && (
-              <div className="answer-feedback time-up">
-                ⏱️ Temps écoulé ! La réponse était : <strong>{question.answer}</strong>
-              </div>
-            )}
+            <AnswerInput
+              value={userAnswer}
+              onChange={setUserAnswer}
+              onSubmit={() => handleSubmit()}
+              disabled={questionAnsweredBy !== null || isTimeUp}
+              inputRef={(el) => { inputRefs.current['online'] = el }}
+            />
+            <AnswerFeedback
+              isCorrect={questionAnsweredBy !== null}
+              isTimeUp={isTimeUp && questionAnsweredBy === null}
+              attempts={attempts}
+              correctAnswer={question.answer}
+              answeredBy={questionAnsweredBy}
+              playerName={players.find(p => p.id === questionAnsweredBy)?.name}
+            />
           </>
         )}
       </div>

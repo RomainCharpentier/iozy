@@ -5,8 +5,10 @@ import { getPlayerId } from '../../utils/playerId'
 import { soundManager } from '../../utils/sounds'
 import { TIMING, QUESTION_COUNT } from '../../constants/timing'
 import { QuestionService } from '../../services/questionService'
-import { CATEGORIES } from '../../constants/categories'
-import '../../styles/design-system.css'
+import RoomConnectingState from './ui/RoomConnectingState'
+import RoomPlayersPanel from './ui/RoomPlayersPanel'
+import RoomConfigPanel from './ui/RoomConfigPanel'
+import '../../../styles/design-system.css'
 
 interface RoomCreatorProps {
   categories: Category[]
@@ -249,47 +251,21 @@ export default function RoomCreator({
     })
   }
 
-  const getCategoryInfo = (categoryId: string) => {
-    return CATEGORIES.find(c => c.id === categoryId) || { emoji: '🎵', name: categoryId }
-  }
-
   if (!roomCode) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: 'calc(100vh - 4rem)',
-        flexDirection: 'column',
-        gap: 'var(--spacing-md)'
-      }}>
-        <h2 style={{ fontSize: 'var(--font-size-xl)' }}>Création du salon...</h2>
-        {isConnecting && (
-          <>
-            <div style={{
-              width: '50px',
-              height: '50px',
-              border: '4px solid var(--border)',
-              borderTopColor: 'var(--accent-primary)',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }}></div>
-            <p className="text-secondary">Connexion au serveur...</p>
-          </>
-        )}
-        {error && (
-          <div style={{ textAlign: 'center', maxWidth: '600px' }}>
-            <p style={{ color: 'var(--error)', marginBottom: 'var(--spacing-md)' }}>{error}</p>
-            <p className="text-secondary" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Pour démarrer le serveur backend, exécutez : <code>npm run dev:server</code>
-            </p>
-            <button className="btn btn-secondary" onClick={onBack}>
-              ← Retour
-            </button>
-          </div>
-        )}
-      </div>
+      <RoomConnectingState
+        isConnecting={isConnecting}
+        error={error}
+        onBack={onBack}
+      />
     )
+  }
+
+  const getStartError = (): string | null => {
+    if (!currentPlayerName) return '⚠️ Vous devez définir votre nom pour démarrer'
+    if (players.length === 0) return '⚠️ Attendez qu\'au moins un joueur rejoigne'
+    if (availableQuestionsCount === 0) return '⚠️ Aucune question disponible'
+    return null
   }
 
   return (
@@ -330,221 +306,35 @@ export default function RoomCreator({
 
       {/* Main Layout: 2 Columns */}
       <div className="grid-2" style={{ flex: 1, alignItems: 'start' }}>
-        {/* Left Column: Players */}
-        <div className="card" style={{ maxHeight: 'calc(100vh - 12rem)', overflowY: 'auto' }}>
-          <div className="card-header">
-            <h2 className="card-title">Joueurs ({players.length})</h2>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-            {players.map(player => (
-              <div
-                key={player.id}
-                className="badge"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 'var(--spacing-sm)',
-                  background: player.isHost ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-tertiary)',
-                  borderColor: player.isHost ? 'var(--accent-primary)' : 'var(--border)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                  {player.isHost && <span>👑</span>}
-                  <span>{player.name}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        <RoomPlayersPanel
+          players={players}
+          shareLink={shareLink}
+          playerName={playerName}
+          currentPlayerName={currentPlayerName}
+          onPlayerNameChange={setPlayerName}
+          onSetName={handleSetName}
+          onCopyLink={handleCopyLink}
+          copied={copied}
+        />
 
-          {/* Share Link Section */}
-          <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--border)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-              Lien de partage
-            </label>
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-              <input
-                type="text"
-                value={shareLink}
-                readOnly
-                className="input"
-                style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--spacing-xs)' }}
-              />
-            </div>
-          </div>
-
-          {/* Player Name Input */}
-          <div style={{ marginTop: 'var(--spacing-md)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-              Votre nom {currentPlayerName && `(${currentPlayerName})`}
-            </label>
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder={currentPlayerName || "Entrez votre nom"}
-                maxLength={20}
-                className="input"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && playerName.trim()) {
-                    handleSetName()
-                  }
-                }}
-              />
-              <button
-                className="btn btn-secondary"
-                onClick={handleSetName}
-                disabled={!playerName.trim() || playerName.trim() === currentPlayerName}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {currentPlayerName ? 'Modifier' : 'Valider'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Configuration */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="card-header">
-            <h2 className="card-title">⚙️ Configuration</h2>
-          </div>
-
-          {/* Categories */}
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-              Thèmes sélectionnés
-            </label>
-            <div className="grid-auto" style={{ gap: 'var(--spacing-xs)' }}>
-              {categories.map(category => {
-                const catInfo = getCategoryInfo(category)
-                return (
-                  <span key={category} className="badge badge-primary">
-                    {catInfo.emoji} {catInfo.name}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Timer Slider */}
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-              ⏱️ Timer par question: <strong>{timeLimit}s</strong>
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-              <input
-                type="range"
-                min={TIMING.MIN_TIME_LIMIT}
-                max={TIMING.MAX_TIME_LIMIT}
-                value={timeLimit}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value)
-                  setTimeLimit(value)
-                  soundManager.playClick()
-                }}
-                style={{
-                  flex: 1,
-                  height: '6px',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: '3px',
-                  outline: 'none',
-                  WebkitAppearance: 'none'
-                }}
-              />
-              <span style={{ minWidth: '50px', textAlign: 'center', fontWeight: 700, fontSize: 'var(--font-size-lg)' }}>
-                {timeLimit}s
-              </span>
-            </div>
-          </div>
-
-          {/* Question Count Slider */}
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-              🎵 Nombre de questions: <strong>{questionCount}</strong>
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-              <input
-                type="range"
-                min={QUESTION_COUNT.MIN}
-                max={Math.min(QUESTION_COUNT.MAX, availableQuestionsCount)}
-                value={questionCount}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value)
-                  setQuestionCount(value)
-                  soundManager.playClick()
-                }}
-                disabled={availableQuestionsCount === 0}
-                style={{
-                  flex: 1,
-                  height: '6px',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: '3px',
-                  outline: 'none',
-                  WebkitAppearance: 'none',
-                  opacity: availableQuestionsCount === 0 ? 0.5 : 1
-                }}
-              />
-              <span style={{ minWidth: '50px', textAlign: 'center', fontWeight: 700, fontSize: 'var(--font-size-lg)' }}>
-                {questionCount}
-              </span>
-            </div>
-            <p className="text-secondary" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}>
-              {availableQuestionsCount > 0 
-                ? `${availableQuestionsCount} questions disponibles`
-                : 'Aucune question disponible'
-              }
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div style={{ 
-            marginTop: 'auto', 
-            paddingTop: 'var(--spacing-lg)', 
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            gap: 'var(--spacing-sm)',
-            justifyContent: 'flex-end'
-          }}>
-            <button 
-              className="btn btn-secondary" 
-              onClick={() => {
-                const socket = getSocket()
-                if (socket && roomCode) {
-                  socket.emit('room:leave', { roomCode })
-                }
-                onBack()
-              }}
-            >
-              ← Retour
-            </button>
-            <button 
-              className="btn btn-primary btn-large" 
-              onClick={handleStartGame}
-              disabled={!currentPlayerName || players.length === 0 || availableQuestionsCount === 0}
-            >
-              ▶ Démarrer la partie
-            </button>
-          </div>
-
-          {/* Error Messages */}
-          {(!currentPlayerName || players.length === 0 || availableQuestionsCount === 0) && (
-            <div style={{ 
-              marginTop: 'var(--spacing-md)', 
-              padding: 'var(--spacing-sm)', 
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--error)',
-              borderRadius: '0.5rem',
-              fontSize: 'var(--font-size-sm)',
-              color: 'var(--error)'
-            }}>
-              {!currentPlayerName && '⚠️ Vous devez définir votre nom pour démarrer'}
-              {currentPlayerName && players.length === 0 && '⚠️ Attendez qu\'au moins un joueur rejoigne'}
-              {currentPlayerName && players.length > 0 && availableQuestionsCount === 0 && '⚠️ Aucune question disponible'}
-            </div>
-          )}
-        </div>
+        <RoomConfigPanel
+          categories={categories}
+          timeLimit={timeLimit}
+          questionCount={questionCount}
+          availableQuestionsCount={availableQuestionsCount}
+          onTimeLimitChange={setTimeLimit}
+          onQuestionCountChange={setQuestionCount}
+          onStartGame={handleStartGame}
+          onBack={() => {
+            const socket = getSocket()
+            if (socket && roomCode) {
+              socket.emit('room:leave', { roomCode })
+            }
+            onBack()
+          }}
+          canStart={!!currentPlayerName && players.length > 0 && availableQuestionsCount > 0}
+          startError={getStartError()}
+        />
       </div>
     </div>
   )

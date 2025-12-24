@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../contexts/GameContext'
 import { Category, Question } from '../types'
-import Game from '../components/game/Game'
+import Game from './GamePage/Game'
 
 export default function GamePage() {
     const navigate = useNavigate()

@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
-import HomeMenu from '../components/menu/HomeMenu'
+import HomeMenu from './HomePage/HomeMenu'
 
 export default function HomePage() {
   const navigate = useNavigate()

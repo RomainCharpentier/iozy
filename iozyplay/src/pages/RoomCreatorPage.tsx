@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../contexts/GameContext'
-import RoomCreator from '../components/room/RoomCreator'
+import RoomCreator from './RoomCreatorPage/RoomCreator'
 
 export default function RoomCreatorPage() {
   const navigate = useNavigate()

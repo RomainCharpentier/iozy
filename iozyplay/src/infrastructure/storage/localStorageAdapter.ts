@@ -3,7 +3,7 @@
  * Cette couche peut être remplacée par une autre implémentation (IndexedDB, API REST, etc.)
  */
 
-import { StoragePort } from '../../ports/storage';
+import { StoragePort } from '../../ports/output/StoragePort';
 
 export class LocalStorageAdapter implements StoragePort {
   getItem(key: string): string | null {

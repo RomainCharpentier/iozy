@@ -1,0 +1,23 @@
+import type { Question } from '../../services/types'
+
+export type GameMode = 'solo' | 'online';
+
+export interface Player {
+  id: string; // playerId (UUID persistant)
+  name: string;
+  score: number;
+  isHost?: boolean;
+  socketId?: string; // socket.id (peut changer à chaque reconnexion)
+  connected?: boolean; // état de connexion
+}
+
+export interface GameState {
+  currentQuestionIndex: number;
+  score: number;
+  selectedCategories: string[];
+  questions: Question[];
+  isGameActive: boolean;
+  gameMode?: GameMode;
+  players?: Player[];
+}
+

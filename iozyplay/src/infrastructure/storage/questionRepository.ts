@@ -3,8 +3,8 @@
  */
 
 import { Question, Category, QuestionsData } from '../../types';
-import { QuestionsRepository } from '../../domain/question';
-import { StoragePort } from '../../ports/storage';
+import { QuestionRepositoryPort } from '../../ports/output/QuestionRepositoryPort';
+import { StoragePort } from '../../ports/output/StoragePort';
 import questionsData from '../../data/questions.json';
 
 export class QuestionRepository implements QuestionsRepository {
