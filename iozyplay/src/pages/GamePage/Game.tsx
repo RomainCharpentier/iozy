@@ -359,7 +359,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     const handleRoomState = (state: any) => {
       if (state.players?.length) {
         setGamePlayers(state.players)
-        setIsHost(state.players.find((p: Player) => p.id === playerId)?.isHost || false)
+        const myPlayer = state.players.find((p: Player) => p.id === playerId)
+        setIsHost(myPlayer?.isHost || false)
       }
 
       if (state.questions?.length) {

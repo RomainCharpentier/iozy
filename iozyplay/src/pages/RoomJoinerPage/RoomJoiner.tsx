@@ -183,10 +183,12 @@ export default function RoomJoiner({
             {players.map(player => (
               <div
                 key={player.id}
-                className={`player-badge ${player.isHost ? 'host' : ''}`}
+                className={`player-badge ${player.isHost ? 'host' : ''} ${!player.connected ? 'disconnected' : ''}`}
+                title={player.isHost ? 'Hôte' : 'Joueur'}
               >
                 {player.name}
                 {player.isHost && <span className="host-badge">👑</span>}
+                {!player.connected && <span className="disconnected-badge" title="Déconnecté">⚠️</span>}
               </div>
             ))}
           </div>

@@ -12,6 +12,11 @@ import './styles/settings.css'
 import './styles/settings-menu.css'
 import './styles/responsive.css'
 import './services/settingsService' // Initialiser les settings au démarrage
+import { registerServiceWorker } from './utils/serviceWorker'
+
+// Enregistrer le service worker pour le cache offline
+// En développement aussi pour tester
+registerServiceWorker()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -17,8 +17,8 @@ export const TIMING = {
 } as const
 
 export const QUESTION_COUNT = {
-  DEFAULT: 10,
-  MIN: 5,
+  DEFAULT: 20,
+  MIN: 1,
   MAX: 50,
 } as const
 

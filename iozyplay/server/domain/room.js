@@ -89,6 +89,7 @@ export function addPlayer(room, playerId, socketId, playerName) {
     // Mise à jour du socketId et reconnexion
     existingPlayer.socketId = socketId;
     existingPlayer.connected = true;
+    existingPlayer.disconnectedAt = undefined;
     room.updatedAt = Date.now();
     return room;
   }
@@ -133,6 +134,7 @@ export function markPlayerDisconnected(room, socketId) {
   if (player) {
     player.connected = false;
     player.socketId = null; // Retirer le socketId mais garder le player
+    player.disconnectedAt = Date.now(); // Timestamp de déconnexion
     room.updatedAt = Date.now();
   }
   
@@ -149,6 +151,7 @@ export function reconnectPlayer(room, playerId, socketId) {
   if (player) {
     player.socketId = socketId;
     player.connected = true;
+    player.disconnectedAt = undefined; // Réinitialiser le timestamp
     room.updatedAt = Date.now();
   }
   

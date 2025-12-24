@@ -132,10 +132,8 @@ export function setupRoomHandlers(socket, io) {
     // Nouveau joueur - vérifier que la partie n'a pas commencé
     // Si la partie a commencé, permettre quand même la reconnexion et envoyer l'état actuel
     if (!isWaiting(room)) {
-      // La partie a déjà commencé, mais on permet quand même la reconnexion
+      // La partie a déjà commencé, permettre la reconnexion
       // Le joueur recevra l'état actuel de la partie
-      
-      // Ajouter le joueur quand même (il pourra observer la partie)
       addPlayer(room, playerId, socket.id, playerName);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
@@ -231,7 +229,8 @@ export function setupRoomHandlers(socket, io) {
     }
   });
 
-  socket.on('disconnect', () => {
+  // Gestion améliorée des déconnexions
+  socket.on('disconnect', (reason) => {
     // Trouver toutes les rooms où ce socket est présent
     const allRooms = roomRepository.getAll();
     

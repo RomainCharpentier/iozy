@@ -43,15 +43,75 @@ export default function RoomCreator({
   const [players, setPlayers] = useState<any[]>([])
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('')
   const [timeLimit, setTimeLimit] = useState<number>(TIMING.DEFAULT_TIME_LIMIT)
-  const [questionCount, setQuestionCount] = useState<number>(Math.min(QUESTION_COUNT.DEFAULT, questions.length))
-  const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(questions.length)
+  
+  // Calculer le nombre de questions disponibles immédiatement
+  const initialAvailableCount = (() => {
+    try {
+      const available = QuestionService.getQuestionsForCategories(categories)
+      const count = Array.isArray(available) ? available.length : 0
+      return typeof count === 'number' && !isNaN(count) && count >= 0 ? count : 0
+    } catch {
+      return 0
+    }
+  })()
+  
+  const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(initialAvailableCount)
+  
+  const [questionCount, setQuestionCount] = useState<number>(() => {
+    // Calculer la valeur initiale basée sur availableCount
+    if (initialAvailableCount === 0) return 0
+    const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, initialAvailableCount))
+    const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
+    return defaultCount
+  })
   const isStartingGameRef = useRef(false)
 
   useEffect(() => {
     const available = QuestionService.getQuestionsForCategories(categories)
-    setAvailableQuestionsCount(available.length)
-    const maxCount = Math.min(QUESTION_COUNT.MAX, available.length)
-    setQuestionCount(prev => Math.min(prev, maxCount))
+    const availableCount = Array.isArray(available) ? available.length : 0
+    
+    if (isNaN(availableCount) || availableCount < 0) {
+      setAvailableQuestionsCount(0)
+      setQuestionCount(0)
+      return
+    }
+    
+    setAvailableQuestionsCount(availableCount)
+    
+    if (availableCount === 0) {
+      setQuestionCount(0)
+      return
+    }
+    
+    // Calculer maxCount et defaultCount avec protection contre NaN
+    const safeAvailableCount = typeof availableCount === 'number' && !isNaN(availableCount) && availableCount >= 0 ? availableCount : 0
+    const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, safeAvailableCount))
+    const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
+    
+    // Vérifications finales
+    const safeMaxCount = typeof maxCount === 'number' && !isNaN(maxCount) && maxCount >= QUESTION_COUNT.MIN ? maxCount : QUESTION_COUNT.MIN
+    const safeDefaultCount = typeof defaultCount === 'number' && !isNaN(defaultCount) && defaultCount >= QUESTION_COUNT.MIN ? defaultCount : QUESTION_COUNT.MIN
+    
+    setQuestionCount(prev => {
+      // Vérifier que prev est un nombre valide
+      const prevValue = typeof prev === 'number' && !isNaN(prev) && isFinite(prev) ? prev : null
+      
+      // Si prev est invalide, utiliser la valeur par défaut
+      if (prevValue === null || prevValue < QUESTION_COUNT.MIN || prevValue === 0) {
+        console.log('RoomCreator: setting questionCount to defaultCount', { prev, prevValue, safeDefaultCount, safeMaxCount, safeAvailableCount })
+        return safeDefaultCount
+      }
+      
+      // Si prev est supérieur au max, le limiter au max
+      if (prevValue > safeMaxCount) {
+        console.log('RoomCreator: limiting questionCount to maxCount', { prev, prevValue, safeMaxCount })
+        return safeMaxCount
+      }
+      
+      // Sinon, garder la valeur actuelle
+      console.log('RoomCreator: keeping questionCount', { prev, prevValue })
+      return prevValue
+    })
   }, [categories])
 
   useEffect(() => {
@@ -320,8 +380,16 @@ export default function RoomCreator({
         <RoomConfigPanel
           categories={categories}
           timeLimit={timeLimit}
-          questionCount={questionCount}
-          availableQuestionsCount={availableQuestionsCount}
+          questionCount={(() => {
+            const numValue = Number(questionCount)
+            // Si questionCount est un nombre valide, l'utiliser
+            if (!isNaN(numValue) && isFinite(numValue) && numValue >= QUESTION_COUNT.MIN) {
+              return numValue
+            }
+            // Sinon, passer 0 pour que RoomConfigPanel calcule la valeur par défaut
+            return 0
+          })()}
+          availableQuestionsCount={typeof availableQuestionsCount === 'number' && !isNaN(availableQuestionsCount) ? availableQuestionsCount : 0}
           onTimeLimitChange={setTimeLimit}
           onQuestionCountChange={setQuestionCount}
           onStartGame={handleStartGame}

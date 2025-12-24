@@ -1,0 +1,37 @@
+{
+  "name": "No Peeking - Blindtest WebApp",
+  "short_name": "No Peeking",
+  "description": "A modern web application for blindtest games",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nouvelle partie solo",
+      "short_name": "Solo",
+      "description": "Démarrer une nouvelle partie en solo",
+      "url": "/?mode=solo",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Créer une room",
+      "short_name": "Créer",
+      "description": "Créer une room multijoueur",
+      "url": "/room/create",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    }
+  ]
+}
+

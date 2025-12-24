@@ -58,8 +58,13 @@ export default function GameSettingsPopup({
         const updateAvailableQuestions = async () => {
             const available = await QuestionService.getQuestionsForCategories(selectedCategories)
             setAvailableQuestionsCount(available.length)
-            if (available.length > 0 && questionCount > available.length) {
-                setQuestionCount(Math.min(questionCount, available.length))
+            if (available.length > 0) {
+                const maxCount = Math.min(QUESTION_COUNT.MAX, available.length)
+                if (questionCount > maxCount) {
+                    setQuestionCount(Math.max(QUESTION_COUNT.MIN, maxCount))
+                } else if (questionCount < QUESTION_COUNT.MIN) {
+                    setQuestionCount(QUESTION_COUNT.MIN)
+                }
             }
         }
         updateAvailableQuestions()
@@ -205,18 +210,20 @@ export default function GameSettingsPopup({
                             type="range"
                             min={QUESTION_COUNT.MIN}
                             max={Math.min(QUESTION_COUNT.MAX, availableQuestionsCount)}
-                            value={questionCount}
+                            value={typeof questionCount === 'number' && !isNaN(questionCount) ? questionCount : QUESTION_COUNT.MIN}
                             onChange={(e) => {
-                                const value = parseInt(e.target.value)
-                                setQuestionCount(value)
-                                soundManager.playClick()
+                                const value = parseInt(e.target.value, 10)
+                                if (!isNaN(value) && value >= QUESTION_COUNT.MIN) {
+                                    setQuestionCount(value)
+                                    soundManager.playClick()
+                                }
                             }}
                             className="timer-slider"
                             disabled={availableQuestionsCount === 0}
                         />
                     </label>
                     <div className="timer-preview">
-                        <span className="timer-value">{questionCount}</span>
+                        <span className="timer-value">{typeof questionCount === 'number' && !isNaN(questionCount) ? questionCount : QUESTION_COUNT.MIN}</span>
                         <span className="timer-hint">
                             {availableQuestionsCount > 0
                                 ? `sur ${availableQuestionsCount} disponibles`

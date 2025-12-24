@@ -9,6 +9,7 @@ export interface Player {
   isHost?: boolean;
   socketId?: string; // socket.id (peut changer à chaque reconnexion)
   connected?: boolean; // état de connexion
+  disconnectedAt?: number; // timestamp de déconnexion
 }
 
 export interface GameState {
