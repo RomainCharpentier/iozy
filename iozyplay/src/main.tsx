@@ -1,11 +1,15 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import './styles/design-tokens.css' // Design tokens en premier
 import './styles/index.css'
 import './styles/category-manager.css'
+import './styles/category-selector.css'
+import './styles/confirm-dialog.css'
 import './styles/design-system.css'
 import './styles/game-layout.css'
 import './styles/settings.css'
+import './styles/settings-menu.css'
 import './styles/responsive.css'
 import './services/settingsService' // Initialiser les settings au démarrage
 

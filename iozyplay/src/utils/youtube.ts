@@ -106,10 +106,12 @@ export interface YouTubeMetadata {
 
 /**
  * Récupère les métadonnées d'une vidéo YouTube via l'API oEmbed
+ * Utilise un cache pour éviter les appels répétés
  * @param url L'URL YouTube
+ * @param useCache Si true, utilise le cache (défaut: true)
  * @returns Les métadonnées ou null si l'URL n'est pas valide
  */
-export async function getYouTubeMetadata(url: string): Promise<YouTubeMetadata | null> {
+export async function getYouTubeMetadata(url: string, useCache: boolean = true): Promise<YouTubeMetadata | null> {
   if (!isYouTubeUrl(url)) {
     return null
   }
@@ -117,6 +119,15 @@ export async function getYouTubeMetadata(url: string): Promise<YouTubeMetadata |
   const videoId = extractYouTubeId(url)
   if (!videoId) {
     return null
+  }
+
+  // Vérifier le cache d'abord
+  if (useCache) {
+    const { getCachedMetadata, setCachedMetadata } = await import('./youtubeCache')
+    const cached = getCachedMetadata(url)
+    if (cached) {
+      return cached
+    }
   }
 
   try {
@@ -139,11 +150,19 @@ export async function getYouTubeMetadata(url: string): Promise<YouTubeMetadata |
       throw new Error('Invalid metadata response')
     }
     
-    return {
+    const metadata: YouTubeMetadata = {
       title: data.title || '',
       thumbnailUrl: getYouTubeThumbnailUrl(videoId),
       videoId: videoId
     }
+
+    // Mettre en cache
+    if (useCache) {
+      const { setCachedMetadata } = await import('./youtubeCache')
+      setCachedMetadata(url, metadata)
+    }
+    
+    return metadata
   } catch (error) {
     console.error('Error fetching YouTube metadata:', error)
     // Retourner null pour indiquer que la vidéo n'existe pas ou qu'il y a eu une erreur

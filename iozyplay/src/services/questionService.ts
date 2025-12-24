@@ -14,7 +14,10 @@ export class QuestionService {
    */
   static async getQuestionsForCategories(categories: Category[]): Promise<Question[]> {
     const allQuestions = await this.getAllQuestions()
-    return allQuestions.filter(q => categories.includes(q.category))
+    return allQuestions.filter(q => {
+      const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+      return questionCategories.some(cat => categories.includes(cat))
+    })
   }
 
   /**
@@ -42,23 +45,26 @@ export class QuestionService {
   /**
    * Génère un ID automatique pour une question
    * Pour les URLs YouTube, utilise l'URL comme ID (clé primaire)
-   * Sinon, génère un ID basé sur la catégorie
+   * Sinon, génère un ID basé sur les catégories
    */
-  static async generateId(mediaUrl: string, category: Category): Promise<string> {
+  static async generateId(mediaUrl: string, categories: Category | Category[]): Promise<string> {
     // Pour les URLs YouTube, utiliser l'URL comme ID (clé primaire)
     if (mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be')) {
       return mediaUrl
     }
 
-    // Pour les autres médias, générer un ID basé sur la catégorie
-    const categoryQuestions = await this.getQuestionsByCategory(category)
+    // Pour les autres médias, générer un ID basé sur la première catégorie
+    const categoryArray = Array.isArray(categories) ? categories : [categories]
+    const primaryCategory = categoryArray[0]
+
+    const categoryQuestions = await this.getQuestionsByCategory(primaryCategory)
     const existingIds = categoryQuestions.map(q => q.id || q.mediaUrl)
     let counter = 1
-    let newId = `${category}-${counter}`
+    let newId = `${primaryCategory}-${counter}`
 
     while (existingIds.includes(newId)) {
       counter++
-      newId = `${category}-${counter}`
+      newId = `${primaryCategory}-${counter}`
     }
 
     return newId
@@ -102,6 +108,7 @@ export class QuestionService {
 
   /**
    * Sauvegarde toutes les questions sur le serveur (pour compatibilité)
+   * Supporte les catégories multiples : une question peut apparaître dans plusieurs catégories
    */
   static async saveQuestions(questions: Question[]): Promise<void> {
     const organized: QuestionsData = {
@@ -113,7 +120,16 @@ export class QuestionService {
     }
 
     questions.forEach(q => {
-      organized[q.category].push(q)
+      const categories = Array.isArray(q.category) ? q.category : [q.category]
+      categories.forEach(cat => {
+        if (organized[cat]) {
+          // Éviter les doublons : vérifier si la question existe déjà dans cette catégorie
+          const exists = organized[cat].some(existing => existing.id === q.id || existing.mediaUrl === q.mediaUrl)
+          if (!exists) {
+            organized[cat].push(q)
+          }
+        }
+      })
     })
 
     try {
@@ -154,10 +170,15 @@ export class QuestionService {
 
   /**
    * Supprime une question du serveur
+   * Si category est fourni, supprime seulement de cette catégorie
+   * Sinon, supprime la question complètement
    */
-  static async deleteQuestion(questionId: string, category: Category): Promise<void> {
+  static async deleteQuestion(questionId: string, category?: Category): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/questions/${encodeURIComponent(questionId)}?category=${category}`, {
+      const url = category
+        ? `${API_BASE_URL}/api/questions/${encodeURIComponent(questionId)}?category=${category}`
+        : `${API_BASE_URL}/api/questions/${encodeURIComponent(questionId)}`
+      const response = await fetch(url, {
         method: 'DELETE'
       })
       if (!response.ok) {

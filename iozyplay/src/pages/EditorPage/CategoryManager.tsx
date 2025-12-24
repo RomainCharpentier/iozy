@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import toast from 'react-hot-toast'
+import { FaPlus, FaEdit, FaTrash, FaTimes, FaSave, FaExclamationTriangle, FaSpinner } from 'react-icons/fa'
 import { loadCategories, createCategory, updateCategory, deleteCategory, AVAILABLE_ICONS } from '../../services/categoryService'
 import { QuestionService } from '../../services/questionService'
-import type { CategoryInfo } from '../../services/types'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
+import type { CategoryInfo, Category } from '../../services/types'
 import { DEFAULT_CATEGORIES } from '../../services/types'
+import { categorySchema, type CategoryFormData } from '../../schemas/categorySchema'
 
 interface CategoryManagerProps {
   onClose: () => void
@@ -14,21 +20,36 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<CategoryInfo>>({
-    id: '',
-    name: '',
-    emoji: '🎵'
-  })
   const [iconSearch, setIconSearch] = useState('')
-  const [formError, setFormError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{
-    name?: string
-    emoji?: string
-  }>({})
-  const [touchedFields, setTouchedFields] = useState<{
-    name?: boolean
-    emoji?: boolean
-  }>({})
+  const [originalCategoryName, setOriginalCategoryName] = useState<string>('')
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    message: '',
+    onConfirm: () => {}
+  })
+
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+    reset
+  } = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: '',
+      emoji: '🎵'
+    }
+  })
+
+  const watchedName = watch('name')
+  const watchedEmoji = watch('emoji')
 
   /**
    * Génère un ID à partir d'un nom de catégorie
@@ -66,231 +87,188 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     }
   }
 
-  const handleAdd = async () => {
-    setFormError(null)
-    
-    // Marquer tous les champs comme touchés pour afficher les erreurs
-    setTouchedFields({ name: true, emoji: true })
-    
-    // La validation en temps réel va gérer les erreurs de champs
-    if (!formData.name || !formData.emoji || fieldErrors.name || fieldErrors.emoji) {
+  const onSubmit = async (data: CategoryFormData) => {
+    const generatedId = generateIdFromName(data.name)
+    if (!generatedId) {
+      toast.error('Le nom de la catégorie ne peut pas être vide')
       return
     }
 
-    // Générer l'ID automatiquement à partir du nom
-    const generatedId = generateIdFromName(formData.name)
-    if (!generatedId) {
-      setFieldErrors(prev => ({ ...prev, name: 'Le nom de la catégorie ne peut pas être vide' }))
+    // Vérifier l'unicité
+    const existingCategory = categories.find(c => c.id === generatedId)
+    if (existingCategory) {
+      toast.error(`Une catégorie avec l'ID "${generatedId}" existe déjà`)
       return
     }
 
     try {
       await createCategory({
         id: generatedId,
-        name: formData.name,
-        emoji: formData.emoji!
+        name: data.name,
+        emoji: data.emoji
       })
       await loadCategoriesList()
       onCategoriesChange()
-      resetForm()
+      reset()
       setShowAddForm(false)
+      toast.success('Catégorie créée avec succès')
     } catch (error) {
-      setFormError('Erreur lors de la création: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+      toast.error(`Erreur lors de la création: ${errorMessage}`)
     }
   }
 
-  const handleUpdate = async () => {
-    setFormError(null)
-    
-    // Marquer tous les champs comme touchés pour afficher les erreurs
-    setTouchedFields({ name: true, emoji: true })
-    
+  const onUpdate = async (data: CategoryFormData) => {
     if (!editingId) {
-      setFormError('Erreur: ID d\'édition invalide')
-      return
-    }
-    
-    // La validation en temps réel va gérer les erreurs de champs
-    if (!formData.name || !formData.emoji || fieldErrors.name || fieldErrors.emoji) {
+      toast.error('Erreur: ID d\'édition invalide')
       return
     }
 
     try {
       const originalCategory = categories.find(c => c.id === editingId)
       if (!originalCategory) {
-        setFormError('Catégorie introuvable')
+        toast.error('Catégorie introuvable')
         return
       }
 
-      // Vérifier si le nom a changé
-      const nameChanged = originalCategoryName !== formData.name
+      const nameChanged = originalCategoryName !== data.name
       
       if (nameChanged) {
-        // Générer le nouvel ID à partir du nouveau nom
-        const newId = generateIdFromName(formData.name)
+        const newId = generateIdFromName(data.name)
         if (!newId) {
-          setFormError('Impossible de générer un ID valide à partir du nom')
+          toast.error('Impossible de générer un ID valide à partir du nom')
           return
         }
 
-        // Vérifier que le nouvel ID n'existe pas déjà (sauf l'ID actuel)
         const existingCategoryWithNewId = categories.find(c => c.id === newId && c.id !== editingId)
         if (existingCategoryWithNewId) {
-          setFormError(`Une catégorie avec l'ID "${newId}" existe déjà. Veuillez choisir un autre nom.`)
+          toast.error(`Une catégorie avec l'ID "${newId}" existe déjà. Veuillez choisir un autre nom.`)
           return
         }
 
-        // Récupérer toutes les questions de l'ancienne catégorie
         const allQuestions = await QuestionService.getAllQuestions()
-        const questionsToUpdate = allQuestions.filter(q => q.category === editingId)
+        const questionsToUpdate = allQuestions.filter(q => {
+          const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+          return questionCategories.includes(editingId)
+        })
 
-        // Mettre à jour la catégorie de toutes les questions associées AVANT de modifier la catégorie
         if (questionsToUpdate.length > 0) {
-          const updatedQuestions = questionsToUpdate.map(q => ({
-            ...q,
-            category: newId as Category
-          }))
-
-          // Sauvegarder les questions mises à jour avec la nouvelle catégorie
-          for (const question of updatedQuestions) {
-            // Ajouter la question avec la nouvelle catégorie
-            await QuestionService.addQuestion(question)
-            // Supprimer l'ancienne question (avec l'ancienne catégorie)
-            // Utiliser l'ID de la question ou mediaUrl comme fallback
+          for (const question of questionsToUpdate) {
+            const oldCategories = Array.isArray(question.category) ? question.category : [question.category]
+            const newCategories = oldCategories.map(cat => cat === editingId ? newId : cat)
+            const updatedQuestion = { ...question, category: newCategories.length === 1 ? newCategories[0] : newCategories }
+            
             const questionId = question.id || question.mediaUrl
-            await QuestionService.deleteQuestion(questionId, editingId as Category)
+            await QuestionService.deleteQuestion(questionId, editingId)
+            await QuestionService.addQuestion(updatedQuestion)
           }
         }
 
-        // Créer la nouvelle catégorie avec le nouvel ID (avant de supprimer l'ancienne)
         await createCategory({
           id: newId,
-          name: formData.name,
-          emoji: formData.emoji!
+          name: data.name,
+          emoji: data.emoji
         })
 
-        // Supprimer l'ancienne catégorie (après avoir créé la nouvelle et mis à jour les questions)
         await deleteCategory(editingId)
       } else {
-        // Si le nom n'a pas changé, juste mettre à jour l'icône
         await updateCategory(editingId, {
-          name: formData.name,
-          emoji: formData.emoji
+          name: data.name,
+          emoji: data.emoji
         })
       }
 
       await loadCategoriesList()
       onCategoriesChange()
-      resetForm()
+      reset()
       setEditingId(null)
       setOriginalCategoryName('')
+      toast.success('Catégorie mise à jour avec succès')
     } catch (error) {
-      setFormError('Erreur lors de la mise à jour: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+      toast.error(`Erreur lors de la mise à jour: ${errorMessage}`)
     }
   }
 
   const handleDelete = async (categoryId: string) => {
-    // Vérifier s'il y a des questions rattachées à cette catégorie
     try {
       const allQuestions = await QuestionService.getAllQuestions()
-      const questionsInCategory = allQuestions.filter(q => q.category === categoryId)
+      const questionsInCategory = allQuestions.filter(q => {
+        const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+        return questionCategories.includes(categoryId)
+      })
       
-      if (questionsInCategory.length > 0) {
-        const message = `Cette catégorie contient ${questionsInCategory.length} question${questionsInCategory.length > 1 ? 's' : ''}. ` +
-          `La suppression de la catégorie supprimera également toutes les questions associées. ` +
-          `Êtes-vous sûr de vouloir continuer ?`
-        
-        if (!confirm(message)) {
-          return
-        }
-      } else {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-          return
+      const handleConfirm = async () => {
+        try {
+          await deleteCategory(categoryId)
+          await loadCategoriesList()
+          onCategoriesChange()
+          toast.success('Catégorie supprimée avec succès')
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+          toast.error(`Erreur lors de la suppression: ${errorMessage}`)
+        } finally {
+          setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })
         }
       }
 
-      await deleteCategory(categoryId)
-      await loadCategoriesList()
-      onCategoriesChange()
+      let message = 'Êtes-vous sûr de vouloir supprimer cette catégorie ?'
+      if (questionsInCategory.length > 0) {
+        message = `Cette catégorie contient ${questionsInCategory.length} question${questionsInCategory.length > 1 ? 's' : ''}. La suppression supprimera également toutes les questions associées. Êtes-vous sûr de vouloir continuer ?`
+      }
+
+      setConfirmDialog({
+        isOpen: true,
+        message,
+        onConfirm: handleConfirm
+      })
     } catch (error) {
-      setFormError('Erreur lors de la suppression: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+      toast.error(`Erreur lors de la suppression: ${errorMessage}`)
     }
   }
-
-  const [originalCategoryName, setOriginalCategoryName] = useState<string>('')
 
   const handleEdit = (category: CategoryInfo) => {
     setEditingId(category.id)
-    setFormData({ ...category })
     setOriginalCategoryName(category.name)
     setShowAddForm(false)
-    // Réinitialiser les champs touchés pour la nouvelle édition
-    setTouchedFields({})
+    reset({
+      name: category.name,
+      emoji: category.emoji
+    })
   }
 
-  const resetForm = () => {
-    setFormData({
-      id: '',
-      name: '',
-      emoji: '🎵'
-    })
+  const cancelEdit = () => {
+    reset()
     setIconSearch('')
-    setFormError(null)
-    setFieldErrors({})
-    setTouchedFields({})
+    setEditingId(null)
+    setShowAddForm(false)
     setOriginalCategoryName('')
   }
 
-  // Générer l'ID automatiquement quand le nom change (seulement pour les nouvelles catégories)
+  // Validation personnalisée pour l'unicité du nom
   useEffect(() => {
-    if (!editingId && formData.name) {
-      const generatedId = generateIdFromName(formData.name)
-      setFormData(prev => ({ ...prev, id: generatedId }))
-    }
-  }, [formData.name, editingId])
+    if (!watchedName || (!showAddForm && editingId === null)) return
 
-  // Validation en temps réel du formulaire
-  useEffect(() => {
-    if (!showAddForm && editingId === null) {
-      setFieldErrors({})
-      setTouchedFields({})
-      return
+    const existingCategory = categories.find(c => 
+      c.name.toLowerCase() === watchedName.toLowerCase() &&
+      (!editingId || c.id !== editingId)
+    )
+    
+    if (existingCategory) {
+      setValue('name', watchedName, { shouldValidate: true })
     }
 
-    const errors: { name?: string; emoji?: string } = {}
-
-    // Validation du nom (seulement si le champ a été touché)
-    if (touchedFields.name || formData.name) {
-      if (!formData.name || formData.name.trim() === '') {
-        errors.name = 'Le nom de la catégorie est obligatoire'
-      } else {
-        // Vérifier l'unicité du nom
-        const existingCategory = categories.find(c => 
-          c.name.toLowerCase() === formData.name!.toLowerCase() &&
-          (!editingId || c.id !== editingId)
-        )
-        if (existingCategory) {
-          errors.name = 'Une catégorie avec ce nom existe déjà'
-        } else if (editingId) {
-          // Si on modifie une catégorie, vérifier que le nouvel ID généré n'existe pas déjà
-          const generatedId = generateIdFromName(formData.name)
-          if (generatedId && generatedId !== editingId) {
-            const existingCategoryWithNewId = categories.find(c => c.id === generatedId)
-            if (existingCategoryWithNewId) {
-              errors.name = `L'ID généré "${generatedId}" existe déjà. Veuillez choisir un autre nom.`
-            }
-          }
+    if (editingId) {
+      const generatedId = generateIdFromName(watchedName)
+      if (generatedId && generatedId !== editingId) {
+        const existingCategoryWithNewId = categories.find(c => c.id === generatedId)
+        if (existingCategoryWithNewId) {
+          setValue('name', watchedName, { shouldValidate: true })
         }
       }
     }
-
-    // Validation de l'icône (seulement si l'utilisateur a interagi)
-    if (touchedFields.emoji && !formData.emoji) {
-      errors.emoji = 'L\'icône est obligatoire'
-    }
-
-    setFieldErrors(errors)
-  }, [formData.name, formData.emoji, categories, showAddForm, editingId, touchedFields])
+  }, [watchedName, categories, showAddForm, editingId, setValue])
 
   const filteredIcons = AVAILABLE_ICONS.filter(icon => 
     iconSearch === '' || icon.includes(iconSearch)
@@ -301,48 +279,38 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   }
 
   return (
-    <div className="editor-panel">
+    <>
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message={confirmDialog.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })}
+        variant="danger"
+      />
+      <div className="editor-panel">
       <div className="panel-header">
         <h2>📁 Catégories</h2>
       </div>
 
       {(showAddForm || editingId !== null) && (
-        <div className="modal-overlay" onClick={() => {
-          resetForm()
-          setShowAddForm(false)
-          setEditingId(null)
-        }}>
+        <div className="modal-overlay" onClick={cancelEdit}>
           <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingId !== null ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
-              <button className="close-button" onClick={() => {
-                resetForm()
-                setShowAddForm(false)
-                setEditingId(null)
-              }} title="Fermer">
-                ✕
+              <button className="close-button" onClick={cancelEdit} title="Fermer">
+                <FaTimes />
               </button>
             </div>
             <div className="modal-body">
               <form 
                 className="category-form" 
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (editingId !== null) {
-                    handleUpdate()
-                  } else {
-                    handleAdd()
-                  }
-                }}
+                onSubmit={handleSubmit(editingId !== null ? onUpdate : onSubmit)}
                 onKeyDown={(e) => {
-                  // Ctrl/Cmd + Enter pour soumettre même depuis un textarea
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault()
-                    if (editingId !== null) {
-                      handleUpdate()
-                    } else {
-                      handleAdd()
-                    }
+                    handleSubmit(editingId !== null ? onUpdate : onSubmit)()
                   }
                 }}
               >
@@ -352,24 +320,15 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                 Nom de la catégorie *
                 <input
                   type="text"
-                  value={formData.name || ''}
-                  onBlur={() => setTouchedFields(prev => ({ ...prev, name: true }))}
-                  onChange={(e) => {
-                    setFormData({ ...formData, name: e.target.value })
-                    setFormError(null)
-                    // Marquer le champ comme touché
-                    if (!touchedFields.name) {
-                      setTouchedFields(prev => ({ ...prev, name: true }))
-                    }
-                  }}
+                  {...register('name')}
                   placeholder="ex: Musique française"
-                  className={fieldErrors.name ? 'input-error' : ''}
+                  className={errors.name ? 'input-error' : ''}
                 />
                 <small>L'ID sera généré automatiquement à partir du nom</small>
-                {fieldErrors.name && (
+                {errors.name && (
                   <div className="youtube-error-message">
-                    <span className="error-icon">⚠️</span>
-                    <span>{fieldErrors.name}</span>
+                    <FaExclamationTriangle className="error-icon" />
+                    <span>{errors.name.message}</span>
                   </div>
                 )}
               </label>
@@ -391,10 +350,9 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                       <button
                         key={icon}
                         type="button"
-                        className={`icon-button ${formData.emoji === icon ? 'selected' : ''}`}
+                        className={`icon-button ${watchedEmoji === icon ? 'selected' : ''}`}
                         onClick={() => {
-                          setFormData({ ...formData, emoji: icon })
-                          setTouchedFields(prev => ({ ...prev, emoji: true }))
+                          setValue('emoji', icon, { shouldValidate: true })
                         }}
                         title={icon}
                       >
@@ -402,56 +360,50 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                       </button>
                     ))}
                   </div>
-                  {formData.emoji && (
+                  {watchedEmoji && (
                     <div className="selected-icon-preview">
-                      Icône sélectionnée: <span className="icon-large">{formData.emoji}</span>
+                      Icône sélectionnée: <span className="icon-large">{watchedEmoji}</span>
                     </div>
                   )}
-                  {fieldErrors.emoji && (
+                  {errors.emoji && (
                     <div className="youtube-error-message field-error-inline">
-                      <span className="error-icon">⚠️</span>
-                      <span>{fieldErrors.emoji}</span>
+                      <FaExclamationTriangle className="error-icon" />
+                      <span>{errors.emoji.message}</span>
                     </div>
                   )}
                 </div>
               </label>
             </div>
 
-            {/* Afficher seulement les erreurs serveur/API, pas les erreurs de validation de champs */}
-            {formError && !fieldErrors.name && !fieldErrors.emoji && (
-              <div className="form-error-message">
-                <span className="error-icon">⚠️</span>
-                <span>{formError}</span>
-              </div>
-            )}
-
             <div className="form-actions">
               <button
                 type="submit"
                 className="submit-button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  editingId !== null ? handleUpdate() : handleAdd()
-                }}
-                disabled={!!fieldErrors.name || !!fieldErrors.emoji || !formData.name || !formData.emoji}
+                disabled={isSubmitting || !!errors.name || !!errors.emoji}
                 title={
-                  fieldErrors.name || fieldErrors.emoji
+                  errors.name || errors.emoji
                     ? 'Veuillez corriger les erreurs dans le formulaire'
-                    : !formData.name || !formData.emoji
-                      ? 'Veuillez remplir tous les champs obligatoires'
-                      : ''
+                    : ''
                 }
               >
-                {editingId !== null ? '💾 Mettre à jour' : '➕ Ajouter'}
+                {isSubmitting ? (
+                  <>
+                    <FaSpinner className="spinner" /> Chargement...
+                  </>
+                ) : editingId !== null ? (
+                  <>
+                    <FaSave /> Mettre à jour
+                  </>
+                ) : (
+                  <>
+                    <FaPlus /> Ajouter
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 className="cancel-button"
-                onClick={() => {
-                  resetForm()
-                  setShowAddForm(false)
-                  setEditingId(null)
-                }}
+                onClick={cancelEdit}
               >
                 Annuler
               </button>
@@ -469,12 +421,11 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
             <button
               className="add-button"
               onClick={() => {
-                resetForm()
-                setEditingId(null)
+                cancelEdit()
                 setShowAddForm(true)
               }}
             >
-              ➕ Ajouter une catégorie
+              <FaPlus /> Ajouter une catégorie
             </button>
           </div>
 
@@ -488,20 +439,20 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                   </div>
                 </div>
                 <div className="category-actions-manager">
-                  <button
-                    className="edit-button-small"
-                    onClick={() => handleEdit(category)}
-                    title="Modifier"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="delete-button-small"
-                    onClick={() => handleDelete(category.id)}
-                    title="Supprimer"
-                  >
-                    🗑️
-                  </button>
+                    <button
+                      className="edit-button-small"
+                      onClick={() => handleEdit(category)}
+                      title="Modifier"
+                    >
+                      <FaEdit />
+                    </button>
+                    <button
+                      className="delete-button-small"
+                      onClick={() => handleDelete(category.id)}
+                      title="Supprimer"
+                    >
+                      <FaTrash />
+                    </button>
                 </div>
               </div>
             ))}
@@ -509,6 +460,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
         </div>
       </div>
     </div>
+    </>
   )
 }
 

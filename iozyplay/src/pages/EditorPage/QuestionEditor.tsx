@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import toast from 'react-hot-toast'
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes, FaSave, FaTv, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaCheckCircle, FaSpinner } from 'react-icons/fa'
 import type { Category, Question, MediaType, CategoryInfo } from '../../services/types'
 import { isYouTubeUrl, isValidUrlFormat, getYouTubeThumbnailFromUrl, extractYouTubeId, getYouTubeMetadata } from '../../utils/youtube'
 import { QuestionService } from '../../services/questionService'
 import { loadCategories } from '../../services/categoryService'
 import CategorySelector from '../../components/editor/CategorySelector'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
+import { questionSchema, type QuestionFormData } from '../../schemas/questionSchema'
 
 interface QuestionEditorProps {
   questions: Question[]
@@ -16,30 +22,47 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all')
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(false)
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('')
+  const [questionMetadata, setQuestionMetadata] = useState<Record<string, { title: string; thumbnailUrl: string }>>({})
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const questionsPerPage = 20
   const [youtubeThumbnail, setYoutubeThumbnail] = useState<string | null>(null)
   const [youtubeTitle, setYoutubeTitle] = useState<string>('')
-  const [youtubeError, setYoutubeError] = useState<string | null>(null)
   const [youtubeValid, setYoutubeValid] = useState<boolean>(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{
-    mediaUrl?: string
-    answer?: string
-  }>({})
-  const [touchedFields, setTouchedFields] = useState<{
-    mediaUrl?: boolean
-    answer?: boolean
-  }>({})
   const [categories, setCategories] = useState<CategoryInfo[]>([])
-
-  // Form state (sans ID, généré automatiquement)
-  const [formData, setFormData] = useState<Partial<Question>>({
-    category: undefined,
-    mediaUrl: '',
-    answer: '',
-    hint: ''
-  })
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([])
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    message: '',
+    onConfirm: () => {}
+  })
+
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+    reset,
+    setError,
+    clearErrors
+  } = useForm<QuestionFormData>({
+    resolver: zodResolver(questionSchema),
+    defaultValues: {
+      mediaUrl: '',
+      answer: '',
+      hint: '',
+      categories: []
+    }
+  })
+
+  const watchedMediaUrl = watch('mediaUrl')
 
   const [isInitialLoad, setIsInitialLoad] = useState(true)
 
@@ -50,11 +73,102 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setTimeout(() => setIsInitialLoad(false), 1000)
   }, [questions])
 
+  const loadCategoriesList = async () => {
+    const cats = await loadCategories()
+    setCategories(cats)
+  }
+
   useEffect(() => {
     loadCategoriesList()
   }, [])
 
-  // Plus besoin de sélectionner automatiquement une catégorie par défaut
+  // Debounce pour la recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Réinitialiser la page quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterCategory, debouncedSearchQuery])
+
+  const filteredQuestions = useMemo(() => {
+    let filtered = localQuestions
+
+    // Filtre par catégorie
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(q => {
+        const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+        return questionCategories.includes(filterCategory)
+      })
+    }
+
+    // Filtre par recherche (réponse, URL, catégorie)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim()
+      filtered = filtered.filter(q => {
+        const answerMatch = q.answer.toLowerCase().includes(query)
+        const urlMatch = q.mediaUrl.toLowerCase().includes(query)
+        const hintMatch = q.hint?.toLowerCase().includes(query)
+        const categoryMatch = (() => {
+          const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+          return questionCategories.some(cat => {
+            const catInfo = categories.find(c => c.id === cat)
+            return catInfo?.name.toLowerCase().includes(query) || cat.toLowerCase().includes(query)
+          })
+        })()
+        return answerMatch || urlMatch || hintMatch || categoryMatch
+      })
+    }
+
+    return filtered
+  }, [localQuestions, filterCategory, debouncedSearchQuery, categories])
+  
+  // Calculer le nombre total de pages
+  const totalPages = Math.ceil(filteredQuestions.length / questionsPerPage)
+
+  // Charger les métadonnées YouTube pour les questions affichées
+  useEffect(() => {
+    const loadMetadata = async () => {
+      const questionsToLoad = filteredQuestions
+        .filter(q => isYouTubeUrl(q.mediaUrl) && !questionMetadata[q.mediaUrl])
+        .slice(0, 10) // Limiter à 10 requêtes simultanées pour éviter la surcharge
+      
+      if (questionsToLoad.length === 0) return
+      
+      const metadataPromises = questionsToLoad.map(async (q) => {
+        try {
+          const metadata = await getYouTubeMetadata(q.mediaUrl, true)
+          if (metadata) {
+            return { url: q.mediaUrl, metadata }
+          }
+        } catch (error) {
+          console.error('Error loading metadata for', q.mediaUrl, error)
+        }
+        return null
+      })
+      
+      const results = await Promise.all(metadataPromises)
+      const newMetadata: Record<string, { title: string; thumbnailUrl: string }> = {}
+      results.forEach(result => {
+        if (result) {
+          newMetadata[result.url] = {
+            title: result.metadata.title,
+            thumbnailUrl: result.metadata.thumbnailUrl
+          }
+        }
+      })
+      
+      if (Object.keys(newMetadata).length > 0) {
+        setQuestionMetadata(prev => ({ ...prev, ...newMetadata }))
+      }
+    }
+    
+    loadMetadata()
+  }, [filteredQuestions, questionMetadata])
 
   // Sauvegarde automatique à chaque changement (sauf au chargement initial)
   useEffect(() => {
@@ -71,234 +185,281 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     return () => clearTimeout(saveTimeout)
   }, [localQuestions, isInitialLoad, onSave])
 
-  // Validation en temps réel du formulaire
+  // Validation YouTube en temps réel
   useEffect(() => {
-    if (!showAddForm && editingIndex === null) {
-      setFieldErrors({})
-      setTouchedFields({})
+    if (!watchedMediaUrl || !showAddForm && editingIndex === null) {
+      setYoutubeThumbnail(null)
+      setYoutubeTitle('')
+      setYoutubeValid(false)
       return
     }
 
-    const errors: { mediaUrl?: string; answer?: string } = {}
+    const validateYouTube = async () => {
+      if (!watchedMediaUrl || watchedMediaUrl.trim() === '') {
+        setYoutubeThumbnail(null)
+        setYoutubeTitle('')
+        setYoutubeValid(false)
+        return
+      }
 
-    // Validation de l'URL (seulement si le champ a été touché ou s'il y a une valeur)
-    if (touchedFields.mediaUrl || formData.mediaUrl) {
-      if (!formData.mediaUrl || formData.mediaUrl.trim() === '') {
-        errors.mediaUrl = 'L\'URL YouTube est obligatoire'
-      } else if (!isValidUrlFormat(formData.mediaUrl)) {
-        errors.mediaUrl = 'Format d\'URL invalide'
-      } else if (!isYouTubeUrl(formData.mediaUrl)) {
-        errors.mediaUrl = 'Seules les URLs YouTube sont supportées'
-      } else if (!youtubeValid && touchedFields.mediaUrl) {
-        // Afficher l'erreur seulement si le champ a été touché et que la validation YouTube est terminée
-        errors.mediaUrl = 'URL YouTube invalide ou vidéo inexistante'
+      if (!isValidUrlFormat(watchedMediaUrl)) {
+        setYoutubeThumbnail(null)
+        setYoutubeTitle('')
+        setYoutubeValid(false)
+        setError('mediaUrl', { type: 'manual', message: 'Format d\'URL invalide' })
+        return
+      }
+
+      if (!isYouTubeUrl(watchedMediaUrl)) {
+        setYoutubeThumbnail(null)
+        setYoutubeTitle('')
+        setYoutubeValid(false)
+        setError('mediaUrl', { type: 'manual', message: 'Seules les URLs YouTube sont supportées' })
+        return
+      }
+
+      clearErrors('mediaUrl')
+      try {
+        const metadata = await getYouTubeMetadata(watchedMediaUrl)
+        if (metadata && metadata.videoId && metadata.title) {
+          setYoutubeThumbnail(metadata.thumbnailUrl)
+          setYoutubeTitle(metadata.title)
+          setYoutubeValid(true)
+          // Pré-remplir la réponse si elle est vide
+          const currentAnswer = watch('answer')
+          if (!currentAnswer || currentAnswer.trim() === '') {
+            setValue('answer', metadata.title)
+          }
+        } else {
+          setYoutubeThumbnail(null)
+          setYoutubeTitle('')
+          setYoutubeValid(false)
+          setError('mediaUrl', { type: 'manual', message: 'Cette vidéo YouTube n\'existe pas ou n\'est pas accessible' })
+        }
+      } catch (error) {
+        setYoutubeThumbnail(null)
+        setYoutubeTitle('')
+        setYoutubeValid(false)
+        setError('mediaUrl', { type: 'manual', message: 'Erreur lors de la vérification de l\'URL YouTube' })
       }
     }
 
-    // Validation de la réponse (seulement si le champ a été touché)
-    if (touchedFields.answer) {
-      if (!formData.answer || formData.answer.trim() === '') {
-        errors.answer = 'La réponse est obligatoire'
-      }
-    }
-
-    setFieldErrors(errors)
-  }, [formData.mediaUrl, formData.answer, youtubeValid, showAddForm, editingIndex, touchedFields])
-
-  const loadCategoriesList = async () => {
-    const cats = await loadCategories()
-    setCategories(cats)
-  }
-
-  const filteredQuestions = filterCategory === 'all'
-    ? localQuestions
-    : localQuestions.filter(q => q.category === filterCategory)
+    const timeoutId = setTimeout(validateYouTube, 500) // Debounce
+    return () => clearTimeout(timeoutId)
+  }, [watchedMediaUrl, showAddForm, editingIndex, setError, clearErrors, setValue, watch])
 
   // Utiliser QuestionService pour générer l'ID
   const generateId = async (mediaUrl: string, category: Category): Promise<string> => {
     return await QuestionService.generateId(mediaUrl, category)
   }
 
-  const handleAdd = async () => {
-    setFormError(null)
-    
-    // Marquer tous les champs comme touchés pour afficher les erreurs
-    setTouchedFields({ mediaUrl: true, answer: true })
-    
-    // La validation en temps réel va gérer les erreurs de champs
-    if (!formData.mediaUrl || !formData.answer || !formData.category || selectedCategories.length === 0 || !youtubeValid || fieldErrors.mediaUrl || fieldErrors.answer) {
+  const onSubmit = async (data: QuestionFormData) => {
+    if (selectedCategories.length === 0) {
+      toast.error('Veuillez sélectionner au moins une catégorie')
+      return
+    }
+
+    if (!youtubeValid) {
+      toast.error('Veuillez entrer une URL YouTube valide')
       return
     }
 
     try {
-      const questionId = await generateId(formData.mediaUrl!, formData.category as Category)
+      const questionId = await generateId(data.mediaUrl, selectedCategories[0])
       const newQuestion: Question = {
         id: questionId,
-        category: formData.category as Category,
-        type: 'video' as MediaType, // Forcé à video pour YouTube
-        mediaUrl: formData.mediaUrl!,
-        answer: formData.answer!,
-        hint: formData.hint || undefined
+        category: selectedCategories.length === 1 ? selectedCategories[0] : selectedCategories,
+        type: 'video' as MediaType,
+        mediaUrl: data.mediaUrl,
+        answer: data.answer,
+        hint: data.hint || undefined
       }
 
-      // Sauvegarder sur le serveur
       await QuestionService.addQuestion(newQuestion)
-      
-      // Mettre à jour la liste locale
       setLocalQuestions([...localQuestions, newQuestion])
-      resetForm()
+      reset()
+      setSelectedCategories([])
+      setYoutubeThumbnail(null)
+      setYoutubeTitle('')
+      setYoutubeValid(false)
       setShowAddForm(false)
+      toast.success('Question ajoutée avec succès')
     } catch (error) {
       console.error('Erreur lors de l\'ajout:', error)
-      setFormError('Erreur lors de l\'ajout de la question: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('Failed to fetch') 
+            ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
+            : error.message)
+        : 'Erreur inconnue lors de l\'ajout de la question'
+      toast.error(errorMessage)
+    }
+  }
+
+  const onUpdate = async (data: QuestionFormData) => {
+    if (editingIndex === null) {
+      toast.error('Erreur: index d\'édition invalide')
+      return
+    }
+
+    if (selectedCategories.length === 0) {
+      toast.error('Veuillez sélectionner au moins une catégorie')
+      return
+    }
+
+    if (!youtubeValid) {
+      toast.error('Veuillez entrer une URL YouTube valide')
+      return
+    }
+
+    const originalQuestion = localQuestions[editingIndex]
+    try {
+      const questionId = data.mediaUrl === originalQuestion.mediaUrl 
+        ? (originalQuestion.id || originalQuestion.mediaUrl)
+        : await generateId(data.mediaUrl, selectedCategories[0])
+      
+      const updatedQuestion: Question = {
+        id: questionId,
+        category: selectedCategories.length === 1 ? selectedCategories[0] : selectedCategories,
+        type: 'video' as MediaType,
+        mediaUrl: data.mediaUrl,
+        answer: data.answer,
+        hint: data.hint || undefined
+      }
+
+      await QuestionService.updateQuestion(
+        originalQuestion.id || originalQuestion.mediaUrl,
+        Array.isArray(originalQuestion.category) ? originalQuestion.category : [originalQuestion.category],
+        updatedQuestion
+      )
+
+      const newQuestions = [...localQuestions]
+      newQuestions[editingIndex] = updatedQuestion
+      setLocalQuestions(newQuestions)
+      reset()
+      setSelectedCategories([])
+      setYoutubeThumbnail(null)
+      setYoutubeTitle('')
+      setYoutubeValid(false)
+      setEditingIndex(null)
+      toast.success('Question mise à jour avec succès')
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error)
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('Failed to fetch') 
+            ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
+            : error.message)
+        : 'Erreur inconnue lors de la mise à jour de la question'
+      toast.error(errorMessage)
     }
   }
 
   const handleEdit = async (index: number) => {
     const question = filteredQuestions[index]
-    // Utiliser l'ID ou mediaUrl comme clé primaire pour trouver la question
+    if (!question) {
+      toast.error('Question introuvable')
+      return
+    }
     const globalIndex = localQuestions.findIndex(q => 
       (q.id && question.id && q.id === question.id) || 
-      (!q.id && !question.id && q.mediaUrl === question.mediaUrl) ||
       (q.mediaUrl === question.mediaUrl)
     )
+    if (globalIndex === -1) {
+      toast.error('Erreur: question introuvable dans la liste')
+      return
+    }
     setEditingIndex(globalIndex)
-    setFormData({ ...question })
-    setShowAddForm(false)
-    setYoutubeError(null)
-    setYoutubeValid(false)
     
-    // Charger les métadonnées YouTube si c'est une URL YouTube
+    const questionCategories = Array.isArray(question.category) ? question.category : [question.category]
+    setSelectedCategories(questionCategories)
+    setShowAddForm(false)
+    
+    reset({
+      mediaUrl: question.mediaUrl,
+      answer: question.answer,
+      hint: question.hint || '',
+      categories: questionCategories
+    })
+    
     if (isYouTubeUrl(question.mediaUrl)) {
-      setIsLoadingMetadata(true)
-      setYoutubeError(null)
       try {
         const metadata = await getYouTubeMetadata(question.mediaUrl)
         if (metadata && metadata.videoId && metadata.title) {
-          // La vidéo existe et est valide
           setYoutubeThumbnail(metadata.thumbnailUrl)
           setYoutubeTitle(metadata.title)
           setYoutubeValid(true)
-          setYoutubeError(null)
         } else {
-          // La vidéo n'existe pas ou les métadonnées sont invalides
           setYoutubeThumbnail(null)
           setYoutubeTitle('')
-          setYoutubeError('Cette vidéo YouTube n\'existe pas ou n\'est pas accessible. Vérifiez que l\'URL est correcte.')
           setYoutubeValid(false)
         }
       } catch (error) {
         setYoutubeThumbnail(null)
         setYoutubeTitle('')
-        setYoutubeError('Erreur lors de la vérification de l\'URL YouTube.')
         setYoutubeValid(false)
-      } finally {
-        setIsLoadingMetadata(false)
       }
     } else {
       setYoutubeThumbnail(null)
       setYoutubeTitle('')
-      setYoutubeError('URL YouTube invalide')
       setYoutubeValid(false)
     }
   }
 
-  const handleUpdate = async () => {
-    setFormError(null)
-    
-    // Marquer tous les champs comme touchés pour afficher les erreurs
-    setTouchedFields({ mediaUrl: true, answer: true })
-    
-    if (editingIndex === null) {
-      setFormError('Erreur: index d\'édition invalide')
-      return
-    }
-    
-    // La validation en temps réel va gérer les erreurs de champs
-    if (!formData.mediaUrl || !formData.answer || !formData.category || selectedCategories.length === 0 || !youtubeValid || fieldErrors.mediaUrl || fieldErrors.answer) {
-      return
-    }
-
-    // Conserver l'ID original lors de la modification, ou le régénérer si l'URL a changé
-    const originalQuestion = localQuestions[editingIndex]
-    try {
-      const questionId = formData.mediaUrl === originalQuestion.mediaUrl 
-        ? (originalQuestion.id || originalQuestion.mediaUrl)
-        : await generateId(formData.mediaUrl!, formData.category as Category)
-      
-      const updatedQuestion: Question = {
-        id: questionId,
-        category: formData.category as Category,
-        type: 'video' as MediaType, // Forcé à video pour YouTube
-        mediaUrl: formData.mediaUrl!,
-        answer: formData.answer!,
-        hint: formData.hint || undefined
-      }
-
-      // Sauvegarder sur le serveur
-      await QuestionService.addQuestion(updatedQuestion)
-
-      // Mettre à jour la liste locale (la sauvegarde automatique se fera via useEffect)
-      const newQuestions = [...localQuestions]
-      newQuestions[editingIndex] = updatedQuestion
-      setLocalQuestions(newQuestions)
-      resetForm()
-      setEditingIndex(null)
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error)
-      setFormError('Erreur lors de la mise à jour de la question: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
-    }
-  }
 
   const handleDelete = async (index: number) => {
     const question = filteredQuestions[index]
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la question "${question.answer}" ?`)) {
+    if (!question) {
+      toast.error('Question introuvable')
+      return
+    }
+    
+    const handleConfirm = async () => {
       try {
         const questionId = question.id || question.mediaUrl
         await QuestionService.deleteQuestion(questionId, question.category)
         
-        // Mettre à jour la liste locale (la sauvegarde automatique se fera via useEffect)
         const newQuestions = localQuestions.filter(q => 
           (q.id && question.id && q.id !== question.id) || 
-          (!q.id && !question.id && q.mediaUrl !== question.mediaUrl) ||
           (q.mediaUrl !== question.mediaUrl)
         )
         setLocalQuestions(newQuestions)
+        toast.success('Question supprimée avec succès')
       } catch (error) {
         console.error('Erreur lors de la suppression:', error)
-        alert('Erreur lors de la suppression de la question')
+        const errorMessage = error instanceof Error 
+          ? (error.message.includes('Failed to fetch') 
+              ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
+              : error.message)
+          : 'Erreur inconnue lors de la suppression'
+        toast.error(`Erreur lors de la suppression: ${errorMessage}`)
+      } finally {
+        setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })
       }
     }
+
+    setConfirmDialog({
+      isOpen: true,
+      message: `Êtes-vous sûr de vouloir supprimer la question "${question.answer}" ?`,
+      onConfirm: handleConfirm
+    })
   }
 
 
-  const resetForm = () => {
-    setFormData({
-      category: undefined,
-      mediaUrl: '',
-      answer: '',
-      hint: ''
-    })
+  const cancelEdit = () => {
+    reset()
     setSelectedCategories([])
     setYoutubeThumbnail(null)
     setYoutubeTitle('')
-    setIsLoadingMetadata(false)
-    setYoutubeError(null)
     setYoutubeValid(false)
-    setFormError(null)
-    setFieldErrors({})
-    setTouchedFields({})
-  }
-
-  const cancelEdit = () => {
-    resetForm()
     setEditingIndex(null)
     setShowAddForm(false)
   }
 
-  const getCategoryLabel = (category: Category) => {
-    const cat = categories.find(c => c.id === category)
-    return cat ? `${cat.emoji} ${cat.name}` : category
+  const getCategoryLabel = (category: Category | Category[]) => {
+    const categoriesArray = Array.isArray(category) ? category : [category]
+    return categoriesArray.map(cat => {
+      const catInfo = categories.find(c => c.id === cat)
+      return catInfo ? `${catInfo.emoji} ${catInfo.name}` : cat
+    }).join(', ')
   }
 
   const getTypeLabel = (type: MediaType) => {
@@ -310,10 +471,51 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     return labels[type]
   }
 
+  // Statistiques par catégorie
+  const categoryStats = useMemo(() => {
+    const stats: Record<string, number> = {}
+    categories.forEach(cat => {
+      stats[cat.id] = localQuestions.filter(q => {
+        const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
+        return questionCategories.includes(cat.id)
+      }).length
+    })
+    return stats
+  }, [localQuestions, categories])
+
   return (
-    <div className="editor-panel">
+    <>
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message={confirmDialog.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })}
+        variant="danger"
+      />
+      <div className="editor-panel">
       <div className="panel-header">
-        <h2>📝 Questions</h2>
+        <h2><FaEdit /> Questions</h2>
+        <div className="editor-stats">
+          <div className="stat-item stat-item-total">
+            <span className="stat-label">Total:</span>
+            <span className="stat-value">{localQuestions.length}</span>
+          </div>
+          <div className="stat-categories">
+            {categories.map(cat => {
+              const count = categoryStats[cat.id] || 0
+              if (count === 0) return null
+              return (
+                <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
+                  <span className="stat-icon">{cat.emoji}</span>
+                  <span className="stat-category-name">{cat.name}</span>
+                  <span className="stat-value">{count}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="editor-filters">
@@ -331,8 +533,33 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
             ))}
           </select>
         </label>
+        <label>
+          <FaSearch /> Rechercher :
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher par réponse, URL, indice ou catégorie..."
+            className="search-input"
+          />
+          {searchQuery && (
+              <button
+                type="button"
+                className="search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Effacer la recherche"
+              >
+                <FaTimes />
+              </button>
+          )}
+        </label>
         <div className="question-count">
           {filteredQuestions.length} question{filteredQuestions.length > 1 ? 's' : ''}
+          {debouncedSearchQuery && (
+            <span className="search-results-info">
+              {' '}sur {localQuestions.length} total{localQuestions.length > 1 ? 'es' : 'e'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -342,29 +569,17 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
             <div className="modal-header">
               <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
               <button className="close-button" onClick={cancelEdit} title="Fermer">
-                ✕
+                <FaTimes />
               </button>
             </div>
             <div className="modal-body">
               <form 
                 className="question-form"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (editingIndex !== null) {
-                    handleUpdate()
-                  } else {
-                    handleAdd()
-                  }
-                }}
+                onSubmit={handleSubmit(editingIndex !== null ? onUpdate : onSubmit)}
                 onKeyDown={(e) => {
-                  // Ctrl/Cmd + Enter pour soumettre même depuis un input
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault()
-                    if (editingIndex !== null) {
-                      handleUpdate()
-                    } else {
-                      handleAdd()
-                    }
+                    handleSubmit(editingIndex !== null ? onUpdate : onSubmit)()
                   }
                 }}
               >
@@ -379,17 +594,17 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                   selectedCategories={selectedCategories}
                   onSelectionChange={(cats) => {
                     setSelectedCategories(cats)
-                    // Prendre la première catégorie sélectionnée pour formData.category
-                    // (le backend utilise une seule catégorie par question pour l'instant)
-                    if (cats.length > 0) {
-                      setFormData({ ...formData, category: cats[0] })
-                    } else {
-                      setFormData({ ...formData, category: undefined })
-                    }
+                    setValue('categories', cats, { shouldValidate: true })
                   }}
                   multiple={true}
                   required={true}
                 />
+                {errors.categories && (
+                  <div className="youtube-error-message">
+                    <FaExclamationTriangle className="error-icon" />
+                    <span>{errors.categories.message}</span>
+                  </div>
+                )}
               </div>
 
 
@@ -397,94 +612,22 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 URL YouTube *
                 <input
                   type="text"
-                  value={formData.mediaUrl || ''}
-                  onBlur={() => setTouchedFields(prev => ({ ...prev, mediaUrl: true }))}
-                  onChange={async (e) => {
-                    const url = e.target.value
-                    setFormData({ ...formData, mediaUrl: url })
-                    setYoutubeError(null)
-                    setYoutubeValid(false)
-                    setFormError(null)
-                    // Marquer le champ comme touché
-                    if (!touchedFields.mediaUrl) {
-                      setTouchedFields(prev => ({ ...prev, mediaUrl: true }))
-                    }
-                    
-                    // Si l'URL est vide, réinitialiser
-                    if (!url || url.trim() === '') {
-                      setYoutubeThumbnail(null)
-                      setYoutubeTitle('')
-                      setYoutubeError(null)
-                      setYoutubeValid(false)
-                      return
-                    }
-                    
-                    // D'abord vérifier le format URL de base
-                    if (!isValidUrlFormat(url)) {
-                      setYoutubeThumbnail(null)
-                      setYoutubeTitle('')
-                      setYoutubeError('Format d\'URL invalide. Veuillez entrer une URL valide (ex: https://youtu.be/...)')
-                      setYoutubeValid(false)
-                      return
-                    }
-                    
-                    // Ensuite vérifier si c'est une URL YouTube
-                    if (!isYouTubeUrl(url)) {
-                      setYoutubeThumbnail(null)
-                      setYoutubeTitle('')
-                      setYoutubeError('Seules les URLs YouTube sont supportées. Format attendu : https://youtu.be/... ou https://www.youtube.com/watch?v=...')
-                      setYoutubeValid(false)
-                      return
-                    }
-                    
-                    // Charger les métadonnées YouTube
-                    setIsLoadingMetadata(true)
-                    setYoutubeError(null)
-                    try {
-                      const metadata = await getYouTubeMetadata(url)
-                      if (metadata && metadata.videoId && metadata.title) {
-                        // La vidéo existe et est valide
-                        setYoutubeThumbnail(metadata.thumbnailUrl)
-                        setYoutubeTitle(metadata.title)
-                        setYoutubeValid(true)
-                        setYoutubeError(null)
-                        // Pré-remplir la réponse seulement si elle est vide
-                        if (!formData.answer || formData.answer.trim() === '') {
-                          setFormData({ ...formData, mediaUrl: url, answer: metadata.title })
-                        } else {
-                          setFormData({ ...formData, mediaUrl: url })
-                        }
-                      } else {
-                        // La vidéo n'existe pas ou les métadonnées sont invalides
-                        setYoutubeThumbnail(null)
-                        setYoutubeTitle('')
-                        setYoutubeError('Cette vidéo YouTube n\'existe pas ou n\'est pas accessible. Vérifiez que l\'URL est correcte.')
-                        setYoutubeValid(false)
-                      }
-                    } catch (error) {
-                      setYoutubeThumbnail(null)
-                      setYoutubeTitle('')
-                      setYoutubeError('Erreur lors de la vérification de l\'URL YouTube. Vérifiez votre connexion internet.')
-                      setYoutubeValid(false)
-                    } finally {
-                      setIsLoadingMetadata(false)
-                    }
-                  }}
+                  {...register('mediaUrl')}
                   placeholder="https://youtu.be/..."
-                  className={(youtubeError || fieldErrors.mediaUrl) ? 'input-error' : ''}
+                  className={errors.mediaUrl ? 'input-error' : ''}
                 />
-                {(youtubeError || fieldErrors.mediaUrl) && (
+                {errors.mediaUrl && (
                   <div className="youtube-error-message">
-                    <span className="error-icon">⚠️</span>
-                    <span>{fieldErrors.mediaUrl || youtubeError}</span>
+                    <FaExclamationTriangle className="error-icon" />
+                    <span>{errors.mediaUrl.message}</span>
                   </div>
                 )}
-                {formData.mediaUrl && !youtubeError && (
+                {watchedMediaUrl && !errors.mediaUrl && (
                   <div className="youtube-preview-form">
-                    {isLoadingMetadata && (
-                      <span className="youtube-hint">⏳ Chargement des métadonnées...</span>
+                    {!youtubeThumbnail && isYouTubeUrl(watchedMediaUrl) && (
+                      <span className="youtube-hint"><FaSpinner className="spinner" /> Chargement des métadonnées...</span>
                     )}
-                    {!isLoadingMetadata && youtubeThumbnail && youtubeValid && (
+                    {youtubeThumbnail && youtubeValid && (
                       <div className="youtube-metadata-preview">
                         <img 
                           src={youtubeThumbnail} 
@@ -493,13 +636,13 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                         />
                         {youtubeTitle && (
                           <div className="youtube-title-preview">
-                            <strong>📺 {youtubeTitle}</strong>
+                            <strong><FaTv /> {youtubeTitle}</strong>
                           </div>
                         )}
                       </div>
                     )}
-                    {!isLoadingMetadata && !youtubeThumbnail && isYouTubeUrl(formData.mediaUrl) && !youtubeError && (
-                      <span className="youtube-hint">✓ URL YouTube détectée</span>
+                    {youtubeValid && !youtubeThumbnail && (
+                      <span className="youtube-hint"><FaCheckCircle /> URL YouTube détectée</span>
                     )}
                   </div>
                 )}
@@ -509,23 +652,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 Réponse *
                 <input
                   type="text"
-                  value={formData.answer || ''}
-                  onBlur={() => setTouchedFields(prev => ({ ...prev, answer: true }))}
-                  onChange={(e) => {
-                    setFormData({ ...formData, answer: e.target.value })
-                    setFormError(null)
-                    // Marquer le champ comme touché
-                    if (!touchedFields.answer) {
-                      setTouchedFields(prev => ({ ...prev, answer: true }))
-                    }
-                  }}
+                  {...register('answer')}
                   placeholder="La réponse à deviner"
-                  className={fieldErrors.answer ? 'input-error' : ''}
+                  className={errors.answer ? 'input-error' : ''}
                 />
-                {fieldErrors.answer && (
+                {errors.answer && (
                   <div className="youtube-error-message">
-                    <span className="error-icon">⚠️</span>
-                    <span>{fieldErrors.answer}</span>
+                    <FaExclamationTriangle className="error-icon" />
+                    <span>{errors.answer.message}</span>
                   </div>
                 )}
               </label>
@@ -534,44 +668,39 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 Indice (optionnel)
                 <input
                   type="text"
-                  value={formData.hint || ''}
-                  onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+                  {...register('hint')}
                   placeholder="Un indice pour aider à deviner"
                 />
               </label>
 
-              {/* Afficher seulement les erreurs serveur/API, pas les erreurs de validation de champs */}
-              {formError && !fieldErrors.mediaUrl && !fieldErrors.answer && (
-                <div className="form-error-message">
-                  <span className="error-icon">⚠️</span>
-                  <span>{formError}</span>
-                </div>
-              )}
-
               <div className="form-actions">
                 <button
+                  type="submit"
                   className="submit-button"
-                  onClick={editingIndex !== null ? handleUpdate : handleAdd}
-                  disabled={
-                    !youtubeValid || 
-                    !formData.mediaUrl || 
-                    !formData.answer || 
-                    !formData.category ||
-                    selectedCategories.length === 0 ||
-                    !!fieldErrors.mediaUrl || 
-                    !!fieldErrors.answer
-                  }
+                  disabled={isSubmitting || !youtubeValid || selectedCategories.length === 0}
                   title={
-                    fieldErrors.mediaUrl || fieldErrors.answer
+                    errors.mediaUrl || errors.answer || errors.categories
                       ? 'Veuillez corriger les erreurs dans le formulaire'
                       : !youtubeValid 
                         ? 'Veuillez entrer une URL YouTube valide' 
-                        : !formData.mediaUrl || !formData.answer 
-                          ? 'Veuillez remplir tous les champs obligatoires' 
+                        : selectedCategories.length === 0
+                          ? 'Veuillez sélectionner au moins une catégorie'
                           : ''
                   }
                 >
-                  {editingIndex !== null ? '💾 Mettre à jour' : '➕ Ajouter'}
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="spinner" /> Chargement...
+                    </>
+                  ) : editingIndex !== null ? (
+                    <>
+                      <FaSave /> Mettre à jour
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus /> Ajouter
+                    </>
+                  )}
                 </button>
                 <button type="button" className="cancel-button" onClick={cancelEdit}>
                   Annuler
@@ -594,16 +723,33 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 setShowAddForm(true)
               }}
             >
-              ➕ Ajouter une question
+              <FaPlus /> Ajouter une question
             </button>
           </div>
 
-          <div className="questions-grid">
-            {filteredQuestions.map((question, index) => {
-              const questionId = question.id || question.mediaUrl
-              const thumbnailUrl = question.type === 'video' && isYouTubeUrl(question.mediaUrl)
+          {filteredQuestions.length === 0 ? (
+            <div className="no-questions-message">
+              <span className="no-questions-icon"><FaSearch /></span>
+              <p>Aucune question trouvée</p>
+              {debouncedSearchQuery && (
+                <p className="no-questions-hint">Essayez de modifier votre recherche ou vos filtres</p>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="questions-grid">
+                {filteredQuestions.slice((currentPage - 1) * questionsPerPage, currentPage * questionsPerPage).map((question) => {
+                  const questionId = question.id || question.mediaUrl
+                  // Trouver l'index réel dans filteredQuestions pour handleEdit/handleDelete
+                  const realIndex = filteredQuestions.findIndex(q => 
+                    (q.id && question.id && q.id === question.id) || 
+                    (q.mediaUrl === question.mediaUrl)
+                  )
+              const metadata = questionMetadata[question.mediaUrl]
+              const thumbnailUrl = metadata?.thumbnailUrl || (question.type === 'video' && isYouTubeUrl(question.mediaUrl)
                 ? getYouTubeThumbnailFromUrl(question.mediaUrl)
-                : null
+                : null)
+              const videoTitle = metadata?.title
               
               return (
                 <div key={questionId} className="question-card-editor">
@@ -613,18 +759,29 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                   <div className="question-card-body">
                     <div className="question-media">
                       {thumbnailUrl && (
-                        <img 
-                          src={thumbnailUrl} 
-                          alt="YouTube thumbnail" 
-                          className="youtube-thumbnail-small"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
+                        <div className="youtube-thumbnail-wrapper">
+                          <img 
+                            src={thumbnailUrl} 
+                            alt={videoTitle || "YouTube thumbnail"} 
+                            className="youtube-thumbnail-small"
+                            title={videoTitle || undefined}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                          {videoTitle && (
+                            <div className="youtube-title-overlay">
+                              <span className="youtube-title-text">{videoTitle}</span>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="question-info-compact">
                       <div className="question-answer-compact"><strong>{question.answer}</strong></div>
+                      {videoTitle && videoTitle !== question.answer && (
+                        <div className="question-video-title">📺 {videoTitle}</div>
+                      )}
                       {question.hint && (
                         <div className="question-hint-compact">{question.hint}</div>
                       )}
@@ -633,41 +790,57 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                   <div className="question-card-actions">
                     <button
                       className="edit-button-small"
-                      onClick={() => handleEdit(index)}
+                      onClick={() => handleEdit(realIndex)}
                       title="Modifier"
                     >
-                      ✏️
+                      <FaEdit />
                     </button>
                     <button
                       className="delete-button-small"
-                      onClick={() => handleDelete(index)}
+                      onClick={() => handleDelete(realIndex)}
                       title="Supprimer"
                     >
-                      🗑️
+                      <FaTrash />
                     </button>
                   </div>
                 </div>
               )
-            })}
-          </div>
-
-          {filteredQuestions.length === 0 && (
-            <div className="empty-state">
-              <p>📭 Aucune question dans cette catégorie</p>
-              <button
-                className="add-button"
-                onClick={() => {
-                  cancelEdit()
-                  setShowAddForm(true)
-                }}
-              >
-                ➕ Ajouter une question
-              </button>
-            </div>
+                })}
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination" role="navigation" aria-label="Pagination des questions">
+                  <button
+                    className="pagination-button"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    title="Page précédente"
+                    aria-label="Page précédente"
+                  >
+                    <FaChevronLeft /> Précédent
+                  </button>
+                  <span className="pagination-info" aria-current="page">
+                    Page {currentPage} sur {totalPages}
+                  </span>
+                  <button
+                    className="pagination-button"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    title="Page suivante"
+                    aria-label="Page suivante"
+                  >
+                    Suivant <FaChevronRight />
+                  </button>
+                </div>
+              )}
+            </>
           )}
+
         </div>
       </div>
     </div>
+    </>
   )
 }
 

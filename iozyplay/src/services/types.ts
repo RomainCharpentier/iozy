@@ -19,7 +19,7 @@ export type MediaType = 'audio' | 'image' | 'video';
 
 export interface Question {
   id?: string; // Optionnel : dérivé de mediaUrl si non fourni
-  category: Category;
+  category: Category | Category[]; // Support pour une ou plusieurs catégories
   type: MediaType;
   mediaUrl: string; // URL du média (clé primaire pour les questions YouTube)
   answer: string; // La réponse à deviner

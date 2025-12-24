@@ -1,37 +1,37 @@
 /* Category Selector pour l'éditeur */
 .category-selector-editor {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* Champ de recherche */
 .category-search-wrapper {
   position: relative;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
 .category-search-input {
   width: 100%;
-  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
-  border: 2px solid var(--border-color, #334155);
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.5;
-  background: var(--card-bg, #1e293b);
-  color: var(--text-color, #f1f5f9);
-  transition: all 0.2s ease;
+  padding: var(--space-3) calc(var(--space-10) + var(--space-2)) var(--space-3) var(--space-3);
+  border: var(--border-width-medium) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  background: var(--color-card-bg);
+  color: var(--color-text-primary);
+  transition: all var(--transition-base);
 }
 
 .category-search-input::placeholder {
-  color: var(--text-secondary, #94a3b8);
+  color: var(--color-text-secondary);
   opacity: 0.7;
 }
 
 .category-search-input:focus {
   outline: none;
-  border-color: var(--primary-color, #6366f1);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background: var(--card-bg, #1e293b);
+  background: var(--color-card-bg);
 }
 
 .category-search-clear {

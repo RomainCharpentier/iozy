@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { GameProvider } from './lib/game/GameContext'
 import HomePage from './pages/HomePage/HomePage'
 import CategorySelectorPage from './pages/CategorySelectorPage/CategorySelectorPage'
@@ -30,6 +31,29 @@ function App() {
       <BrowserRouter>
         <div className="app">
           <GameOverlay />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: 'var(--card-bg)',
+                color: 'var(--text-color)',
+                border: '1px solid var(--border-color)',
+              },
+              success: {
+                iconTheme: {
+                  primary: 'var(--success-color)',
+                  secondary: 'white',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: 'var(--error-color)',
+                  secondary: 'white',
+                },
+              },
+            }}
+          />
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/categories" element={<CategorySelectorPage />} />
