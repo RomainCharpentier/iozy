@@ -38,20 +38,46 @@ export default function RoomConfigPanel({
   const DEFAULT_COUNT = 20
 
   // Normaliser availableQuestionsCount - toujours un nombre >= 0
-  const availableCount = Math.max(0, Number(rawAvailableCount) || 0)
+  const availableCount: number = (() => {
+    if (rawAvailableCount == null || rawAvailableCount === undefined) return 0
+    const num = Number(rawAvailableCount)
+    if (Number.isNaN(num) || !Number.isFinite(num) || num < 0) return 0
+    return Math.floor(num)
+  })()
 
   // Calculer le max disponible : min(50, availableCount), avec minimum 1
-  const maxCount = availableCount === 0 ? MIN_COUNT : Math.max(MIN_COUNT, Math.min(MAX_COUNT, availableCount))
+  const maxCount: number = (() => {
+    if (!Number.isFinite(availableCount) || availableCount < 0) return MIN_COUNT
+    if (availableCount === 0) return MIN_COUNT
+    const calculated = Math.max(MIN_COUNT, Math.min(MAX_COUNT, availableCount))
+    if (Number.isNaN(calculated) || !Number.isFinite(calculated)) return MIN_COUNT
+    return calculated
+  })()
 
   // Normaliser questionCount - valeur par défaut si invalide
-  const currentCount = (() => {
-    const numValue = Number(rawQuestionCount)
-    // Si la valeur est un nombre valide dans la plage [MIN_COUNT, maxCount], l'utiliser
-    if (!isNaN(numValue) && isFinite(numValue) && numValue >= MIN_COUNT && numValue <= maxCount) {
-      return Math.round(numValue)
+  const currentCount: number = (() => {
+    if (!Number.isFinite(maxCount) || Number.isNaN(maxCount)) return MIN_COUNT
+
+    if (rawQuestionCount == null || rawQuestionCount === undefined || rawQuestionCount === 0) {
+      const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
+      return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
     }
-    // Sinon, utiliser la valeur par défaut (20 ou maxCount si moins de 20)
-    return Math.min(DEFAULT_COUNT, maxCount)
+
+    const numValue = Number(rawQuestionCount)
+    if (!Number.isFinite(numValue) || Number.isNaN(numValue)) {
+      const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
+      return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
+    }
+
+    // Si la valeur est dans la plage valide, l'utiliser
+    if (numValue >= MIN_COUNT && numValue <= maxCount) {
+      const rounded = Math.round(numValue)
+      return (Number.isNaN(rounded) || !Number.isFinite(rounded)) ? MIN_COUNT : rounded
+    }
+
+    // Sinon, utiliser la valeur par défaut
+    const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
+    return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
   })()
 
   useEffect(() => {
@@ -132,14 +158,14 @@ export default function RoomConfigPanel({
       {/* Question Count Slider */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-          🎵 Nombre de questions: <strong>{currentCount}</strong>
+          🎵 Nombre de questions: <strong>{Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}</strong>
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
           <input
             type="range"
             min={MIN_COUNT}
-            max={maxCount}
-            value={currentCount}
+            max={Number.isFinite(maxCount) && !Number.isNaN(maxCount) ? maxCount : MIN_COUNT}
+            value={Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}
             onChange={(e) => {
               const value = parseInt(e.target.value, 10)
               handleQuestionCountChange(value)
@@ -156,7 +182,7 @@ export default function RoomConfigPanel({
             }}
           />
           <span style={{ minWidth: '50px', textAlign: 'center', fontWeight: 700, fontSize: 'var(--font-size-lg)' }}>
-            {currentCount}
+            {Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}
           </span>
         </div>
         <p className="text-secondary" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}>

@@ -133,3 +133,4 @@
 4. **PWA** : Rendre l'app installable et fonctionnelle offline
 5. **Tests E2E** : S'assurer que les fonctionnalités critiques fonctionnent
 
+

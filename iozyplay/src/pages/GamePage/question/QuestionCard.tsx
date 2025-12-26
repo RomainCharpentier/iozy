@@ -256,7 +256,7 @@ export default function QuestionCard({
       <div className="media-container" data-testid="media-container">
         {question.mediaUrl && (
           <>
-            {waitingForGo && gameMode === 'online' && (
+            {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
               <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
             )}
             <MediaPlayer 
@@ -264,7 +264,7 @@ export default function QuestionCard({
               mediaUrl={question.mediaUrl}
               autoPlay={gameMode === 'solo' || (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)}
               showVideo={isTimeUp}
-              restartVideo={isTimeUp || (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)}
+              restartVideo={false}
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
               onVideoRestarted={() => {}}
               shouldPause={shouldPause || (gameMode === 'online' && waitingForGo)}

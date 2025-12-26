@@ -265,7 +265,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       setTimeRemaining(remaining)
 
       // isTimeUp devient true seulement quand le temps de guess est complètement écoulé
-      const hasFullyElapsed = elapsed >= gameDurationMsRef.current
+      // On accepte aussi remaining <= 0.5 pour gérer les cas où le serveur passe à la question suivante
+      // avant que le timer client ne soit complètement terminé (le serveur peut avoir un léger délai)
+      const hasFullyElapsed = elapsed >= gameDurationMsRef.current || remaining <= 0.5
       const newIsTimeUp = hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
 
       setIsTimeUp(newIsTimeUp)
@@ -638,6 +640,12 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     socket.on('game:go', handleGameGo)
     socket.on('game:sync', handleGameSync)
     socket.on('game:next', handleNextQuestion)
+
+    // Écouter l'événement game:reveal pour forcer isTimeUp à true
+    const handleGameReveal = () => {
+      setIsTimeUp(true)
+    }
+    socket.on('game:reveal', handleGameReveal)
     socket.on('game:correct-answer', handleCorrectAnswer)
     socket.on('game:end', handleGameEnded)
     socket.on('error', handleError)
@@ -691,6 +699,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       socket.off('game:go', handleGameGo)
       socket.off('game:sync', handleGameSync)
       socket.off('game:next', handleNextQuestion)
+      socket.off('game:reveal', handleGameReveal)
       socket.off('game:correct-answer', handleCorrectAnswer)
       socket.off('game:end', handleGameEnded)
       socket.off('error', handleError)

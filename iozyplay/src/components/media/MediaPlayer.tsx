@@ -94,6 +94,7 @@ export default function MediaPlayer({
       <VideoPlayer
         mediaUrl={mediaUrl}
         autoPlay={autoPlay}
+        showVideo={showVideo}
         shouldPause={shouldPause}
         restartVideo={restartVideo}
         onVideoRestarted={onVideoRestarted}

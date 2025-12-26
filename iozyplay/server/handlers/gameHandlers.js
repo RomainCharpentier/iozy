@@ -92,46 +92,65 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     const currentRoom = roomRepository.get(roomCode);
     if (!currentRoom || currentRoom.gameState !== 'playing') return;
     
-    console.log('[scheduleNextQuestionTimer] Timer déclenché, passage à la question suivante', {
+    console.log('[scheduleNextQuestionTimer] Phase guess terminée, démarrage de la phase reveal', {
       roomCode,
       currentQuestionIndex: currentRoom.game.questionIndex
     });
     
-    const result = nextQuestion(currentRoom);
-    if (!result) return;
-
-    roomRepository.update(roomCode, result.room);
-    roomRepository.clearGameTimer(roomCode);
-
-    if (result.isFinished) {
-      broadcastRoomState(io, roomCode, result.room);
-      io.to(roomCode).emit('game:end', {
-        players: result.players
-      });
-    } else {
-      // Réinitialiser readyPlayers pour la nouvelle question
-      result.room.game.readyPlayers = new Set();
-      result.room.game.goAt = null;
-      result.room.game.startedAt = null;
+    // Envoyer un événement pour indiquer que la phase reveal commence
+    io.to(roomCode).emit('game:reveal', {
+      questionIndex: currentRoom.game.questionIndex
+    });
+    
+    // Attendre la durée de la phase reveal (même durée que le guess) avant de passer à la question suivante
+    const revealTimer = setTimeout(() => {
+      const revealRoom = roomRepository.get(roomCode);
+      if (!revealRoom || revealRoom.gameState !== 'playing') return;
       
+      console.log('[scheduleNextQuestionTimer] Phase reveal terminée, passage à la question suivante', {
+        roomCode,
+        currentQuestionIndex: revealRoom.game.questionIndex
+      });
+      
+      const result = nextQuestion(revealRoom);
+      if (!result) return;
+
       roomRepository.update(roomCode, result.room);
-      
-      // Pas de timeout de sécurité - on attend vraiment que tous soient prêts pour la nouvelle question
-      
-      // Envoyer d'abord game:next, puis room:state pour synchroniser tous les clients
-      io.to(roomCode).emit('game:next', {
-        currentQuestion: result.currentQuestion,
-        questions: result.room.questions,
-        questionIndex: result.questionIndex,
-        durationMs: result.room.game.durationMs
-        // startedAt sera défini au moment du "go"
-      });
-      
-      // Ensuite envoyer room:state pour forcer la synchronisation
-      broadcastRoomState(io, roomCode, result.room);
-      
-      // Ne pas programmer le timer maintenant, attendre que tous soient prêts
-    }
+      roomRepository.clearGameTimer(roomCode);
+
+      if (result.isFinished) {
+        broadcastRoomState(io, roomCode, result.room);
+        io.to(roomCode).emit('game:end', {
+          players: result.players
+        });
+      } else {
+        // Réinitialiser readyPlayers pour la nouvelle question
+        result.room.game.readyPlayers = new Set();
+        result.room.game.goAt = null;
+        result.room.game.startedAt = null;
+        
+        roomRepository.update(roomCode, result.room);
+        
+        // Pas de timeout de sécurité - on attend vraiment que tous soient prêts pour la nouvelle question
+        
+        // Envoyer d'abord game:next, puis room:state pour synchroniser tous les clients
+        io.to(roomCode).emit('game:next', {
+          currentQuestion: result.currentQuestion,
+          questions: result.room.questions,
+          questionIndex: result.questionIndex,
+          durationMs: result.room.game.durationMs
+          // startedAt sera défini au moment du "go"
+        });
+        
+        // Ensuite envoyer room:state pour forcer la synchronisation
+        broadcastRoomState(io, roomCode, result.room);
+        
+        // Ne pas programmer le timer maintenant, attendre que tous soient prêts
+      }
+    }, room.game.durationMs); // Durée de la phase reveal (même durée que le guess)
+    
+    // Sauvegarder le timer de reveal
+    roomRepository.setGameTimer(roomCode, revealTimer);
   }, timeRemaining);
   
   roomRepository.setGameTimer(roomCode, timer);

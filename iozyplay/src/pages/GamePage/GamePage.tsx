@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../../lib/game/GameContext'
 import type { Category, Question } from '../../services/types'
@@ -11,14 +12,24 @@ export default function GamePage() {
     // car les questions viendront du serveur via game:start
     const isMultiplayer = gameState?.gameMode === 'online'
     
+    useEffect(() => {
+        if (!gameState) {
+            navigate('/')
+            return
+        }
+
+        // En mode solo, les questions sont requises
+        if (!isMultiplayer && (!gameState.questions || gameState.questions.length === 0)) {
+            navigate('/')
+        }
+    }, [gameState, isMultiplayer, navigate])
+
     if (!gameState) {
-        navigate('/')
         return null
     }
 
     // En mode solo, les questions sont requises
     if (!isMultiplayer && (!gameState.questions || gameState.questions.length === 0)) {
-        navigate('/')
         return null
     }
 

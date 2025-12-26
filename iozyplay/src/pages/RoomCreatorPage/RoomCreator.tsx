@@ -43,83 +43,68 @@ export default function RoomCreator({
   const [players, setPlayers] = useState<any[]>([])
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('')
   const [timeLimit, setTimeLimit] = useState<number>(TIMING.DEFAULT_TIME_LIMIT)
-  
-  // Calculer le nombre de questions disponibles immédiatement
-  const initialAvailableCount = (() => {
-    try {
-      const available = QuestionService.getQuestionsForCategories(categories)
-      const count = Array.isArray(available) ? available.length : 0
-      return typeof count === 'number' && !isNaN(count) && count >= 0 ? count : 0
-    } catch {
-      return 0
-    }
-  })()
-  
-  const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(initialAvailableCount)
-  
-  const [questionCount, setQuestionCount] = useState<number>(() => {
-    // Calculer la valeur initiale basée sur availableCount
-    if (initialAvailableCount === 0) return 0
-    const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, initialAvailableCount))
-    const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
-    return defaultCount
-  })
+
+  const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
+  const [questionCount, setQuestionCount] = useState<number>(QUESTION_COUNT.MIN)
   const isStartingGameRef = useRef(false)
 
+  // Charger le nombre de questions disponibles lorsque les catégories changent
   useEffect(() => {
-    const available = QuestionService.getQuestionsForCategories(categories)
-    const availableCount = Array.isArray(available) ? available.length : 0
-    
-    if (isNaN(availableCount) || availableCount < 0) {
-      setAvailableQuestionsCount(0)
-      setQuestionCount(0)
-      return
-    }
-    
-    setAvailableQuestionsCount(availableCount)
-    
-    if (availableCount === 0) {
-      setQuestionCount(0)
-      return
-    }
-    
-    // Calculer maxCount et defaultCount avec protection contre NaN
-    const safeAvailableCount = typeof availableCount === 'number' && !isNaN(availableCount) && availableCount >= 0 ? availableCount : 0
-    const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, safeAvailableCount))
-    const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
-    
-    // Vérifications finales
-    const safeMaxCount = typeof maxCount === 'number' && !isNaN(maxCount) && maxCount >= QUESTION_COUNT.MIN ? maxCount : QUESTION_COUNT.MIN
-    const safeDefaultCount = typeof defaultCount === 'number' && !isNaN(defaultCount) && defaultCount >= QUESTION_COUNT.MIN ? defaultCount : QUESTION_COUNT.MIN
-    
-    setQuestionCount(prev => {
-      // Vérifier que prev est un nombre valide
-      const prevValue = typeof prev === 'number' && !isNaN(prev) && isFinite(prev) ? prev : null
-      
-      // Si prev est invalide, utiliser la valeur par défaut
-      if (prevValue === null || prevValue < QUESTION_COUNT.MIN || prevValue === 0) {
-        console.log('RoomCreator: setting questionCount to defaultCount', { prev, prevValue, safeDefaultCount, safeMaxCount, safeAvailableCount })
-        return safeDefaultCount
+    const loadAvailableCount = async () => {
+      try {
+        const available = await QuestionService.getQuestionsForCategories(categories)
+        const availableCount = Array.isArray(available) ? available.length : 0
+
+        if (isNaN(availableCount) || availableCount < 0) {
+          setAvailableQuestionsCount(0)
+          setQuestionCount(QUESTION_COUNT.MIN)
+          return
+        }
+
+        setAvailableQuestionsCount(availableCount)
+
+        if (availableCount === 0) {
+          setQuestionCount(0)
+          return
+        }
+
+        // Calculer maxCount et defaultCount
+        const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, availableCount))
+        const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
+
+        setQuestionCount(prev => {
+          // Vérifier que prev est un nombre valide
+          const prevValue = typeof prev === 'number' && !isNaN(prev) && isFinite(prev) && prev >= QUESTION_COUNT.MIN ? prev : null
+
+          // Si prev est invalide ou 0, utiliser la valeur par défaut
+          if (prevValue === null || prevValue === 0) {
+            return defaultCount
+          }
+
+          // Si prev est supérieur au max, le limiter au max
+          if (prevValue > maxCount) {
+            return maxCount
+          }
+
+          // Sinon, garder la valeur actuelle
+          return prevValue
+        })
+      } catch (error) {
+        console.error('Error loading available questions count:', error)
+        setAvailableQuestionsCount(0)
+        setQuestionCount(QUESTION_COUNT.MIN)
       }
-      
-      // Si prev est supérieur au max, le limiter au max
-      if (prevValue > safeMaxCount) {
-        console.log('RoomCreator: limiting questionCount to maxCount', { prev, prevValue, safeMaxCount })
-        return safeMaxCount
-      }
-      
-      // Sinon, garder la valeur actuelle
-      console.log('RoomCreator: keeping questionCount', { prev, prevValue })
-      return prevValue
-    })
+    }
+
+    loadAvailableCount()
   }, [categories])
 
   useEffect(() => {
     if (roomCode) return
-    
+
     let timeoutId: number | null = null
     const playerId = getPlayerId()
-    
+
     try {
       const socket = connectSocket()
 
@@ -204,7 +189,7 @@ export default function RoomCreator({
         socket.off('room:state', handleRoomState)
         socket.off('error', handleError)
         socket.off('reconnect')
-        
+
         if (roomCode && !isStartingGameRef.current) {
           socket.emit('room:leave', { roomCode })
         }
@@ -217,7 +202,7 @@ export default function RoomCreator({
 
   const handleSetName = () => {
     if (!playerName.trim() || !roomCode) return
-    
+
     const socket = getSocket()
     if (!socket) return
 
@@ -225,7 +210,7 @@ export default function RoomCreator({
       roomCode,
       playerName: playerName.trim()
     })
-    
+
     setCurrentPlayerName(playerName.trim())
     soundManager.playClick()
   }
@@ -241,19 +226,19 @@ export default function RoomCreator({
     }
   }
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     const socket = getSocket()
     if (!socket) {
       alert('Erreur : Socket non disponible. Veuillez rafraîchir la page.')
       return
     }
-    
+
     if (!roomCode) {
       alert('Erreur : Code de salon manquant.')
       return
     }
-    
-    const allQuestions = QuestionService.getQuestionsForCategories(categories)
+
+    const allQuestions = await QuestionService.getQuestionsForCategories(categories)
     if (allQuestions.length === 0) {
       alert('Erreur : Aucune question disponible.')
       return
@@ -265,20 +250,20 @@ export default function RoomCreator({
 
     soundManager.playStart()
     isStartingGameRef.current = true
-    
+
     if (!socket.connected) {
       alert('Erreur : Socket non connecté. Veuillez rafraîchir la page.')
       isStartingGameRef.current = false
       return
     }
-    
+
     const handleGameStarted = () => {
       if (timeoutId) clearTimeout(timeoutId)
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       onRoomCreated(roomCode)
     }
-    
+
     const handleError = ({ code, message }: { code: string, message: string }) => {
       if (timeoutId) clearTimeout(timeoutId)
       socket.off('game:start', handleGameStarted)
@@ -286,23 +271,23 @@ export default function RoomCreator({
       alert(`Erreur : ${message}`)
       isStartingGameRef.current = false
     }
-    
+
     const timeoutId = window.setTimeout(() => {
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       alert('Le serveur ne répond pas. Veuillez réessayer.')
       isStartingGameRef.current = false
     }, 5000)
-    
+
     socket.on('game:start', handleGameStarted)
     socket.on('error', handleError)
-    
+
     if (!questionsWithTimer || questionsWithTimer.length === 0) {
       alert('Erreur : Aucune question disponible après traitement.')
       isStartingGameRef.current = false
       return
     }
-    
+
     socket.emit('game:start', {
       roomCode,
       questions: questionsWithTimer,
@@ -329,18 +314,18 @@ export default function RoomCreator({
   }
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       minHeight: 'calc(100vh - 4rem)',
       maxWidth: '100%',
       margin: '0',
       width: '100%'
     }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 'var(--spacing-lg)',
         paddingBottom: 'var(--spacing-md)',
@@ -355,7 +340,7 @@ export default function RoomCreator({
           </p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-          <button 
+          <button
             className="btn btn-secondary"
             onClick={handleCopyLink}
           >
@@ -389,7 +374,10 @@ export default function RoomCreator({
             // Sinon, passer 0 pour que RoomConfigPanel calcule la valeur par défaut
             return 0
           })()}
-          availableQuestionsCount={typeof availableQuestionsCount === 'number' && !isNaN(availableQuestionsCount) ? availableQuestionsCount : 0}
+          availableQuestionsCount={(() => {
+            const num = Number(availableQuestionsCount)
+            return (Number.isNaN(num) || !Number.isFinite(num) || num < 0) ? 0 : num
+          })()}
           onTimeLimitChange={setTimeLimit}
           onQuestionCountChange={setQuestionCount}
           onStartGame={handleStartGame}
