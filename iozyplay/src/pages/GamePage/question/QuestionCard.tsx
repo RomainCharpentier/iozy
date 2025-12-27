@@ -19,10 +19,12 @@ interface QuestionCardProps {
   onTimerUpdate?: (timeRemaining: number, isTimeUp: boolean) => void
   onMediaReady?: () => void
   onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
+  onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   waitingForGo?: boolean
   gameStep?: string // loading, ready, starting, playing
   externalTimeRemaining?: number // Temps restant depuis le parent (pour mode multijoueur)
   externalIsTimeUp?: boolean // État isTimeUp depuis le parent (pour mode multijoueur)
+  startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
 }
 
 export default function QuestionCard({ 
@@ -36,10 +38,12 @@ export default function QuestionCard({
   onTimerUpdate,
   onMediaReady,
   onMediaStart,
+  onRevealVideoStart,
   waitingForGo = false,
   gameStep = 'loading',
   externalTimeRemaining,
-  externalIsTimeUp
+  externalIsTimeUp,
+  startTime
 }: QuestionCardProps) {
   if (!question) {
     return (
@@ -268,6 +272,7 @@ export default function QuestionCard({
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
               onVideoRestarted={() => {}}
               shouldPause={shouldPause || (gameMode === 'online' && waitingForGo)}
+              onRevealVideoStart={onRevealVideoStart}
               onMediaReady={() => {
                 // Éviter d'envoyer plusieurs fois game:ready pour la même question
                 if (mediaReadySentRef.current) {
@@ -299,6 +304,7 @@ export default function QuestionCard({
                   onMediaStart()
                 }
               }}
+              startTime={startTime}
             />
           </>
         )}

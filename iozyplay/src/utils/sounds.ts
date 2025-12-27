@@ -166,6 +166,32 @@ class SoundManager {
     })
   }
 
+  // Générer un son de révélation (transition guess -> reveal)
+  playReveal() {
+    if (!this.enabled) return
+    const ctx = this.getAudioContext()
+    if (!ctx) return
+
+    // Son joyeux et montant pour la révélation
+    const notes = [392.00, 493.88, 587.33, 783.99] // Sol, Si, Ré, Sol aigu
+
+    notes.forEach((freq, index) => {
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.08)
+      gainNode.gain.setValueAtTime(0.25 * this.volume, ctx.currentTime + index * 0.08)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.08 + 0.15)
+
+      oscillator.start(ctx.currentTime + index * 0.08)
+      oscillator.stop(ctx.currentTime + index * 0.08 + 0.15)
+    })
+  }
+
   // Activer/désactiver les sons
   setEnabled(enabled: boolean) {
     this.enabled = enabled

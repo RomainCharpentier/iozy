@@ -16,6 +16,8 @@ interface MediaPlayerProps {
   shouldPause?: boolean
   onMediaReady?: () => void
   onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
+  onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
+  startTime?: number // Timestamp serveur pour synchroniser le démarrage
 }
 
 export default function MediaPlayer({ 
@@ -28,7 +30,9 @@ export default function MediaPlayer({
   timeLimit,
   shouldPause = false,
   onMediaReady,
-  onMediaStart
+  onMediaStart,
+  onRevealVideoStart,
+  startTime
 }: MediaPlayerProps) {
   // Si c'est une URL YouTube, utiliser le composant YouTube
   if (isYouTubeUrl(mediaUrl)) {
@@ -43,6 +47,7 @@ export default function MediaPlayer({
         shouldPause={shouldPause}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
+        startTime={startTime}
       />
     )
   }
@@ -100,6 +105,9 @@ export default function MediaPlayer({
         onVideoRestarted={onVideoRestarted}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
+        onRevealVideoStart={onRevealVideoStart}
+        startTime={startTime}
+        timeLimit={timeLimit}
       />
     )
   }

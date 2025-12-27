@@ -16,8 +16,8 @@ export function startGame(room, questions, defaultTimeLimit) {
     room.updatedAt = Date.now();
 
     // Initialiser l'état de jeu avec la première question
-    const currentQuestion = questions[0];
-    const durationMs = (currentQuestion?.timeLimit || room.defaultTimeLimit) * 1000;
+    // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
+    const durationMs = room.defaultTimeLimit * 1000;
     
     room.game = {
         questionIndex: 0,
@@ -50,8 +50,8 @@ export function restartGameWithCategories(room, questions, categories, defaultTi
     });
 
     // Réinitialiser l'état de jeu
-    const currentQuestion = questions[0];
-    const durationMs = (currentQuestion?.timeLimit || room.defaultTimeLimit) * 1000;
+    // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
+    const durationMs = room.defaultTimeLimit * 1000;
     
     room.game = {
         questionIndex: 0,
@@ -82,8 +82,8 @@ export function restartGame(room) {
 
     // Réinitialiser l'état de jeu
     if (room.questions && room.questions.length > 0) {
-        const currentQuestion = room.questions[0];
-        const durationMs = (currentQuestion?.timeLimit || room.defaultTimeLimit) * 1000;
+        // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
+        const durationMs = room.defaultTimeLimit * 1000;
         
         room.game = {
             questionIndex: 0,
@@ -157,8 +157,9 @@ export function nextQuestion(room) {
     }
 
     // Initialiser l'état de la nouvelle question
-    const currentQuestion = room.questions[room.currentQuestionIndex];
-    const durationMs = (currentQuestion?.timeLimit || room.defaultTimeLimit) * 1000;
+    // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
+    // (le client devrait avoir appliqué applyDefaultTimeLimit, mais on force quand même)
+    const durationMs = room.defaultTimeLimit * 1000;
     
     room.game = {
         questionIndex: room.currentQuestionIndex,
@@ -172,7 +173,7 @@ export function nextQuestion(room) {
     return {
         room,
         isFinished: false,
-        currentQuestion: currentQuestion,
+        currentQuestion: room.questions[room.currentQuestionIndex],
         questionIndex: room.currentQuestionIndex
     };
 }

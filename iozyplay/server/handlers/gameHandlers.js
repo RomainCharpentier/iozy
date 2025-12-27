@@ -98,11 +98,19 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     });
     
     // Envoyer un événement pour indiquer que la phase reveal commence
+    // Les clients démarrent immédiatement à la réception
     io.to(roomCode).emit('game:reveal', {
       questionIndex: currentRoom.game.questionIndex
     });
     
     // Attendre la durée de la phase reveal (même durée que le guess) avant de passer à la question suivante
+    console.log('[scheduleNextQuestionTimer] Phase reveal - durée:', {
+      roomCode,
+      durationMs: currentRoom.game.durationMs,
+      durationSeconds: currentRoom.game.durationMs / 1000,
+      defaultTimeLimit: currentRoom.defaultTimeLimit
+    });
+    
     const revealTimer = setTimeout(() => {
       const revealRoom = roomRepository.get(roomCode);
       if (!revealRoom || revealRoom.gameState !== 'playing') return;
@@ -149,10 +157,11 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
       }
     }, room.game.durationMs); // Durée de la phase reveal (même durée que le guess)
     
-    // Sauvegarder le timer de reveal
+    // Sauvegarder le timer de reveal (remplace le timer initial qui vient de se terminer)
     roomRepository.setGameTimer(roomCode, revealTimer);
   }, timeRemaining);
   
+  // Sauvegarder le timer initial (pour la phase guess)
   roomRepository.setGameTimer(roomCode, timer);
 }
 
@@ -349,7 +358,8 @@ export function setupGameHandlers(socket, io) {
     });
     
     if (allReady && !room.game.goAt) {
-      const goAt = Date.now() + 1500;
+      // Utiliser un délai plus court pour réduire la latence perçue tout en gardant la synchronisation
+      const goAt = Date.now() + 1000; // Réduit de 1500ms à 1000ms pour une meilleure réactivité
       room.game.goAt = goAt;
       room.game.startedAt = goAt;
       

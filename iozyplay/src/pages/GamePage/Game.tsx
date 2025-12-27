@@ -45,10 +45,10 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const timerIntervalRef = useRef<number | null>(null)
   const gameStartedAtRef = useRef<number | null>(null)
   const gameDurationMsRef = useRef<number | null>(null)
-  const serverTimeOffsetRef = useRef<number>(0) // Offset entre temps serveur et temps client
+  const revealStartTimeRef = useRef<number | null>(null)
+  const revealStartTimeClientRef = useRef<number | null>(null)
   const [waitingForGo, setWaitingForGo] = useState<boolean>(gameMode === 'online') // En mode multijoueur, on attend toujours le signal "go" au début
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
-  const goAtRef = useRef<number | null>(null) // Timestamp du signal "go"
   const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
   const handleTimeUpRef = useRef<(() => void) | null>(null) // Référence à handleTimeUp pour l'utiliser dans startTimerCalculation
 
@@ -212,13 +212,41 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
     // Utiliser le temps restant calculé par le serveur si disponible
     if (serverTimeRemainingMs !== undefined && serverTime !== undefined && receivedAt) {
-      serverTimeOffsetRef.current = serverTime - receivedAt
       const initialRemaining = serverTimeRemainingMs / 1000
       setTimeRemaining(initialRemaining)
       setIsTimeUp(initialRemaining === 0)
 
       const updateTimer = () => {
         if (gameDurationMsRef.current === null) return
+        
+        // Si on est en phase reveal, calculer le temps restant
+        if (isTimeUp) {
+          // Si revealStartTimeRef est défini (timestamp serveur), l'utiliser pour synchroniser précisément
+          if (revealStartTimeClientRef.current !== null) {
+            // revealStartTimeClientRef.current est le timestamp client du début du chrono (chrono à la durée complète)
+            // Le chrono compte depuis ce moment jusqu'à 0
+            const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+            const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+            
+            setTimeRemaining(revealRemaining)
+            setIsTimeUp(true)
+            return
+          }
+          
+          // Si revealStartTimeRef n'est pas encore défini, initialiser le chrono immédiatement
+          if (revealStartTimeClientRef.current === null) {
+            revealStartTimeClientRef.current = clientNow
+          }
+          
+          // Calculer le temps restant en utilisant revealStartTimeClientRef
+          const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+          const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+          setTimeRemaining(revealRemaining)
+          setIsTimeUp(true)
+          return
+        }
+        
+        // Phase guess : utiliser le temps restant du serveur
         const elapsedSinceReceive = Date.now() - receivedAt
         const remaining = Math.max(0, (serverTimeRemainingMs - elapsedSinceReceive) / 1000)
         setTimeRemaining(remaining)
@@ -230,32 +258,53 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       return
     }
 
-    // Calculer depuis startedAt
-    // startedAt est le timestamp serveur où la question commence
-
-    // Calculer l'offset entre le temps serveur et le temps client
-    // Si on a serverTime et receivedAt, on peut calculer l'offset exact
-    if (receivedAt && serverTime !== undefined) {
-      // Offset = différence entre temps serveur et temps client au moment de la réception
-      // Cet offset représente la différence entre l'horloge serveur et l'horloge client
-      serverTimeOffsetRef.current = serverTime - receivedAt
-    } else if (receivedAt) {
-      // Si on n'a pas serverTime mais on a receivedAt, estimer l'offset
-      // en supposant que startedAt correspond approximativement au temps client quand on l'a reçu
-      // Mais startedAt peut être dans le futur (goAt), donc on utilise receivedAt comme référence
-      serverTimeOffsetRef.current = startedAt - receivedAt
-    } else {
-      // Fallback : pas d'offset
-      serverTimeOffsetRef.current = 0
-    }
-
+    // Calculer depuis startedAt (mode solo uniquement)
     const updateTimer = () => {
       if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) {
         return
       }
 
       const clientNow = Date.now()
-      // Calculer le temps écoulé depuis le début de la question
+      
+      // Si on est en phase reveal, calculer le temps restant
+      if (isTimeUp) {
+        // Si revealStartTimeRef est défini (timestamp serveur), l'utiliser pour synchroniser précisément
+        if (revealStartTimeClientRef.current !== null) {
+          // revealStartTimeClientRef.current est le timestamp client du début du chrono (chrono à la durée complète)
+          // Le chrono compte depuis ce moment jusqu'à 0
+          const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+          const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+          
+          setTimeRemaining(revealRemaining)
+          setIsTimeUp(true)
+          
+          // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
+          if (revealRemaining <= 0.5 && gameMode === 'solo' && handleTimeUpRef.current) {
+            handleTimeUpRef.current()
+          }
+          return
+        }
+        
+        // Si revealStartTimeRef n'est pas encore défini, initialiser le chrono immédiatement
+        // Le chrono commence maintenant à la durée complète
+        if (revealStartTimeClientRef.current === null) {
+          revealStartTimeClientRef.current = clientNow
+        }
+        
+        // Calculer le temps restant en utilisant revealStartTimeClientRef
+        const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+        const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+        setTimeRemaining(revealRemaining)
+        setIsTimeUp(true)
+        
+        // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
+        if (revealRemaining <= 0.5 && gameMode === 'solo' && handleTimeUpRef.current) {
+          handleTimeUpRef.current()
+        }
+        return
+      }
+
+      // Phase guess : calculer le temps écoulé depuis le début de la question
       // gameStartedAtRef.current est maintenant un timestamp client (pas serveur)
       // donc on peut le comparer directement avec clientNow
       const elapsed = Math.max(0, clientNow - gameStartedAtRef.current)
@@ -270,29 +319,17 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       const hasFullyElapsed = elapsed >= gameDurationMsRef.current || remaining <= 0.5
       const newIsTimeUp = hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
 
-      setIsTimeUp(newIsTimeUp)
-
-      // Si le timer de guess atteint 0, démarrer le timer du reveal
-      // On vérifie !revealTimerStartedRef.current pour éviter de démarrer le timer plusieurs fois
-      if (newIsTimeUp && !revealTimerStartedRef.current) {
-        revealTimerStartedRef.current = true
-
-        // Démarrer le timer du reveal (même durée que le guess)
-        if (gameDurationMsRef.current !== null) {
-          const revealDurationMs = gameDurationMsRef.current
-
-          // Programmer la fin du reveal
-          const revealTimer = window.setTimeout(() => {
-            // Le serveur devrait gérer le passage à la question suivante
-            // mais on peut aussi appeler handleTimeUp pour le mode solo
-            if (gameMode === 'solo' && handleTimeUpRef.current) {
-              handleTimeUpRef.current()
-            }
-          }, revealDurationMs)
-
-          timeoutRefs.current.push(revealTimer)
+      // En mode solo, définir revealStartTimeRef et revealStartTimeClientRef dès que isTimeUp devient true
+      if (newIsTimeUp && !isTimeUp && gameMode === 'solo') {
+        if (revealStartTimeRef.current === null) {
+          revealStartTimeRef.current = Date.now()
+        }
+        if (revealStartTimeClientRef.current === null) {
+          revealStartTimeClientRef.current = Date.now()
         }
       }
+
+      setIsTimeUp(newIsTimeUp)
 
       // Si le temps est écoulé, appeler handleTimeUp une seule fois (mode solo seulement, avant le reveal)
       if (newIsTimeUp && !isTimeUp && gameMode === 'solo' && !revealTimerStartedRef.current && handleTimeUpRef.current) {
@@ -315,6 +352,18 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       setWaitingForGo(false)
     }
   }, [gameMode])
+
+  const handleRevealVideoStart = () => {
+    const now = Date.now()
+    revealStartTimeClientRef.current = now
+    revealStartTimeRef.current = now
+    
+    const currentQuestion = gameQuestions[currentQuestionIndex]
+    const revealDurationMs = (currentQuestion?.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
+    
+    gameDurationMsRef.current = revealDurationMs
+    setTimeRemaining(revealDurationMs / 1000)
+  }
 
   useEffect(() => {
     if (gameMode !== 'online' || !roomCode) return
@@ -436,7 +485,6 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
       setWaitingForGo(true)
       mediaReadyRef.current = false
-      goAtRef.current = null
       setGameStep('loading')
       clearTimerInterval()
 
@@ -447,98 +495,52 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       mediaStartTimeRef.current = null
     }
 
-    const handleGameGo = ({ goAt, durationMs }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
-      goAtRef.current = goAt
+    const handleGameGo = ({ durationMs }: { durationMs: number }) => {
       gameDurationMsRef.current = durationMs
-      setGameStep('starting')
-      setWaitingForGo(true)
+      
+      // Démarrer immédiatement (pas de synchronisation complexe)
+      setWaitingForGo(false)
+      setGameStep('playing')
 
-      const startGameAtGoTime = () => {
-        setWaitingForGo(false)
-        setGameStep('playing')
+      // Réinitialiser les états - le timer sera démarré dans handleMediaStart
+      setIsTimeUp(false)
+      revealTimerStartedRef.current = false
+      mediaStartTimeRef.current = null
+      setTimeRemaining(0)
 
-        // Réinitialiser les états - le timer sera démarré dans handleMediaStart
-        setIsTimeUp(false)
-        revealTimerStartedRef.current = false
-        mediaStartTimeRef.current = null
-        setTimeRemaining(0)
+      // Fallback : si handleMediaStart n'est pas appelé dans les 3 secondes, démarrer le timer quand même
+      const fallbackTimer = setTimeout(() => {
+        if (mediaStartTimeRef.current === null &&
+          gameDurationMsRef.current &&
+          mediaReadyRef.current &&
+          gameStartedAtRef.current === null) {
+          console.warn('[Game] Fallback: onMediaStart pas appelé après 3s, démarrage du timer')
+          const fallbackNow = Date.now()
+          mediaStartTimeRef.current = fallbackNow
+          startTimerCalculation(fallbackNow, gameDurationMsRef.current, fallbackNow, undefined, undefined)
+          setTimeRemaining(gameDurationMsRef.current / 1000)
+          setIsTimeUp(false)
+        }
+      }, 3000)
 
-        // Fallback : si handleMediaStart n'est pas appelé dans les 3 secondes, démarrer le timer quand même
-        const fallbackTimer = setTimeout(() => {
-          if (mediaStartTimeRef.current === null &&
-            gameDurationMsRef.current &&
-            mediaReadyRef.current &&
-            !waitingForGo &&
-            gameStartedAtRef.current === null) {
-            console.warn('[Game] Fallback: onMediaStart pas appelé après 3s, démarrage du timer')
-            const fallbackNow = Date.now()
-            mediaStartTimeRef.current = fallbackNow
-            startTimerCalculation(fallbackNow, gameDurationMsRef.current, fallbackNow, undefined, undefined)
-            setTimeRemaining(gameDurationMsRef.current / 1000)
-            setIsTimeUp(false)
-          }
-        }, 3000)
-
-        // Nettoyer le fallback si handleMediaStart est appelé
-        const cleanupTimerRef = { current: null as NodeJS.Timeout | null }
-        cleanupTimerRef.current = setInterval(() => {
-          if (mediaStartTimeRef.current !== null || gameStartedAtRef.current !== null) {
-            clearTimeout(fallbackTimer)
-            if (cleanupTimerRef.current) {
-              clearInterval(cleanupTimerRef.current)
-              cleanupTimerRef.current = null
-            }
-          }
-        }, 100)
-
-        setTimeout(() => {
+      // Nettoyer le fallback si handleMediaStart est appelé
+      const cleanupTimerRef = { current: null as NodeJS.Timeout | null }
+      cleanupTimerRef.current = setInterval(() => {
+        if (mediaStartTimeRef.current !== null || gameStartedAtRef.current !== null) {
+          clearTimeout(fallbackTimer)
           if (cleanupTimerRef.current) {
             clearInterval(cleanupTimerRef.current)
             cleanupTimerRef.current = null
           }
-        }, 4000)
-      }
-
-      const scheduleStart = (targetTime: number) => {
-        let rafId: number | null = null
-        const checkStart = () => {
-          const now = Date.now()
-          if (now >= targetTime) {
-            startGameAtGoTime()
-            if (rafId !== null) cancelAnimationFrame(rafId)
-          } else {
-            rafId = requestAnimationFrame(checkStart)
-          }
         }
-        rafId = requestAnimationFrame(checkStart)
-      }
+      }, 100)
 
-      const waitForMediaAndStart = () => {
-        let rafId: number | null = null
-        let timeoutId: NodeJS.Timeout | null = null
-        const checkMedia = () => {
-          if (mediaReadyRef.current) {
-            scheduleStart(goAt)
-            if (rafId !== null) cancelAnimationFrame(rafId)
-            if (timeoutId !== null) clearTimeout(timeoutId)
-          } else {
-            rafId = requestAnimationFrame(checkMedia)
-          }
+      setTimeout(() => {
+        if (cleanupTimerRef.current) {
+          clearInterval(cleanupTimerRef.current)
+          cleanupTimerRef.current = null
         }
-        rafId = requestAnimationFrame(checkMedia)
-
-        // Timeout de sécurité : démarrer le timer même si le média n'est pas prêt après 2 secondes
-        timeoutId = setTimeout(() => {
-          scheduleStart(goAt)
-          if (rafId !== null) cancelAnimationFrame(rafId)
-        }, 2000)
-      }
-
-      if (mediaReadyRef.current) {
-        scheduleStart(goAt)
-      } else {
-        waitForMediaAndStart()
-      }
+      }, 4000)
     }
 
     const handleCorrectAnswer = ({
@@ -577,7 +579,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
       setWaitingForGo(true)
       mediaReadyRef.current = false
-      goAtRef.current = null
+      revealStartTimeRef.current = null
+      revealStartTimeClientRef.current = null
+      revealReceivedAtRef.current = null
       setGameStep('loading')
       clearTimerInterval()
 
@@ -587,6 +591,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       setTimeRemaining(0) // Reste à 0 jusqu'à ce que le média démarre
       revealTimerStartedRef.current = false
       mediaStartTimeRef.current = null
+      
+      // Forcer le re-render pour réinitialiser revealStartedRef dans VideoPlayer
+      // En changeant la clé du composant QuestionCard, on force sa réinitialisation complète
     }
 
     const handleGameEnded = ({ players: finalPlayers }: { players: Player[] }) => {
@@ -641,8 +648,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     socket.on('game:sync', handleGameSync)
     socket.on('game:next', handleNextQuestion)
 
-    // Écouter l'événement game:reveal pour forcer isTimeUp à true
-    const handleGameReveal = () => {
+    const handleGameReveal = ({ questionIndex }: { questionIndex?: number }) => {
       setIsTimeUp(true)
     }
     socket.on('game:reveal', handleGameReveal)
@@ -941,10 +947,12 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           onTimerUpdate={handleTimerUpdate}
           onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
           onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
+          onRevealVideoStart={handleRevealVideoStart}
           waitingForGo={waitingForGo}
           gameStep={gameStep}
           externalTimeRemaining={gameMode === 'online' ? timeRemaining : undefined}
           externalIsTimeUp={gameMode === 'online' ? isTimeUp : undefined}
+          startTime={undefined}
         />
       </div>
 

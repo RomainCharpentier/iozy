@@ -134,3 +134,4 @@
 5. **Tests E2E** : S'assurer que les fonctionnalités critiques fonctionnent
 
 
+

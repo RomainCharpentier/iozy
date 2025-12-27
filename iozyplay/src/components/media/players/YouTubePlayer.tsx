@@ -12,6 +12,7 @@ interface YouTubePlayerProps {
   shouldPause?: boolean
   onMediaReady?: () => void
   onMediaStart?: () => void
+  startTime?: number // Timestamp serveur pour synchroniser le démarrage
 }
 
 export default function YouTubePlayer({
@@ -23,7 +24,8 @@ export default function YouTubePlayer({
   timeLimit,
   shouldPause = false,
   onMediaReady,
-  onMediaStart
+  onMediaStart,
+  startTime
 }: YouTubePlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const hasStartedRef = useRef(false)
@@ -81,6 +83,7 @@ export default function YouTubePlayer({
 
   // Pendant la phase de devinette (showVideo = false), cacher la vidéo mais jouer l'audio et afficher les soundwaves
   // Pendant la phase de révélation (showVideo = true), montrer la vidéo
+  // Utiliser une seule iframe qui change d'URL selon la phase pour précharger pendant la phase guess
   const embedUrl = getYouTubeEmbedUrl(videoId, autoPlay && !shouldPause, showVideo, false)
 
   return (
@@ -89,45 +92,31 @@ export default function YouTubePlayer({
         // Phase de devinette : afficher seulement les soundwaves
         <Soundwave isPlaying={isPlaying && !shouldPause} />
       )}
-      {/* Iframe unique qui change de style selon la phase */}
-      {showVideo ? (
-        // Phase de révélation : afficher l'iframe YouTube normalement
-        <div style={{ 
-          width: '100%', 
-          height: '100%', 
-          position: 'relative'
-        }}>
-          <iframe
-            ref={iframeRef}
-            src={embedUrl}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              borderRadius: '0.5rem'
-            }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : (
-        // Phase de devinette : iframe invisible mais présente pour l'audio
+      {/* Iframe unique - toujours présente pour préchargement, visible seulement en phase reveal */}
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        position: 'relative'
+      }}>
         <iframe
           ref={iframeRef}
           src={embedUrl}
           style={{
-            position: 'absolute',
-            left: '-9999px',
-            width: '1px',
-            height: '1px',
-            opacity: 0,
-            pointerEvents: 'none',
-            border: 'none'
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: showVideo ? '0.5rem' : '0',
+            position: showVideo ? 'static' : 'absolute',
+            left: showVideo ? 'auto' : '-9999px',
+            top: showVideo ? 'auto' : '-9999px',
+            opacity: showVideo ? 1 : 0,
+            pointerEvents: showVideo ? 'auto' : 'none',
+            visibility: showVideo ? 'visible' : 'hidden'
           }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
-      )}
+      </div>
     </div>
   )
 }
