@@ -47,6 +47,7 @@ export default function MediaPlayer({
         shouldPause={shouldPause}
         onMediaReady={onMediaReady}
         onMediaStart={onMediaStart}
+        onRevealVideoStart={onRevealVideoStart}
         startTime={startTime}
       />
     )

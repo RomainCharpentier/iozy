@@ -219,12 +219,14 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       const updateTimer = () => {
         if (gameDurationMsRef.current === null) return
         
+        const clientNow = Date.now()
+        
         // Si on est en phase reveal, calculer le temps restant
         if (isTimeUp) {
-          // Si revealStartTimeRef est défini (timestamp serveur), l'utiliser pour synchroniser précisément
+          // Si revealStartTimeClientRef est défini, utiliser le chrono reveal
           if (revealStartTimeClientRef.current !== null) {
-            // revealStartTimeClientRef.current est le timestamp client du début du chrono (chrono à la durée complète)
-            // Le chrono compte depuis ce moment jusqu'à 0
+            // revealStartTimeClientRef.current est le timestamp client du début du chrono reveal
+            // gameDurationMsRef.current contient maintenant la durée de reveal (mise à jour dans handleRevealVideoStart)
             const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
             const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
             
@@ -233,9 +235,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
             return
           }
           
-          // Si revealStartTimeRef n'est pas encore défini, initialiser le chrono immédiatement
+          // Si revealStartTimeClientRef n'est pas encore défini, initialiser le chrono immédiatement
+          // (fallback pour le mode solo ou si onRevealVideoStart n'a pas été appelé)
           if (revealStartTimeClientRef.current === null) {
             revealStartTimeClientRef.current = clientNow
+            // S'assurer que gameDurationMsRef contient la durée de reveal
+            const currentQuestion = gameQuestions[currentQuestionIndex]
+            if (currentQuestion) {
+              gameDurationMsRef.current = (currentQuestion.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
+            }
           }
           
           // Calculer le temps restant en utilisant revealStartTimeClientRef
@@ -285,10 +293,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           return
         }
         
-        // Si revealStartTimeRef n'est pas encore défini, initialiser le chrono immédiatement
-        // Le chrono commence maintenant à la durée complète
+        // Si revealStartTimeClientRef n'est pas encore défini, initialiser le chrono immédiatement
+        // (fallback pour le mode solo ou si onRevealVideoStart n'a pas été appelé)
         if (revealStartTimeClientRef.current === null) {
           revealStartTimeClientRef.current = clientNow
+          // S'assurer que gameDurationMsRef contient la durée de reveal
+          const currentQuestion = gameQuestions[currentQuestionIndex]
+          if (currentQuestion) {
+            gameDurationMsRef.current = (currentQuestion.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
+          }
         }
         
         // Calculer le temps restant en utilisant revealStartTimeClientRef
@@ -320,12 +333,18 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       const newIsTimeUp = hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
 
       // En mode solo, définir revealStartTimeRef et revealStartTimeClientRef dès que isTimeUp devient true
+      // et mettre à jour gameDurationMsRef avec la durée de reveal
       if (newIsTimeUp && !isTimeUp && gameMode === 'solo') {
         if (revealStartTimeRef.current === null) {
           revealStartTimeRef.current = Date.now()
         }
         if (revealStartTimeClientRef.current === null) {
           revealStartTimeClientRef.current = Date.now()
+          // Mettre à jour gameDurationMsRef avec la durée de reveal
+          const currentQuestion = gameQuestions[currentQuestionIndex]
+          if (currentQuestion) {
+            gameDurationMsRef.current = (currentQuestion.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
+          }
         }
       }
 
@@ -361,8 +380,14 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     const currentQuestion = gameQuestions[currentQuestionIndex]
     const revealDurationMs = (currentQuestion?.timeLimit || TIMING.DEFAULT_TIME_LIMIT) * 1000
     
+    // Mettre à jour la durée pour le timer reveal
     gameDurationMsRef.current = revealDurationMs
+    
+    // Initialiser le temps restant avec la durée complète de reveal
     setTimeRemaining(revealDurationMs / 1000)
+    
+    // S'assurer que isTimeUp est true pour que le timer utilise la logique reveal
+    setIsTimeUp(true)
   }
 
   useEffect(() => {

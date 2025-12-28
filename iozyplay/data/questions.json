@@ -9,7 +9,16 @@
     }
   ],
   "series": [],
-  "animes": [],
+  "animes": [
+    {
+      "id": "https://www.youtube.com/watch?v=MqKDozk20eA",
+      "category": "animes",
+      "type": "video",
+      "mediaUrl": "https://www.youtube.com/watch?v=MqKDozk20eA",
+      "answer": "Family",
+      "hint": "nn"
+    }
+  ],
   "films": [],
   "jeux": []
 }

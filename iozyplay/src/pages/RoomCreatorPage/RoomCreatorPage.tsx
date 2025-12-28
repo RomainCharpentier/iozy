@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../../lib/game/GameContext'
 import RoomCreator from './RoomCreator'
@@ -6,8 +7,13 @@ export default function RoomCreatorPage() {
   const navigate = useNavigate()
   const { gameState, setRoomCode, startGame } = useGameState()
 
+  useEffect(() => {
+    if (!gameState || !gameState.questions || gameState.questions.length === 0) {
+      navigate('/categories?mode=online')
+    }
+  }, [gameState, navigate])
+
   if (!gameState || !gameState.questions || gameState.questions.length === 0) {
-    navigate('/categories?mode=online')
     return null
   }
 

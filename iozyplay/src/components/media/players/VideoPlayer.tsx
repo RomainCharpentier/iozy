@@ -136,9 +136,15 @@ export default function VideoPlayer({
     if (!revealStartedRef.current) {
       revealStartedRef.current = true
       displayVideo.currentTime = 0
-      displayVideo.play().catch((error) => {
-        console.error('Error playing display video in reveal:', error)
-      })
+      
+      // Petit délai pour laisser la transition visuelle se voir avant de démarrer la vidéo
+      setTimeout(() => {
+        if (displayVideo && showVideo) {
+          displayVideo.play().catch((error) => {
+            console.error('Error playing display video in reveal:', error)
+          })
+        }
+      }, 100) // 100ms de délai pour laisser la transition commencer
     }
   }, [showVideo])
 
@@ -170,10 +176,27 @@ export default function VideoPlayer({
   // Pendant la phase de révélation (showVideo = true), montrer la vidéo
   return (
     <div className="video-player" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', gap: '20px' }}>
-      {!showVideo && (
-        // Phase de devinette : afficher seulement les soundwaves
+      <div style={{
+        opacity: showVideo ? 0 : 1,
+        visibility: showVideo ? 'hidden' : 'visible',
+        transition: 'opacity 0.4s ease-in-out, visibility 0s linear 0.4s',
+        transitionDelay: showVideo ? '0.4s' : '0s',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: showVideo ? 'none' : 'auto',
+        zIndex: showVideo ? 0 : 5,
+        willChange: 'opacity'
+      }}>
         <Soundwave isPlaying={isPlaying && !shouldPause} />
-      )}
+      </div>
       {/* Vidéo d'affichage - toujours présente pour préchargement, visible seulement en phase reveal */}
       <div style={{ 
         width: '100%', 
@@ -187,9 +210,15 @@ export default function VideoPlayer({
         right: 0,
         bottom: 0,
         opacity: showVideo ? 1 : 0,
+        visibility: showVideo ? 'visible' : 'hidden',
         pointerEvents: showVideo ? 'auto' : 'none',
-        transition: 'opacity 0.5s ease-in-out',
-        zIndex: showVideo ? 10 : 0
+        transition: showVideo 
+          ? 'opacity 0.6s ease-out, transform 0.6s ease-out, filter 0.6s ease-out, visibility 0s' 
+          : 'opacity 0.3s ease-in, transform 0.3s ease-in, filter 0.3s ease-in, visibility 0s linear 0.3s',
+        zIndex: showVideo ? 10 : 0,
+        transform: showVideo ? 'scale(1)' : 'scale(0.94)',
+        filter: showVideo ? 'brightness(1) contrast(1)' : 'brightness(0.6) contrast(0.8)',
+        willChange: showVideo ? 'opacity, transform, filter' : 'auto'
       }}>
         <video
           ref={displayVideoRef}
@@ -202,8 +231,8 @@ export default function VideoPlayer({
             maxHeight: '500px',
             objectFit: 'contain',
             borderRadius: '0.5rem',
-            transform: showVideo ? 'scale(1)' : 'scale(0.95)',
-            transition: 'transform 0.5s ease-in-out'
+            boxShadow: showVideo ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.6s ease-in-out'
           }}
           preload="auto"
         />

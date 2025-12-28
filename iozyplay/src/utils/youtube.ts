@@ -11,12 +11,12 @@ export function isValidUrlFormat(url: string): boolean {
   if (!url || url.trim() === '') {
     return false
   }
-  
+
   try {
     // Essayer de créer un objet URL pour valider le format
     // On accepte les URLs avec ou sans protocole
-    const urlWithProtocol = url.startsWith('http://') || url.startsWith('https://') 
-      ? url 
+    const urlWithProtocol = url.startsWith('http://') || url.startsWith('https://')
+      ? url
       : `https://${url}`
     new URL(urlWithProtocol)
     return true
@@ -30,7 +30,7 @@ export function isYouTubeUrl(url: string): boolean {
   if (!isValidUrlFormat(url)) {
     return false
   }
-  
+
   const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/
   return youtubeRegex.test(url)
 }
@@ -40,37 +40,40 @@ export function extractYouTubeId(url: string): string | null {
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
     /youtube\.com\/watch\?.*v=([^&\n?#]+)/
   ]
-  
+
   for (const pattern of patterns) {
     const match = url.match(pattern)
     if (match && match[1]) {
       return match[1]
     }
   }
-  
+
   return null
 }
 
 export function getYouTubeEmbedUrl(videoId: string, autoplay: boolean = false, showControls: boolean = false, loop: boolean = false): string {
+  // Note: YouTube ne permet pas de désactiver les publicités via les paramètres d'embed
+  // Les publicités dépendent de la monétisation de la vidéo et sont gérées par YouTube
+  // Les bloqueurs de publicités (uBlock, AdBlock, etc.) peuvent bloquer les pubs côté client
   const params: Record<string, string> = {
     enablejsapi: '1',
     origin: window.location.origin,
     autoplay: autoplay ? '1' : '0',
     controls: showControls ? '1' : '0',
-    rel: '0',
-    modestbranding: '1',
+    rel: '0', // Ne pas afficher de vidéos suggérées à la fin
+    modestbranding: '1', // Logo YouTube minimal
     disablekb: '1', // Désactiver le clavier
     fs: '0', // Désactiver le plein écran
     iv_load_policy: '3', // Masquer les annotations
-    playsinline: '1'
+    playsinline: '1' // Lecture inline sur mobile
   }
-  
+
   // Ajouter loop et playlist seulement si loop est activé
   if (loop) {
     params.loop = '1'
     params.playlist = videoId // Nécessaire pour que loop fonctionne
   }
-  
+
   const urlParams = new URLSearchParams(params)
   return `https://www.youtube.com/embed/${videoId}?${urlParams.toString()}`
 }
@@ -134,7 +137,7 @@ export async function getYouTubeMetadata(url: string, useCache: boolean = true):
     // Utiliser l'API oEmbed de YouTube (gratuite, pas besoin de clé API)
     const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
     const response = await fetch(oEmbedUrl)
-    
+
     // Si la réponse n'est pas OK (404 = vidéo n'existe pas, etc.)
     if (!response.ok) {
       if (response.status === 404) {
@@ -144,12 +147,12 @@ export async function getYouTubeMetadata(url: string, useCache: boolean = true):
     }
 
     const data = await response.json()
-    
+
     // Vérifier que les données sont valides
     if (!data || !data.title) {
       throw new Error('Invalid metadata response')
     }
-    
+
     const metadata: YouTubeMetadata = {
       title: data.title || '',
       thumbnailUrl: getYouTubeThumbnailUrl(videoId),
@@ -161,7 +164,7 @@ export async function getYouTubeMetadata(url: string, useCache: boolean = true):
       const { setCachedMetadata } = await import('./youtubeCache')
       setCachedMetadata(url, metadata)
     }
-    
+
     return metadata
   } catch (error) {
     console.error('Error fetching YouTube metadata:', error)

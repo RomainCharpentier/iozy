@@ -87,10 +87,75 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+// Domaines publicitaires à bloquer
+const AD_DOMAINS = [
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googleadservices.com',
+  'googleads.g.doubleclick.net',
+  'adservice.google.com',
+  'adservice.google.fr',
+  'pagead2.googlesyndication.com',
+  'tpc.googlesyndication.com',
+  'www.googletagmanager.com',
+  'www.google-analytics.com',
+  'googleads.g.doubleclick.net',
+  'pubads.g.doubleclick.net',
+  'securepubads.g.doubleclick.net',
+  'ads.youtube.com',
+  'adclick.g.doubleclick.net'
+]
+
+// Patterns d'URLs publicitaires YouTube à bloquer
+const AD_PATTERNS = [
+  /\/api\/stats\/ads/,
+  /\/pagead\//,
+  /\/ads\//,
+  /\/advertising\//,
+  /\/get_ads/,
+  /\/ptracking/,
+  /\/log_event/,
+  /\/videoplayback.*adformat=/,
+  /\/videoplayback.*ad_/,
+  /\/get_midroll/,
+  /\/get_video_ads/
+]
+
+// Fonction pour vérifier si une URL est une publicité
+function isAdRequest(url) {
+  // Vérifier les domaines publicitaires
+  if (AD_DOMAINS.some(domain => url.hostname.includes(domain))) {
+    return true
+  }
+
+  // Vérifier les patterns d'URLs publicitaires
+  if (AD_PATTERNS.some(pattern => pattern.test(url.pathname + url.search))) {
+    return true
+  }
+
+  // Bloquer les requêtes vers googlevideo.com qui contiennent des paramètres publicitaires
+  if (url.hostname.includes('googlevideo.com')) {
+    const adParams = ['adformat', 'ad_', 'adformat=', 'ad_break', 'ad_slot']
+    if (adParams.some(param => url.search.includes(param) || url.pathname.includes(param))) {
+      return true
+    }
+  }
+
+  return false
+}
+
 // Interception des requêtes
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
+
+  // Bloquer les requêtes publicitaires
+  if (isAdRequest(url)) {
+    console.log('[SW] Blocked ad request:', url.href)
+    // Retourner une réponse vide pour bloquer la publicité
+    event.respondWith(new Response(null, { status: 204, statusText: 'No Content' }))
+    return
+  }
 
   // Ignorer les requêtes non-GET
   if (request.method !== 'GET') {
@@ -102,10 +167,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Ignorer les requêtes YouTube oEmbed (trop volumineuses pour le cache)
-  if (url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')) {
-    return
-  }
+  // Laisser passer les requêtes YouTube normales (embed, vidéo, etc.)
+  // mais bloquer les publicités via isAdRequest() ci-dessus
 
   // Cache First pour les assets statiques (JS, CSS, images, fonts)
   if (
