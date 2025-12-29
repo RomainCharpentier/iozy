@@ -238,31 +238,6 @@ export default function AnswerInput({
             ) : null}
           </Popover.Content>
         </Popover.Portal>
-        {/* Debug visuel temporaire */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ 
-            fontSize: '10px', 
-            color: '#666', 
-            marginTop: '4px', 
-            padding: '4px', 
-            background: '#000', 
-            borderRadius: '4px',
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 99999
-          }}>
-            Debug: shouldOpen={String(shouldOpen)}, open={String(open)}, suggestions={suggestions.length}, 
-            value="{value}", disabled={String(disabled)}, hasSubmitted={String(hasSubmitted)},
-            allQuestions={allQuestions?.length || 0}
-            {suggestions.length > 0 && (
-              <div style={{ marginTop: '4px', color: '#0f0' }}>
-                Suggestions: {suggestions.join(', ')}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </Popover.Root>
   )
