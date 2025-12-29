@@ -24,8 +24,10 @@ export function startGame(room, questions, defaultTimeLimit) {
         startedAt: null, // Sera défini au moment du "go"
         goAt: null, // Timestamp du signal "go"
         durationMs: durationMs,
-        answers: {}, // { playerId: answer }
-        readyPlayers: new Set() // Set des playerIds prêts
+        answers: {}, // { playerId: answer } - réponses stockées, non validées
+        readyPlayers: new Set(), // Set des playerIds prêts
+        skipVotes: new Set(), // Set des playerIds qui ont voté skip
+        validatedAnswers: {} // { playerId: isCorrect } - réponses validées à la fin du guess
     };
 
     return room;
@@ -59,7 +61,9 @@ export function restartGameWithCategories(room, questions, categories, defaultTi
         goAt: null,
         durationMs: durationMs,
         answers: {},
-        readyPlayers: new Set()
+        readyPlayers: new Set(),
+        skipVotes: new Set(),
+        validatedAnswers: {}
     };
 
     return room;
@@ -91,7 +95,9 @@ export function restartGame(room) {
             goAt: null,
             durationMs: durationMs,
             answers: {},
-            readyPlayers: new Set()
+            readyPlayers: new Set(),
+            skipVotes: new Set(),
+            validatedAnswers: {}
         };
     }
 
@@ -99,9 +105,9 @@ export function restartGame(room) {
 }
 
 /**
- * Vérifie une réponse d'un joueur
+ * Stocke une réponse d'un joueur (sans la valider)
  */
-export function checkAnswer(room, socketId, answer) {
+export function storeAnswer(room, socketId, answer) {
     if (!room || room.gameState !== 'playing') return { isValid: false };
 
     const player = room.players.find(p => p.socketId === socketId || p.id === socketId);
@@ -110,20 +116,83 @@ export function checkAnswer(room, socketId, answer) {
     const currentQuestion = room.questions[room.currentQuestionIndex];
     if (!currentQuestion) return { isValid: false };
 
-    // Enregistrer la réponse
+    // Enregistrer la réponse sans la valider
     if (room.game) {
         room.game.answers[player.id] = answer;
     }
 
+    room.updatedAt = Date.now();
+    return {
+        isValid: true,
+        player,
+        currentQuestion
+    };
+}
+
+/**
+ * Valide toutes les réponses stockées (appelé à la fin du guess)
+ */
+export function validateAnswers(room) {
+    if (!room || room.gameState !== 'playing' || !room.game) return { validated: false };
+
+    const currentQuestion = room.questions[room.currentQuestionIndex];
+    if (!currentQuestion) return { validated: false };
+
+    const correctAnswer = currentQuestion.answer.toLowerCase().trim();
+    const validatedAnswers = {};
+    const correctPlayers = [];
+
+    // Valider toutes les réponses stockées
+    for (const [playerId, answer] of Object.entries(room.game.answers)) {
+        const playerAnswer = answer.toLowerCase().trim();
+        const isCorrect = playerAnswer === correctAnswer;
+        
+        validatedAnswers[playerId] = isCorrect;
+
+        if (isCorrect) {
+            const player = room.players.find(p => p.id === playerId);
+            if (player) {
+                player.score += 1;
+                correctPlayers.push(player);
+            }
+        }
+    }
+
+    // Marquer que les réponses ont été validées (même si validatedAnswers est vide)
+    validatedAnswers._validated = true;
+    room.game.validatedAnswers = validatedAnswers;
+    room.updatedAt = Date.now();
+
+    return {
+        validated: true,
+        validatedAnswers,
+        correctPlayers,
+        players: room.players
+    };
+}
+
+/**
+ * Vérifie une réponse d'un joueur (fonction legacy, maintenant on utilise storeAnswer + validateAnswers)
+ * @deprecated Utiliser storeAnswer + validateAnswers à la place
+ */
+export function checkAnswer(room, socketId, answer) {
+    // Pour compatibilité, on stocke et valide immédiatement
+    const storeResult = storeAnswer(room, socketId, answer);
+    if (!storeResult.isValid) return { isValid: false };
+
+    const currentQuestion = room.questions[room.currentQuestionIndex];
     const isCorrect = answer.toLowerCase().trim() === currentQuestion.answer.toLowerCase().trim();
 
     if (isCorrect) {
-        player.score += 1;
+        const player = room.players.find(p => p.socketId === socketId || p.id === socketId);
+        if (player) {
+            player.score += 1;
+        }
         room.updatedAt = Date.now();
         return {
             isValid: true,
             isCorrect: true,
-            player,
+            player: storeResult.player,
             currentQuestion
         };
     }
@@ -131,9 +200,45 @@ export function checkAnswer(room, socketId, answer) {
     return {
         isValid: true,
         isCorrect: false,
-        player,
+        player: storeResult.player,
         currentQuestion
     };
+}
+
+/**
+ * Vote pour skip (tous doivent voter pour que ça skip)
+ */
+export function voteSkip(room, socketId) {
+    if (!room || room.gameState !== 'playing' || !room.game) {
+        return { voted: false };
+    }
+
+    const player = room.players.find(p => p.socketId === socketId || p.id === socketId);
+    if (!player) {
+        return { voted: false };
+    }
+
+    // Ajouter le vote
+    room.game.skipVotes.add(player.id);
+    room.updatedAt = Date.now();
+
+    // Vérifier si tous les joueurs ont voté
+    const allPlayersVoted = room.players.every(p => room.game.skipVotes.has(p.id));
+    
+    return {
+        voted: true,
+        allPlayersVoted,
+        skipVotes: Array.from(room.game.skipVotes)
+    };
+}
+
+/**
+ * Réinitialise les votes skip (appelé au début d'une nouvelle phase/question)
+ */
+export function resetSkipVotes(room) {
+    if (!room || !room.game) return;
+    room.game.skipVotes.clear();
+    room.updatedAt = Date.now();
 }
 
 /**
@@ -166,8 +271,10 @@ export function nextQuestion(room) {
         startedAt: null, // Sera défini au moment du "go"
         goAt: null, // Timestamp du signal "go"
         durationMs: durationMs,
-        answers: {},
-        readyPlayers: new Set() // Réinitialiser pour la nouvelle question
+        answers: {}, // Réinitialiser pour la nouvelle question
+        readyPlayers: new Set(), // Réinitialiser pour la nouvelle question
+        skipVotes: new Set(), // Réinitialiser pour la nouvelle question
+        validatedAnswers: {} // Réinitialiser pour la nouvelle question
     };
 
     return {

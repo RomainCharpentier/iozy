@@ -46,16 +46,6 @@ export default function AnswerInput({
           {attempts} tent.
         </div>
       )}
-      <button
-        onClick={() => {
-          soundManager.playClick()
-          onSubmit()
-        }}
-        disabled={!value.trim() || disabled}
-        className="submit-button"
-      >
-        Valider
-      </button>
     </div>
   )
 }

@@ -154,9 +154,17 @@ export default function YouTubePlayer({
           if (playerRef.current) {
             playerRef.current.seekTo(0, true)
             // Forcer la lecture
-            playerRef.current.playVideo().catch((error) => {
+            try {
+              const playResult = playerRef.current.playVideo()
+              // playVideo() peut retourner une Promise ou undefined selon l'API
+              if (playResult && typeof playResult.catch === 'function') {
+                playResult.catch((error: any) => {
+                  console.error('Error playing video in reveal phase:', error)
+                })
+              }
+            } catch (error) {
               console.error('Error playing video in reveal phase:', error)
-            })
+            }
           }
         }, 100)
       }
@@ -179,7 +187,16 @@ export default function YouTubePlayer({
     if (shouldPause) {
       playerRef.current.pauseVideo()
     } else if (autoPlay && !hasStartedRef.current) {
-      playerRef.current.playVideo()
+      try {
+        const playResult = playerRef.current.playVideo()
+        if (playResult && typeof playResult.catch === 'function') {
+          playResult.catch((error: any) => {
+            console.error('Error playing video:', error)
+          })
+        }
+      } catch (error) {
+        console.error('Error playing video:', error)
+      }
     }
   }, [shouldPause, autoPlay, isPlayerReady])
 

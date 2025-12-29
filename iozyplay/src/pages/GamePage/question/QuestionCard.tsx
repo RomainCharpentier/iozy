@@ -7,11 +7,13 @@ import AnswerFeedback from './AnswerFeedback'
 import MediaSyncOverlay from './MediaSyncOverlay'
 import { soundManager } from '../../../utils/sounds'
 import { TIMING } from '../../../services/gameService'
+import { getPlayerId } from '../../../utils/playerId'
 
 interface QuestionCardProps {
   question: Question
-  onAnswer: (isCorrect: boolean, timeRemaining: number, playerId?: string) => void
+  onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void // Modifié pour accepter la réponse (string) au lieu de isCorrect
   onTimeUp: () => void
+  onSkipVote?: () => void // Fonction pour voter skip
   gameMode?: GameMode
   players?: Player[]
   questionAnsweredBy?: string | null
@@ -24,13 +26,16 @@ interface QuestionCardProps {
   gameStep?: string // loading, ready, starting, playing
   externalTimeRemaining?: number // Temps restant depuis le parent (pour mode multijoueur)
   externalIsTimeUp?: boolean // État isTimeUp depuis le parent (pour mode multijoueur)
+  skipVotes?: Set<string> // Joueurs qui ont voté skip
+  correctPlayers?: Set<string> // Joueurs qui ont répondu correctement (pour surlignage vert)
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
 }
 
 export default function QuestionCard({ 
   question, 
   onAnswer, 
-  onTimeUp, 
+  onTimeUp,
+  onSkipVote,
   gameMode = 'solo',
   players = [],
   questionAnsweredBy = null,
@@ -43,6 +48,8 @@ export default function QuestionCard({
   gameStep = 'loading',
   externalTimeRemaining,
   externalIsTimeUp,
+  skipVotes = new Set(),
+  correctPlayers = new Set(),
   startTime
 }: QuestionCardProps) {
   if (!question) {
@@ -127,6 +134,9 @@ export default function QuestionCard({
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
     setIsTimeUp(false)
     
+    // Réinitialiser l'état de la réponse (pour permettre de soumettre à nouveau)
+    setIsCorrect(false)
+    
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
@@ -187,42 +197,22 @@ export default function QuestionCard({
   }, [timeRemaining, isTimeUp, onTimerUpdate])
 
   const handleSubmit = (playerId?: string) => {
+    if (!userAnswer.trim() || isTimeUp) return
+
+    // Stocker la réponse sans la valider (validation à la fin du guess)
+    setAttempts(prev => prev + 1)
+    
+    // Envoyer la réponse au parent (qui la stockera côté serveur en multijoueur)
+    onAnswer(userAnswer, timeRemaining, playerId)
+    
+    // Vider le champ de saisie
+    setUserAnswer('')
+    
+    // Remettre le focus sur l'input
     if (gameMode === 'solo') {
-      if (!userAnswer.trim() || isCorrect || isTimeUp) return
-
-      const answer = userAnswer.toLowerCase().trim().replace(/\s+/g, ' ')
-      const correctAnswer = question.answer.toLowerCase().trim().replace(/\s+/g, ' ')
-      const isAnswerCorrect = answer === correctAnswer
-
-      setAttempts(prev => prev + 1)
-
-      if (isAnswerCorrect) {
-        setIsCorrect(true)
-        soundManager.playSuccess()
-        onAnswer(true, timeRemaining)
-      } else {
-        soundManager.playError()
-        setUserAnswer('')
-        inputRefs.current['solo']?.focus()
-      }
+      inputRefs.current['solo']?.focus()
     } else {
-      if (!userAnswer.trim() || questionAnsweredBy !== null || isTimeUp) return
-
-      const answer = userAnswer.toLowerCase().trim().replace(/\s+/g, ' ')
-      const correctAnswer = question.answer.toLowerCase().trim().replace(/\s+/g, ' ')
-      const isAnswerCorrect = answer === correctAnswer
-
-      setAttempts(prev => prev + 1)
-
-      if (isAnswerCorrect) {
-        setIsCorrect(true)
-        soundManager.playSuccess()
-        onAnswer(true, timeRemaining)
-      } else {
-        soundManager.playError()
-        setUserAnswer('')
-        inputRefs.current['online']?.focus()
-      }
+      inputRefs.current['online']?.focus()
     }
   }
 
@@ -354,6 +344,23 @@ export default function QuestionCard({
       {question.hint && (
         <div className="hint">
           💡 Indice : {question.hint}
+        </div>
+      )}
+      
+      {/* Bouton Skip */}
+      {onSkipVote && (
+        <div className="skip-button-container">
+          <button
+            className={`skip-button ${gameMode === 'solo' ? (skipVotes.has('solo') ? 'voted' : '') : (skipVotes.has(getPlayerId() || '') ? 'voted' : '')}`}
+            onClick={onSkipVote}
+          >
+            ⏭️ Skip
+          </button>
+          {gameMode === 'online' && skipVotes.size > 0 && (
+            <div className="skip-votes-info">
+              {skipVotes.size} / {players.length} joueurs ont voté skip
+            </div>
+          )}
         </div>
       )}
       </div>

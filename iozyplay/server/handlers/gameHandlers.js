@@ -3,7 +3,7 @@
  */
 
 import { isHost, getRoomState, findPlayerBySocketId } from '../domain/room.js';
-import { startGame, restartGameWithCategories, restartGame, checkAnswer, nextQuestion, getGameState } from '../domain/game.js';
+import { startGame, restartGameWithCategories, restartGame, checkAnswer, storeAnswer, validateAnswers, voteSkip, resetSkipVotes, nextQuestion, getGameState } from '../domain/game.js';
 import { roomRepository } from '../infrastructure/roomRepository.js';
 
 /**
@@ -88,19 +88,37 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     timeRemaining
   });
 
-  const timer = setTimeout(() => {
+    const timer = setTimeout(() => {
     const currentRoom = roomRepository.get(roomCode);
     if (!currentRoom || currentRoom.gameState !== 'playing') return;
     
-    console.log('[scheduleNextQuestionTimer] Phase guess terminée, démarrage de la phase reveal', {
+    console.log('[scheduleNextQuestionTimer] Phase guess terminée, validation des réponses et démarrage de la phase reveal', {
       roomCode,
       currentQuestionIndex: currentRoom.game.questionIndex
     });
     
+    // Valider toutes les réponses stockées
+    const validationResult = validateAnswers(currentRoom);
+    if (validationResult.validated) {
+      roomRepository.update(roomCode, currentRoom);
+      
+      // Envoyer les résultats de validation à tous les clients
+      io.to(roomCode).emit('game:answers-validated', {
+        validatedAnswers: validationResult.validatedAnswers,
+        correctPlayers: validationResult.correctPlayers.map(p => p.id),
+        players: validationResult.players
+      });
+    }
+    
+    // Réinitialiser les votes skip pour la phase reveal
+    resetSkipVotes(currentRoom);
+    roomRepository.update(roomCode, currentRoom);
+    
     // Envoyer un événement pour indiquer que la phase reveal commence
     // Les clients démarrent immédiatement à la réception
     io.to(roomCode).emit('game:reveal', {
-      questionIndex: currentRoom.game.questionIndex
+      questionIndex: currentRoom.game.questionIndex,
+      durationMs: currentRoom.game.durationMs
     });
     
     // Attendre la durée de la phase reveal (même durée que le guess) avant de passer à la question suivante
@@ -132,10 +150,11 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
           players: result.players
         });
       } else {
-        // Réinitialiser readyPlayers pour la nouvelle question
+        // Réinitialiser readyPlayers et votes skip pour la nouvelle question
         result.room.game.readyPlayers = new Set();
         result.room.game.goAt = null;
         result.room.game.startedAt = null;
+        resetSkipVotes(result.room);
         
         roomRepository.update(roomCode, result.room);
         
@@ -388,22 +407,182 @@ export function setupGameHandlers(socket, io) {
     const player = findPlayerBySocketId(room, socket.id);
     if (!player) return;
 
-    const result = checkAnswer(room, socket.id, answer);
+    // Stocker la réponse sans la valider (validation à la fin du guess)
+    const result = storeAnswer(room, socket.id, answer);
     
     if (!result.isValid) return;
 
     roomRepository.update(roomCode, room);
 
-    if (result.isCorrect) {
-      broadcastRoomState(io, roomCode, room);
-      io.to(roomCode).emit('game:correct-answer', {
-        playerId: player.id,
-        playerName: result.player.name,
-        score: result.player.score,
-        players: room.players
-      });
-    } else {
-      socket.emit('game:incorrect-answer');
+    // Informer le joueur que sa réponse a été stockée
+    socket.emit('game:answer-stored', {
+      playerId: player.id
+    });
+  });
+
+  socket.on('game:skip-vote', ({ roomCode }) => {
+    const room = roomRepository.get(roomCode);
+    if (!room) {
+      return;
+    }
+
+    // Vérifier que la partie est toujours en cours
+    if (room.gameState !== 'playing') {
+      return;
+    }
+
+
+    const player = findPlayerBySocketId(room, socket.id);
+    if (!player) {
+      return;
+    }
+
+
+    const result = voteSkip(room, socket.id);
+    
+    if (!result.voted) {
+      return;
+    }
+
+    roomRepository.update(roomCode, room);
+
+
+    // Informer tous les clients du vote
+    io.to(roomCode).emit('game:skip-vote-updated', {
+      playerId: player.id,
+      skipVotes: result.skipVotes,
+      allPlayersVoted: result.allPlayersVoted
+    });
+
+      // Si tous les joueurs ont voté skip
+      if (result.allPlayersVoted) {
+        // Si on est en phase guess, valider les réponses et passer au reveal
+        // On est en phase guess si validatedAnswers n'existe pas ou n'a pas encore été validé
+        // (on utilise le flag _validated pour distinguer un objet vide non validé d'un objet vide validé)
+        const hasValidatedAnswers = !!room.game?.validatedAnswers;
+        const hasValidatedFlag = room.game?.validatedAnswers?._validated === true;
+        const isGuessPhase = !hasValidatedAnswers || !hasValidatedFlag;
+      
+      if (isGuessPhase) {
+        
+        // Annuler le timer de la phase guess avant de passer au reveal
+        roomRepository.clearGameTimer(roomCode);
+        
+        // Phase guess : valider les réponses
+        const validationResult = validateAnswers(room);
+        if (validationResult.validated) {
+          roomRepository.update(roomCode, room);
+          
+          
+          io.to(roomCode).emit('game:answers-validated', {
+            validatedAnswers: validationResult.validatedAnswers,
+            correctPlayers: validationResult.correctPlayers.map(p => p.id),
+            players: validationResult.players
+          });
+        }
+        
+        // Réinitialiser les votes skip pour la phase reveal
+        resetSkipVotes(room);
+        roomRepository.update(roomCode, room);
+        
+        // Passer à la phase reveal
+        io.to(roomCode).emit('game:reveal', {
+          questionIndex: room.game.questionIndex,
+          durationMs: room.game.durationMs
+        });
+        
+        // Programmer directement le timer pour la phase reveal (sans passer par scheduleNextQuestionTimer)
+        // car on est déjà en phase reveal
+        const revealDurationMs = room.game.durationMs;
+        
+        const revealTimer = setTimeout(() => {
+          const revealRoom = roomRepository.get(roomCode);
+          if (!revealRoom || revealRoom.gameState !== 'playing') return;
+          
+          
+          const result = nextQuestion(revealRoom);
+          if (!result) return;
+
+          roomRepository.update(roomCode, result.room);
+          roomRepository.clearGameTimer(roomCode);
+
+          if (result.isFinished) {
+            broadcastRoomState(io, roomCode, result.room);
+            io.to(roomCode).emit('game:end', {
+              players: result.players
+            });
+          } else {
+            // Réinitialiser readyPlayers et votes skip pour la nouvelle question
+            result.room.game.readyPlayers = new Set();
+            result.room.game.goAt = null;
+            result.room.game.startedAt = null;
+            resetSkipVotes(result.room);
+            
+            roomRepository.update(roomCode, result.room);
+            
+            // Envoyer d'abord game:next, puis room:state pour synchroniser tous les clients
+            io.to(roomCode).emit('game:next', {
+              currentQuestion: result.currentQuestion,
+              questions: result.room.questions,
+              questionIndex: result.questionIndex,
+              durationMs: result.room.game.durationMs
+            });
+            
+            // Ensuite envoyer room:state pour forcer la synchronisation
+            broadcastRoomState(io, roomCode, result.room);
+          }
+        }, revealDurationMs);
+        
+        roomRepository.setGameTimer(roomCode, revealTimer);
+      } else {
+        // Phase reveal : passer à la question suivante
+        
+        // Annuler le timer du reveal AVANT de passer à la question suivante
+        roomRepository.clearGameTimer(roomCode);
+        
+        // Réinitialiser les votes skip avant de passer à la question suivante
+        resetSkipVotes(room);
+        roomRepository.update(roomCode, room);
+        
+        // Vérifier que room.gameState est bien 'playing' avant d'appeler nextQuestion
+        if (room.gameState !== 'playing') {
+          console.error('[game:skip-vote] Room gameState is not playing:', room.gameState);
+          return;
+        }
+        
+
+        const nextResult = nextQuestion(room);
+        if (!nextResult) {
+          return;
+        }
+
+        roomRepository.update(roomCode, nextResult.room);
+
+        if (nextResult.isFinished) {
+          broadcastRoomState(io, roomCode, nextResult.room);
+          io.to(roomCode).emit('game:end', {
+            players: nextResult.players
+          });
+        } else {
+          // Réinitialiser readyPlayers et votes skip pour la nouvelle question
+          nextResult.room.game.readyPlayers = new Set();
+          nextResult.room.game.goAt = null;
+          nextResult.room.game.startedAt = null;
+          resetSkipVotes(nextResult.room);
+          
+          roomRepository.update(roomCode, nextResult.room);
+          
+          io.to(roomCode).emit('game:next', {
+            currentQuestion: nextResult.currentQuestion,
+            questions: nextResult.room.questions,
+            questionIndex: nextResult.questionIndex,
+            durationMs: nextResult.room.game.durationMs
+          });
+          
+          // Envoyer room:state pour forcer la synchronisation
+          broadcastRoomState(io, roomCode, nextResult.room);
+        }
+      }
     }
   });
 
