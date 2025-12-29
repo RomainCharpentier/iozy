@@ -1,0 +1,58 @@
+/* Radix Dialog for Game Modals */
+.game-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 99999;
+  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.game-modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--card-bg, #1e293b);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 2px solid var(--border-color, #334155);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: 100000;
+  animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.game-modal-content:focus {
+  outline: none;
+}
+
+.score-popup-content {
+  position: relative;
+  background-color: var(--card-bg, #1e293b);
+  padding: 2rem;
+  border-radius: 1rem;
+}
+
+@keyframes overlayShow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contentShow {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+

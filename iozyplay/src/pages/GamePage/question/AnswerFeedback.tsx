@@ -5,6 +5,7 @@ interface AnswerFeedbackProps {
   correctAnswer?: string
   answeredBy?: string | null
   playerName?: string
+  gameMode?: 'solo' | 'online' // Pour différencier le comportement
 }
 
 export default function AnswerFeedback({
@@ -13,7 +14,8 @@ export default function AnswerFeedback({
   attempts,
   correctAnswer,
   answeredBy,
-  playerName
+  playerName,
+  gameMode = 'solo'
 }: AnswerFeedbackProps) {
   if (isCorrect) {
     return (
@@ -35,10 +37,22 @@ export default function AnswerFeedback({
     )
   }
 
-  if (attempts > 0 && !isCorrect) {
+  // En mode solo, afficher le feedback immédiatement si incorrect
+  // En mode multijoueur, on ne sait pas encore (validation à la fin)
+  if (!isTimeUp && attempts > 0 && !isCorrect && gameMode === 'solo') {
+    // Afficher un feedback pour indiquer que ce n'est pas correct (mode solo uniquement)
+    return (
+      <div className="answer-feedback incorrect-subtle">
+        ❌ Réessayez
+      </div>
+    )
+  }
+
+  // Afficher "Incorrect" en phase reveal si ce n'est pas correct
+  if (isTimeUp && attempts > 0 && !isCorrect) {
     return (
       <div className="answer-feedback incorrect">
-        ❌ Incorrect. Réessayez !
+        ❌ Incorrect. La réponse était : <strong>{correctAnswer}</strong>
       </div>
     )
   }

@@ -10,6 +10,9 @@ import type { GameMode, Player } from '../../lib/game/types'
 import { getSocket } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
 import { GameService, TIMING } from '../../services/gameService'
+import { soundManager } from '../../utils/sounds'
+import * as Dialog from '@radix-ui/react-dialog'
+import '../../styles/game-modal.css'
 
 interface GameProps {
   questions: Question[]
@@ -55,6 +58,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const handleTimeUpRef = useRef<(() => void) | null>(null) // Référence à handleTimeUp pour l'utiliser dans startTimerCalculation
   const [skipVotes, setSkipVotes] = useState<Set<string>>(new Set()) // Joueurs qui ont voté skip
   const [correctPlayers, setCorrectPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont répondu correctement (pour surlignage vert)
+  const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont soumis une réponse (pendant le guess)
   const soloAnswersRef = useRef<string[]>([]) // Réponses stockées en mode solo (non validées)
 
   useEffect(() => {
@@ -648,9 +652,10 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       gameStartedAtRef.current = null
       gameDurationMsRef.current = null
       
-      // Réinitialiser les votes skip, les joueurs corrects et les réponses stockées pour la nouvelle question
+      // Réinitialiser les votes skip, les joueurs corrects, les réponses stockées et les joueurs ayant répondu pour la nouvelle question
       setSkipVotes(new Set())
       setCorrectPlayers(new Set())
+      setAnsweredPlayers(new Set())
       soloAnswersRef.current = []
       
       // Réinitialiser le debounce pour permettre le skip sur la nouvelle question
@@ -733,6 +738,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       // Arrêter le timer existant pour le redémarrer avec la logique de reveal
       clearTimerInterval()
       
+      // Jouer le son de révélation
+      soundManager.playReveal()
+      
       // Initialiser le timer du reveal
       const now = Date.now()
       revealStartTimeClientRef.current = now
@@ -800,6 +808,12 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
     socket.on('game:skip-vote-updated', handleSkipVoteUpdated)
     
+    const handleAnswerStored = ({ playerId }: { playerId: string }) => {
+      // Ajouter le joueur à la liste des joueurs ayant répondu
+      setAnsweredPlayers(prev => new Set([...prev, playerId]))
+    }
+    socket.on('game:answer-stored', handleAnswerStored)
+    
     socket.on('game:correct-answer', handleCorrectAnswer)
     socket.on('game:end', handleGameEnded)
     
@@ -858,6 +872,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       socket.off('game:reveal', handleGameReveal)
       socket.off('game:answers-validated', handleAnswersValidated)
       socket.off('game:skip-vote-updated', handleSkipVoteUpdated)
+      socket.off('game:answer-stored', handleAnswerStored)
       socket.off('game:correct-answer', handleCorrectAnswer)
       socket.off('game:end', handleGameEnded)
       socket.off('error', handleError)
@@ -890,7 +905,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       if (socket) {
         socket.emit('game:answer', {
           roomCode,
-          answer: answer
+          answer: answer.trim()
         })
       }
       // La validation se fera à la fin du guess (timer ou skip)
@@ -899,6 +914,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
     // En mode solo, stocker la réponse sans la valider
     // La validation se fera à la fin du guess (timer ou skip)
+    // answer est déjà trim()-ée dans handleSubmit
     soloAnswersRef.current.push(answer)
   }
 
@@ -1022,6 +1038,11 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const handleTimeUp = () => {
     if (showScore) return
     if (isTransitioningRef.current) return
+
+    // Jouer le son de révélation/time's up (seulement quand on passe de guess à reveal)
+    if (!isTimeUp) {
+      soundManager.playReveal()
+    }
 
     if (gameMode === 'solo') {
       // En mode solo, valider les réponses à la fin du guess
@@ -1220,6 +1241,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           startTime={gameMode === 'online' ? (revealStartTimeRef.current || undefined) : undefined}
           isGameEnded={gameEndedRef.current}
           isMediaReady={mediaReadyRef.current && !waitingForGo}
+          allQuestions={gameQuestions}
         />
       </div>
 
@@ -1233,54 +1255,33 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           players={gamePlayers}
           questionAnsweredBy={questionAnsweredByRef.current}
           correctPlayers={correctPlayers}
+          answeredPlayers={answeredPlayers}
           isTimeUp={isTimeUp}
         />
       )}
 
-      {(showScore || showSettingsPopup) && (
-        <div 
-          className="modal-overlay"
-          data-testid="modal-overlay" 
-          style={{ 
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            pointerEvents: 'auto'
-          }}
-          onClick={() => {
+      <Dialog.Root open={showScore || showSettingsPopup} onOpenChange={(open) => {
+        if (!open) {
+          if (showSettingsPopup) {
+            setShowSettingsPopup(false)
+            setShowScore(true)
+          } else {
+            onEndGame()
+          }
+        }
+      }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="game-modal-overlay" />
+          <Dialog.Content className="game-modal-content" onEscapeKeyDown={() => {
             if (showSettingsPopup) {
               setShowSettingsPopup(false)
               setShowScore(true)
             } else {
               onEndGame()
             }
-          }}
-        >
-          <div 
-            className="modal-content" 
-            style={{
-              position: 'relative',
-              zIndex: 100000,
-              backgroundColor: 'var(--card-bg, #1e293b)',
-              borderRadius: '1.5rem',
-              padding: '2.5rem',
-              maxWidth: '500px',
-              width: '90%',
-              border: '2px solid var(--border-color, #334155)',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-              pointerEvents: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          }}>
+            <Dialog.Title style={{ display: 'none' }}>Game Modal</Dialog.Title>
+            <Dialog.Description style={{ display: 'none' }}>Game settings and score display</Dialog.Description>
             {showSettingsPopup ? (
               <GameSettingsPopup
                 isOpen={true}
@@ -1295,13 +1296,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
                 gameMode={gameMode}
               />
             ) : (
-              <div className="score-popup-content" style={{ 
-                position: 'relative',
-                zIndex: 10002,
-                backgroundColor: 'var(--card-bg, #1e293b)',
-                padding: '2rem',
-                borderRadius: '1rem'
-              }}>
+              <div className="score-popup-content">
                 <Score
                   score={gameMode === 'solo' ? score : 0}
                   totalQuestions={gameQuestions.length}
@@ -1315,9 +1310,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
                 />
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

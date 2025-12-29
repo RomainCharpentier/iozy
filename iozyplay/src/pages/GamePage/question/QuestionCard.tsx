@@ -31,6 +31,7 @@ interface QuestionCardProps {
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
   isGameEnded?: boolean // Indique si la partie est terminée
   isMediaReady?: boolean // Indique si le média est prêt et lancé
+  allQuestions?: Question[] // Toutes les questions de la partie (pour les suggestions)
 }
 
 export default function QuestionCard({ 
@@ -54,7 +55,8 @@ export default function QuestionCard({
   correctPlayers = new Set(),
   startTime,
   isGameEnded = false,
-  isMediaReady = false
+  isMediaReady = false,
+  allQuestions = []
 }: QuestionCardProps) {
   if (!question) {
     return (
@@ -67,6 +69,7 @@ export default function QuestionCard({
   const [userAnswer, setUserAnswer] = useState<string>('')
   const [attempts, setAttempts] = useState<number>(0)
   const [isCorrect, setIsCorrect] = useState<boolean>(false)
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false) // Indique si une réponse a été soumise (pour le feedback visuel)
   // En mode multijoueur, utiliser directement les valeurs externes (pas d'état local)
   // En mode solo, utiliser l'état local
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
@@ -101,6 +104,7 @@ export default function QuestionCard({
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const mediaReadySentRef = useRef<boolean>(false)
+  const previousQuestionIdRef = useRef<string | undefined>(question.id)
 
   useEffect(() => {
     if (!question) return
@@ -132,18 +136,46 @@ export default function QuestionCard({
       }, 3000)
     }
     
-    if (gameMode === 'solo') {
-      setUserAnswer('')
-      setAttempts(0)
-      setIsCorrect(false)
-      inputRefs.current['solo']?.focus()
+    // Réinitialiser l'état de la réponse seulement lors d'un changement de question
+    if (previousQuestionIdRef.current !== question.id) {
+      // Nouvelle question : réinitialiser tout
+      previousQuestionIdRef.current = question.id
+      
+      if (gameMode === 'solo') {
+        setUserAnswer('')
+        setAttempts(0)
+        setIsCorrect(false)
+        setHasSubmitted(false)
+        // Auto-focus avec un petit délai pour s'assurer que l'input est rendu
+        setTimeout(() => {
+          inputRefs.current['solo']?.focus()
+        }, 100)
+      } else {
+        // En mode multijoueur, réinitialiser aussi
+        setUserAnswer('')
+        setAttempts(0)
+        setIsCorrect(false)
+        setHasSubmitted(false)
+        // Auto-focus avec un petit délai
+        setTimeout(() => {
+          inputRefs.current['online']?.focus()
+        }, 100)
+      }
+    } else {
+      // Même question, juste auto-focus si nécessaire
+      if (gameMode === 'solo') {
+        setTimeout(() => {
+          inputRefs.current['solo']?.focus()
+        }, 100)
+      } else {
+        setTimeout(() => {
+          inputRefs.current['online']?.focus()
+        }, 100)
+      }
     }
     
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
     setIsTimeUp(false)
-    
-    // Réinitialiser l'état de la réponse (pour permettre de soumettre à nouveau)
-    setIsCorrect(false)
     
     return () => {
       if (timeoutRef.current) {
@@ -151,7 +183,7 @@ export default function QuestionCard({
         timeoutRef.current = null
       }
     }
-  }, [question.id, question.timeLimit, gameMode, players])
+  }, [question.id, question.timeLimit, gameMode])
   
   useEffect(() => {
     if (gameMode === 'online') {
@@ -204,23 +236,73 @@ export default function QuestionCard({
     }
   }, [timeRemaining, isTimeUp, onTimerUpdate])
 
-  const handleSubmit = (playerId?: string) => {
-    if (!userAnswer.trim() || isTimeUp) return
+  const handleSubmit = (playerId?: string, answerValue?: string) => {
+    // Utiliser la valeur fournie en paramètre si disponible, sinon utiliser userAnswer
+    const answerToUse = answerValue !== undefined ? answerValue : userAnswer
+    
+    if (!answerToUse.trim() || isTimeUp) return
 
+    const answer = answerToUse.trim()
+    let isAnswerCorrect = false
+    
+    // En mode solo, valider immédiatement pour donner un feedback
+    if (gameMode === 'solo') {
+      const correctAnswer = question.answer.toLowerCase().trim()
+      const normalizedAnswer = answer.toLowerCase().trim()
+      isAnswerCorrect = normalizedAnswer === correctAnswer
+      
+      if (isAnswerCorrect) {
+        setIsCorrect(true)
+        // Mettre à jour userAnswer avec la réponse correcte pour l'affichage
+        setUserAnswer(answer)
+        // Ne pas vider le champ pour montrer la bonne réponse
+        // L'input sera désactivé par isCorrect
+      } else {
+        setIsCorrect(false)
+        // Vider le champ pour permettre de réessayer
+        setUserAnswer('')
+      }
+    } else {
+      // En mode multijoueur, mettre à jour userAnswer avec la valeur soumise
+      if (answerValue !== undefined) {
+        setUserAnswer(answerValue)
+      }
+    }
+    
     // Stocker la réponse sans la valider (validation à la fin du guess)
     setAttempts(prev => prev + 1)
+    setHasSubmitted(true) // Marquer qu'une réponse a été soumise (pour le feedback visuel)
     
     // Envoyer la réponse au parent (qui la stockera côté serveur en multijoueur)
-    onAnswer(userAnswer, timeRemaining, playerId)
+    // Utiliser answer qui vient de answerToUse (valeur passée ou userAnswer)
+    onAnswer(answer, timeRemaining, playerId)
     
-    // Vider le champ de saisie
-    setUserAnswer('')
+    // En mode solo, si la réponse est correcte, garder hasSubmitted pour montrer le feedback
+    if (gameMode === 'solo' && isAnswerCorrect) {
+      // Ne pas réinitialiser hasSubmitted si c'est correct - on veut garder le feedback
+      return
+    }
     
-    // Remettre le focus sur l'input
-    if (gameMode === 'solo') {
-      inputRefs.current['solo']?.focus()
-    } else {
-      inputRefs.current['online']?.focus()
+    // En mode multijoueur ou si incorrect en solo, permettre de modifier après un délai
+    // pour montrer le feedback visuel (icône check) mais permettre de modifier
+    if (gameMode === 'solo' && !isAnswerCorrect) {
+      // En solo, si ce n'est pas correct, permettre de réessayer après un délai
+      setTimeout(() => {
+        setHasSubmitted(false)
+        inputRefs.current['solo']?.focus()
+      }, 1500) // Délai pour voir le feedback visuel
+    } else if (gameMode !== 'solo') {
+      // En multijoueur, garder hasSubmitted pour montrer le feedback
+      // Ne pas réinitialiser automatiquement - l'utilisateur peut modifier en tapant
+      // hasSubmitted sera réinitialisé par handleAnswerChange quand l'utilisateur tape
+    }
+  }
+  
+  // Réinitialiser hasSubmitted quand l'utilisateur commence à taper
+  const handleAnswerChange = (value: string) => {
+    setUserAnswer(value)
+    if (hasSubmitted && value.trim().length > 0) {
+      setHasSubmitted(false) // Permettre de modifier la réponse
     }
   }
 
@@ -316,28 +398,35 @@ export default function QuestionCard({
           <>
             <AnswerInput
               value={userAnswer}
-              onChange={setUserAnswer}
+              onChange={handleAnswerChange}
               onSubmit={() => handleSubmit()}
               disabled={isCorrect || isTimeUp}
               attempts={attempts}
               showAttempts={true}
               inputRef={(el) => { inputRefs.current['solo'] = el }}
+              hasSubmitted={hasSubmitted}
+              allQuestions={allQuestions}
+              currentQuestionId={question.id}
             />
             <AnswerFeedback
               isCorrect={isCorrect}
               isTimeUp={isTimeUp}
               attempts={attempts}
               correctAnswer={question.answer}
+              gameMode={gameMode}
             />
           </>
         ) : (
           <>
             <AnswerInput
               value={userAnswer}
-              onChange={setUserAnswer}
+              onChange={handleAnswerChange}
               onSubmit={() => handleSubmit()}
               disabled={questionAnsweredBy !== null || isTimeUp}
               inputRef={(el) => { inputRefs.current['online'] = el }}
+              hasSubmitted={hasSubmitted}
+              allQuestions={allQuestions}
+              currentQuestionId={question.id}
             />
             <AnswerFeedback
               isCorrect={questionAnsweredBy !== null}
@@ -346,6 +435,7 @@ export default function QuestionCard({
               correctAnswer={question.answer}
               answeredBy={questionAnsweredBy}
               playerName={players.find(p => p.id === questionAnsweredBy)?.name}
+              gameMode={gameMode}
             />
           </>
         )}

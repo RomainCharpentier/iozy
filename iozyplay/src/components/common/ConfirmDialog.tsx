@@ -1,3 +1,4 @@
+import * as Dialog from '@radix-ui/react-dialog'
 import { FaExclamationTriangle, FaTimes } from 'react-icons/fa'
 import '../../styles/confirm-dialog.css'
 
@@ -22,51 +23,53 @@ export default function ConfirmDialog({
   onCancel,
   variant = 'danger'
 }: ConfirmDialogProps) {
-  if (!isOpen) return null
-
   return (
-    <div className="confirm-dialog-overlay" onClick={onCancel}>
-      <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="confirm-dialog-header">
-          {title && <h3 className="confirm-dialog-title">{title}</h3>}
-          <button
-            type="button"
-            className="confirm-dialog-close"
-            onClick={onCancel}
-            aria-label="Fermer"
-          >
-            <FaTimes />
-          </button>
-        </div>
-        <div className="confirm-dialog-body">
-          <div className={`confirm-dialog-icon confirm-dialog-icon-${variant}`}>
-            <FaExclamationTriangle />
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="confirm-dialog-overlay" />
+        <Dialog.Content className="confirm-dialog" onEscapeKeyDown={onCancel} onInteractOutside={onCancel}>
+          <div className="confirm-dialog-header">
+            {title && <Dialog.Title className="confirm-dialog-title">{title}</Dialog.Title>}
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="confirm-dialog-close"
+                aria-label="Fermer"
+              >
+                <FaTimes />
+              </button>
+            </Dialog.Close>
           </div>
-          <p className="confirm-dialog-message">{message}</p>
-        </div>
-        <div className="confirm-dialog-actions">
-          <button
-            type="button"
-            className="confirm-dialog-button confirm-dialog-button-cancel"
-            onClick={onCancel}
-          >
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            className={`confirm-dialog-button confirm-dialog-button-confirm confirm-dialog-button-${variant}`}
-            onClick={onConfirm}
-          >
-            {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="confirm-dialog-body">
+            <div className={`confirm-dialog-icon confirm-dialog-icon-${variant}`}>
+              <FaExclamationTriangle />
+            </div>
+            <Dialog.Description className="confirm-dialog-message">
+              {message}
+            </Dialog.Description>
+          </div>
+          <div className="confirm-dialog-actions">
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="confirm-dialog-button confirm-dialog-button-cancel"
+                onClick={onCancel}
+              >
+                {cancelText}
+              </button>
+            </Dialog.Close>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className={`confirm-dialog-button confirm-dialog-button-confirm confirm-dialog-button-${variant}`}
+                onClick={onConfirm}
+              >
+                {confirmText}
+              </button>
+            </Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
-
-
-
-
-
-
