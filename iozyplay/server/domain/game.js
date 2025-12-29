@@ -218,6 +218,11 @@ export function voteSkip(room, socketId) {
         return { voted: false };
     }
 
+    // Vérifier si le joueur a déjà voté
+    if (room.game.skipVotes.has(player.id)) {
+        return { voted: false, alreadyVoted: true };
+    }
+
     // Ajouter le vote
     room.game.skipVotes.add(player.id);
     room.updatedAt = Date.now();

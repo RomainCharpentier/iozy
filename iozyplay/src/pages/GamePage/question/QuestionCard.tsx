@@ -29,6 +29,8 @@ interface QuestionCardProps {
   skipVotes?: Set<string> // Joueurs qui ont voté skip
   correctPlayers?: Set<string> // Joueurs qui ont répondu correctement (pour surlignage vert)
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
+  isGameEnded?: boolean // Indique si la partie est terminée
+  isMediaReady?: boolean // Indique si le média est prêt et lancé
 }
 
 export default function QuestionCard({ 
@@ -50,7 +52,9 @@ export default function QuestionCard({
   externalIsTimeUp,
   skipVotes = new Set(),
   correctPlayers = new Set(),
-  startTime
+  startTime,
+  isGameEnded = false,
+  isMediaReady = false
 }: QuestionCardProps) {
   if (!question) {
     return (
@@ -80,9 +84,13 @@ export default function QuestionCard({
     : localIsTimeUp
   
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
-  const setTimeRemaining = (value: number) => {
+  const setTimeRemaining = (value: number | ((prev: number) => number)) => {
     if (gameMode === 'solo') {
-      setLocalTimeRemaining(value)
+      if (typeof value === 'function') {
+        setLocalTimeRemaining(value)
+      } else {
+        setLocalTimeRemaining(value)
+      }
     }
   }
   const setIsTimeUp = (value: boolean) => {
@@ -173,7 +181,7 @@ export default function QuestionCard({
     if (hasAnswered || isTimeUp || !mediaReady) return
 
     const timer = setInterval(() => {
-      setTimeRemaining(prev => {
+      setTimeRemaining((prev: number) => {
         if (prev <= 1) {
           setIsTimeUp(true)
           soundManager.playCountdownEnd()
@@ -217,7 +225,8 @@ export default function QuestionCard({
   }
 
 
-  const getCategoryEmoji = (category: string) => {
+  const getCategoryEmoji = (category: string | string[]) => {
+    const categoryStr = Array.isArray(category) ? category[0] : category
     const emojis: Record<string, string> = {
       series: '📺',
       animes: '🎌',
@@ -225,10 +234,11 @@ export default function QuestionCard({
       films: '🎬',
       jeux: '🎮',
     }
-    return emojis[category] || '❓'
+    return emojis[categoryStr] || '❓'
   }
 
-  const getCategoryLabel = (category: string) => {
+  const getCategoryLabel = (category: string | string[]) => {
+    const categoryStr = Array.isArray(category) ? category[0] : category
     const labels: Record<string, string> = {
       series: 'Série TV',
       animes: 'Anime',
@@ -236,7 +246,7 @@ export default function QuestionCard({
       films: 'Film',
       jeux: 'Jeu vidéo',
     }
-    return labels[category] || 'Média'
+    return labels[categoryStr] || 'Média'
   }
 
   return (
@@ -350,17 +360,37 @@ export default function QuestionCard({
       {/* Bouton Skip */}
       {onSkipVote && (
         <div className="skip-button-container">
-          <button
-            className={`skip-button ${gameMode === 'solo' ? (skipVotes.has('solo') ? 'voted' : '') : (skipVotes.has(getPlayerId() || '') ? 'voted' : '')}`}
-            onClick={onSkipVote}
-          >
-            ⏭️ Skip
-          </button>
-          {gameMode === 'online' && skipVotes.size > 0 && (
-            <div className="skip-votes-info">
-              {skipVotes.size} / {players.length} joueurs ont voté skip
-            </div>
-          )}
+          {(() => {
+            const playerId = gameMode === 'solo' ? 'solo' : (getPlayerId() || '')
+            const hasVoted = skipVotes.has(playerId)
+            const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted
+            
+            return (
+              <>
+                <button
+                  className={`skip-button ${hasVoted ? 'voted' : ''} ${!canSkip ? 'disabled' : ''}`}
+                  onClick={onSkipVote}
+                  disabled={!canSkip}
+                  title={
+                    isGameEnded 
+                      ? 'La partie est terminée'
+                      : !isMediaReady || waitingForGo
+                      ? 'Attendez que le média démarre'
+                      : hasVoted
+                      ? 'Vous avez déjà voté skip'
+                      : 'Passer cette question'
+                  }
+                >
+                  ⏭️ Skip
+                </button>
+                {gameMode === 'online' && skipVotes.size > 0 && (
+                  <div className="skip-votes-info">
+                    {skipVotes.size} / {players.length} joueurs ont voté skip
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
       )}
       </div>

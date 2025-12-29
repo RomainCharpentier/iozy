@@ -87,10 +87,10 @@ export default function YouTubePlayer({
           }
         },
         onStateChange: (event: YT.OnStateChangeEvent) => {
-          const player = event.target
           const state = event.data
 
-          if (state === YT.PlayerState.PLAYING) {
+          // YT.PlayerState.PLAYING = 1
+          if (state === 1) {
             setIsPlaying(true)
             if (!hasStartedRef.current && onMediaStart) {
               hasStartedRef.current = true
@@ -101,9 +101,9 @@ export default function YouTubePlayer({
               revealVideoStartCalledRef.current = true
               onRevealVideoStart()
             }
-          } else if (state === YT.PlayerState.PAUSED) {
+          } else if (state === 2) { // YT.PlayerState.PAUSED = 2
             setIsPlaying(false)
-          } else if (state === YT.PlayerState.ENDED) {
+          } else if (state === 0) { // YT.PlayerState.ENDED = 0
             setIsPlaying(false)
             hasStartedRef.current = false
           }
@@ -155,13 +155,7 @@ export default function YouTubePlayer({
             playerRef.current.seekTo(0, true)
             // Forcer la lecture
             try {
-              const playResult = playerRef.current.playVideo()
-              // playVideo() peut retourner une Promise ou undefined selon l'API
-              if (playResult && typeof playResult.catch === 'function') {
-                playResult.catch((error: any) => {
-                  console.error('Error playing video in reveal phase:', error)
-                })
-              }
+              playerRef.current.playVideo()
             } catch (error) {
               console.error('Error playing video in reveal phase:', error)
             }
@@ -188,12 +182,7 @@ export default function YouTubePlayer({
       playerRef.current.pauseVideo()
     } else if (autoPlay && !hasStartedRef.current) {
       try {
-        const playResult = playerRef.current.playVideo()
-        if (playResult && typeof playResult.catch === 'function') {
-          playResult.catch((error: any) => {
-            console.error('Error playing video:', error)
-          })
-        }
+        playerRef.current.playVideo()
       } catch (error) {
         console.error('Error playing video:', error)
       }
