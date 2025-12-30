@@ -3,6 +3,8 @@
  * Aucune dépendance externe
  */
 
+import { compareAnswers, normalizeAnswer } from '../utils/answerNormalization.js';
+
 /**
  * Démarre une partie dans un salon
  */
@@ -18,7 +20,7 @@ export function startGame(room, questions, defaultTimeLimit) {
     // Initialiser l'état de jeu avec la première question
     // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
     const durationMs = room.defaultTimeLimit * 1000;
-    
+
     room.game = {
         questionIndex: 0,
         startedAt: null, // Sera défini au moment du "go"
@@ -54,7 +56,7 @@ export function restartGameWithCategories(room, questions, categories, defaultTi
     // Réinitialiser l'état de jeu
     // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
     const durationMs = room.defaultTimeLimit * 1000;
-    
+
     room.game = {
         questionIndex: 0,
         startedAt: null, // Sera défini au moment du "go"
@@ -88,7 +90,7 @@ export function restartGame(room) {
     if (room.questions && room.questions.length > 0) {
         // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
         const durationMs = room.defaultTimeLimit * 1000;
-        
+
         room.game = {
             questionIndex: 0,
             startedAt: null, // Sera défini au moment du "go"
@@ -138,15 +140,35 @@ export function validateAnswers(room) {
     const currentQuestion = room.questions[room.currentQuestionIndex];
     if (!currentQuestion) return { validated: false };
 
-    const correctAnswer = currentQuestion.answer.toLowerCase().trim();
     const validatedAnswers = {};
     const correctPlayers = [];
 
     // Valider toutes les réponses stockées
     for (const [playerId, answer] of Object.entries(room.game.answers)) {
-        const playerAnswer = answer.toLowerCase().trim();
-        const isCorrect = playerAnswer === correctAnswer;
-        
+        // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
+        const isCorrect = compareAnswers(answer, currentQuestion.answer);
+
+        // Log pour déboguer
+        if (!isCorrect) {
+            const normalizedUser = normalizeAnswer(answer);
+            const normalizedCorrect = normalizeAnswer(currentQuestion.answer);
+            // Calculer la distance pour le debug
+            const maxLength = Math.max(normalizedUser.length, normalizedCorrect.length);
+            const distance = normalizedUser.length !== normalizedCorrect.length
+                ? Math.abs(normalizedUser.length - normalizedCorrect.length)
+                : Array.from(normalizedUser).filter((char, i) => char !== normalizedCorrect[i]).length;
+            console.log('[validateAnswers] Réponse incorrecte:', {
+                playerId,
+                userAnswer: answer,
+                correctAnswer: currentQuestion.answer,
+                normalizedUser,
+                normalizedCorrect,
+                distance,
+                maxLength,
+                maxAllowedDistance: maxLength <= 5 ? 1 : Math.max(1, Math.floor(maxLength * 0.1))
+            });
+        }
+
         validatedAnswers[playerId] = isCorrect;
 
         if (isCorrect) {
@@ -181,7 +203,8 @@ export function checkAnswer(room, socketId, answer) {
     if (!storeResult.isValid) return { isValid: false };
 
     const currentQuestion = room.questions[room.currentQuestionIndex];
-    const isCorrect = answer.toLowerCase().trim() === currentQuestion.answer.toLowerCase().trim();
+    // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
+    const isCorrect = compareAnswers(answer, currentQuestion.answer);
 
     if (isCorrect) {
         const player = room.players.find(p => p.socketId === socketId || p.id === socketId);
@@ -229,7 +252,7 @@ export function voteSkip(room, socketId) {
 
     // Vérifier si tous les joueurs ont voté
     const allPlayersVoted = room.players.every(p => room.game.skipVotes.has(p.id));
-    
+
     return {
         voted: true,
         allPlayersVoted,
@@ -270,7 +293,7 @@ export function nextQuestion(room) {
     // TOUJOURS utiliser room.defaultTimeLimit pour garantir une durée cohérente
     // (le client devrait avoir appliqué applyDefaultTimeLimit, mais on force quand même)
     const durationMs = room.defaultTimeLimit * 1000;
-    
+
     room.game = {
         questionIndex: room.currentQuestionIndex,
         startedAt: null, // Sera défini au moment du "go"

@@ -102,11 +102,17 @@ function scheduleNextQuestionTimer(io, roomCode, room) {
     if (validationResult.validated) {
       roomRepository.update(roomCode, currentRoom);
       
-      // Envoyer les résultats de validation à tous les clients
+      // Envoyer les résultats de validation à tous les clients avec les réponses
+      const playerAnswers = {};
+      for (const [playerId, answer] of Object.entries(currentRoom.game.answers)) {
+        playerAnswers[playerId] = answer;
+      }
+      
       io.to(roomCode).emit('game:answers-validated', {
         validatedAnswers: validationResult.validatedAnswers,
         correctPlayers: validationResult.correctPlayers.map(p => p.id),
-        players: validationResult.players
+        players: validationResult.players,
+        playerAnswers: playerAnswers // Envoyer les réponses des joueurs
       });
     }
     
@@ -474,10 +480,17 @@ export function setupGameHandlers(socket, io) {
           roomRepository.update(roomCode, room);
           
           
+          // Envoyer les réponses des joueurs avec la validation
+          const playerAnswers = {};
+          for (const [playerId, answer] of Object.entries(room.game.answers)) {
+            playerAnswers[playerId] = answer;
+          }
+          
           io.to(roomCode).emit('game:answers-validated', {
             validatedAnswers: validationResult.validatedAnswers,
             correctPlayers: validationResult.correctPlayers.map(p => p.id),
-            players: validationResult.players
+            players: validationResult.players,
+            playerAnswers: playerAnswers // Envoyer les réponses des joueurs
           });
         }
         

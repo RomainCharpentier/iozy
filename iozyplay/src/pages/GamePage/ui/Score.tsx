@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { soundManager } from '../../../utils/sounds'
 import type { GameMode, Player } from '../../../lib/game/types'
 import { GameService } from '../../../services/gameService'
+import { getPlayerId } from '../../../utils/playerId'
 
 interface ScoreProps {
   score: number
@@ -26,9 +27,12 @@ export default function Score({
   onQuit,
   isPopup = false
 }: ScoreProps) {
-  const percentage = GameService.calculatePercentage(score, totalQuestions)
-  const scoreMessage = GameService.getScoreMessage(percentage)
-  const winner = gameMode === 'online' ? GameService.getWinner(players) : null
+  // Calculer le score du joueur actuel
+  const currentPlayerScore = gameMode === 'solo' 
+    ? score 
+    : (players.find(p => p.id === getPlayerId())?.score || 0)
+  
+  const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
   // Empêcher le scroll quand la popup est ouverte
   useEffect(() => {
@@ -45,83 +49,43 @@ export default function Score({
   }, [isPopup])
 
   const scoreContent = (
-    <div className={`score-card ${isPopup ? 'score-card-popup' : ''}`}>
-        <h2>Partie terminée !</h2>
-        
-        {gameMode === 'solo' ? (
-          <div className="score-display">
-            <div className="score-number">
-              {score} / {totalQuestions}
-            </div>
-            <div className="score-percentage">{percentage}%</div>
-            <div className="score-message">{scoreMessage}</div>
-          </div>
-        ) : (
-          <div className="multiplayer-score-display">
-            {winner ? (
-              <div className="winner-announcement">
-                <h3>🏆 {winner.name} a gagné ! 🏆</h3>
-                <div className="winner-score">{winner.score} / {totalQuestions}</div>
-              </div>
-            ) : (
-              <div className="winner-announcement">
-                <h3>🤝 Égalité ! 🤝</h3>
-              </div>
-            )}
-            <div className="players-scores">
-              {players
-                .sort((a, b) => b.score - a.score)
-                .map((player, index) => (
-                  <div 
-                    key={player.id} 
-                    className={`player-score-item ${winner && winner.id === player.id ? 'winner' : ''}`}
-                  >
-                    <span className="rank">#{index + 1}</span>
-                    <span className="name">{player.name}</span>
-                    <span className="score">{player.score} / {totalQuestions}</span>
-                    <span className="percentage">{Math.round((player.score / totalQuestions) * 100)}%</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-        
-        <div className="score-actions">
-          {(gameMode === 'solo' || isHost) && (
-            <>
-              {onModifySettings && (
-                <button 
-                  className="restart-button secondary" 
-                  onClick={() => {
-                    soundManager.playClick()
-                    onModifySettings()
-                  }}
-                >
-                  ⚙️ Modifier les paramètres
-                </button>
-              )}
-              <button 
-                className="restart-button" 
-                onClick={() => {
-                  soundManager.playStart()
-                  onRestart()
-                }}
-              >
-                🔄 Rejouer
-              </button>
-            </>
-          )}
-          <button 
-            className="quit-button" 
-            onClick={() => {
-              soundManager.playClick()
-              onQuit()
-            }}
-          >
-            Retour au menu
-          </button>
+    <div className="v5-enhanced-game-end">
+      <div className="v5-enhanced-end-icon">🏆</div>
+      <div className="v5-enhanced-end-title">Partie Terminée !</div>
+      <div className="v5-enhanced-end-subtitle">Félicitations à tous les participants</div>
+      <div className="v5-enhanced-end-stats">
+        <div className="v5-enhanced-end-stat">
+          <div className="v5-enhanced-end-stat-label">Votre Score</div>
+          <div className="v5-enhanced-end-stat-value">{currentPlayerScore} / {totalQuestions}</div>
+        </div>
+        <div className="v5-enhanced-end-stat">
+          <div className="v5-enhanced-end-stat-label">Taux de Réussite</div>
+          <div className="v5-enhanced-end-stat-value">{percentage}%</div>
         </div>
       </div>
+      <div className="v5-enhanced-end-actions">
+        {(gameMode === 'solo' || isHost) && (
+          <button 
+            className="v5-enhanced-end-btn primary" 
+            onClick={() => {
+              soundManager.playStart()
+              onRestart()
+            }}
+          >
+            🔄 Rejouer
+          </button>
+        )}
+        <button 
+          className="v5-enhanced-end-btn" 
+          onClick={() => {
+            soundManager.playClick()
+            onQuit()
+          }}
+        >
+          🏠 Accueil
+        </button>
+      </div>
+    </div>
   )
 
   if (isPopup) {

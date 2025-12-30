@@ -13,6 +13,7 @@ import { GameService, TIMING } from '../../services/gameService'
 import { soundManager } from '../../utils/sounds'
 import * as Dialog from '@radix-ui/react-dialog'
 import '../../styles/game-modal.css'
+import '../../styles/v5-enhanced.css'
 
 interface GameProps {
   questions: Question[]
@@ -59,6 +60,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const [skipVotes, setSkipVotes] = useState<Set<string>>(new Set()) // Joueurs qui ont voté skip
   const [correctPlayers, setCorrectPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont répondu correctement (pour surlignage vert)
   const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont soumis une réponse (pendant le guess)
+  const [validatedAnswers, setValidatedAnswers] = useState<Record<string, boolean>>({}) // Réponses validées par le serveur (mode multijoueur)
+  const [playerAnswers, setPlayerAnswers] = useState<Record<string, string>>({}) // Réponses des joueurs
   const soloAnswersRef = useRef<string[]>([]) // Réponses stockées en mode solo (non validées)
 
   useEffect(() => {
@@ -633,6 +636,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       questionAnsweredByRef.current = null
       isTransitioningRef.current = false
       setShowScore(false)
+      setValidatedAnswers({}) // Réinitialiser les réponses validées pour la nouvelle question
+      setPlayerAnswers({}) // Réinitialiser les réponses des joueurs pour la nouvelle question
 
       setWaitingForGo(true)
       mediaReadyRef.current = false
@@ -786,16 +791,25 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
     socket.on('game:reveal', handleGameReveal)
     
-    const handleAnswersValidated = ({ validatedAnswers, correctPlayers: correctPlayerIds, players }: {
+    const handleAnswersValidated = ({ validatedAnswers: validated, correctPlayers: correctPlayerIds, players, playerAnswers: playerAnswersData }: {
       validatedAnswers: Record<string, boolean>
       correctPlayers: string[]
       players: Player[]
+      playerAnswers?: Record<string, string> // Réponses des joueurs
     }) => {
       // Mettre à jour les scores des joueurs
       setGamePlayers(players)
       
       // Stocker les joueurs corrects pour le surlignage vert
       setCorrectPlayers(new Set(correctPlayerIds))
+      
+      // Stocker les réponses validées pour savoir si le joueur actuel a répondu correctement
+      setValidatedAnswers(validated)
+      
+      // Stocker les réponses des joueurs pour l'affichage
+      if (playerAnswersData) {
+        setPlayerAnswers(playerAnswersData)
+      }
     }
     socket.on('game:answers-validated', handleAnswersValidated)
     
@@ -1056,6 +1070,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       // Phase reveal : passer à la question suivante
       isTransitioningRef.current = true
       questionAnsweredByRef.current = null
+      setPlayerAnswers({}) // Réinitialiser les réponses pour la nouvelle question
 
       const timeoutId = window.setTimeout(() => {
         setCurrentQuestionIndex(prev => {
@@ -1204,99 +1219,28 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   }
 
   return (
-    <div className="game" data-testid="game-screen">
+    <div className="game v5-enhanced-layout" data-testid="game-screen">
       <GameTopBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={gameQuestions.length}
         currentQuestion={currentQuestion}
         timeRemaining={timeRemaining}
         isTimeUp={isTimeUp}
+        score={gameMode === 'solo' ? score : gamePlayers.find(p => p.id === getPlayerId())?.score || 0}
         onQuit={() => {
           leaveRoom()
           onEndGame()
         }}
+        onSettings={() => setShowSettingsPopup(true)}
+        isGameEnded={showScore}
       />
 
       {/* Main: Zone media/waveform centrée */}
       <div className="game-main" data-testid="game-main">
-        <QuestionCard
-          question={currentQuestion}
-          onAnswer={handleAnswer}
-          onTimeUp={handleTimeUp}
-          onSkipVote={handleSkipVote}
-          gameMode={gameMode}
-          players={gamePlayers}
-          questionAnsweredBy={questionAnsweredByRef.current}
-          shouldPause={showScore || showSettingsPopup}
-          onTimerUpdate={handleTimerUpdate}
-          onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
-          onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
-          onRevealVideoStart={handleRevealVideoStart}
-          waitingForGo={waitingForGo}
-          gameStep={gameStep}
-          externalTimeRemaining={gameMode === 'online' ? timeRemaining : undefined}
-          externalIsTimeUp={gameMode === 'online' ? isTimeUp : undefined}
-          skipVotes={skipVotes}
-          correctPlayers={correctPlayers}
-          startTime={gameMode === 'online' ? (revealStartTimeRef.current || undefined) : undefined}
-          isGameEnded={gameEndedRef.current}
-          isMediaReady={mediaReadyRef.current && !waitingForGo}
-          allQuestions={gameQuestions}
-        />
-      </div>
-
-      {/* BottomBar: Champ réponse + Bouton valider + Hint */}
-      <div className="game-bottombar" data-testid="game-bottombar">
-        {/* Le contenu de la bottom bar est géré par QuestionCard */}
-      </div>
-
-      {gameMode === 'online' && (
-        <PlayersPanel
-          players={gamePlayers}
-          questionAnsweredBy={questionAnsweredByRef.current}
-          correctPlayers={correctPlayers}
-          answeredPlayers={answeredPlayers}
-          isTimeUp={isTimeUp}
-        />
-      )}
-
-      <Dialog.Root open={showScore || showSettingsPopup} onOpenChange={(open) => {
-        if (!open) {
-          if (showSettingsPopup) {
-            setShowSettingsPopup(false)
-            setShowScore(true)
-          } else {
-            onEndGame()
-          }
-        }
-      }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="game-modal-overlay" />
-          <Dialog.Content className="game-modal-content" onEscapeKeyDown={() => {
-            if (showSettingsPopup) {
-              setShowSettingsPopup(false)
-              setShowScore(true)
-            } else {
-              onEndGame()
-            }
-          }}>
-            <Dialog.Title style={{ display: 'none' }}>Game Modal</Dialog.Title>
-            <Dialog.Description style={{ display: 'none' }}>Game settings and score display</Dialog.Description>
-            {showSettingsPopup ? (
-              <GameSettingsPopup
-                isOpen={true}
-                currentCategories={categories}
-                currentTimeLimit={getCurrentTimeLimit()}
-                currentQuestionCount={gameQuestions.length}
-                onSave={handleSettingsSaved}
-                onClose={() => {
-                  setShowSettingsPopup(false)
-                  setShowScore(true)
-                }}
-                gameMode={gameMode}
-              />
-            ) : (
-              <div className="score-popup-content">
+        <div className="v5-enhanced-body" id="v5-enhanced-body">
+          {showScore ? (
+            <>
+              <div className="v5-enhanced-game">
                 <Score
                   score={gameMode === 'solo' ? score : 0}
                   totalQuestions={gameQuestions.length}
@@ -1306,10 +1250,94 @@ export default function Game({ questions, categories, gameMode, players, roomCod
                   onRestart={handleRestart}
                   onModifySettings={handleModifySettings}
                   onQuit={onEndGame}
-                  isPopup={true}
+                  isPopup={false}
                 />
               </div>
-            )}
+              {gameMode === 'online' && (
+                <PlayersPanel
+                  players={gamePlayers}
+                  questionAnsweredBy={null}
+                  correctPlayers={new Set()}
+                  answeredPlayers={new Set()}
+                  isTimeUp={false}
+                  playerAnswers={{}}
+                  validatedAnswers={{}}
+                  skipVotes={new Set()}
+                  isGameEnded={true}
+                  totalQuestions={gameQuestions.length}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <QuestionCard
+                question={currentQuestion}
+                onAnswer={handleAnswer}
+                onTimeUp={handleTimeUp}
+                onSkipVote={handleSkipVote}
+                gameMode={gameMode}
+                players={gamePlayers}
+                questionAnsweredBy={questionAnsweredByRef.current}
+                shouldPause={showSettingsPopup}
+                onTimerUpdate={handleTimerUpdate}
+                onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
+                onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
+                onRevealVideoStart={handleRevealVideoStart}
+                waitingForGo={waitingForGo}
+                gameStep={gameStep}
+                externalTimeRemaining={gameMode === 'online' ? timeRemaining : undefined}
+                externalIsTimeUp={gameMode === 'online' ? isTimeUp : undefined}
+                skipVotes={skipVotes}
+                correctPlayers={correctPlayers}
+                startTime={gameMode === 'online' ? (revealStartTimeRef.current || undefined) : undefined}
+                isGameEnded={gameEndedRef.current}
+                isMediaReady={mediaReadyRef.current && !waitingForGo}
+                allQuestions={gameQuestions}
+                validatedAnswers={gameMode === 'online' ? validatedAnswers : undefined}
+              />
+
+              {gameMode === 'online' && (
+                <PlayersPanel
+                  players={gamePlayers}
+                  questionAnsweredBy={questionAnsweredByRef.current}
+                  correctPlayers={correctPlayers}
+                  answeredPlayers={answeredPlayers}
+                  isTimeUp={isTimeUp}
+                  playerAnswers={playerAnswers}
+                  validatedAnswers={validatedAnswers}
+                  skipVotes={skipVotes}
+                  isGameEnded={false}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Dialog uniquement pour les paramètres */}
+      <Dialog.Root open={showSettingsPopup} onOpenChange={(open) => {
+        if (!open) {
+          setShowSettingsPopup(false)
+        }
+      }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="game-modal-overlay" />
+          <Dialog.Content className="game-modal-content" onEscapeKeyDown={() => {
+            setShowSettingsPopup(false)
+          }}>
+            <Dialog.Title style={{ display: 'none' }}>Game Settings</Dialog.Title>
+            <Dialog.Description style={{ display: 'none' }}>Game settings</Dialog.Description>
+            <GameSettingsPopup
+              isOpen={true}
+              currentCategories={categories}
+              currentTimeLimit={getCurrentTimeLimit()}
+              currentQuestionCount={gameQuestions.length}
+              onSave={handleSettingsSaved}
+              onClose={() => {
+                setShowSettingsPopup(false)
+              }}
+              gameMode={gameMode}
+            />
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

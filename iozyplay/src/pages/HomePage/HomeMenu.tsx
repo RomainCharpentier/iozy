@@ -93,26 +93,32 @@ export default function HomeMenu({
         paddingLeft: 'var(--spacing-md)',
         paddingRight: 'var(--spacing-md)'
       }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => {
-            soundManager.playClick()
-            navigate('/settings')
-          }}
-          style={{
-            position: 'absolute',
-            top: 'var(--spacing-xl)',
-            right: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--spacing-xs)',
-            padding: 'var(--spacing-sm) var(--spacing-md)'
-          }}
-          title="Réglages"
-        >
-          <span>⚙️</span>
-          <span style={{ fontSize: 'var(--font-size-sm)' }}>Réglages</span>
-        </button>
+        <div style={{
+          position: 'absolute',
+          top: 'var(--spacing-xl)',
+          right: 0,
+          display: 'flex',
+          gap: 'var(--spacing-xs)',
+          alignItems: 'center'
+        }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              soundManager.playClick()
+              navigate('/settings')
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs)',
+              padding: 'var(--spacing-sm) var(--spacing-md)'
+            }}
+            title="Réglages"
+          >
+            <span>⚙️</span>
+            <span style={{ fontSize: 'var(--font-size-sm)' }}>Réglages</span>
+          </button>
+        </div>
         <h1 style={{ 
           fontSize: 'var(--font-size-2xl)', 
           fontWeight: 700,
@@ -128,7 +134,7 @@ export default function HomeMenu({
           Écoute et devine les chansons, séries TV, animes, films et jeux !
         </p>
       </div>
-      
+
       <div className="grid-3" style={{ maxWidth: '100%', margin: '0', width: '100%', padding: '0 var(--spacing-xl)' }}>
         {/* Card Solo */}
         <div className="card" style={{ 
@@ -222,6 +228,7 @@ export default function HomeMenu({
             Ouvrir l'éditeur
           </button>
         </div>
+
       </div>
     </div>
   )

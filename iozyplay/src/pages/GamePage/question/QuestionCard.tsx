@@ -3,11 +3,11 @@ import type { Question } from '../../../services/types'
 import type { GameMode, Player } from '../../../lib/game/types'
 import MediaPlayer from '../../../components/media/MediaPlayer'
 import AnswerInput from './AnswerInput'
-import AnswerFeedback from './AnswerFeedback'
 import MediaSyncOverlay from './MediaSyncOverlay'
 import { soundManager } from '../../../utils/sounds'
 import { TIMING } from '../../../services/gameService'
 import { getPlayerId } from '../../../utils/playerId'
+import { compareAnswers } from '../../../utils/answerNormalization'
 
 interface QuestionCardProps {
   question: Question
@@ -32,6 +32,7 @@ interface QuestionCardProps {
   isGameEnded?: boolean // Indique si la partie est terminée
   isMediaReady?: boolean // Indique si le média est prêt et lancé
   allQuestions?: Question[] // Toutes les questions de la partie (pour les suggestions)
+  validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
 }
 
 export default function QuestionCard({ 
@@ -56,7 +57,8 @@ export default function QuestionCard({
   startTime,
   isGameEnded = false,
   isMediaReady = false,
-  allQuestions = []
+  allQuestions = [],
+  validatedAnswers = {}
 }: QuestionCardProps) {
   if (!question) {
     return (
@@ -85,6 +87,12 @@ export default function QuestionCard({
   const isTimeUp = gameMode === 'online' && externalIsTimeUp !== undefined 
     ? externalIsTimeUp 
     : localIsTimeUp
+  
+  // En mode multijoueur, déterminer si le joueur actuel a répondu correctement
+  const currentPlayerId = gameMode === 'online' ? getPlayerId() : null
+  const isCurrentPlayerCorrect = gameMode === 'online' && currentPlayerId 
+    ? (validatedAnswers[currentPlayerId] === true)
+    : isCorrect
   
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
   const setTimeRemaining = (value: number | ((prev: number) => number)) => {
@@ -247,9 +255,8 @@ export default function QuestionCard({
     
     // En mode solo, valider immédiatement pour donner un feedback
     if (gameMode === 'solo') {
-      const correctAnswer = question.answer.toLowerCase().trim()
-      const normalizedAnswer = answer.toLowerCase().trim()
-      isAnswerCorrect = normalizedAnswer === correctAnswer
+      // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
+      isAnswerCorrect = compareAnswers(answer, question.answer)
       
       if (isAnswerCorrect) {
         setIsCorrect(true)
@@ -332,14 +339,15 @@ export default function QuestionCard({
   }
 
   return (
-    <div className="question-card">
-      <div className="question-header">
-        <div className="question-category">
-          {getCategoryEmoji(question.category)} {getCategoryLabel(question.category)}
+    <div className="question-card v5-enhanced-game">
+      <div className="v5-enhanced-game-header">
+        <div className="v5-enhanced-category">
+          <span className="v5-enhanced-category-icon">{getCategoryEmoji(question.category)}</span>
+          <span className="v5-enhanced-category-text">{getCategoryLabel(question.category)}</span>
         </div>
       </div>
 
-      <div className="media-container" data-testid="media-container">
+      <div className="media-container v5-enhanced-media" data-testid="media-container">
         {question.mediaUrl && (
           <>
             {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
@@ -392,28 +400,28 @@ export default function QuestionCard({
         )}
       </div>
 
-      <div className="question-bottom-section">
-      <div className="text-answer">
+      <div className="v5-enhanced-answer">
         {gameMode === 'solo' ? (
           <>
             <AnswerInput
               value={userAnswer}
               onChange={handleAnswerChange}
-              onSubmit={() => handleSubmit()}
+              onSubmit={(value) => handleSubmit(undefined, value)}
               disabled={isCorrect || isTimeUp}
-              attempts={attempts}
-              showAttempts={true}
               inputRef={(el) => { inputRefs.current['solo'] = el }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
-            />
-            <AnswerFeedback
-              isCorrect={isCorrect}
-              isTimeUp={isTimeUp}
-              attempts={attempts}
-              correctAnswer={question.answer}
+              isReveal={isTimeUp}
+              isCorrect={isTimeUp ? isCorrect : undefined}
+              correctAnswer={isTimeUp ? question.answer : undefined}
+              onSkipVote={onSkipVote}
+              skipVotes={skipVotes}
               gameMode={gameMode}
+              players={players}
+              isGameEnded={isGameEnded}
+              isMediaReady={isMediaReady}
+              waitingForGo={waitingForGo}
             />
           </>
         ) : (
@@ -421,21 +429,22 @@ export default function QuestionCard({
             <AnswerInput
               value={userAnswer}
               onChange={handleAnswerChange}
-              onSubmit={() => handleSubmit()}
+              onSubmit={(value) => handleSubmit(undefined, value)}
               disabled={questionAnsweredBy !== null || isTimeUp}
               inputRef={(el) => { inputRefs.current['online'] = el }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
-            />
-            <AnswerFeedback
-              isCorrect={questionAnsweredBy !== null}
-              isTimeUp={isTimeUp && questionAnsweredBy === null}
-              attempts={attempts}
-              correctAnswer={question.answer}
-              answeredBy={questionAnsweredBy}
-              playerName={players.find(p => p.id === questionAnsweredBy)?.name}
+              isReveal={isTimeUp}
+              isCorrect={isTimeUp ? isCurrentPlayerCorrect : undefined}
+              correctAnswer={isTimeUp ? question.answer : undefined}
+              onSkipVote={onSkipVote}
+              skipVotes={skipVotes}
               gameMode={gameMode}
+              players={players}
+              isGameEnded={isGameEnded}
+              isMediaReady={isMediaReady}
+              waitingForGo={waitingForGo}
             />
           </>
         )}
@@ -446,44 +455,6 @@ export default function QuestionCard({
           💡 Indice : {question.hint}
         </div>
       )}
-      
-      {/* Bouton Skip */}
-      {onSkipVote && (
-        <div className="skip-button-container">
-          {(() => {
-            const playerId = gameMode === 'solo' ? 'solo' : (getPlayerId() || '')
-            const hasVoted = skipVotes.has(playerId)
-            const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted
-            
-            return (
-              <>
-                <button
-                  className={`skip-button ${hasVoted ? 'voted' : ''} ${!canSkip ? 'disabled' : ''}`}
-                  onClick={onSkipVote}
-                  disabled={!canSkip}
-                  title={
-                    isGameEnded 
-                      ? 'La partie est terminée'
-                      : !isMediaReady || waitingForGo
-                      ? 'Attendez que le média démarre'
-                      : hasVoted
-                      ? 'Vous avez déjà voté skip'
-                      : 'Passer cette question'
-                  }
-                >
-                  ⏭️ Skip
-                </button>
-                {gameMode === 'online' && skipVotes.size > 0 && (
-                  <div className="skip-votes-info">
-                    {skipVotes.size} / {players.length} joueurs ont voté skip
-                  </div>
-                )}
-              </>
-            )
-          })()}
-        </div>
-      )}
-      </div>
     </div>
   )
 }

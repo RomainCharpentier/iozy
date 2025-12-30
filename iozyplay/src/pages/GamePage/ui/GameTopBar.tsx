@@ -8,7 +8,10 @@ interface GameTopBarProps {
   currentQuestion: Question
   timeRemaining: number
   isTimeUp: boolean
+  score: number
   onQuit: () => void
+  onSettings?: () => void
+  isGameEnded?: boolean
 }
 
 export default function GameTopBar({
@@ -17,69 +20,81 @@ export default function GameTopBar({
   currentQuestion,
   timeRemaining,
   isTimeUp,
-  onQuit
+  score,
+  onQuit,
+  onSettings,
+  isGameEnded = false
 }: GameTopBarProps) {
+  const formatTime = (seconds: number) => {
+    if (seconds <= 0) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   return (
-    <div className="game-topbar" data-testid="game-topbar">
-      <div className="topbar-progress">
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%` }}
-          />
-        </div>
-      </div>
-      <div className="topbar-question-counter">
-        Question {currentQuestionIndex + 1} / {totalQuestions}
-      </div>
-      <div className="topbar-timer">
-        <div className="timer-circle-container-small">
-          <svg className="timer-circle-small" viewBox="0 0 100 100">
-            <defs>
-              <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="100%" stopColor="#8b5cf6" />
-              </linearGradient>
-            </defs>
-            <circle
-              className="timer-circle-bg-small"
-              cx="50"
-              cy="50"
-              r="45"
-              fill="none"
-              strokeWidth="8"
-            />
-            {timeRemaining > 0 && (
-              <circle
-                className={`timer-circle-progress-small ${timeRemaining <= 10 ? 'warning' : ''} ${isTimeUp ? 'time-up' : ''}`}
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                strokeWidth="8"
-                strokeDasharray={`${2 * Math.PI * 45}`}
-                strokeDashoffset={`${2 * Math.PI * 45 * (1 - (timeRemaining / (currentQuestion.timeLimit || 30)))}`}
-              />
+    <div className="v5-enhanced-header" data-testid="game-topbar">
+      <div className="v5-enhanced-header-main">
+        <div className="v5-enhanced-progress-section">
+          <div className="v5-enhanced-progress-header">
+            {isGameEnded ? (
+              <>
+                <span className="v5-enhanced-question">Question {totalQuestions}</span>
+                <span className="v5-enhanced-separator">sur</span>
+                <span className="v5-enhanced-total">{totalQuestions}</span>
+              </>
+            ) : (
+              <>
+                <span className="v5-enhanced-question">Question {currentQuestionIndex + 1}</span>
+                <span className="v5-enhanced-separator">sur</span>
+                <span className="v5-enhanced-total">{totalQuestions}</span>
+              </>
             )}
-          </svg>
-          <div className={`timer-text-small ${timeRemaining <= 10 && timeRemaining > 0 ? 'warning' : ''} ${isTimeUp ? 'time-up' : ''}`}>
-            {timeRemaining > 0 
-              ? `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`
-              : '--'
-            }
+          </div>
+          <div className="v5-enhanced-progress-container">
+            <div className="v5-enhanced-progress-bar">
+              <div
+                className="v5-enhanced-progress-fill"
+                style={{ width: isGameEnded ? '100%' : `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%` }}
+              />
+            </div>
           </div>
         </div>
+        <div className="v5-enhanced-timer-section">
+          <div className="v5-enhanced-timer-icon">{isGameEnded ? '🏁' : '⏱️'}</div>
+          <div className="v5-enhanced-timer-value">{isGameEnded ? 'Terminé' : formatTime(timeRemaining)}</div>
+        </div>
+        <div className="v5-enhanced-score-section">
+          <div className="v5-enhanced-score-label">{isGameEnded ? 'Score Final' : 'Score'}</div>
+          <div className="v5-enhanced-score-value">{score}</div>
+        </div>
       </div>
-      <button
-        className="topbar-quit-button"
-        onClick={() => {
-          soundManager.playClick()
-          onQuit()
-        }}
-        data-testid="quit-button"
-      >
-        Quitter
-      </button>
+      <div className="v5-enhanced-header-actions">
+        <button className="v5-enhanced-action-btn" title="Fichiers">📁</button>
+        {onSettings && (
+          <button 
+            className="v5-enhanced-action-btn" 
+            onClick={() => {
+              soundManager.playClick()
+              onSettings()
+            }}
+            title="Paramètres"
+          >
+            ⚙️
+          </button>
+        )}
+        <button
+          className="v5-enhanced-action-btn danger"
+          onClick={() => {
+            soundManager.playClick()
+            onQuit()
+          }}
+          data-testid="quit-button"
+          title="Quitter"
+        >
+          🚪
+        </button>
+      </div>
     </div>
   )
 }

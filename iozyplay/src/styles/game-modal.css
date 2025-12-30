@@ -56,3 +56,34 @@
   }
 }
 
+/* Responsive pour petits écrans */
+@media (max-width: 600px) {
+  .game-modal-content {
+    padding: 1.5rem !important;
+    border-radius: 1rem !important;
+    width: 95% !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: 90vh !important;
+  }
+
+  .score-popup-content {
+    padding: 1.5rem !important;
+    border-radius: 0.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-modal-content {
+    padding: 1rem !important;
+    border-radius: 0.75rem !important;
+    width: calc(100vw - 8px) !important;
+    max-height: 95vh !important;
+  }
+
+  .score-popup-content {
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+  }
+}
+
+

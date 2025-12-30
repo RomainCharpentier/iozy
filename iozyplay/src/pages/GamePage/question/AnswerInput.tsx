@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
 import type { Question } from '../../../services/types'
+import type { GameMode, Player } from '../../../lib/game/types'
+import { getPlayerId } from '../../../utils/playerId'
 import '../../../styles/answer-input.css'
 
 interface AnswerInputProps {
@@ -15,6 +18,16 @@ interface AnswerInputProps {
   hasSubmitted?: boolean
   allQuestions?: Question[]
   currentQuestionId?: string
+  isReveal?: boolean // Indique si on est en phase reveal
+  isCorrect?: boolean | undefined // Indique si la réponse est correcte (pour le feedback visuel, uniquement pendant le reveal)
+  correctAnswer?: string // La réponse correcte à afficher dans l'overlay pendant le reveal
+  onSkipVote?: () => void
+  skipVotes?: Set<string>
+  gameMode?: GameMode
+  players?: Player[]
+  isGameEnded?: boolean
+  isMediaReady?: boolean
+  waitingForGo?: boolean
 }
 
 export default function AnswerInput({
@@ -28,7 +41,17 @@ export default function AnswerInput({
   inputRef,
   hasSubmitted = false,
   allQuestions = [],
-  currentQuestionId
+  currentQuestionId,
+  isReveal = false,
+  isCorrect = false,
+  correctAnswer,
+  onSkipVote,
+  skipVotes = new Set(),
+  gameMode = 'solo',
+  players = [],
+  isGameEnded = false,
+  isMediaReady = false,
+  waitingForGo = false
 }: AnswerInputProps) {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -38,6 +61,13 @@ export default function AnswerInput({
 
   // Générer les suggestions avec debounce léger
   useEffect(() => {
+    // Fermer les suggestions si une réponse a été soumise
+    if (hasSubmitted) {
+      setOpen(false)
+      setSelectedIndex(-1)
+      return
+    }
+
     if (disabled || !value.trim() || value.length < 2) {
       setSuggestions([])
       setOpen(false)
@@ -80,7 +110,7 @@ export default function AnswerInput({
       setOpen(false)
     }
     setSelectedIndex(-1)
-  }, [value, allQuestions, currentQuestionId, disabled])
+  }, [value, allQuestions, currentQuestionId, disabled, hasSubmitted])
 
   // Scroll automatique vers la suggestion sélectionnée
   useEffect(() => {
@@ -153,6 +183,8 @@ export default function AnswerInput({
     onChange(suggestion)
     setOpen(false)
     setSelectedIndex(-1)
+    // Mémoriser la valeur soumise pour éviter de rouvrir immédiatement
+    lastSubmittedValueRef.current = suggestion
     // Soumettre automatiquement la suggestion sélectionnée
     // Passer directement la valeur sélectionnée pour éviter les problèmes de timing
     setTimeout(() => {
@@ -160,7 +192,21 @@ export default function AnswerInput({
     }, 50)
   }
 
-  const shouldOpen = open && suggestions.length > 0
+  // Fermer les suggestions si une réponse a été soumise ou si on est en phase reveal
+  const shouldOpen = open && suggestions.length > 0 && !hasSubmitted && !isReveal
+
+  // Animation pour le reveal - on garde les ombres dans le CSS et on anime seulement les propriétés supportées
+  const revealAnimation = isReveal ? {
+    transition: {
+      duration: 0.3,
+      ease: 'easeOut'
+    }
+  } : {}
+
+  // Gestion du bouton skip
+  const playerId = gameMode === 'solo' ? 'solo' : (getPlayerId() || '')
+  const hasVoted = skipVotes.has(playerId)
+  const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
 
   return (
     <Popover.Root open={shouldOpen} onOpenChange={(newOpen) => {
@@ -168,76 +214,81 @@ export default function AnswerInput({
     }}>
       <div className="answer-input-wrapper">
         <Popover.Anchor asChild>
-          <div className="answer-input-container">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={hasSubmitted ? "Réponse enregistrée" : placeholder}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={handleKeyPress}
-              disabled={disabled}
-              className={`answer-input ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''}`}
-              aria-label="Zone de saisie de la réponse"
-              aria-autocomplete="list"
-              aria-expanded={shouldOpen}
-              aria-controls="suggestions-list"
-              autoComplete="off"
-            />
-            {hasSubmitted && (
-              <span className="answer-check-icon" title="Réponse enregistrée">✓</span>
-            )}
-            {showAttempts && attempts !== undefined && attempts > 0 && !hasSubmitted && (
-              <div className="attempts-counter">
-                {attempts} tent.
-              </div>
-            )}
-          </div>
-        </Popover.Anchor>
-        <Popover.Portal>
-          <Popover.Content
-            ref={contentRef}
-            id="suggestions-list"
-            className="answer-suggestions-popover"
-            sideOffset={4}
-            align="start"
-            side="bottom"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onEscapeKeyDown={() => {
-              setOpen(false)
-              setSelectedIndex(-1)
-            }}
-            onPointerDownOutside={(e) => {
-              // Ne pas fermer si on clique sur l'input
-              const target = e.target as HTMLElement
-              if (target.closest('.answer-input-container')) {
-                e.preventDefault()
-              }
-            }}
+          <motion.div 
+            className={`v5-enhanced-answer-actions variant-4 ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+            {...revealAnimation}
           >
-            {suggestions.length > 0 ? (
-              <>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={isReveal && hasSubmitted ? (isCorrect ? "✅ Correct !" : isCorrect === false ? "❌ Incorrect" : "Réponse enregistrée") : hasSubmitted ? "Réponse enregistrée" : placeholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyDown={handleKeyPress}
+                disabled={disabled}
+                className={`v5-enhanced-input with-skip ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''} ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+                aria-label="Zone de saisie de la réponse"
+                aria-autocomplete="list"
+                aria-expanded={shouldOpen}
+                aria-controls="suggestions-list"
+                autoComplete="off"
+                style={hasSubmitted && !isReveal ? { paddingRight: '3rem' } : {}}
+              />
+              {hasSubmitted && !isReveal && (
+                <span className="v5-enhanced-check-icon" title="Réponse enregistrée">✓</span>
+              )}
+            </div>
+            {canSkip && (
+              <button
+                className="v5-enhanced-skip variant-4"
+                onClick={onSkipVote}
+                disabled={!canSkip}
+                title={
+                  isGameEnded 
+                    ? 'La partie est terminée'
+                    : !isMediaReady || waitingForGo
+                    ? 'Attendez que le média démarre'
+                    : hasVoted
+                    ? 'Vous avez déjà voté skip'
+                    : 'Passer cette question'
+                }
+              >
+                ⏭
+              </button>
+            )}
+            {shouldOpen && (
+              <div className="v5-enhanced-suggestions">
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion}
                     role="option"
                     aria-selected={index === selectedIndex}
-                    className={`suggestion-item ${index === selectedIndex ? 'selected' : ''}`}
+                    className={`v5-enhanced-suggestion ${index === selectedIndex ? 'active' : ''}`}
                     onClick={() => handleSuggestionClick(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     onMouseDown={(e) => {
-                      // Empêcher le blur de l'input
                       e.preventDefault()
                     }}
                   >
                     {suggestion}
                   </div>
                 ))}
-                <Popover.Arrow className="popover-arrow" />
-              </>
-            ) : null}
-          </Popover.Content>
-        </Popover.Portal>
+              </div>
+            )}
+            {isReveal && correctAnswer && (
+              <div className={`v5-enhanced-overlay ${isCorrect === false ? 'incorrect' : ''}`}>
+                <div className={`v5-enhanced-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}>
+                  {isCorrect === true ? '✓' : isCorrect === false ? '✗' : '✓'}
+                </div>
+                <div className="v5-enhanced-overlay-content">
+                  <div className="v5-enhanced-overlay-label">Réponse correcte</div>
+                  <div className="v5-enhanced-overlay-answer">{correctAnswer}</div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </Popover.Anchor>
       </div>
     </Popover.Root>
   )
