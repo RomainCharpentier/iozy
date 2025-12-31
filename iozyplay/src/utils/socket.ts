@@ -1,6 +1,21 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// En production, VITE_SOCKET_URL doit être définie
+// En développement, fallback sur localhost
+const getSocketUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  // En développement uniquement
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3001';
+  }
+  // En production, si VITE_SOCKET_URL n'est pas définie, afficher une erreur
+  console.error('[Socket] VITE_SOCKET_URL n\'est pas définie en production !');
+  throw new Error('VITE_SOCKET_URL must be defined in production');
+};
+
+const SOCKET_URL = getSocketUrl();
 
 let socket: Socket | null = null;
 
@@ -43,7 +58,7 @@ export const connectSocket = (): Socket => {
       console.log('[Socket] Déconnecté du serveur:', reason);
       
       // Si la déconnexion n'est pas volontaire, préparer la reconnexion
-      if (reason === 'io server disconnect') {
+      if (reason === 'io server disconnect' && socket) {
         // Le serveur a forcé la déconnexion, reconnecter manuellement
         socket.connect();
       }
@@ -52,6 +67,11 @@ export const connectSocket = (): Socket => {
     socket.on('reconnect', (attemptNumber) => {
       console.log(`[Socket] Reconnecté après ${attemptNumber} tentatives`);
     });
+
+    // socket est garanti non-null ici car on vient de le créer
+    if (!socket) {
+      throw new Error('Failed to create socket connection');
+    }
 
     socket.on('reconnect_attempt', (attemptNumber) => {
       console.log(`[Socket] Tentative de reconnexion #${attemptNumber}`);

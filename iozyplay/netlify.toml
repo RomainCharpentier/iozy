@@ -12,4 +12,4 @@
 
 # Les variables d'environnement sont configurées dans le dashboard Netlify
 # Allez dans Site settings → Environment variables
-# Ajoutez: VITE_SOCKET_URL = https://votre-backend.onrender.com
+# Ajoutez: VITE_SOCKET_URL = https://blindtest-webapp-production.up.railway.app

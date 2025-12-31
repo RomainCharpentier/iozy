@@ -3,8 +3,6 @@ import { STYLE_VARIANTS, VARIANT_DESCRIPTIONS, StyleVariant, loadStyleVariant } 
 
 /**
  * Composant pour sélectionner et tester les différentes variantes de style
- * 
- * Usage : Ajoutez ce composant temporairement dans votre App.tsx pour tester
  */
 export default function StyleSelector() {
   const [currentVariant, setCurrentVariant] = useState<StyleVariant>(STYLE_VARIANTS.DEFAULT)

@@ -3,7 +3,25 @@
  */
 import type { Category, Question, QuestionsData } from './types'
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001'
+// En production, utiliser VITE_SOCKET_URL (même serveur que Socket.io)
+// En développement, fallback sur localhost
+const getApiBaseUrl = () => {
+  if ((import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
+  }
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  // En développement uniquement
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3001';
+  }
+  // En production, si aucune URL n'est définie, afficher une erreur
+  console.error('[API] VITE_SOCKET_URL ou VITE_API_URL doit être définie en production !');
+  throw new Error('VITE_SOCKET_URL or VITE_API_URL must be defined in production');
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Service de questions - API publique

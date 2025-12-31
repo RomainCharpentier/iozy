@@ -19,5 +19,5 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_SOCKET_URL
-        sync: false  # À définir manuellement avec l'URL du backend après déploiement
+        value: https://blindtest-webapp-production.up.railway.app
 
