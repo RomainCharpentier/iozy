@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useGameState } from '../contexts/GameContext'
+import { useGameState } from '../lib/game/GameContext'
 import { Category, Question } from '../types'
 import Game from './GamePage/Game'
 

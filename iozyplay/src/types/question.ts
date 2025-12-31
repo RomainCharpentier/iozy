@@ -15,6 +15,3 @@ export interface Question {
 
 export type QuestionsData = Record<Category, Question[]>;
 
-// Ré-exporter pour compatibilité
-export type { QuestionsData as QuestionsData };
-

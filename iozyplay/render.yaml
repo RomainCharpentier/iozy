@@ -1,0 +1,23 @@
+services:
+  # Backend - Web Service avec Socket.io
+  - type: web
+    name: blindtest-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: true
+    healthCheckPath: /api/health
+
+  # Frontend - Static Site
+  - type: static
+    name: blindtest-frontend
+    buildCommand: npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_SOCKET_URL
+        sync: false  # À définir manuellement avec l'URL du backend après déploiement
+

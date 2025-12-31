@@ -1,8 +1,8 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useGameState } from '../contexts/GameContext'
+import { useGameState } from '../lib/game/GameContext'
 import CategorySelector from './CategorySelectorPage/CategorySelector'
-import { Category, GameMode, Player } from '../../types'
-import { QuestionService } from '../../services/questionService'
+import { Category, GameMode, Player } from '../types'
+import { QuestionService } from '../services/questionService'
 
 export default function CategorySelectorPage() {
   const navigate = useNavigate()

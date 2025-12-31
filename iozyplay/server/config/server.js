@@ -10,7 +10,18 @@ import { getAllCategories, createCategory, updateCategoryHandler, removeCategory
 export function createExpressApp() {
   const app = express();
 
-  app.use(cors());
+  // Configuration CORS pour production et développement
+  const corsOptions = process.env.NODE_ENV === 'production'
+    ? {
+        origin: process.env.FRONTEND_URL || true, // Accepter l'URL du frontend ou toutes si non définie
+        credentials: true
+      }
+    : {
+        origin: true, // En développement, accepter toutes les origines
+        credentials: true
+      };
+
+  app.use(cors(corsOptions));
   app.use(express.json());
 
   // Routes API

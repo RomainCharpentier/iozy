@@ -23,11 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables
+.env
+.env.local
+.env.production.local
+.env.development.local
 
-
-
-
-
-
-
-
+# Netlify
+.netlify

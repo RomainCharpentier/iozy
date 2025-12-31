@@ -126,7 +126,7 @@ export async function getYouTubeMetadata(url: string, useCache: boolean = true):
 
   // Vérifier le cache d'abord
   if (useCache) {
-    const { getCachedMetadata, setCachedMetadata } = await import('./youtubeCache')
+    const { getCachedMetadata } = await import('./youtubeCache')
     const cached = getCachedMetadata(url)
     if (cached) {
       return cached

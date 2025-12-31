@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { STYLE_VARIANTS, VARIANT_DESCRIPTIONS, StyleVariant, loadStyleVariant } from '../utils/styleVariants'
+import { STYLE_VARIANTS, VARIANT_DESCRIPTIONS, StyleVariant, loadStyleVariant } from '../../utils/styleVariants'
 
 /**
  * Composant pour sélectionner et tester les différentes variantes de style

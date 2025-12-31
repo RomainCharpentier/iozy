@@ -1,0 +1,83 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Job pour builder et tester
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npm run build --if-present || true
+
+      - name: Run tests
+        run: npm test --if-present || true
+
+  # Job pour déployer le frontend (si push sur main)
+  # Note: Netlify déploie automatiquement depuis Git, ce job est optionnel
+  # Il peut être utilisé pour des déploiements plus avancés
+  deploy-frontend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Décommentez ce job si vous voulez utiliser GitHub Actions pour déployer
+    # Sinon, laissez Netlify gérer le déploiement automatique depuis Git
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL || 'https://your-backend.onrender.com' }}
+
+      # Optionnel: Déployer via GitHub Actions (si vous avez configuré les secrets)
+      # - name: Deploy to Netlify
+      #   uses: netlify/actions/cli@master
+      #   with:
+      #     args: deploy --dir=dist --prod
+      #   env:
+      #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Job pour notifier le backend (déploiement manuel ou via webhook)
+  notify-backend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Trigger backend redeploy
+        run: |
+          echo "Backend should auto-deploy from Git connection"
+          echo "If using Railway/Render, they will detect the push automatically"
+

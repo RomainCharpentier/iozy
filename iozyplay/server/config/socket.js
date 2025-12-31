@@ -5,11 +5,16 @@
 import { Server } from 'socket.io';
 
 export function createSocketServer(httpServer) {
+  // Configuration CORS pour production et développement
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? (process.env.FRONTEND_URL 
+        ? [process.env.FRONTEND_URL] 
+        : true) // En production, accepter l'URL du frontend ou toutes si non définie
+    : ['http://localhost:5173', 'http://localhost:3000'];
+
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' 
-        ? false 
-        : ['http://localhost:5173', 'http://localhost:3000'],
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true
     },
