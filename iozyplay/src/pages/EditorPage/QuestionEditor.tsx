@@ -458,7 +458,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     const categoriesArray = Array.isArray(category) ? category : [category]
     return categoriesArray.map(cat => {
       const catInfo = categories.find(c => c.id === cat)
-      return catInfo ? `${catInfo.emoji} ${catInfo.name}` : cat
+      return catInfo ? catInfo.name : cat
     }).join(', ')
   }
 
@@ -508,7 +508,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               if (count === 0) return null
               return (
                 <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
-                  <span className="stat-icon">{cat.emoji}</span>
+                  <span className="stat-icon">{(() => {
+                    const IconComponent = getIconById(cat.emoji)
+                    return <IconComponent size={16} />
+                  })()}</span>
                   <span className="stat-category-name">{cat.name}</span>
                   <span className="stat-value">{count}</span>
                 </div>
@@ -528,7 +531,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
             <option value="all">Toutes</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>
-                {cat.emoji} {cat.name}
+                {cat.name}
               </option>
             ))}
           </select>
@@ -780,7 +783,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     <div className="question-info-compact">
                       <div className="question-answer-compact"><strong>{question.answer}</strong></div>
                       {videoTitle && videoTitle !== question.answer && (
-                        <div className="question-video-title">📺 {videoTitle}</div>
+                        <div className="question-video-title">{videoTitle}</div>
                       )}
                       {question.hint && (
                         <div className="question-hint-compact">{question.hint}</div>

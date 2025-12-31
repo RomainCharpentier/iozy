@@ -1,8 +1,8 @@
-# 🎵 Blindtest WebApp
+# Blindtest WebApp
 
 A modern web application for blindtest games where you can guess TV series, anime, songs, movies, and video games!
 
-## 🚀 Features
+## Features
 
 - **Real blindtest** : Listen to audio clips or watch images/videos to guess
 - **Multiple categories** : TV Series, Anime, Songs, Movies, Video Games
@@ -15,7 +15,7 @@ A modern web application for blindtest games where you can guess TV series, anim
 - **Solo mode** : Play alone at your own pace
 - **YouTube support** : Use YouTube videos as media sources
 
-## 📦 Installation
+## Installation
 
 1. Install dependencies:
 ```bash
@@ -29,7 +29,7 @@ npm run dev
 
 3. Open your browser at the indicated address (usually `http://localhost:5173`)
 
-## 🌐 Multiplayer Mode
+## Multiplayer Mode
 
 To run the multiplayer mode, you need to start both the frontend and backend:
 
@@ -51,7 +51,7 @@ npm run dev:server
 npm run dev
 ```
 
-## 🏗️ Production Build
+## Production Build
 
 ```bash
 npm run build
@@ -59,35 +59,29 @@ npm run build
 
 Files will be generated in the `dist/` folder.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 blindtest-webapp/
 ├── src/
 │   ├── components/       # React components
-│   │   ├── game/         # Game components
-│   │   ├── room/         # Multiplayer room components
-│   │   ├── media/        # Media player components
-│   │   └── ...
-│   ├── domain/           # Business logic (Clean Architecture)
-│   ├── services/         # Service layer
-│   ├── infrastructure/   # External implementations
-│   ├── types.ts          # TypeScript types
-│   ├── App.tsx           # Main component
-│   └── main.tsx          # Entry point
-├── server/               # Backend server
-│   ├── domain/           # Server-side business logic
-│   ├── handlers/         # Socket.io event handlers
-│   └── config/           # Server configuration
+│   ├── pages/           # Application pages
+│   ├── services/        # Business logic services
+│   ├── lib/             # React hooks and contexts
+│   ├── utils/           # Utility functions
+│   └── styles/          # CSS styles
+├── server/              # Backend server
+│   ├── domain/          # Business logic (Clean Architecture)
+│   ├── handlers/        # Socket.io event handlers
+│   └── config/          # Server configuration
 ├── public/
-│   └── media/            # Media files directory
+│   └── media/           # Media files directory
 ├── index.html
 ├── package.json
-├── tsconfig.json
 └── vite.config.ts
 ```
 
-## 🎮 How to Play
+## How to Play
 
 1. Select one or more categories
 2. Click "Start Game"
@@ -99,14 +93,14 @@ blindtest-webapp/
 
 ### Multiplayer Mode
 
-1. Select "🌐 Online" mode
+1. Select "Online" mode
 2. Create a room or join with a room code
 3. Wait for all players to be ready
 4. The host starts the game
 5. All players see the same questions simultaneously
 6. Compete for the highest score!
 
-## ➕ Adding Questions and Media
+## Adding Questions and Media
 
 ### Adding Media
 
@@ -114,19 +108,7 @@ blindtest-webapp/
    - For songs: audio files (`.mp3`, `.wav`, etc.)
    - For series/anime/movies/games: images (`.jpg`, `.png`, etc.) or videos (`.mp4`, etc.)
 
-2. **Edit the file** `src/data/questions.json` to add your questions:
-
-```json
-{
-  "id": "unique-id",
-  "category": "songs",
-  "type": "audio",
-  "mediaUrl": "/media/songs/my-file.mp3",
-  "answer": "Song Name",
-  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-  "hint": "Optional hint"
-}
-```
+2. **Use the built-in editor** to add questions via the web interface
 
 ### Supported Media Types
 
@@ -146,44 +128,17 @@ You can also use external URLs:
 
 ### YouTube Support
 
-The application supports YouTube videos! You can use a YouTube URL and toggle between video and audio-only modes:
-
-```json
-{
-  "id": "c7",
-  "category": "songs",
-  "type": "video",
-  "mediaUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-  "answer": "Song Name",
-  "options": ["Option 1", "Option 2", "Option 3", "Option 4"]
-}
-```
+The application supports YouTube videos! You can use a YouTube URL and toggle between video and audio-only modes.
 
 **YouTube Features**:
-- ✅ Play with video or audio-only
-- ✅ Toggle button between modes
-- ✅ Play/pause controls
-- ✅ Support for YouTube URLs (youtube.com/watch, youtu.be, etc.)
+- Play with video or audio-only
+- Toggle button between modes
+- Play/pause controls
+- Support for YouTube URLs (youtube.com/watch, youtu.be, etc.)
 
-To use audio-only mode, click the "👁️ Video" button to hide the video and keep only the sound.
+To use audio-only mode, click the "Video" toggle button to hide the video and keep only the sound.
 
-### Recommended Structure
-
-```
-public/media/
-├── songs/
-│   └── your-songs.mp3
-├── series/
-│   └── your-images.jpg
-├── anime/
-│   └── your-images.jpg
-├── movies/
-│   └── your-images.jpg
-└── games/
-    └── your-images.jpg
-```
-
-## 🛠️ Technologies Used
+## Technologies Used
 
 - **React 18** - UI library
 - **TypeScript** - Static typing
@@ -192,7 +147,7 @@ public/media/
 - **Node.js** - Backend server
 - **CSS3** - Modern styles with CSS variables
 
-## 🏗️ Architecture
+## Architecture
 
 The project follows Clean Architecture principles:
 
@@ -201,8 +156,6 @@ The project follows Clean Architecture principles:
 - **Infrastructure** : Concrete implementations (localStorage, Socket.io, etc.)
 - **Components** : React presentation layer
 
-See `src/ARCHITECTURE.md` and `server/ARCHITECTURE.md` for more details.
-
-## 📝 License
+## License
 
 This project is free to use for personal and educational purposes.

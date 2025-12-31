@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { Category, CategoryInfo } from '../../services/types'
+import { getIconById } from '../../utils/categoryIcons'
 import '../../styles/category-selector.css'
 
 interface CategorySelectorProps {
@@ -27,7 +28,6 @@ export default function CategorySelector({
     const query = searchQuery.toLowerCase().trim()
     return categories.filter(cat => 
       cat.name.toLowerCase().includes(query) ||
-      cat.emoji.includes(query) ||
       cat.id.toLowerCase().includes(query)
     )
   }, [categories, searchQuery])
@@ -93,7 +93,10 @@ export default function CategorySelector({
                   onClick={() => toggleCategory(category.id)}
                   title={category.name}
                 >
-                  <span className="category-emoji-large">{category.emoji}</span>
+                  {(() => {
+                    const IconComponent = getIconById(category.emoji)
+                    return <IconComponent size={32} className="category-emoji-large" />
+                  })()}
                   <span className="category-name-text">{category.name}</span>
                   {isSelected && (
                     <span className="selected-indicator">✓</span>
@@ -115,7 +118,7 @@ export default function CategorySelector({
       {/* Message d'erreur si requis et aucune sélection */}
       {required && selectedCategories.length === 0 && (
         <div className="category-selector-error">
-          <span className="error-icon">⚠️</span>
+          <span className="error-icon" style={{ fontSize: '1rem' }}>⚠</span>
           <span>Veuillez sélectionner au moins une catégorie</span>
         </div>
       )}

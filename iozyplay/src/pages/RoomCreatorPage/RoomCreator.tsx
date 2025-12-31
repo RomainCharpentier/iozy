@@ -257,22 +257,31 @@ export default function RoomCreator({
       return
     }
 
+    let timeoutId: number | null = null
+
     const handleGameStarted = () => {
-      if (timeoutId) clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       onRoomCreated(roomCode)
     }
 
     const handleError = ({ code, message }: { code: string, message: string }) => {
-      if (timeoutId) clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       alert(`Erreur : ${message}`)
       isStartingGameRef.current = false
     }
 
-    const timeoutId = window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
+      timeoutId = null
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       alert('Le serveur ne répond pas. Veuillez réessayer.')
@@ -283,6 +292,11 @@ export default function RoomCreator({
     socket.on('error', handleError)
 
     if (!questionsWithTimer || questionsWithTimer.length === 0) {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      socket.off('game:start', handleGameStarted)
+      socket.off('error', handleError)
       alert('Erreur : Aucune question disponible après traitement.')
       isStartingGameRef.current = false
       return
@@ -307,9 +321,9 @@ export default function RoomCreator({
   }
 
   const getStartError = (): string | null => {
-    if (!currentPlayerName) return '⚠️ Vous devez définir votre nom pour démarrer'
-    if (players.length === 0) return '⚠️ Attendez qu\'au moins un joueur rejoigne'
-    if (availableQuestionsCount === 0) return '⚠️ Aucune question disponible'
+    if (!currentPlayerName) return 'Vous devez définir votre nom pour démarrer'
+    if (players.length === 0) return 'Attendez qu\'au moins un joueur rejoigne'
+    if (availableQuestionsCount === 0) return 'Aucune question disponible'
     return null
   }
 

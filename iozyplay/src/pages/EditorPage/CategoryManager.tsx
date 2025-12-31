@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { FaPlus, FaEdit, FaTrash, FaTimes, FaSave, FaExclamationTriangle, FaSpinner } from 'react-icons/fa'
-import { loadCategories, createCategory, updateCategory, deleteCategory, AVAILABLE_ICONS } from '../../services/categoryService'
+import { loadCategories, createCategory, updateCategory, deleteCategory } from '../../services/categoryService'
+import { CATEGORY_ICONS, getIconById } from '../../utils/categoryIcons'
 import { QuestionService } from '../../services/questionService'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import type { CategoryInfo, Category } from '../../services/types'
@@ -44,7 +45,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
-      emoji: '🎵'
+      emoji: 'FaMusic'
     }
   })
 
@@ -270,8 +271,11 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     }
   }, [watchedName, categories, showAddForm, editingId, setValue])
 
-  const filteredIcons = AVAILABLE_ICONS.filter(icon => 
-    iconSearch === '' || icon.includes(iconSearch)
+  const filteredIcons = CATEGORY_ICONS.filter(iconOption => 
+    iconSearch === '' || 
+    iconOption.name.toLowerCase().includes(iconSearch.toLowerCase()) ||
+    iconOption.id.toLowerCase().includes(iconSearch.toLowerCase()) ||
+    iconOption.group.toLowerCase().includes(iconSearch.toLowerCase())
   )
 
   if (isLoading) {
@@ -346,23 +350,31 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     className="icon-search"
                   />
                   <div className="icon-grid">
-                    {filteredIcons.slice(0, 50).map(icon => (
-                      <button
-                        key={icon}
-                        type="button"
-                        className={`icon-button ${watchedEmoji === icon ? 'selected' : ''}`}
-                        onClick={() => {
-                          setValue('emoji', icon, { shouldValidate: true })
-                        }}
-                        title={icon}
-                      >
-                        {icon}
-                      </button>
-                    ))}
+                    {filteredIcons.map(iconOption => {
+                      const IconComponent = iconOption.icon
+                      const isSelected = watchedEmoji === iconOption.id
+                      return (
+                        <button
+                          key={iconOption.id}
+                          type="button"
+                          className={`icon-button ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setValue('emoji', iconOption.id, { shouldValidate: true })
+                          }}
+                          title={iconOption.name}
+                        >
+                          <IconComponent size={24} />
+                        </button>
+                      )
+                    })}
                   </div>
                   {watchedEmoji && (
                     <div className="selected-icon-preview">
-                      Icône sélectionnée: <span className="icon-large">{watchedEmoji}</span>
+                      Icône sélectionnée: {(() => {
+                        const IconComponent = getIconById(watchedEmoji)
+                        return <IconComponent size={32} />
+                      })()}
+                      <span>{CATEGORY_ICONS.find(icon => icon.id === watchedEmoji)?.name || watchedEmoji}</span>
                     </div>
                   )}
                   {errors.emoji && (
@@ -433,7 +445,10 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
             {categories.map(category => (
               <div key={category.id} className="category-card-manager">
                 <div className="category-display">
-                  <span className="category-emoji-large">{category.emoji}</span>
+                  {(() => {
+                    const IconComponent = getIconById(category.emoji)
+                    return <IconComponent size={32} className="category-emoji-large" />
+                  })()}
                   <div className="category-info-manager">
                     <div className="category-name-manager">{category.name}</div>
                   </div>

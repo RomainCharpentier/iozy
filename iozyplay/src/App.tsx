@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast'
 import { GameProvider } from './lib/game/GameContext'
 import { UpdateNotification } from './components/common/UpdateNotification'
+import { FaMusic } from 'react-icons/fa'
 
 // Lazy loading des pages pour améliorer les performances
 const HomePage = lazy(() => import('./pages/HomePage/HomePage'))
@@ -22,7 +23,9 @@ function GameOverlay() {
   return (
     <div className="app-overlay">
       <div className="app-overlay-content">
-        🎵 Devine la musique ! 🎵
+        <FaMusic size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+        Devine la musique !
+        <FaMusic size={20} style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }} />
       </div>
     </div>
   )

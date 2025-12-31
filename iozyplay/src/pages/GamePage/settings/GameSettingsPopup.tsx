@@ -6,6 +6,7 @@ import CategorySelector from '../../CategorySelectorPage/CategorySelector'
 import { soundManager } from '../../../utils/sounds'
 import { QuestionService } from '../../../services/questionService'
 import { TIMING, QUESTION_COUNT } from '../../../services/gameService'
+import CategoryIcon from '../../../components/common/CategoryIcon'
 
 interface GameSettingsPopupProps {
     isOpen: boolean
@@ -115,7 +116,7 @@ export default function GameSettingsPopup({
     return (
         <div className="game-settings-popup">
             <div className="game-settings-header">
-                <h2>⚙️ Modifier les paramètres</h2>
+                <h2>Modifier les paramètres</h2>
                 <button
                     className="close-button"
                     onClick={() => {
@@ -128,7 +129,7 @@ export default function GameSettingsPopup({
             </div>
 
             <div className="game-settings-section">
-                <h3>🎯 Thèmes</h3>
+                <h3>Thèmes</h3>
                 {selectedCategories.length === 0 ? (
                     <p className="no-categories">Aucun thème sélectionné</p>
                 ) : (
@@ -137,7 +138,9 @@ export default function GameSettingsPopup({
                             const catInfo = categories.find(c => c.id === category)
                             return (
                                 <div key={category} className="selected-category-badge">
-                                    <span className="category-emoji">{catInfo?.emoji || '🎵'}</span>
+                                    <span className="category-emoji">
+                                      <CategoryIcon categoryId={category} iconId={catInfo?.emoji} size={20} />
+                                    </span>
                                     <span className="category-name">{catInfo?.name || category}</span>
                                 </div>
                             )
@@ -177,7 +180,7 @@ export default function GameSettingsPopup({
             )}
 
             <div className="game-settings-section">
-                <h3>⏱️ Timer par question</h3>
+                <h3>Timer par question</h3>
                 <div className="timer-config">
                     <label className="timer-config-label">
                         Durée (en secondes)
@@ -202,7 +205,7 @@ export default function GameSettingsPopup({
             </div>
 
             <div className="game-settings-section">
-                <h3>🎵 Nombre de chansons</h3>
+                <h3>Nombre de questions</h3>
                 <div className="timer-config">
                     <label className="timer-config-label">
                         Nombre de questions

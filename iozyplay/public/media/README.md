@@ -61,8 +61,3 @@ Vous pouvez aussi utiliser des URLs externes (YouTube, SoundCloud, etc.) :
 
 
 
-
-
-
-
-

@@ -387,6 +387,7 @@ export function useGameSocket({
     })
 
     return () => {
+      clearTimeout(joinTimeout)
       socket.off('room:state', handleRoomState)
       socket.off('game:start', handleGameStarted)
       socket.off('game:go', handleGameGo)

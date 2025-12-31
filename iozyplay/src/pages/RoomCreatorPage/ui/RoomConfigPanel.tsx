@@ -3,6 +3,7 @@ import { loadCategories } from '../../../services/categoryService'
 import { DEFAULT_CATEGORIES } from '../../../services/types'
 import { TIMING } from '../../../services/gameService'
 import { soundManager } from '../../../utils/sounds'
+import { getIconById } from '../../../utils/categoryIcons'
 import { useState, useEffect } from 'react'
 
 interface RoomConfigPanelProps {
@@ -90,7 +91,7 @@ export default function RoomConfigPanel({
   }
 
   const getCategoryInfo = (categoryId: string) => {
-    return categoryInfos.find(c => c.id === categoryId) || { emoji: '🎵', name: categoryId }
+    return categoryInfos.find(c => c.id === categoryId) || { emoji: 'FaMusic', name: categoryId }
   }
 
   const handleQuestionCountChange = (newValue: number) => {
@@ -104,7 +105,9 @@ export default function RoomConfigPanel({
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="card-header">
-        <h2 className="card-title">⚙️ Configuration</h2>
+        <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          Configuration
+        </h2>
       </div>
 
       {/* Categories */}
@@ -117,7 +120,10 @@ export default function RoomConfigPanel({
             const catInfo = getCategoryInfo(category)
             return (
               <span key={category} className="badge badge-primary">
-                {catInfo.emoji} {catInfo.name}
+                {(() => {
+                  const IconComponent = getIconById(catInfo.emoji)
+                  return <IconComponent size={16} />
+                })()} {catInfo.name}
               </span>
             )
           })}
@@ -127,7 +133,7 @@ export default function RoomConfigPanel({
       {/* Timer Slider */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-          ⏱️ Timer par question: <strong>{timeLimit}s</strong>
+          Timer par question: <strong>{timeLimit}s</strong>
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
           <input
@@ -158,7 +164,7 @@ export default function RoomConfigPanel({
       {/* Question Count Slider */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-          🎵 Nombre de questions: <strong>{Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}</strong>
+          Nombre de questions: <strong>{Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}</strong>
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
           <input

@@ -8,8 +8,6 @@ export default function GamePage() {
     const navigate = useNavigate()
     const { gameState, updateGameState, clearGameState } = useGameState()
 
-    // En mode multijoueur, permettre l'accès même sans questions initiales
-    // car les questions viendront du serveur via game:start
     const isMultiplayer = gameState?.gameMode === 'online'
     
     useEffect(() => {
@@ -18,7 +16,6 @@ export default function GamePage() {
             return
         }
 
-        // En mode solo, les questions sont requises
         if (!isMultiplayer && (!gameState.questions || gameState.questions.length === 0)) {
             navigate('/')
         }
@@ -28,7 +25,6 @@ export default function GamePage() {
         return null
     }
 
-    // En mode solo, les questions sont requises
     if (!isMultiplayer && (!gameState.questions || gameState.questions.length === 0)) {
         return null
     }
@@ -42,7 +38,8 @@ export default function GamePage() {
         if (gameState) {
             updateGameState({
                 categories: newCategories,
-                questions: newQuestions
+                questions: newQuestions,
+                players: gameState.players.map(p => ({ ...p, score: 0 }))
             })
         }
     }

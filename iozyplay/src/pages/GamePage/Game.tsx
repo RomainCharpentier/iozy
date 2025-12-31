@@ -64,36 +64,80 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const [playerAnswers, setPlayerAnswers] = useState<Record<string, string>>({}) // Réponses des joueurs
   const soloAnswersRef = useRef<string[]>([]) // Réponses stockées en mode solo (non validées)
 
+  const previousQuestionsRef = useRef<string>('')
+  const gameInstanceKeyRef = useRef<number>(0)
+  
+  const resetGameState = useCallback(() => {
+    setCurrentQuestionIndex(0)
+    setScore(0)
+    setShowScore(false)
+    setIsTimeUp(false)
+    setTimeRemaining(0)
+    setWaitingForGo(gameMode === 'online')
+    setGameStep('loading')
+    setSkipVotes(new Set())
+    setCorrectPlayers(new Set())
+    setAnsweredPlayers(new Set())
+    setValidatedAnswers({})
+    setPlayerAnswers({})
+    
+    gameEndedRef.current = false
+    isTransitioningRef.current = false
+    questionAnsweredByRef.current = null
+    mediaReadyRef.current = false
+    revealTimerStartedRef.current = false
+    mediaStartTimeRef.current = null
+    gameStartedAtRef.current = null
+    gameDurationMsRef.current = null
+    revealStartTimeRef.current = null
+    revealStartTimeClientRef.current = null
+    lastSkipVoteTimeRef.current = 0
+    soloAnswersRef.current = []
+    
+    clearTimerInterval()
+    timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId))
+    timeoutRefs.current = []
+    
+    setGamePlayers(players.map(p => ({ ...p, score: 0 })))
+  }, [gameMode, players])
+
   useEffect(() => {
     if (gameQuestions.length === 0) return
     questionsRef.current = gameQuestions
+    
+    const currentQuestionsKey = JSON.stringify(gameQuestions.map(q => q.id || q.mediaUrl))
+    const isNewGame = previousQuestionsRef.current !== '' && previousQuestionsRef.current !== currentQuestionsKey
+    
+    if (isNewGame) {
+      resetGameState()
+      gameInstanceKeyRef.current += 1
+    }
+    
+    previousQuestionsRef.current = currentQuestionsKey
+    
     if (currentQuestionIndex >= gameQuestions.length) {
       setCurrentQuestionIndex(0)
     }
-    // Ne pas réinitialiser showScore si la partie est terminée
-    if (!gameEndedRef.current) {
+    if (!gameEndedRef.current && !isNewGame) {
       setShowScore(false)
     }
     isTransitioningRef.current = false
     questionAnsweredByRef.current = null
-  }, [gameQuestions])
+  }, [gameQuestions, resetGameState])
 
   useEffect(() => {
     // En mode solo, utiliser les questions des props
     if (gameMode === 'solo' && questions.length > 0) {
-      if (gameQuestions.length === 0 || JSON.stringify(gameQuestions) !== JSON.stringify(questions)) {
+      const questionsKey = JSON.stringify(questions.map(q => q.id || q.mediaUrl))
+      if (gameQuestions.length === 0 || previousQuestionsRef.current !== questionsKey) {
         setGameQuestions(questions)
+        // Réinitialiser l'état pour une nouvelle partie
+        resetGameState()
       }
     }
     // En mode multijoueur, les questions viennent uniquement du serveur via game:start
     // Ne pas utiliser les questions des props pour éviter les conflits
-  }, [questions, gameMode, gameQuestions])
-
-  useEffect(() => {
-    setGamePlayers(players.map(p => ({ ...p, score: 0 })))
-    setShowScore(false)
-    setCurrentQuestionIndex(0)
-  }, [])
+  }, [questions, gameMode, gameQuestions, resetGameState])
 
   useEffect(() => {
     if (gameQuestions.length === 0) return
@@ -893,6 +937,8 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       socket.off('reconnect')
       window.removeEventListener('beforeunload', handleBeforeUnload)
       clearTimerInterval()
+      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId))
+      timeoutRefs.current = []
     }
   }, [gameMode, roomCode])
 
@@ -1080,7 +1126,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
             return prev + 1
           } else {
             isTransitioningRef.current = false
-            setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
+            // Utiliser timeoutRefs pour nettoyer ce timeout aussi
+            const showScoreTimeoutId = window.setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
+            timeoutRefs.current.push(showScoreTimeoutId)
             return prev
           }
         })
@@ -1099,24 +1147,15 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   }, [handleTimeUp])
 
   const handleRestart = () => {
-    gameEndedRef.current = false
-    setShowScore(false)
-    setCurrentQuestionIndex(0)
-    setScore(0)
-    questionAnsweredByRef.current = null
-    isTransitioningRef.current = false
+    resetGameState()
+    gameInstanceKeyRef.current += 1
     
-    // Réinitialiser le debounce
-    lastSkipVoteTimeRef.current = 0
-
     if (gameMode === 'online' && roomCode) {
       const socket = getSocket()
       if (socket) {
         socket.emit('game:restart', { roomCode })
         setGameStarted(false)
       }
-    } else {
-      setGamePlayers(players.map(p => ({ ...p, score: 0 })))
     }
   }
 
@@ -1271,6 +1310,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           ) : (
             <>
               <QuestionCard
+                key={`game-${gameInstanceKeyRef.current}-q-${currentQuestionIndex}`}
                 question={currentQuestion}
                 onAnswer={handleAnswer}
                 onTimeUp={handleTimeUp}

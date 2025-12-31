@@ -38,11 +38,11 @@ export class GameService {
    * Détermine le message de score basé sur le pourcentage
    */
   static getScoreMessage(percentage: number): string {
-    if (percentage === 100) return '🎉 Parfait ! 🎉'
-    if (percentage >= 80) return '🌟 Excellent !'
-    if (percentage >= 60) return '👍 Bien joué !'
-    if (percentage >= 40) return '💪 Pas mal !'
-    return '💪 Continue comme ça !'
+    if (percentage === 100) return 'Parfait !'
+    if (percentage >= 80) return 'Excellent !'
+    if (percentage >= 60) return 'Bien joué !'
+    if (percentage >= 40) return 'Pas mal !'
+    return 'Continue comme ça !'
   }
 
   /**

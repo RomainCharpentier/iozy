@@ -4,7 +4,9 @@ import { settingsService, UserSettings } from '../../services/settingsService'
 import { soundManager } from '../../utils/sounds'
 import '../../styles/design-system.css'
 import '../../styles/settings-menu.css'
+import { FaCog, FaUser, FaVolumeUp, FaPalette, FaSun, FaMoon } from 'react-icons/fa'
 
+// Les avatars restent en emoji car ce sont les choix des utilisateurs pour leur profil
 const AVATARS = ['🎮', '🎵', '🎬', '📺', '🎨', '🚀', '⚡', '🔥', '💎', '🌟', '🎯', '🎪']
 
 export default function SettingsMenu() {
@@ -62,7 +64,9 @@ export default function SettingsMenu() {
           >
             ← Retour
           </button>
-          <h1 className="settings-title">⚙️ Réglages</h1>
+          <h1 className="settings-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FaCog size={24} /> Réglages
+          </h1>
           <div style={{ width: '100px' }}></div>
         </div>
 
@@ -76,7 +80,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon">👤</span>
+              <span className="nav-icon"><FaUser size={18} /></span>
               <span className="nav-label">Compte</span>
             </button>
             <button
@@ -86,7 +90,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon">🔊</span>
+              <span className="nav-icon"><FaVolumeUp size={18} /></span>
               <span className="nav-label">Son</span>
             </button>
             <button
@@ -96,7 +100,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon">🎨</span>
+              <span className="nav-icon"><FaPalette size={18} /></span>
               <span className="nav-label">Interface</span>
             </button>
           </div>
@@ -208,7 +212,7 @@ export default function SettingsMenu() {
                     disabled={!settings.soundEnabled}
                     style={{ width: '100%' }}
                   >
-                    🔊 Tester le son
+                    <FaVolumeUp size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Tester le son
                   </button>
                 </div>
               </div>
@@ -232,7 +236,7 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'dark'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'dark')}
                       />
-                      <span>🌙 Sombre</span>
+                      <span><FaMoon size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Sombre</span>
                     </label>
                     <label className="radio-option">
                       <input
@@ -242,7 +246,7 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'light'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'light')}
                       />
-                      <span>☀️ Clair</span>
+                      <span><FaSun size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Clair</span>
                     </label>
                     <label className="radio-option">
                       <input

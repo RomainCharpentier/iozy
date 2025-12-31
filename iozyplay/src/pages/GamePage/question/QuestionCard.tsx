@@ -8,6 +8,11 @@ import { soundManager } from '../../../utils/sounds'
 import { TIMING } from '../../../services/gameService'
 import { getPlayerId } from '../../../utils/playerId'
 import { compareAnswers } from '../../../utils/answerNormalization'
+import CategoryIcon from '../../../components/common/CategoryIcon'
+import { UI_ICONS } from '../../../utils/iconUtils'
+import type { CategoryInfo } from '../../../services/types'
+import { DEFAULT_CATEGORIES } from '../../../services/types'
+import { loadCategories } from '../../../services/categoryService'
 
 interface QuestionCardProps {
   question: Question
@@ -60,6 +65,14 @@ export default function QuestionCard({
   allQuestions = [],
   validatedAnswers = {}
 }: QuestionCardProps) {
+  const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
+
+  useEffect(() => {
+    loadCategories().then(cats => {
+      setCategories(cats.length > 0 ? cats : DEFAULT_CATEGORIES)
+    })
+  }, [])
+
   if (!question) {
     return (
       <div className="question-card">
@@ -79,6 +92,7 @@ export default function QuestionCard({
   const [mediaReady, setMediaReady] = useState<boolean>(false)
   const [shouldStartMedia, setShouldStartMedia] = useState<boolean>(false)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const focusTimeoutRef = useRef<number | null>(null)
   
   // Utiliser les valeurs externes en mode multijoueur, sinon les valeurs locales
   const timeRemaining = gameMode === 'online' && externalTimeRemaining !== undefined 
@@ -144,43 +158,23 @@ export default function QuestionCard({
       }, 3000)
     }
     
-    // Réinitialiser l'état de la réponse seulement lors d'un changement de question
     if (previousQuestionIdRef.current !== question.id) {
-      // Nouvelle question : réinitialiser tout
       previousQuestionIdRef.current = question.id
       
-      if (gameMode === 'solo') {
-        setUserAnswer('')
-        setAttempts(0)
-        setIsCorrect(false)
-        setHasSubmitted(false)
-        // Auto-focus avec un petit délai pour s'assurer que l'input est rendu
-        setTimeout(() => {
-          inputRefs.current['solo']?.focus()
-        }, 100)
-      } else {
-        // En mode multijoueur, réinitialiser aussi
-        setUserAnswer('')
-        setAttempts(0)
-        setIsCorrect(false)
-        setHasSubmitted(false)
-        // Auto-focus avec un petit délai
-        setTimeout(() => {
-          inputRefs.current['online']?.focus()
-        }, 100)
-      }
-    } else {
-      // Même question, juste auto-focus si nécessaire
-      if (gameMode === 'solo') {
-        setTimeout(() => {
-          inputRefs.current['solo']?.focus()
-        }, 100)
-      } else {
-        setTimeout(() => {
-          inputRefs.current['online']?.focus()
-        }, 100)
-      }
+      setUserAnswer('')
+      setAttempts(0)
+      setIsCorrect(false)
+      setHasSubmitted(false)
     }
+    
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current)
+    }
+    focusTimeoutRef.current = window.setTimeout(() => {
+      const inputKey = gameMode === 'solo' ? 'solo' : 'online'
+      inputRefs.current[inputKey]?.focus()
+      focusTimeoutRef.current = null
+    }, 100)
     
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
     setIsTimeUp(false)
@@ -189,6 +183,10 @@ export default function QuestionCard({
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
+      }
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current)
+        focusTimeoutRef.current = null
       }
     }
   }, [question.id, question.timeLimit, gameMode])
@@ -314,18 +312,6 @@ export default function QuestionCard({
   }
 
 
-  const getCategoryEmoji = (category: string | string[]) => {
-    const categoryStr = Array.isArray(category) ? category[0] : category
-    const emojis: Record<string, string> = {
-      series: '📺',
-      animes: '🎌',
-      chansons: '🎵',
-      films: '🎬',
-      jeux: '🎮',
-    }
-    return emojis[categoryStr] || '❓'
-  }
-
   const getCategoryLabel = (category: string | string[]) => {
     const categoryStr = Array.isArray(category) ? category[0] : category
     const labels: Record<string, string> = {
@@ -338,11 +324,24 @@ export default function QuestionCard({
     return labels[categoryStr] || 'Média'
   }
 
+  const getCategoryId = (category: string | string[]) => {
+    return Array.isArray(category) ? category[0] : category
+  }
+
+  const getCategoryInfo = (categoryId: string) => {
+    return categories.find(c => c.id === categoryId)
+  }
+
+  const categoryId = getCategoryId(question.category)
+  const categoryInfo = getCategoryInfo(categoryId)
+
   return (
     <div className="question-card v5-enhanced-game">
       <div className="v5-enhanced-game-header">
         <div className="v5-enhanced-category">
-          <span className="v5-enhanced-category-icon">{getCategoryEmoji(question.category)}</span>
+          <span className="v5-enhanced-category-icon">
+            <CategoryIcon categoryId={categoryId} iconId={categoryInfo?.emoji} size={20} />
+          </span>
           <span className="v5-enhanced-category-text">{getCategoryLabel(question.category)}</span>
         </div>
       </div>
@@ -452,7 +451,7 @@ export default function QuestionCard({
 
       {question.hint && (
         <div className="hint">
-          💡 Indice : {question.hint}
+          <UI_ICONS.hint className="hint-icon" size={16} /> Indice : {question.hint}
         </div>
       )}
     </div>

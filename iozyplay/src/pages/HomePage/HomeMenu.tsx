@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { soundManager } from '../../utils/sounds'
 import '../../styles/design-system.css'
+import { FaCog, FaMusic, FaGamepad, FaUsers, FaGlobe, FaLink, FaEdit } from 'react-icons/fa'
 
 interface HomeMenuProps {
   onCreateGame: () => void
@@ -33,7 +34,9 @@ export default function HomeMenu({
       <div className="home-layout">
         <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
           <div className="card-header">
-            <h2 className="card-title">🔗 Rejoindre un salon</h2>
+            <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaLink size={20} /> Rejoindre un salon
+            </h2>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
@@ -115,7 +118,7 @@ export default function HomeMenu({
             }}
             title="Réglages"
           >
-            <span>⚙️</span>
+            <FaCog size={16} />
             <span style={{ fontSize: 'var(--font-size-sm)' }}>Réglages</span>
           </button>
         </div>
@@ -126,9 +129,15 @@ export default function HomeMenu({
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          marginBottom: 'var(--spacing-sm)'
+          marginBottom: 'var(--spacing-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 'var(--spacing-xs)'
         }}>
-          🎵 No Peeking 🎵
+          <FaMusic size={24} />
+          No Peeking
+          <FaMusic size={24} />
         </h1>
         <p className="text-secondary" style={{ fontSize: 'var(--font-size-lg)' }}>
           Écoute et devine les chansons, séries TV, animes, films et jeux !
@@ -157,7 +166,9 @@ export default function HomeMenu({
           e.currentTarget.style.transform = 'translateY(0)'
           e.currentTarget.style.boxShadow = 'none'
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>🎮</div>
+          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <FaGamepad size={64} />
+          </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>CRÉER</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>
             Créer une partie solo ou multijoueur
@@ -188,7 +199,9 @@ export default function HomeMenu({
           e.currentTarget.style.transform = 'translateY(0)'
           e.currentTarget.style.boxShadow = 'none'
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>🔗</div>
+          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <FaLink size={64} />
+          </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>REJOINDRE</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>
             Rejoins un salon avec un code
@@ -219,7 +232,9 @@ export default function HomeMenu({
           e.currentTarget.style.transform = 'translateY(0)'
           e.currentTarget.style.boxShadow = 'none'
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>📝</div>
+          <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <FaEdit size={64} />
+          </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>ÉDITEUR</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>
             Ajoute et modifie les questions

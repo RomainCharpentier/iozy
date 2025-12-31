@@ -5,6 +5,7 @@ import { DEFAULT_CATEGORIES } from '../../services/types'
 import CategorySelector from '../CategorySelectorPage/CategorySelector'
 import { soundManager } from '../../utils/sounds'
 import { QuestionService } from '../../services/questionService'
+import CategoryIcon from '../../components/common/CategoryIcon'
 
 interface RoomConfigPopupProps {
   isOpen: boolean
@@ -114,12 +115,12 @@ export default function RoomConfigPopup({
       <div className="room-config-popup">
         <div className="room-config-popup-content">
           <div className="room-config-header">
-            <h2>⚙️ Configuration du salon</h2>
+            <h2>Configuration du salon</h2>
             <p className="room-code-display-small">Salon: {roomCode}</p>
           </div>
 
           <div className="room-config-section">
-            <h3>🎯 Thèmes sélectionnés</h3>
+            <h3>Thèmes sélectionnés</h3>
             {selectedCategories.length === 0 ? (
               <p className="no-categories">Aucun thème sélectionné</p>
             ) : (
@@ -128,7 +129,9 @@ export default function RoomConfigPopup({
                   const catInfo = categories.find(c => c.id === category)
                   return (
                     <div key={category} className="selected-category-badge">
-                      <span className="category-emoji">{catInfo?.emoji || '🎵'}</span>
+                      <span className="category-emoji">
+                        <CategoryIcon categoryId={category} iconId={catInfo?.emoji} size={20} />
+                      </span>
                       <span className="category-name">{catInfo?.name || category}</span>
                     </div>
                   )
@@ -168,7 +171,7 @@ export default function RoomConfigPopup({
           )}
 
           <div className="room-config-section">
-            <h3>⏱️ Timer par question</h3>
+            <h3>Timer par question</h3>
             <div className="timer-config">
               <label className="timer-config-label">
                 Durée (en secondes)

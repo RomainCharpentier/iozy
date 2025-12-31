@@ -4,6 +4,8 @@ import { loadCategories } from '../../services/categoryService'
 import { DEFAULT_CATEGORIES } from '../../services/types'
 import type { Player } from '../../lib/game/types'
 import { soundManager } from '../../utils/sounds'
+import { FaGamepad, FaUsers } from 'react-icons/fa'
+import CategoryIcon from '../../components/common/CategoryIcon'
 
 interface CategorySelectorProps {
   onStartGame: (categories: Category[], mode: 'solo' | 'online', players: Player[], playerName: string) => void
@@ -70,14 +72,16 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
               <button
                 className={`mode-button ${gameMode === 'solo' ? 'active' : ''}`}
                 onClick={() => handleModeSelect('solo')}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                🎮 Solo
+                <FaGamepad size={18} /> Solo
               </button>
               <button
                 className={`mode-button ${gameMode === 'online' ? 'active' : ''}`}
                 onClick={() => handleModeSelect('online')}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                🌐 Multijoueur en ligne
+                <FaUsers size={18} /> Multijoueur en ligne
               </button>
             </div>
           </div>
@@ -91,7 +95,9 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
             className={`category-card ${selectedCategories.includes(category.id) ? 'selected' : ''}`}
             onClick={() => toggleCategory(category.id)}
           >
-            <span className="category-emoji">{category.emoji}</span>
+            <span className="category-emoji">
+              <CategoryIcon categoryId={category.id} iconId={category.emoji} size={32} />
+            </span>
             <span className="category-name">{category.name}</span>
           </button>
         ))}

@@ -222,7 +222,7 @@ export default function AnswerInput({
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={isReveal && hasSubmitted ? (isCorrect ? "✅ Correct !" : isCorrect === false ? "❌ Incorrect" : "Réponse enregistrée") : hasSubmitted ? "Réponse enregistrée" : placeholder}
+                placeholder={isReveal && hasSubmitted ? (isCorrect ? "Correct !" : isCorrect === false ? "Incorrect" : "Réponse enregistrée") : hasSubmitted ? "Réponse enregistrée" : placeholder}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyPress}

@@ -46,6 +46,7 @@ export default function RoomJoiner({
     
     const socket = connectSocket()
     const playerId = getPlayerId()
+    const joinTimeoutsRef: number[] = []
 
     const handleRoomJoined = ({ room }: { room: any }) => {
       setPlayers(room.players || [])
@@ -55,9 +56,10 @@ export default function RoomJoiner({
       // Si la partie a déjà commencé, rediriger immédiatement
       if (room.phase === 'playing') {
         setGameStarted(true)
-        setTimeout(() => {
+        const timeoutId = window.setTimeout(() => {
           onJoined(roomCode)
         }, TIMING.ROOM_JOIN_DELAY)
+        joinTimeoutsRef.push(timeoutId)
       } else {
         soundManager.playSuccess()
       }
@@ -73,18 +75,20 @@ export default function RoomJoiner({
       
       if (state.phase === 'playing' && !gameStarted) {
         setGameStarted(true)
-        setTimeout(() => {
+        const timeoutId = window.setTimeout(() => {
           onJoined(roomCode)
         }, TIMING.ROOM_JOIN_DELAY)
+        joinTimeoutsRef.push(timeoutId)
       }
     }
 
     const handleGameStarted = () => {
       setGameStarted(true)
       soundManager.playStart()
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
         onJoined(roomCode)
       }, TIMING.ROOM_JOIN_DELAY)
+      joinTimeoutsRef.push(timeoutId)
     }
 
     const handleError = ({ code, message }: { code: string, message: string }) => {
@@ -118,6 +122,7 @@ export default function RoomJoiner({
     })
 
     return () => {
+      joinTimeoutsRef.forEach(timeoutId => clearTimeout(timeoutId))
       socket.off('room:joined', handleRoomJoined)
       socket.off('room:rejoined', handleRoomJoined)
       socket.off('room:state', handleRoomState)
@@ -188,7 +193,7 @@ export default function RoomJoiner({
               >
                 {player.name}
                 {player.isHost && <span className="host-badge">👑</span>}
-                {!player.connected && <span className="disconnected-badge" title="Déconnecté">⚠️</span>}
+                {!player.connected && <span className="disconnected-badge" title="Déconnecté" style={{ fontSize: '0.875rem' }}>⚠</span>}
               </div>
             ))}
           </div>
@@ -202,7 +207,7 @@ export default function RoomJoiner({
 
         {gameStarted && (
           <div className="game-starting">
-            <p>🎮 La partie démarre !</p>
+            <p>La partie démarre !</p>
           </div>
         )}
 

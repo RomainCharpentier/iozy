@@ -1,6 +1,7 @@
 import { GameService } from '../../../services/gameService'
 import type { Question } from '../../../services/types'
 import { soundManager } from '../../../utils/sounds'
+import { FaClock, FaFlagCheckered, FaCog, FaDoorOpen, FaFolder } from 'react-icons/fa'
 
 interface GameTopBarProps {
   currentQuestionIndex: number
@@ -61,7 +62,9 @@ export default function GameTopBar({
           </div>
         </div>
         <div className="v5-enhanced-timer-section">
-          <div className="v5-enhanced-timer-icon">{isGameEnded ? '🏁' : '⏱️'}</div>
+          <div className="v5-enhanced-timer-icon">
+            {isGameEnded ? <FaFlagCheckered size={20} /> : <FaClock size={20} />}
+          </div>
           <div className="v5-enhanced-timer-value">{isGameEnded ? 'Terminé' : formatTime(timeRemaining)}</div>
         </div>
         <div className="v5-enhanced-score-section">
@@ -70,7 +73,9 @@ export default function GameTopBar({
         </div>
       </div>
       <div className="v5-enhanced-header-actions">
-        <button className="v5-enhanced-action-btn" title="Fichiers">📁</button>
+        <button className="v5-enhanced-action-btn" title="Fichiers">
+          <FaFolder size={18} />
+        </button>
         {onSettings && (
           <button 
             className="v5-enhanced-action-btn" 
@@ -80,7 +85,7 @@ export default function GameTopBar({
             }}
             title="Paramètres"
           >
-            ⚙️
+            <FaCog size={18} />
           </button>
         )}
         <button
@@ -92,7 +97,7 @@ export default function GameTopBar({
           data-testid="quit-button"
           title="Quitter"
         >
-          🚪
+          <FaDoorOpen size={18} />
         </button>
       </div>
     </div>
