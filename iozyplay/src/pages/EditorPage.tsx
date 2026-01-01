@@ -1,9 +1,20 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QuestionService } from '../services/questionService'
+import type { Question } from '../services/types'
 import QuestionEditor from './EditorPage/QuestionEditor'
 
 export default function EditorPage() {
   const navigate = useNavigate()
+  const [questions, setQuestions] = useState<Question[]>([])
+
+  useEffect(() => {
+    const loadQuestions = async () => {
+      const loadedQuestions = await QuestionService.getAllQuestions()
+      setQuestions(loadedQuestions)
+    }
+    loadQuestions()
+  }, [])
 
   return (
     <>
@@ -16,9 +27,10 @@ export default function EditorPage() {
         </button>
       </header>
       <QuestionEditor
-        questions={QuestionService.getAllQuestions()}
-        onSave={(updatedQuestions) => {
-          QuestionService.saveQuestions(updatedQuestions)
+        questions={questions}
+        onSave={async (updatedQuestions) => {
+          await QuestionService.saveQuestions(updatedQuestions)
+          setQuestions(updatedQuestions)
         }}
         onClose={() => navigate('/')}
       />

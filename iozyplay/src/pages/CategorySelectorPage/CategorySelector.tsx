@@ -8,7 +8,7 @@ import { FaGamepad, FaUsers } from 'react-icons/fa'
 import CategoryIcon from '../../components/common/CategoryIcon'
 
 interface CategorySelectorProps {
-  onStartGame: (categories: Category[], mode: 'solo' | 'online', players: Player[], playerName: string) => void
+  onStartGame: (categories: Category[], mode: 'solo' | 'online', players: Player[], playerName: string) => void | Promise<void>
   defaultMode?: 'solo' | 'online'
 }
 
@@ -43,7 +43,7 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
     setGameMode(mode)
   }
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (selectedCategories.length === 0) {
       alert('Veuillez sélectionner au moins une catégorie !')
       return
@@ -55,7 +55,7 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
       : []
 
     soundManager.playStart()
-    onStartGame(selectedCategories, gameMode, players, name)
+    await onStartGame(selectedCategories, gameMode, players, name)
   }
 
   const showModeSelector = defaultMode === undefined

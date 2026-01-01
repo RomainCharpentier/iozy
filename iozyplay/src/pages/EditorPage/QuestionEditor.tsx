@@ -7,6 +7,7 @@ import type { Category, Question, MediaType, CategoryInfo } from '../../services
 import { isYouTubeUrl, isValidUrlFormat, getYouTubeThumbnailFromUrl, extractYouTubeId, getYouTubeMetadata } from '../../utils/youtube'
 import { QuestionService } from '../../services/questionService'
 import { loadCategories } from '../../services/categoryService'
+import { getIconById } from '../../utils/categoryIcons'
 import CategorySelector from '../../components/editor/CategorySelector'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { questionSchema, type QuestionFormData } from '../../schemas/questionSchema'
@@ -415,7 +416,8 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     const handleConfirm = async () => {
       try {
         const questionId = question.id || question.mediaUrl
-        await QuestionService.deleteQuestion(questionId, question.category)
+        const categories = Array.isArray(question.category) ? question.category : [question.category]
+        await QuestionService.deleteQuestion(questionId, categories[0])
         
         const newQuestions = localQuestions.filter(q => 
           (q.id && question.id && q.id !== question.id) || 

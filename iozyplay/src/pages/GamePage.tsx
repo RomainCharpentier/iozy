@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../lib/game/GameContext'
-import { Category, Question } from '../types'
+import { Question } from '../types'
+import { Category } from '../services/types'
 import Game from './GamePage/Game'
 
 export default function GamePage() {

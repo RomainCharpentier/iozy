@@ -209,6 +209,24 @@ export class QuestionService {
   }
 
   /**
+   * Met à jour une question sur le serveur
+   * Supprime l'ancienne question puis ajoute la nouvelle
+   */
+  static async updateQuestion(questionId: string, oldCategories: Category[], updatedQuestion: Question): Promise<void> {
+    try {
+      // Supprimer l'ancienne question de toutes ses catégories
+      for (const category of oldCategories) {
+        await this.deleteQuestion(questionId, category)
+      }
+      // Ajouter la nouvelle question
+      await this.addQuestion(updatedQuestion)
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la question:', error)
+      throw error
+    }
+  }
+
+  /**
    * Récupère toutes les données de questions depuis le serveur
    */
   private static async getAllQuestionsData(): Promise<QuestionsData> {

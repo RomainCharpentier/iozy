@@ -1,7 +1,8 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGameState } from '../lib/game/GameContext'
 import CategorySelector from './CategorySelectorPage/CategorySelector'
-import { Category, GameMode, Player } from '../types'
+import { GameMode, Player } from '../types'
+import { Category } from '../services/types'
 import { QuestionService } from '../services/questionService'
 
 export default function CategorySelectorPage() {
@@ -10,13 +11,13 @@ export default function CategorySelectorPage() {
   const { setGameState } = useGameState()
   const defaultMode = searchParams.get('mode') as 'solo' | 'online' | null
 
-  const handleStartGame = (categories: Category[], mode: GameMode, configuredPlayers: Player[], name: string) => {
+  const handleStartGame = async (categories: Category[], mode: GameMode, configuredPlayers: Player[], name: string) => {
     if (categories.length === 0) {
       alert('Veuillez sélectionner au moins une catégorie !')
       return
     }
 
-    const allQuestions = QuestionService.getQuestionsForCategories(categories)
+    const allQuestions = await QuestionService.getQuestionsForCategories(categories)
 
     if (allQuestions.length === 0) {
       alert('Aucune question disponible pour les catégories sélectionnées !')

@@ -199,7 +199,7 @@ export default function AnswerInput({
   const revealAnimation = isReveal ? {
     transition: {
       duration: 0.3,
-      ease: 'easeOut'
+      ease: 'easeOut' as const
     }
   } : {}
 

@@ -40,7 +40,6 @@ import {
   FaBookOpen,
   FaCrown,
   FaGlasses,
-  FaSunglasses,
   FaCoins,
   FaChess,
   FaFlag,
@@ -61,13 +60,9 @@ import {
   GiJapan,
   GiTempleGate,
   GiBamboo,
-  GiDice,
   GiCardPlay,
-  GiMahjongTiles,
-  GiSlotMachine,
-  GiNestingDolls,
   GiPinata,
-  GiTheaterMasks,
+  GiTheater,
   GiGuitar,
   GiDrum,
   GiHamburger,
@@ -79,7 +74,6 @@ import {
   GiTiger,
   GiLion,
   GiElephant,
-  GiGiraffe,
   GiMonkey,
   GiRabbit,
   GiSoccerBall,
@@ -88,11 +82,9 @@ import {
   GiAmericanFootballBall,
   GiBaseballBat,
   GiVolleyballBall,
-  GiTableTennis,
   GiPizzaSlice,
-  GiIceCream,
   GiCookie,
-  GiBirthdayCake,
+  GiCakeSlice,
 } from 'react-icons/gi'
 import { IconType } from 'react-icons'
 
@@ -122,14 +114,11 @@ export const CATEGORY_ICONS: CategoryIcon[] = [
   { id: 'FaFilm', name: 'Film', icon: FaFilm, group: 'Média' },
   { id: 'FaVideo', name: 'Vidéo', icon: FaVideo, group: 'Média' },
   { id: 'FaCamera', name: 'Photo', icon: FaCamera, group: 'Média' },
-  { id: 'GiTheaterMasks', name: 'Théâtre', icon: GiTheaterMasks, group: 'Média' },
+  { id: 'GiTheater', name: 'Théâtre', icon: GiTheater, group: 'Média' },
   
   // Jeux
   { id: 'FaGamepad', name: 'Jeu vidéo', icon: FaGamepad, group: 'Jeux' },
-  { id: 'GiDice', name: 'Dé', icon: GiDice, group: 'Jeux' },
   { id: 'GiCardPlay', name: 'Carte', icon: GiCardPlay, group: 'Jeux' },
-  { id: 'GiMahjongTiles', name: 'Mahjong', icon: GiMahjongTiles, group: 'Jeux' },
-  { id: 'GiSlotMachine', name: 'Machine à sous', icon: GiSlotMachine, group: 'Jeux' },
   { id: 'FaChess', name: 'Échecs', icon: FaChess, group: 'Jeux' },
   
   // Livres & Éducation
@@ -145,15 +134,13 @@ export const CATEGORY_ICONS: CategoryIcon[] = [
   { id: 'GiBaseballBat', name: 'Baseball', icon: GiBaseballBat, group: 'Sports' },
   { id: 'GiTennisRacket', name: 'Tennis', icon: GiTennisRacket, group: 'Sports' },
   { id: 'GiVolleyballBall', name: 'Volleyball', icon: GiVolleyballBall, group: 'Sports' },
-  { id: 'GiTableTennis', name: 'Tennis de table', icon: GiTableTennis, group: 'Sports' },
   
   // Nourriture
   { id: 'FaPizzaSlice', name: 'Pizza', icon: FaPizzaSlice, group: 'Nourriture' },
   { id: 'GiHamburger', name: 'Hamburger', icon: GiHamburger, group: 'Nourriture' },
   { id: 'GiPizzaSlice', name: 'Pizza', icon: GiPizzaSlice, group: 'Nourriture' },
-  { id: 'GiIceCream', name: 'Glace', icon: GiIceCream, group: 'Nourriture' },
   { id: 'GiCookie', name: 'Cookie', icon: GiCookie, group: 'Nourriture' },
-  { id: 'GiBirthdayCake', name: 'Gâteau', icon: GiBirthdayCake, group: 'Nourriture' },
+  { id: 'GiCakeSlice', name: 'Gâteau', icon: GiCakeSlice, group: 'Nourriture' },
   
   // Transport
   { id: 'FaCar', name: 'Voiture', icon: FaCar, group: 'Transport' },
@@ -213,12 +200,11 @@ export const CATEGORY_ICONS: CategoryIcon[] = [
   { id: 'GiTempleGate', name: 'Temple', icon: GiTempleGate, group: 'Lieux' },
   { id: 'GiBamboo', name: 'Bambou', icon: GiBamboo, group: 'Lieux' },
   { id: 'GiPinata', name: 'Piñata', icon: GiPinata, group: 'Lieux' },
-  { id: 'GiNestingDolls', name: 'Poupées russes', icon: GiNestingDolls, group: 'Lieux' },
   
   // Divers
   { id: 'FaPalette', name: 'Art', icon: FaPalette, group: 'Divers' },
   { id: 'FaGlasses', name: 'Lunettes', icon: FaGlasses, group: 'Divers' },
-  { id: 'FaSunglasses', name: 'Lunettes de soleil', icon: FaSunglasses, group: 'Divers' },
+  { id: 'FaGlasses', name: 'Lunettes de soleil', icon: FaGlasses, group: 'Divers' },
   { id: 'FaQuestionCircle', name: 'Question', icon: FaQuestionCircle, group: 'Divers' },
   { id: 'GiNinjaMask', name: 'Ninja', icon: GiNinjaMask, group: 'Divers' },
 ]
