@@ -50,6 +50,7 @@ export default function RoomCreator({
 
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
   const [questionCount, setQuestionCount] = useState<number>(QUESTION_COUNT.MIN)
+  const [isStartingGame, setIsStartingGame] = useState(false)
   const isStartingGameRef = useRef(false)
 
   // En mode solo, initialiser directement sans socket
@@ -242,29 +243,39 @@ export default function RoomCreator({
   }
 
   const handleStartGame = async () => {
-    // En mode solo, démarrer directement sans socket
-    if (isSoloMode) {
-      const allQuestions = await QuestionService.getQuestionsForCategories(categories)
-      if (allQuestions.length === 0) {
-        toast.error('Erreur : Aucune question disponible.', {
-          icon: '❌',
-        })
-        return
-      }
+    if (isStartingGame) return
+    
+    setIsStartingGame(true)
+    isStartingGameRef.current = true
+    
+    try {
+      // En mode solo, démarrer directement sans socket
+      if (isSoloMode) {
+        const allQuestions = await QuestionService.getQuestionsForCategories(categories)
+        if (allQuestions.length === 0) {
+          toast.error('Erreur : Aucune question disponible.', {
+            icon: '❌',
+          })
+          setIsStartingGame(false)
+          isStartingGameRef.current = false
+          return
+        }
 
-      const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
-      const limitedQuestions = shuffledQuestions.slice(0, questionCount)
-      const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+        const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
+        const limitedQuestions = shuffledQuestions.slice(0, questionCount)
+        const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
 
-      if (!questionsWithTimer || questionsWithTimer.length === 0) {
-        toast.error('Erreur : Aucune question disponible après traitement.', {
-          icon: '❌',
-        })
+        if (!questionsWithTimer || questionsWithTimer.length === 0) {
+          toast.error('Erreur : Aucune question disponible après traitement.', {
+            icon: '❌',
+          })
         return
       }
 
       soundManager.playStart()
       onRoomCreated('SOLO', questionsWithTimer)
+      setIsStartingGame(false)
+      isStartingGameRef.current = false
       return
     }
 
@@ -299,10 +310,11 @@ export default function RoomCreator({
     soundManager.playStart()
     isStartingGameRef.current = true
 
-    if (!socket.connected) {
+      if (!socket.connected) {
       toast.error('Erreur : Socket non connecté. Veuillez rafraîchir la page.', {
         icon: '⚠️',
       })
+      setIsStartingGame(false)
       isStartingGameRef.current = false
       return
     }
@@ -316,6 +328,8 @@ export default function RoomCreator({
       }
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
+      setIsStartingGame(false)
+      isStartingGameRef.current = false
       onRoomCreated(roomCode)
     }
 
@@ -339,6 +353,7 @@ export default function RoomCreator({
       toast.error('Le serveur ne répond pas. Veuillez réessayer.', {
         icon: '⏱️',
       })
+      setIsStartingGame(false)
       isStartingGameRef.current = false
     }, 5000)
 
@@ -354,6 +369,7 @@ export default function RoomCreator({
       toast.error('Erreur : Aucune question disponible après traitement.', {
         icon: '❌',
       })
+      setIsStartingGame(false)
       isStartingGameRef.current = false
       return
     }
@@ -364,6 +380,10 @@ export default function RoomCreator({
       defaultTimeLimit: timeLimit,
       questionCount: questionCount
     })
+    } catch (error) {
+      setIsStartingGame(false)
+      isStartingGameRef.current = false
+    }
   }
 
   if (!isSoloMode && !roomCode) {
@@ -470,8 +490,12 @@ export default function RoomCreator({
             }
             onBack()
           }}
-          canStart={!!currentPlayerName && players.length > 0 && availableQuestionsCount > 0}
+          canStart={isSoloMode 
+            ? (availableQuestionsCount > 0 && questionCount > 0 && questionCount <= availableQuestionsCount)
+            : (!!currentPlayerName && players.length > 0 && availableQuestionsCount > 0)
+          }
           startError={getStartError()}
+          isStarting={isStartingGame}
         />
       </div>
     </div>

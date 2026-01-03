@@ -16,6 +16,7 @@ interface RoomConfigPanelProps {
   onBack: () => void
   canStart: boolean
   startError: string | null
+  isStarting?: boolean
 }
 
 export default function RoomConfigPanel({
@@ -28,7 +29,8 @@ export default function RoomConfigPanel({
   onStartGame,
   onBack,
   canStart,
-  startError
+  startError,
+  isStarting = false
 }: RoomConfigPanelProps) {
   const [categoryInfos, setCategoryInfos] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -213,9 +215,16 @@ export default function RoomConfigPanel({
         <button
           className="btn btn-primary btn-large"
           onClick={onStartGame}
-          disabled={!canStart}
+          disabled={!canStart || isStarting}
         >
-          ▶ Démarrer la partie
+          {isStarting ? (
+            <>
+              <span className="spinner" style={{ fontSize: '16px', marginRight: '0.5rem' }}></span>
+              Démarrage...
+            </>
+          ) : (
+            '▶ Démarrer la partie'
+          )}
         </button>
       </div>
 

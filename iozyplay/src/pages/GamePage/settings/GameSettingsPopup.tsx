@@ -183,7 +183,6 @@ export default function GameSettingsPopup({
                     </div>
                     <CategorySelector
                         onStartGame={(categories, _mode, _players, _name) => handleCategorySelected(categories)}
-                        defaultMode={gameMode}
                     />
                 </div>
             )}

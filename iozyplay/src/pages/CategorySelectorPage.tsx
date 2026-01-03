@@ -58,7 +58,6 @@ export default function CategorySelectorPage() {
       </header>
       <CategorySelector
         onStartGame={handleStartGame}
-        defaultMode={defaultMode || undefined}
       />
     </>
   )

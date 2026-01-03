@@ -1,4 +1,5 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useGameState } from '../../lib/game/GameContext'
 import CategorySelector from './CategorySelector'
@@ -8,9 +9,8 @@ import { QuestionService } from '../../services/questionService'
 
 export default function CategorySelectorPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { setGameState } = useGameState()
-  const defaultMode = searchParams.get('mode') as 'solo' | 'online' | null
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false)
 
   const handleStartGame = async (categories: Category[], mode: GameMode, configuredPlayers: Player[], name: string) => {
     if (categories.length === 0) {
@@ -20,6 +20,7 @@ export default function CategorySelectorPage() {
       return
     }
 
+    setIsLoadingQuestions(true)
     try {
       const allQuestions = await QuestionService.getQuestionsForCategories(categories)
 
@@ -47,6 +48,8 @@ export default function CategorySelectorPage() {
       toast.error('Erreur lors du chargement des questions', {
         icon: '⚠️',
       })
+    } finally {
+      setIsLoadingQuestions(false)
     }
   }
 
@@ -60,10 +63,23 @@ export default function CategorySelectorPage() {
           ← Retour au menu
         </button>
       </header>
-      <CategorySelector
-        onStartGame={handleStartGame}
-        defaultMode={defaultMode || undefined}
-      />
+      {isLoadingQuestions ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '400px',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)'
+        }}>
+          <div className="spinner" style={{ margin: '0 auto' }}></div>
+          <p className="text-secondary">Chargement des questions...</p>
+        </div>
+      ) : (
+        <CategorySelector
+          onStartGame={handleStartGame}
+        />
+      )}
     </>
   )
 }

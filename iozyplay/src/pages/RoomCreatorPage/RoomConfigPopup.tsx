@@ -174,7 +174,6 @@ export default function RoomConfigPopup({
               </div>
               <CategorySelector
                 onStartGame={handleCategorySelected}
-                defaultMode="online"
               />
             </div>
           )}
