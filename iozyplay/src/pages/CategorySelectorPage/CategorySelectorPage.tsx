@@ -40,11 +40,8 @@ export default function CategorySelectorPage() {
         playerName: name
       })
 
-      if (mode === 'online') {
-        navigate('/room/create')
-      } else {
-        navigate('/game')
-      }
+      // Utiliser la même interface pour solo et multijoueur
+      navigate('/room/create')
     } catch (error) {
       console.error('Erreur lors du chargement des questions:', error)
       toast.error('Erreur lors du chargement des questions', {

@@ -6,7 +6,7 @@ import { DEFAULT_CATEGORIES } from '../../services/types'
 import type { Player } from '../../lib/game/types'
 import { soundManager } from '../../utils/sounds'
 import CategoryIcon from '../../components/common/CategoryIcon'
-
+import { QuestionService } from '../../services/questionService'
 interface CategorySelectorProps {
   onStartGame: (categories: Category[], mode: 'solo' | 'online', players: Player[], playerName: string) => void | Promise<void>
   defaultMode?: 'solo' | 'online'
@@ -23,8 +23,23 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
   }, [])
 
   const loadCategoriesList = async () => {
-    const cats = await loadCategories()
-    setCategories(cats.length > 0 ? cats : DEFAULT_CATEGORIES)
+    const allCats = await loadCategories()
+    const cats = allCats.length > 0 ? allCats : DEFAULT_CATEGORIES
+    
+    // Filtrer les catégories qui n'ont pas de questions
+    const categoriesWithQuestions = await Promise.all(
+      cats.map(async (cat) => {
+        const questions = await QuestionService.getQuestionsForCategories([cat.id])
+        return { category: cat, hasQuestions: questions.length > 0 }
+      })
+    )
+    
+    // Ne garder que les catégories avec des questions
+    const filteredCategories = categoriesWithQuestions
+      .filter(({ hasQuestions }) => hasQuestions)
+      .map(({ category }) => category)
+    
+    setCategories(filteredCategories.length > 0 ? filteredCategories : cats)
   }
 
   const toggleCategory = (category: Category) => {
@@ -51,7 +66,7 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
       return
     }
 
-    const name = gameMode === 'online' ? '' : 'Joueur' // Pas de nom requis pour le mode en ligne
+    const name = gameMode === 'online' ? '' : 'Joueur'
     const players: Player[] = gameMode === 'solo' 
       ? [{ id: 'solo', name: 'Joueur', score: 0 }]
       : []

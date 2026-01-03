@@ -15,7 +15,8 @@ interface RoomCreatorProps {
   categories: Category[]
   questions: Question[]
   playerName: string
-  onRoomCreated: (roomCode: string) => void
+  gameMode?: 'solo' | 'online'
+  onRoomCreated: (roomCode: string, questions?: Question[]) => void
   onBack: () => void
 }
 
@@ -23,9 +24,11 @@ export default function RoomCreator({
   categories,
   questions,
   playerName: initialPlayerName,
+  gameMode = 'online',
   onRoomCreated,
   onBack
 }: RoomCreatorProps) {
+  const isSoloMode = gameMode === 'solo'
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [shareLink, setShareLink] = useState<string>('')
   const [copied, setCopied] = useState(false)
@@ -48,6 +51,17 @@ export default function RoomCreator({
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
   const [questionCount, setQuestionCount] = useState<number>(QUESTION_COUNT.MIN)
   const isStartingGameRef = useRef(false)
+
+  // En mode solo, initialiser directement sans socket
+  useEffect(() => {
+    if (isSoloMode) {
+      setIsConnecting(false)
+      setCurrentPlayerName(initialPlayerName || 'Joueur')
+      setPlayerName(initialPlayerName || 'Joueur')
+      // En solo, on est le seul joueur
+      setPlayers([{ id: 'solo', name: initialPlayerName || 'Joueur', score: 0, isHost: true }])
+    }
+  }, [isSoloMode, initialPlayerName])
 
   // Charger le nombre de questions disponibles lorsque les catégories changent
   useEffect(() => {
@@ -101,7 +115,7 @@ export default function RoomCreator({
   }, [categories])
 
   useEffect(() => {
-    if (roomCode) return
+    if (isSoloMode || roomCode) return
 
     let timeoutId: number | null = null
     const playerId = getPlayerId()
@@ -228,6 +242,33 @@ export default function RoomCreator({
   }
 
   const handleStartGame = async () => {
+    // En mode solo, démarrer directement sans socket
+    if (isSoloMode) {
+      const allQuestions = await QuestionService.getQuestionsForCategories(categories)
+      if (allQuestions.length === 0) {
+        toast.error('Erreur : Aucune question disponible.', {
+          icon: '❌',
+        })
+        return
+      }
+
+      const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
+      const limitedQuestions = shuffledQuestions.slice(0, questionCount)
+      const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+
+      if (!questionsWithTimer || questionsWithTimer.length === 0) {
+        toast.error('Erreur : Aucune question disponible après traitement.', {
+          icon: '❌',
+        })
+        return
+      }
+
+      soundManager.playStart()
+      onRoomCreated('SOLO', questionsWithTimer)
+      return
+    }
+
+    // Mode multijoueur : utiliser le socket
     const socket = getSocket()
     if (!socket) {
       toast.error('Erreur : Socket non disponible. Veuillez rafraîchir la page.', {
@@ -325,7 +366,7 @@ export default function RoomCreator({
     })
   }
 
-  if (!roomCode) {
+  if (!isSoloMode && !roomCode) {
     return (
       <RoomConnectingState
         isConnecting={isConnecting}
@@ -336,6 +377,11 @@ export default function RoomCreator({
   }
 
   const getStartError = (): string | null => {
+    if (isSoloMode) {
+      if (availableQuestionsCount === 0) return 'Aucune question disponible'
+      if (questionCount === 0) return 'Sélectionnez au moins une question'
+      return null
+    }
     if (!currentPlayerName) return 'Vous devez définir votre nom pour démarrer'
     if (players.length === 0) return 'Attendez qu\'au moins un joueur rejoigne'
     if (availableQuestionsCount === 0) return 'Aucune question disponible'
@@ -362,34 +408,41 @@ export default function RoomCreator({
       }}>
         <div>
           <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-xs)' }}>
-            Salon {roomCode}
+            {isSoloMode ? '🎮 Partie Solo' : `Salon ${roomCode}`}
           </h1>
           <p className="text-secondary">
-            {players.find(p => p.isHost) && `👑 Host: ${players.find(p => p.isHost)?.name}`}
+            {isSoloMode 
+              ? 'Configurez votre partie et commencez à jouer'
+              : (players.find(p => p.isHost) && `👑 Host: ${players.find(p => p.isHost)?.name}`)
+            }
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={handleCopyLink}
-          >
-            {copied ? '✓ Copié !' : '📋 Partager'}
-          </button>
-        </div>
+        {!isSoloMode && (
+          <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={handleCopyLink}
+            >
+              {copied ? '✓ Copié !' : '📋 Partager'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Layout: 2 Columns */}
       <div className="grid-2" style={{ flex: 1, alignItems: 'start' }}>
-        <RoomPlayersPanel
-          players={players}
-          shareLink={shareLink}
-          playerName={playerName}
-          currentPlayerName={currentPlayerName}
-          onPlayerNameChange={setPlayerName}
-          onSetName={handleSetName}
-          onCopyLink={handleCopyLink}
-          copied={copied}
-        />
+        {!isSoloMode && (
+          <RoomPlayersPanel
+            players={players}
+            shareLink={shareLink}
+            playerName={playerName}
+            currentPlayerName={currentPlayerName}
+            onPlayerNameChange={setPlayerName}
+            onSetName={handleSetName}
+            onCopyLink={handleCopyLink}
+            copied={copied}
+          />
+        )}
 
         <RoomConfigPanel
           categories={categories}
