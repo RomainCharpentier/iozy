@@ -1,0 +1,116 @@
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  user-select: none;
+}
+
+.logo-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+.logo-img {
+  display: block;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Tailles */
+.logo-small .logo-text {
+  font-size: var(--font-size-lg);
+}
+
+.logo-medium .logo-text {
+  font-size: var(--font-size-2xl);
+}
+
+.logo-large .logo-text {
+  font-size: var(--font-size-3xl);
+}
+
+/* Animations */
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes logoBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.03);
+  }
+}
+
+@keyframes logoSwayLeft {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes logoSwayRight {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+/* Mode sombre/clair */
+.dark-theme .logo-img {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+}
+
+.light-theme .logo-img {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+/* Hover effect */
+.logo-container:hover .logo-img {
+  transform: scale(1.05);
+  filter: drop-shadow(0 6px 16px rgba(99, 102, 241, 0.4));
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .logo-text {
+    font-size: var(--font-size-xl);
+  }
+  
+  .logo-medium .logo-text {
+    font-size: var(--font-size-xl);
+  }
+  
+  .logo-large .logo-text {
+    font-size: var(--font-size-2xl);
+  }
+}
+

@@ -51,6 +51,86 @@ export function extractYouTubeId(url: string): string | null {
   return null
 }
 
+/**
+ * Vérifie si une URL YouTube est une playlist
+ */
+export function isYouTubePlaylistUrl(url: string): boolean {
+  if (!isYouTubeUrl(url)) {
+    return false
+  }
+  return url.includes('playlist') || url.includes('list=')
+}
+
+/**
+ * Extrait l'ID de playlist d'une URL YouTube
+ */
+export function extractPlaylistId(url: string): string | null {
+  if (!isYouTubePlaylistUrl(url)) {
+    return null
+  }
+  
+  const patterns = [
+    /[?&]list=([^&\n?#]+)/,
+    /playlist\?list=([^&\n?#]+)/
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match && match[1]) {
+      return match[1]
+    }
+  }
+
+  return null
+}
+
+/**
+ * Interface pour une vidéo de playlist
+ */
+export interface PlaylistVideo {
+  videoId: string
+  videoUrl: string
+  title: string
+  thumbnailUrl: string
+}
+
+/**
+ * Récupère les vidéos d'une playlist YouTube via le backend
+ */
+export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVideo[]> {
+  const playlistId = extractPlaylistId(playlistUrl)
+  if (!playlistId) {
+    throw new Error('URL de playlist invalide')
+  }
+
+  try {
+    // Utiliser l'endpoint backend pour récupérer les vidéos
+    const API_BASE_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '')
+    const response = await fetch(`${API_BASE_URL}/api/youtube/playlist/${encodeURIComponent(playlistId)}`)
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erreur lors de la récupération de la playlist' }))
+      throw new Error(error.error || 'Erreur lors de la récupération de la playlist')
+    }
+
+    const data = await response.json()
+    
+    if (!Array.isArray(data.videos)) {
+      throw new Error('Format de réponse invalide')
+    }
+
+    return data.videos.map((video: any) => ({
+      videoId: video.videoId,
+      videoUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
+      title: video.title || 'Sans titre',
+      thumbnailUrl: getYouTubeThumbnailUrl(video.videoId)
+    }))
+  } catch (error) {
+    console.error('Error fetching playlist videos:', error)
+    throw error
+  }
+}
+
 export function getYouTubeEmbedUrl(videoId: string, autoplay: boolean = false, showControls: boolean = false, loop: boolean = false): string {
   // Note: YouTube ne permet pas de désactiver les publicités via les paramètres d'embed
   // Les publicités dépendent de la monétisation de la vidéo et sont gérées par YouTube

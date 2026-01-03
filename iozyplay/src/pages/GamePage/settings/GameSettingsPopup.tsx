@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { type Category, type Question, type CategoryInfo } from '../../../services/types'
 import { loadCategories } from '../../../services/categoryService'
 import { DEFAULT_CATEGORIES } from '../../../services/types'
@@ -75,14 +76,18 @@ export default function GameSettingsPopup({
 
     const handleCategorySelected = async (categories: Category[]) => {
         if (categories.length === 0) {
-            alert('Veuillez sélectionner au moins une catégorie !')
+            toast.error('Veuillez sélectionner au moins une catégorie !', {
+                icon: '📂',
+            })
             return
         }
 
         const allQuestions = await QuestionService.getQuestionsForCategories(categories)
 
         if (allQuestions.length === 0) {
-            alert('Aucune question disponible pour les catégories sélectionnées !')
+            toast.error('Aucune question disponible pour les catégories sélectionnées !', {
+                icon: '❌',
+            })
             return
         }
 
@@ -93,14 +98,18 @@ export default function GameSettingsPopup({
 
     const handleSave = async () => {
         if (selectedCategories.length === 0) {
-            alert('Veuillez sélectionner au moins une catégorie !')
+            toast.error('Veuillez sélectionner au moins une catégorie !', {
+                icon: '📂',
+            })
             return
         }
 
         const allQuestions = await QuestionService.getQuestionsForCategories(selectedCategories)
 
         if (allQuestions.length === 0) {
-            alert('Aucune question disponible pour les catégories sélectionnées !')
+            toast.error('Aucune question disponible pour les catégories sélectionnées !', {
+                icon: '❌',
+            })
             return
         }
 

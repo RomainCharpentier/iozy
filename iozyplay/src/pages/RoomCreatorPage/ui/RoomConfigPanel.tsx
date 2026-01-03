@@ -3,7 +3,6 @@ import { loadCategories } from '../../../services/categoryService'
 import { DEFAULT_CATEGORIES } from '../../../services/types'
 import { TIMING } from '../../../services/gameService'
 import { soundManager } from '../../../utils/sounds'
-import { getIconById } from '../../../utils/categoryIcons'
 import { useState, useEffect } from 'react'
 
 interface RoomConfigPanelProps {
@@ -120,10 +119,7 @@ export default function RoomConfigPanel({
             const catInfo = getCategoryInfo(category)
             return (
               <span key={category} className="badge badge-primary">
-                {(() => {
-                  const IconComponent = getIconById(catInfo.emoji)
-                  return <IconComponent size={16} />
-                })()} {catInfo.name}
+                <span style={{ fontSize: '16px', marginRight: '4px' }}>{catInfo.emoji}</span> {catInfo.name}
               </span>
             )
           })}

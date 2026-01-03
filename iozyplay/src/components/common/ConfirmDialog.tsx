@@ -1,5 +1,4 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { FaExclamationTriangle, FaTimes } from 'react-icons/fa'
 import '../../styles/confirm-dialog.css'
 
 interface ConfirmDialogProps {
@@ -36,13 +35,13 @@ export default function ConfirmDialog({
                 className="confirm-dialog-close"
                 aria-label="Fermer"
               >
-                <FaTimes />
+                <span style={{ fontSize: '18px' }}>✕</span>
               </button>
             </Dialog.Close>
           </div>
           <div className="confirm-dialog-body">
-            <div className={`confirm-dialog-icon confirm-dialog-icon-${variant}`}>
-              <FaExclamationTriangle />
+            <div className={`confirm-dialog-icon confirm-dialog-icon-${variant}`} style={{ fontSize: '48px' }}>
+              {variant === 'danger' ? '⚠️' : variant === 'warning' ? '⚠️' : 'ℹ️'}
             </div>
             <Dialog.Description className="confirm-dialog-message">
               {message}

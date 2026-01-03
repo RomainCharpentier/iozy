@@ -9,7 +9,6 @@ import { TIMING } from '../../../services/gameService'
 import { getPlayerId } from '../../../utils/playerId'
 import { compareAnswers } from '../../../utils/answerNormalization'
 import CategoryIcon from '../../../components/common/CategoryIcon'
-import { UI_ICONS } from '../../../utils/iconUtils'
 import type { CategoryInfo } from '../../../services/types'
 import { DEFAULT_CATEGORIES } from '../../../services/types'
 import { loadCategories } from '../../../services/categoryService'
@@ -451,7 +450,7 @@ export default function QuestionCard({
 
       {question.hint && (
         <div className="hint">
-          <UI_ICONS.hint className="hint-icon" size={16} /> Indice : {question.hint}
+          <span className="hint-icon" style={{ fontSize: '16px', marginRight: '0.5rem' }}>💡</span> Indice : {question.hint}
         </div>
       )}
     </div>

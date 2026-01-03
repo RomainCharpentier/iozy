@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import toast from 'react-hot-toast'
 import type { Category, Question } from '../../services/types'
 import { connectSocket, getSocket } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
@@ -229,18 +230,24 @@ export default function RoomCreator({
   const handleStartGame = async () => {
     const socket = getSocket()
     if (!socket) {
-      alert('Erreur : Socket non disponible. Veuillez rafraîchir la page.')
+      toast.error('Erreur : Socket non disponible. Veuillez rafraîchir la page.', {
+        icon: '⚠️',
+      })
       return
     }
 
     if (!roomCode) {
-      alert('Erreur : Code de salon manquant.')
+      toast.error('Erreur : Code de salon manquant.', {
+        icon: '⚠️',
+      })
       return
     }
 
     const allQuestions = await QuestionService.getQuestionsForCategories(categories)
     if (allQuestions.length === 0) {
-      alert('Erreur : Aucune question disponible.')
+      toast.error('Erreur : Aucune question disponible.', {
+        icon: '❌',
+      })
       return
     }
 
@@ -252,7 +259,9 @@ export default function RoomCreator({
     isStartingGameRef.current = true
 
     if (!socket.connected) {
-      alert('Erreur : Socket non connecté. Veuillez rafraîchir la page.')
+      toast.error('Erreur : Socket non connecté. Veuillez rafraîchir la page.', {
+        icon: '⚠️',
+      })
       isStartingGameRef.current = false
       return
     }
@@ -276,7 +285,9 @@ export default function RoomCreator({
       }
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
-      alert(`Erreur : ${message}`)
+      toast.error(`Erreur : ${message}`, {
+        icon: '⚠️',
+      })
       isStartingGameRef.current = false
     }
 
@@ -284,7 +295,9 @@ export default function RoomCreator({
       timeoutId = null
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
-      alert('Le serveur ne répond pas. Veuillez réessayer.')
+      toast.error('Le serveur ne répond pas. Veuillez réessayer.', {
+        icon: '⏱️',
+      })
       isStartingGameRef.current = false
     }, 5000)
 
@@ -297,7 +310,9 @@ export default function RoomCreator({
       }
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
-      alert('Erreur : Aucune question disponible après traitement.')
+      toast.error('Erreur : Aucune question disponible après traitement.', {
+        icon: '❌',
+      })
       isStartingGameRef.current = false
       return
     }

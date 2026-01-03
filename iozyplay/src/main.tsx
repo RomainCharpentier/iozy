@@ -12,6 +12,8 @@ import './styles/answer-input.css'
 import './styles/settings.css'
 import './styles/settings-menu.css'
 import './styles/responsive.css'
+import './styles/logo.css'
+import './styles/error-boundary.css'
 import './services/settingsService' // Initialiser les settings au démarrage
 import { registerServiceWorker } from './utils/serviceWorker'
 

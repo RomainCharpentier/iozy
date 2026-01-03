@@ -13,7 +13,7 @@ export function generateRoomCode() {
 /**
  * Crée un nouveau salon
  */
-export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categories, defaultTimeLimit = 5) {
+export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categories, defaultTimeLimit = 5, hostAvatar = '🎮') {
   return {
     code: roomCode,
     hostPlayerId, // UUID persistant du host
@@ -21,6 +21,7 @@ export function createRoom(roomCode, hostPlayerId, hostSocketId, hostName, categ
       id: hostPlayerId, // UUID persistant
       socketId: hostSocketId, // socket.id (peut changer)
       name: hostName || 'Hôte',
+      avatar: hostAvatar,
       score: 0,
       isHost: true,
       connected: true
@@ -80,7 +81,7 @@ export function findPlayer(room, playerId) {
 /**
  * Ajoute un joueur à un salon
  */
-export function addPlayer(room, playerId, socketId, playerName) {
+export function addPlayer(room, playerId, socketId, playerName, playerAvatar = '🎮') {
   if (!room) return null;
   
   // Vérifier si le joueur existe déjà par playerId
@@ -90,6 +91,9 @@ export function addPlayer(room, playerId, socketId, playerName) {
     existingPlayer.socketId = socketId;
     existingPlayer.connected = true;
     existingPlayer.disconnectedAt = undefined;
+    // Mettre à jour aussi le nom et avatar au cas où ils auraient changé
+    if (playerName) existingPlayer.name = playerName;
+    if (playerAvatar) existingPlayer.avatar = playerAvatar;
     room.updatedAt = Date.now();
     return room;
   }
@@ -98,6 +102,7 @@ export function addPlayer(room, playerId, socketId, playerName) {
     id: playerId, // UUID persistant
     socketId, // socket.id actuel
     name: playerName,
+    avatar: playerAvatar,
     score: 0,
     isHost: false,
     connected: true

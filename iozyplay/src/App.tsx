@@ -3,16 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast'
 import { GameProvider } from './lib/game/GameContext'
 import { UpdateNotification } from './components/common/UpdateNotification'
-import { FaMusic } from 'react-icons/fa'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 // Lazy loading des pages pour améliorer les performances
 const HomePage = lazy(() => import('./pages/HomePage/HomePage'))
 const CategorySelectorPage = lazy(() => import('./pages/CategorySelectorPage/CategorySelectorPage'))
 const GamePage = lazy(() => import('./pages/GamePage/GamePage'))
 const EditorPage = lazy(() => import('./pages/EditorPage/EditorPage'))
+const VideoImportPage = lazy(() => import('./pages/EditorPage/VideoImportPage'))
 const RoomCreatorPage = lazy(() => import('./pages/RoomCreatorPage/RoomCreatorPage'))
 const RoomJoinerPage = lazy(() => import('./pages/RoomJoinerPage/RoomJoinerPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage/SettingsPage'))
+const UsernamePage = lazy(() => import('./pages/UsernamePage/UsernamePage'))
 
 function GameOverlay() {
   const location = useLocation()
@@ -21,11 +23,11 @@ function GameOverlay() {
   if (!isGamePage) return null
 
   return (
-    <div className="app-overlay">
+      <div className="app-overlay">
       <div className="app-overlay-content">
-        <FaMusic size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+        <span style={{ marginRight: '0.5rem', fontSize: '20px' }}>🎵</span>
         Devine la musique !
-        <FaMusic size={20} style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }} />
+        <span style={{ marginLeft: '0.5rem', fontSize: '20px' }}>🎵</span>
       </div>
     </div>
   )
@@ -34,62 +36,66 @@ function GameOverlay() {
 function App() {
 
   return (
-    <GameProvider>
-      <BrowserRouter>
-        <div className="app">
-          <UpdateNotification />
-          <GameOverlay />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'var(--card-bg)',
-                color: 'var(--text-color)',
-                border: '1px solid var(--border-color)',
-              },
-              success: {
-                iconTheme: {
-                  primary: 'var(--success-color)',
-                  secondary: 'white',
+    <ErrorBoundary>
+      <GameProvider>
+        <BrowserRouter>
+          <div className="app">
+            <UpdateNotification />
+            <GameOverlay />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)',
                 },
-              },
-              error: {
-                iconTheme: {
-                  primary: 'var(--error-color)',
-                  secondary: 'white',
+                success: {
+                  iconTheme: {
+                    primary: 'var(--success-color)',
+                    secondary: 'white',
+                  },
                 },
-              },
-            }}
-          />
-          <Suspense fallback={
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              minHeight: '100vh',
-              color: 'var(--color-text-primary)'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
-                <p>Chargement...</p>
+                error: {
+                  iconTheme: {
+                    primary: 'var(--error-color)',
+                    secondary: 'white',
+                  },
+                },
+              }}
+            />
+            <Suspense fallback={
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '100vh',
+                color: 'var(--text-color)'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
+                  <p>Chargement...</p>
+                </div>
               </div>
-            </div>
-          }>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/categories" element={<CategorySelectorPage />} />
-              <Route path="/game" element={<GamePage />} />
-              <Route path="/editor" element={<EditorPage />} />
-              <Route path="/room/create" element={<RoomCreatorPage />} />
-              <Route path="/room/join" element={<RoomJoinerPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </div>
-      </BrowserRouter>
-    </GameProvider>
+            }>
+              <Routes>
+                <Route path="/username" element={<UsernamePage />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="/categories" element={<CategorySelectorPage />} />
+                <Route path="/game" element={<GamePage />} />
+                <Route path="/editor" element={<EditorPage />} />
+                <Route path="/editor/import-video" element={<VideoImportPage />} />
+                <Route path="/room/create" element={<RoomCreatorPage />} />
+                <Route path="/room/join" element={<RoomJoinerPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </div>
+        </BrowserRouter>
+      </GameProvider>
+    </ErrorBoundary>
   )
 }
 

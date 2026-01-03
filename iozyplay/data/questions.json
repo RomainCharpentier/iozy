@@ -1,13 +1,5 @@
 {
-  "chansons": [
-    {
-      "id": "https://www.youtube.com/watch?v=yA3oV0V9QeY",
-      "category": "chansons",
-      "type": "video",
-      "mediaUrl": "https://www.youtube.com/watch?v=yA3oV0V9QeY",
-      "answer": "WWE 2K25 - All Wrestlers Entrance!"
-    }
-  ],
+  "chansons": [],
   "series": [],
   "animes": [
     {

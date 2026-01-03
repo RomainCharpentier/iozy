@@ -70,6 +70,24 @@
   .card p {
     font-size: var(--font-size-sm) !important;
   }
+  
+  .grid-3 {
+    padding: 0 var(--spacing-sm) !important;
+    gap: var(--spacing-md) !important;
+  }
+  
+  .home-layout > div:first-child {
+    padding-left: var(--spacing-sm) !important;
+    padding-right: var(--spacing-sm) !important;
+  }
+  
+  .home-layout > div:first-child > div[style*="position: absolute"] {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    margin-top: var(--spacing-md) !important;
+    justify-content: center !important;
+  }
 }
 
 /* Settings Responsive amélioré */

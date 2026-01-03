@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { type Category, type CategoryInfo } from '../../services/types'
 import { loadCategories } from '../../services/categoryService'
 import { DEFAULT_CATEGORIES } from '../../services/types'
 import type { Player } from '../../lib/game/types'
 import { soundManager } from '../../utils/sounds'
-import { FaGamepad, FaUsers } from 'react-icons/fa'
 import CategoryIcon from '../../components/common/CategoryIcon'
 
 interface CategorySelectorProps {
@@ -45,7 +45,9 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
 
   const handleStartGame = async () => {
     if (selectedCategories.length === 0) {
-      alert('Veuillez sélectionner au moins une catégorie !')
+      toast.error('Veuillez sélectionner au moins une catégorie !', {
+        icon: '📂',
+      })
       return
     }
 
@@ -73,15 +75,19 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
                 className={`mode-button ${gameMode === 'solo' ? 'active' : ''}`}
                 onClick={() => handleModeSelect('solo')}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                aria-label="Mode solo"
+                aria-pressed={gameMode === 'solo'}
               >
-                <FaGamepad size={18} /> Solo
+                <span style={{ fontSize: '18px', marginRight: '0.5rem' }}>🎮</span> Solo
               </button>
               <button
                 className={`mode-button ${gameMode === 'online' ? 'active' : ''}`}
                 onClick={() => handleModeSelect('online')}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                aria-label="Mode multijoueur en ligne"
+                aria-pressed={gameMode === 'online'}
               >
-                <FaUsers size={18} /> Multijoueur en ligne
+                <span style={{ fontSize: '18px', marginRight: '0.5rem' }}>👥</span> Multijoueur en ligne
               </button>
             </div>
           </div>
@@ -94,6 +100,8 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
             key={category.id}
             className={`category-card ${selectedCategories.includes(category.id) ? 'selected' : ''}`}
             onClick={() => toggleCategory(category.id)}
+            aria-label={`${selectedCategories.includes(category.id) ? 'Désélectionner' : 'Sélectionner'} la catégorie ${category.name}`}
+            aria-pressed={selectedCategories.includes(category.id)}
           >
             <span className="category-emoji">
               <CategoryIcon categoryId={category.id} iconId={category.emoji} size={32} />
@@ -106,6 +114,7 @@ export default function CategorySelector({ onStartGame, defaultMode }: CategoryS
         className="start-button"
         onClick={handleStartGame}
         disabled={selectedCategories.length === 0}
+        aria-label={selectedCategories.length === 0 ? 'Sélectionnez au moins une catégorie pour commencer' : 'Commencer la partie'}
       >
         {defaultMode === undefined ? (gameMode === 'online' ? 'Créer un salon' : 'Commencer le jeu') : 'Valider les thèmes'}
       </button>

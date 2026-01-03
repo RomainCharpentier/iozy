@@ -1,0 +1,202 @@
+/* Video Import Page Styles */
+.video-import-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+}
+
+.video-import-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: var(--card-bg);
+  border-bottom: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.video-import-header .back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.video-import-header .back-button:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-color);
+}
+
+.video-import-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+  flex: 1;
+}
+
+.video-import-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.video-import-page .playlist-input-section {
+  flex-shrink: 0;
+}
+
+.video-import-page .categories-selection {
+  flex-shrink: 0;
+}
+
+.video-import-page .videos-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.video-import-page .videos-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.video-import-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.video-import-footer .cancel-button {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.video-import-footer .cancel-button:hover {
+  background: var(--bg-color);
+}
+
+.video-import-footer .import-button {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.video-import-footer .import-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+}
+
+.video-import-footer .import-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.import-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  flex: 1;
+  justify-content: center;
+}
+
+.import-progress .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.videos-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.select-all-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-all-button,
+.deselect-all-button {
+  padding: 0.5rem 1rem;
+  background: var(--bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-button:hover,
+.deselect-all-button:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .video-import-header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .video-import-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .video-import-content {
+    padding: 1rem;
+  }
+
+  .video-import-footer {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .video-import-footer button {
+    width: 100%;
+  }
+}
+

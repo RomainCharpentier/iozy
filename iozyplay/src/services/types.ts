@@ -3,16 +3,16 @@ export type Category = string; // Catégories dynamiques
 export interface CategoryInfo {
   id: Category;
   name: string;
-  emoji: string; // Stocke maintenant l'ID de l'icône (ex: "FaMusic") au lieu d'un emoji
+  emoji: string; // Stocke un emoji (ex: "🎵") ou un ID d'icône pour rétrocompatibilité
 }
 
 // Catégories par défaut (seront remplacées par celles du serveur)
 export const DEFAULT_CATEGORIES: CategoryInfo[] = [
-  { id: 'chansons', name: 'Chansons', emoji: 'FaMusic' },
-  { id: 'series', name: 'Séries TV', emoji: 'FaTv' },
-  { id: 'animes', name: 'Animes', emoji: 'GiNinjaMask' },
-  { id: 'films', name: 'Films', emoji: 'FaFilm' },
-  { id: 'jeux', name: 'Jeux vidéo', emoji: 'FaGamepad' },
+  { id: 'chansons', name: 'Chansons', emoji: '🎵' },
+  { id: 'series', name: 'Séries TV', emoji: '📺' },
+  { id: 'animes', name: 'Animes', emoji: '🎌' },
+  { id: 'films', name: 'Films', emoji: '🎬' },
+  { id: 'jeux', name: 'Jeux vidéo', emoji: '🎮' },
 ];
 
 export type MediaType = 'audio' | 'image' | 'video';

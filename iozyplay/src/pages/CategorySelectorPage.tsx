@@ -1,4 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useGameState } from '../lib/game/GameContext'
 import CategorySelector from './CategorySelectorPage/CategorySelector'
 import { GameMode, Player } from '../types'
@@ -13,14 +14,18 @@ export default function CategorySelectorPage() {
 
   const handleStartGame = async (categories: Category[], mode: GameMode, configuredPlayers: Player[], name: string) => {
     if (categories.length === 0) {
-      alert('Veuillez sélectionner au moins une catégorie !')
+      toast.error('Veuillez sélectionner au moins une catégorie !', {
+        icon: '📂',
+      })
       return
     }
 
     const allQuestions = await QuestionService.getQuestionsForCategories(categories)
 
     if (allQuestions.length === 0) {
-      alert('Aucune question disponible pour les catégories sélectionnées !')
+      toast.error('Aucune question disponible pour les catégories sélectionnées !', {
+        icon: '❌',
+      })
       return
     }
 

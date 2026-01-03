@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { FaSync } from 'react-icons/fa'
 
 /**
  * Composant pour notifier l'utilisateur lorsqu'une mise à jour du service worker est disponible
@@ -37,7 +36,7 @@ export function UpdateNotification() {
                     toast(
                       (t) => (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <FaSync />
+                          <span style={{ fontSize: '18px' }}>🔄</span>
                           <span>Une mise à jour est disponible</span>
                           <button
                             onClick={() => {
@@ -88,6 +87,7 @@ export function UpdateNotification() {
 
   return null
 }
+
 
 
 

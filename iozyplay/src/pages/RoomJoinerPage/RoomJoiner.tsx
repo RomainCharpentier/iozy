@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { connectSocket, getSocket } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
 import { soundManager } from '../../utils/sounds'
@@ -35,7 +36,9 @@ export default function RoomJoiner({
 
   const handleJoin = () => {
     if (!playerName.trim()) {
-      alert('Veuillez entrer votre nom !')
+      toast.error('Veuillez entrer votre nom !', {
+        icon: '👤',
+      })
       return
     }
     setHasJoined(true)
@@ -96,7 +99,9 @@ export default function RoomJoiner({
       if (code === 'GAME_ALREADY_STARTED') {
         return
       }
-      alert(`Erreur: ${message}`)
+      toast.error(`Erreur: ${message}`, {
+        icon: '⚠️',
+      })
       // Ne pas retourner en arrière pour les erreurs non critiques
       if (code !== 'ROOM_NOT_FOUND') {
         // onBack()
@@ -152,11 +157,14 @@ export default function RoomJoiner({
                 placeholder="Entrez votre nom"
                 maxLength={20}
                 className="player-name-input"
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && playerName.trim()) {
+                    e.preventDefault()
                     handleJoin()
                   }
                 }}
+                aria-label="Votre nom"
+                autoFocus
               />
             </label>
           </div>
@@ -168,6 +176,7 @@ export default function RoomJoiner({
               className="start-button" 
               onClick={handleJoin}
               disabled={!playerName.trim()}
+              aria-label={!playerName.trim() ? 'Entrez votre nom pour rejoindre' : 'Rejoindre le salon'}
             >
               Rejoindre →
             </button>

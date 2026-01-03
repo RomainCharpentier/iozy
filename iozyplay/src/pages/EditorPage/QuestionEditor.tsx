@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes, FaSave, FaTv, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaCheckCircle, FaSpinner } from 'react-icons/fa'
 import type { Category, Question, MediaType, CategoryInfo } from '../../services/types'
 import { isYouTubeUrl, isValidUrlFormat, getYouTubeThumbnailFromUrl, extractYouTubeId, getYouTubeMetadata } from '../../utils/youtube'
 import { QuestionService } from '../../services/questionService'
 import { loadCategories } from '../../services/categoryService'
-import { getIconById } from '../../utils/categoryIcons'
 import CategorySelector from '../../components/editor/CategorySelector'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { questionSchema, type QuestionFormData } from '../../schemas/questionSchema'
@@ -19,6 +18,9 @@ interface QuestionEditorProps {
 }
 
 export default function QuestionEditor({ questions, onSave, onClose }: QuestionEditorProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
   const [localQuestions, setLocalQuestions] = useState<Question[]>(questions)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -72,7 +74,19 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setIsInitialLoad(true)
     // Marquer comme chargé après un court délai pour éviter la sauvegarde au chargement
     setTimeout(() => setIsInitialLoad(false), 1000)
-  }, [questions])
+    
+    // Vérifier si on revient de l'import avec des questions importées
+    if (location.state?.imported) {
+      toast.success(`${location.state.imported} question(s) importée(s)`)
+      // Recharger les questions
+      QuestionService.getAllQuestions().then(allQuestions => {
+        setLocalQuestions(allQuestions)
+        onSave(allQuestions)
+      })
+      // Nettoyer le state
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [questions, location.state, navigate, onSave])
 
   const loadCategoriesList = async () => {
     const cats = await loadCategories()
@@ -354,6 +368,41 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     }
   }
 
+  const handleImportPlaylist = async (
+    videos: Array<{ videoUrl: string; answer: string; hint?: string }>,
+    categories: Category[]
+  ) => {
+    try {
+      const newQuestions: Question[] = []
+      
+      for (const video of videos) {
+        const questionId = await generateId(video.videoUrl, categories[0])
+        const newQuestion: Question = {
+          id: questionId,
+          category: categories.length === 1 ? categories[0] : categories,
+          type: 'video' as MediaType,
+          mediaUrl: video.videoUrl,
+          answer: video.answer,
+          hint: video.hint
+        }
+        await QuestionService.addQuestion(newQuestion)
+        newQuestions.push(newQuestion)
+      }
+
+      setLocalQuestions([...localQuestions, ...newQuestions])
+      toast.success(`${newQuestions.length} question(s) ajoutée(s)`)
+    } catch (error) {
+      console.error('Erreur lors de l\'import:', error)
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('Failed to fetch') 
+            ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
+            : error.message)
+        : 'Erreur inconnue lors de l\'import'
+      toast.error(errorMessage)
+      throw error
+    }
+  }
+
   const handleEdit = async (index: number) => {
     const question = filteredQuestions[index]
     if (!question) {
@@ -498,7 +547,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       />
       <div className="editor-panel">
       <div className="panel-header">
-        <h2><FaEdit /> Questions</h2>
+        <h2><span style={{ marginRight: '0.5rem', fontSize: '20px' }}>✏️</span> Questions</h2>
         <div className="editor-stats">
           <div className="stat-item stat-item-total">
             <span className="stat-label">Total:</span>
@@ -510,10 +559,9 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               if (count === 0) return null
               return (
                 <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
-                  <span className="stat-icon">{(() => {
-                    const IconComponent = getIconById(cat.emoji)
-                    return <IconComponent size={16} />
-                  })()}</span>
+                  <span className="stat-icon" style={{ fontSize: '16px' }}>
+                    {cat.emoji}
+                  </span>
                   <span className="stat-category-name">{cat.name}</span>
                   <span className="stat-value">{count}</span>
                 </div>
@@ -539,7 +587,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           </select>
         </label>
         <label>
-          <FaSearch /> Rechercher :
+          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔍</span> Rechercher :
           <input
             type="text"
             value={searchQuery}
@@ -554,7 +602,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 onClick={() => setSearchQuery('')}
                 title="Effacer la recherche"
               >
-                <FaTimes />
+                <span style={{ fontSize: '16px' }}>✕</span>
               </button>
           )}
         </label>
@@ -574,7 +622,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
             <div className="modal-header">
               <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
               <button className="close-button" onClick={cancelEdit} title="Fermer">
-                <FaTimes />
+                <span style={{ fontSize: '16px' }}>✕</span>
               </button>
             </div>
             <div className="modal-body">
@@ -606,7 +654,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 />
                 {errors.categories && (
                   <div className="youtube-error-message">
-                    <FaExclamationTriangle className="error-icon" />
+                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
                     <span>{errors.categories.message}</span>
                   </div>
                 )}
@@ -623,14 +671,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 />
                 {errors.mediaUrl && (
                   <div className="youtube-error-message">
-                    <FaExclamationTriangle className="error-icon" />
+                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
                     <span>{errors.mediaUrl.message}</span>
                   </div>
                 )}
                 {watchedMediaUrl && !errors.mediaUrl && (
                   <div className="youtube-preview-form">
                     {!youtubeThumbnail && isYouTubeUrl(watchedMediaUrl) && (
-                      <span className="youtube-hint"><FaSpinner className="spinner" /> Chargement des métadonnées...</span>
+                      <span className="youtube-hint"><span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement des métadonnées...</span>
                     )}
                     {youtubeThumbnail && youtubeValid && (
                       <div className="youtube-metadata-preview">
@@ -641,13 +689,13 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                         />
                         {youtubeTitle && (
                           <div className="youtube-title-preview">
-                            <strong><FaTv /> {youtubeTitle}</strong>
+                            <strong><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>📺</span> {youtubeTitle}</strong>
                           </div>
                         )}
                       </div>
                     )}
                     {youtubeValid && !youtubeThumbnail && (
-                      <span className="youtube-hint"><FaCheckCircle /> URL YouTube détectée</span>
+                      <span className="youtube-hint"><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✅</span> URL YouTube détectée</span>
                     )}
                   </div>
                 )}
@@ -663,7 +711,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 />
                 {errors.answer && (
                   <div className="youtube-error-message">
-                    <FaExclamationTriangle className="error-icon" />
+                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
                     <span>{errors.answer.message}</span>
                   </div>
                 )}
@@ -695,15 +743,15 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 >
                   {isSubmitting ? (
                     <>
-                      <FaSpinner className="spinner" /> Chargement...
+                      <span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement...
                     </>
                   ) : editingIndex !== null ? (
                     <>
-                      <FaSave /> Mettre à jour
+                      <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre à jour
                     </>
                   ) : (
                     <>
-                      <FaPlus /> Ajouter
+                      <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter
                     </>
                   )}
                 </button>
@@ -717,6 +765,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         </div>
       )}
 
+
       <div className="panel-content">
         <div className="panel-section">
           <div className="section-header">
@@ -725,16 +774,16 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               className="add-button"
               onClick={() => {
                 cancelEdit()
-                setShowAddForm(true)
+                navigate('/editor/import-video')
               }}
             >
-              <FaPlus /> Ajouter une question
+              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Importer une vidéo
             </button>
           </div>
 
           {filteredQuestions.length === 0 ? (
             <div className="no-questions-message">
-              <span className="no-questions-icon"><FaSearch /></span>
+              <span className="no-questions-icon" style={{ fontSize: '48px' }}>🔍</span>
               <p>Aucune question trouvée</p>
               {debouncedSearchQuery && (
                 <p className="no-questions-hint">Essayez de modifier votre recherche ou vos filtres</p>
@@ -798,14 +847,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                       onClick={() => handleEdit(realIndex)}
                       title="Modifier"
                     >
-                      <FaEdit />
+                      <span style={{ fontSize: '16px' }}>✏️</span>
                     </button>
                     <button
                       className="delete-button-small"
                       onClick={() => handleDelete(realIndex)}
                       title="Supprimer"
                     >
-                      <FaTrash />
+                      <span style={{ fontSize: '16px' }}>🗑️</span>
                     </button>
                   </div>
                 </div>
@@ -823,7 +872,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     title="Page précédente"
                     aria-label="Page précédente"
                   >
-                    <FaChevronLeft /> Précédent
+                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>◀️</span> Précédent
                   </button>
                   <span className="pagination-info" aria-current="page">
                     Page {currentPage} sur {totalPages}
@@ -835,7 +884,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     title="Page suivante"
                     aria-label="Page suivante"
                   >
-                    Suivant <FaChevronRight />
+                    Suivant <span style={{ marginLeft: '0.5rem', fontSize: '16px' }}>▶️</span>
                   </button>
                 </div>
               )}

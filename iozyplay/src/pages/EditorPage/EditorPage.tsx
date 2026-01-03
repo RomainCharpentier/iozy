@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { QuestionService } from '../../services/questionService'
 import type { Question } from '../../services/types'
 import QuestionEditor from './QuestionEditor'
@@ -25,7 +26,9 @@ export default function EditorPage() {
       setQuestions(allQuestions)
     } catch (error) {
       console.error('Erreur lors du chargement des questions:', error)
-      alert('Erreur lors du chargement des questions')
+      toast.error('Erreur lors du chargement des questions', {
+        icon: '⚠️',
+      })
     } finally {
       setIsLoading(false)
     }

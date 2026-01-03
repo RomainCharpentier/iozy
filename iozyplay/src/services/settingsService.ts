@@ -3,28 +3,20 @@
 export interface UserSettings {
   // Compte
   username: string
-  avatar: string
   
   // Son
   soundEnabled: boolean
   soundVolume: number // 0-100
   
   // Interface
-  theme: 'dark' | 'light' | 'auto'
-  animationsEnabled: boolean
-  compactMode: boolean
-  fontSize: 'small' | 'medium' | 'large'
+  theme: 'dark' | 'light'
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   username: '',
-  avatar: '🎮',
   soundEnabled: true,
   soundVolume: 70,
-  theme: 'dark',
-  animationsEnabled: true,
-  compactMode: false,
-  fontSize: 'medium'
+  theme: 'dark'
 }
 
 const SETTINGS_KEY = 'blindtest-settings'
@@ -91,24 +83,10 @@ class SettingsService {
     if (this.settings.theme === 'dark') {
       document.documentElement.classList.remove('light-theme')
       document.documentElement.classList.add('dark-theme')
-    } else if (this.settings.theme === 'light') {
+    } else {
       document.documentElement.classList.remove('dark-theme')
       document.documentElement.classList.add('light-theme')
-    } else {
-      // Auto: utiliser la préférence système
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      document.documentElement.classList.toggle('dark-theme', prefersDark)
-      document.documentElement.classList.toggle('light-theme', !prefersDark)
     }
-
-    // Appliquer la taille de police
-    document.documentElement.setAttribute('data-font-size', this.settings.fontSize)
-
-    // Appliquer les animations
-    document.documentElement.setAttribute('data-animations', this.settings.animationsEnabled ? 'enabled' : 'disabled')
-
-    // Appliquer le mode compact
-    document.documentElement.setAttribute('data-compact', this.settings.compactMode ? 'true' : 'false')
   }
 
   // Initialiser les settings au démarrage
@@ -125,6 +103,3 @@ export const settingsService = new SettingsService()
 if (typeof window !== 'undefined') {
   settingsService.init()
 }
-
-
-

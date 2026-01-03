@@ -82,14 +82,15 @@ function syncPlayerToGame(socket, room) {
 }
 
 export function setupRoomHandlers(socket, io) {
-  socket.on('room:create', ({ playerId, playerName, categories, defaultTimeLimit = 5 }) => {
+  socket.on('room:create', async ({ playerId, playerName, categories, defaultTimeLimit = 5 }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
     }
 
+    const finalPlayerName = playerName || 'Hôte';
     const roomCode = generateRoomCode();
-    const room = createRoom(roomCode, playerId, socket.id, playerName, categories, defaultTimeLimit);
+    const room = createRoom(roomCode, playerId, socket.id, finalPlayerName, categories, defaultTimeLimit);
     
     roomRepository.create(room);
     socket.join(roomCode);
@@ -99,7 +100,7 @@ export function setupRoomHandlers(socket, io) {
     broadcastRoomState(io, roomCode, room);
   });
 
-  socket.on('room:join', ({ roomCode, playerId, playerName }) => {
+  socket.on('room:join', async ({ roomCode, playerId, playerName }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -112,11 +113,14 @@ export function setupRoomHandlers(socket, io) {
       return;
     }
 
+    const finalPlayerName = playerName || 'Joueur';
+
     // Vérifier si le joueur existe déjà (reconnexion)
     const existingPlayer = findPlayer(room, playerId);
     if (existingPlayer) {
-      // Reconnecter le joueur
+      // Reconnecter le joueur et mettre à jour le nom
       reconnectPlayer(room, playerId, socket.id);
+      if (finalPlayerName) existingPlayer.name = finalPlayerName;
       roomRepository.cancelGracePeriod(roomCode, playerId);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
@@ -134,7 +138,7 @@ export function setupRoomHandlers(socket, io) {
     if (!isWaiting(room)) {
       // La partie a déjà commencé, permettre la reconnexion
       // Le joueur recevra l'état actuel de la partie
-      addPlayer(room, playerId, socket.id, playerName);
+      addPlayer(room, playerId, socket.id, finalPlayerName);
       roomRepository.update(roomCode, room);
       socket.join(roomCode);
       
@@ -145,7 +149,7 @@ export function setupRoomHandlers(socket, io) {
       return;
     }
 
-    addPlayer(room, playerId, socket.id, playerName);
+    addPlayer(room, playerId, socket.id, finalPlayerName, playerAvatar);
     roomRepository.update(roomCode, room);
     
     // Joindre la room AVANT de broadcaster
@@ -161,7 +165,7 @@ export function setupRoomHandlers(socket, io) {
     });
   });
 
-  socket.on('room:rejoin', ({ roomCode, playerId }) => {
+  socket.on('room:rejoin', async ({ roomCode, playerId }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -179,6 +183,7 @@ export function setupRoomHandlers(socket, io) {
       sendError(socket, 'PLAYER_NOT_FOUND', 'Joueur introuvable dans ce salon');
       return;
     }
+
 
     // Reconnecter le joueur
     reconnectPlayer(room, playerId, socket.id);

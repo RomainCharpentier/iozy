@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import type { Category, CategoryInfo } from '../../services/types'
-import { getIconById } from '../../utils/categoryIcons'
 import '../../styles/category-selector.css'
 
 interface CategorySelectorProps {
@@ -93,10 +92,9 @@ export default function CategorySelector({
                   onClick={() => toggleCategory(category.id)}
                   title={category.name}
                 >
-                  {(() => {
-                    const IconComponent = getIconById(category.emoji)
-                    return <IconComponent size={32} className="category-emoji-large" />
-                  })()}
+                  <span className="category-emoji-large" style={{ fontSize: '32px' }}>
+                    {category.emoji}
+                  </span>
                   <span className="category-name-text">{category.name}</span>
                   {isSelected && (
                     <span className="selected-indicator">✓</span>

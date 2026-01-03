@@ -214,6 +214,36 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
+}
+
+/* Garantir le format 16:9 pour les vidéos YouTube dans le conteneur média */
+.v5-enhanced-media .youtube-player {
+  width: 100% !important;
+  max-width: 100%;
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Le conteneur interne du player YouTube doit aussi respecter le ratio */
+.v5-enhanced-media .youtube-player > div {
+  width: 100% !important;
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  position: relative !important;
+}
+
+.v5-enhanced-media .youtube-player > div > div[id*="youtube-player"] {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .v5-enhanced-answer {

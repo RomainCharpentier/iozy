@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
-import { FaPlus, FaEdit, FaTrash, FaTimes, FaSave, FaExclamationTriangle, FaSpinner } from 'react-icons/fa'
 import { loadCategories, createCategory, updateCategory, deleteCategory } from '../../services/categoryService'
-import { CATEGORY_ICONS, getIconById } from '../../utils/categoryIcons'
+import { ALL_EMOJIS, EMOJI_CATEGORIES, getEmojisByGroup } from '../../utils/emojiList'
 import { QuestionService } from '../../services/questionService'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import type { CategoryInfo, Category } from '../../services/types'
@@ -22,6 +21,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [iconSearch, setIconSearch] = useState('')
+  const [emojiCategory, setEmojiCategory] = useState<string>('all')
   const [originalCategoryName, setOriginalCategoryName] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -45,7 +45,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
-      emoji: 'FaMusic'
+      emoji: '🎵'
     }
   })
 
@@ -242,6 +242,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   const cancelEdit = () => {
     reset()
     setIconSearch('')
+    setEmojiCategory('all')
     setEditingId(null)
     setShowAddForm(false)
     setOriginalCategoryName('')
@@ -271,12 +272,11 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     }
   }, [watchedName, categories, showAddForm, editingId, setValue])
 
-  const filteredIcons = CATEGORY_ICONS.filter(iconOption => 
-    iconSearch === '' || 
-    iconOption.name.toLowerCase().includes(iconSearch.toLowerCase()) ||
-    iconOption.id.toLowerCase().includes(iconSearch.toLowerCase()) ||
-    iconOption.group.toLowerCase().includes(iconSearch.toLowerCase())
-  )
+  const filteredEmojis = (emojiCategory === 'all' ? ALL_EMOJIS : getEmojisByGroup(emojiCategory))
+    .filter(emoji => 
+      iconSearch === '' || 
+      emoji === iconSearch
+    )
 
   if (isLoading) {
     return <div className="loading-state">⏳ Chargement des catégories...</div>
@@ -304,7 +304,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
             <div className="modal-header">
               <h2>{editingId !== null ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
               <button className="close-button" onClick={cancelEdit} title="Fermer">
-                <FaTimes />
+                <span style={{ fontSize: '16px' }}>✕</span>
               </button>
             </div>
             <div className="modal-body">
@@ -331,7 +331,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                 <small>L'ID sera généré automatiquement à partir du nom</small>
                 {errors.name && (
                   <div className="youtube-error-message">
-                    <FaExclamationTriangle className="error-icon" />
+                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
                     <span>{errors.name.message}</span>
                   </div>
                 )}
@@ -340,46 +340,53 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
 
             <div className="form-group">
               <label>
-                Icône *
-                <div className="icon-selector">
-                  <input
-                    type="text"
-                    value={iconSearch}
-                    onChange={(e) => setIconSearch(e.target.value)}
-                    placeholder="Rechercher une icône..."
-                    className="icon-search"
-                  />
-                  <div className="icon-grid">
-                    {filteredIcons.map(iconOption => {
-                      const IconComponent = iconOption.icon
-                      const isSelected = watchedEmoji === iconOption.id
+                Emoji *
+                <div className="emoji-selector">
+                  <div className="emoji-search-wrapper">
+                    <select
+                      className="emoji-category-select"
+                      value={emojiCategory}
+                      onChange={(e) => setEmojiCategory(e.target.value)}
+                    >
+                      <option value="all">Toutes les catégories</option>
+                      {Object.keys(EMOJI_CATEGORIES).map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      className="emoji-search-input"
+                      placeholder="Rechercher un emoji..."
+                      value={iconSearch}
+                      onChange={(e) => setIconSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="emojis-grid">
+                    {filteredEmojis.map(emoji => {
+                      const isSelected = watchedEmoji === emoji
                       return (
                         <button
-                          key={iconOption.id}
+                          key={emoji}
                           type="button"
-                          className={`icon-button ${isSelected ? 'selected' : ''}`}
+                          className={`emoji-option ${isSelected ? 'selected' : ''}`}
                           onClick={() => {
-                            setValue('emoji', iconOption.id, { shouldValidate: true })
+                            setValue('emoji', emoji, { shouldValidate: true })
                           }}
-                          title={iconOption.name}
+                          title={emoji}
                         >
-                          <IconComponent size={24} />
+                          <span style={{ fontSize: '24px' }}>{emoji}</span>
                         </button>
                       )
                     })}
                   </div>
                   {watchedEmoji && (
                     <div className="selected-icon-preview">
-                      Icône sélectionnée: {(() => {
-                        const IconComponent = getIconById(watchedEmoji)
-                        return <IconComponent size={32} />
-                      })()}
-                      <span>{CATEGORY_ICONS.find(icon => icon.id === watchedEmoji)?.name || watchedEmoji}</span>
+                      Emoji sélectionné: <span style={{ fontSize: '32px' }}>{watchedEmoji}</span>
                     </div>
                   )}
                   {errors.emoji && (
                     <div className="youtube-error-message field-error-inline">
-                      <FaExclamationTriangle className="error-icon" />
+                      <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
                       <span>{errors.emoji.message}</span>
                     </div>
                   )}
@@ -400,15 +407,15 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
               >
                 {isSubmitting ? (
                   <>
-                    <FaSpinner className="spinner" /> Chargement...
+                    <span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement...
                   </>
                 ) : editingId !== null ? (
                   <>
-                    <FaSave /> Mettre à jour
+                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre à jour
                   </>
                 ) : (
                   <>
-                    <FaPlus /> Ajouter
+                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter
                   </>
                 )}
               </button>
@@ -437,7 +444,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                 setShowAddForm(true)
               }}
             >
-              <FaPlus /> Ajouter une catégorie
+              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter une catégorie
             </button>
           </div>
 
@@ -445,10 +452,9 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
             {categories.map(category => (
               <div key={category.id} className="category-card-manager">
                 <div className="category-display">
-                  {(() => {
-                    const IconComponent = getIconById(category.emoji)
-                    return <IconComponent size={32} className="category-emoji-large" />
-                  })()}
+                  <span className="category-emoji-large" style={{ fontSize: '32px' }}>
+                    {category.emoji}
+                  </span>
                   <div className="category-info-manager">
                     <div className="category-name-manager">{category.name}</div>
                   </div>
@@ -459,14 +465,14 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                       onClick={() => handleEdit(category)}
                       title="Modifier"
                     >
-                      <FaEdit />
+                      <span style={{ fontSize: '16px' }}>✏️</span>
                     </button>
                     <button
                       className="delete-button-small"
                       onClick={() => handleDelete(category.id)}
                       title="Supprimer"
                     >
-                      <FaTrash />
+                      <span style={{ fontSize: '16px' }}>🗑️</span>
                     </button>
                 </div>
               </div>

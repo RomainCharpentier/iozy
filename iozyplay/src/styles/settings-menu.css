@@ -7,11 +7,12 @@
   justify-content: center;
   padding: var(--spacing-xl);
   background: var(--bg-primary);
+  box-sizing: border-box;
 }
 
 .settings-container {
   width: 100%;
-  max-width: 100%;
+  max-width: 1200px;
   background: var(--bg-secondary);
   border-radius: 16px;
   border: 1px solid var(--border);

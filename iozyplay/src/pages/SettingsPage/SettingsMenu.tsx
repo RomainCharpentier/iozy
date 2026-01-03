@@ -2,17 +2,15 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { settingsService, UserSettings } from '../../services/settingsService'
 import { soundManager } from '../../utils/sounds'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
 import '../../styles/design-system.css'
 import '../../styles/settings-menu.css'
-import { FaCog, FaUser, FaVolumeUp, FaPalette, FaSun, FaMoon } from 'react-icons/fa'
-
-// Les avatars restent en emoji car ce sont les choix des utilisateurs pour leur profil
-const AVATARS = ['🎮', '🎵', '🎬', '📺', '🎨', '🚀', '⚡', '🔥', '💎', '🌟', '🎯', '🎪']
 
 export default function SettingsMenu() {
   const navigate = useNavigate()
   const [settings, setSettings] = useState<UserSettings>(settingsService.getSettings())
   const [activeSection, setActiveSection] = useState<'account' | 'sound' | 'interface'>('account')
+  const [showResetDialog, setShowResetDialog] = useState(false)
 
   useEffect(() => {
     // Appliquer les settings au chargement
@@ -37,16 +35,20 @@ export default function SettingsMenu() {
         soundManager.playClick()
       }
     }
+    // Le thème est appliqué automatiquement par settingsService.updateSetting
   }
 
   const handleReset = () => {
-    if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les réglages ?')) {
-      settingsService.resetSettings()
-      const defaultSettings = settingsService.getSettings()
-      setSettings(defaultSettings)
-      soundManager.setEnabled(defaultSettings.soundEnabled)
-      soundManager.playClick()
-    }
+    setShowResetDialog(true)
+  }
+
+  const confirmReset = () => {
+    settingsService.resetSettings()
+    const defaultSettings = settingsService.getSettings()
+    setSettings(defaultSettings)
+    soundManager.setEnabled(defaultSettings.soundEnabled)
+    soundManager.playClick()
+    setShowResetDialog(false)
   }
 
   return (
@@ -61,11 +63,12 @@ export default function SettingsMenu() {
               navigate(-1)
             }}
             style={{ marginRight: 'auto' }}
+            aria-label="Retour"
           >
             ← Retour
           </button>
           <h1 className="settings-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FaCog size={24} /> Réglages
+            <span style={{ fontSize: '24px' }}>⚙️</span> Réglages
           </h1>
           <div style={{ width: '100px' }}></div>
         </div>
@@ -80,7 +83,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon"><FaUser size={18} /></span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>👤</span>
               <span className="nav-label">Compte</span>
             </button>
             <button
@@ -90,7 +93,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon"><FaVolumeUp size={18} /></span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>🔊</span>
               <span className="nav-label">Son</span>
             </button>
             <button
@@ -100,7 +103,7 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon"><FaPalette size={18} /></span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>🎨</span>
               <span className="nav-label">Interface</span>
             </button>
           </div>
@@ -110,7 +113,7 @@ export default function SettingsMenu() {
             {/* Section Compte */}
             {activeSection === 'account' && (
               <div className="settings-section">
-                <h2 className="section-title">Gestion du compte</h2>
+                <h2 className="section-title">Profil</h2>
                 
                 <div className="setting-group">
                   <label className="setting-label">
@@ -127,27 +130,8 @@ export default function SettingsMenu() {
                     placeholder="Votre nom"
                     maxLength={20}
                     style={{ marginTop: 'var(--spacing-md)' }}
+                    aria-label="Nom d'utilisateur"
                   />
-                </div>
-
-                <div className="setting-group">
-                  <label className="setting-label">
-                    <span className="label-text">Avatar</span>
-                  </label>
-                  <div className="avatar-grid" style={{ marginTop: 'var(--spacing-md)' }}>
-                    {AVATARS.map((avatar) => (
-                      <button
-                        key={avatar}
-                        className={`avatar-option ${settings.avatar === avatar ? 'selected' : ''}`}
-                        onClick={() => {
-                          handleSettingChange('avatar', avatar)
-                          soundManager.playClick()
-                        }}
-                      >
-                        {avatar}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             )}
@@ -168,6 +152,7 @@ export default function SettingsMenu() {
                         id="soundEnabled"
                         checked={settings.soundEnabled}
                         onChange={(e) => handleSettingChange('soundEnabled', e.target.checked)}
+                        aria-label="Activer les sons"
                       />
                       <label htmlFor="soundEnabled" className="toggle-label">
                         <span className="toggle-slider"></span>
@@ -193,6 +178,10 @@ export default function SettingsMenu() {
                     onChange={(e) => handleSettingChange('soundVolume', parseInt(e.target.value))}
                     className="slider"
                     disabled={!settings.soundEnabled}
+                    aria-label="Volume du son"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={settings.soundVolume}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--spacing-xs)', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
                     <span>0%</span>
@@ -212,7 +201,7 @@ export default function SettingsMenu() {
                     disabled={!settings.soundEnabled}
                     style={{ width: '100%' }}
                   >
-                    <FaVolumeUp size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Tester le son
+                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔊</span> Tester le son
                   </button>
                 </div>
               </div>
@@ -221,7 +210,7 @@ export default function SettingsMenu() {
             {/* Section Interface */}
             {activeSection === 'interface' && (
               <div className="settings-section">
-                <h2 className="section-title">Personnalisation de l'interface</h2>
+                <h2 className="section-title">Apparence</h2>
                 
                 <div className="setting-group">
                   <label className="setting-label">
@@ -236,7 +225,7 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'dark'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'dark')}
                       />
-                      <span><FaMoon size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Sombre</span>
+                      <span><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🌙</span> Sombre</span>
                     </label>
                     <label className="radio-option">
                       <input
@@ -246,93 +235,7 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'light'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'light')}
                       />
-                      <span><FaSun size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} /> Clair</span>
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="theme"
-                        value="auto"
-                        checked={settings.theme === 'auto'}
-                        onChange={(e) => handleSettingChange('theme', e.target.value as 'auto')}
-                      />
-                      <span>🔄 Auto</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="setting-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="setting-label" style={{ marginBottom: 0 }}>
-                      <span className="label-text">Animations</span>
-                    </label>
-                    <div className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        id="animationsEnabled"
-                        checked={settings.animationsEnabled}
-                        onChange={(e) => handleSettingChange('animationsEnabled', e.target.checked)}
-                      />
-                      <label htmlFor="animationsEnabled" className="toggle-label">
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="setting-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="setting-label" style={{ marginBottom: 0 }}>
-                      <span className="label-text">Mode compact</span>
-                    </label>
-                    <div className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        id="compactMode"
-                        checked={settings.compactMode}
-                        onChange={(e) => handleSettingChange('compactMode', e.target.checked)}
-                      />
-                      <label htmlFor="compactMode" className="toggle-label">
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="setting-group">
-                  <label className="setting-label">
-                    <span className="label-text">Taille de police</span>
-                  </label>
-                  <div className="radio-group">
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="fontSize"
-                        value="small"
-                        checked={settings.fontSize === 'small'}
-                        onChange={(e) => handleSettingChange('fontSize', e.target.value as 'small')}
-                      />
-                      <span>Petit</span>
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="fontSize"
-                        value="medium"
-                        checked={settings.fontSize === 'medium'}
-                        onChange={(e) => handleSettingChange('fontSize', e.target.value as 'medium')}
-                      />
-                      <span>Moyen</span>
-                    </label>
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="fontSize"
-                        value="large"
-                        checked={settings.fontSize === 'large'}
-                        onChange={(e) => handleSettingChange('fontSize', e.target.value as 'large')}
-                      />
-                      <span>Grand</span>
+                      <span><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>☀️</span> Clair</span>
                     </label>
                   </div>
                 </div>
@@ -346,6 +249,7 @@ export default function SettingsMenu() {
           <button
             className="btn btn-danger"
             onClick={handleReset}
+            aria-label="Réinitialiser tous les réglages"
           >
             🔄 Réinitialiser
           </button>
@@ -355,11 +259,23 @@ export default function SettingsMenu() {
               soundManager.playSuccess()
               navigate(-1)
             }}
+            aria-label="Enregistrer et fermer"
           >
             ✓ Enregistrer et fermer
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showResetDialog}
+        title="Réinitialiser les réglages"
+        message="Êtes-vous sûr de vouloir réinitialiser tous les réglages ? Cette action est irréversible."
+        confirmText="Réinitialiser"
+        cancelText="Annuler"
+        variant="warning"
+        onConfirm={confirmReset}
+        onCancel={() => setShowResetDialog(false)}
+      />
     </div>
   )
 }

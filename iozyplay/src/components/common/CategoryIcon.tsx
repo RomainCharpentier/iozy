@@ -1,17 +1,13 @@
-import { IconType } from 'react-icons'
-import { getIconById } from '../../utils/categoryIcons'
-
 interface CategoryIconProps {
   categoryId: string
-  iconId?: string // ID de l'icône si fourni directement (sinon on cherche via categoryId)
+  iconId?: string // Emoji de la catégorie
   className?: string
   size?: number | string
   title?: string
 }
 
 /**
- * Composant pour afficher l'icône d'une catégorie
- * Utilise les icônes react-icons stockées dans category.emoji
+ * Composant pour afficher l'emoji d'une catégorie
  */
 export default function CategoryIcon({ 
   categoryId,
@@ -20,16 +16,17 @@ export default function CategoryIcon({
   size = 24,
   title 
 }: CategoryIconProps) {
-  // Si iconId est fourni, l'utiliser directement, sinon utiliser categoryId comme fallback
-  const Icon = getIconById(iconId || categoryId)
+  const emoji = iconId || categoryId
   
   return (
-    <Icon 
+    <span 
       className={className}
-      size={size}
+      style={{ fontSize: typeof size === 'number' ? `${size}px` : size }}
       title={title}
-      aria-label={title || `Icône de la catégorie ${categoryId}`}
-    />
+      aria-label={title || `Emoji de la catégorie ${categoryId}`}
+    >
+      {emoji}
+    </span>
   )
 }
 

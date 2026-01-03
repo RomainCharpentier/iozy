@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { soundManager } from '../../utils/sounds'
+import Logo from '../../components/common/Logo'
 import '../../styles/design-system.css'
-import { FaCog, FaMusic, FaGamepad, FaUsers, FaGlobe, FaLink, FaEdit } from 'react-icons/fa'
 
 interface HomeMenuProps {
   onCreateGame: () => void
@@ -21,7 +22,9 @@ export default function HomeMenu({
 
   const handleJoinRoom = () => {
     if (!roomCode.trim()) {
-      alert('Veuillez entrer un code de salon !')
+      toast.error('Veuillez entrer un code de salon !', {
+        icon: '🔗',
+      })
       return
     }
     
@@ -35,7 +38,7 @@ export default function HomeMenu({
         <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
           <div className="card-header">
             <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FaLink size={20} /> Rejoindre un salon
+              🔗 Rejoindre un salon
             </h2>
           </div>
           
@@ -51,12 +54,14 @@ export default function HomeMenu({
                 placeholder="Ex: ABC123"
                 maxLength={6}
                 className="input"
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && roomCode.trim()) {
+                    e.preventDefault()
                     handleJoinRoom()
                   }
                 }}
                 autoFocus
+                aria-label="Code du salon"
                 style={{ textAlign: 'center', fontSize: 'var(--font-size-xl)', letterSpacing: '0.2em', fontWeight: 700 }}
               />
             </div>
@@ -99,7 +104,7 @@ export default function HomeMenu({
         <div style={{
           position: 'absolute',
           top: 'var(--spacing-xl)',
-          right: 0,
+          right: 'var(--spacing-md)',
           display: 'flex',
           gap: 'var(--spacing-xs)',
           alignItems: 'center'
@@ -118,33 +123,17 @@ export default function HomeMenu({
             }}
             title="Réglages"
           >
-            <FaCog size={16} />
+            <span style={{ fontSize: '16px' }}>⚙️</span>
             <span style={{ fontSize: 'var(--font-size-sm)' }}>Réglages</span>
           </button>
         </div>
-        <h1 style={{ 
-          fontSize: 'var(--font-size-2xl)', 
-          fontWeight: 700,
-          background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          marginBottom: 'var(--spacing-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 'var(--spacing-xs)'
-        }}>
-          <FaMusic size={24} />
-          No Peeking
-          <FaMusic size={24} />
-        </h1>
+        <Logo size="medium" />
         <p className="text-secondary" style={{ fontSize: 'var(--font-size-lg)' }}>
           Écoute et devine les chansons, séries TV, animes, films et jeux !
         </p>
       </div>
 
-      <div className="grid-3" style={{ maxWidth: '100%', margin: '0', width: '100%', padding: '0 var(--spacing-xl)' }}>
+      <div className="grid-3" style={{ maxWidth: '100%', margin: '0', width: '100%', padding: '0 var(--spacing-md)' }}>
         {/* Card Solo */}
         <div className="card" style={{ 
           display: 'flex', 
@@ -158,6 +147,16 @@ export default function HomeMenu({
           soundManager.playStart()
           onCreateGame()
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            soundManager.playStart()
+            onCreateGame()
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label="Créer une partie solo ou multijoueur"
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-4px)'
           e.currentTarget.style.boxShadow = 'var(--shadow-lg), var(--shadow-glow)'
@@ -167,7 +166,7 @@ export default function HomeMenu({
           e.currentTarget.style.boxShadow = 'none'
         }}>
           <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <FaGamepad size={64} />
+            🎮
           </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>CRÉER</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -191,6 +190,16 @@ export default function HomeMenu({
           soundManager.playClick()
           setShowJoinRoom(true)
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            soundManager.playClick()
+            setShowJoinRoom(true)
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label="Rejoindre un salon avec un code"
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-4px)'
           e.currentTarget.style.boxShadow = 'var(--shadow-lg), var(--shadow-glow)'
@@ -200,7 +209,7 @@ export default function HomeMenu({
           e.currentTarget.style.boxShadow = 'none'
         }}>
           <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <FaLink size={64} />
+            🔗
           </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>REJOINDRE</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -224,6 +233,16 @@ export default function HomeMenu({
           soundManager.playClick()
           onOpenEditor()
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            soundManager.playClick()
+            onOpenEditor()
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label="Ouvrir l'éditeur de questions"
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-4px)'
           e.currentTarget.style.boxShadow = 'var(--shadow-lg), var(--shadow-glow)'
@@ -233,7 +252,7 @@ export default function HomeMenu({
           e.currentTarget.style.boxShadow = 'none'
         }}>
           <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <FaEdit size={64} />
+            ✏️
           </div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-sm)' }}>ÉDITEUR</h3>
           <p className="text-secondary" style={{ marginBottom: 'var(--spacing-lg)' }}>

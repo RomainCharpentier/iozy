@@ -72,6 +72,8 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Overlay global pour le titre du jeu */
@@ -267,6 +269,8 @@ body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-lg);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 1920px) {
@@ -305,6 +309,8 @@ body {
   max-width: 100%;
   margin: 0;
   width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 @keyframes spin {
