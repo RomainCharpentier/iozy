@@ -34,11 +34,15 @@ export default function Score({
   
   const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
+  // Jouer le son de fin de partie une seule fois au montage du composant
+  useEffect(() => {
+    soundManager.playSuccess() // Son de fin de partie
+  }, []) // Dépendances vides : jouer le son une seule fois au montage
+
   // Empêcher le scroll quand la popup est ouverte
   useEffect(() => {
     if (isPopup) {
       document.body.style.overflow = 'hidden'
-      soundManager.playStart() // Son de fin de partie
     } else {
       document.body.style.overflow = 'unset'
     }

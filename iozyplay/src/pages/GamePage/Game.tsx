@@ -7,7 +7,7 @@ import PlayersPanel from './ui/PlayersPanel'
 import GameLoadingState from './ui/GameLoadingState'
 import type { Category, Question } from '../../services/types'
 import type { GameMode, Player } from '../../lib/game/types'
-import { getSocket } from '../../utils/socket'
+import { getSocket, disconnectSocketIfConnected } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
 import { GameService, TIMING } from '../../services/gameService'
 import { soundManager } from '../../utils/sounds'
@@ -26,6 +26,12 @@ interface GameProps {
 }
 
 export default function Game({ questions, categories, gameMode, players, roomCode, onEndGame, onRestartWithNewCategories }: GameProps) {
+  useEffect(() => {
+    if (gameMode === 'solo') {
+      disconnectSocketIfConnected()
+    }
+  }, [gameMode])
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [gamePlayers, setGamePlayers] = useState<Player[]>(players)
@@ -143,12 +149,16 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     if (gameQuestions.length === 0) return
     if (showScore) return
     if (isTransitioningRef.current) return
+    if (gameEndedRef.current) return // Ne pas continuer si la partie est déjà terminée
 
     const isBeyondLastQuestion = currentQuestionIndex >= gameQuestions.length
 
     if (isBeyondLastQuestion) {
+      // Partie terminée en mode solo
+      gameEndedRef.current = true
+      clearTimerInterval() // Arrêter le timer
       const timeoutId = window.setTimeout(() => {
-        if (!isTransitioningRef.current) {
+        if (!isTransitioningRef.current && gameEndedRef.current) {
           setShowScore(true)
         }
       }, TIMING.REVEAL_DELAY)
@@ -157,13 +167,14 @@ export default function Game({ questions, categories, gameMode, players, roomCod
     }
   }, [currentQuestionIndex, gameQuestions.length, showScore])
 
-  // Fonction pour quitter le salon proprement
   const leaveRoom = () => {
     if (gameMode === 'online' && roomCode) {
       const socket = getSocket()
       if (socket && socket.connected) {
         socket.emit('room:leave', { roomCode })
       }
+    } else if (gameMode === 'solo') {
+      disconnectSocketIfConnected()
     }
   }
 
@@ -344,7 +355,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
           setIsTimeUp(true)
           
           // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
-          if (revealRemaining <= 0.5 && gameMode === 'solo' && handleTimeUpRef.current) {
+          if (revealRemaining <= 0.5 && gameMode === 'solo' && handleTimeUpRef.current && !gameEndedRef.current) {
             handleTimeUpRef.current()
           }
           return
@@ -408,7 +419,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       setIsTimeUp(newIsTimeUp)
 
       // Si le temps est écoulé, appeler handleTimeUp une seule fois (mode solo seulement, avant le reveal)
-      if (newIsTimeUp && !isTimeUp && gameMode === 'solo' && !revealTimerStartedRef.current && handleTimeUpRef.current) {
+      if (newIsTimeUp && !isTimeUp && gameMode === 'solo' && !revealTimerStartedRef.current && handleTimeUpRef.current && !gameEndedRef.current) {
         handleTimeUpRef.current()
       }
     }
@@ -1098,6 +1109,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   const handleTimeUp = () => {
     if (showScore) return
     if (isTransitioningRef.current) return
+    if (gameEndedRef.current) return // Ne pas continuer si la partie est terminée
 
     // Jouer le son de révélation/time's up (seulement quand on passe de guess à reveal)
     if (!isTimeUp) {
@@ -1125,6 +1137,9 @@ export default function Game({ questions, categories, gameMode, players, roomCod
             isTransitioningRef.current = false
             return prev + 1
           } else {
+            // Partie terminée en mode solo
+            gameEndedRef.current = true
+            clearTimerInterval() // Arrêter le timer
             isTransitioningRef.current = false
             // Utiliser timeoutRefs pour nettoyer ce timeout aussi
             const showScoreTimeoutId = window.setTimeout(() => setShowScore(true), TIMING.REVEAL_DELAY)
@@ -1276,7 +1291,10 @@ export default function Game({ questions, categories, gameMode, players, roomCod
 
       {/* Main: Zone media/waveform centrée */}
       <div className="game-main" data-testid="game-main">
-        <div className="v5-enhanced-body" id="v5-enhanced-body">
+        <div 
+          className={`v5-enhanced-body ${showScore && gameMode === 'solo' ? 'solo-end' : ''}`} 
+          id="v5-enhanced-body"
+        >
           {showScore ? (
             <>
               <div className="v5-enhanced-game">

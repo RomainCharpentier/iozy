@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import type { Category, Question } from '../../services/types'
-import { connectSocket, getSocket } from '../../utils/socket'
+import { connectSocket, getSocket, disconnectSocketIfConnected } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
 import { soundManager } from '../../utils/sounds'
 import { TIMING, QUESTION_COUNT } from '../../services/gameService'
@@ -53,14 +53,13 @@ export default function RoomCreator({
   const [isStartingGame, setIsStartingGame] = useState(false)
   const isStartingGameRef = useRef(false)
 
-  // En mode solo, initialiser directement sans socket
   useEffect(() => {
     if (isSoloMode) {
       setIsConnecting(false)
       setCurrentPlayerName(initialPlayerName || 'Joueur')
       setPlayerName(initialPlayerName || 'Joueur')
-      // En solo, on est le seul joueur
       setPlayers([{ id: 'solo', name: initialPlayerName || 'Joueur', score: 0, isHost: true }])
+      disconnectSocketIfConnected()
     }
   }, [isSoloMode, initialPlayerName])
 

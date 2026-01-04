@@ -169,6 +169,13 @@
   grid-template-columns: 1fr 120px;
 }
 
+.v5-enhanced-body.solo-end {
+  grid-template-columns: 1fr;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .v5-enhanced-game {
   display: flex;
   flex-direction: column;

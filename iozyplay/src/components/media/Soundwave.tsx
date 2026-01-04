@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface SoundwaveProps {
   isPlaying: boolean
@@ -6,10 +6,12 @@ interface SoundwaveProps {
 
 export default function Soundwave({ isPlaying }: SoundwaveProps) {
   const [activeBars, setActiveBars] = useState<number[]>([])
+  const barHeightsRef = useRef<Record<number, number>>({})
 
   useEffect(() => {
     if (!isPlaying) {
       setActiveBars([])
+      barHeightsRef.current = {}
       return
     }
 
@@ -17,9 +19,17 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
     const interval = setInterval(() => {
       const numBars = 20
       const active: number[] = []
+      
       for (let i = 0; i < numBars; i++) {
         if (Math.random() > 0.3) {
           active.push(i)
+          // Stocker la hauteur de chaque barre active pour éviter les déformations
+          if (!barHeightsRef.current[i]) {
+            barHeightsRef.current[i] = 20 + Math.random() * 80
+          }
+        } else {
+          // Réinitialiser la hauteur quand la barre devient inactive
+          delete barHeightsRef.current[i]
         }
       }
       setActiveBars(active)
@@ -30,20 +40,25 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
 
   return (
     <div className="audio-waves">
-      {Array.from({ length: 20 }).map((_, index) => (
-        <div
-          key={index}
-          className={`wave-bar ${activeBars.includes(index) ? 'active' : ''}`}
-          style={{
-            height: activeBars.includes(index) 
-              ? `${20 + Math.random() * 80}%` 
-              : '20%'
-          }}
-        />
-      ))}
+      {Array.from({ length: 20 }).map((_, index) => {
+        const height = activeBars.includes(index) 
+          ? (barHeightsRef.current[index] || 20)
+          : 20
+        
+        return (
+          <div
+            key={index}
+            className={`wave-bar ${activeBars.includes(index) ? 'active' : ''}`}
+            style={{
+              height: `${height}%`
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
+
 
 
 
