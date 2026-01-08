@@ -5,7 +5,7 @@ import GameSettingsPopup from './settings/GameSettingsPopup'
 import GameTopBar from './ui/GameTopBar'
 import PlayersPanel from './ui/PlayersPanel'
 import GameLoadingState from './ui/GameLoadingState'
-import type { Category, Question } from '../../services/types'
+import type { Category, Question } from '../../types'
 import type { GameMode, Player } from '../../lib/game/types'
 import { getSocket, disconnectSocketIfConnected } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
@@ -13,7 +13,7 @@ import { GameService, TIMING } from '../../services/gameService'
 import { soundManager } from '../../utils/sounds'
 import * as Dialog from '@radix-ui/react-dialog'
 import '../../styles/game-modal.css'
-import '../../styles/v5-enhanced.css'
+import '../../styles/game-interface.css'
 
 interface GameProps {
   questions: Question[]
@@ -1273,7 +1273,7 @@ export default function Game({ questions, categories, gameMode, players, roomCod
   }
 
   return (
-    <div className="game v5-enhanced-layout" data-testid="game-screen">
+    <div className="game game-interface-layout" data-testid="game-screen">
       <GameTopBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={gameQuestions.length}
@@ -1292,12 +1292,12 @@ export default function Game({ questions, categories, gameMode, players, roomCod
       {/* Main: Zone media/waveform centrée */}
       <div className="game-main" data-testid="game-main">
         <div 
-          className={`v5-enhanced-body ${showScore && gameMode === 'solo' ? 'solo-end' : ''}`} 
-          id="v5-enhanced-body"
+          className={`game-interface-body ${showScore && gameMode === 'solo' ? 'solo-end' : ''}`} 
+          id="game-interface-body"
         >
           {showScore ? (
             <>
-              <div className="v5-enhanced-game">
+              <div className="game-interface-game">
                 <Score
                   score={gameMode === 'solo' ? score : 0}
                   totalQuestions={gameQuestions.length}

@@ -9,11 +9,11 @@
     align-items: flex-start !important;
     gap: var(--spacing-md) !important;
   }
-  
-  .room-creator-header > div:last-child {
+
+  .room-creator-header>div:last-child {
     width: 100% !important;
   }
-  
+
   .room-creator-header button {
     width: 100% !important;
   }
@@ -23,17 +23,65 @@
   .room-creator-header h1 {
     font-size: var(--font-size-lg) !important;
   }
-  
+
   .card {
     padding: var(--spacing-md) !important;
   }
-  
+
   .card-header {
     padding: var(--spacing-sm) 0 !important;
   }
-  
+
   .card-title {
     font-size: var(--font-size-base) !important;
+  }
+}
+
+/* CategorySelector Responsive */
+@media (max-width: 1024px) {
+  .categories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: var(--spacing-md) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .categories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  .category-card {
+    padding: var(--spacing-md) !important;
+  }
+
+  .category-name {
+    font-size: var(--font-size-sm) !important;
+  }
+
+  .start-button {
+    padding: var(--spacing-md) var(--spacing-lg) !important;
+    font-size: var(--font-size-base) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .categories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+    gap: var(--spacing-xs) !important;
+  }
+
+  .category-card {
+    padding: var(--spacing-sm) !important;
+    min-height: 80px !important;
+  }
+
+  .category-emoji {
+    font-size: 1.5rem !important;
+  }
+
+  .category-name {
+    font-size: var(--font-size-xs) !important;
   }
 }
 
@@ -42,7 +90,7 @@
   .home-menu-title {
     font-size: var(--font-size-xl) !important;
   }
-  
+
   .home-menu-subtitle {
     font-size: var(--font-size-base) !important;
   }
@@ -53,35 +101,35 @@
     font-size: var(--font-size-lg) !important;
     padding: 0 var(--spacing-sm) !important;
   }
-  
+
   .home-menu-subtitle {
     font-size: var(--font-size-sm) !important;
     padding: 0 var(--spacing-sm) !important;
   }
-  
+
   .card {
     padding: var(--spacing-md) !important;
   }
-  
+
   .card h3 {
     font-size: var(--font-size-base) !important;
   }
-  
+
   .card p {
     font-size: var(--font-size-sm) !important;
   }
-  
+
   .grid-3 {
     padding: 0 var(--spacing-sm) !important;
     gap: var(--spacing-md) !important;
   }
-  
-  .home-layout > div:first-child {
+
+  .home-layout>div:first-child {
     padding-left: var(--spacing-sm) !important;
     padding-right: var(--spacing-sm) !important;
   }
-  
-  .home-layout > div:first-child > div[style*="position: absolute"] {
+
+  .home-layout>div:first-child>div[style*="position: absolute"] {
     position: relative !important;
     top: auto !important;
     right: auto !important;
@@ -103,34 +151,34 @@
     gap: var(--spacing-md) !important;
     padding: var(--spacing-md) !important;
   }
-  
+
   .settings-title {
     font-size: var(--font-size-lg) !important;
     margin: 0 !important;
   }
-  
+
   .settings-header button {
     width: 100% !important;
     margin: 0 !important;
   }
-  
-  .settings-header > div:last-child {
+
+  .settings-header>div:last-child {
     display: none !important;
   }
-  
+
   .setting-group {
     margin-bottom: var(--spacing-lg) !important;
   }
-  
+
   .section-title {
     font-size: var(--font-size-lg) !important;
   }
-  
+
   .avatar-grid {
     grid-template-columns: repeat(4, 1fr) !important;
     gap: var(--spacing-sm) !important;
   }
-  
+
   .avatar-option {
     font-size: 1.5rem !important;
   }
@@ -141,7 +189,7 @@
   .app-overlay {
     padding: 12px 16px !important;
   }
-  
+
   .app-overlay-content {
     font-size: var(--font-size-sm) !important;
   }
@@ -153,12 +201,12 @@
     font-size: var(--font-size-sm) !important;
     padding: var(--spacing-xs) var(--spacing-sm) !important;
   }
-  
+
   .btn {
     font-size: var(--font-size-sm) !important;
     padding: var(--spacing-xs) var(--spacing-md) !important;
   }
-  
+
   .btn-large {
     padding: var(--spacing-sm) var(--spacing-lg) !important;
     font-size: var(--font-size-base) !important;
@@ -170,19 +218,16 @@
   .app {
     padding: var(--spacing-sm) !important;
   }
-  
+
   .home-layout {
     padding: var(--spacing-sm) !important;
   }
-  
+
   .card {
     padding: var(--spacing-sm) !important;
   }
-  
+
   .grid-3 {
     gap: var(--spacing-sm) !important;
   }
 }
-
-
-

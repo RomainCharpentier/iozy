@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
-import type { Category, Question } from '../../services/types'
+import type { Category, Question } from '../../types'
 import { connectSocket, getSocket, disconnectSocketIfConnected } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
 import { soundManager } from '../../utils/sounds'

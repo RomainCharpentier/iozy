@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
-import type { Question } from '../../../services/types'
+import type { Question } from '../../../types'
 import type { GameMode, Player } from '../../../lib/game/types'
 import { getPlayerId } from '../../../utils/playerId'
 import '../../../styles/answer-input.css'
@@ -215,7 +215,7 @@ export default function AnswerInput({
       <div className="answer-input-wrapper">
         <Popover.Anchor asChild>
           <motion.div 
-            className={`v5-enhanced-answer-actions variant-4 ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+            className={`game-interface-answer-actions variant-4 ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
             {...revealAnimation}
           >
             <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
@@ -227,7 +227,7 @@ export default function AnswerInput({
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyPress}
                 disabled={disabled}
-                className={`v5-enhanced-input with-skip ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''} ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+                className={`game-interface-input with-skip ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''} ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
                 aria-label="Zone de saisie de la réponse"
                 aria-autocomplete="list"
                 aria-expanded={shouldOpen}
@@ -236,12 +236,12 @@ export default function AnswerInput({
                 style={hasSubmitted && !isReveal ? { paddingRight: '3rem' } : {}}
               />
               {hasSubmitted && !isReveal && (
-                <span className="v5-enhanced-check-icon" title="Réponse enregistrée">✓</span>
+                <span className="game-interface-check-icon" title="Réponse enregistrée">✓</span>
               )}
             </div>
             {canSkip && (
               <button
-                className="v5-enhanced-skip variant-4"
+                className="game-interface-skip variant-4"
                 onClick={onSkipVote}
                 disabled={!canSkip}
                 title={
@@ -258,13 +258,13 @@ export default function AnswerInput({
               </button>
             )}
             {shouldOpen && (
-              <div className="v5-enhanced-suggestions">
+              <div className="game-interface-suggestions">
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion}
                     role="option"
                     aria-selected={index === selectedIndex}
-                    className={`v5-enhanced-suggestion ${index === selectedIndex ? 'active' : ''}`}
+                    className={`game-interface-suggestion ${index === selectedIndex ? 'active' : ''}`}
                     onClick={() => handleSuggestionClick(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     onMouseDown={(e) => {
@@ -277,13 +277,13 @@ export default function AnswerInput({
               </div>
             )}
             {isReveal && correctAnswer && (
-              <div className={`v5-enhanced-overlay ${isCorrect === false ? 'incorrect' : ''}`}>
-                <div className={`v5-enhanced-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}>
+              <div className={`game-interface-overlay ${isCorrect === false ? 'incorrect' : ''}`}>
+                <div className={`game-interface-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}>
                   {isCorrect === true ? '✓' : isCorrect === false ? '✗' : '✓'}
                 </div>
-                <div className="v5-enhanced-overlay-content">
-                  <div className="v5-enhanced-overlay-label">Réponse correcte</div>
-                  <div className="v5-enhanced-overlay-answer">{correctAnswer}</div>
+                <div className="game-interface-overlay-content">
+                  <div className="game-interface-overlay-label">Réponse correcte</div>
+                  <div className="game-interface-overlay-answer">{correctAnswer}</div>
                 </div>
               </div>
             )}

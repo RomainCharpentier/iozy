@@ -1,27 +1,8 @@
 /**
  * Service de questions - Gestion du stockage et manipulation des questions
  */
-import type { Category, Question, QuestionsData } from './types'
-
-// En production, utiliser VITE_SOCKET_URL (même serveur que Socket.io)
-// En développement, fallback sur localhost
-const getApiBaseUrl = () => {
-  if ((import.meta as any).env?.VITE_API_URL) {
-    return (import.meta as any).env.VITE_API_URL;
-  }
-  if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL;
-  }
-  // En développement uniquement
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001';
-  }
-  // En production, si aucune URL n'est définie, afficher une erreur
-  console.error('[API] VITE_SOCKET_URL ou VITE_API_URL doit être définie en production !');
-  throw new Error('VITE_SOCKET_URL or VITE_API_URL must be defined in production');
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import type { Category, Question, QuestionsData } from '../types'
+import { questionsApi, ApiError } from '../api'
 
 /**
  * Service de questions - API publique
@@ -113,11 +94,7 @@ export class QuestionService {
    */
   static async loadQuestions(): Promise<QuestionsData> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/questions`)
-      if (!response.ok) {
-        throw new Error('Failed to load questions')
-      }
-      return await response.json()
+      return await questionsApi.getAll()
     } catch (error) {
       console.error('Erreur lors du chargement des questions:', error)
       return { chansons: [], series: [], animes: [], films: [], jeux: [] }
@@ -141,7 +118,6 @@ export class QuestionService {
       const categories = Array.isArray(q.category) ? q.category : [q.category]
       categories.forEach(cat => {
         if (organized[cat]) {
-          // Éviter les doublons : vérifier si la question existe déjà dans cette catégorie
           const exists = organized[cat].some(existing => existing.id === q.id || existing.mediaUrl === q.mediaUrl)
           if (!exists) {
             organized[cat].push(q)
@@ -151,14 +127,7 @@ export class QuestionService {
     })
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/questions`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(organized)
-      })
-      if (!response.ok) {
-        throw new Error('Failed to save questions')
-      }
+      await questionsApi.saveAll(organized)
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des questions:', error)
       throw error
@@ -170,19 +139,13 @@ export class QuestionService {
    */
   static async addQuestion(question: Question): Promise<Question> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/questions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(question)
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to add question')
-      }
-      return await response.json()
+      return await questionsApi.create(question)
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la question:', error)
-      throw error
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to add question')
     }
   }
 
@@ -193,18 +156,13 @@ export class QuestionService {
    */
   static async deleteQuestion(questionId: string, category?: Category): Promise<void> {
     try {
-      const url = category
-        ? `${API_BASE_URL}/api/questions/${encodeURIComponent(questionId)}?category=${category}`
-        : `${API_BASE_URL}/api/questions/${encodeURIComponent(questionId)}`
-      const response = await fetch(url, {
-        method: 'DELETE'
-      })
-      if (!response.ok) {
-        throw new Error('Failed to delete question')
-      }
+      await questionsApi.delete(questionId, category)
     } catch (error) {
       console.error('Erreur lors de la suppression de la question:', error)
-      throw error
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete question')
     }
   }
 

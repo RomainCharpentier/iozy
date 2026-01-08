@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import type { Category, CategoryInfo } from '../../services/types'
+import type { Category, CategoryInfo } from '../../types'
 import '../../styles/category-selector.css'
 
 interface CategorySelectorProps {

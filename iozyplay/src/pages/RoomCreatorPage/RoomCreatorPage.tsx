@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '../../lib/game/GameContext'
-import type { Question } from '../../services/types'
+import type { Question } from '../../types'
 import RoomCreator from './RoomCreator'
 
 export default function RoomCreatorPage() {

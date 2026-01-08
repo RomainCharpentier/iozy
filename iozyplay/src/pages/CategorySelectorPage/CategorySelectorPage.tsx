@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useGameState } from '../../lib/game/GameContext'
 import CategorySelector from './CategorySelector'
-import type { Category } from '../../services/types'
+import type { Category } from '../../types'
 import type { GameMode, Player } from '../../lib/game/types'
 import { QuestionService } from '../../services/questionService'
 

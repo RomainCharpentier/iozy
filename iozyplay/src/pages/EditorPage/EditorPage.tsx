@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { QuestionService } from '../../services/questionService'
-import type { Question } from '../../services/types'
+import type { Question } from '../../types'
 import QuestionEditor from './QuestionEditor'
 import CategoryManager from './CategoryManager'
 

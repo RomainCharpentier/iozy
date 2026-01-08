@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { MediaType } from '../../services/types'
+import type { MediaType } from '../../types'
 import { isYouTubeUrl } from '../../utils/youtube'
 import YouTubePlayer from './players/YouTubePlayer'
 import AudioPlayer from './players/AudioPlayer'

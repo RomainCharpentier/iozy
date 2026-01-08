@@ -1,27 +1,8 @@
 /**
  * Service de gestion des catégories
  */
-import type { CategoryInfo } from './types'
-
-// En production, utiliser VITE_SOCKET_URL (même serveur que Socket.io)
-// En développement, fallback sur localhost
-const getApiBaseUrl = () => {
-  if ((import.meta as any).env?.VITE_API_URL) {
-    return (import.meta as any).env.VITE_API_URL;
-  }
-  if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL;
-  }
-  // En développement uniquement
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001';
-  }
-  // En production, si aucune URL n'est définie, afficher une erreur
-  console.error('[API] VITE_SOCKET_URL ou VITE_API_URL doit être définie en production !');
-  throw new Error('VITE_SOCKET_URL or VITE_API_URL must be defined in production');
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import type { CategoryInfo } from '../types'
+import { categoriesApi, ApiError } from '../api'
 
 /**
  * Liste d'icônes disponibles pour les catégories
@@ -55,11 +36,7 @@ export const AVAILABLE_ICONS = [
  */
 export async function loadCategories(): Promise<CategoryInfo[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/categories`)
-    if (!response.ok) {
-      throw new Error('Failed to load categories')
-    }
-    return await response.json()
+    return await categoriesApi.getAll()
   } catch (error) {
     console.error('Erreur lors du chargement des catégories:', error)
     return []
@@ -71,19 +48,13 @@ export async function loadCategories(): Promise<CategoryInfo[]> {
  */
 export async function createCategory(category: CategoryInfo): Promise<CategoryInfo> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/categories`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(category)
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to create category')
-    }
-    return await response.json()
+    return await categoriesApi.create(category)
   } catch (error) {
     console.error('Erreur lors de la création de la catégorie:', error)
-    throw error
+    if (error instanceof ApiError) {
+      throw error
+    }
+    throw new Error(error instanceof Error ? error.message : 'Failed to create category')
   }
 }
 
@@ -92,19 +63,13 @@ export async function createCategory(category: CategoryInfo): Promise<CategoryIn
  */
 export async function updateCategory(categoryId: string, updates: Partial<CategoryInfo>): Promise<CategoryInfo> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/categories/${encodeURIComponent(categoryId)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to update category')
-    }
-    return await response.json()
+    return await categoriesApi.update(categoryId, updates)
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la catégorie:', error)
-    throw error
+    if (error instanceof ApiError) {
+      throw error
+    }
+    throw new Error(error instanceof Error ? error.message : 'Failed to update category')
   }
 }
 
@@ -113,16 +78,13 @@ export async function updateCategory(categoryId: string, updates: Partial<Catego
  */
 export async function deleteCategory(categoryId: string): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/categories/${encodeURIComponent(categoryId)}`, {
-      method: 'DELETE'
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to delete category')
-    }
+    await categoriesApi.delete(categoryId)
   } catch (error) {
     console.error('Erreur lors de la suppression de la catégorie:', error)
-    throw error
+    if (error instanceof ApiError) {
+      throw error
+    }
+    throw new Error(error instanceof Error ? error.message : 'Failed to delete category')
   }
 }
 

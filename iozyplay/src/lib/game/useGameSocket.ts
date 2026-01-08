@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { getSocket } from '../../utils/socket'
 import { getPlayerId } from '../../utils/playerId'
-import type { Question } from '../../services/types'
+import type { Question } from '../../types'
 import type { Player } from './types'
 
 interface UseGameSocketParams {

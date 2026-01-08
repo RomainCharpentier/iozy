@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
-import type { Category, Question } from '../../services/types'
+import type { Category, Question } from '../../types'
 import type { GameMode, Player } from './types'
 
 interface GameState {

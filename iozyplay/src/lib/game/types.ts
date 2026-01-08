@@ -1,4 +1,4 @@
-import type { Question } from '../../services/types'
+import type { Question } from '../../types'
 
 export type GameMode = 'solo' | 'online';
 

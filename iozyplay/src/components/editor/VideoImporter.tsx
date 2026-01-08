@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { isYouTubePlaylistUrl, isYouTubeUrl, getPlaylistVideos, getYouTubeMetadata, type PlaylistVideo } from '../../utils/youtube'
-import type { Category } from '../../services/types'
-import type { CategoryInfo } from '../../services/types'
+import type { Category, CategoryInfo } from '../../types'
 import '../../styles/index.css'
 
 interface VideoWithAnswer {

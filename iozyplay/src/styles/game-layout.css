@@ -6,8 +6,10 @@
 /* Container principal - CSS Grid avec 3 zones fixes */
 .game {
   display: grid !important;
-  grid-template-columns: 1fr 300px !important; /* Main + PlayersPanel */
-  grid-template-rows: 72px 1fr 140px !important; /* TopBar + Main + BottomBar */
+  grid-template-columns: 1fr 300px !important;
+  /* Main + PlayersPanel */
+  grid-template-rows: 72px 1fr 140px !important;
+  /* TopBar + Main + BottomBar */
   gap: 0 !important;
   width: 100% !important;
   max-width: 1400px !important;
@@ -143,8 +145,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .topbar-quit-button {
@@ -181,7 +190,8 @@
 
 .question-card {
   display: grid !important;
-  grid-template-rows: auto 1fr auto !important; /* Header + Media + Bottom (sera extrait) */
+  grid-template-rows: auto 1fr auto !important;
+  /* Header + Media + Bottom (sera extrait) */
   gap: 16px !important;
   height: 100% !important;
   min-height: 0 !important;
@@ -229,7 +239,7 @@
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-.media-container > * {
+.media-container>* {
   width: 100% !important;
   height: 100% !important;
   display: flex !important;
@@ -291,8 +301,15 @@
 }
 
 @keyframes wave {
-  0%, 100% { transform: scaleY(0.5); }
-  50% { transform: scaleY(1); }
+
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 .audio-controls {
@@ -341,6 +358,7 @@
   border-radius: 4px !important;
   outline: none !important;
   -webkit-appearance: none !important;
+  appearance: none !important;
 }
 
 .audio-progress::-webkit-slider-thumb {
@@ -404,8 +422,10 @@
 /* Le contenu de la bottom bar vient de QuestionCard */
 /* On utilise le Grid parent pour aligner visuellement les éléments */
 .game-main {
-  margin-bottom: -140px !important; /* Compense la hauteur de la bottom bar */
-  padding-bottom: 156px !important; /* 140px (bottom bar) + 16px (padding) */
+  margin-bottom: -140px !important;
+  /* Compense la hauteur de la bottom bar */
+  padding-bottom: 156px !important;
+  /* 140px (bottom bar) + 16px (padding) */
 }
 
 .game-main .question-card .question-bottom-section {
@@ -505,6 +525,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -609,7 +630,7 @@
   font-weight: 800 !important;
   padding: 20px 24px !important;
   letter-spacing: 0.5px !important;
-  box-shadow: 
+  box-shadow:
     0 0 30px rgba(16, 185, 129, 0.6),
     0 0 60px rgba(16, 185, 129, 0.3),
     inset 0 0 20px rgba(16, 185, 129, 0.2) !important;
@@ -621,14 +642,17 @@
 }
 
 @keyframes revealGlow {
-  0%, 100% {
-    box-shadow: 
+
+  0%,
+  100% {
+    box-shadow:
       0 0 30px rgba(16, 185, 129, 0.6),
       0 0 60px rgba(16, 185, 129, 0.3),
       inset 0 0 20px rgba(16, 185, 129, 0.2) !important;
   }
+
   50% {
-    box-shadow: 
+    box-shadow:
       0 0 40px rgba(16, 185, 129, 0.8),
       0 0 80px rgba(16, 185, 129, 0.5),
       inset 0 0 30px rgba(16, 185, 129, 0.3) !important;
@@ -685,7 +709,7 @@
   font-weight: 800 !important;
   padding: 20px 24px !important;
   letter-spacing: 0.5px !important;
-  box-shadow: 
+  box-shadow:
     0 0 30px rgba(245, 158, 11, 0.5),
     0 0 60px rgba(245, 158, 11, 0.25),
     inset 0 0 20px rgba(245, 158, 11, 0.15) !important;
@@ -697,14 +721,17 @@
 }
 
 @keyframes revealPulse {
-  0%, 100% {
-    box-shadow: 
+
+  0%,
+  100% {
+    box-shadow:
       0 0 30px rgba(245, 158, 11, 0.5),
       0 0 60px rgba(245, 158, 11, 0.25),
       inset 0 0 20px rgba(245, 158, 11, 0.15) !important;
   }
+
   50% {
-    box-shadow: 
+    box-shadow:
       0 0 40px rgba(245, 158, 11, 0.7),
       0 0 80px rgba(245, 158, 11, 0.4),
       inset 0 0 30px rgba(245, 158, 11, 0.25) !important;
@@ -732,7 +759,8 @@
    ============================================ */
 .game-players-panel {
   grid-column: 2 !important;
-  grid-row: 2 / 4 !important; /* S'étend sur Main + BottomBar */
+  grid-row: 2 / 4 !important;
+  /* S'étend sur Main + BottomBar */
   display: flex !important;
   flex-direction: column !important;
   gap: 12px !important;
@@ -968,7 +996,8 @@
 @media (max-width: 1100px) {
   .game {
     grid-template-columns: 1fr !important;
-    grid-template-rows: 72px 1fr 140px auto !important; /* Ajoute une row pour PlayersPanel */
+    grid-template-rows: 72px 1fr 140px auto !important;
+    /* Ajoute une row pour PlayersPanel */
   }
 
   .game-players-panel {
@@ -1055,7 +1084,8 @@
   .game {
     padding: 8px !important;
     height: 100vh !important;
-    height: 100dvh !important; /* Support pour mobile avec barre d'adresse */
+    height: 100dvh !important;
+    /* Support pour mobile avec barre d'adresse */
   }
 
   .game-topbar {
@@ -1374,7 +1404,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-overlay {

@@ -53,24 +53,24 @@ export default function Score({
   }, [isPopup])
 
   const scoreContent = (
-    <div className="v5-enhanced-game-end">
-      <div className="v5-enhanced-end-icon">🏆</div>
-      <div className="v5-enhanced-end-title">Partie Terminée !</div>
-      <div className="v5-enhanced-end-subtitle">Félicitations à tous les participants</div>
-      <div className="v5-enhanced-end-stats">
-        <div className="v5-enhanced-end-stat">
-          <div className="v5-enhanced-end-stat-label">Votre Score</div>
-          <div className="v5-enhanced-end-stat-value">{currentPlayerScore} / {totalQuestions}</div>
+    <div className="game-interface-game-end">
+      <div className="game-interface-end-icon">🏆</div>
+      <div className="game-interface-end-title">Partie Terminée !</div>
+      <div className="game-interface-end-subtitle">Félicitations à tous les participants</div>
+      <div className="game-interface-end-stats">
+        <div className="game-interface-end-stat">
+          <div className="game-interface-end-stat-label">Votre Score</div>
+          <div className="game-interface-end-stat-value">{currentPlayerScore} / {totalQuestions}</div>
         </div>
-        <div className="v5-enhanced-end-stat">
-          <div className="v5-enhanced-end-stat-label">Taux de Réussite</div>
-          <div className="v5-enhanced-end-stat-value">{percentage}%</div>
+        <div className="game-interface-end-stat">
+          <div className="game-interface-end-stat-label">Taux de Réussite</div>
+          <div className="game-interface-end-stat-value">{percentage}%</div>
         </div>
       </div>
-      <div className="v5-enhanced-end-actions">
+      <div className="game-interface-end-actions">
         {(gameMode === 'solo' || isHost) && (
           <button 
-            className="v5-enhanced-end-btn primary" 
+            className="game-interface-end-btn primary" 
             onClick={() => {
               soundManager.playStart()
               onRestart()
@@ -80,7 +80,7 @@ export default function Score({
           </button>
         )}
         <button 
-          className="v5-enhanced-end-btn" 
+          className="game-interface-end-btn" 
           onClick={() => {
             soundManager.playClick()
             onQuit()

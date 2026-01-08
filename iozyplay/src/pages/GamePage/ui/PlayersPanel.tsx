@@ -39,7 +39,7 @@ export default function PlayersPanel({
   // Mettre à jour la classe du body parent
   const handleToggle = () => {
     setIsCollapsed(!isCollapsed)
-    const body = document.getElementById('v5-enhanced-body')
+    const body = document.getElementById('game-interface-body')
     if (body) {
       if (!isCollapsed) {
         body.classList.add('sidebar-collapsed')
@@ -51,16 +51,16 @@ export default function PlayersPanel({
 
   return (
     <>
-      <div className={`v5-enhanced-sidebar ${isCollapsed ? 'collapsed' : ''}`} data-testid="game-players-panel">
+      <div className={`game-interface-sidebar ${isCollapsed ? 'collapsed' : ''}`} data-testid="game-players-panel">
         {!isCollapsed ? (
           <>
-            <div className="v5-enhanced-sidebar-header">
-              <div className="v5-enhanced-sidebar-title-wrapper">
-                <span className="v5-enhanced-sidebar-title">{isGameEnded ? 'Classement Final' : 'Joueurs'}</span>
-                {!isGameEnded && <span className="v5-enhanced-sidebar-count">({players.length})</span>}
+            <div className="game-interface-sidebar-header">
+              <div className="game-interface-sidebar-title-wrapper">
+                <span className="game-interface-sidebar-title">{isGameEnded ? 'Classement Final' : 'Joueurs'}</span>
+                {!isGameEnded && <span className="game-interface-sidebar-count">({players.length})</span>}
               </div>
             </div>
-            <div className="v5-enhanced-players">
+            <div className="game-interface-players">
               {sortedPlayers.map((player, index) => {
                 const isCorrect = isTimeUp && correctPlayers.has(player.id)
                 const hasAnswered = !isTimeUp && answeredPlayers.has(player.id)
@@ -72,13 +72,13 @@ export default function PlayersPanel({
                 return (
                   <div
                     key={player.id}
-                    className={`v5-enhanced-player ${index === 0 && isGameEnded ? 'top winner' : index === 0 ? 'top' : ''} ${isCorrect ? 'correct' : ''} ${isTimeUp && isValidated && !isPlayerCorrect ? 'incorrect' : ''} ${isRequestingSkip ? 'skip-requesting' : ''}`}
+                    className={`game-interface-player ${index === 0 && isGameEnded ? 'top winner' : index === 0 ? 'top' : ''} ${isCorrect ? 'correct' : ''} ${isTimeUp && isValidated && !isPlayerCorrect ? 'incorrect' : ''} ${isRequestingSkip ? 'skip-requesting' : ''}`}
                   >
-                    <div className="v5-enhanced-player-rank">#{index + 1}</div>
-                    {index === 0 && isGameEnded && <div className="v5-enhanced-winner-crown">👑</div>}
-                    <div className="v5-enhanced-player-avatar">{player.name[0]}</div>
-                    <div className="v5-enhanced-player-info">
-                      <div className="v5-enhanced-player-name">
+                    <div className="game-interface-player-rank">#{index + 1}</div>
+                    {index === 0 && isGameEnded && <div className="game-interface-winner-crown">👑</div>}
+                    <div className="game-interface-player-avatar">{player.name[0]}</div>
+                    <div className="game-interface-player-info">
+                      <div className="game-interface-player-name">
                         {player.name}
                         {!isGameEnded && hasAnswered && <span className="answer-badge">✓</span>}
                         {!isGameEnded && isTimeUp && isValidated && (
@@ -88,22 +88,22 @@ export default function PlayersPanel({
                         )}
                       </div>
                       {isGameEnded && totalQuestions > 0 && (
-                        <div className="v5-enhanced-player-final-score">{player.score} / {totalQuestions}</div>
+                        <div className="game-interface-player-final-score">{player.score} / {totalQuestions}</div>
                       )}
                       {!isGameEnded && !isTimeUp && (
-                        <div className="v5-enhanced-player-answer">
+                        <div className="game-interface-player-answer">
                           {isRequestingSkip ? 'Demande le skip' : hasAnswered ? 'En cours...' : 'En attente...'}
                         </div>
                       )}
                       {!isGameEnded && isTimeUp && playerAnswer && (
-                        <div className={`v5-enhanced-player-answer ${isPlayerCorrect ? 'correct' : 'incorrect'}`}>
+                        <div className={`game-interface-player-answer ${isPlayerCorrect ? 'correct' : 'incorrect'}`}>
                           "{playerAnswer}"
                         </div>
                       )}
                     </div>
-                    <div className="v5-enhanced-player-score">{player.score}</div>
+                    <div className="game-interface-player-score">{player.score}</div>
                     {!isGameEnded && isTimeUp && isValidated && (
-                      <div className={`v5-enhanced-player-badge ${isPlayerCorrect ? 'correct' : 'incorrect'}`}>
+                      <div className={`game-interface-player-badge ${isPlayerCorrect ? 'correct' : 'incorrect'}`}>
                         {isPlayerCorrect ? '✓' : '✗'}
                       </div>
                     )}
@@ -113,11 +113,11 @@ export default function PlayersPanel({
             </div>
           </>
         ) : (
-          <div className="v5-enhanced-sidebar-compact">
-            <div className="v5-enhanced-compact-title">{isGameEnded ? 'Score Final' : 'Score'}</div>
-            <div className="v5-enhanced-compact-score">{currentPlayerScore}</div>
-            <div className="v5-enhanced-compact-divider"></div>
-            <div className="v5-enhanced-compact-players-list">
+          <div className="game-interface-sidebar-compact">
+            <div className="game-interface-compact-title">{isGameEnded ? 'Score Final' : 'Score'}</div>
+            <div className="game-interface-compact-score">{currentPlayerScore}</div>
+            <div className="game-interface-compact-divider"></div>
+            <div className="game-interface-compact-players-list">
               {sortedPlayers.map((player, index) => {
                 const isValidated = validatedAnswers[player.id] !== undefined
                 const isPlayerCorrect = validatedAnswers[player.id] === true
@@ -129,9 +129,9 @@ export default function PlayersPanel({
                   : ''
                 
                 return (
-                  <div key={player.id} className={`v5-enhanced-compact-player ${statusClass}`}>
-                    <div className="v5-enhanced-compact-player-avatar">{player.name[0]}</div>
-                    <div className="v5-enhanced-compact-player-score">{player.score}</div>
+                  <div key={player.id} className={`game-interface-compact-player ${statusClass}`}>
+                    <div className="game-interface-compact-player-avatar">{player.name[0]}</div>
+                    <div className="game-interface-compact-player-score">{player.score}</div>
                   </div>
                 )
               })}
@@ -141,7 +141,7 @@ export default function PlayersPanel({
       </div>
       
       <button 
-        className={`v5-enhanced-sidebar-toggle ${isCollapsed ? 'collapsed' : ''}`}
+        className={`game-interface-sidebar-toggle ${isCollapsed ? 'collapsed' : ''}`}
         onClick={handleToggle}
         title={isCollapsed ? 'Afficher les détails' : 'Masquer les détails'}
       >

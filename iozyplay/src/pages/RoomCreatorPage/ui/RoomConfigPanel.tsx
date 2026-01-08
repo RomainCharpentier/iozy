@@ -1,6 +1,5 @@
-import { type Category, type CategoryInfo } from '../../../services/types'
+import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '../../../types'
 import { loadCategories } from '../../../services/categoryService'
-import { DEFAULT_CATEGORIES } from '../../../services/types'
 import { TIMING } from '../../../services/gameService'
 import { soundManager } from '../../../utils/sounds'
 import { useState, useEffect } from 'react'

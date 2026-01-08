@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Question } from '../../../services/types'
+import type { Question } from '../../../types'
 import type { GameMode, Player } from '../../../lib/game/types'
 import MediaPlayer from '../../../components/media/MediaPlayer'
 import AnswerInput from './AnswerInput'
@@ -9,8 +9,8 @@ import { TIMING } from '../../../services/gameService'
 import { getPlayerId } from '../../../utils/playerId'
 import { compareAnswers } from '../../../utils/answerNormalization'
 import CategoryIcon from '../../../components/common/CategoryIcon'
-import type { CategoryInfo } from '../../../services/types'
-import { DEFAULT_CATEGORIES } from '../../../services/types'
+import type { CategoryInfo } from '../../../types'
+import { DEFAULT_CATEGORIES } from '../../../types'
 import { loadCategories } from '../../../services/categoryService'
 
 interface QuestionCardProps {
@@ -335,17 +335,17 @@ export default function QuestionCard({
   const categoryInfo = getCategoryInfo(categoryId)
 
   return (
-    <div className="question-card v5-enhanced-game">
-      <div className="v5-enhanced-game-header">
-        <div className="v5-enhanced-category">
-          <span className="v5-enhanced-category-icon">
+    <div className="question-card game-interface-game">
+      <div className="game-interface-game-header">
+        <div className="game-interface-category">
+          <span className="game-interface-category-icon">
             <CategoryIcon categoryId={categoryId} iconId={categoryInfo?.emoji} size={20} />
           </span>
-          <span className="v5-enhanced-category-text">{getCategoryLabel(question.category)}</span>
+          <span className="game-interface-category-text">{getCategoryLabel(question.category)}</span>
         </div>
       </div>
 
-      <div className="media-container v5-enhanced-media" data-testid="media-container">
+      <div className="media-container game-interface-media" data-testid="media-container">
         {question.mediaUrl && (
           <>
             {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
@@ -398,7 +398,7 @@ export default function QuestionCard({
         )}
       </div>
 
-      <div className="v5-enhanced-answer">
+      <div className="game-interface-answer">
         {gameMode === 'solo' ? (
           <>
             <AnswerInput

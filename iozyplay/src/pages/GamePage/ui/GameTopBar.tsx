@@ -1,5 +1,5 @@
 import { GameService } from '../../../services/gameService'
-import type { Question } from '../../../services/types'
+import type { Question } from '../../../types'
 import { soundManager } from '../../../utils/sounds'
 
 interface GameTopBarProps {
@@ -33,47 +33,47 @@ export default function GameTopBar({
   }
 
   return (
-    <div className="v5-enhanced-header" data-testid="game-topbar">
-      <div className="v5-enhanced-header-main">
-        <div className="v5-enhanced-progress-section">
-          <div className="v5-enhanced-progress-header">
+    <div className="game-interface-header" data-testid="game-topbar">
+      <div className="game-interface-header-main">
+        <div className="game-interface-progress-section">
+          <div className="game-interface-progress-header">
             {isGameEnded ? (
               <>
-                <span className="v5-enhanced-question">Question {totalQuestions}</span>
-                <span className="v5-enhanced-separator">sur</span>
-                <span className="v5-enhanced-total">{totalQuestions}</span>
+                <span className="game-interface-question">Question {totalQuestions}</span>
+                <span className="game-interface-separator">sur</span>
+                <span className="game-interface-total">{totalQuestions}</span>
               </>
             ) : (
               <>
-                <span className="v5-enhanced-question">Question {currentQuestionIndex + 1}</span>
-                <span className="v5-enhanced-separator">sur</span>
-                <span className="v5-enhanced-total">{totalQuestions}</span>
+                <span className="game-interface-question">Question {currentQuestionIndex + 1}</span>
+                <span className="game-interface-separator">sur</span>
+                <span className="game-interface-total">{totalQuestions}</span>
               </>
             )}
           </div>
-          <div className="v5-enhanced-progress-container">
-            <div className="v5-enhanced-progress-bar">
+          <div className="game-interface-progress-container">
+            <div className="game-interface-progress-bar">
               <div
-                className="v5-enhanced-progress-fill"
+                className="game-interface-progress-fill"
                 style={{ width: isGameEnded ? '100%' : `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%` }}
               />
             </div>
           </div>
         </div>
-        <div className="v5-enhanced-timer-section">
-          <div className="v5-enhanced-timer-icon" style={{ fontSize: '20px' }}>
+        <div className="game-interface-timer-section">
+          <div className="game-interface-timer-icon" style={{ fontSize: '20px' }}>
             {isGameEnded ? '🏁' : '⏱️'}
           </div>
-          <div className="v5-enhanced-timer-value">{isGameEnded ? 'Terminé' : formatTime(timeRemaining)}</div>
+          <div className="game-interface-timer-value">{isGameEnded ? 'Terminé' : formatTime(timeRemaining)}</div>
         </div>
-        <div className="v5-enhanced-score-section">
-          <div className="v5-enhanced-score-label">{isGameEnded ? 'Score Final' : 'Score'}</div>
-          <div className="v5-enhanced-score-value">{score}</div>
+        <div className="game-interface-score-section">
+          <div className="game-interface-score-label">{isGameEnded ? 'Score Final' : 'Score'}</div>
+          <div className="game-interface-score-value">{score}</div>
         </div>
       </div>
-      <div className="v5-enhanced-header-actions">
+      <div className="game-interface-header-actions">
         <button 
-          className="v5-enhanced-action-btn" 
+          className="game-interface-action-btn" 
           title="Fichiers"
           aria-label="Fichiers"
           disabled
@@ -82,7 +82,7 @@ export default function GameTopBar({
         </button>
         {onSettings && (
           <button 
-            className="v5-enhanced-action-btn" 
+            className="game-interface-action-btn" 
             onClick={() => {
               soundManager.playClick()
               onSettings()
@@ -93,7 +93,7 @@ export default function GameTopBar({
           </button>
         )}
         <button
-          className="v5-enhanced-action-btn danger"
+          className="game-interface-action-btn danger"
           onClick={() => {
             soundManager.playClick()
             onQuit()

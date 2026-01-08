@@ -3,7 +3,7 @@
  * Aucune dépendance externe
  */
 
-import { compareAnswers, normalizeAnswer } from '../utils/answerNormalization.js';
+import { compareAnswers, normalizeAnswer } from './answerUtils.js';
 
 /**
  * Démarre une partie dans un salon
