@@ -6,7 +6,8 @@ import { loadCategories, createCategory, updateCategory, deleteCategory } from '
 import { ALL_EMOJIS, EMOJI_CATEGORIES, getEmojisByGroup } from '../../utils/emojiList'
 import { QuestionService } from '../../services/questionService'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
-import type { CategoryInfo, Category, DEFAULT_CATEGORIES } from '../../types'
+import type { CategoryInfo, Category } from '../../types'
+import { DEFAULT_CATEGORIES } from '../../types'
 import { categorySchema, type CategoryFormData } from '../../schemas/categorySchema'
 
 interface CategoryManagerProps {

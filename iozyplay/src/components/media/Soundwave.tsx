@@ -41,7 +41,7 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
   return (
     <div className="audio-waves">
       {Array.from({ length: 20 }).map((_, index) => {
-        const height = activeBars.includes(index) 
+        const heightPercent = activeBars.includes(index) 
           ? (barHeightsRef.current[index] || 20)
           : 20
         
@@ -50,7 +50,9 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
             key={index}
             className={`wave-bar ${activeBars.includes(index) ? 'active' : ''}`}
             style={{
-              height: `${height}%`
+              height: `${heightPercent}%`,
+              minHeight: '20px',
+              maxHeight: '200px'
             }}
           />
         )

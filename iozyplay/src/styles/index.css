@@ -638,17 +638,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  height: 100%;
+  gap: 6px;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1rem;
 }
 
 .wave-bar {
   width: 8px;
+  max-width: 8px;
   background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
   border-radius: 4px;
   transition: height 0.3s ease;
-  min-height: 20%;
+  min-height: 20px;
+  flex-shrink: 0;
 }
 
 .wave-bar.active {

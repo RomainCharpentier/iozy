@@ -24,7 +24,17 @@ export default function AudioPlayer({
     const audio = audioRef.current
     if (!audio) return
 
+    let timeoutId: number | null = null
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+    }
+
     const handleCanPlay = () => {
+      cleanup()
       if (onMediaReady) {
         onMediaReady()
       }
@@ -52,8 +62,23 @@ export default function AudioPlayer({
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
     audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('error', () => {
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
+    })
+
+    // Timeout de 30 secondes pour le chargement
+    timeoutId = window.setTimeout(() => {
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
+    }, 30000)
 
     return () => {
+      cleanup()
       audio.removeEventListener('canplay', handleCanPlay)
       audio.removeEventListener('play', handlePlay)
       audio.removeEventListener('pause', handlePause)
@@ -83,13 +108,15 @@ export default function AudioPlayer({
   }, [mediaUrl])
 
   return (
-    <div className="audio-player" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-      <Soundwave isPlaying={isPlaying && !shouldPause} />
+    <div className="audio-player" style={{ width: '100%', height: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '1.5rem', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', minHeight: '120px', maxHeight: '200px', height: 'auto', overflow: 'visible' }}>
+        <Soundwave isPlaying={isPlaying && !shouldPause} />
+      </div>
       <audio
         ref={audioRef}
         src={mediaUrl}
         controls
-        style={{ width: '100%', maxWidth: '500px' }}
+        style={{ width: '100%', maxWidth: '500px', flexShrink: 0 }}
         preload="auto"
       />
     </div>

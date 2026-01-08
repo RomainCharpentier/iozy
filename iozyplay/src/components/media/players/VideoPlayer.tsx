@@ -42,7 +42,17 @@ export default function VideoPlayer({
     const video = audioVideoRef.current
     if (!video) return
 
+    let timeoutId: number | null = null
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+    }
+
     const handleCanPlay = () => {
+      cleanup()
       if (onMediaReady) {
         onMediaReady()
       }
@@ -70,8 +80,23 @@ export default function VideoPlayer({
     video.addEventListener('play', handlePlay)
     video.addEventListener('pause', handlePause)
     video.addEventListener('ended', handleEnded)
+    video.addEventListener('error', () => {
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
+    })
+
+    // Timeout de 30 secondes pour le chargement
+    timeoutId = window.setTimeout(() => {
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
+    }, 30000)
 
     return () => {
+      cleanup()
       video.removeEventListener('canplay', handleCanPlay)
       video.removeEventListener('play', handlePlay)
       video.removeEventListener('pause', handlePause)
@@ -175,7 +200,7 @@ export default function VideoPlayer({
   // Pendant la phase de devinette (showVideo = false), cacher la vidéo mais jouer l'audio et afficher les soundwaves
   // Pendant la phase de révélation (showVideo = true), montrer la vidéo
   return (
-    <div className="video-player" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', gap: '20px' }}>
+    <div className="video-player" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', gap: '20px', boxSizing: 'border-box' }}>
       <div style={{
         opacity: showVideo ? 0 : 1,
         visibility: showVideo ? 'hidden' : 'visible',
@@ -193,7 +218,9 @@ export default function VideoPlayer({
         bottom: 0,
         pointerEvents: showVideo ? 'none' : 'auto',
         zIndex: showVideo ? 0 : 5,
-        willChange: 'opacity'
+        willChange: 'opacity',
+        padding: '2rem',
+        boxSizing: 'border-box'
       }}>
         <Soundwave isPlaying={isPlaying && !shouldPause} />
       </div>
@@ -218,7 +245,9 @@ export default function VideoPlayer({
         zIndex: showVideo ? 10 : 0,
         transform: showVideo ? 'scale(1)' : 'scale(0.94)',
         filter: showVideo ? 'brightness(1) contrast(1)' : 'brightness(0.6) contrast(0.8)',
-        willChange: showVideo ? 'opacity, transform, filter' : 'auto'
+        willChange: showVideo ? 'opacity, transform, filter' : 'auto',
+        padding: '2rem',
+        boxSizing: 'border-box'
       }}>
         <video
           ref={displayVideoRef}
@@ -226,13 +255,15 @@ export default function VideoPlayer({
           controls={showVideo}
           muted={!showVideo}
           style={{ 
-            width: '100%',
-            height: '100%',
-            maxHeight: '500px',
+            width: 'auto',
+            height: 'auto',
+            maxHeight: '70vh',
+            maxWidth: '90%',
             objectFit: 'contain',
             borderRadius: '0.5rem',
             boxShadow: showVideo ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',
-            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.6s ease-in-out'
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.6s ease-in-out',
+            boxSizing: 'border-box'
           }}
           preload="auto"
         />

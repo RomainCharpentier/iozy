@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { soundManager } from '../../../utils/sounds'
 import type { GameMode, Player } from '../../../lib/game/types'
 import { GameService } from '../../../services/gameService'
@@ -14,6 +14,8 @@ interface ScoreProps {
   onModifySettings?: () => void
   onQuit: () => void
   isPopup?: boolean
+  onSoundPlayed?: () => void
+  shouldPlaySound?: boolean
 }
 
 export default function Score({ 
@@ -25,8 +27,12 @@ export default function Score({
   onRestart, 
   onModifySettings,
   onQuit,
-  isPopup = false
+  isPopup = false,
+  onSoundPlayed,
+  shouldPlaySound = true
 }: ScoreProps) {
+  const soundPlayedRef = useRef(false)
+  
   // Calculer le score du joueur actuel
   const currentPlayerScore = gameMode === 'solo' 
     ? score 
@@ -36,8 +42,12 @@ export default function Score({
 
   // Jouer le son de fin de partie une seule fois au montage du composant
   useEffect(() => {
-    soundManager.playSuccess() // Son de fin de partie
-  }, []) // Dépendances vides : jouer le son une seule fois au montage
+    if (shouldPlaySound && !soundPlayedRef.current) {
+      soundManager.playSuccess()
+      soundPlayedRef.current = true
+      onSoundPlayed?.()
+    }
+  }, [shouldPlaySound, onSoundPlayed])
 
   // Empêcher le scroll quand la popup est ouverte
   useEffect(() => {

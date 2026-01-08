@@ -224,9 +224,15 @@ export default function AnswerInput({
                 type="text"
                 placeholder={isReveal && hasSubmitted ? (isCorrect ? "Correct !" : isCorrect === false ? "Incorrect" : "Réponse enregistrée") : hasSubmitted ? "Réponse enregistrée" : placeholder}
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value
+                  if (newValue.length <= 200) {
+                    onChange(newValue)
+                  }
+                }}
                 onKeyDown={handleKeyPress}
                 disabled={disabled}
+                maxLength={200}
                 className={`game-interface-input with-skip ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''} ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
                 aria-label="Zone de saisie de la réponse"
                 aria-autocomplete="list"

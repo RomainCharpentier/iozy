@@ -60,18 +60,40 @@ export default function MediaPlayer({
         // Pour les images, considérer qu'elles sont prêtes immédiatement
         // car elles chargent très rapidement
         const img = new Image()
+        let timeoutId: number | null = null
+        
+        const cleanup = () => {
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+            timeoutId = null
+          }
+        }
+        
         img.onload = () => {
+          cleanup()
           if (onMediaReady) {
             onMediaReady()
           }
         }
         img.onerror = () => {
+          cleanup()
           // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
           if (onMediaReady) {
             onMediaReady()
           }
         }
+        
+        // Timeout de 30 secondes pour le chargement
+        timeoutId = window.setTimeout(() => {
+          cleanup()
+          if (onMediaReady) {
+            onMediaReady()
+          }
+        }, 30000)
+        
         img.src = mediaUrl
+        
+        return cleanup
       }
     }, [mediaUrl, onMediaReady])
 

@@ -14,6 +14,7 @@ export const TIMING = {
   CONNECTION_TIMEOUT: 10000,
   GAME_START_DELAY: 500,
   ROOM_JOIN_DELAY: 1000,
+  MEDIA_LOAD_TIMEOUT: 30000,
 } as const
 
 export const QUESTION_COUNT = {
@@ -43,6 +44,23 @@ export class GameService {
     if (percentage >= 60) return 'Bien joué !'
     if (percentage >= 40) return 'Pas mal !'
     return 'Continue comme ça !'
+  }
+
+  /**
+   * Valide et normalise un timeLimit
+   * Retourne une valeur entre MIN_TIME_LIMIT et MAX_TIME_LIMIT
+   */
+  static validateTimeLimit(timeLimit?: number | null): number {
+    if (!timeLimit || timeLimit <= 0) {
+      return TIMING.DEFAULT_TIME_LIMIT
+    }
+    if (timeLimit < TIMING.MIN_TIME_LIMIT) {
+      return TIMING.MIN_TIME_LIMIT
+    }
+    if (timeLimit > TIMING.MAX_TIME_LIMIT) {
+      return TIMING.MAX_TIME_LIMIT
+    }
+    return timeLimit
   }
 
   /**

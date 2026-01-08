@@ -57,6 +57,15 @@ export default function YouTubePlayer({
       return
     }
 
+    let timeoutId: number | null = null
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+    }
+
     // Créer le player avec l'API YouTube
     const playerConfig: YT.PlayerOptions = {
       videoId: videoId,
@@ -86,6 +95,13 @@ export default function YouTubePlayer({
             onMediaReady()
           }
         },
+        onError: (event: YT.OnErrorEvent) => {
+          console.error('YouTube Player Error:', event.data)
+          // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
+          if (onMediaReady) {
+            onMediaReady()
+          }
+        },
         onStateChange: (event: YT.OnStateChangeEvent) => {
           const state = event.data
 
@@ -108,21 +124,31 @@ export default function YouTubePlayer({
             hasStartedRef.current = false
           }
         },
-        onError: (event: YT.OnErrorEvent) => {
-          console.error('YouTube Player Error:', event.data)
-        }
       }
     }
+
+    // Timeout de 30 secondes pour le chargement
+    timeoutId = window.setTimeout(() => {
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
+    }, 30000)
 
     try {
       const player = new YT.Player(playerIdRef.current, playerConfig)
       playerRef.current = player
     } catch (err) {
       console.error('Error creating YouTube player:', err)
+      cleanup()
+      if (onMediaReady) {
+        onMediaReady()
+      }
     }
 
     // Cleanup
     return () => {
+      cleanup()
       if (playerRef.current) {
         try {
           playerRef.current.destroy()
@@ -238,29 +264,61 @@ export default function YouTubePlayer({
   }
 
   return (
-    <div className="youtube-player" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', gap: '20px' }}>
-      {!showVideo && (
-        // Phase de devinette : afficher seulement les soundwaves
-        <Soundwave isPlaying={isPlaying && !shouldPause} />
-      )}
-      {/* Container pour le player YouTube - toujours présent pour l'audio, masqué visuellement si showVideo est false */}
+    <div 
+      className="youtube-player" 
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        position: 'relative', 
+        gap: 0,
+        flexShrink: 0,
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Player YouTube - toujours présent pour l'audio, visible seulement si showVideo est true */}
       <div 
         ref={containerRef}
         style={{ 
-          width: '100%',
-          height: '100%',
           position: showVideo ? 'relative' : 'absolute',
-          left: showVideo ? 'auto' : '-9999px',
-          top: showVideo ? 'auto' : '-9999px',
-          opacity: showVideo ? 1 : 0,
-          visibility: showVideo ? 'visible' : 'hidden',
-          pointerEvents: showVideo ? 'auto' : 'none',
-          transition: 'opacity 0.5s ease-out, transform 0.5s ease-out',
-          transform: showVideo ? 'scale(1)' : 'scale(0.96)'
+          top: showVideo ? 'auto' : 0,
+          left: showVideo ? 'auto' : 0,
+          width: showVideo ? '100%' : '1px',
+          height: showVideo ? '100%' : '1px',
+          overflow: showVideo ? 'visible' : 'hidden',
+          clip: showVideo ? 'auto' : 'rect(0, 0, 0, 0)',
+          whiteSpace: showVideo ? 'normal' : 'nowrap',
+          transition: showVideo ? 'opacity 0.5s ease-out, transform 0.5s ease-out' : 'none',
+          transform: showVideo ? 'scale(1)' : 'none',
+          flex: showVideo ? '1 1 auto' : 'none',
+          minHeight: showVideo ? 0 : 'auto',
+          minWidth: showVideo ? 0 : 'auto',
+          zIndex: showVideo ? 1 : 0
         }}
       >
         <div id={playerIdRef.current} style={{ width: '100%', height: '100%' }} />
       </div>
+      {/* Soundwaves - affichées seulement si showVideo est false */}
+      {!showVideo && (
+        <div style={{ 
+          width: '100%', 
+          height: '100%', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          boxSizing: 'border-box',
+          flex: '1 1 auto',
+          minHeight: 0,
+          minWidth: 0,
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <Soundwave isPlaying={isPlaying && !shouldPause} />
+        </div>
+      )}
     </div>
   )
 }
