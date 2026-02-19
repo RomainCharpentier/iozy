@@ -161,7 +161,6 @@ export default function YouTubePlayer({
         setIsPlayerReady(false)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, YT, videoId]) // Ne recréer que si l'API est prête ou si la vidéo change
 
   // Gérer le changement de showVideo : relancer la vidéo à 0 quand on passe en phase reveal
