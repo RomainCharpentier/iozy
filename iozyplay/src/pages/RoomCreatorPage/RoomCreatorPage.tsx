@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGameState } from '../../lib/game/GameContext'
-import type { Question } from '../../types'
+import { useGameState } from '@/lib/game/GameContext'
+import type { Question } from '@/types'
 import RoomCreator from './RoomCreator'
 
 export default function RoomCreatorPage() {
@@ -26,7 +26,7 @@ export default function RoomCreatorPage() {
     } else if (questions && gameState) {
       // En mode solo, mettre à jour le gameState avec les questions configurées
       updateGameState({
-        questions: questions
+        questions: questions,
       })
     }
     startGame()
@@ -48,10 +48,3 @@ export default function RoomCreatorPage() {
     />
   )
 }
-
-
-
-
-
-
-

@@ -20,32 +20,33 @@ export default function ConfirmDialog({
   cancelText = 'Annuler',
   onConfirm,
   onCancel,
-  variant = 'danger'
+  variant = 'danger',
 }: ConfirmDialogProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onCancel()}>
       <Dialog.Portal>
         <Dialog.Overlay className="confirm-dialog-overlay" />
-        <Dialog.Content className="confirm-dialog" onEscapeKeyDown={onCancel} onInteractOutside={onCancel}>
+        <Dialog.Content
+          className="confirm-dialog"
+          onEscapeKeyDown={onCancel}
+          onInteractOutside={onCancel}
+        >
           <div className="confirm-dialog-header">
             {title && <Dialog.Title className="confirm-dialog-title">{title}</Dialog.Title>}
             <Dialog.Close asChild>
-              <button
-                type="button"
-                className="confirm-dialog-close"
-                aria-label="Fermer"
-              >
+              <button type="button" className="confirm-dialog-close" aria-label="Fermer">
                 <span style={{ fontSize: '18px' }}>✕</span>
               </button>
             </Dialog.Close>
           </div>
           <div className="confirm-dialog-body">
-            <div className={`confirm-dialog-icon confirm-dialog-icon-${variant}`} style={{ fontSize: '48px' }}>
+            <div
+              className={`confirm-dialog-icon confirm-dialog-icon-${variant}`}
+              style={{ fontSize: '48px' }}
+            >
               {variant === 'danger' ? '⚠️' : variant === 'warning' ? '⚠️' : 'ℹ️'}
             </div>
-            <Dialog.Description className="confirm-dialog-message">
-              {message}
-            </Dialog.Description>
+            <Dialog.Description className="confirm-dialog-message">{message}</Dialog.Description>
           </div>
           <div className="confirm-dialog-actions">
             <Dialog.Close asChild>

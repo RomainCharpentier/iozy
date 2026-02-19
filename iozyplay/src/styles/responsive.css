@@ -10,7 +10,7 @@
     gap: var(--spacing-md) !important;
   }
 
-  .room-creator-header>div:last-child {
+  .room-creator-header > div:last-child {
     width: 100% !important;
   }
 
@@ -124,12 +124,12 @@
     gap: var(--spacing-md) !important;
   }
 
-  .home-layout>div:first-child {
+  .home-layout > div:first-child {
     padding-left: var(--spacing-sm) !important;
     padding-right: var(--spacing-sm) !important;
   }
 
-  .home-layout>div:first-child>div[style*="position: absolute"] {
+  .home-layout > div:first-child > div[style*='position: absolute'] {
     position: relative !important;
     top: auto !important;
     right: auto !important;
@@ -162,7 +162,7 @@
     margin: 0 !important;
   }
 
-  .settings-header>div:last-child {
+  .settings-header > div:last-child {
     display: none !important;
   }
 

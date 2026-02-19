@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authService } from '../../services/authService'
-import { settingsService } from '../../services/settingsService'
-import { soundManager } from '../../utils/sounds'
+import { authService } from '@/services/authService'
+import { settingsService } from '@/services/settingsService'
+import { soundManager } from '@/utils/sounds'
 import '../../styles/auth-page.css'
 
 export default function AuthPage() {
@@ -20,17 +20,17 @@ export default function AuthPage() {
 
   const handleCreateAccount = async () => {
     if (!username.trim()) {
-      setError('Veuillez entrer un nom d\'utilisateur')
+      setError("Veuillez entrer un nom d'utilisateur")
       return
     }
 
     if (username.trim().length < 2) {
-      setError('Le nom d\'utilisateur doit contenir au moins 2 caractères')
+      setError("Le nom d'utilisateur doit contenir au moins 2 caractères")
       return
     }
 
     if (username.trim().length > 20) {
-      setError('Le nom d\'utilisateur ne doit pas dépasser 20 caractères')
+      setError("Le nom d'utilisateur ne doit pas dépasser 20 caractères")
       return
     }
 
@@ -39,7 +39,7 @@ export default function AuthPage() {
 
     try {
       const session = await authService.createAccount(username.trim())
-      
+
       // Mettre à jour les settings locaux
       settingsService.updateSetting('username', session.username)
 
@@ -68,11 +68,7 @@ export default function AuthPage() {
         </div>
 
         <div className="auth-content">
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
           <div className="auth-form">
             <div className="form-group">
@@ -115,4 +111,3 @@ export default function AuthPage() {
     </div>
   )
 }
-

@@ -17,13 +17,13 @@ const cache = new Map<string, CacheEntry>()
 export function getCachedMetadata(url: string): YouTubeMetadata | null {
   const entry = cache.get(url)
   if (!entry) return null
-  
+
   const now = Date.now()
   if (now - entry.timestamp > CACHE_DURATION) {
     cache.delete(url)
     return null
   }
-  
+
   return entry.metadata
 }
 
@@ -33,7 +33,7 @@ export function getCachedMetadata(url: string): YouTubeMetadata | null {
 export function setCachedMetadata(url: string, metadata: YouTubeMetadata): void {
   cache.set(url, {
     metadata,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   })
 }
 
@@ -43,17 +43,3 @@ export function setCachedMetadata(url: string, metadata: YouTubeMetadata): void 
 export function clearCache(): void {
   cache.clear()
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,13 +1,13 @@
 /**
  * Tests unitaires pour les utilitaires YouTube
  */
-import { 
-  isValidUrlFormat, 
-  isYouTubeUrl, 
-  extractYouTubeId, 
+import {
+  isValidUrlFormat,
+  isYouTubeUrl,
+  extractYouTubeId,
   getYouTubeThumbnailUrl,
-  getYouTubeThumbnailFromUrl
-} from '../youtube'
+  getYouTubeThumbnailFromUrl,
+} from '@/utils/youtube'
 
 describe('YouTube utilities', () => {
   describe('isValidUrlFormat', () => {
@@ -69,17 +69,3 @@ describe('YouTube utilities', () => {
     })
   })
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-

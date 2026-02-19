@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import toast from 'react-hot-toast'
-import { connectSocket, getSocket } from '../../utils/socket'
-import { getPlayerId } from '../../utils/playerId'
-import { soundManager } from '../../utils/sounds'
-import type { Player } from '../../lib/game/types'
-import { TIMING } from '../../services/gameService'
+import { toast } from 'sonner'
+import { connectSocket, getSocket } from '@/utils/socket'
+import { getPlayerId } from '@/utils/playerId'
+import { soundManager } from '@/utils/sounds'
+import type { Player } from '@/lib/game/types'
+import { TIMING } from '@/services/gameService'
 
 interface RoomJoinerProps {
   roomCode: string
@@ -17,7 +17,7 @@ export default function RoomJoiner({
   roomCode,
   playerName: initialPlayerName,
   onJoined,
-  onBack
+  onBack,
 }: RoomJoinerProps) {
   const [playerName, setPlayerName] = useState<string>(() => {
     // Utiliser le nom depuis les settings si disponible
@@ -46,7 +46,7 @@ export default function RoomJoiner({
 
   useEffect(() => {
     if (!hasJoined) return
-    
+
     const socket = connectSocket()
     const playerId = getPlayerId()
     const joinTimeoutsRef: number[] = []
@@ -55,7 +55,7 @@ export default function RoomJoiner({
       setPlayers(room.players || [])
       const myPlayer = room.players?.find((p: any) => p.id === playerId)
       setIsHost(myPlayer?.isHost || false)
-      
+
       // Si la partie a déjà commencé, rediriger immédiatement
       if (room.phase === 'playing') {
         setGameStarted(true)
@@ -75,7 +75,7 @@ export default function RoomJoiner({
         const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
         setIsHost(myPlayer?.isHost || false)
       }
-      
+
       if (state.phase === 'playing' && !gameStarted) {
         setGameStarted(true)
         const timeoutId = window.setTimeout(() => {
@@ -94,7 +94,7 @@ export default function RoomJoiner({
       joinTimeoutsRef.push(timeoutId)
     }
 
-    const handleError = ({ code, message }: { code: string, message: string }) => {
+    const handleError = ({ code, message }: { code: string; message: string }) => {
       // Ignorer l'erreur "GAME_ALREADY_STARTED" car le serveur envoie l'état de la partie
       if (code === 'GAME_ALREADY_STARTED') {
         return
@@ -123,18 +123,18 @@ export default function RoomJoiner({
     socket.emit('room:join', {
       roomCode,
       playerId,
-      playerName: playerName.trim()
+      playerName: playerName.trim(),
     })
 
     return () => {
-      joinTimeoutsRef.forEach(timeoutId => clearTimeout(timeoutId))
+      joinTimeoutsRef.forEach((timeoutId) => clearTimeout(timeoutId))
       socket.off('room:joined', handleRoomJoined)
       socket.off('room:rejoined', handleRoomJoined)
       socket.off('room:state', handleRoomState)
       socket.off('game:start', handleGameStarted)
       socket.off('error', handleError)
       socket.off('reconnect')
-      
+
       // Quitter le salon proprement
       if (socket.connected) {
         socket.emit('room:leave', { roomCode })
@@ -172,11 +172,13 @@ export default function RoomJoiner({
             <button className="back-button" onClick={onBack}>
               ← Retour
             </button>
-            <button 
-              className="start-button" 
+            <button
+              className="start-button"
               onClick={handleJoin}
               disabled={!playerName.trim()}
-              aria-label={!playerName.trim() ? 'Entrez votre nom pour rejoindre' : 'Rejoindre le salon'}
+              aria-label={
+                !playerName.trim() ? 'Entrez votre nom pour rejoindre' : 'Rejoindre le salon'
+              }
             >
               Rejoindre →
             </button>
@@ -190,11 +192,11 @@ export default function RoomJoiner({
     <div className="room-joiner">
       <div className="room-info-card">
         <h2>👥 Salon : {roomCode}</h2>
-        
+
         <div className="players-list">
           <h3>Joueurs ({players.length})</h3>
           <div className="players-grid">
-            {players.map(player => (
+            {players.map((player) => (
               <div
                 key={player.id}
                 className={`player-badge ${player.isHost ? 'host' : ''} ${!player.connected ? 'disconnected' : ''}`}
@@ -202,7 +204,15 @@ export default function RoomJoiner({
               >
                 {player.name}
                 {player.isHost && <span className="host-badge">👑</span>}
-                {!player.connected && <span className="disconnected-badge" title="Déconnecté" style={{ fontSize: '0.875rem' }}>⚠</span>}
+                {!player.connected && (
+                  <span
+                    className="disconnected-badge"
+                    title="Déconnecté"
+                    style={{ fontSize: '0.875rem' }}
+                  >
+                    ⚠
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -220,13 +230,16 @@ export default function RoomJoiner({
           </div>
         )}
 
-        <button className="back-button" onClick={() => {
-          const socket = getSocket()
-          if (socket && socket.connected) {
-            socket.emit('room:leave', { roomCode })
-          }
-          onBack()
-        }}>
+        <button
+          className="back-button"
+          onClick={() => {
+            const socket = getSocket()
+            if (socket && socket.connected) {
+              socket.emit('room:leave', { roomCode })
+            }
+            onBack()
+          }}
+        >
           ← Quitter le salon
         </button>
       </div>

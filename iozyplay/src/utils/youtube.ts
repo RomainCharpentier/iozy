@@ -15,9 +15,8 @@ export function isValidUrlFormat(url: string): boolean {
   try {
     // Essayer de créer un objet URL pour valider le format
     // On accepte les URLs avec ou sans protocole
-    const urlWithProtocol = url.startsWith('http://') || url.startsWith('https://')
-      ? url
-      : `https://${url}`
+    const urlWithProtocol =
+      url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`
     new URL(urlWithProtocol)
     return true
   } catch {
@@ -38,7 +37,7 @@ export function isYouTubeUrl(url: string): boolean {
 export function extractYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
   ]
 
   for (const pattern of patterns) {
@@ -68,11 +67,8 @@ export function extractPlaylistId(url: string): string | null {
   if (!isYouTubePlaylistUrl(url)) {
     return null
   }
-  
-  const patterns = [
-    /[?&]list=([^&\n?#]+)/,
-    /playlist\?list=([^&\n?#]+)/
-  ]
+
+  const patterns = [/[?&]list=([^&\n?#]+)/, /playlist\?list=([^&\n?#]+)/]
 
   for (const pattern of patterns) {
     const match = url.match(pattern)
@@ -105,16 +101,23 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVi
 
   try {
     // Utiliser l'endpoint backend pour récupérer les vidéos
-    const API_BASE_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '')
-    const response = await fetch(`${API_BASE_URL}/api/youtube/playlist/${encodeURIComponent(playlistId)}`)
-    
+    const API_BASE_URL =
+      import.meta.env.VITE_SOCKET_URL ||
+      import.meta.env.VITE_API_URL ||
+      (import.meta.env.DEV ? 'http://localhost:3001' : '')
+    const response = await fetch(
+      `${API_BASE_URL}/api/youtube/playlist/${encodeURIComponent(playlistId)}`
+    )
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erreur lors de la récupération de la playlist' }))
+      const error = await response
+        .json()
+        .catch(() => ({ error: 'Erreur lors de la récupération de la playlist' }))
       throw new Error(error.error || 'Erreur lors de la récupération de la playlist')
     }
 
     const data = await response.json()
-    
+
     if (!Array.isArray(data.videos)) {
       throw new Error('Format de réponse invalide')
     }
@@ -123,7 +126,7 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVi
       videoId: video.videoId,
       videoUrl: `https://www.youtube.com/watch?v=${video.videoId}`,
       title: video.title || 'Sans titre',
-      thumbnailUrl: getYouTubeThumbnailUrl(video.videoId)
+      thumbnailUrl: getYouTubeThumbnailUrl(video.videoId),
     }))
   } catch (error) {
     console.error('Error fetching playlist videos:', error)
@@ -131,7 +134,12 @@ export async function getPlaylistVideos(playlistUrl: string): Promise<PlaylistVi
   }
 }
 
-export function getYouTubeEmbedUrl(videoId: string, autoplay: boolean = false, showControls: boolean = false, loop: boolean = false): string {
+export function getYouTubeEmbedUrl(
+  videoId: string,
+  autoplay: boolean = false,
+  showControls: boolean = false,
+  loop: boolean = false
+): string {
   // Note: YouTube ne permet pas de désactiver les publicités via les paramètres d'embed
   // Les publicités dépendent de la monétisation de la vidéo et sont gérées par YouTube
   // Les bloqueurs de publicités (uBlock, AdBlock, etc.) peuvent bloquer les pubs côté client
@@ -145,7 +153,7 @@ export function getYouTubeEmbedUrl(videoId: string, autoplay: boolean = false, s
     disablekb: '1', // Désactiver le clavier
     fs: '0', // Désactiver le plein écran
     iv_load_policy: '3', // Masquer les annotations
-    playsinline: '1' // Lecture inline sur mobile
+    playsinline: '1', // Lecture inline sur mobile
   }
 
   // Ajouter loop et playlist seulement si loop est activé
@@ -194,7 +202,10 @@ export interface YouTubeMetadata {
  * @param useCache Si true, utilise le cache (défaut: true)
  * @returns Les métadonnées ou null si l'URL n'est pas valide
  */
-export async function getYouTubeMetadata(url: string, useCache: boolean = true): Promise<YouTubeMetadata | null> {
+export async function getYouTubeMetadata(
+  url: string,
+  useCache: boolean = true
+): Promise<YouTubeMetadata | null> {
   if (!isYouTubeUrl(url)) {
     return null
   }
@@ -236,7 +247,7 @@ export async function getYouTubeMetadata(url: string, useCache: boolean = true):
     const metadata: YouTubeMetadata = {
       title: data.title || '',
       thumbnailUrl: getYouTubeThumbnailUrl(videoId),
-      videoId: videoId
+      videoId: videoId,
     }
 
     // Mettre en cache

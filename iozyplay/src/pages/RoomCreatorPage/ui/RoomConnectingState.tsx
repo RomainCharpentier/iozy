@@ -4,27 +4,35 @@ interface RoomConnectingStateProps {
   onBack: () => void
 }
 
-export default function RoomConnectingState({ isConnecting, error, onBack }: RoomConnectingStateProps) {
+export default function RoomConnectingState({
+  isConnecting,
+  error,
+  onBack,
+}: RoomConnectingStateProps) {
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      minHeight: 'calc(100vh - 4rem)',
-      flexDirection: 'column',
-      gap: 'var(--spacing-md)'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 4rem)',
+        flexDirection: 'column',
+        gap: 'var(--spacing-md)',
+      }}
+    >
       <h2 style={{ fontSize: 'var(--font-size-xl)' }}>Création du salon...</h2>
       {isConnecting && (
         <>
-          <div style={{
-            width: '50px',
-            height: '50px',
-            border: '4px solid var(--border)',
-            borderTopColor: 'var(--accent-primary)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
+          <div
+            style={{
+              width: '50px',
+              height: '50px',
+              border: '4px solid var(--border)',
+              borderTopColor: 'var(--accent-primary)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          ></div>
           <p className="text-secondary">Connexion au serveur...</p>
         </>
       )}
@@ -42,4 +50,3 @@ export default function RoomConnectingState({ isConnecting, error, onBack }: Roo
     </div>
   )
 }
-

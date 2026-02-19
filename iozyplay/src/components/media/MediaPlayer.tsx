@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { MediaType } from '../../types'
-import { isYouTubeUrl } from '../../utils/youtube'
+import type { MediaType } from '@/types'
+import { isYouTubeUrl } from '@/utils/youtube'
 import YouTubePlayer from './players/YouTubePlayer'
 import AudioPlayer from './players/AudioPlayer'
 import VideoPlayer from './players/VideoPlayer'
@@ -20,9 +20,9 @@ interface MediaPlayerProps {
   startTime?: number // Timestamp serveur pour synchroniser le démarrage
 }
 
-export default function MediaPlayer({ 
-  type, 
-  mediaUrl, 
+export default function MediaPlayer({
+  type,
+  mediaUrl,
   autoPlay = false,
   showVideo = false,
   restartVideo = false,
@@ -32,13 +32,13 @@ export default function MediaPlayer({
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
-  startTime
+  startTime,
 }: MediaPlayerProps) {
   // Si c'est une URL YouTube, utiliser le composant YouTube
   if (isYouTubeUrl(mediaUrl)) {
     return (
-      <YouTubePlayer 
-        mediaUrl={mediaUrl} 
+      <YouTubePlayer
+        mediaUrl={mediaUrl}
         autoPlay={autoPlay}
         showVideo={showVideo}
         restartVideo={restartVideo}
@@ -61,14 +61,14 @@ export default function MediaPlayer({
         // car elles chargent très rapidement
         const img = new Image()
         let timeoutId: number | null = null
-        
+
         const cleanup = () => {
           if (timeoutId) {
             clearTimeout(timeoutId)
             timeoutId = null
           }
         }
-        
+
         img.onload = () => {
           cleanup()
           if (onMediaReady) {
@@ -82,7 +82,7 @@ export default function MediaPlayer({
             onMediaReady()
           }
         }
-        
+
         // Timeout de 30 secondes pour le chargement
         timeoutId = window.setTimeout(() => {
           cleanup()
@@ -90,20 +90,38 @@ export default function MediaPlayer({
             onMediaReady()
           }
         }, 30000)
-        
+
         img.src = mediaUrl
-        
+
         return cleanup
       }
     }, [mediaUrl, onMediaReady])
 
     return (
-      <div className="media-player image-player" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={mediaUrl} alt="Blindtest" className="blindtest-image" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '0.5rem' }} />
+      <div
+        className="media-player image-player"
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <img
+          src={mediaUrl}
+          alt="Blindtest"
+          className="blindtest-image"
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+            borderRadius: '0.5rem',
+          }}
+        />
       </div>
     )
   }
-
 
   if (type === 'audio') {
     return (
@@ -137,4 +155,3 @@ export default function MediaPlayer({
 
   return null
 }
-

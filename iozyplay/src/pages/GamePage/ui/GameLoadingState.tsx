@@ -5,11 +5,11 @@ interface GameLoadingStateProps {
   onBack?: () => void
 }
 
-export default function GameLoadingState({ 
-  message, 
-  subMessage, 
+export default function GameLoadingState({
+  message,
+  subMessage,
   showSpinner = true,
-  onBack 
+  onBack,
 }: GameLoadingStateProps) {
   return (
     <div className="no-questions">
@@ -26,4 +26,3 @@ export default function GameLoadingState({
     </div>
   )
 }
-

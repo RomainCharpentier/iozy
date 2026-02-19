@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import type { Category, CategoryInfo } from '../../types'
+import type { Category, CategoryInfo } from '@/types'
 import '../../styles/category-selector.css'
 
 interface CategorySelectorProps {
@@ -15,7 +15,7 @@ export default function CategorySelector({
   selectedCategories,
   onSelectionChange,
   multiple = true,
-  required = true
+  required = true,
 }: CategorySelectorProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -25,9 +25,8 @@ export default function CategorySelector({
       return categories
     }
     const query = searchQuery.toLowerCase().trim()
-    return categories.filter(cat => 
-      cat.name.toLowerCase().includes(query) ||
-      cat.id.toLowerCase().includes(query)
+    return categories.filter(
+      (cat) => cat.name.toLowerCase().includes(query) || cat.id.toLowerCase().includes(query)
     )
   }, [categories, searchQuery])
 
@@ -36,7 +35,7 @@ export default function CategorySelector({
       // Sélection multiple
       if (selectedCategories.includes(categoryId)) {
         // En mode multiple, on peut désélectionner
-        const newSelection = selectedCategories.filter(id => id !== categoryId)
+        const newSelection = selectedCategories.filter((id) => id !== categoryId)
         onSelectionChange(newSelection)
       } else {
         onSelectionChange([...selectedCategories, categoryId])
@@ -82,7 +81,7 @@ export default function CategorySelector({
           </div>
         ) : (
           <div className="category-cards-grid">
-            {filteredCategories.map(category => {
+            {filteredCategories.map((category) => {
               const isSelected = selectedCategories.includes(category.id)
               return (
                 <button
@@ -96,9 +95,7 @@ export default function CategorySelector({
                     {category.emoji}
                   </span>
                   <span className="category-name-text">{category.name}</span>
-                  {isSelected && (
-                    <span className="selected-indicator">✓</span>
-                  )}
+                  {isSelected && <span className="selected-indicator">✓</span>}
                 </button>
               )
             })}
@@ -109,18 +106,20 @@ export default function CategorySelector({
       {/* Compteur de sélection */}
       {multiple && selectedCategories.length > 0 && (
         <div className="category-selection-count">
-          {selectedCategories.length} catégorie{selectedCategories.length > 1 ? 's' : ''} sélectionnée{selectedCategories.length > 1 ? 's' : ''}
+          {selectedCategories.length} catégorie{selectedCategories.length > 1 ? 's' : ''}{' '}
+          sélectionnée{selectedCategories.length > 1 ? 's' : ''}
         </div>
       )}
 
       {/* Message d'erreur si requis et aucune sélection */}
       {required && selectedCategories.length === 0 && (
         <div className="category-selector-error">
-          <span className="error-icon" style={{ fontSize: '1rem' }}>⚠</span>
+          <span className="error-icon" style={{ fontSize: '1rem' }}>
+            ⚠
+          </span>
           <span>Veuillez sélectionner au moins une catégorie</span>
         </div>
       )}
     </div>
   )
 }
-

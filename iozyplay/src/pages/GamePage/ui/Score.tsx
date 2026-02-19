@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { soundManager } from '../../../utils/sounds'
-import type { GameMode, Player } from '../../../lib/game/types'
-import { GameService } from '../../../services/gameService'
-import { getPlayerId } from '../../../utils/playerId'
+import { soundManager } from '@/utils/sounds'
+import type { GameMode, Player } from '@/lib/game/types'
+import { GameService } from '@/services/gameService'
+import { getPlayerId } from '@/utils/playerId'
 
 interface ScoreProps {
   score: number
@@ -18,26 +18,25 @@ interface ScoreProps {
   shouldPlaySound?: boolean
 }
 
-export default function Score({ 
-  score, 
-  totalQuestions, 
+export default function Score({
+  score,
+  totalQuestions,
   gameMode = 'solo',
   players = [],
   isHost = true,
-  onRestart, 
+  onRestart,
   onModifySettings,
   onQuit,
   isPopup = false,
   onSoundPlayed,
-  shouldPlaySound = true
+  shouldPlaySound = true,
 }: ScoreProps) {
   const soundPlayedRef = useRef(false)
-  
+
   // Calculer le score du joueur actuel
-  const currentPlayerScore = gameMode === 'solo' 
-    ? score 
-    : (players.find(p => p.id === getPlayerId())?.score || 0)
-  
+  const currentPlayerScore =
+    gameMode === 'solo' ? score : players.find((p) => p.id === getPlayerId())?.score || 0
+
   const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
   // Jouer le son de fin de partie une seule fois au montage du composant
@@ -56,7 +55,7 @@ export default function Score({
     } else {
       document.body.style.overflow = 'unset'
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -70,7 +69,9 @@ export default function Score({
       <div className="game-interface-end-stats">
         <div className="game-interface-end-stat">
           <div className="game-interface-end-stat-label">Votre Score</div>
-          <div className="game-interface-end-stat-value">{currentPlayerScore} / {totalQuestions}</div>
+          <div className="game-interface-end-stat-value">
+            {currentPlayerScore} / {totalQuestions}
+          </div>
         </div>
         <div className="game-interface-end-stat">
           <div className="game-interface-end-stat-label">Taux de Réussite</div>
@@ -79,8 +80,8 @@ export default function Score({
       </div>
       <div className="game-interface-end-actions">
         {(gameMode === 'solo' || isHost) && (
-          <button 
-            className="game-interface-end-btn primary" 
+          <button
+            className="game-interface-end-btn primary"
             onClick={() => {
               soundManager.playStart()
               onRestart()
@@ -89,8 +90,8 @@ export default function Score({
             🔄 Rejouer
           </button>
         )}
-        <button 
-          className="game-interface-end-btn" 
+        <button
+          className="game-interface-end-btn"
           onClick={() => {
             soundManager.playClick()
             onQuit()
@@ -106,11 +107,5 @@ export default function Score({
     return scoreContent
   }
 
-  return (
-    <div className="score-screen">
-      {scoreContent}
-    </div>
-  )
+  return <div className="score-screen">{scoreContent}</div>
 }
-
-

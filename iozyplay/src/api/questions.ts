@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { Question, QuestionsData, Category } from '../types'
+import type { Question, QuestionsData, Category } from '@/types'
 
 export const questionsApi = {
   getAll: async (): Promise<QuestionsData> => {

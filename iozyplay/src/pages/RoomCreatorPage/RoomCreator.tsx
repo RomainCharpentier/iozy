@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import toast from 'react-hot-toast'
-import type { Category, Question } from '../../types'
-import { connectSocket, getSocket, disconnectSocketIfConnected } from '../../utils/socket'
-import { getPlayerId } from '../../utils/playerId'
-import { soundManager } from '../../utils/sounds'
-import { TIMING, QUESTION_COUNT } from '../../services/gameService'
-import { QuestionService } from '../../services/questionService'
+import { toast } from 'sonner'
+import type { Category, Question } from '@/types'
+import { connectSocket, getSocket, disconnectSocketIfConnected } from '@/utils/socket'
+import { getPlayerId } from '@/utils/playerId'
+import { soundManager } from '@/utils/sounds'
+import { TIMING, QUESTION_COUNT } from '@/services/gameService'
+import { QuestionService } from '@/services/questionService'
 import RoomConnectingState from './ui/RoomConnectingState'
 import RoomPlayersPanel from './ui/RoomPlayersPanel'
 import RoomConfigPanel from './ui/RoomConfigPanel'
@@ -26,7 +26,7 @@ export default function RoomCreator({
   playerName: initialPlayerName,
   gameMode = 'online',
   onRoomCreated,
-  onBack
+  onBack,
 }: RoomCreatorProps) {
   const isSoloMode = gameMode === 'solo'
   const [roomCode, setRoomCode] = useState<string | null>(null)
@@ -85,11 +85,17 @@ export default function RoomCreator({
 
         // Calculer maxCount et defaultCount
         const maxCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.MAX, availableCount))
-        const defaultCount = Math.max(QUESTION_COUNT.MIN, Math.min(QUESTION_COUNT.DEFAULT, maxCount))
+        const defaultCount = Math.max(
+          QUESTION_COUNT.MIN,
+          Math.min(QUESTION_COUNT.DEFAULT, maxCount)
+        )
 
-        setQuestionCount(prev => {
+        setQuestionCount((prev) => {
           // Vérifier que prev est un nombre valide
-          const prevValue = typeof prev === 'number' && !isNaN(prev) && isFinite(prev) && prev >= QUESTION_COUNT.MIN ? prev : null
+          const prevValue =
+            typeof prev === 'number' && !isNaN(prev) && isFinite(prev) && prev >= QUESTION_COUNT.MIN
+              ? prev
+              : null
 
           // Si prev est invalide ou 0, utiliser la valeur par défaut
           if (prevValue === null || prevValue === 0) {
@@ -130,16 +136,18 @@ export default function RoomCreator({
           playerId,
           playerName: playerName || 'Hôte',
           categories,
-          defaultTimeLimit: timeLimit
+          defaultTimeLimit: timeLimit,
         })
       }
 
       const handleConnectError = () => {
         setIsConnecting(false)
-        setError('Impossible de se connecter au serveur. Assurez-vous que le serveur backend est démarré (port 3001).')
+        setError(
+          'Impossible de se connecter au serveur. Assurez-vous que le serveur backend est démarré (port 3001).'
+        )
       }
 
-      const handleRoomCreated = ({ roomCode: code, room }: { roomCode: string, room: any }) => {
+      const handleRoomCreated = ({ roomCode: code, room }: { roomCode: string; room: any }) => {
         setRoomCode(code)
         setPlayers(room.players || [])
         const hostPlayer = room.players?.find((p: any) => p.isHost)
@@ -171,7 +179,7 @@ export default function RoomCreator({
         }
       }
 
-      const handleError = ({ code, message }: { code: string, message: string }) => {
+      const handleError = ({ code, message }: { code: string; message: string }) => {
         setError(`Erreur: ${message}`)
         setIsConnecting(false)
       }
@@ -223,7 +231,7 @@ export default function RoomCreator({
 
     socket.emit('update-player-name', {
       roomCode,
-      playerName: playerName.trim()
+      playerName: playerName.trim(),
     })
 
     setCurrentPlayerName(playerName.trim())
@@ -243,10 +251,10 @@ export default function RoomCreator({
 
   const handleStartGame = async () => {
     if (isStartingGame) return
-    
+
     setIsStartingGame(true)
     isStartingGameRef.current = true
-    
+
     try {
       // En mode solo, démarrer directement sans socket
       if (isSoloMode) {
@@ -262,123 +270,126 @@ export default function RoomCreator({
 
         const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
         const limitedQuestions = shuffledQuestions.slice(0, questionCount)
-        const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+        const questionsWithTimer = QuestionService.applyDefaultTimeLimit(
+          limitedQuestions,
+          timeLimit
+        )
 
         if (!questionsWithTimer || questionsWithTimer.length === 0) {
           toast.error('Erreur : Aucune question disponible après traitement.', {
             icon: '❌',
           })
+          return
+        }
+
+        soundManager.playStart()
+        onRoomCreated('SOLO', questionsWithTimer)
+        setIsStartingGame(false)
+        isStartingGameRef.current = false
         return
       }
 
+      // Mode multijoueur : utiliser le socket
+      const socket = getSocket()
+      if (!socket) {
+        toast.error('Erreur : Socket non disponible. Veuillez rafraîchir la page.', {
+          icon: '⚠️',
+        })
+        return
+      }
+
+      if (!roomCode) {
+        toast.error('Erreur : Code de salon manquant.', {
+          icon: '⚠️',
+        })
+        return
+      }
+
+      const allQuestions = await QuestionService.getQuestionsForCategories(categories)
+      if (allQuestions.length === 0) {
+        toast.error('Erreur : Aucune question disponible.', {
+          icon: '❌',
+        })
+        return
+      }
+
+      const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
+      const limitedQuestions = shuffledQuestions.slice(0, questionCount)
+      const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
+
       soundManager.playStart()
-      onRoomCreated('SOLO', questionsWithTimer)
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
-      return
-    }
-
-    // Mode multijoueur : utiliser le socket
-    const socket = getSocket()
-    if (!socket) {
-      toast.error('Erreur : Socket non disponible. Veuillez rafraîchir la page.', {
-        icon: '⚠️',
-      })
-      return
-    }
-
-    if (!roomCode) {
-      toast.error('Erreur : Code de salon manquant.', {
-        icon: '⚠️',
-      })
-      return
-    }
-
-    const allQuestions = await QuestionService.getQuestionsForCategories(categories)
-    if (allQuestions.length === 0) {
-      toast.error('Erreur : Aucune question disponible.', {
-        icon: '❌',
-      })
-      return
-    }
-
-    const shuffledQuestions = QuestionService.shuffleQuestions(allQuestions)
-    const limitedQuestions = shuffledQuestions.slice(0, questionCount)
-    const questionsWithTimer = QuestionService.applyDefaultTimeLimit(limitedQuestions, timeLimit)
-
-    soundManager.playStart()
-    isStartingGameRef.current = true
+      isStartingGameRef.current = true
 
       if (!socket.connected) {
-      toast.error('Erreur : Socket non connecté. Veuillez rafraîchir la page.', {
-        icon: '⚠️',
-      })
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
-      return
-    }
+        toast.error('Erreur : Socket non connecté. Veuillez rafraîchir la page.', {
+          icon: '⚠️',
+        })
+        setIsStartingGame(false)
+        isStartingGameRef.current = false
+        return
+      }
 
-    let timeoutId: number | null = null
+      let timeoutId: number | null = null
 
-    const handleGameStarted = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      const handleGameStarted = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        socket.off('game:start', handleGameStarted)
+        socket.off('error', handleError)
+        setIsStartingGame(false)
+        isStartingGameRef.current = false
+        onRoomCreated(roomCode)
+      }
+
+      const handleError = ({ code, message }: { code: string; message: string }) => {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        socket.off('game:start', handleGameStarted)
+        socket.off('error', handleError)
+        toast.error(`Erreur : ${message}`, {
+          icon: '⚠️',
+        })
+        isStartingGameRef.current = false
+      }
+
+      timeoutId = window.setTimeout(() => {
         timeoutId = null
+        socket.off('game:start', handleGameStarted)
+        socket.off('error', handleError)
+        toast.error('Le serveur ne répond pas. Veuillez réessayer.', {
+          icon: '⏱️',
+        })
+        setIsStartingGame(false)
+        isStartingGameRef.current = false
+      }, 5000)
+
+      socket.on('game:start', handleGameStarted)
+      socket.on('error', handleError)
+
+      if (!questionsWithTimer || questionsWithTimer.length === 0) {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+        socket.off('game:start', handleGameStarted)
+        socket.off('error', handleError)
+        toast.error('Erreur : Aucune question disponible après traitement.', {
+          icon: '❌',
+        })
+        setIsStartingGame(false)
+        isStartingGameRef.current = false
+        return
       }
-      socket.off('game:start', handleGameStarted)
-      socket.off('error', handleError)
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
-      onRoomCreated(roomCode)
-    }
 
-    const handleError = ({ code, message }: { code: string, message: string }) => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
-      }
-      socket.off('game:start', handleGameStarted)
-      socket.off('error', handleError)
-      toast.error(`Erreur : ${message}`, {
-        icon: '⚠️',
+      socket.emit('game:start', {
+        roomCode,
+        questions: questionsWithTimer,
+        defaultTimeLimit: timeLimit,
+        questionCount: questionCount,
       })
-      isStartingGameRef.current = false
-    }
-
-    timeoutId = window.setTimeout(() => {
-      timeoutId = null
-      socket.off('game:start', handleGameStarted)
-      socket.off('error', handleError)
-      toast.error('Le serveur ne répond pas. Veuillez réessayer.', {
-        icon: '⏱️',
-      })
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
-    }, 5000)
-
-    socket.on('game:start', handleGameStarted)
-    socket.on('error', handleError)
-
-    if (!questionsWithTimer || questionsWithTimer.length === 0) {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-      socket.off('game:start', handleGameStarted)
-      socket.off('error', handleError)
-      toast.error('Erreur : Aucune question disponible après traitement.', {
-        icon: '❌',
-      })
-      setIsStartingGame(false)
-      isStartingGameRef.current = false
-      return
-    }
-
-    socket.emit('game:start', {
-      roomCode,
-      questions: questionsWithTimer,
-      defaultTimeLimit: timeLimit,
-      questionCount: questionCount
-    })
     } catch (error) {
       setIsStartingGame(false)
       isStartingGameRef.current = false
@@ -386,13 +397,7 @@ export default function RoomCreator({
   }
 
   if (!isSoloMode && !roomCode) {
-    return (
-      <RoomConnectingState
-        isConnecting={isConnecting}
-        error={error}
-        onBack={onBack}
-      />
-    )
+    return <RoomConnectingState isConnecting={isConnecting} error={error} onBack={onBack} />
   }
 
   const getStartError = (): string | null => {
@@ -402,46 +407,46 @@ export default function RoomCreator({
       return null
     }
     if (!currentPlayerName) return 'Vous devez définir votre nom pour démarrer'
-    if (players.length === 0) return 'Attendez qu\'au moins un joueur rejoigne'
+    if (players.length === 0) return "Attendez qu'au moins un joueur rejoigne"
     if (availableQuestionsCount === 0) return 'Aucune question disponible'
     return null
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: 'calc(100vh - 4rem)',
-      maxWidth: '100%',
-      margin: '0',
-      width: '100%'
-    }}>
-      {/* Header */}
-      <div style={{
+    <div
+      style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 'var(--spacing-lg)',
-        paddingBottom: 'var(--spacing-md)',
-        borderBottom: '1px solid var(--border)'
-      }}>
+        flexDirection: 'column',
+        minHeight: 'calc(100vh - 4rem)',
+        maxWidth: '100%',
+        margin: '0',
+        width: '100%',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-lg)',
+          paddingBottom: 'var(--spacing-md)',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
         <div>
           <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-xs)' }}>
             {isSoloMode ? '🎮 Partie Solo' : `Salon ${roomCode}`}
           </h1>
           <p className="text-secondary">
-            {isSoloMode 
+            {isSoloMode
               ? 'Configurez votre partie et commencez à jouer'
-              : (players.find(p => p.isHost) && `👑 Host: ${players.find(p => p.isHost)?.name}`)
-            }
+              : players.find((p) => p.isHost) && `👑 Host: ${players.find((p) => p.isHost)?.name}`}
           </p>
         </div>
         {!isSoloMode && (
           <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-            <button
-              className="btn btn-secondary"
-              onClick={handleCopyLink}
-            >
+            <button className="btn btn-secondary" onClick={handleCopyLink}>
               {copied ? '✓ Copié !' : '📋 Partager'}
             </button>
           </div>
@@ -477,7 +482,7 @@ export default function RoomCreator({
           })()}
           availableQuestionsCount={(() => {
             const num = Number(availableQuestionsCount)
-            return (Number.isNaN(num) || !Number.isFinite(num) || num < 0) ? 0 : num
+            return Number.isNaN(num) || !Number.isFinite(num) || num < 0 ? 0 : num
           })()}
           onTimeLimitChange={setTimeLimit}
           onQuestionCountChange={setQuestionCount}
@@ -489,9 +494,12 @@ export default function RoomCreator({
             }
             onBack()
           }}
-          canStart={isSoloMode 
-            ? (availableQuestionsCount > 0 && questionCount > 0 && questionCount <= availableQuestionsCount)
-            : (!!currentPlayerName && players.length > 0 && availableQuestionsCount > 0)
+          canStart={
+            isSoloMode
+              ? availableQuestionsCount > 0 &&
+                questionCount > 0 &&
+                questionCount <= availableQuestionsCount
+              : !!currentPlayerName && players.length > 0 && availableQuestionsCount > 0
           }
           startError={getStartError()}
           isStarting={isStartingGame}

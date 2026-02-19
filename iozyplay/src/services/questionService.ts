@@ -1,8 +1,8 @@
 /**
  * Service de questions - Gestion du stockage et manipulation des questions
  */
-import type { Category, Question, QuestionsData } from '../types'
-import { questionsApi, ApiError } from '../api'
+import type { Category, Question, QuestionsData } from '@/types'
+import { questionsApi, ApiError } from '@/api'
 
 /**
  * Service de questions - API publique
@@ -13,9 +13,9 @@ export class QuestionService {
    */
   static async getQuestionsForCategories(categories: Category[]): Promise<Question[]> {
     const allQuestions = await this.getAllQuestions()
-    return allQuestions.filter(q => {
+    return allQuestions.filter((q) => {
       const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
-      return questionCategories.some(cat => categories.includes(cat))
+      return questionCategories.some((cat) => categories.includes(cat))
     })
   }
 
@@ -26,7 +26,7 @@ export class QuestionService {
     const shuffled = [...questions]
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
   }
@@ -35,9 +35,9 @@ export class QuestionService {
    * Applique un timer par défaut à toutes les questions
    */
   static applyDefaultTimeLimit(questions: Question[], timeLimit: number): Question[] {
-    return questions.map(q => ({
+    return questions.map((q) => ({
       ...q,
-      timeLimit: timeLimit
+      timeLimit: timeLimit,
     }))
   }
 
@@ -57,7 +57,7 @@ export class QuestionService {
     const primaryCategory = categoryArray[0]
 
     const categoryQuestions = await this.getQuestionsByCategory(primaryCategory)
-    const existingIds = categoryQuestions.map(q => q.id || q.mediaUrl)
+    const existingIds = categoryQuestions.map((q) => q.id || q.mediaUrl)
     let counter = 1
     let newId = `${primaryCategory}-${counter}`
 
@@ -75,7 +75,7 @@ export class QuestionService {
   static async getAllQuestions(): Promise<Question[]> {
     const allData = await this.getAllQuestionsData()
     const all: Question[] = []
-    Object.values(allData).forEach(categoryQuestions => {
+    Object.values(allData).forEach((categoryQuestions) => {
       all.push(...categoryQuestions)
     })
     return all
@@ -111,14 +111,16 @@ export class QuestionService {
       series: [],
       animes: [],
       films: [],
-      jeux: []
+      jeux: [],
     }
 
-    questions.forEach(q => {
+    questions.forEach((q) => {
       const categories = Array.isArray(q.category) ? q.category : [q.category]
-      categories.forEach(cat => {
+      categories.forEach((cat) => {
         if (organized[cat]) {
-          const exists = organized[cat].some(existing => existing.id === q.id || existing.mediaUrl === q.mediaUrl)
+          const exists = organized[cat].some(
+            (existing) => existing.id === q.id || existing.mediaUrl === q.mediaUrl
+          )
           if (!exists) {
             organized[cat].push(q)
           }
@@ -141,7 +143,7 @@ export class QuestionService {
     try {
       return await questionsApi.create(question)
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la question:', error)
+      console.error("Erreur lors de l'ajout de la question:", error)
       if (error instanceof ApiError) {
         throw error
       }
@@ -170,7 +172,11 @@ export class QuestionService {
    * Met à jour une question sur le serveur
    * Supprime l'ancienne question puis ajoute la nouvelle
    */
-  static async updateQuestion(questionId: string, oldCategories: Category[], updatedQuestion: Question): Promise<void> {
+  static async updateQuestion(
+    questionId: string,
+    oldCategories: Category[],
+    updatedQuestion: Question
+  ): Promise<void> {
     try {
       // Supprimer l'ancienne question de toutes ses catégories
       for (const category of oldCategories) {

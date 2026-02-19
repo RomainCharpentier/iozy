@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import Soundwave from '../Soundwave'
+import Soundwave from '@/components/media/Soundwave'
 
 interface AudioPlayerProps {
   mediaUrl: string
@@ -14,7 +14,7 @@ export default function AudioPlayer({
   autoPlay = false,
   shouldPause = false,
   onMediaReady,
-  onMediaStart
+  onMediaStart,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const hasStartedRef = useRef(false)
@@ -108,8 +108,33 @@ export default function AudioPlayer({
   }, [mediaUrl])
 
   return (
-    <div className="audio-player" style={{ width: '100%', height: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '1.5rem', boxSizing: 'border-box' }}>
-      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', minHeight: '120px', maxHeight: '200px', height: 'auto', overflow: 'visible' }}>
+    <div
+      className="audio-player"
+      style={{
+        width: '100%',
+        height: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '20px',
+        padding: '1.5rem',
+        boxSizing: 'border-box',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: '0 0 auto',
+          minHeight: '120px',
+          maxHeight: '200px',
+          height: 'auto',
+          overflow: 'visible',
+        }}
+      >
         <Soundwave isPlaying={isPlaying && !shouldPause} />
       </div>
       <audio
@@ -122,4 +147,3 @@ export default function AudioPlayer({
     </div>
   )
 }
-

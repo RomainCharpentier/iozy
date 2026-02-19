@@ -3,11 +3,11 @@
 export interface UserSettings {
   // Compte
   username: string
-  
+
   // Son
   soundEnabled: boolean
   soundVolume: number // 0-100
-  
+
   // Interface
   theme: 'dark' | 'light'
 }
@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   username: '',
   soundEnabled: true,
   soundVolume: 70,
-  theme: 'dark'
+  theme: 'dark',
 }
 
 const SETTINGS_KEY = 'blindtest-settings'
@@ -47,7 +47,7 @@ class SettingsService {
     try {
       this.settings = { ...this.settings, ...settings }
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings))
-      
+
       // Appliquer les changements immédiatement
       this.applySettings()
     } catch (error) {

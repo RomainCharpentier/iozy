@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
-import type { Question } from '../../../types'
-import type { GameMode, Player } from '../../../lib/game/types'
-import { getPlayerId } from '../../../utils/playerId'
-import '../../../styles/answer-input.css'
+import type { Question } from '@/types'
+import type { GameMode, Player } from '@/lib/game/types'
+import { getPlayerId } from '@/utils/playerId'
+import '@/styles/answer-input.css'
 
 interface AnswerInputProps {
   value: string
@@ -35,7 +35,7 @@ export default function AnswerInput({
   onChange,
   onSubmit,
   disabled,
-  placeholder = "Tapez votre réponse et appuyez sur Entrée...",
+  placeholder = 'Tapez votre réponse et appuyez sur Entrée...',
   attempts,
   showAttempts = false,
   inputRef,
@@ -51,7 +51,7 @@ export default function AnswerInput({
   players = [],
   isGameEnded = false,
   isMediaReady = false,
-  waitingForGo = false
+  waitingForGo = false,
 }: AnswerInputProps) {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -81,17 +81,17 @@ export default function AnswerInput({
     }
 
     const searchTerm = value.toLowerCase().trim()
-    
+
     // Inclure toutes les questions pour les suggestions (même la question actuelle)
     // car on veut pouvoir suggérer toutes les réponses possibles
-    const questionsWithAnswers = allQuestions.filter(q => q.answer && q.answer.trim().length > 0)
-    
+    const questionsWithAnswers = allQuestions.filter((q) => q.answer && q.answer.trim().length > 0)
+
     const allAnswers = questionsWithAnswers
-      .map(q => q.answer.trim())
+      .map((q) => q.answer.trim())
       .filter((answer, index, self) => self.indexOf(answer) === index)
 
     const matching = allAnswers
-      .filter(answer => answer.toLowerCase().startsWith(searchTerm))
+      .filter((answer) => answer.toLowerCase().startsWith(searchTerm))
       .slice(0, 5)
 
     setSuggestions(matching)
@@ -119,7 +119,7 @@ export default function AnswerInput({
       if (selectedElement) {
         selectedElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'nearest'
+          block: 'nearest',
         })
       }
     }
@@ -156,9 +156,7 @@ export default function AnswerInput({
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (open && suggestions.length > 0) {
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : 0
-        )
+        setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0))
       } else if (suggestions.length > 0) {
         setOpen(true)
         setSelectedIndex(0)
@@ -166,9 +164,7 @@ export default function AnswerInput({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       if (open && suggestions.length > 0) {
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : suggestions.length - 1
-        )
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1))
       } else if (suggestions.length > 0) {
         setOpen(true)
         setSelectedIndex(suggestions.length - 1)
@@ -196,25 +192,30 @@ export default function AnswerInput({
   const shouldOpen = open && suggestions.length > 0 && !hasSubmitted && !isReveal
 
   // Animation pour le reveal - on garde les ombres dans le CSS et on anime seulement les propriétés supportées
-  const revealAnimation = isReveal ? {
-    transition: {
-      duration: 0.3,
-      ease: 'easeOut' as const
-    }
-  } : {}
+  const revealAnimation = isReveal
+    ? {
+        transition: {
+          duration: 0.3,
+          ease: 'easeOut' as const,
+        },
+      }
+    : {}
 
   // Gestion du bouton skip
-  const playerId = gameMode === 'solo' ? 'solo' : (getPlayerId() || '')
+  const playerId = gameMode === 'solo' ? 'solo' : getPlayerId() || ''
   const hasVoted = skipVotes.has(playerId)
   const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
 
   return (
-    <Popover.Root open={shouldOpen} onOpenChange={(newOpen) => {
-      setOpen(newOpen)
-    }}>
+    <Popover.Root
+      open={shouldOpen}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen)
+      }}
+    >
       <div className="answer-input-wrapper">
         <Popover.Anchor asChild>
-          <motion.div 
+          <motion.div
             className={`game-interface-answer-actions variant-4 ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
             {...revealAnimation}
           >
@@ -222,7 +223,17 @@ export default function AnswerInput({
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={isReveal && hasSubmitted ? (isCorrect ? "Correct !" : isCorrect === false ? "Incorrect" : "Réponse enregistrée") : hasSubmitted ? "Réponse enregistrée" : placeholder}
+                placeholder={
+                  isReveal && hasSubmitted
+                    ? isCorrect
+                      ? 'Correct !'
+                      : isCorrect === false
+                        ? 'Incorrect'
+                        : 'Réponse enregistrée'
+                    : hasSubmitted
+                      ? 'Réponse enregistrée'
+                      : placeholder
+                }
                 value={value}
                 onChange={(e) => {
                   const newValue = e.target.value
@@ -242,7 +253,9 @@ export default function AnswerInput({
                 style={hasSubmitted && !isReveal ? { paddingRight: '3rem' } : {}}
               />
               {hasSubmitted && !isReveal && (
-                <span className="game-interface-check-icon" title="Réponse enregistrée">✓</span>
+                <span className="game-interface-check-icon" title="Réponse enregistrée">
+                  ✓
+                </span>
               )}
             </div>
             {canSkip && (
@@ -251,13 +264,13 @@ export default function AnswerInput({
                 onClick={onSkipVote}
                 disabled={!canSkip}
                 title={
-                  isGameEnded 
+                  isGameEnded
                     ? 'La partie est terminée'
                     : !isMediaReady || waitingForGo
-                    ? 'Attendez que le média démarre'
-                    : hasVoted
-                    ? 'Vous avez déjà voté skip'
-                    : 'Passer cette question'
+                      ? 'Attendez que le média démarre'
+                      : hasVoted
+                        ? 'Vous avez déjà voté skip'
+                        : 'Passer cette question'
                 }
               >
                 ⏭
@@ -284,7 +297,9 @@ export default function AnswerInput({
             )}
             {isReveal && correctAnswer && (
               <div className={`game-interface-overlay ${isCorrect === false ? 'incorrect' : ''}`}>
-                <div className={`game-interface-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}>
+                <div
+                  className={`game-interface-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}
+                >
                   {isCorrect === true ? '✓' : isCorrect === false ? '✗' : '✓'}
                 </div>
                 <div className="game-interface-overlay-content">

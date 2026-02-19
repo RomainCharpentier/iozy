@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import HomeMenu from './HomeMenu'
-import UsernameGuard from '../../components/common/UsernameGuard'
+import UsernameGuard from '@/components/common/UsernameGuard'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -28,4 +28,3 @@ export default function HomePage() {
     </UsernameGuard>
   )
 }
-

@@ -25,16 +25,16 @@ export default function RoomPlayersPanel({
   onPlayerNameChange,
   onSetName,
   onCopyLink,
-  copied
+  copied,
 }: RoomPlayersPanelProps) {
   return (
     <div className="card" style={{ maxHeight: 'calc(100vh - 12rem)', overflowY: 'auto' }}>
       <div className="card-header">
         <h2 className="card-title">Joueurs ({players.length})</h2>
       </div>
-      
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-        {players.map(player => (
+        {players.map((player) => (
           <div
             key={player.id}
             className="badge"
@@ -44,7 +44,7 @@ export default function RoomPlayersPanel({
               justifyContent: 'space-between',
               padding: 'var(--spacing-sm)',
               background: player.isHost ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-tertiary)',
-              borderColor: player.isHost ? 'var(--accent-primary)' : 'var(--border)'
+              borderColor: player.isHost ? 'var(--accent-primary)' : 'var(--border)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
@@ -56,8 +56,21 @@ export default function RoomPlayersPanel({
       </div>
 
       {/* Share Link Section */}
-      <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--border)' }}>
-        <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+      <div
+        style={{
+          marginTop: 'var(--spacing-lg)',
+          paddingTop: 'var(--spacing-md)',
+          borderTop: '1px solid var(--border)',
+        }}
+      >
+        <label
+          style={{
+            display: 'block',
+            marginBottom: 'var(--spacing-xs)',
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--text-secondary)',
+          }}
+        >
           Lien de partage
         </label>
         <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
@@ -73,7 +86,14 @@ export default function RoomPlayersPanel({
 
       {/* Player Name Input */}
       <div style={{ marginTop: 'var(--spacing-md)' }}>
-        <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+        <label
+          style={{
+            display: 'block',
+            marginBottom: 'var(--spacing-xs)',
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--text-secondary)',
+          }}
+        >
           Votre nom {currentPlayerName && `(${currentPlayerName})`}
         </label>
         <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
@@ -81,7 +101,7 @@ export default function RoomPlayersPanel({
             type="text"
             value={playerName}
             onChange={(e) => onPlayerNameChange(e.target.value)}
-            placeholder={currentPlayerName || "Entrez votre nom"}
+            placeholder={currentPlayerName || 'Entrez votre nom'}
             maxLength={20}
             className="input"
             onKeyPress={(e) => {
@@ -103,4 +123,3 @@ export default function RoomPlayersPanel({
     </div>
   )
 }
-

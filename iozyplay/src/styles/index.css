@@ -8,9 +8,9 @@
 /* Les alias sont définis dans design-tokens.css pour compatibilité */
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, var(--bg-color) 0%, #1e1b4b 100%);
@@ -580,7 +580,7 @@ body {
 
 .media-container {
   width: 100%;
-  margin: 1rem 0;
+  margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -660,7 +660,6 @@ body {
 }
 
 @keyframes wave-animation {
-
   0%,
   100% {
     height: 20%;
@@ -973,7 +972,6 @@ body {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -985,7 +983,6 @@ body {
 }
 
 @keyframes shake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -1434,8 +1431,8 @@ body {
   gap: 1rem;
 }
 
-.playlist-input-section>.input-section-header>label,
-.playlist-input-section>label {
+.playlist-input-section > .input-section-header > label,
+.playlist-input-section > label {
   display: block;
   margin-bottom: 0.25rem;
   font-weight: 600;
@@ -1542,7 +1539,7 @@ body {
   flex-shrink: 0;
 }
 
-.categories-selection>label {
+.categories-selection > label {
   display: block;
   margin-bottom: 0.75rem;
   font-weight: 600;
@@ -1576,12 +1573,12 @@ body {
   background: var(--bg-color);
 }
 
-.category-checkbox input[type="checkbox"] {
+.category-checkbox input[type='checkbox'] {
   margin: 0;
   cursor: pointer;
 }
 
-.category-checkbox input[type="checkbox"]:checked+span {
+.category-checkbox input[type='checkbox']:checked + span {
   color: var(--primary-color);
   font-weight: 600;
 }
@@ -1694,7 +1691,7 @@ body {
   width: 100%;
 }
 
-.video-checkbox input[type="checkbox"] {
+.video-checkbox input[type='checkbox'] {
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -1943,11 +1940,19 @@ body {
 }
 
 .playlist-button {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color, var(--primary-color))) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color, var(--primary-color))
+  ) !important;
 }
 
 .playlist-button:hover {
-  background: linear-gradient(135deg, var(--primary-color-dark, var(--primary-color)), var(--secondary-color-dark, var(--secondary-color, var(--primary-color)))) !important;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color-dark, var(--primary-color)),
+    var(--secondary-color-dark, var(--secondary-color, var(--primary-color)))
+  ) !important;
 }
 
 @media (max-width: 768px) {
@@ -3363,7 +3368,7 @@ body {
   gap: 0.75rem;
 }
 
-.config-label>span {
+.config-label > span {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-color);

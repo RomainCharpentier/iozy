@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 
 /**
  * Composant pour notifier l'utilisateur lorsqu'une mise à jour du service worker est disponible
@@ -27,41 +27,17 @@ export function UpdateNotification() {
               const newWorker = registration.installing
               if (newWorker) {
                 newWorker.addEventListener('statechange', () => {
-                  if (
-                    newWorker.state === 'installed' &&
-                    navigator.serviceWorker.controller
-                  ) {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // Nouveau service worker disponible
                     setUpdateAvailable(true)
-                    toast(
-                      (t) => (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '18px' }}>🔄</span>
-                          <span>Une mise à jour est disponible</span>
-                          <button
-                            onClick={() => {
-                              newWorker.postMessage({ type: 'SKIP_WAITING' })
-                              toast.dismiss(t.id)
-                            }}
-                            style={{
-                              background: '#6366f1',
-                              color: 'white',
-                              border: 'none',
-                              padding: '4px 12px',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              marginLeft: '8px',
-                            }}
-                          >
-                            Mettre à jour
-                          </button>
-                        </div>
-                      ),
-                      {
-                        duration: Infinity,
-                        icon: '🔄',
-                      }
-                    )
+                    toast('Une mise à jour est disponible', {
+                      duration: Infinity,
+                      icon: '🔄',
+                      action: {
+                        label: 'Mettre à jour',
+                        onClick: () => newWorker.postMessage({ type: 'SKIP_WAITING' }),
+                      },
+                    })
                   }
                 })
               }
@@ -87,13 +63,3 @@ export function UpdateNotification() {
 
   return null
 }
-
-
-
-
-
-
-
-
-
-

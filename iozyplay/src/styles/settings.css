@@ -17,7 +17,7 @@
 }
 
 /* Taille de police */
-[data-font-size="small"] {
+[data-font-size='small'] {
   --font-size-xs: 0.65rem;
   --font-size-sm: 0.75rem;
   --font-size-base: 0.875rem;
@@ -26,7 +26,7 @@
   --font-size-2xl: 1.75rem;
 }
 
-[data-font-size="large"] {
+[data-font-size='large'] {
   --font-size-xs: 0.875rem;
   --font-size-sm: 1rem;
   --font-size-base: 1.125rem;
@@ -36,7 +36,7 @@
 }
 
 /* Mode compact */
-[data-compact="true"] {
+[data-compact='true'] {
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 0.75rem;
@@ -44,27 +44,24 @@
   --spacing-xl: 1.5rem;
 }
 
-[data-compact="true"] .card {
+[data-compact='true'] .card {
   padding: var(--spacing-md) !important;
 }
 
-[data-compact="true"] .btn {
+[data-compact='true'] .btn {
   padding: var(--spacing-sm) var(--spacing-md) !important;
 }
 
-[data-compact="true"] .input {
+[data-compact='true'] .input {
   padding: var(--spacing-xs) var(--spacing-sm) !important;
 }
 
 /* Animations désactivées */
-[data-animations="disabled"] *,
-[data-animations="disabled"] *::before,
-[data-animations="disabled"] *::after {
+[data-animations='disabled'] *,
+[data-animations='disabled'] *::before,
+[data-animations='disabled'] *::after {
   animation-duration: 0s !important;
   animation-delay: 0s !important;
   transition-duration: 0s !important;
   transition-delay: 0s !important;
 }
-
-
-

@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import toast from 'react-hot-toast'
-import { isYouTubePlaylistUrl, isYouTubeUrl, getPlaylistVideos, getYouTubeMetadata, type PlaylistVideo } from '../../utils/youtube'
-import type { Category, CategoryInfo } from '../../types'
+import { toast } from 'sonner'
+import {
+  isYouTubePlaylistUrl,
+  isYouTubeUrl,
+  getPlaylistVideos,
+  getYouTubeMetadata,
+  type PlaylistVideo,
+} from '@/utils/youtube'
+import type { Category, CategoryInfo } from '@/types'
 import '../../styles/index.css'
 
 interface VideoWithAnswer {
@@ -17,11 +23,19 @@ interface VideoWithAnswer {
 interface VideoImporterProps {
   isOpen: boolean
   onClose: () => void
-  onImport: (videos: Array<{ videoUrl: string; answer: string; hint?: string }>, categories: Category[]) => Promise<void>
+  onImport: (
+    videos: Array<{ videoUrl: string; answer: string; hint?: string }>,
+    categories: Category[]
+  ) => Promise<void>
   categories: CategoryInfo[]
 }
 
-export default function VideoImporter({ isOpen, onClose, onImport, categories }: VideoImporterProps) {
+export default function VideoImporter({
+  isOpen,
+  onClose,
+  onImport,
+  categories,
+}: VideoImporterProps) {
   const [videoUrl, setVideoUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [videos, setVideos] = useState<VideoWithAnswer[]>([])
@@ -45,12 +59,12 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
       if (isPlaylistUrl) {
         // Mode playlist
         const playlistVideos = await getPlaylistVideos(url)
-        
-        const videosWithAnswers: VideoWithAnswer[] = playlistVideos.map(video => ({
+
+        const videosWithAnswers: VideoWithAnswer[] = playlistVideos.map((video) => ({
           ...video,
           answer: video.title,
           selected: true,
-          hint: undefined
+          hint: undefined,
         }))
 
         setVideos(videosWithAnswers)
@@ -70,7 +84,7 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
           thumbnailUrl: metadata.thumbnailUrl,
           answer: metadata.title,
           selected: true,
-          hint: undefined
+          hint: undefined,
         }
 
         setVideos([singleVideo])
@@ -102,7 +116,7 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
       const timer = setTimeout(() => {
         loadVideo(trimmedUrl)
       }, 800) // 800ms de délai après la fin de la saisie
-      
+
       return () => clearTimeout(timer)
     }
   }, [videoUrl, loading, videos.length, loadVideo])
@@ -135,20 +149,18 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
   }
 
   const handleToggleVideo = (index: number) => {
-    setVideos(prev => prev.map((video, i) => 
-      i === index ? { ...video, selected: !video.selected } : video
-    ))
+    setVideos((prev) =>
+      prev.map((video, i) => (i === index ? { ...video, selected: !video.selected } : video))
+    )
   }
 
   const handleEditAnswer = (index: number, answer: string, hint?: string) => {
-    setVideos(prev => prev.map((video, i) => 
-      i === index ? { ...video, answer, hint } : video
-    ))
+    setVideos((prev) => prev.map((video, i) => (i === index ? { ...video, answer, hint } : video)))
     setEditingIndex(null)
   }
 
   const handleRemoveVideo = (index: number) => {
-    setVideos(prev => prev.filter((_, i) => i !== index))
+    setVideos((prev) => prev.filter((_, i) => i !== index))
     if (editingIndex === index) {
       setEditingIndex(null)
     } else if (editingIndex !== null && editingIndex > index) {
@@ -162,8 +174,8 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
       return
     }
 
-    const selectedVideos = videos.filter(v => v.selected && v.answer.trim())
-    
+    const selectedVideos = videos.filter((v) => v.selected && v.answer.trim())
+
     if (selectedVideos.length === 0) {
       toast.error('Veuillez sélectionner au moins une vidéo avec une réponse')
       return
@@ -171,10 +183,10 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
 
     try {
       await onImport(
-        selectedVideos.map(v => ({
+        selectedVideos.map((v) => ({
           videoUrl: v.videoUrl,
           answer: v.answer,
-          hint: v.hint
+          hint: v.hint,
         })),
         selectedCategories
       )
@@ -182,7 +194,7 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
       handleClose()
     } catch (error) {
       console.error('Error importing videos:', error)
-      toast.error('Erreur lors de l\'import')
+      toast.error("Erreur lors de l'import")
     }
   }
 
@@ -196,10 +208,8 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
   }
 
   const toggleCategory = (category: Category) => {
-    setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     )
   }
 
@@ -215,15 +225,17 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
 
         <div className="modal-body">
           <div className="playlist-input-section">
-            <label>
-              URL YouTube {isPlaylist ? '(playlist)' : '(vidéo)'} :
-            </label>
+            <label>URL YouTube {isPlaylist ? '(playlist)' : '(vidéo)'} :</label>
             <div className="input-wrapper">
               <input
                 type="text"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder={isPlaylist ? "https://www.youtube.com/playlist?list=..." : "https://www.youtube.com/watch?v=..."}
+                placeholder={
+                  isPlaylist
+                    ? 'https://www.youtube.com/playlist?list=...'
+                    : 'https://www.youtube.com/watch?v=...'
+                }
                 disabled={loading}
               />
               {videoUrl.trim() && (
@@ -235,12 +247,18 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
                   )}
                 </div>
               )}
-              <button 
+              <button
                 className="load-button"
                 onClick={handleLoadVideo}
                 disabled={loading || !videoUrl.trim()}
               >
-                {loading ? <span className="spinner" style={{ fontSize: '16px' }}>⏳</span> : <span style={{ fontSize: '16px' }}>➕</span>}
+                {loading ? (
+                  <span className="spinner" style={{ fontSize: '16px' }}>
+                    ⏳
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '16px' }}>➕</span>
+                )}
                 {loading ? 'Chargement...' : 'Charger'}
               </button>
             </div>
@@ -251,7 +269,7 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
               <div className="categories-selection">
                 <label>Catégories :</label>
                 <div className="categories-checkboxes">
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <label key={cat.id} className="category-checkbox">
                       <input
                         type="checkbox"
@@ -266,14 +284,16 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
 
               <div className="videos-list">
                 <h3>
-                  {isPlaylist 
-                    ? `Vidéos (${videos.filter(v => v.selected).length}/${videos.length} sélectionnées)`
-                    : 'Vidéo à importer'
-                  }
+                  {isPlaylist
+                    ? `Vidéos (${videos.filter((v) => v.selected).length}/${videos.length} sélectionnées)`
+                    : 'Vidéo à importer'}
                 </h3>
                 <div className={`videos-grid ${!isPlaylist ? 'single-video' : ''}`}>
                   {videos.map((video, index) => (
-                    <div key={video.videoId} className={`video-item ${!video.selected ? 'unselected' : ''}`}>
+                    <div
+                      key={video.videoId}
+                      className={`video-item ${!video.selected ? 'unselected' : ''}`}
+                    >
                       {isPlaylist && (
                         <div className="video-header">
                           <label className="video-checkbox">
@@ -283,16 +303,24 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
                               onChange={() => handleToggleVideo(index)}
                             />
                           </label>
-                          <img src={video.thumbnailUrl} alt={video.title} className="video-thumbnail" />
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="video-thumbnail"
+                          />
                         </div>
                       )}
-                      
+
                       {!isPlaylist && (
                         <div className="video-header-single">
-                          <img src={video.thumbnailUrl} alt={video.title} className="video-thumbnail" />
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="video-thumbnail"
+                          />
                         </div>
                       )}
-                      
+
                       <div className="video-info">
                         {isPlaylist && (
                           <button
@@ -306,7 +334,7 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
                         <div className="video-title" title={video.title}>
                           {video.title}
                         </div>
-                        
+
                         {editingIndex === index ? (
                           <div className="video-edit-form">
                             <input
@@ -362,7 +390,8 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
                               onClick={() => setEditingIndex(index)}
                               title="Modifier la réponse"
                             >
-                              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✏️</span> Modifier
+                              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✏️</span>{' '}
+                              Modifier
                             </button>
                           </div>
                         )}
@@ -380,12 +409,15 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
             <button className="cancel-button" onClick={handleClose}>
               Annuler
             </button>
-            <button 
+            <button
               className="import-button"
               onClick={handleImport}
-              disabled={selectedCategories.length === 0 || videos.filter(v => v.selected && v.answer.trim()).length === 0}
+              disabled={
+                selectedCategories.length === 0 ||
+                videos.filter((v) => v.selected && v.answer.trim()).length === 0
+              }
             >
-              Importer {videos.filter(v => v.selected).length} vidéo(s)
+              Importer {videos.filter((v) => v.selected).length} vidéo(s)
             </button>
           </div>
         )}
@@ -393,4 +425,3 @@ export default function VideoImporter({ isOpen, onClose, onImport, categories }:
     </div>
   )
 }
-

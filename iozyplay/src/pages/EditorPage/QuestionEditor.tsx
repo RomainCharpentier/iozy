@@ -2,14 +2,20 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import toast from 'react-hot-toast'
-import type { Category, Question, MediaType, CategoryInfo } from '../../types'
-import { isYouTubeUrl, isValidUrlFormat, getYouTubeThumbnailFromUrl, extractYouTubeId, getYouTubeMetadata } from '../../utils/youtube'
-import { QuestionService } from '../../services/questionService'
-import { loadCategories } from '../../services/categoryService'
-import CategorySelector from '../../components/editor/CategorySelector'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
-import { questionSchema, type QuestionFormData } from '../../schemas/questionSchema'
+import { toast } from 'sonner'
+import type { Category, Question, MediaType, CategoryInfo } from '@/types'
+import {
+  isYouTubeUrl,
+  isValidUrlFormat,
+  getYouTubeThumbnailFromUrl,
+  extractYouTubeId,
+  getYouTubeMetadata,
+} from '@/utils/youtube'
+import { QuestionService } from '@/services/questionService'
+import { loadCategories } from '@/services/categoryService'
+import CategorySelector from '@/components/editor/CategorySelector'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
+import { questionSchema, type QuestionFormData } from '@/schemas/questionSchema'
 
 interface QuestionEditorProps {
   questions: Question[]
@@ -20,14 +26,16 @@ interface QuestionEditorProps {
 export default function QuestionEditor({ questions, onSave, onClose }: QuestionEditorProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const [localQuestions, setLocalQuestions] = useState<Question[]>(questions)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('')
-  const [questionMetadata, setQuestionMetadata] = useState<Record<string, { title: string; thumbnailUrl: string }>>({})
+  const [questionMetadata, setQuestionMetadata] = useState<
+    Record<string, { title: string; thumbnailUrl: string }>
+  >({})
   const [currentPage, setCurrentPage] = useState<number>(1)
   const questionsPerPage = 20
   const [youtubeThumbnail, setYoutubeThumbnail] = useState<string | null>(null)
@@ -42,7 +50,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   }>({
     isOpen: false,
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => {},
   })
 
   // React Hook Form
@@ -54,15 +62,15 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setValue,
     reset,
     setError,
-    clearErrors
+    clearErrors,
   } = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
     defaultValues: {
       mediaUrl: '',
       answer: '',
       hint: '',
-      categories: []
-    }
+      categories: [],
+    },
   })
 
   const watchedMediaUrl = watch('mediaUrl')
@@ -74,12 +82,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setIsInitialLoad(true)
     // Marquer comme chargé après un court délai pour éviter la sauvegarde au chargement
     setTimeout(() => setIsInitialLoad(false), 1000)
-    
+
     // Vérifier si on revient de l'import avec des questions importées
     if (location.state?.imported) {
       toast.success(`${location.state.imported} question(s) importée(s)`)
       // Recharger les questions
-      QuestionService.getAllQuestions().then(allQuestions => {
+      QuestionService.getAllQuestions().then((allQuestions) => {
         setLocalQuestions(allQuestions)
         onSave(allQuestions)
       })
@@ -115,7 +123,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
     // Filtre par catégorie
     if (filterCategory !== 'all') {
-      filtered = filtered.filter(q => {
+      filtered = filtered.filter((q) => {
         const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
         return questionCategories.includes(filterCategory)
       })
@@ -124,14 +132,14 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     // Filtre par recherche (réponse, URL, catégorie)
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase().trim()
-      filtered = filtered.filter(q => {
+      filtered = filtered.filter((q) => {
         const answerMatch = q.answer.toLowerCase().includes(query)
         const urlMatch = q.mediaUrl.toLowerCase().includes(query)
         const hintMatch = q.hint?.toLowerCase().includes(query)
         const categoryMatch = (() => {
           const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
-          return questionCategories.some(cat => {
-            const catInfo = categories.find(c => c.id === cat)
+          return questionCategories.some((cat) => {
+            const catInfo = categories.find((c) => c.id === cat)
             return catInfo?.name.toLowerCase().includes(query) || cat.toLowerCase().includes(query)
           })
         })()
@@ -141,7 +149,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
     return filtered
   }, [localQuestions, filterCategory, debouncedSearchQuery, categories])
-  
+
   // Calculer le nombre total de pages
   const totalPages = Math.ceil(filteredQuestions.length / questionsPerPage)
 
@@ -149,11 +157,11 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   useEffect(() => {
     const loadMetadata = async () => {
       const questionsToLoad = filteredQuestions
-        .filter(q => isYouTubeUrl(q.mediaUrl) && !questionMetadata[q.mediaUrl])
+        .filter((q) => isYouTubeUrl(q.mediaUrl) && !questionMetadata[q.mediaUrl])
         .slice(0, 10) // Limiter à 10 requêtes simultanées pour éviter la surcharge
-      
+
       if (questionsToLoad.length === 0) return
-      
+
       const metadataPromises = questionsToLoad.map(async (q) => {
         try {
           const metadata = await getYouTubeMetadata(q.mediaUrl, true)
@@ -165,23 +173,23 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         }
         return null
       })
-      
+
       const results = await Promise.all(metadataPromises)
       const newMetadata: Record<string, { title: string; thumbnailUrl: string }> = {}
-      results.forEach(result => {
+      results.forEach((result) => {
         if (result) {
           newMetadata[result.url] = {
             title: result.metadata.title,
-            thumbnailUrl: result.metadata.thumbnailUrl
+            thumbnailUrl: result.metadata.thumbnailUrl,
           }
         }
       })
-      
+
       if (Object.keys(newMetadata).length > 0) {
-        setQuestionMetadata(prev => ({ ...prev, ...newMetadata }))
+        setQuestionMetadata((prev) => ({ ...prev, ...newMetadata }))
       }
     }
-    
+
     loadMetadata()
   }, [filteredQuestions, questionMetadata])
 
@@ -202,7 +210,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
   // Validation YouTube en temps réel
   useEffect(() => {
-    if (!watchedMediaUrl || !showAddForm && editingIndex === null) {
+    if (!watchedMediaUrl || (!showAddForm && editingIndex === null)) {
       setYoutubeThumbnail(null)
       setYoutubeTitle('')
       setYoutubeValid(false)
@@ -221,7 +229,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         setYoutubeThumbnail(null)
         setYoutubeTitle('')
         setYoutubeValid(false)
-        setError('mediaUrl', { type: 'manual', message: 'Format d\'URL invalide' })
+        setError('mediaUrl', { type: 'manual', message: "Format d'URL invalide" })
         return
       }
 
@@ -249,13 +257,19 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           setYoutubeThumbnail(null)
           setYoutubeTitle('')
           setYoutubeValid(false)
-          setError('mediaUrl', { type: 'manual', message: 'Cette vidéo YouTube n\'existe pas ou n\'est pas accessible' })
+          setError('mediaUrl', {
+            type: 'manual',
+            message: "Cette vidéo YouTube n'existe pas ou n'est pas accessible",
+          })
         }
       } catch (error) {
         setYoutubeThumbnail(null)
         setYoutubeTitle('')
         setYoutubeValid(false)
-        setError('mediaUrl', { type: 'manual', message: 'Erreur lors de la vérification de l\'URL YouTube' })
+        setError('mediaUrl', {
+          type: 'manual',
+          message: "Erreur lors de la vérification de l'URL YouTube",
+        })
       }
     }
 
@@ -287,7 +301,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         type: 'video' as MediaType,
         mediaUrl: data.mediaUrl,
         answer: data.answer,
-        hint: data.hint || undefined
+        hint: data.hint || undefined,
       }
 
       await QuestionService.addQuestion(newQuestion)
@@ -300,19 +314,20 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       setShowAddForm(false)
       toast.success('Question ajoutée avec succès')
     } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error)
-      const errorMessage = error instanceof Error 
-        ? (error.message.includes('Failed to fetch') 
+      console.error("Erreur lors de l'ajout:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes('Failed to fetch')
             ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
-            : error.message)
-        : 'Erreur inconnue lors de l\'ajout de la question'
+            : error.message
+          : "Erreur inconnue lors de l'ajout de la question"
       toast.error(errorMessage)
     }
   }
 
   const onUpdate = async (data: QuestionFormData) => {
     if (editingIndex === null) {
-      toast.error('Erreur: index d\'édition invalide')
+      toast.error("Erreur: index d'édition invalide")
       return
     }
 
@@ -328,22 +343,25 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
     const originalQuestion = localQuestions[editingIndex]
     try {
-      const questionId = data.mediaUrl === originalQuestion.mediaUrl 
-        ? (originalQuestion.id || originalQuestion.mediaUrl)
-        : await generateId(data.mediaUrl, selectedCategories[0])
-      
+      const questionId =
+        data.mediaUrl === originalQuestion.mediaUrl
+          ? originalQuestion.id || originalQuestion.mediaUrl
+          : await generateId(data.mediaUrl, selectedCategories[0])
+
       const updatedQuestion: Question = {
         id: questionId,
         category: selectedCategories.length === 1 ? selectedCategories[0] : selectedCategories,
         type: 'video' as MediaType,
         mediaUrl: data.mediaUrl,
         answer: data.answer,
-        hint: data.hint || undefined
+        hint: data.hint || undefined,
       }
 
       await QuestionService.updateQuestion(
         originalQuestion.id || originalQuestion.mediaUrl,
-        Array.isArray(originalQuestion.category) ? originalQuestion.category : [originalQuestion.category],
+        Array.isArray(originalQuestion.category)
+          ? originalQuestion.category
+          : [originalQuestion.category],
         updatedQuestion
       )
 
@@ -359,11 +377,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       toast.success('Question mise à jour avec succès')
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error)
-      const errorMessage = error instanceof Error 
-        ? (error.message.includes('Failed to fetch') 
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes('Failed to fetch')
             ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
-            : error.message)
-        : 'Erreur inconnue lors de la mise à jour de la question'
+            : error.message
+          : 'Erreur inconnue lors de la mise à jour de la question'
       toast.error(errorMessage)
     }
   }
@@ -374,7 +393,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   ) => {
     try {
       const newQuestions: Question[] = []
-      
+
       for (const video of videos) {
         const questionId = await generateId(video.videoUrl, categories[0])
         const newQuestion: Question = {
@@ -383,7 +402,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           type: 'video' as MediaType,
           mediaUrl: video.videoUrl,
           answer: video.answer,
-          hint: video.hint
+          hint: video.hint,
         }
         await QuestionService.addQuestion(newQuestion)
         newQuestions.push(newQuestion)
@@ -392,12 +411,13 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       setLocalQuestions([...localQuestions, ...newQuestions])
       toast.success(`${newQuestions.length} question(s) ajoutée(s)`)
     } catch (error) {
-      console.error('Erreur lors de l\'import:', error)
-      const errorMessage = error instanceof Error 
-        ? (error.message.includes('Failed to fetch') 
+      console.error("Erreur lors de l'import:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes('Failed to fetch')
             ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
-            : error.message)
-        : 'Erreur inconnue lors de l\'import'
+            : error.message
+          : "Erreur inconnue lors de l'import"
       toast.error(errorMessage)
       throw error
     }
@@ -409,27 +429,28 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
       toast.error('Question introuvable')
       return
     }
-    const globalIndex = localQuestions.findIndex(q => 
-      (q.id && question.id && q.id === question.id) || 
-      (q.mediaUrl === question.mediaUrl)
+    const globalIndex = localQuestions.findIndex(
+      (q) => (q.id && question.id && q.id === question.id) || q.mediaUrl === question.mediaUrl
     )
     if (globalIndex === -1) {
       toast.error('Erreur: question introuvable dans la liste')
       return
     }
     setEditingIndex(globalIndex)
-    
-    const questionCategories = Array.isArray(question.category) ? question.category : [question.category]
+
+    const questionCategories = Array.isArray(question.category)
+      ? question.category
+      : [question.category]
     setSelectedCategories(questionCategories)
     setShowAddForm(false)
-    
+
     reset({
       mediaUrl: question.mediaUrl,
       answer: question.answer,
       hint: question.hint || '',
-      categories: questionCategories
+      categories: questionCategories,
     })
-    
+
     if (isYouTubeUrl(question.mediaUrl)) {
       try {
         const metadata = await getYouTubeMetadata(question.mediaUrl)
@@ -454,33 +475,34 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     }
   }
 
-
   const handleDelete = async (index: number) => {
     const question = filteredQuestions[index]
     if (!question) {
       toast.error('Question introuvable')
       return
     }
-    
+
     const handleConfirm = async () => {
       try {
         const questionId = question.id || question.mediaUrl
-        const categories = Array.isArray(question.category) ? question.category : [question.category]
+        const categories = Array.isArray(question.category)
+          ? question.category
+          : [question.category]
         await QuestionService.deleteQuestion(questionId, categories[0])
-        
-        const newQuestions = localQuestions.filter(q => 
-          (q.id && question.id && q.id !== question.id) || 
-          (q.mediaUrl !== question.mediaUrl)
+
+        const newQuestions = localQuestions.filter(
+          (q) => (q.id && question.id && q.id !== question.id) || q.mediaUrl !== question.mediaUrl
         )
         setLocalQuestions(newQuestions)
         toast.success('Question supprimée avec succès')
       } catch (error) {
         console.error('Erreur lors de la suppression:', error)
-        const errorMessage = error instanceof Error 
-          ? (error.message.includes('Failed to fetch') 
+        const errorMessage =
+          error instanceof Error
+            ? error.message.includes('Failed to fetch')
               ? 'Erreur de connexion au serveur. Vérifiez votre connexion internet.'
-              : error.message)
-          : 'Erreur inconnue lors de la suppression'
+              : error.message
+            : 'Erreur inconnue lors de la suppression'
         toast.error(`Erreur lors de la suppression: ${errorMessage}`)
       } finally {
         setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })
@@ -490,10 +512,9 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
     setConfirmDialog({
       isOpen: true,
       message: `Êtes-vous sûr de vouloir supprimer la question "${question.answer}" ?`,
-      onConfirm: handleConfirm
+      onConfirm: handleConfirm,
     })
   }
-
 
   const cancelEdit = () => {
     reset()
@@ -507,17 +528,19 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
 
   const getCategoryLabel = (category: Category | Category[]) => {
     const categoriesArray = Array.isArray(category) ? category : [category]
-    return categoriesArray.map(cat => {
-      const catInfo = categories.find(c => c.id === cat)
-      return catInfo ? catInfo.name : cat
-    }).join(', ')
+    return categoriesArray
+      .map((cat) => {
+        const catInfo = categories.find((c) => c.id === cat)
+        return catInfo ? catInfo.name : cat
+      })
+      .join(', ')
   }
 
   const getTypeLabel = (type: MediaType) => {
     const labels: Record<MediaType, string> = {
       audio: 'Audio',
       image: 'Image',
-      video: 'Vidéo'
+      video: 'Vidéo',
     }
     return labels[type]
   }
@@ -525,8 +548,8 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
   // Statistiques par catégorie
   const categoryStats = useMemo(() => {
     const stats: Record<string, number> = {}
-    categories.forEach(cat => {
-      stats[cat.id] = localQuestions.filter(q => {
+    categories.forEach((cat) => {
+      stats[cat.id] = localQuestions.filter((q) => {
         const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
         return questionCategories.includes(cat.id)
       }).length
@@ -546,56 +569,58 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         variant="danger"
       />
       <div className="editor-panel">
-      <div className="panel-header">
-        <h2><span style={{ marginRight: '0.5rem', fontSize: '20px' }}>✏️</span> Questions</h2>
-        <div className="editor-stats">
-          <div className="stat-item stat-item-total">
-            <span className="stat-label">Total:</span>
-            <span className="stat-value">{localQuestions.length}</span>
-          </div>
-          <div className="stat-categories">
-            {categories.map(cat => {
-              const count = categoryStats[cat.id] || 0
-              if (count === 0) return null
-              return (
-                <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
-                  <span className="stat-icon" style={{ fontSize: '16px' }}>
-                    {cat.emoji}
-                  </span>
-                  <span className="stat-category-name">{cat.name}</span>
-                  <span className="stat-value">{count}</span>
-                </div>
-              )
-            })}
+        <div className="panel-header">
+          <h2>
+            <span style={{ marginRight: '0.5rem', fontSize: '20px' }}>✏️</span> Questions
+          </h2>
+          <div className="editor-stats">
+            <div className="stat-item stat-item-total">
+              <span className="stat-label">Total:</span>
+              <span className="stat-value">{localQuestions.length}</span>
+            </div>
+            <div className="stat-categories">
+              {categories.map((cat) => {
+                const count = categoryStats[cat.id] || 0
+                if (count === 0) return null
+                return (
+                  <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
+                    <span className="stat-icon" style={{ fontSize: '16px' }}>
+                      {cat.emoji}
+                    </span>
+                    <span className="stat-category-name">{cat.name}</span>
+                    <span className="stat-value">{count}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="editor-filters">
-        <label>
-          Filtrer par catégorie :
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value as Category | 'all')}
-          >
-            <option value="all">Toutes</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔍</span> Rechercher :
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher par réponse, URL, indice ou catégorie..."
-            className="search-input"
-          />
-          {searchQuery && (
+        <div className="editor-filters">
+          <label>
+            Filtrer par catégorie :
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value as Category | 'all')}
+            >
+              <option value="all">Toutes</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔍</span> Rechercher :
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher par réponse, URL, indice ou catégorie..."
+              className="search-input"
+            />
+            {searchQuery && (
               <button
                 type="button"
                 className="search-clear"
@@ -604,297 +629,332 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               >
                 <span style={{ fontSize: '16px' }}>✕</span>
               </button>
-          )}
-        </label>
-        <div className="question-count">
-          {filteredQuestions.length} question{filteredQuestions.length > 1 ? 's' : ''}
-          {debouncedSearchQuery && (
-            <span className="search-results-info">
-              {' '}sur {localQuestions.length} total{localQuestions.length > 1 ? 'es' : 'e'}
-            </span>
-          )}
+            )}
+          </label>
+          <div className="question-count">
+            {filteredQuestions.length} question{filteredQuestions.length > 1 ? 's' : ''}
+            {debouncedSearchQuery && (
+              <span className="search-results-info">
+                {' '}
+                sur {localQuestions.length} total{localQuestions.length > 1 ? 'es' : 'e'}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      {(showAddForm || editingIndex !== null) && (
-        <div className="modal-overlay" onClick={cancelEdit}>
-          <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
-              <button className="close-button" onClick={cancelEdit} title="Fermer">
-                <span style={{ fontSize: '16px' }}>✕</span>
-              </button>
-            </div>
-            <div className="modal-body">
-              <form 
-                className="question-form"
-                onSubmit={handleSubmit(editingIndex !== null ? onUpdate : onSubmit)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault()
-                    handleSubmit(editingIndex !== null ? onUpdate : onSubmit)()
-                  }
-                }}
-              >
-
-
-              <div className="form-group">
-                <label>
-                  Catégorie *
-                </label>
-                <CategorySelector
-                  categories={categories}
-                  selectedCategories={selectedCategories}
-                  onSelectionChange={(cats) => {
-                    setSelectedCategories(cats)
-                    setValue('categories', cats, { shouldValidate: true })
-                  }}
-                  multiple={true}
-                  required={true}
-                />
-                {errors.categories && (
-                  <div className="youtube-error-message">
-                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
-                    <span>{errors.categories.message}</span>
-                  </div>
-                )}
+        {(showAddForm || editingIndex !== null) && (
+          <div className="modal-overlay" onClick={cancelEdit}>
+            <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
+                <button className="close-button" onClick={cancelEdit} title="Fermer">
+                  <span style={{ fontSize: '16px' }}>✕</span>
+                </button>
               </div>
-
-
-              <label>
-                URL YouTube *
-                <input
-                  type="text"
-                  {...register('mediaUrl')}
-                  placeholder="https://youtu.be/..."
-                  className={errors.mediaUrl ? 'input-error' : ''}
-                />
-                {errors.mediaUrl && (
-                  <div className="youtube-error-message">
-                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
-                    <span>{errors.mediaUrl.message}</span>
-                  </div>
-                )}
-                {watchedMediaUrl && !errors.mediaUrl && (
-                  <div className="youtube-preview-form">
-                    {!youtubeThumbnail && isYouTubeUrl(watchedMediaUrl) && (
-                      <span className="youtube-hint"><span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement des métadonnées...</span>
+              <div className="modal-body">
+                <form
+                  className="question-form"
+                  onSubmit={handleSubmit(editingIndex !== null ? onUpdate : onSubmit)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault()
+                      handleSubmit(editingIndex !== null ? onUpdate : onSubmit)()
+                    }
+                  }}
+                >
+                  <div className="form-group">
+                    <label>Catégorie *</label>
+                    <CategorySelector
+                      categories={categories}
+                      selectedCategories={selectedCategories}
+                      onSelectionChange={(cats) => {
+                        setSelectedCategories(cats)
+                        setValue('categories', cats, { shouldValidate: true })
+                      }}
+                      multiple={true}
+                      required={true}
+                    />
+                    {errors.categories && (
+                      <div className="youtube-error-message">
+                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                          ⚠️
+                        </span>
+                        <span>{errors.categories.message}</span>
+                      </div>
                     )}
-                    {youtubeThumbnail && youtubeValid && (
-                      <div className="youtube-metadata-preview">
-                        <img 
-                          src={youtubeThumbnail} 
-                          alt="YouTube thumbnail" 
-                          className="youtube-thumbnail-preview"
-                        />
-                        {youtubeTitle && (
-                          <div className="youtube-title-preview">
-                            <strong><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>📺</span> {youtubeTitle}</strong>
+                  </div>
+
+                  <label>
+                    URL YouTube *
+                    <input
+                      type="text"
+                      {...register('mediaUrl')}
+                      placeholder="https://youtu.be/..."
+                      className={errors.mediaUrl ? 'input-error' : ''}
+                    />
+                    {errors.mediaUrl && (
+                      <div className="youtube-error-message">
+                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                          ⚠️
+                        </span>
+                        <span>{errors.mediaUrl.message}</span>
+                      </div>
+                    )}
+                    {watchedMediaUrl && !errors.mediaUrl && (
+                      <div className="youtube-preview-form">
+                        {!youtubeThumbnail && isYouTubeUrl(watchedMediaUrl) && (
+                          <span className="youtube-hint">
+                            <span className="spinner" style={{ fontSize: '16px' }}>
+                              ⏳
+                            </span>{' '}
+                            Chargement des métadonnées...
+                          </span>
+                        )}
+                        {youtubeThumbnail && youtubeValid && (
+                          <div className="youtube-metadata-preview">
+                            <img
+                              src={youtubeThumbnail}
+                              alt="YouTube thumbnail"
+                              className="youtube-thumbnail-preview"
+                            />
+                            {youtubeTitle && (
+                              <div className="youtube-title-preview">
+                                <strong>
+                                  <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>
+                                    📺
+                                  </span>{' '}
+                                  {youtubeTitle}
+                                </strong>
+                              </div>
+                            )}
                           </div>
+                        )}
+                        {youtubeValid && !youtubeThumbnail && (
+                          <span className="youtube-hint">
+                            <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✅</span> URL
+                            YouTube détectée
+                          </span>
                         )}
                       </div>
                     )}
-                    {youtubeValid && !youtubeThumbnail && (
-                      <span className="youtube-hint"><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✅</span> URL YouTube détectée</span>
+                  </label>
+
+                  <label>
+                    Réponse *
+                    <input
+                      type="text"
+                      {...register('answer')}
+                      placeholder="La réponse à deviner"
+                      className={errors.answer ? 'input-error' : ''}
+                    />
+                    {errors.answer && (
+                      <div className="youtube-error-message">
+                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                          ⚠️
+                        </span>
+                        <span>{errors.answer.message}</span>
+                      </div>
                     )}
+                  </label>
+
+                  <label>
+                    Indice (optionnel)
+                    <input
+                      type="text"
+                      {...register('hint')}
+                      placeholder="Un indice pour aider à deviner"
+                    />
+                  </label>
+
+                  <div className="form-actions">
+                    <button
+                      type="submit"
+                      className="submit-button"
+                      disabled={isSubmitting || !youtubeValid || selectedCategories.length === 0}
+                      title={
+                        errors.mediaUrl || errors.answer || errors.categories
+                          ? 'Veuillez corriger les erreurs dans le formulaire'
+                          : !youtubeValid
+                            ? 'Veuillez entrer une URL YouTube valide'
+                            : selectedCategories.length === 0
+                              ? 'Veuillez sélectionner au moins une catégorie'
+                              : ''
+                      }
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="spinner" style={{ fontSize: '16px' }}>
+                            ⏳
+                          </span>{' '}
+                          Chargement...
+                        </>
+                      ) : editingIndex !== null ? (
+                        <>
+                          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre
+                          à jour
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span>{' '}
+                          Ajouter
+                        </>
+                      )}
+                    </button>
+                    <button type="button" className="cancel-button" onClick={cancelEdit}>
+                      Annuler
+                    </button>
                   </div>
-                )}
-              </label>
-
-              <label>
-                Réponse *
-                <input
-                  type="text"
-                  {...register('answer')}
-                  placeholder="La réponse à deviner"
-                  className={errors.answer ? 'input-error' : ''}
-                />
-                {errors.answer && (
-                  <div className="youtube-error-message">
-                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
-                    <span>{errors.answer.message}</span>
-                  </div>
-                )}
-              </label>
-
-              <label>
-                Indice (optionnel)
-                <input
-                  type="text"
-                  {...register('hint')}
-                  placeholder="Un indice pour aider à deviner"
-                />
-              </label>
-
-              <div className="form-actions">
-                <button
-                  type="submit"
-                  className="submit-button"
-                  disabled={isSubmitting || !youtubeValid || selectedCategories.length === 0}
-                  title={
-                    errors.mediaUrl || errors.answer || errors.categories
-                      ? 'Veuillez corriger les erreurs dans le formulaire'
-                      : !youtubeValid 
-                        ? 'Veuillez entrer une URL YouTube valide' 
-                        : selectedCategories.length === 0
-                          ? 'Veuillez sélectionner au moins une catégorie'
-                          : ''
-                  }
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement...
-                    </>
-                  ) : editingIndex !== null ? (
-                    <>
-                      <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre à jour
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter
-                    </>
-                  )}
-                </button>
-                <button type="button" className="cancel-button" onClick={cancelEdit}>
-                  Annuler
-                </button>
+                </form>
               </div>
-              </form>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-
-      <div className="panel-content">
-        <div className="panel-section">
-          <div className="section-header">
-            <h3>Liste des questions</h3>
-            <button
-              className="add-button"
-              onClick={() => {
-                cancelEdit()
-                navigate('/editor/import-video')
-              }}
-            >
-              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Importer une vidéo
-            </button>
-          </div>
-
-          {filteredQuestions.length === 0 ? (
-            <div className="no-questions-message">
-              <span className="no-questions-icon" style={{ fontSize: '48px' }}>🔍</span>
-              <p>Aucune question trouvée</p>
-              {debouncedSearchQuery && (
-                <p className="no-questions-hint">Essayez de modifier votre recherche ou vos filtres</p>
-              )}
+        <div className="panel-content">
+          <div className="panel-section">
+            <div className="section-header">
+              <h3>Liste des questions</h3>
+              <button
+                className="add-button"
+                onClick={() => {
+                  cancelEdit()
+                  navigate('/editor/import-video')
+                }}
+              >
+                <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Importer une
+                vidéo
+              </button>
             </div>
-          ) : (
-            <>
-              <div className="questions-grid">
-                {filteredQuestions.slice((currentPage - 1) * questionsPerPage, currentPage * questionsPerPage).map((question) => {
-                  const questionId = question.id || question.mediaUrl
-                  // Trouver l'index réel dans filteredQuestions pour handleEdit/handleDelete
-                  const realIndex = filteredQuestions.findIndex(q => 
-                    (q.id && question.id && q.id === question.id) || 
-                    (q.mediaUrl === question.mediaUrl)
-                  )
-              const metadata = questionMetadata[question.mediaUrl]
-              const thumbnailUrl = metadata?.thumbnailUrl || (question.type === 'video' && isYouTubeUrl(question.mediaUrl)
-                ? getYouTubeThumbnailFromUrl(question.mediaUrl)
-                : null)
-              const videoTitle = metadata?.title
-              
-              return (
-                <div key={questionId} className="question-card-editor">
-                  <div className="question-card-header">
-                    <span className="question-category">{getCategoryLabel(question.category)}</span>
-                  </div>
-                  <div className="question-card-body">
-                    <div className="question-media">
-                      {thumbnailUrl && (
-                        <div className="youtube-thumbnail-wrapper">
-                          <img 
-                            src={thumbnailUrl} 
-                            alt={videoTitle || "YouTube thumbnail"} 
-                            className="youtube-thumbnail-small"
-                            title={videoTitle || undefined}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
-                          {videoTitle && (
-                            <div className="youtube-title-overlay">
-                              <span className="youtube-title-text">{videoTitle}</span>
+
+            {filteredQuestions.length === 0 ? (
+              <div className="no-questions-message">
+                <span className="no-questions-icon" style={{ fontSize: '48px' }}>
+                  🔍
+                </span>
+                <p>Aucune question trouvée</p>
+                {debouncedSearchQuery && (
+                  <p className="no-questions-hint">
+                    Essayez de modifier votre recherche ou vos filtres
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="questions-grid">
+                  {filteredQuestions
+                    .slice((currentPage - 1) * questionsPerPage, currentPage * questionsPerPage)
+                    .map((question) => {
+                      const questionId = question.id || question.mediaUrl
+                      // Trouver l'index réel dans filteredQuestions pour handleEdit/handleDelete
+                      const realIndex = filteredQuestions.findIndex(
+                        (q) =>
+                          (q.id && question.id && q.id === question.id) ||
+                          q.mediaUrl === question.mediaUrl
+                      )
+                      const metadata = questionMetadata[question.mediaUrl]
+                      const thumbnailUrl =
+                        metadata?.thumbnailUrl ||
+                        (question.type === 'video' && isYouTubeUrl(question.mediaUrl)
+                          ? getYouTubeThumbnailFromUrl(question.mediaUrl)
+                          : null)
+                      const videoTitle = metadata?.title
+
+                      return (
+                        <div key={questionId} className="question-card-editor">
+                          <div className="question-card-header">
+                            <span className="question-category">
+                              {getCategoryLabel(question.category)}
+                            </span>
+                          </div>
+                          <div className="question-card-body">
+                            <div className="question-media">
+                              {thumbnailUrl && (
+                                <div className="youtube-thumbnail-wrapper">
+                                  <img
+                                    src={thumbnailUrl}
+                                    alt={videoTitle || 'YouTube thumbnail'}
+                                    className="youtube-thumbnail-small"
+                                    title={videoTitle || undefined}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                  {videoTitle && (
+                                    <div className="youtube-title-overlay">
+                                      <span className="youtube-title-text">{videoTitle}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <div className="question-info-compact">
+                              <div className="question-answer-compact">
+                                <strong>{question.answer}</strong>
+                              </div>
+                              {videoTitle && videoTitle !== question.answer && (
+                                <div className="question-video-title">{videoTitle}</div>
+                              )}
+                              {question.hint && (
+                                <div className="question-hint-compact">{question.hint}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="question-card-actions">
+                            <button
+                              className="edit-button-small"
+                              onClick={() => handleEdit(realIndex)}
+                              title="Modifier"
+                            >
+                              <span style={{ fontSize: '16px' }}>✏️</span>
+                            </button>
+                            <button
+                              className="delete-button-small"
+                              onClick={() => handleDelete(realIndex)}
+                              title="Supprimer"
+                            >
+                              <span style={{ fontSize: '16px' }}>🗑️</span>
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="question-info-compact">
-                      <div className="question-answer-compact"><strong>{question.answer}</strong></div>
-                      {videoTitle && videoTitle !== question.answer && (
-                        <div className="question-video-title">{videoTitle}</div>
-                      )}
-                      {question.hint && (
-                        <div className="question-hint-compact">{question.hint}</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="question-card-actions">
-                    <button
-                      className="edit-button-small"
-                      onClick={() => handleEdit(realIndex)}
-                      title="Modifier"
-                    >
-                      <span style={{ fontSize: '16px' }}>✏️</span>
-                    </button>
-                    <button
-                      className="delete-button-small"
-                      onClick={() => handleDelete(realIndex)}
-                      title="Supprimer"
-                    >
-                      <span style={{ fontSize: '16px' }}>🗑️</span>
-                    </button>
-                  </div>
+                      )
+                    })}
                 </div>
-              )
-                })}
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="pagination" role="navigation" aria-label="Pagination des questions">
-                  <button
-                    className="pagination-button"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    title="Page précédente"
-                    aria-label="Page précédente"
-                  >
-                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>◀️</span> Précédent
-                  </button>
-                  <span className="pagination-info" aria-current="page">
-                    Page {currentPage} sur {totalPages}
-                  </span>
-                  <button
-                    className="pagination-button"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    title="Page suivante"
-                    aria-label="Page suivante"
-                  >
-                    Suivant <span style={{ marginLeft: '0.5rem', fontSize: '16px' }}>▶️</span>
-                  </button>
-                </div>
-              )}
-            </>
-          )}
 
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div
+                    className="pagination"
+                    role="navigation"
+                    aria-label="Pagination des questions"
+                  >
+                    <button
+                      className="pagination-button"
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      title="Page précédente"
+                      aria-label="Page précédente"
+                    >
+                      <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>◀️</span> Précédent
+                    </button>
+                    <span className="pagination-info" aria-current="page">
+                      Page {currentPage} sur {totalPages}
+                    </span>
+                    <button
+                      className="pagination-button"
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      title="Page suivante"
+                      aria-label="Page suivante"
+                    >
+                      Suivant <span style={{ marginLeft: '0.5rem', fontSize: '16px' }}>▶️</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 }
-

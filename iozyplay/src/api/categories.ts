@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { CategoryInfo } from '../types'
+import type { CategoryInfo } from '@/types'
 
 export const categoriesApi = {
   getAll: async (): Promise<CategoryInfo[]> => {

@@ -10,11 +10,15 @@ class SoundManager {
     // Initialiser l'audio context quand l'utilisateur interagit avec la page
     if (typeof window !== 'undefined') {
       // Créer l'audio context au premier clic
-      document.addEventListener('click', () => {
-        if (!this.audioContext) {
-          this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-        }
-      }, { once: true })
+      document.addEventListener(
+        'click',
+        () => {
+          if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+          }
+        },
+        { once: true }
+      )
     }
   }
 
@@ -109,7 +113,7 @@ class SoundManager {
 
       oscillator.type = 'square' // Son plus perçant
       oscillator.frequency.setValueAtTime(800, ctx.currentTime + i * 0.15)
-      
+
       gainNode.gain.setValueAtTime(0.4 * this.volume, ctx.currentTime + i * 0.15)
       gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.1)
 
@@ -148,7 +152,7 @@ class SoundManager {
     if (!ctx) return
 
     // Jouer une séquence de notes ascendantes
-    const notes = [523.25, 659.25, 783.99, 1046.50] // Do, Mi, Sol, Do aigu
+    const notes = [523.25, 659.25, 783.99, 1046.5] // Do, Mi, Sol, Do aigu
 
     notes.forEach((freq, index) => {
       const oscillator = ctx.createOscillator()
@@ -173,7 +177,7 @@ class SoundManager {
     if (!ctx) return
 
     // Son joyeux et montant pour la révélation
-    const notes = [392.00, 493.88, 587.33, 783.99] // Sol, Si, Ré, Sol aigu
+    const notes = [392.0, 493.88, 587.33, 783.99] // Sol, Si, Ré, Sol aigu
 
     notes.forEach((freq, index) => {
       const oscillator = ctx.createOscillator()
@@ -214,5 +218,3 @@ class SoundManager {
 
 // Instance singleton
 export const soundManager = new SoundManager()
-
-

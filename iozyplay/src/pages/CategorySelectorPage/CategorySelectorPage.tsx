@@ -1,18 +1,23 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { useGameState } from '../../lib/game/GameContext'
+import { toast } from 'sonner'
+import { useGameState } from '@/lib/game/GameContext'
 import CategorySelector from './CategorySelector'
-import type { Category } from '../../types'
-import type { GameMode, Player } from '../../lib/game/types'
-import { QuestionService } from '../../services/questionService'
+import type { Category } from '@/types'
+import type { GameMode, Player } from '@/lib/game/types'
+import { QuestionService } from '@/services/questionService'
 
 export default function CategorySelectorPage() {
   const navigate = useNavigate()
   const { setGameState } = useGameState()
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false)
 
-  const handleStartGame = async (categories: Category[], mode: GameMode, configuredPlayers: Player[], name: string) => {
+  const handleStartGame = async (
+    categories: Category[],
+    mode: GameMode,
+    configuredPlayers: Player[],
+    name: string
+  ) => {
     if (categories.length === 0) {
       toast.error('Veuillez sélectionner au moins une catégorie !', {
         icon: '📂',
@@ -37,8 +42,8 @@ export default function CategorySelectorPage() {
         categories,
         questions: shuffledQuestions,
         gameMode: mode,
-        players: configuredPlayers.map(p => ({ ...p, score: 0 })),
-        playerName: name
+        players: configuredPlayers.map((p) => ({ ...p, score: 0 })),
+        playerName: name,
       })
 
       // Utiliser la même interface pour solo et multijoueur
@@ -56,37 +61,27 @@ export default function CategorySelectorPage() {
   return (
     <>
       <header className="app-header">
-        <button
-          className="editor-toggle-button"
-          onClick={() => navigate('/')}
-        >
+        <button className="editor-toggle-button" onClick={() => navigate('/')}>
           ← Retour au menu
         </button>
       </header>
       {isLoadingQuestions ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '400px',
-          flexDirection: 'column',
-          gap: 'var(--spacing-md)'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '400px',
+            flexDirection: 'column',
+            gap: 'var(--spacing-md)',
+          }}
+        >
           <div className="spinner" style={{ margin: '0 auto' }}></div>
           <p className="text-secondary">Chargement des questions...</p>
         </div>
       ) : (
-        <CategorySelector
-          onStartGame={handleStartGame}
-        />
+        <CategorySelector onStartGame={handleStartGame} />
       )}
     </>
   )
 }
-
-
-
-
-
-
-

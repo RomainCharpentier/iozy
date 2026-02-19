@@ -195,7 +195,7 @@
   font-size: 1rem;
 }
 
-.form-group input[type="text"] {
+.form-group input[type='text'] {
   width: 100%;
   padding: 1rem 1.25rem;
   border: 2px solid var(--border-color);
@@ -206,7 +206,7 @@
   transition: all 0.2s ease;
 }
 
-.form-group input[type="text"]:focus {
+.form-group input[type='text']:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -251,4 +251,3 @@
     grid-template-columns: 1fr;
   }
 }
-

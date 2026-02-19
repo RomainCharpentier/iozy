@@ -1,6 +1,6 @@
-import { GameService } from '../../../services/gameService'
-import type { Question } from '../../../types'
-import { soundManager } from '../../../utils/sounds'
+import { GameService } from '@/services/gameService'
+import type { Question } from '@/types'
+import { soundManager } from '@/utils/sounds'
 
 interface GameTopBarProps {
   currentQuestionIndex: number
@@ -23,7 +23,7 @@ export default function GameTopBar({
   score,
   onQuit,
   onSettings,
-  isGameEnded = false
+  isGameEnded = false,
 }: GameTopBarProps) {
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return '0:00'
@@ -55,7 +55,11 @@ export default function GameTopBar({
             <div className="game-interface-progress-bar">
               <div
                 className="game-interface-progress-fill"
-                style={{ width: isGameEnded ? '100%' : `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%` }}
+                style={{
+                  width: isGameEnded
+                    ? '100%'
+                    : `${GameService.calculateProgress(currentQuestionIndex, totalQuestions)}%`,
+                }}
               />
             </div>
           </div>
@@ -64,7 +68,9 @@ export default function GameTopBar({
           <div className="game-interface-timer-icon" style={{ fontSize: '20px' }}>
             {isGameEnded ? '🏁' : '⏱️'}
           </div>
-          <div className="game-interface-timer-value">{isGameEnded ? 'Terminé' : formatTime(timeRemaining)}</div>
+          <div className="game-interface-timer-value">
+            {isGameEnded ? 'Terminé' : formatTime(timeRemaining)}
+          </div>
         </div>
         <div className="game-interface-score-section">
           <div className="game-interface-score-label">{isGameEnded ? 'Score Final' : 'Score'}</div>
@@ -72,8 +78,8 @@ export default function GameTopBar({
         </div>
       </div>
       <div className="game-interface-header-actions">
-        <button 
-          className="game-interface-action-btn" 
+        <button
+          className="game-interface-action-btn"
           title="Fichiers"
           aria-label="Fichiers"
           disabled
@@ -81,8 +87,8 @@ export default function GameTopBar({
           <span style={{ fontSize: '18px' }}>📁</span>
         </button>
         {onSettings && (
-          <button 
-            className="game-interface-action-btn" 
+          <button
+            className="game-interface-action-btn"
             onClick={() => {
               soundManager.playClick()
               onSettings()
@@ -108,4 +114,3 @@ export default function GameTopBar({
     </div>
   )
 }
-

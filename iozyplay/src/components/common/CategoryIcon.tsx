@@ -9,17 +9,17 @@ interface CategoryIconProps {
 /**
  * Composant pour afficher l'emoji d'une catégorie
  */
-export default function CategoryIcon({ 
+export default function CategoryIcon({
   categoryId,
   iconId,
-  className = '', 
+  className = '',
   size = 24,
-  title 
+  title,
 }: CategoryIconProps) {
   const emoji = iconId || categoryId
-  
+
   return (
-    <span 
+    <span
       className={className}
       style={{ fontSize: typeof size === 'number' ? `${size}px` : size }}
       title={title}
@@ -29,4 +29,3 @@ export default function CategoryIcon({
     </span>
   )
 }
-

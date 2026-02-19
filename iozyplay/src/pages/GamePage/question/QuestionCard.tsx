@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Question } from '../../../types'
-import type { GameMode, Player } from '../../../lib/game/types'
-import MediaPlayer from '../../../components/media/MediaPlayer'
+import type { Question } from '@/types'
+import type { GameMode, Player } from '@/lib/game/types'
+import MediaPlayer from '@/components/media/MediaPlayer'
 import AnswerInput from './AnswerInput'
 import MediaSyncOverlay from './MediaSyncOverlay'
-import { soundManager } from '../../../utils/sounds'
-import { TIMING } from '../../../services/gameService'
-import { getPlayerId } from '../../../utils/playerId'
-import { compareAnswers } from '../../../utils/answerNormalization'
-import CategoryIcon from '../../../components/common/CategoryIcon'
-import type { CategoryInfo } from '../../../types'
-import { DEFAULT_CATEGORIES } from '../../../types'
-import { loadCategories } from '../../../services/categoryService'
+import { soundManager } from '@/utils/sounds'
+import { TIMING } from '@/services/gameService'
+import { getPlayerId } from '@/utils/playerId'
+import { compareAnswers } from '@/utils/answerNormalization'
+import CategoryIcon from '@/components/common/CategoryIcon'
+import type { CategoryInfo } from '@/types'
+import { DEFAULT_CATEGORIES } from '@/types'
+import { loadCategories } from '@/services/categoryService'
 
 interface QuestionCardProps {
   question: Question
@@ -39,9 +39,9 @@ interface QuestionCardProps {
   validatedAnswers?: Record<string, boolean> // Réponses validées par le serveur (mode multijoueur)
 }
 
-export default function QuestionCard({ 
-  question, 
-  onAnswer, 
+export default function QuestionCard({
+  question,
+  onAnswer,
   onTimeUp,
   onSkipVote,
   gameMode = 'solo',
@@ -62,12 +62,12 @@ export default function QuestionCard({
   isGameEnded = false,
   isMediaReady = false,
   allQuestions = [],
-  validatedAnswers = {}
+  validatedAnswers = {},
 }: QuestionCardProps) {
   const [categories, setCategories] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
   useEffect(() => {
-    loadCategories().then(cats => {
+    loadCategories().then((cats) => {
       setCategories(cats.length > 0 ? cats : DEFAULT_CATEGORIES)
     })
   }, [])
@@ -86,27 +86,30 @@ export default function QuestionCard({
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false) // Indique si une réponse a été soumise (pour le feedback visuel)
   // En mode multijoueur, utiliser directement les valeurs externes (pas d'état local)
   // En mode solo, utiliser l'état local
-  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(
+    question.timeLimit || TIMING.DEFAULT_TIME_LIMIT
+  )
   const [localIsTimeUp, setLocalIsTimeUp] = useState<boolean>(false)
   const [mediaReady, setMediaReady] = useState<boolean>(false)
   const [shouldStartMedia, setShouldStartMedia] = useState<boolean>(false)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const focusTimeoutRef = useRef<number | null>(null)
-  
+
   // Utiliser les valeurs externes en mode multijoueur, sinon les valeurs locales
-  const timeRemaining = gameMode === 'online' && externalTimeRemaining !== undefined 
-    ? externalTimeRemaining 
-    : localTimeRemaining
-  const isTimeUp = gameMode === 'online' && externalIsTimeUp !== undefined 
-    ? externalIsTimeUp 
-    : localIsTimeUp
-  
+  const timeRemaining =
+    gameMode === 'online' && externalTimeRemaining !== undefined
+      ? externalTimeRemaining
+      : localTimeRemaining
+  const isTimeUp =
+    gameMode === 'online' && externalIsTimeUp !== undefined ? externalIsTimeUp : localIsTimeUp
+
   // En mode multijoueur, déterminer si le joueur actuel a répondu correctement
   const currentPlayerId = gameMode === 'online' ? getPlayerId() : null
-  const isCurrentPlayerCorrect = gameMode === 'online' && currentPlayerId 
-    ? (validatedAnswers[currentPlayerId] === true)
-    : isCorrect
-  
+  const isCurrentPlayerCorrect =
+    gameMode === 'online' && currentPlayerId
+      ? validatedAnswers[currentPlayerId] === true
+      : isCorrect
+
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
   const setTimeRemaining = (value: number | ((prev: number) => number)) => {
     if (gameMode === 'solo') {
@@ -129,22 +132,22 @@ export default function QuestionCard({
 
   useEffect(() => {
     if (!question) return
-    
+
     // Réinitialiser l'état du média pour la nouvelle question
     setMediaReady(false)
     mediaReadySentRef.current = false
-    
+
     // Nettoyer le timeout précédent
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-    
+
     if (gameMode === 'online') {
       // En mode multijoueur, permettre le chargement du média même si on attend le "go"
       // Le média doit charger pour que onMediaReady soit appelé et que game:ready soit envoyé
       setShouldStartMedia(true)
-      
+
       // Fallback : si le média ne charge pas après 3 secondes, envoyer quand même game:ready
       // pour éviter que le joueur reste bloqué
       timeoutRef.current = setTimeout(() => {
@@ -156,16 +159,16 @@ export default function QuestionCard({
         timeoutRef.current = null
       }, 3000)
     }
-    
+
     if (previousQuestionIdRef.current !== question.id) {
       previousQuestionIdRef.current = question.id
-      
+
       setUserAnswer('')
       setAttempts(0)
       setIsCorrect(false)
       setHasSubmitted(false)
     }
-    
+
     if (focusTimeoutRef.current) {
       clearTimeout(focusTimeoutRef.current)
     }
@@ -174,10 +177,10 @@ export default function QuestionCard({
       inputRefs.current[inputKey]?.focus()
       focusTimeoutRef.current = null
     }, 100)
-    
+
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
     setIsTimeUp(false)
-    
+
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
@@ -189,7 +192,7 @@ export default function QuestionCard({
       }
     }
   }, [question.id, question.timeLimit, gameMode])
-  
+
   useEffect(() => {
     if (gameMode === 'online') {
       // En mode multijoueur, permettre le chargement du média même si on attend le "go"
@@ -200,12 +203,9 @@ export default function QuestionCard({
     }
   }, [waitingForGo, gameMode, shouldStartMedia])
 
-
   useEffect(() => {
-    const hasAnswered = gameMode === 'solo' 
-      ? isCorrect 
-      : questionAnsweredBy !== null
-    
+    const hasAnswered = gameMode === 'solo' ? isCorrect : questionAnsweredBy !== null
+
     // En mode multijoueur, utiliser le timer externe (géré par Game.tsx)
     // mais seulement si on n'attend plus le "go"
     if (gameMode === 'online') {
@@ -213,7 +213,7 @@ export default function QuestionCard({
       // On ne fait rien ici, le parent gère le timer
       return
     }
-    
+
     // Mode solo : gérer le timer localement
     if (hasAnswered || isTimeUp || !mediaReady) return
 
@@ -244,17 +244,17 @@ export default function QuestionCard({
   const handleSubmit = (playerId?: string, answerValue?: string) => {
     // Utiliser la valeur fournie en paramètre si disponible, sinon utiliser userAnswer
     const answerToUse = answerValue !== undefined ? answerValue : userAnswer
-    
+
     if (!answerToUse.trim() || isTimeUp) return
 
     const answer = answerToUse.trim()
     let isAnswerCorrect = false
-    
+
     // En mode solo, valider immédiatement pour donner un feedback
     if (gameMode === 'solo') {
       // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
       isAnswerCorrect = compareAnswers(answer, question.answer)
-      
+
       if (isAnswerCorrect) {
         setIsCorrect(true)
         // Mettre à jour userAnswer avec la réponse correcte pour l'affichage
@@ -272,21 +272,21 @@ export default function QuestionCard({
         setUserAnswer(answerValue)
       }
     }
-    
+
     // Stocker la réponse sans la valider (validation à la fin du guess)
-    setAttempts(prev => prev + 1)
+    setAttempts((prev) => prev + 1)
     setHasSubmitted(true) // Marquer qu'une réponse a été soumise (pour le feedback visuel)
-    
+
     // Envoyer la réponse au parent (qui la stockera côté serveur en multijoueur)
     // Utiliser answer qui vient de answerToUse (valeur passée ou userAnswer)
     onAnswer(answer, timeRemaining, playerId)
-    
+
     // En mode solo, si la réponse est correcte, garder hasSubmitted pour montrer le feedback
     if (gameMode === 'solo' && isAnswerCorrect) {
       // Ne pas réinitialiser hasSubmitted si c'est correct - on veut garder le feedback
       return
     }
-    
+
     // En mode multijoueur ou si incorrect en solo, permettre de modifier après un délai
     // pour montrer le feedback visuel (icône check) mais permettre de modifier
     if (gameMode === 'solo' && !isAnswerCorrect) {
@@ -301,7 +301,7 @@ export default function QuestionCard({
       // hasSubmitted sera réinitialisé par handleAnswerChange quand l'utilisateur tape
     }
   }
-  
+
   // Réinitialiser hasSubmitted quand l'utilisateur commence à taper
   const handleAnswerChange = (value: string) => {
     setUserAnswer(value)
@@ -309,7 +309,6 @@ export default function QuestionCard({
       setHasSubmitted(false) // Permettre de modifier la réponse
     }
   }
-
 
   const getCategoryLabel = (category: string | string[]) => {
     const categoryStr = Array.isArray(category) ? category[0] : category
@@ -328,7 +327,7 @@ export default function QuestionCard({
   }
 
   const getCategoryInfo = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)
+    return categories.find((c) => c.id === categoryId)
   }
 
   const categoryId = getCategoryId(question.category)
@@ -341,7 +340,9 @@ export default function QuestionCard({
           <span className="game-interface-category-icon">
             <CategoryIcon categoryId={categoryId} iconId={categoryInfo?.emoji} size={20} />
           </span>
-          <span className="game-interface-category-text">{getCategoryLabel(question.category)}</span>
+          <span className="game-interface-category-text">
+            {getCategoryLabel(question.category)}
+          </span>
         </div>
       </div>
 
@@ -351,10 +352,13 @@ export default function QuestionCard({
             {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
               <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
             )}
-            <MediaPlayer 
-              type={question.type} 
+            <MediaPlayer
+              type={question.type}
               mediaUrl={question.mediaUrl}
-              autoPlay={gameMode === 'solo' || (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)}
+              autoPlay={
+                gameMode === 'solo' ||
+                (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)
+              }
               showVideo={isTimeUp}
               restartVideo={false}
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
@@ -366,17 +370,17 @@ export default function QuestionCard({
                 if (mediaReadySentRef.current) {
                   return
                 }
-                
+
                 // Annuler le timeout car le média est chargé
                 if (timeoutRef.current) {
                   clearTimeout(timeoutRef.current)
                   timeoutRef.current = null
                 }
-                
+
                 // Toujours marquer le média comme prêt pour le chargement
                 setMediaReady(true)
                 mediaReadySentRef.current = true
-                
+
                 // En mode multijoueur, toujours signaler au serveur que le média est prêt
                 // même si on attend le signal "go" - c'est nécessaire pour que le serveur
                 // envoie le signal "go" quand tous les joueurs sont prêts
@@ -406,7 +410,9 @@ export default function QuestionCard({
               onChange={handleAnswerChange}
               onSubmit={(value) => handleSubmit(undefined, value)}
               disabled={isCorrect || isTimeUp}
-              inputRef={(el) => { inputRefs.current['solo'] = el }}
+              inputRef={(el) => {
+                inputRefs.current['solo'] = el
+              }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
@@ -429,7 +435,9 @@ export default function QuestionCard({
               onChange={handleAnswerChange}
               onSubmit={(value) => handleSubmit(undefined, value)}
               disabled={questionAnsweredBy !== null || isTimeUp}
-              inputRef={(el) => { inputRefs.current['online'] = el }}
+              inputRef={(el) => {
+                inputRefs.current['online'] = el
+              }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
@@ -450,7 +458,10 @@ export default function QuestionCard({
 
       {question.hint && (
         <div className="hint">
-          <span className="hint-icon" style={{ fontSize: '16px', marginRight: '0.5rem' }}>💡</span> Indice : {question.hint}
+          <span className="hint-icon" style={{ fontSize: '16px', marginRight: '0.5rem' }}>
+            💡
+          </span>{' '}
+          Indice : {question.hint}
         </div>
       )}
     </div>

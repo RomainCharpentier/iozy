@@ -1,6 +1,50 @@
 // Utilitaire pour gérer l'enregistrement du service worker
 
+// Détecter si on est en mode développement
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development'
+
 export function registerServiceWorker() {
+  // Ne pas enregistrer le service worker en développement pour éviter les problèmes de cache
+  if (isDevelopment) {
+    console.log('[SW] Development mode: Service Worker disabled to avoid cache issues')
+
+    // Désinscrire le service worker s'il existe déjà et vider tous les caches
+    if ('serviceWorker' in navigator) {
+      // Désinscrire tous les service workers
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        const unregisterPromises = registrations.map((registration) => {
+          return registration.unregister().then((success) => {
+            if (success) {
+              console.log('[SW] Unregistered service worker:', registration.scope)
+            }
+            return success
+          })
+        })
+
+        Promise.all(unregisterPromises).then(() => {
+          // Vider tous les caches
+          if ('caches' in window) {
+            ;(window.caches as CacheStorage).keys().then((cacheNames) => {
+              const deletePromises = cacheNames.map((cacheName) => {
+                return (window.caches as CacheStorage).delete(cacheName).then((success) => {
+                  if (success) {
+                    console.log('[SW] Deleted cache:', cacheName)
+                  }
+                  return success
+                })
+              })
+
+              Promise.all(deletePromises).then(() => {
+                console.log('[SW] All caches cleared')
+              })
+            })
+          }
+        })
+      })
+    }
+    return
+  }
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
@@ -58,17 +102,3 @@ export function unregisterServiceWorker() {
     })
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

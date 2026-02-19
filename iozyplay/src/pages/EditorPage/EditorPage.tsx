@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import toast from 'react-hot-toast'
-import { QuestionService } from '../../services/questionService'
-import type { Question } from '../../types'
+import { toast } from 'sonner'
+import { QuestionService } from '@/services/questionService'
+import type { Question } from '@/types'
 import QuestionEditor from './QuestionEditor'
 import CategoryManager from './CategoryManager'
 
@@ -60,7 +60,7 @@ export default function EditorPage() {
           ← Retour au menu
         </button>
       </header>
-      
+
       <div className="editor-container">
         <div className="editor-tabs">
           <button
@@ -82,7 +82,7 @@ export default function EditorPage() {
             <CategoryManager
               onClose={() => setActiveTab('questions')}
               onCategoriesChange={() => {
-                setCategoriesVersion(v => v + 1)
+                setCategoriesVersion((v) => v + 1)
                 loadQuestions()
               }}
             />
@@ -101,10 +101,3 @@ export default function EditorPage() {
     </>
   )
 }
-
-
-
-
-
-
-

@@ -1,7 +1,7 @@
-import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '../../../types'
-import { loadCategories } from '../../../services/categoryService'
-import { TIMING } from '../../../services/gameService'
-import { soundManager } from '../../../utils/sounds'
+import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
+import { loadCategories } from '@/services/categoryService'
+import { TIMING } from '@/services/gameService'
+import { soundManager } from '@/utils/sounds'
 import { useState, useEffect } from 'react'
 
 interface RoomConfigPanelProps {
@@ -29,7 +29,7 @@ export default function RoomConfigPanel({
   onBack,
   canStart,
   startError,
-  isStarting = false
+  isStarting = false,
 }: RoomConfigPanelProps) {
   const [categoryInfos, setCategoryInfos] = useState<CategoryInfo[]>(DEFAULT_CATEGORIES)
 
@@ -61,24 +61,24 @@ export default function RoomConfigPanel({
 
     if (rawQuestionCount == null || rawQuestionCount === undefined || rawQuestionCount === 0) {
       const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
-      return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
+      return Number.isNaN(defaultVal) || !Number.isFinite(defaultVal) ? MIN_COUNT : defaultVal
     }
 
     const numValue = Number(rawQuestionCount)
     if (!Number.isFinite(numValue) || Number.isNaN(numValue)) {
       const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
-      return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
+      return Number.isNaN(defaultVal) || !Number.isFinite(defaultVal) ? MIN_COUNT : defaultVal
     }
 
     // Si la valeur est dans la plage valide, l'utiliser
     if (numValue >= MIN_COUNT && numValue <= maxCount) {
       const rounded = Math.round(numValue)
-      return (Number.isNaN(rounded) || !Number.isFinite(rounded)) ? MIN_COUNT : rounded
+      return Number.isNaN(rounded) || !Number.isFinite(rounded) ? MIN_COUNT : rounded
     }
 
     // Sinon, utiliser la valeur par défaut
     const defaultVal = Math.min(DEFAULT_COUNT, maxCount)
-    return (Number.isNaN(defaultVal) || !Number.isFinite(defaultVal)) ? MIN_COUNT : defaultVal
+    return Number.isNaN(defaultVal) || !Number.isFinite(defaultVal) ? MIN_COUNT : defaultVal
   })()
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function RoomConfigPanel({
   }
 
   const getCategoryInfo = (categoryId: string) => {
-    return categoryInfos.find(c => c.id === categoryId) || { emoji: 'FaMusic', name: categoryId }
+    return categoryInfos.find((c) => c.id === categoryId) || { emoji: 'FaMusic', name: categoryId }
   }
 
   const handleQuestionCountChange = (newValue: number) => {
@@ -112,15 +112,23 @@ export default function RoomConfigPanel({
 
       {/* Categories */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+        <label
+          style={{
+            display: 'block',
+            marginBottom: 'var(--spacing-sm)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 600,
+          }}
+        >
           Thèmes sélectionnés
         </label>
         <div className="grid-auto" style={{ gap: 'var(--spacing-xs)' }}>
-          {selectedCategories.map(category => {
+          {selectedCategories.map((category) => {
             const catInfo = getCategoryInfo(category)
             return (
               <span key={category} className="badge badge-primary">
-                <span style={{ fontSize: '16px', marginRight: '4px' }}>{catInfo.emoji}</span> {catInfo.name}
+                <span style={{ fontSize: '16px', marginRight: '4px' }}>{catInfo.emoji}</span>{' '}
+                {catInfo.name}
               </span>
             )
           })}
@@ -129,7 +137,14 @@ export default function RoomConfigPanel({
 
       {/* Timer Slider */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+        <label
+          style={{
+            display: 'block',
+            marginBottom: 'var(--spacing-sm)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 600,
+          }}
+        >
           Timer par question: <strong>{timeLimit}s</strong>
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
@@ -149,10 +164,17 @@ export default function RoomConfigPanel({
               background: 'var(--bg-tertiary)',
               borderRadius: '3px',
               outline: 'none',
-              WebkitAppearance: 'none'
+              WebkitAppearance: 'none',
             }}
           />
-          <span style={{ minWidth: '50px', textAlign: 'center', fontWeight: 700, fontSize: 'var(--font-size-lg)' }}>
+          <span
+            style={{
+              minWidth: '50px',
+              textAlign: 'center',
+              fontWeight: 700,
+              fontSize: 'var(--font-size-lg)',
+            }}
+          >
             {timeLimit}s
           </span>
         </div>
@@ -160,15 +182,31 @@ export default function RoomConfigPanel({
 
       {/* Question Count Slider */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-          Nombre de questions: <strong>{Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}</strong>
+        <label
+          style={{
+            display: 'block',
+            marginBottom: 'var(--spacing-sm)',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 600,
+          }}
+        >
+          Nombre de questions:{' '}
+          <strong>
+            {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
+              ? currentCount
+              : MIN_COUNT}
+          </strong>
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
           <input
             type="range"
             min={MIN_COUNT}
             max={Number.isFinite(maxCount) && !Number.isNaN(maxCount) ? maxCount : MIN_COUNT}
-            value={Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}
+            value={
+              Number.isFinite(currentCount) && !Number.isNaN(currentCount)
+                ? currentCount
+                : MIN_COUNT
+            }
             onChange={(e) => {
               const value = parseInt(e.target.value, 10)
               handleQuestionCountChange(value)
@@ -181,34 +219,44 @@ export default function RoomConfigPanel({
               borderRadius: '3px',
               outline: 'none',
               WebkitAppearance: 'none',
-              opacity: availableCount === 0 ? 0.5 : 1
+              opacity: availableCount === 0 ? 0.5 : 1,
             }}
           />
-          <span style={{ minWidth: '50px', textAlign: 'center', fontWeight: 700, fontSize: 'var(--font-size-lg)' }}>
-            {Number.isFinite(currentCount) && !Number.isNaN(currentCount) ? currentCount : MIN_COUNT}
+          <span
+            style={{
+              minWidth: '50px',
+              textAlign: 'center',
+              fontWeight: 700,
+              fontSize: 'var(--font-size-lg)',
+            }}
+          >
+            {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
+              ? currentCount
+              : MIN_COUNT}
           </span>
         </div>
-        <p className="text-secondary" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}>
+        <p
+          className="text-secondary"
+          style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}
+        >
           {availableCount > 0
             ? `${availableCount} questions disponibles`
-            : 'Aucune question disponible'
-          }
+            : 'Aucune question disponible'}
         </p>
       </div>
 
       {/* Actions */}
-      <div style={{
-        marginTop: 'auto',
-        paddingTop: 'var(--spacing-lg)',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        gap: 'var(--spacing-sm)',
-        justifyContent: 'flex-end'
-      }}>
-        <button
-          className="btn btn-secondary"
-          onClick={onBack}
-        >
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: 'var(--spacing-lg)',
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          gap: 'var(--spacing-sm)',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <button className="btn btn-secondary" onClick={onBack}>
           ← Retour
         </button>
         <button
@@ -229,15 +277,17 @@ export default function RoomConfigPanel({
 
       {/* Error Messages */}
       {startError && (
-        <div style={{
-          marginTop: 'var(--spacing-md)',
-          padding: 'var(--spacing-sm)',
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid var(--error)',
-          borderRadius: '0.5rem',
-          fontSize: 'var(--font-size-sm)',
-          color: 'var(--error)'
-        }}>
+        <div
+          style={{
+            marginTop: 'var(--spacing-md)',
+            padding: 'var(--spacing-sm)',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid var(--error)',
+            borderRadius: '0.5rem',
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--error)',
+          }}
+        >
           {startError}
         </div>
       )}

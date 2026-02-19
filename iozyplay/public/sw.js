@@ -1,6 +1,8 @@
 // Service Worker pour le cache offline
-const CACHE_NAME = 'blindtest-v1'
-const RUNTIME_CACHE = 'blindtest-runtime-v1'
+// Utiliser un hash basé sur la date pour forcer la mise à jour du cache
+const CACHE_VERSION = 'blindtest-' + new Date().toISOString().split('T')[0].replace(/-/g, '')
+const CACHE_NAME = CACHE_VERSION
+const RUNTIME_CACHE = CACHE_VERSION + '-runtime'
 
 // Assets à mettre en cache lors de l'installation
 const PRECACHE_ASSETS = [
@@ -13,11 +15,11 @@ const PRECACHE_ASSETS = [
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE_NAME)
   const cached = await cache.match(request)
-  
+
   if (cached) {
     return cached
   }
-  
+
   try {
     const response = await fetch(request)
     if (response.ok) {
@@ -38,7 +40,7 @@ async function cacheFirst(request) {
 // Stratégie de cache : Network First pour les API calls
 async function networkFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE)
-  
+
   try {
     const response = await fetch(request)
     if (response.ok) {
@@ -170,10 +172,19 @@ self.addEventListener('fetch', (event) => {
   // Laisser passer les requêtes YouTube normales (embed, vidéo, etc.)
   // mais bloquer les publicités via isAdRequest() ci-dessus
 
-  // Cache First pour les assets statiques (JS, CSS, images, fonts)
+  // Network First avec fallback cache pour les assets statiques (JS, CSS)
+  // Cela permet de toujours obtenir les dernières versions en développement
   if (
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
+    url.pathname.startsWith('/assets/')
+  ) {
+    event.respondWith(networkFirst(request))
+    return
+  }
+
+  // Cache First pour les assets statiques non-critiques (images, fonts)
+  if (
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg') ||
     url.pathname.endsWith('.jpeg') ||
@@ -183,8 +194,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.woff2') ||
     url.pathname.endsWith('.ttf') ||
     url.pathname.endsWith('.eot') ||
-    url.pathname.startsWith('/src/') ||
-    url.pathname.startsWith('/assets/')
+    url.pathname.startsWith('/src/')
   ) {
     event.respondWith(cacheFirst(request))
     return
@@ -209,7 +219,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
-  
+
   if (event.data && event.data.type === 'CACHE_URLS') {
     event.waitUntil(
       caches.open(RUNTIME_CACHE).then((cache) => {

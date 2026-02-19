@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react'
-import toast from 'react-hot-toast'
-import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '../../types'
-import { loadCategories } from '../../services/categoryService'
-import type { Player } from '../../lib/game/types'
-import { soundManager } from '../../utils/sounds'
-import CategoryIcon from '../../components/common/CategoryIcon'
-import { QuestionService } from '../../services/questionService'
+import { toast } from 'sonner'
+import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
+import { loadCategories } from '@/services/categoryService'
+import type { Player } from '@/lib/game/types'
+import { soundManager } from '@/utils/sounds'
+import CategoryIcon from '@/components/common/CategoryIcon'
+import { QuestionService } from '@/services/questionService'
 interface CategorySelectorProps {
-  onStartGame: (categories: Category[], mode: 'solo' | 'online', players: Player[], playerName: string) => void | Promise<void>
+  onStartGame: (
+    categories: Category[],
+    mode: 'solo' | 'online',
+    players: Player[],
+    playerName: string
+  ) => void | Promise<void>
 }
 
 export default function CategorySelector({ onStartGame }: CategorySelectorProps) {
@@ -25,7 +30,7 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
     try {
       const allCats = await loadCategories()
       const cats = allCats.length > 0 ? allCats : DEFAULT_CATEGORIES
-      
+
       // Filtrer les catégories qui n'ont pas de questions
       const categoriesWithQuestions = await Promise.all(
         cats.map(async (cat) => {
@@ -33,12 +38,12 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
           return { category: cat, hasQuestions: questions.length > 0 }
         })
       )
-      
+
       // Ne garder que les catégories avec des questions
       const filteredCategories = categoriesWithQuestions
         .filter(({ hasQuestions }) => hasQuestions)
         .map(({ category }) => category)
-      
+
       setCategories(filteredCategories.length > 0 ? filteredCategories : [])
     } catch (error) {
       console.error('Erreur lors du chargement des catégories:', error)
@@ -50,9 +55,9 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
 
   const toggleCategory = (category: Category) => {
     soundManager.playClick() // Son de clic
-    setSelectedCategories(prev => {
+    setSelectedCategories((prev) => {
       if (prev.includes(category)) {
-        return prev.filter(c => c !== category)
+        return prev.filter((c) => c !== category)
       } else {
         return [...prev, category]
       }
@@ -79,23 +84,27 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
       <h2>Créer une partie</h2>
 
       {isLoadingCategories ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '200px',
-          flexDirection: 'column',
-          gap: 'var(--spacing-md)'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '200px',
+            flexDirection: 'column',
+            gap: 'var(--spacing-md)',
+          }}
+        >
           <div className="spinner" style={{ margin: '0 auto' }}></div>
           <p className="text-secondary">Chargement des catégories...</p>
         </div>
       ) : categories.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: 'var(--spacing-xl)',
-          color: 'var(--text-secondary)'
-        }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: 'var(--spacing-xl)',
+            color: 'var(--text-secondary)',
+          }}
+        >
           <p style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-md)' }}>
             Aucune catégorie avec des questions disponibles
           </p>
@@ -106,7 +115,7 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
       ) : (
         <>
           <div className="categories-grid">
-            {categories.map(category => (
+            {categories.map((category) => (
               <button
                 key={category.id}
                 className={`category-card ${selectedCategories.includes(category.id) ? 'selected' : ''}`}
@@ -125,7 +134,11 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
             className="start-button"
             onClick={handleStartGame}
             disabled={selectedCategories.length === 0}
-            aria-label={selectedCategories.length === 0 ? 'Sélectionnez au moins une catégorie pour commencer' : 'Commencer la partie'}
+            aria-label={
+              selectedCategories.length === 0
+                ? 'Sélectionnez au moins une catégorie pour commencer'
+                : 'Commencer la partie'
+            }
           >
             Continuer
           </button>
@@ -134,5 +147,3 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
     </div>
   )
 }
-
-

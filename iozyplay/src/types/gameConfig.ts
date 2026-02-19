@@ -4,25 +4,25 @@
 
 export interface GameConfig {
   // Timing
-  timeLimit: number; // Temps par question en secondes
-  revealDelay: number; // Délai avant révélation de la réponse (ms)
-  transitionDelay: number; // Délai entre les questions (ms)
-  
+  timeLimit: number // Temps par question en secondes
+  revealDelay: number // Délai avant révélation de la réponse (ms)
+  transitionDelay: number // Délai entre les questions (ms)
+
   // Questions
-  questionCount: number; // Nombre de questions
-  shuffleQuestions: boolean; // Mélanger les questions
-  
+  questionCount: number // Nombre de questions
+  shuffleQuestions: boolean // Mélanger les questions
+
   // Difficulté
-  difficulty: 'easy' | 'normal' | 'hard';
-  
+  difficulty: 'easy' | 'normal' | 'hard'
+
   // Multijoueur
-  maxPlayers: number; // Nombre maximum de joueurs
-  autoStart: boolean; // Démarrer automatiquement quand tous sont prêts
-  
+  maxPlayers: number // Nombre maximum de joueurs
+  autoStart: boolean // Démarrer automatiquement quand tous sont prêts
+
   // Options avancées
-  showHints: boolean; // Afficher les indices
-  allowSkip: boolean; // Permettre de passer une question
-  penaltyOnWrong: boolean; // Pénalité sur mauvaise réponse
+  showHints: boolean // Afficher les indices
+  allowSkip: boolean // Permettre de passer une question
+  penaltyOnWrong: boolean // Pénalité sur mauvaise réponse
 }
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {
@@ -37,7 +37,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   showHints: true,
   allowSkip: false,
   penaltyOnWrong: false,
-};
+}
 
 export const DIFFICULTY_CONFIGS = {
   easy: {
@@ -55,5 +55,4 @@ export const DIFFICULTY_CONFIGS = {
     showHints: false,
     penaltyOnWrong: true,
   },
-} as const;
-
+} as const

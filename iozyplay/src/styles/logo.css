@@ -49,7 +49,8 @@
 
 /* Animations */
 @keyframes logoFloat {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -58,7 +59,8 @@
 }
 
 @keyframes logoBounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
   50% {
@@ -67,7 +69,8 @@
 }
 
 @keyframes logoSwayLeft {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
   }
   50% {
@@ -76,7 +79,8 @@
 }
 
 @keyframes logoSwayRight {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
   }
   50% {
@@ -104,13 +108,12 @@
   .logo-text {
     font-size: var(--font-size-xl);
   }
-  
+
   .logo-medium .logo-text {
     font-size: var(--font-size-xl);
   }
-  
+
   .logo-large .logo-text {
     font-size: var(--font-size-2xl);
   }
 }
-

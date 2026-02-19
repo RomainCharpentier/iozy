@@ -39,7 +39,9 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="error-boundary">
           <div className="error-boundary-content">
-            <div className="error-boundary-icon" style={{ fontSize: '64px' }}>⚠️</div>
+            <div className="error-boundary-icon" style={{ fontSize: '64px' }}>
+              ⚠️
+            </div>
             <h1 className="error-boundary-title">Oups ! Une erreur est survenue</h1>
             <p className="error-boundary-message">
               L'application a rencontré un problème inattendu.
@@ -54,16 +56,10 @@ export default class ErrorBoundary extends Component<Props, State> {
               </details>
             )}
             <div className="error-boundary-actions">
-              <button
-                className="btn btn-primary"
-                onClick={this.handleReset}
-              >
+              <button className="btn btn-primary" onClick={this.handleReset}>
                 Retour à l'accueil
               </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => window.location.reload()}
-              >
+              <button className="btn btn-secondary" onClick={() => window.location.reload()}>
                 Recharger la page
               </button>
             </div>
@@ -75,4 +71,3 @@ export default class ErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
-

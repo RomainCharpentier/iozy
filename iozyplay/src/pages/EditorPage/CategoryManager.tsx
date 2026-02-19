@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import toast from 'react-hot-toast'
-import { loadCategories, createCategory, updateCategory, deleteCategory } from '../../services/categoryService'
-import { ALL_EMOJIS, EMOJI_CATEGORIES, getEmojisByGroup } from '../../utils/emojiList'
-import { QuestionService } from '../../services/questionService'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
-import type { CategoryInfo, Category } from '../../types'
-import { DEFAULT_CATEGORIES } from '../../types'
-import { categorySchema, type CategoryFormData } from '../../schemas/categorySchema'
+import { toast } from 'sonner'
+import {
+  loadCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '@/services/categoryService'
+import { ALL_EMOJIS, EMOJI_CATEGORIES, getEmojisByGroup } from '@/utils/emojiList'
+import { QuestionService } from '@/services/questionService'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
+import type { CategoryInfo, Category } from '@/types'
+import { DEFAULT_CATEGORIES } from '@/types'
+import { categorySchema, type CategoryFormData } from '@/schemas/categorySchema'
 
 interface CategoryManagerProps {
   onClose: () => void
@@ -30,7 +35,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   }>({
     isOpen: false,
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => {},
   })
 
   // React Hook Form
@@ -40,13 +45,13 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     formState: { errors, isSubmitting },
     watch,
     setValue,
-    reset
+    reset,
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
-      emoji: '🎵'
-    }
+      emoji: '🎵',
+    },
   })
 
   const watchedName = watch('name')
@@ -96,7 +101,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     }
 
     // Vérifier l'unicité
-    const existingCategory = categories.find(c => c.id === generatedId)
+    const existingCategory = categories.find((c) => c.id === generatedId)
     if (existingCategory) {
       toast.error(`Une catégorie avec l'ID "${generatedId}" existe déjà`)
       return
@@ -106,7 +111,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
       await createCategory({
         id: generatedId,
         name: data.name,
-        emoji: data.emoji
+        emoji: data.emoji,
       })
       await loadCategoriesList()
       onCategoriesChange()
@@ -121,19 +126,19 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
 
   const onUpdate = async (data: CategoryFormData) => {
     if (!editingId) {
-      toast.error('Erreur: ID d\'édition invalide')
+      toast.error("Erreur: ID d'édition invalide")
       return
     }
 
     try {
-      const originalCategory = categories.find(c => c.id === editingId)
+      const originalCategory = categories.find((c) => c.id === editingId)
       if (!originalCategory) {
         toast.error('Catégorie introuvable')
         return
       }
 
       const nameChanged = originalCategoryName !== data.name
-      
+
       if (nameChanged) {
         const newId = generateIdFromName(data.name)
         if (!newId) {
@@ -141,24 +146,33 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
           return
         }
 
-        const existingCategoryWithNewId = categories.find(c => c.id === newId && c.id !== editingId)
+        const existingCategoryWithNewId = categories.find(
+          (c) => c.id === newId && c.id !== editingId
+        )
         if (existingCategoryWithNewId) {
-          toast.error(`Une catégorie avec l'ID "${newId}" existe déjà. Veuillez choisir un autre nom.`)
+          toast.error(
+            `Une catégorie avec l'ID "${newId}" existe déjà. Veuillez choisir un autre nom.`
+          )
           return
         }
 
         const allQuestions = await QuestionService.getAllQuestions()
-        const questionsToUpdate = allQuestions.filter(q => {
+        const questionsToUpdate = allQuestions.filter((q) => {
           const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
           return questionCategories.includes(editingId)
         })
 
         if (questionsToUpdate.length > 0) {
           for (const question of questionsToUpdate) {
-            const oldCategories = Array.isArray(question.category) ? question.category : [question.category]
-            const newCategories = oldCategories.map(cat => cat === editingId ? newId : cat)
-            const updatedQuestion = { ...question, category: newCategories.length === 1 ? newCategories[0] : newCategories }
-            
+            const oldCategories = Array.isArray(question.category)
+              ? question.category
+              : [question.category]
+            const newCategories = oldCategories.map((cat) => (cat === editingId ? newId : cat))
+            const updatedQuestion = {
+              ...question,
+              category: newCategories.length === 1 ? newCategories[0] : newCategories,
+            }
+
             const questionId = question.id || question.mediaUrl
             await QuestionService.deleteQuestion(questionId, editingId)
             await QuestionService.addQuestion(updatedQuestion)
@@ -168,14 +182,14 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
         await createCategory({
           id: newId,
           name: data.name,
-          emoji: data.emoji
+          emoji: data.emoji,
         })
 
         await deleteCategory(editingId)
       } else {
         await updateCategory(editingId, {
           name: data.name,
-          emoji: data.emoji
+          emoji: data.emoji,
         })
       }
 
@@ -194,11 +208,11 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   const handleDelete = async (categoryId: string) => {
     try {
       const allQuestions = await QuestionService.getAllQuestions()
-      const questionsInCategory = allQuestions.filter(q => {
+      const questionsInCategory = allQuestions.filter((q) => {
         const questionCategories = Array.isArray(q.category) ? q.category : [q.category]
         return questionCategories.includes(categoryId)
       })
-      
+
       const handleConfirm = async () => {
         try {
           await deleteCategory(categoryId)
@@ -221,7 +235,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
       setConfirmDialog({
         isOpen: true,
         message,
-        onConfirm: handleConfirm
+        onConfirm: handleConfirm,
       })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
@@ -235,7 +249,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     setShowAddForm(false)
     reset({
       name: category.name,
-      emoji: category.emoji
+      emoji: category.emoji,
     })
   }
 
@@ -252,11 +266,11 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   useEffect(() => {
     if (!watchedName || (!showAddForm && editingId === null)) return
 
-    const existingCategory = categories.find(c => 
-      c.name.toLowerCase() === watchedName.toLowerCase() &&
-      (!editingId || c.id !== editingId)
+    const existingCategory = categories.find(
+      (c) =>
+        c.name.toLowerCase() === watchedName.toLowerCase() && (!editingId || c.id !== editingId)
     )
-    
+
     if (existingCategory) {
       setValue('name', watchedName, { shouldValidate: true })
     }
@@ -264,7 +278,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     if (editingId) {
       const generatedId = generateIdFromName(watchedName)
       if (generatedId && generatedId !== editingId) {
-        const existingCategoryWithNewId = categories.find(c => c.id === generatedId)
+        const existingCategoryWithNewId = categories.find((c) => c.id === generatedId)
         if (existingCategoryWithNewId) {
           setValue('name', watchedName, { shouldValidate: true })
         }
@@ -272,11 +286,9 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
     }
   }, [watchedName, categories, showAddForm, editingId, setValue])
 
-  const filteredEmojis = (emojiCategory === 'all' ? ALL_EMOJIS : getEmojisByGroup(emojiCategory))
-    .filter(emoji => 
-      iconSearch === '' || 
-      emoji === iconSearch
-    )
+  const filteredEmojis = (
+    emojiCategory === 'all' ? ALL_EMOJIS : getEmojisByGroup(emojiCategory)
+  ).filter((emoji) => iconSearch === '' || emoji === iconSearch)
 
   if (isLoading) {
     return <div className="loading-state">⏳ Chargement des catégories...</div>
@@ -294,172 +306,180 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
         variant="danger"
       />
       <div className="editor-panel">
-      <div className="panel-header">
-        <h2>📁 Catégories</h2>
-      </div>
+        <div className="panel-header">
+          <h2>📁 Catégories</h2>
+        </div>
 
-      {(showAddForm || editingId !== null) && (
-        <div className="modal-overlay" onClick={cancelEdit}>
-          <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{editingId !== null ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
-              <button className="close-button" onClick={cancelEdit} title="Fermer">
-                <span style={{ fontSize: '16px' }}>✕</span>
-              </button>
+        {(showAddForm || editingId !== null) && (
+          <div className="modal-overlay" onClick={cancelEdit}>
+            <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{editingId !== null ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
+                <button className="close-button" onClick={cancelEdit} title="Fermer">
+                  <span style={{ fontSize: '16px' }}>✕</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <form
+                  className="category-form"
+                  onSubmit={handleSubmit(editingId !== null ? onUpdate : onSubmit)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault()
+                      handleSubmit(editingId !== null ? onUpdate : onSubmit)()
+                    }
+                  }}
+                >
+                  <div className="form-group">
+                    <label>
+                      Nom de la catégorie *
+                      <input
+                        type="text"
+                        {...register('name')}
+                        placeholder="ex: Musique française"
+                        className={errors.name ? 'input-error' : ''}
+                      />
+                      <small>L'ID sera généré automatiquement à partir du nom</small>
+                      {errors.name && (
+                        <div className="youtube-error-message">
+                          <span className="error-icon" style={{ fontSize: '16px' }}>
+                            ⚠️
+                          </span>
+                          <span>{errors.name.message}</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Emoji *
+                      <div className="emoji-selector">
+                        <div className="emoji-search-wrapper">
+                          <select
+                            className="emoji-category-select"
+                            value={emojiCategory}
+                            onChange={(e) => setEmojiCategory(e.target.value)}
+                          >
+                            <option value="all">Toutes les catégories</option>
+                            {Object.keys(EMOJI_CATEGORIES).map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className="emoji-search-input"
+                            placeholder="Rechercher un emoji..."
+                            value={iconSearch}
+                            onChange={(e) => setIconSearch(e.target.value)}
+                          />
+                        </div>
+                        <div className="emojis-grid">
+                          {filteredEmojis.map((emoji) => {
+                            const isSelected = watchedEmoji === emoji
+                            return (
+                              <button
+                                key={emoji}
+                                type="button"
+                                className={`emoji-option ${isSelected ? 'selected' : ''}`}
+                                onClick={() => {
+                                  setValue('emoji', emoji, { shouldValidate: true })
+                                }}
+                                title={emoji}
+                              >
+                                <span style={{ fontSize: '24px' }}>{emoji}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {watchedEmoji && (
+                          <div className="selected-icon-preview">
+                            Emoji sélectionné:{' '}
+                            <span style={{ fontSize: '32px' }}>{watchedEmoji}</span>
+                          </div>
+                        )}
+                        {errors.emoji && (
+                          <div className="youtube-error-message field-error-inline">
+                            <span className="error-icon" style={{ fontSize: '16px' }}>
+                              ⚠️
+                            </span>
+                            <span>{errors.emoji.message}</span>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="submit"
+                      className="submit-button"
+                      disabled={isSubmitting || !!errors.name || !!errors.emoji}
+                      title={
+                        errors.name || errors.emoji
+                          ? 'Veuillez corriger les erreurs dans le formulaire'
+                          : ''
+                      }
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="spinner" style={{ fontSize: '16px' }}>
+                            ⏳
+                          </span>{' '}
+                          Chargement...
+                        </>
+                      ) : editingId !== null ? (
+                        <>
+                          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre
+                          à jour
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span>{' '}
+                          Ajouter
+                        </>
+                      )}
+                    </button>
+                    <button type="button" className="cancel-button" onClick={cancelEdit}>
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-            <div className="modal-body">
-              <form 
-                className="category-form" 
-                onSubmit={handleSubmit(editingId !== null ? onUpdate : onSubmit)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault()
-                    handleSubmit(editingId !== null ? onUpdate : onSubmit)()
-                  }
+          </div>
+        )}
+
+        <div className="panel-content">
+          <div className="panel-section">
+            <div className="section-header">
+              <h3>Catégories existantes</h3>
+              <button
+                className="add-button"
+                onClick={() => {
+                  cancelEdit()
+                  setShowAddForm(true)
                 }}
               >
-            
-            <div className="form-group">
-              <label>
-                Nom de la catégorie *
-                <input
-                  type="text"
-                  {...register('name')}
-                  placeholder="ex: Musique française"
-                  className={errors.name ? 'input-error' : ''}
-                />
-                <small>L'ID sera généré automatiquement à partir du nom</small>
-                {errors.name && (
-                  <div className="youtube-error-message">
-                    <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
-                    <span>{errors.name.message}</span>
-                  </div>
-                )}
-              </label>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Emoji *
-                <div className="emoji-selector">
-                  <div className="emoji-search-wrapper">
-                    <select
-                      className="emoji-category-select"
-                      value={emojiCategory}
-                      onChange={(e) => setEmojiCategory(e.target.value)}
-                    >
-                      <option value="all">Toutes les catégories</option>
-                      {Object.keys(EMOJI_CATEGORIES).map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      className="emoji-search-input"
-                      placeholder="Rechercher un emoji..."
-                      value={iconSearch}
-                      onChange={(e) => setIconSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="emojis-grid">
-                    {filteredEmojis.map(emoji => {
-                      const isSelected = watchedEmoji === emoji
-                      return (
-                        <button
-                          key={emoji}
-                          type="button"
-                          className={`emoji-option ${isSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            setValue('emoji', emoji, { shouldValidate: true })
-                          }}
-                          title={emoji}
-                        >
-                          <span style={{ fontSize: '24px' }}>{emoji}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {watchedEmoji && (
-                    <div className="selected-icon-preview">
-                      Emoji sélectionné: <span style={{ fontSize: '32px' }}>{watchedEmoji}</span>
-                    </div>
-                  )}
-                  {errors.emoji && (
-                    <div className="youtube-error-message field-error-inline">
-                      <span className="error-icon" style={{ fontSize: '16px' }}>⚠️</span>
-                      <span>{errors.emoji.message}</span>
-                    </div>
-                  )}
-                </div>
-              </label>
-            </div>
-
-            <div className="form-actions">
-              <button
-                type="submit"
-                className="submit-button"
-                disabled={isSubmitting || !!errors.name || !!errors.emoji}
-                title={
-                  errors.name || errors.emoji
-                    ? 'Veuillez corriger les erreurs dans le formulaire'
-                    : ''
-                }
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="spinner" style={{ fontSize: '16px' }}>⏳</span> Chargement...
-                  </>
-                ) : editingId !== null ? (
-                  <>
-                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>💾</span> Mettre à jour
-                  </>
-                ) : (
-                  <>
-                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={cancelEdit}
-              >
-                Annuler
+                <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter une
+                catégorie
               </button>
             </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
-      <div className="panel-content">
-        <div className="panel-section">
-          <div className="section-header">
-            <h3>Catégories existantes</h3>
-            <button
-              className="add-button"
-              onClick={() => {
-                cancelEdit()
-                setShowAddForm(true)
-              }}
-            >
-              <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>➕</span> Ajouter une catégorie
-            </button>
-          </div>
-
-          <div className="categories-grid-manager">
-            {categories.map(category => (
-              <div key={category.id} className="category-card-manager">
-                <div className="category-display">
-                  <span className="category-emoji-large" style={{ fontSize: '32px' }}>
-                    {category.emoji}
-                  </span>
-                  <div className="category-info-manager">
-                    <div className="category-name-manager">{category.name}</div>
+            <div className="categories-grid-manager">
+              {categories.map((category) => (
+                <div key={category.id} className="category-card-manager">
+                  <div className="category-display">
+                    <span className="category-emoji-large" style={{ fontSize: '32px' }}>
+                      {category.emoji}
+                    </span>
+                    <div className="category-info-manager">
+                      <div className="category-name-manager">{category.name}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="category-actions-manager">
+                  <div className="category-actions-manager">
                     <button
                       className="edit-button-small"
                       onClick={() => handleEdit(category)}
@@ -474,14 +494,13 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     >
                       <span style={{ fontSize: '16px' }}>🗑️</span>
                     </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   )
 }
-

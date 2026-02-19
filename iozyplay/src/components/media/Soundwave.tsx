@@ -19,7 +19,7 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
     const interval = setInterval(() => {
       const numBars = 20
       const active: number[] = []
-      
+
       for (let i = 0; i < numBars; i++) {
         if (Math.random() > 0.3) {
           active.push(i)
@@ -41,10 +41,8 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
   return (
     <div className="audio-waves">
       {Array.from({ length: 20 }).map((_, index) => {
-        const heightPercent = activeBars.includes(index) 
-          ? (barHeightsRef.current[index] || 20)
-          : 20
-        
+        const heightPercent = activeBars.includes(index) ? barHeightsRef.current[index] || 20 : 20
+
         return (
           <div
             key={index}
@@ -52,7 +50,7 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
             style={{
               height: `${heightPercent}%`,
               minHeight: '20px',
-              maxHeight: '200px'
+              maxHeight: '200px',
             }}
           />
         )
@@ -60,14 +58,3 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-

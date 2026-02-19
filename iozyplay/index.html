@@ -15,6 +15,26 @@
     <meta property="og:image" content="/logo.svg" />
     <link rel="manifest" href="/manifest.json" />
     <title>No Peeking - Blindtest WebApp</title>
+    <script>
+      // Désinscrire immédiatement le service worker en développement pour éviter le cache
+      // Ce script s'exécute AVANT que le service worker n'intercepte les requêtes
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.includes('localhost')) {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+          if ('caches' in window) {
+            caches.keys().then(function(cacheNames) {
+              cacheNames.forEach(function(cacheName) {
+                caches.delete(cacheName);
+              });
+            });
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

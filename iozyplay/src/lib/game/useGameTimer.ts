@@ -24,7 +24,7 @@ interface UseGameTimerReturn {
 export function useGameTimer({
   gameMode,
   currentQuestionTimeLimit,
-  onTimeUp
+  onTimeUp,
 }: UseGameTimerParams): UseGameTimerReturn {
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
@@ -106,7 +106,8 @@ export function useGameTimer({
       setTimeRemaining(remaining)
 
       const hasFullyElapsed = elapsed >= gameDurationMsRef.current
-      const newIsTimeUp = hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
+      const newIsTimeUp =
+        hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
 
       setIsTimeUp(newIsTimeUp)
 
@@ -126,7 +127,13 @@ export function useGameTimer({
       }
 
       // Si le temps est écoulé, appeler onTimeUp une seule fois (mode solo seulement)
-      if (newIsTimeUp && !isTimeUp && gameMode === 'solo' && !revealTimerStartedRef.current && onTimeUp) {
+      if (
+        newIsTimeUp &&
+        !isTimeUp &&
+        gameMode === 'solo' &&
+        !revealTimerStartedRef.current &&
+        onTimeUp
+      ) {
         onTimeUp()
       }
     }
@@ -159,7 +166,6 @@ export function useGameTimer({
     startTimer,
     clearTimer,
     setTimeRemaining,
-    setIsTimeUp
+    setIsTimeUp,
   }
 }
-

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { getSocket } from '../../utils/socket'
-import { getPlayerId } from '../../utils/playerId'
-import type { Question } from '../../types'
-import type { Player } from './types'
+import { getSocket } from '@/utils/socket'
+import { getPlayerId } from '@/utils/playerId'
+import type { Question } from '@/types'
+import type { Player } from '@/lib/game/types'
 
 interface UseGameSocketParams {
   gameMode: 'solo' | 'online'
@@ -25,7 +25,13 @@ interface UseGameSocketParams {
   goAtRef: React.MutableRefObject<number | null>
   gameDurationMsRef: React.MutableRefObject<number | null>
   mediaStartTimeRef: React.MutableRefObject<number | null>
-  startTimer: (startedAt: number, durationMs: number, receivedAt?: number, serverTimeRemainingMs?: number, serverTime?: number) => void
+  startTimer: (
+    startedAt: number,
+    durationMs: number,
+    receivedAt?: number,
+    serverTimeRemainingMs?: number,
+    serverTime?: number
+  ) => void
   leaveRoom: () => void
 }
 
@@ -51,7 +57,7 @@ export function useGameSocket({
   gameDurationMsRef,
   mediaStartTimeRef,
   startTimer,
-  leaveRoom
+  leaveRoom,
 }: UseGameSocketParams) {
   useEffect(() => {
     if (gameMode !== 'online' || !roomCode) return
@@ -94,27 +100,27 @@ export function useGameSocket({
         setGamePlayers(state.players)
         setIsHost(state.players.find((p: Player) => p.id === playerId)?.isHost || false)
       }
-      
+
       if (state.questions?.length) {
         setGameQuestions(state.questions)
         questionsRef.current = state.questions
       }
-      
+
       if (state.game && state.phase === 'playing') {
         setGameStarted(true)
         setShowScore(false)
-        
+
         const newGameStep = state.game.step || 'loading'
         setGameStep(newGameStep)
-        
+
         if (state.game.questionIndex !== undefined) {
           setCurrentQuestionIndex(state.game.questionIndex)
         }
-        
+
         if (state.game.durationMs) {
           gameDurationMsRef.current = state.game.durationMs
         }
-        
+
         if (newGameStep === 'playing') {
           setWaitingForGo(false)
           setIsTimeUp(false)
@@ -133,12 +139,12 @@ export function useGameSocket({
       }
     }
 
-    const handleGameStarted = ({ 
-      questions: serverQuestions, 
-      questionIndex, 
+    const handleGameStarted = ({
+      questions: serverQuestions,
+      questionIndex,
       players: updatedPlayers,
-      durationMs
-    }: { 
+      durationMs,
+    }: {
       currentQuestion: Question
       questions?: Question[]
       questionIndex: number
@@ -152,46 +158,58 @@ export function useGameSocket({
       } else {
         console.error('[Game] handleGameStarted: Aucune question reçue!')
       }
-      
+
       setCurrentQuestionIndex(questionIndex)
       setGameStarted(true)
       setShowScore(false)
-      
+
       if (updatedPlayers?.length) {
         setGamePlayers(updatedPlayers)
       }
-      
+
       setWaitingForGo(true)
       mediaReadyRef.current = false
       goAtRef.current = null
       setGameStep('loading')
       clearTimer()
-      
+
       setIsTimeUp(false)
       setTimeRemaining(0)
       mediaStartTimeRef.current = null
     }
 
-    const handleGameGo = ({ goAt, startedAt, durationMs, serverTime }: { goAt: number, startedAt: number, durationMs: number, serverTime?: number }) => {
+    const handleGameGo = ({
+      goAt,
+      startedAt,
+      durationMs,
+      serverTime,
+    }: {
+      goAt: number
+      startedAt: number
+      durationMs: number
+      serverTime?: number
+    }) => {
       goAtRef.current = goAt
       gameDurationMsRef.current = durationMs
       setGameStep('starting')
       setWaitingForGo(true)
-      
+
       const startGameAtGoTime = () => {
         setWaitingForGo(false)
         setGameStep('playing')
-        
+
         setIsTimeUp(false)
         mediaStartTimeRef.current = null
         setTimeRemaining(0)
-        
+
         // Fallback : si handleMediaStart n'est pas appelé dans les 3 secondes
         const fallbackTimer = setTimeout(() => {
-          if (mediaStartTimeRef.current === null && 
-              gameDurationMsRef.current && 
-              mediaReadyRef.current && 
-              gameDurationMsRef.current) {
+          if (
+            mediaStartTimeRef.current === null &&
+            gameDurationMsRef.current &&
+            mediaReadyRef.current &&
+            gameDurationMsRef.current
+          ) {
             console.warn('[Game] Fallback: onMediaStart pas appelé après 3s, démarrage du timer')
             const fallbackNow = Date.now()
             mediaStartTimeRef.current = fallbackNow
@@ -200,7 +218,7 @@ export function useGameSocket({
             setIsTimeUp(false)
           }
         }, 3000)
-        
+
         const cleanupTimerRef = { current: null as NodeJS.Timeout | null }
         cleanupTimerRef.current = setInterval(() => {
           if (mediaStartTimeRef.current !== null) {
@@ -211,7 +229,7 @@ export function useGameSocket({
             }
           }
         }, 100)
-        
+
         setTimeout(() => {
           if (cleanupTimerRef.current) {
             clearInterval(cleanupTimerRef.current)
@@ -219,7 +237,7 @@ export function useGameSocket({
           }
         }, 4000)
       }
-      
+
       const scheduleStart = (targetTime: number) => {
         let rafId: number | null = null
         const checkStart = () => {
@@ -233,7 +251,7 @@ export function useGameSocket({
         }
         rafId = requestAnimationFrame(checkStart)
       }
-      
+
       const waitForMediaAndStart = () => {
         let rafId: number | null = null
         let timeoutId: NodeJS.Timeout | null = null
@@ -247,13 +265,13 @@ export function useGameSocket({
           }
         }
         rafId = requestAnimationFrame(checkMedia)
-        
+
         timeoutId = setTimeout(() => {
           scheduleStart(goAt)
           if (rafId !== null) cancelAnimationFrame(rafId)
         }, 2000)
       }
-      
+
       if (mediaReadyRef.current) {
         scheduleStart(goAt)
       } else {
@@ -261,10 +279,10 @@ export function useGameSocket({
       }
     }
 
-    const handleCorrectAnswer = ({ 
-      playerId, 
-      players: updatedPlayers 
-    }: { 
+    const handleCorrectAnswer = ({
+      playerId,
+      players: updatedPlayers,
+    }: {
       playerId: string
       playerName: string
       score: number
@@ -276,10 +294,10 @@ export function useGameSocket({
       }
     }
 
-    const handleNextQuestion = ({ 
+    const handleNextQuestion = ({
       questions: serverQuestions,
-      questionIndex
-    }: { 
+      questionIndex,
+    }: {
       currentQuestion?: Question
       questions?: Question[]
       questionIndex: number
@@ -289,18 +307,18 @@ export function useGameSocket({
         setGameQuestions(serverQuestions)
         questionsRef.current = serverQuestions
       }
-      
+
       setCurrentQuestionIndex(questionIndex)
       questionAnsweredByRef.current = null
       isTransitioningRef.current = false
       setShowScore(false)
-      
+
       setWaitingForGo(true)
       mediaReadyRef.current = false
       goAtRef.current = null
       setGameStep('loading')
       clearTimer()
-      
+
       setIsTimeUp(false)
       setTimeRemaining(0)
       mediaStartTimeRef.current = null
@@ -312,22 +330,28 @@ export function useGameSocket({
       clearTimer()
     }
 
-    const handleError = ({ code, message }: { code: string, message: string }) => {
+    const handleError = ({ code, message }: { code: string; message: string }) => {
       if (code === 'PLAYER_NOT_FOUND' && roomCode) {
-        socket.emit('room:join', { 
-          roomCode, 
-          playerId, 
-          playerName: 'Joueur'
+        socket.emit('room:join', {
+          roomCode,
+          playerId,
+          playerName: 'Joueur',
         })
         return
       }
-      
+
       if (code !== 'GAME_ALREADY_STARTED') {
         console.error('[Game] Erreur serveur:', { code, message })
       }
     }
 
-    const handleGameSync = ({ startedAt, durationMs, timeRemainingMs, serverTime, questionIndex }: { 
+    const handleGameSync = ({
+      startedAt,
+      durationMs,
+      timeRemainingMs,
+      serverTime,
+      questionIndex,
+    }: {
       startedAt: number
       durationMs: number
       timeRemainingMs: number
@@ -356,29 +380,29 @@ export function useGameSocket({
     })
 
     let hasJoinedRoom = false
-    
+
     const handleRoomJoinedOrRejoined = () => {
       if (!hasJoinedRoom) {
         hasJoinedRoom = true
         socket.emit('game:get-state', { roomCode })
       }
     }
-    
+
     socket.once('room:joined', handleRoomJoinedOrRejoined)
     socket.once('room:rejoined', handleRoomJoinedOrRejoined)
-    
+
     socket.emit('room:rejoin', { roomCode, playerId })
-    
+
     const joinTimeout = setTimeout(() => {
       if (!hasJoinedRoom) {
-        socket.emit('room:join', { 
-          roomCode, 
-          playerId, 
-          playerName: 'Joueur'
+        socket.emit('room:join', {
+          roomCode,
+          playerId,
+          playerName: 'Joueur',
         })
       }
     }, 2000)
-    
+
     socket.once('room:joined', () => {
       clearTimeout(joinTimeout)
     })
@@ -402,4 +426,3 @@ export function useGameSocket({
     }
   }, [gameMode, roomCode, leaveRoom, clearTimer, startTimer])
 }
-

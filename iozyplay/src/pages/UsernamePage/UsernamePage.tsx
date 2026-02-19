@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { settingsService } from '../../services/settingsService'
-import { soundManager } from '../../utils/sounds'
-import Logo from '../../components/common/Logo'
+import { settingsService } from '@/services/settingsService'
+import { soundManager } from '@/utils/sounds'
+import Logo from '@/components/common/Logo'
 import '../../styles/auth-page.css'
 
 export default function UsernamePage() {
@@ -20,25 +20,25 @@ export default function UsernamePage() {
 
   const handleSubmit = () => {
     if (!username.trim()) {
-      setError('Veuillez entrer un nom d\'utilisateur')
+      setError("Veuillez entrer un nom d'utilisateur")
       return
     }
 
     if (username.trim().length < 2) {
-      setError('Le nom d\'utilisateur doit contenir au moins 2 caractères')
+      setError("Le nom d'utilisateur doit contenir au moins 2 caractères")
       return
     }
 
     if (username.trim().length > 20) {
-      setError('Le nom d\'utilisateur ne doit pas dépasser 20 caractères')
+      setError("Le nom d'utilisateur ne doit pas dépasser 20 caractères")
       return
     }
 
     setError('')
-    
+
     // Sauvegarder le username dans les settings
     settingsService.updateSetting('username', username.trim())
-    
+
     soundManager.playSuccess()
     navigate('/', { replace: true })
   }
@@ -58,11 +58,7 @@ export default function UsernamePage() {
         </div>
 
         <div className="auth-content">
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
           <div className="auth-form">
             <div className="form-group">
@@ -104,5 +100,3 @@ export default function UsernamePage() {
     </div>
   )
 }
-
-

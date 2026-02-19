@@ -26,7 +26,7 @@ interface UseYouTubeAPIReturn {
 }
 
 // Gestion globale du callback YouTube API
-let apiReadyCallbacks: Set<() => void> = new Set()
+const apiReadyCallbacks: Set<() => void> = new Set()
 let scriptLoading = false
 let scriptLoaded = false
 
@@ -83,7 +83,7 @@ export function useYouTubeAPI(): UseYouTubeAPIReturn {
       scriptLoaded = true
       scriptLoading = false
       // Appeler tous les callbacks enregistrés
-      apiReadyCallbacks.forEach(cb => cb())
+      apiReadyCallbacks.forEach((cb) => cb())
       apiReadyCallbacks.clear()
     }
 
@@ -101,7 +101,6 @@ export function useYouTubeAPI(): UseYouTubeAPIReturn {
   return {
     isReady,
     YT: window.YT || null,
-    error
+    error,
   }
 }
-

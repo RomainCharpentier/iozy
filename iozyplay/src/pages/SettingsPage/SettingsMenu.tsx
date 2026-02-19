@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { settingsService, UserSettings } from '../../services/settingsService'
-import { soundManager } from '../../utils/sounds'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
+import { settingsService, UserSettings } from '@/services/settingsService'
+import { soundManager } from '@/utils/sounds'
+import ConfirmDialog from '@/components/common/ConfirmDialog'
 import '../../styles/design-system.css'
 import '../../styles/settings-menu.css'
 
@@ -56,7 +56,7 @@ export default function SettingsMenu() {
       <div className="settings-container">
         {/* Header */}
         <div className="settings-header">
-          <button 
+          <button
             className="btn btn-secondary btn-icon"
             onClick={() => {
               soundManager.playClick()
@@ -67,7 +67,10 @@ export default function SettingsMenu() {
           >
             ← Retour
           </button>
-          <h1 className="settings-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1
+            className="settings-title"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
             <span style={{ fontSize: '24px' }}>⚙️</span> Réglages
           </h1>
           <div style={{ width: '100px' }}></div>
@@ -83,7 +86,9 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>👤</span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>
+                👤
+              </span>
               <span className="nav-label">Compte</span>
             </button>
             <button
@@ -93,7 +98,9 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>🔊</span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>
+                🔊
+              </span>
               <span className="nav-label">Son</span>
             </button>
             <button
@@ -103,7 +110,9 @@ export default function SettingsMenu() {
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>🎨</span>
+              <span className="nav-icon" style={{ fontSize: '18px' }}>
+                🎨
+              </span>
               <span className="nav-label">Interface</span>
             </button>
           </div>
@@ -114,11 +123,14 @@ export default function SettingsMenu() {
             {activeSection === 'account' && (
               <div className="settings-section">
                 <h2 className="section-title">Profil</h2>
-                
+
                 <div className="setting-group">
                   <label className="setting-label">
                     <span className="label-text">Nom d'utilisateur</span>
-                    <span className="label-description" style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}>
+                    <span
+                      className="label-description"
+                      style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}
+                    >
                       Affiché dans les parties multijoueur
                     </span>
                   </label>
@@ -140,9 +152,16 @@ export default function SettingsMenu() {
             {activeSection === 'sound' && (
               <div className="settings-section">
                 <h2 className="section-title">Réglages audio</h2>
-                
+
                 <div className="setting-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 'var(--spacing-md)',
+                    }}
+                  >
                     <label className="setting-label" style={{ marginBottom: 0 }}>
                       <span className="label-text">Activer les sons</span>
                     </label>
@@ -162,11 +181,24 @@ export default function SettingsMenu() {
                 </div>
 
                 <div className="setting-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 'var(--spacing-sm)',
+                    }}
+                  >
                     <label className="setting-label" style={{ marginBottom: 0 }}>
                       <span className="label-text">Volume</span>
                     </label>
-                    <span style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                    <span
+                      style={{
+                        fontSize: 'var(--font-size-lg)',
+                        fontWeight: 600,
+                        color: 'var(--accent-primary)',
+                      }}
+                    >
                       {settings.soundVolume}%
                     </span>
                   </div>
@@ -183,7 +215,15 @@ export default function SettingsMenu() {
                     aria-valuemax={100}
                     aria-valuenow={settings.soundVolume}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--spacing-xs)', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginTop: 'var(--spacing-xs)',
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
                     <span>0%</span>
                     <span>50%</span>
                     <span>100%</span>
@@ -201,7 +241,8 @@ export default function SettingsMenu() {
                     disabled={!settings.soundEnabled}
                     style={{ width: '100%' }}
                   >
-                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔊</span> Tester le son
+                    <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🔊</span> Tester le
+                    son
                   </button>
                 </div>
               </div>
@@ -211,7 +252,7 @@ export default function SettingsMenu() {
             {activeSection === 'interface' && (
               <div className="settings-section">
                 <h2 className="section-title">Apparence</h2>
-                
+
                 <div className="setting-group">
                   <label className="setting-label">
                     <span className="label-text">Thème</span>
@@ -225,7 +266,9 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'dark'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'dark')}
                       />
-                      <span><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🌙</span> Sombre</span>
+                      <span>
+                        <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🌙</span> Sombre
+                      </span>
                     </label>
                     <label className="radio-option">
                       <input
@@ -235,7 +278,9 @@ export default function SettingsMenu() {
                         checked={settings.theme === 'light'}
                         onChange={(e) => handleSettingChange('theme', e.target.value as 'light')}
                       />
-                      <span><span style={{ marginRight: '0.5rem', fontSize: '16px' }}>☀️</span> Clair</span>
+                      <span>
+                        <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>☀️</span> Clair
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -279,4 +324,3 @@ export default function SettingsMenu() {
     </div>
   )
 }
-

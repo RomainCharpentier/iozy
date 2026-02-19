@@ -1,7 +1,7 @@
 /**
  * Service de jeu - Logique métier pour le jeu
  */
-import type { Player } from '../lib/game/types'
+import type { Player } from '@/lib/game/types'
 
 export const TIMING = {
   QUESTION_TRANSITION_DELAY: 3000,
@@ -68,11 +68,11 @@ export class GameService {
    */
   static getWinner(players: Player[]): Player | null {
     if (players.length === 0) return null
-    
+
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
     const maxScore = sortedPlayers[0].score
-    const winners = sortedPlayers.filter(p => p.score === maxScore)
-    
+    const winners = sortedPlayers.filter((p) => p.score === maxScore)
+
     return winners.length === 1 ? winners[0] : null
   }
 
@@ -102,6 +102,6 @@ export class GameService {
    * Réinitialise les scores des joueurs
    */
   static resetPlayerScores(players: Player[]): Player[] {
-    return players.map(p => ({ ...p, score: 0 }))
+    return players.map((p) => ({ ...p, score: 0 }))
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { extractYouTubeId } from '../../../utils/youtube'
-import Soundwave from '../Soundwave'
-import { useYouTubeAPI } from '../../../hooks/useYouTubeAPI'
+import { extractYouTubeId } from '@/utils/youtube'
+import Soundwave from '@/components/media/Soundwave'
+import { useYouTubeAPI } from '@/hooks/useYouTubeAPI'
 
 interface YouTubePlayerProps {
   mediaUrl: string
@@ -28,7 +28,7 @@ export default function YouTubePlayer({
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
-  startTime
+  startTime,
 }: YouTubePlayerProps) {
   const { isReady, YT, error } = useYouTubeAPI()
   const playerRef = useRef<YT.Player | null>(null)
@@ -82,7 +82,7 @@ export default function YouTubePlayer({
         playsinline: 1, // Lecture inline sur mobile
         // Paramètres pour minimiser les publicités (ne les bloque pas complètement)
         cc_load_policy: 0, // Pas de sous-titres par défaut
-        origin: window.location.origin
+        origin: window.location.origin,
       },
       events: {
         onReady: (event: YT.PlayerEvent) => {
@@ -117,14 +117,16 @@ export default function YouTubePlayer({
               revealVideoStartCalledRef.current = true
               onRevealVideoStart()
             }
-          } else if (state === 2) { // YT.PlayerState.PAUSED = 2
+          } else if (state === 2) {
+            // YT.PlayerState.PAUSED = 2
             setIsPlaying(false)
-          } else if (state === 0) { // YT.PlayerState.ENDED = 0
+          } else if (state === 0) {
+            // YT.PlayerState.ENDED = 0
             setIsPlaying(false)
             hasStartedRef.current = false
           }
         },
-      }
+      },
     }
 
     // Timeout de 30 secondes pour le chargement
@@ -172,7 +174,7 @@ export default function YouTubePlayer({
     if (showVideo && !previousShowVideoRef.current) {
       // Réinitialiser le flag pour permettre l'appel de onRevealVideoStart
       revealVideoStartCalledRef.current = false
-      
+
       // Relancer la vidéo à 0 et forcer la lecture
       if (videoId) {
         // Petit délai pour s'assurer que le player est prêt
@@ -257,32 +259,40 @@ export default function YouTubePlayer({
 
   if (!isReady) {
     return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <div>Chargement de l'API YouTube...</div>
       </div>
     )
   }
 
   return (
-    <div 
-      className="youtube-player" 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        position: 'relative', 
+    <div
+      className="youtube-player"
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
         gap: 0,
         flexShrink: 0,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       }}
     >
       {/* Player YouTube - toujours présent pour l'audio, visible seulement si showVideo est true */}
-      <div 
+      <div
         ref={containerRef}
-        style={{ 
+        style={{
           position: showVideo ? 'relative' : 'absolute',
           top: showVideo ? 'auto' : 0,
           left: showVideo ? 'auto' : 0,
@@ -296,30 +306,31 @@ export default function YouTubePlayer({
           flex: showVideo ? '1 1 auto' : 'none',
           minHeight: showVideo ? 0 : 'auto',
           minWidth: showVideo ? 0 : 'auto',
-          zIndex: showVideo ? 1 : 0
+          zIndex: showVideo ? 1 : 0,
         }}
       >
         <div id={playerIdRef.current} style={{ width: '100%', height: '100%' }} />
       </div>
       {/* Soundwaves - affichées seulement si showVideo est false */}
       {!showVideo && (
-        <div style={{ 
-          width: '100%', 
-          height: '100%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          boxSizing: 'border-box',
-          flex: '1 1 auto',
-          minHeight: 0,
-          minWidth: 0,
-          position: 'relative',
-          zIndex: 2
-        }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxSizing: 'border-box',
+            flex: '1 1 auto',
+            minHeight: 0,
+            minWidth: 0,
+            position: 'relative',
+            zIndex: 2,
+          }}
+        >
           <Soundwave isPlaying={isPlaying && !shouldPause} />
         </div>
       )}
     </div>
   )
 }
-

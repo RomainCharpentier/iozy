@@ -2,7 +2,7 @@
  * Service pour gérer l'authentification et les sessions
  */
 
-import { getPlayerId } from '../utils/playerId'
+import { getPlayerId } from '@/utils/playerId'
 import ProfileService, { type PlayerProfile } from './profileService'
 
 const AUTH_KEY = 'blindtest-auth'
@@ -54,12 +54,15 @@ class AuthService {
    */
   async createAccount(username: string): Promise<AuthSession> {
     const playerId = getPlayerId()
-    
+
     // Sauvegarder le profil côté backend
     try {
-      await ProfileService.saveProfile({
-        username: username.trim()
-      }, playerId)
+      await ProfileService.saveProfile(
+        {
+          username: username.trim(),
+        },
+        playerId
+      )
     } catch (error) {
       console.error('Erreur lors de la création du profil backend:', error)
       // Continuer même si le backend échoue
@@ -69,7 +72,7 @@ class AuthService {
       playerId,
       username: username.trim(),
       avatar: '🎮', // Avatar par défaut
-      createdAt: Date.now()
+      createdAt: Date.now(),
     }
 
     this.saveSession(session)
@@ -88,7 +91,7 @@ class AuthService {
           playerId: profile.playerId,
           username: profile.username,
           avatar: profile.avatar || '🎮',
-          createdAt: Date.now() // On met à jour la date de connexion
+          createdAt: Date.now(), // On met à jour la date de connexion
         }
 
         this.saveSession(session)
@@ -153,10 +156,9 @@ class AuthService {
       const session = await this.login(playerId)
       return session !== null
     }
-    
+
     return false
   }
 }
 
 export const authService = new AuthService()
-

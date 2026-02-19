@@ -30,9 +30,3 @@ export const ALL_EMOJIS: string[] = Object.values(EMOJI_CATEGORIES).flat()
 export function getEmojisByGroup(group: string): string[] {
   return EMOJI_CATEGORIES[group as keyof typeof EMOJI_CATEGORIES] || []
 }
-
-
-
-
-
-

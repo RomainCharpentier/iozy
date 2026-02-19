@@ -184,13 +184,24 @@
 }
 
 .game-interface-game {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  /* Les propriétés flex sont surchargées par .question-card qui utilise grid */
+  /* On garde juste les propriétés non-conflictuelles */
   min-height: 0;
   overflow: visible;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Quand combiné avec question-card, on utilise grid au lieu de flex et on supprime tous les gaps */
+.question-card.game-interface-game {
+  display: grid !important;
+  flex-direction: unset !important;
+  gap: 0 !important;
+  row-gap: 0 !important;
+  column-gap: 0 !important;
+  /* Supprimer toutes les propriétés flex qui pourraient créer des espacements */
+  align-items: unset !important;
+  justify-content: unset !important;
 }
 
 .game-interface-game-header {
@@ -200,7 +211,8 @@
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  margin-bottom: 0.5rem;
+  margin: 0;
+  padding: 0;
   flex-wrap: nowrap;
 }
 
@@ -247,8 +259,9 @@
   justify-content: center;
   overflow: visible;
   position: relative;
-  padding: 2rem;
+  padding: 1.5rem;
   box-sizing: border-box;
+  margin: 0 !important;
 }
 
 /* Garantir le format 16:9 pour les vidéos YouTube dans le conteneur média */
@@ -268,14 +281,14 @@
 }
 
 /* Le conteneur interne du player YouTube doit aussi respecter le ratio seulement si c'est la vidéo */
-.game-interface-media .youtube-player>div[style*="position: relative"] {
+.game-interface-media .youtube-player > div[style*='position: relative'] {
   width: 100% !important;
   aspect-ratio: 16 / 9 !important;
   height: auto !important;
   position: relative !important;
 }
 
-.game-interface-media .youtube-player>div>div[id*="youtube-player"] {
+.game-interface-media .youtube-player > div > div[id*='youtube-player'] {
   width: 100% !important;
   height: 100% !important;
   position: absolute;
@@ -286,10 +299,12 @@
 .game-interface-answer {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
   position: relative;
   width: 100%;
   flex-shrink: 0;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .game-interface-answer-actions.variant-4 {
@@ -913,7 +928,7 @@
   }
 
   .game-interface-game {
-    gap: 1rem;
+    gap: 0.25rem;
   }
 
   .game-interface-category {
@@ -1103,7 +1118,6 @@
 }
 
 @keyframes bounce {
-
   0%,
   100% {
     transform: translateY(0);
