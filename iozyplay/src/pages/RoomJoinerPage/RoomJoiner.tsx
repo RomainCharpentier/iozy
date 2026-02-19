@@ -1,10 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
-import { connectSocket, getSocket } from '@/utils/socket'
-import { getPlayerId } from '@/utils/playerId'
+import { useRoomSocket, type UseRoomSocketJoinResult } from '@/hooks/useRoomSocket'
 import { soundManager } from '@/utils/sounds'
-import type { Player } from '@/lib/game/types'
-import { TIMING } from '@/services/gameService'
 
 interface RoomJoinerProps {
   roomCode: string
@@ -20,7 +17,6 @@ export default function RoomJoiner({
   onBack,
 }: RoomJoinerProps) {
   const [playerName, setPlayerName] = useState<string>(() => {
-    // Utiliser le nom depuis les settings si disponible
     if (initialPlayerName) return initialPlayerName
     try {
       const settings = JSON.parse(localStorage.getItem('blindtest-settings') || '{}')
@@ -29,118 +25,38 @@ export default function RoomJoiner({
       return ''
     }
   })
-  const [players, setPlayers] = useState<Player[]>([])
-  const [isHost, setIsHost] = useState(false)
-  const [gameStarted, setGameStarted] = useState(false)
   const [hasJoined, setHasJoined] = useState(!!initialPlayerName)
+
+  const handleError = useCallback(
+    (code: string, message: string) => {
+      toast.error(`Erreur: ${message}`, { icon: '⚠️' })
+    },
+    []
+  )
+
+  const { players, isHost, gameStarted, leaveRoom } = useRoomSocket({
+    mode: 'join',
+    roomCode,
+    playerName: playerName.trim(),
+    enabled: hasJoined,
+    onJoined,
+    onJoinedSuccess: () => soundManager.playSuccess(),
+    onGameStart: () => soundManager.playStart(),
+    onError: handleError,
+  }) as UseRoomSocketJoinResult
 
   const handleJoin = () => {
     if (!playerName.trim()) {
-      toast.error('Veuillez entrer votre nom !', {
-        icon: '👤',
-      })
+      toast.error('Veuillez entrer votre nom !', { icon: '👤' })
       return
     }
     setHasJoined(true)
   }
 
-  useEffect(() => {
-    if (!hasJoined) return
-
-    const socket = connectSocket()
-    const playerId = getPlayerId()
-    const joinTimeoutsRef: number[] = []
-
-    const handleRoomJoined = ({ room }: { room: any }) => {
-      setPlayers(room.players || [])
-      const myPlayer = room.players?.find((p: any) => p.id === playerId)
-      setIsHost(myPlayer?.isHost || false)
-
-      // Si la partie a déjà commencé, rediriger immédiatement
-      if (room.phase === 'playing') {
-        setGameStarted(true)
-        const timeoutId = window.setTimeout(() => {
-          onJoined(roomCode)
-        }, TIMING.ROOM_JOIN_DELAY)
-        joinTimeoutsRef.push(timeoutId)
-      } else {
-        soundManager.playSuccess()
-      }
-    }
-
-    const handleRoomState = (state: any) => {
-      const updatedPlayers = state.players || []
-      if (Array.isArray(updatedPlayers) && updatedPlayers.length > 0) {
-        setPlayers(updatedPlayers)
-        const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
-        setIsHost(myPlayer?.isHost || false)
-      }
-
-      if (state.phase === 'playing' && !gameStarted) {
-        setGameStarted(true)
-        const timeoutId = window.setTimeout(() => {
-          onJoined(roomCode)
-        }, TIMING.ROOM_JOIN_DELAY)
-        joinTimeoutsRef.push(timeoutId)
-      }
-    }
-
-    const handleGameStarted = () => {
-      setGameStarted(true)
-      soundManager.playStart()
-      const timeoutId = window.setTimeout(() => {
-        onJoined(roomCode)
-      }, TIMING.ROOM_JOIN_DELAY)
-      joinTimeoutsRef.push(timeoutId)
-    }
-
-    const handleError = ({ code, message }: { code: string; message: string }) => {
-      // Ignorer l'erreur "GAME_ALREADY_STARTED" car le serveur envoie l'état de la partie
-      if (code === 'GAME_ALREADY_STARTED') {
-        return
-      }
-      toast.error(`Erreur: ${message}`, {
-        icon: '⚠️',
-      })
-      // Ne pas retourner en arrière pour les erreurs non critiques
-      if (code !== 'ROOM_NOT_FOUND') {
-        // onBack()
-      }
-    }
-
-    socket.on('room:joined', handleRoomJoined)
-    socket.on('room:rejoined', handleRoomJoined)
-    socket.on('room:state', handleRoomState)
-    socket.on('game:start', handleGameStarted)
-    socket.on('error', handleError)
-
-    // Gérer la reconnexion
-    socket.on('reconnect', () => {
-      socket.emit('room:rejoin', { roomCode, playerId })
-    })
-
-    // Rejoindre le salon
-    socket.emit('room:join', {
-      roomCode,
-      playerId,
-      playerName: playerName.trim(),
-    })
-
-    return () => {
-      joinTimeoutsRef.forEach((timeoutId) => clearTimeout(timeoutId))
-      socket.off('room:joined', handleRoomJoined)
-      socket.off('room:rejoined', handleRoomJoined)
-      socket.off('room:state', handleRoomState)
-      socket.off('game:start', handleGameStarted)
-      socket.off('error', handleError)
-      socket.off('reconnect')
-
-      // Quitter le salon proprement
-      if (socket.connected) {
-        socket.emit('room:leave', { roomCode })
-      }
-    }
-  }, [roomCode, hasJoined, playerName, onJoined, onBack])
+  const handleBack = useCallback(() => {
+    leaveRoom()
+    onBack()
+  }, [leaveRoom, onBack])
 
   if (!hasJoined) {
     return (
@@ -230,16 +146,7 @@ export default function RoomJoiner({
           </div>
         )}
 
-        <button
-          className="back-button"
-          onClick={() => {
-            const socket = getSocket()
-            if (socket && socket.connected) {
-              socket.emit('room:leave', { roomCode })
-            }
-            onBack()
-          }}
-        >
+        <button className="back-button" onClick={handleBack}>
           ← Quitter le salon
         </button>
       </div>

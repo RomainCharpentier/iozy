@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'sonner'
 import { GameProvider } from '@/lib/game/GameContext'
 import { QuestionService } from '@/services/questionService'
+import { UpdateNotification } from '@/components/common/UpdateNotification'
 
 const HomePage = lazy(() => import('@/pages/HomePage/HomePage'))
 const CategorySelectorPage = lazy(() => import('@/pages/CategorySelectorPage/CategorySelectorPage'))
@@ -35,6 +36,7 @@ function App() {
       <BrowserRouter>
         <div className="app">
           <Toaster position="top-right" richColors closeButton />
+          <UpdateNotification />
           <GameOverlay />
           <Suspense
             fallback={

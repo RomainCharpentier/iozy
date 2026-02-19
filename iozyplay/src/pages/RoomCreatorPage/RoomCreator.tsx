@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import type { Category, Question } from '@/types'
-import { connectSocket, getSocket, disconnectSocketIfConnected } from '@/utils/socket'
-import { getPlayerId } from '@/utils/playerId'
+import type { Player } from '@/lib/game/types'
+import { getSocket, disconnectSocketIfConnected } from '@/utils/socket'
 import { soundManager } from '@/utils/sounds'
+import { useRoomSocket, type UseRoomSocketCreateResult } from '@/hooks/useRoomSocket'
 import { TIMING, QUESTION_COUNT } from '@/services/gameService'
 import { QuestionService } from '@/services/questionService'
 import RoomConnectingState from './ui/RoomConnectingState'
@@ -29,11 +30,7 @@ export default function RoomCreator({
   onBack,
 }: RoomCreatorProps) {
   const isSoloMode = gameMode === 'solo'
-  const [roomCode, setRoomCode] = useState<string | null>(null)
-  const [shareLink, setShareLink] = useState<string>('')
   const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(true)
   const [playerName, setPlayerName] = useState<string>(() => {
     // Utiliser le nom depuis les settings si disponible
     if (initialPlayerName) return initialPlayerName
@@ -44,8 +41,6 @@ export default function RoomCreator({
       return ''
     }
   })
-  const [players, setPlayers] = useState<any[]>([])
-  const [currentPlayerName, setCurrentPlayerName] = useState<string>('')
   const [timeLimit, setTimeLimit] = useState<number>(TIMING.DEFAULT_TIME_LIMIT)
 
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState<number>(0)
@@ -53,12 +48,37 @@ export default function RoomCreator({
   const [isStartingGame, setIsStartingGame] = useState(false)
   const isStartingGameRef = useRef(false)
 
+  const [soloPlayers, setSoloPlayers] = useState<Player[]>([])
+  const [soloCurrentPlayerName, setSoloCurrentPlayerName] = useState('')
+
+  const socketRoom = useRoomSocket({
+    mode: 'create',
+    categories: categories as string[],
+    playerName: playerName || 'Hôte',
+    timeLimit,
+    enabled: !isSoloMode,
+    skipLeaveOnUnmountRef: isStartingGameRef,
+    onRoomCreated: (_, room) => {
+      soundManager.playSuccess()
+      const hostPlayer = room.players?.find((p: { isHost?: boolean }) => p.isHost)
+      if (hostPlayer) setPlayerName(hostPlayer.name)
+    },
+  })
+
+  const socketCreate = socketRoom as UseRoomSocketCreateResult
+  const roomCode = isSoloMode ? null : socketCreate.roomCode
+  const players: Player[] = isSoloMode ? soloPlayers : socketCreate.players
+  const shareLink = isSoloMode ? '' : socketCreate.shareLink
+  const currentPlayerName = isSoloMode ? soloCurrentPlayerName : socketCreate.currentPlayerName
+  const isConnecting = isSoloMode ? false : socketCreate.isConnecting
+  const error = isSoloMode ? null : socketCreate.error
+  const leaveRoom = socketCreate.leaveRoom
+
   useEffect(() => {
     if (isSoloMode) {
-      setIsConnecting(false)
-      setCurrentPlayerName(initialPlayerName || 'Joueur')
+      setSoloCurrentPlayerName(initialPlayerName || 'Joueur')
       setPlayerName(initialPlayerName || 'Joueur')
-      setPlayers([{ id: 'solo', name: initialPlayerName || 'Joueur', score: 0, isHost: true }])
+      setSoloPlayers([{ id: 'solo', name: initialPlayerName || 'Joueur', score: 0, isHost: true }])
       disconnectSocketIfConnected()
     }
   }, [isSoloMode, initialPlayerName])
@@ -120,109 +140,6 @@ export default function RoomCreator({
     loadAvailableCount()
   }, [categories])
 
-  useEffect(() => {
-    if (isSoloMode || roomCode) return
-
-    let timeoutId: number | null = null
-    const playerId = getPlayerId()
-
-    try {
-      const socket = connectSocket()
-
-      const handleConnect = () => {
-        setIsConnecting(false)
-        setError(null)
-        socket.emit('room:create', {
-          playerId,
-          playerName: playerName || 'Hôte',
-          categories,
-          defaultTimeLimit: timeLimit,
-        })
-      }
-
-      const handleConnectError = () => {
-        setIsConnecting(false)
-        setError(
-          'Impossible de se connecter au serveur. Assurez-vous que le serveur backend est démarré (port 3001).'
-        )
-      }
-
-      const handleRoomCreated = ({ roomCode: code, room }: { roomCode: string; room: any }) => {
-        setRoomCode(code)
-        setPlayers(room.players || [])
-        const hostPlayer = room.players?.find((p: any) => p.isHost)
-        if (hostPlayer) {
-          setCurrentPlayerName(hostPlayer.name)
-          setPlayerName(hostPlayer.name)
-        } else {
-          const defaultName = playerName || 'Hôte'
-          setCurrentPlayerName(defaultName)
-          setPlayerName(defaultName)
-        }
-        // Générer un lien vers la racine avec le paramètre room (qui redirigera vers /room/join)
-        // Cela fonctionne même si l'utilisateur n'est pas sur la même route
-        const link = `${window.location.origin}/?room=${code}`
-        setShareLink(link)
-        soundManager.playSuccess()
-        setIsConnecting(false)
-        setError(null)
-      }
-
-      const handleRoomState = (state: any) => {
-        const updatedPlayers = state.players || []
-        if (Array.isArray(updatedPlayers) && updatedPlayers.length > 0) {
-          setPlayers(updatedPlayers)
-          const myPlayer = updatedPlayers.find((p: any) => p.id === playerId)
-          if (myPlayer) {
-            setCurrentPlayerName(myPlayer.name)
-          }
-        }
-      }
-
-      const handleError = ({ code, message }: { code: string; message: string }) => {
-        setError(`Erreur: ${message}`)
-        setIsConnecting(false)
-      }
-
-      socket.on('connect', handleConnect)
-      socket.on('connect_error', handleConnectError)
-      socket.on('room:created', handleRoomCreated)
-      socket.on('room:state', handleRoomState)
-      socket.on('error', handleError)
-
-      // Gérer la reconnexion
-      socket.on('reconnect', () => {
-        if (roomCode) {
-          socket.emit('room:rejoin', { roomCode, playerId })
-        }
-      })
-
-      timeoutId = window.setTimeout(() => {
-        if (!roomCode && !error) {
-          setError('Le serveur ne répond pas. Vérifiez que le serveur backend est démarré.')
-          setIsConnecting(false)
-        }
-      }, TIMING.CONNECTION_TIMEOUT)
-
-      return () => {
-        if (timeoutId) clearTimeout(timeoutId)
-        socket.off('connect', handleConnect)
-        socket.off('connect_error', handleConnectError)
-        socket.off('room:created', handleRoomCreated)
-        socket.off('room:state', handleRoomState)
-        socket.off('error', handleError)
-        socket.off('reconnect')
-
-        if (roomCode && !isStartingGameRef.current) {
-          socket.emit('room:leave', { roomCode })
-        }
-      }
-    } catch (err) {
-      setError('Erreur lors de la connexion au serveur.')
-      setIsConnecting(false)
-    }
-  }, [categories, playerName, timeLimit])
-
   const handleSetName = () => {
     if (!playerName.trim() || !roomCode) return
 
@@ -234,7 +151,6 @@ export default function RoomCreator({
       playerName: playerName.trim(),
     })
 
-    setCurrentPlayerName(playerName.trim())
     soundManager.playClick()
   }
 
@@ -441,7 +357,10 @@ export default function RoomCreator({
           <p className="text-secondary">
             {isSoloMode
               ? 'Configurez votre partie et commencez à jouer'
-              : players.find((p) => p.isHost) && `👑 Host: ${players.find((p) => p.isHost)?.name}`}
+              : (() => {
+                  const host = players.find((p: Player) => p.isHost)
+                  return host ? `👑 Host: ${host.name}` : null
+                })()}
           </p>
         </div>
         {!isSoloMode && (
@@ -488,10 +407,7 @@ export default function RoomCreator({
           onQuestionCountChange={setQuestionCount}
           onStartGame={handleStartGame}
           onBack={() => {
-            const socket = getSocket()
-            if (socket && roomCode) {
-              socket.emit('room:leave', { roomCode })
-            }
+            leaveRoom()
             onBack()
           }}
           canStart={

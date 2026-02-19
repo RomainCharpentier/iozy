@@ -1,10 +1,4 @@
-// Ce fichier n'utilise plus CATEGORIES
-
-interface Player {
-  id: string
-  name: string
-  isHost: boolean
-}
+import type { Player } from '@/lib/game/types'
 
 interface RoomPlayersPanelProps {
   players: Player[]

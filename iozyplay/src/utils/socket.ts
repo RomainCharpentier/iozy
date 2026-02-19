@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 
-const getSocketUrl = () => {
+const getSocketUrl = (): string => {
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL
   }
@@ -11,15 +11,13 @@ const getSocketUrl = () => {
   throw new Error('VITE_SOCKET_URL must be defined in production')
 }
 
-const SOCKET_URL = getSocketUrl()
-
 let socket: Socket | null = null
 
 const eventQueue: Array<{ event: string; data: any; timestamp: number }> = []
 
 export const connectSocket = (): Socket => {
   if (!socket || !socket.connected) {
-    socket = io(SOCKET_URL, {
+    socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
