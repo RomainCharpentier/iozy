@@ -1,3 +1,4 @@
+import gameStyles from '../Game.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
@@ -74,7 +75,7 @@ export default function QuestionCard({
 
   if (!question) {
     return (
-      <div className="question-card">
+      <div className={gameStyles.questionCard}>
         <p>Erreur : Question introuvable.</p>
       </div>
     )
@@ -113,11 +114,7 @@ export default function QuestionCard({
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
   const setTimeRemaining = (value: number | ((prev: number) => number)) => {
     if (gameMode === 'solo') {
-      if (typeof value === 'function') {
-        setLocalTimeRemaining(value)
-      } else {
-        setLocalTimeRemaining(value)
-      }
+      setLocalTimeRemaining(value)
     }
   }
   const setIsTimeUp = (value: boolean) => {
@@ -334,19 +331,19 @@ export default function QuestionCard({
   const categoryInfo = getCategoryInfo(categoryId)
 
   return (
-    <div className="question-card game-interface-game">
-      <div className="game-interface-game-header">
-        <div className="game-interface-category">
-          <span className="game-interface-category-icon">
+    <div className={`${gameStyles.questionCard} ${gameStyles.questionCardGameInterfaceGame}`}>
+      <div className={gameStyles.gameInterfaceGameHeader}>
+        <div className={gameStyles.gameInterfaceCategory}>
+          <span className={gameStyles.gameInterfaceCategoryIcon}>
             <CategoryIcon categoryId={categoryId} iconId={categoryInfo?.emoji} size={20} />
           </span>
-          <span className="game-interface-category-text">
+          <span className={gameStyles.gameInterfaceCategoryText}>
             {getCategoryLabel(question.category)}
           </span>
         </div>
       </div>
 
-      <div className="media-container game-interface-media" data-testid="media-container">
+      <div className={`${gameStyles.mediaContainer} ${gameStyles.gameInterfaceMedia}`} data-testid="media-container">
         {question.mediaUrl && (
           <>
             {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
@@ -402,7 +399,7 @@ export default function QuestionCard({
         )}
       </div>
 
-      <div className="game-interface-answer">
+      <div className={gameStyles.gameInterfaceAnswer}>
         {gameMode === 'solo' ? (
           <>
             <AnswerInput
@@ -457,8 +454,8 @@ export default function QuestionCard({
       </div>
 
       {question.hint && (
-        <div className="hint">
-          <span className="hint-icon" style={{ fontSize: '16px', marginRight: '0.5rem' }}>
+        <div className={gameStyles.hint}>
+          <span className={gameStyles.hintIcon}>
             💡
           </span>{' '}
           Indice : {question.hint}

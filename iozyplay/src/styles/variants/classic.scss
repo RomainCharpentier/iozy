@@ -1,0 +1,33 @@
+html[data-theme='classic'] {
+  --primary-color: #2563eb;
+  --primary-dark: #1e40af;
+  --secondary-color: #7c3aed;
+  --success-color: #059669;
+  --error-color: #dc2626;
+  --bg-color: #f9fafb;
+  --card-bg: #ffffff;
+  --text-color: #111827;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1e40af;
+  --color-bg-primary: #f9fafb;
+  --color-card-bg: #ffffff;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --accent-primary: #2563eb;
+  --accent-secondary: #7c3aed;
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --border: #e5e7eb;
+  --border-hover: #d1d5db;
+}
+
+html[data-theme='classic'] body {
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Georgia', 'Times New Roman', serif;
+}

@@ -1,3 +1,4 @@
+import styles from './EditorPage.module.scss'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
@@ -46,10 +47,10 @@ export default function EditorPage() {
 
   return (
     <>
-      <header className="app-header">
+      <header className={styles.appHeader}>
         <button
           type="button"
-          className="editor-toggle-button"
+          className={styles.editorToggleButton}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -61,23 +62,23 @@ export default function EditorPage() {
         </button>
       </header>
 
-      <div className="editor-container">
-        <div className="editor-tabs">
+      <div className={styles.editorContainer}>
+        <div className={styles.editorTabs}>
           <button
-            className={`editor-tab ${activeTab === 'questions' ? 'active' : ''}`}
+            className={`${styles.editorTab} ${activeTab === 'questions' ? styles.active : ''}`}
             onClick={() => setActiveTab('questions')}
           >
             📝 Questions
           </button>
           <button
-            className={`editor-tab ${activeTab === 'categories' ? 'active' : ''}`}
+            className={`${styles.editorTab} ${activeTab === 'categories' ? styles.active : ''}`}
             onClick={() => setActiveTab('categories')}
           >
             📁 Catégories
           </button>
         </div>
 
-        <div className="editor-content-wrapper">
+        <div className={styles.editorContentWrapper}>
           {activeTab === 'categories' ? (
             <CategoryManager
               onClose={() => setActiveTab('questions')}
@@ -87,7 +88,7 @@ export default function EditorPage() {
               }}
             />
           ) : isLoading ? (
-            <div className="loading-state">⏳ Chargement des questions...</div>
+            <div className={styles.loadingState}>⏳ Chargement des questions...</div>
           ) : (
             <QuestionEditor
               key={categoriesVersion}

@@ -1,3 +1,5 @@
+import styles from './QuestionEditor.module.scss'
+import ds from '@/styles/shared/DesignSystem.module.scss'
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -568,27 +570,27 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         onCancel={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })}
         variant="danger"
       />
-      <div className="editor-panel">
-        <div className="panel-header">
+      <div className={styles.editorPanel}>
+        <div className={styles.panelHeader}>
           <h2>
             <span style={{ marginRight: '0.5rem', fontSize: '20px' }}>✏️</span> Questions
           </h2>
-          <div className="editor-stats">
-            <div className="stat-item stat-item-total">
-              <span className="stat-label">Total:</span>
-              <span className="stat-value">{localQuestions.length}</span>
+          <div className={styles.editorStats}>
+            <div className={`${styles.statItem} ${styles.statItemTotal}`}>
+              <span className={styles.statLabel}>Total:</span>
+              <span className={styles.statValue}>{localQuestions.length}</span>
             </div>
-            <div className="stat-categories">
+            <div className={styles.statCategories}>
               {categories.map((cat) => {
                 const count = categoryStats[cat.id] || 0
                 if (count === 0) return null
                 return (
-                  <div key={cat.id} className="stat-item stat-item-category" title={cat.name}>
-                    <span className="stat-icon" style={{ fontSize: '16px' }}>
+                  <div key={cat.id} className={`${styles.statItem} ${styles.statItemCategory}`} title={cat.name}>
+                    <span style={{ fontSize: '16px' }}>
                       {cat.emoji}
                     </span>
-                    <span className="stat-category-name">{cat.name}</span>
-                    <span className="stat-value">{count}</span>
+                    <span className={styles.statCategoryName}>{cat.name}</span>
+                    <span className={styles.statValue}>{count}</span>
                   </div>
                 )
               })}
@@ -596,7 +598,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           </div>
         </div>
 
-        <div className="editor-filters">
+        <div className={styles.editorFilters}>
           <label>
             Filtrer par catégorie :
             <select
@@ -618,12 +620,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher par réponse, URL, indice ou catégorie..."
-              className="search-input"
+              className={styles.searchInput}
             />
             {searchQuery && (
               <button
                 type="button"
-                className="search-clear"
+                className={styles.searchClear}
                 onClick={() => setSearchQuery('')}
                 title="Effacer la recherche"
               >
@@ -631,10 +633,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
               </button>
             )}
           </label>
-          <div className="question-count">
+          <div className={styles.questionCount}>
             {filteredQuestions.length} question{filteredQuestions.length > 1 ? 's' : ''}
             {debouncedSearchQuery && (
-              <span className="search-results-info">
+              <span className={styles.searchResultsInfo}>
                 {' '}
                 sur {localQuestions.length} total{localQuestions.length > 1 ? 'es' : 'e'}
               </span>
@@ -643,17 +645,17 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
         </div>
 
         {(showAddForm || editingIndex !== null) && (
-          <div className="modal-overlay" onClick={cancelEdit}>
-            <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
+          <div className={styles.modalOverlay} onClick={cancelEdit}>
+            <div className={`${styles.modalContent} ${styles.editorFormModal}`} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
                 <h2>{editingIndex !== null ? 'Modifier la question' : 'Ajouter une question'}</h2>
-                <button className="close-button" onClick={cancelEdit} title="Fermer">
+                <button className={styles.closeButton} onClick={cancelEdit} title="Fermer">
                   <span style={{ fontSize: '16px' }}>✕</span>
                 </button>
               </div>
-              <div className="modal-body">
+              <div className={styles.modalBody}>
                 <form
-                  className="question-form"
+                  className={styles.questionForm}
                   onSubmit={handleSubmit(editingIndex !== null ? onUpdate : onSubmit)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -662,7 +664,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     }
                   }}
                 >
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>Catégorie *</label>
                     <CategorySelector
                       categories={categories}
@@ -675,8 +677,8 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                       required={true}
                     />
                     {errors.categories && (
-                      <div className="youtube-error-message">
-                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                      <div className={styles.youtubeErrorMessage}>
+                        <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
                           ⚠️
                         </span>
                         <span>{errors.categories.message}</span>
@@ -690,35 +692,35 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                       type="text"
                       {...register('mediaUrl')}
                       placeholder="https://youtu.be/..."
-                      className={errors.mediaUrl ? 'input-error' : ''}
+                      className={errors.mediaUrl ? styles.inputError : ''}
                     />
                     {errors.mediaUrl && (
-                      <div className="youtube-error-message">
-                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                      <div className={styles.youtubeErrorMessage}>
+                        <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
                           ⚠️
                         </span>
                         <span>{errors.mediaUrl.message}</span>
                       </div>
                     )}
                     {watchedMediaUrl && !errors.mediaUrl && (
-                      <div className="youtube-preview-form">
+                      <div className={styles.youtubePreviewForm}>
                         {!youtubeThumbnail && isYouTubeUrl(watchedMediaUrl) && (
-                          <span className="youtube-hint">
-                            <span className="spinner" style={{ fontSize: '16px' }}>
+                          <span className={styles.youtubeHint}>
+                            <span className={ds.spinner} style={{ fontSize: '16px' }}>
                               ⏳
                             </span>{' '}
                             Chargement des métadonnées...
                           </span>
                         )}
                         {youtubeThumbnail && youtubeValid && (
-                          <div className="youtube-metadata-preview">
+                          <div className={styles.youtubeMetadataPreview}>
                             <img
                               src={youtubeThumbnail}
                               alt="YouTube thumbnail"
-                              className="youtube-thumbnail-preview"
+                              className={styles.youtubeThumbnailPreview}
                             />
                             {youtubeTitle && (
-                              <div className="youtube-title-preview">
+                              <div className={styles.youtubeTitlePreview}>
                                 <strong>
                                   <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>
                                     📺
@@ -730,7 +732,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                           </div>
                         )}
                         {youtubeValid && !youtubeThumbnail && (
-                          <span className="youtube-hint">
+                          <span className={styles.youtubeHint}>
                             <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>✅</span> URL
                             YouTube détectée
                           </span>
@@ -745,11 +747,11 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                       type="text"
                       {...register('answer')}
                       placeholder="La réponse à deviner"
-                      className={errors.answer ? 'input-error' : ''}
+                      className={errors.answer ? styles.inputError : ''}
                     />
                     {errors.answer && (
-                      <div className="youtube-error-message">
-                        <span className="error-icon" style={{ fontSize: '16px' }}>
+                      <div className={styles.youtubeErrorMessage}>
+                        <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
                           ⚠️
                         </span>
                         <span>{errors.answer.message}</span>
@@ -766,10 +768,10 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     />
                   </label>
 
-                  <div className="form-actions">
+                  <div className={styles.formActions}>
                     <button
                       type="submit"
-                      className="submit-button"
+                      className={styles.submitButton}
                       disabled={isSubmitting || !youtubeValid || selectedCategories.length === 0}
                       title={
                         errors.mediaUrl || errors.answer || errors.categories
@@ -783,7 +785,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     >
                       {isSubmitting ? (
                         <>
-                          <span className="spinner" style={{ fontSize: '16px' }}>
+                          <span className={ds.spinner} style={{ fontSize: '16px' }}>
                             ⏳
                           </span>{' '}
                           Chargement...
@@ -800,7 +802,7 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                         </>
                       )}
                     </button>
-                    <button type="button" className="cancel-button" onClick={cancelEdit}>
+                    <button type="button" className={styles.cancelButton} onClick={cancelEdit}>
                       Annuler
                     </button>
                   </div>
@@ -810,12 +812,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
           </div>
         )}
 
-        <div className="panel-content">
-          <div className="panel-section">
-            <div className="section-header">
+        <div className={styles.panelContent}>
+          <div className={styles.panelSection}>
+            <div className={styles.sectionHeader}>
               <h3>Liste des questions</h3>
               <button
-                className="add-button"
+                className={styles.addButton}
                 onClick={() => {
                   cancelEdit()
                   navigate('/editor/import-video')
@@ -827,20 +829,20 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
             </div>
 
             {filteredQuestions.length === 0 ? (
-              <div className="no-questions-message">
-                <span className="no-questions-icon" style={{ fontSize: '48px' }}>
+              <div className={styles.noQuestionsMessage}>
+                <span className={styles.noQuestionsIcon} style={{ fontSize: '48px' }}>
                   🔍
                 </span>
                 <p>Aucune question trouvée</p>
                 {debouncedSearchQuery && (
-                  <p className="no-questions-hint">
+                  <p className={styles.noQuestionsHint}>
                     Essayez de modifier votre recherche ou vos filtres
                   </p>
                 )}
               </div>
             ) : (
               <>
-                <div className="questions-grid">
+                <div className={styles.questionsGrid}>
                   {filteredQuestions
                     .slice((currentPage - 1) * questionsPerPage, currentPage * questionsPerPage)
                     .map((question) => {
@@ -860,55 +862,55 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                       const videoTitle = metadata?.title
 
                       return (
-                        <div key={questionId} className="question-card-editor">
-                          <div className="question-card-header">
-                            <span className="question-category">
+                        <div key={questionId} className={styles.questionCardEditor}>
+                          <div className={styles.questionCardHeader}>
+                            <span className={styles.questionCategory}>
                               {getCategoryLabel(question.category)}
                             </span>
                           </div>
-                          <div className="question-card-body">
-                            <div className="question-media">
+                          <div className={styles.questionCardBody}>
+                            <div className={styles.questionMedia}>
                               {thumbnailUrl && (
-                                <div className="youtube-thumbnail-wrapper">
+                                <div className={styles.youtubeThumbnailWrapper}>
                                   <img
                                     src={thumbnailUrl}
                                     alt={videoTitle || 'YouTube thumbnail'}
-                                    className="youtube-thumbnail-small"
+                                    className={styles.youtubeThumbnailSmall}
                                     title={videoTitle || undefined}
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none'
                                     }}
                                   />
                                   {videoTitle && (
-                                    <div className="youtube-title-overlay">
-                                      <span className="youtube-title-text">{videoTitle}</span>
+                                    <div className={styles.youtubeTitleOverlay}>
+                                      <span className={styles.youtubeTitleText}>{videoTitle}</span>
                                     </div>
                                   )}
                                 </div>
                               )}
                             </div>
-                            <div className="question-info-compact">
-                              <div className="question-answer-compact">
+                            <div className={styles.questionInfoCompact}>
+                              <div className={styles.questionAnswerCompact}>
                                 <strong>{question.answer}</strong>
                               </div>
                               {videoTitle && videoTitle !== question.answer && (
-                                <div className="question-video-title">{videoTitle}</div>
+                                <div className={styles.questionVideoTitle}>{videoTitle}</div>
                               )}
                               {question.hint && (
-                                <div className="question-hint-compact">{question.hint}</div>
+                                <div className={styles.questionHintCompact}>{question.hint}</div>
                               )}
                             </div>
                           </div>
-                          <div className="question-card-actions">
+                          <div className={styles.questionCardActions}>
                             <button
-                              className="edit-button-small"
+                              className={styles.editButtonSmall}
                               onClick={() => handleEdit(realIndex)}
                               title="Modifier"
                             >
                               <span style={{ fontSize: '16px' }}>✏️</span>
                             </button>
                             <button
-                              className="delete-button-small"
+                              className={styles.deleteButtonSmall}
                               onClick={() => handleDelete(realIndex)}
                               title="Supprimer"
                             >
@@ -923,12 +925,12 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div
-                    className="pagination"
+                    className={styles.pagination}
                     role="navigation"
                     aria-label="Pagination des questions"
                   >
                     <button
-                      className="pagination-button"
+                      className={styles.paginationButton}
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                       title="Page précédente"
@@ -936,11 +938,11 @@ export default function QuestionEditor({ questions, onSave, onClose }: QuestionE
                     >
                       <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>◀️</span> Précédent
                     </button>
-                    <span className="pagination-info" aria-current="page">
+                    <span className={styles.paginationInfo} aria-current="page">
                       Page {currentPage} sur {totalPages}
                     </span>
                     <button
-                      className="pagination-button"
+                      className={styles.paginationButton}
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                       title="Page suivante"

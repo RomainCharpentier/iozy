@@ -1,5 +1,5 @@
+import styles from './ConfirmDialog.module.scss'
 import * as Dialog from '@radix-ui/react-dialog'
-import '../../styles/confirm-dialog.css'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -25,34 +25,34 @@ export default function ConfirmDialog({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onCancel()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="confirm-dialog-overlay" />
+        <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content
-          className="confirm-dialog"
+          className={styles.dialog}
           onEscapeKeyDown={onCancel}
           onInteractOutside={onCancel}
         >
-          <div className="confirm-dialog-header">
-            {title && <Dialog.Title className="confirm-dialog-title">{title}</Dialog.Title>}
+          <div className={styles.header}>
+            {title && <Dialog.Title className={styles.title}>{title}</Dialog.Title>}
             <Dialog.Close asChild>
-              <button type="button" className="confirm-dialog-close" aria-label="Fermer">
+              <button type="button" className={styles.close} aria-label="Fermer">
                 <span style={{ fontSize: '18px' }}>✕</span>
               </button>
             </Dialog.Close>
           </div>
-          <div className="confirm-dialog-body">
+          <div className={styles.body}>
             <div
-              className={`confirm-dialog-icon confirm-dialog-icon-${variant}`}
+              className={`${styles.icon} ${styles[`icon${variant.charAt(0).toUpperCase() + variant.slice(1)}`]}`}
               style={{ fontSize: '48px' }}
             >
               {variant === 'danger' ? '⚠️' : variant === 'warning' ? '⚠️' : 'ℹ️'}
             </div>
-            <Dialog.Description className="confirm-dialog-message">{message}</Dialog.Description>
+            <Dialog.Description className={styles.message}>{message}</Dialog.Description>
           </div>
-          <div className="confirm-dialog-actions">
+          <div className={styles.actions}>
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="confirm-dialog-button confirm-dialog-button-cancel"
+                className={`${styles.button} ${styles.buttonCancel}`}
                 onClick={onCancel}
               >
                 {cancelText}
@@ -61,7 +61,7 @@ export default function ConfirmDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className={`confirm-dialog-button confirm-dialog-button-confirm confirm-dialog-button-${variant}`}
+                className={`${styles.button} ${styles.buttonConfirm} ${styles[`button${variant.charAt(0).toUpperCase() + variant.slice(1)}`]}`}
                 onClick={onConfirm}
               >
                 {confirmText}

@@ -1,0 +1,47 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.sliderValue {
+  min-width: 50px;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+}
+
+.actions {
+  margin-top: auto;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.errorMessage {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 0.5rem;
+  font-size: var(--font-size-sm);
+  color: var(--error);
+}

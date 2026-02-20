@@ -1,9 +1,10 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './UsernamePage.module.scss'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { settingsService } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import Logo from '@/components/common/Logo'
-import '../../styles/auth-page.css'
 
 export default function UsernamePage() {
   const navigate = useNavigate()
@@ -50,25 +51,25 @@ export default function UsernamePage() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
+    <div className={styles.authPage}>
+      <div className={styles.authContainer}>
+        <div className={styles.authHeader}>
           <Logo size="large" />
-          <p className="auth-subtitle">Choisissez votre nom d'utilisateur pour commencer</p>
+          <p className={styles.authSubtitle}>Choisissez votre nom d'utilisateur pour commencer</p>
         </div>
 
-        <div className="auth-content">
-          {error && <div className="auth-error">{error}</div>}
+        <div className={styles.authContent}>
+          {error && <div className={styles.authError}>{error}</div>}
 
-          <div className="auth-form">
-            <div className="form-group">
-              <label htmlFor="username-input" className="form-label">
+          <div className={styles.authForm}>
+            <div className={styles.formGroup}>
+              <label htmlFor="username-input" className={styles.formLabel}>
                 Nom d'utilisateur
               </label>
               <input
                 id="username-input"
                 type="text"
-                className="form-input"
+                className={styles.formInput}
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value)
@@ -82,7 +83,7 @@ export default function UsernamePage() {
             </div>
 
             <button
-              className="btn btn-primary auth-button"
+              className={`${ds.btn} ${ds.btnPrimary} ${styles.authButton}`}
               onClick={handleSubmit}
               disabled={!username.trim()}
             >
@@ -91,8 +92,8 @@ export default function UsernamePage() {
           </div>
         </div>
 
-        <div className="auth-footer">
-          <p className="auth-hint">
+        <div className={styles.authFooter}>
+          <p className={styles.authHint}>
             Votre nom est sauvegardé localement et sera utilisé dans les parties multijoueur.
           </p>
         </div>

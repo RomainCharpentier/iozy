@@ -1,0 +1,43 @@
+.panel {
+  max-height: calc(100vh - 12rem);
+  overflow-y: auto;
+}
+
+.playersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.playerBadge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.shareSection {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.nameSection {
+  margin-top: var(--spacing-md);
+}

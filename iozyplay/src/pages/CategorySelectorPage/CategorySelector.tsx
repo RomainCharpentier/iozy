@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './CategorySelector.module.scss'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
@@ -80,31 +82,16 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
   }
 
   return (
-    <div className="category-selector">
+    <div className={styles.categorySelector}>
       <h2>Créer une partie</h2>
 
       {isLoadingCategories ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '200px',
-            flexDirection: 'column',
-            gap: 'var(--spacing-md)',
-          }}
-        >
-          <div className="spinner" style={{ margin: '0 auto' }}></div>
-          <p className="text-secondary">Chargement des catégories...</p>
+        <div className={styles.loadingState}>
+          <div className={styles.spinner} style={{ margin: '0 auto' }}></div>
+          <p className={ds.textSecondary}>Chargement des catégories...</p>
         </div>
       ) : categories.length === 0 ? (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: 'var(--spacing-xl)',
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <div className={styles.emptyState}>
           <p style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-md)' }}>
             Aucune catégorie avec des questions disponibles
           </p>
@@ -114,24 +101,24 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
         </div>
       ) : (
         <>
-          <div className="categories-grid">
+          <div className={styles.categoriesGrid}>
             {categories.map((category) => (
               <button
                 key={category.id}
-                className={`category-card ${selectedCategories.includes(category.id) ? 'selected' : ''}`}
+                className={`${styles.categoryCard} ${selectedCategories.includes(category.id) ? styles.selected : ''}`}
                 onClick={() => toggleCategory(category.id)}
                 aria-label={`${selectedCategories.includes(category.id) ? 'Désélectionner' : 'Sélectionner'} la catégorie ${category.name}`}
                 aria-pressed={selectedCategories.includes(category.id)}
               >
-                <span className="category-emoji">
+                <span className={styles.categoryEmoji}>
                   <CategoryIcon categoryId={category.id} iconId={category.emoji} size={32} />
                 </span>
-                <span className="category-name">{category.name}</span>
+                <span className={styles.categoryName}>{category.name}</span>
               </button>
             ))}
           </div>
           <button
-            className="start-button"
+            className={styles.startButton}
             onClick={handleStartGame}
             disabled={selectedCategories.length === 0}
             aria-label={

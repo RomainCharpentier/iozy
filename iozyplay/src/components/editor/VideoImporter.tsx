@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './VideoImporter.module.scss'
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
@@ -8,7 +10,6 @@ import {
   type PlaylistVideo,
 } from '@/utils/youtube'
 import type { Category, CategoryInfo } from '@/types'
-import '../../styles/index.css'
 
 interface VideoWithAnswer {
   videoId: string
@@ -214,19 +215,19 @@ export default function VideoImporter({
   }
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content playlist-importer-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className={styles.modalOverlay} onClick={handleClose}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
           <h2>Importer {isPlaylist ? 'une playlist' : 'une vidéo'} YouTube</h2>
-          <button className="close-button" onClick={handleClose} title="Fermer">
+          <button className={styles.closeButton} onClick={handleClose} title="Fermer">
             <span style={{ fontSize: '16px' }}>✕</span>
           </button>
         </div>
 
-        <div className="modal-body">
-          <div className="playlist-input-section">
+        <div className={styles.modalBody}>
+          <div className={styles.playlistInputSection}>
             <label>URL YouTube {isPlaylist ? '(playlist)' : '(vidéo)'} :</label>
-            <div className="input-wrapper">
+            <div className={styles.inputWrapper}>
               <input
                 type="text"
                 value={videoUrl}
@@ -239,21 +240,21 @@ export default function VideoImporter({
                 disabled={loading}
               />
               {videoUrl.trim() && (
-                <div className="video-type-indicator">
+                <div className={styles.videoTypeIndicator}>
                   {isPlaylist ? (
-                    <span className="type-badge playlist-badge">📋 Playlist</span>
+                    <span className={`${styles.typeBadge} ${styles.playlistBadge}`}>📋 Playlist</span>
                   ) : (
-                    <span className="type-badge video-badge">🎬 Vidéo</span>
+                    <span className={`${styles.typeBadge} ${styles.videoBadge}`}>🎬 Vidéo</span>
                   )}
                 </div>
               )}
               <button
-                className="load-button"
+                className={styles.loadButton}
                 onClick={handleLoadVideo}
                 disabled={loading || !videoUrl.trim()}
               >
                 {loading ? (
-                  <span className="spinner" style={{ fontSize: '16px' }}>
+                  <span className={ds.spinner} style={{ fontSize: '16px' }}>
                     ⏳
                   </span>
                 ) : (
@@ -266,11 +267,11 @@ export default function VideoImporter({
 
           {videos.length > 0 && (
             <>
-              <div className="categories-selection">
+              <div className={styles.categoriesSelection}>
                 <label>Catégories :</label>
-                <div className="categories-checkboxes">
+                <div className={styles.categoriesCheckboxes}>
                   {categories.map((cat) => (
-                    <label key={cat.id} className="category-checkbox">
+                    <label key={cat.id} className={styles.categoryCheckbox}>
                       <input
                         type="checkbox"
                         checked={selectedCategories.includes(cat.id)}
@@ -282,21 +283,21 @@ export default function VideoImporter({
                 </div>
               </div>
 
-              <div className="videos-list">
+              <div className={styles.videosList}>
                 <h3>
                   {isPlaylist
                     ? `Vidéos (${videos.filter((v) => v.selected).length}/${videos.length} sélectionnées)`
                     : 'Vidéo à importer'}
                 </h3>
-                <div className={`videos-grid ${!isPlaylist ? 'single-video' : ''}`}>
+                <div className={`${styles.videosGrid} ${!isPlaylist ? styles.singleVideo : ''}`}>
                   {videos.map((video, index) => (
                     <div
                       key={video.videoId}
-                      className={`video-item ${!video.selected ? 'unselected' : ''}`}
+                      className={`${styles.videoItem} ${!video.selected ? styles.unselected : ''}`}
                     >
                       {isPlaylist && (
-                        <div className="video-header">
-                          <label className="video-checkbox">
+                        <div className={styles.videoHeader}>
+                          <label className={styles.videoCheckbox}>
                             <input
                               type="checkbox"
                               checked={video.selected}
@@ -306,37 +307,37 @@ export default function VideoImporter({
                           <img
                             src={video.thumbnailUrl}
                             alt={video.title}
-                            className="video-thumbnail"
+                            className={styles.videoThumbnail}
                           />
                         </div>
                       )}
 
                       {!isPlaylist && (
-                        <div className="video-header-single">
+                        <div className={styles.videoHeaderSingle}>
                           <img
                             src={video.thumbnailUrl}
                             alt={video.title}
-                            className="video-thumbnail"
+                            className={styles.videoThumbnail}
                           />
                         </div>
                       )}
 
-                      <div className="video-info">
+                      <div className={styles.videoInfo}>
                         {isPlaylist && (
                           <button
-                            className="remove-video-button"
+                            className={styles.removeVideoButton}
                             onClick={() => handleRemoveVideo(index)}
                             title="Retirer cette vidéo"
                           >
                             <span style={{ fontSize: '16px' }}>🗑️</span>
                           </button>
                         )}
-                        <div className="video-title" title={video.title}>
+                        <div className={styles.videoTitle} title={video.title}>
                           {video.title}
                         </div>
 
                         {editingIndex === index ? (
-                          <div className="video-edit-form">
+                          <div className={styles.videoEditForm}>
                             <input
                               type="text"
                               value={video.answer}
@@ -358,16 +359,16 @@ export default function VideoImporter({
                               }}
                               placeholder="Indice (optionnel)"
                             />
-                            <div className="edit-actions">
+                            <div className={styles.editActions}>
                               <button
-                                className="save-edit-button"
+                                className={styles.saveEditButton}
                                 onClick={() => handleEditAnswer(index, video.answer, video.hint)}
                                 title="Valider"
                               >
                                 <span style={{ fontSize: '16px' }}>✅</span>
                               </button>
                               <button
-                                className="cancel-edit-button"
+                                className={styles.cancelEditButton}
                                 onClick={() => setEditingIndex(null)}
                                 title="Annuler"
                               >
@@ -376,17 +377,17 @@ export default function VideoImporter({
                             </div>
                           </div>
                         ) : (
-                          <div className="video-answer">
-                            <div className="answer-text">
+                          <div className={styles.videoAnswer}>
+                            <div className={styles.answerText}>
                               <strong>Réponse :</strong> {video.answer || <em>Aucune réponse</em>}
                             </div>
                             {video.hint && (
-                              <div className="hint-text">
+                              <div className={styles.hintText}>
                                 <strong>Indice :</strong> {video.hint}
                               </div>
                             )}
                             <button
-                              className="edit-answer-button"
+                              className={styles.editAnswerButton}
                               onClick={() => setEditingIndex(index)}
                               title="Modifier la réponse"
                             >
@@ -405,12 +406,12 @@ export default function VideoImporter({
         </div>
 
         {videos.length > 0 && (
-          <div className="modal-footer">
-            <button className="cancel-button" onClick={handleClose}>
+          <div className={styles.modalFooter}>
+            <button className={styles.cancelButton} onClick={handleClose}>
               Annuler
             </button>
             <button
-              className="import-button"
+              className={styles.importButton}
               onClick={handleImport}
               disabled={
                 selectedCategories.length === 0 ||

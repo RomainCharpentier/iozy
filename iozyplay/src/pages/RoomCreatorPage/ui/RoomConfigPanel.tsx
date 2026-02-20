@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './RoomConfigPanel.module.scss'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import { TIMING } from '@/services/gameService'
@@ -103,30 +105,21 @@ export default function RoomConfigPanel({
   }
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="card-header">
-        <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className={`${ds.card} ${styles.panel}`}>
+      <div className={ds.cardHeader}>
+        <h2 className={ds.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           Configuration
         </h2>
       </div>
 
       {/* Categories */}
-      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: 'var(--spacing-sm)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-          }}
-        >
-          Thèmes sélectionnés
-        </label>
-        <div className="grid-auto" style={{ gap: 'var(--spacing-xs)' }}>
+      <div className={styles.section}>
+        <label className={styles.label}>Thèmes sélectionnés</label>
+        <div className={ds.gridAuto} style={{ gap: 'var(--spacing-xs)' }}>
           {selectedCategories.map((category) => {
             const catInfo = getCategoryInfo(category)
             return (
-              <span key={category} className="badge badge-primary">
+              <span key={category} className={`${ds.badge} ${ds.badgePrimary}`}>
                 <span style={{ fontSize: '16px', marginRight: '4px' }}>{catInfo.emoji}</span>{' '}
                 {catInfo.name}
               </span>
@@ -136,18 +129,11 @@ export default function RoomConfigPanel({
       </div>
 
       {/* Timer Slider */}
-      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: 'var(--spacing-sm)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-          }}
-        >
+      <div className={styles.section}>
+        <label className={styles.label}>
           Timer par question: <strong>{timeLimit}s</strong>
         </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+        <div className={styles.sliderRow}>
           <input
             type="range"
             min={TIMING.MIN_TIME_LIMIT}
@@ -167,29 +153,13 @@ export default function RoomConfigPanel({
               WebkitAppearance: 'none',
             }}
           />
-          <span
-            style={{
-              minWidth: '50px',
-              textAlign: 'center',
-              fontWeight: 700,
-              fontSize: 'var(--font-size-lg)',
-            }}
-          >
-            {timeLimit}s
-          </span>
+          <span className={styles.sliderValue}>{timeLimit}s</span>
         </div>
       </div>
 
       {/* Question Count Slider */}
-      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: 'var(--spacing-sm)',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-          }}
-        >
+      <div className={styles.section}>
+        <label className={styles.label}>
           Nombre de questions:{' '}
           <strong>
             {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
@@ -197,7 +167,7 @@ export default function RoomConfigPanel({
               : MIN_COUNT}
           </strong>
         </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+        <div className={styles.sliderRow}>
           <input
             type="range"
             min={MIN_COUNT}
@@ -222,21 +192,14 @@ export default function RoomConfigPanel({
               opacity: availableCount === 0 ? 0.5 : 1,
             }}
           />
-          <span
-            style={{
-              minWidth: '50px',
-              textAlign: 'center',
-              fontWeight: 700,
-              fontSize: 'var(--font-size-lg)',
-            }}
-          >
+          <span className={styles.sliderValue}>
             {Number.isFinite(currentCount) && !Number.isNaN(currentCount)
               ? currentCount
               : MIN_COUNT}
           </span>
         </div>
         <p
-          className="text-secondary"
+          className={ds.textSecondary}
           style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}
         >
           {availableCount > 0
@@ -246,27 +209,18 @@ export default function RoomConfigPanel({
       </div>
 
       {/* Actions */}
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 'var(--spacing-lg)',
-          borderTop: '1px solid var(--border)',
-          display: 'flex',
-          gap: 'var(--spacing-sm)',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button className="btn btn-secondary" onClick={onBack}>
+      <div className={styles.actions}>
+        <button className={`${ds.btn} ${ds.btnSecondary}`} onClick={onBack}>
           ← Retour
         </button>
         <button
-          className="btn btn-primary btn-large"
+          className={`${ds.btn} ${ds.btnPrimary} ${ds.btnLarge}`}
           onClick={onStartGame}
           disabled={!canStart || isStarting}
         >
           {isStarting ? (
             <>
-              <span className="spinner" style={{ fontSize: '16px', marginRight: '0.5rem' }}></span>
+              <span className={ds.spinner} style={{ fontSize: '16px', marginRight: '0.5rem' }}></span>
               Démarrage...
             </>
           ) : (
@@ -277,17 +231,7 @@ export default function RoomConfigPanel({
 
       {/* Error Messages */}
       {startError && (
-        <div
-          style={{
-            marginTop: 'var(--spacing-md)',
-            padding: 'var(--spacing-sm)',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid var(--error)',
-            borderRadius: '0.5rem',
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--error)',
-          }}
-        >
+        <div className={styles.errorMessage}>
           {startError}
         </div>
       )}

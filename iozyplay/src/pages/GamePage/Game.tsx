@@ -1,3 +1,4 @@
+import gameStyles from './Game.module.scss'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import QuestionCard from './question/QuestionCard'
 import Score from './ui/Score'
@@ -13,8 +14,6 @@ import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
 import { soundManager } from '@/utils/sounds'
 import * as Dialog from '@radix-ui/react-dialog'
-import '../../styles/game-modal.css'
-import '../../styles/game-interface.css'
 
 interface GameProps {
   questions: Question[]
@@ -633,7 +632,6 @@ export default function Game({
       // Ne pas réinitialiser showScore si la partie est terminée
       if (!gameEndedRef.current) {
         setShowScore(false)
-      } else {
       }
 
       if (updatedPlayers?.length) {
@@ -1374,7 +1372,7 @@ export default function Game({
   }
 
   return (
-    <div className="game game-interface-layout" data-testid="game-screen">
+    <div className={`${gameStyles.game} ${gameStyles.gameInterfaceLayout}`} data-testid="game-screen">
       <GameTopBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={gameQuestions.length}
@@ -1393,14 +1391,14 @@ export default function Game({
       />
 
       {/* Main: Zone media/waveform centrée */}
-      <div className="game-main" data-testid="game-main">
+      <div className={gameStyles.gameMain} data-testid="game-main">
         <div
-          className={`game-interface-body ${showScore && gameMode === 'solo' ? 'solo-end' : ''}`}
+          className={`${gameStyles.gameInterfaceBody} ${showScore && gameMode === 'solo' ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
           id="game-interface-body"
         >
           {showScore ? (
             <>
-              <div className="game-interface-game">
+              <div className={gameStyles.gameInterfaceGame}>
                 <Score
                   score={gameMode === 'solo' ? score : 0}
                   totalQuestions={gameQuestions.length}
@@ -1418,9 +1416,10 @@ export default function Game({
                 />
               </div>
               {gameMode === 'online' && (
-                <PlayersPanel
-                  players={gamePlayers}
-                  questionAnsweredBy={null}
+                <div className={gameStyles.gamePlayersPanel}>
+                  <PlayersPanel
+                    players={gamePlayers}
+                    questionAnsweredBy={null}
                   correctPlayers={new Set()}
                   answeredPlayers={new Set()}
                   isTimeUp={false}
@@ -1429,7 +1428,8 @@ export default function Game({
                   skipVotes={new Set()}
                   isGameEnded={true}
                   totalQuestions={gameQuestions.length}
-                />
+                  />
+                </div>
               )}
             </>
           ) : (
@@ -1464,9 +1464,10 @@ export default function Game({
               />
 
               {gameMode === 'online' && (
-                <PlayersPanel
-                  players={gamePlayers}
-                  questionAnsweredBy={questionAnsweredByRef.current}
+                <div className={gameStyles.gamePlayersPanel}>
+                  <PlayersPanel
+                    players={gamePlayers}
+                    questionAnsweredBy={questionAnsweredByRef.current}
                   correctPlayers={correctPlayers}
                   answeredPlayers={answeredPlayers}
                   isTimeUp={isTimeUp}
@@ -1474,7 +1475,8 @@ export default function Game({
                   validatedAnswers={validatedAnswers}
                   skipVotes={skipVotes}
                   isGameEnded={false}
-                />
+                  />
+                </div>
               )}
             </>
           )}
@@ -1491,9 +1493,9 @@ export default function Game({
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="game-modal-overlay" />
+          <Dialog.Overlay className={gameStyles.gameModalOverlay} />
           <Dialog.Content
-            className="game-modal-content"
+            className={gameStyles.gameModalContent}
             onEscapeKeyDown={() => {
               setShowSettingsPopup(false)
             }}

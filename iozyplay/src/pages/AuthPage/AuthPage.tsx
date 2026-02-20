@@ -1,9 +1,10 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './AuthPage.module.scss'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@/services/authService'
 import { settingsService } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
-import '../../styles/auth-page.css'
 
 export default function AuthPage() {
   const navigate = useNavigate()
@@ -60,25 +61,25 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1 className="auth-title">🎵 Blindtest</h1>
-          <p className="auth-subtitle">Créez votre compte pour commencer à jouer</p>
+    <div className={styles.authPage}>
+      <div className={styles.authContainer}>
+        <div className={styles.authHeader}>
+          <h1 className={styles.authTitle}>🎵 Blindtest</h1>
+          <p className={styles.authSubtitle}>Créez votre compte pour commencer à jouer</p>
         </div>
 
-        <div className="auth-content">
-          {error && <div className="auth-error">{error}</div>}
+        <div className={styles.authContent}>
+          {error && <div className={styles.authError}>{error}</div>}
 
-          <div className="auth-form">
-            <div className="form-group">
-              <label htmlFor="username-input" className="form-label">
+          <div className={styles.authForm}>
+            <div className={styles.formGroup}>
+              <label htmlFor="username-input" className={styles.formLabel}>
                 Nom d'utilisateur
               </label>
               <input
                 id="username-input"
                 type="text"
-                className="form-input"
+                className={styles.formInput}
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value)
@@ -93,7 +94,7 @@ export default function AuthPage() {
             </div>
 
             <button
-              className="btn btn-primary auth-button"
+              className={`${ds.btn} ${ds.btnPrimary} ${styles.authButton}`}
               onClick={handleCreateAccount}
               disabled={isCreating || !username.trim()}
             >
@@ -102,8 +103,8 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <div className="auth-footer">
-          <p className="auth-hint">
+        <div className={styles.authFooter}>
+          <p className={styles.authHint}>
             Pas de mot de passe requis pour l'instant. Votre compte est sauvegardé sur le serveur.
           </p>
         </div>

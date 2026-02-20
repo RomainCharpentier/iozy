@@ -1,3 +1,4 @@
+import gameStyles from '../Game.module.scss'
 import { useEffect, useRef } from 'react'
 import { soundManager } from '@/utils/sounds'
 import type { GameMode, Player } from '@/lib/game/types'
@@ -62,26 +63,26 @@ export default function Score({
   }, [isPopup])
 
   const scoreContent = (
-    <div className="game-interface-game-end">
-      <div className="game-interface-end-icon">🏆</div>
-      <div className="game-interface-end-title">Partie Terminée !</div>
-      <div className="game-interface-end-subtitle">Félicitations à tous les participants</div>
-      <div className="game-interface-end-stats">
-        <div className="game-interface-end-stat">
-          <div className="game-interface-end-stat-label">Votre Score</div>
-          <div className="game-interface-end-stat-value">
+    <div className={gameStyles.gameInterfaceGameEnd}>
+      <div className={gameStyles.gameInterfaceEndIcon}>🏆</div>
+      <div className={gameStyles.gameInterfaceEndTitle}>Partie Terminée !</div>
+      <div className={gameStyles.gameInterfaceEndSubtitle}>Félicitations à tous les participants</div>
+      <div className={gameStyles.gameInterfaceEndStats}>
+        <div className={gameStyles.gameInterfaceEndStat}>
+          <div className={gameStyles.gameInterfaceEndStatLabel}>Votre Score</div>
+          <div className={gameStyles.gameInterfaceEndStatValue}>
             {currentPlayerScore} / {totalQuestions}
           </div>
         </div>
-        <div className="game-interface-end-stat">
-          <div className="game-interface-end-stat-label">Taux de Réussite</div>
-          <div className="game-interface-end-stat-value">{percentage}%</div>
+        <div className={gameStyles.gameInterfaceEndStat}>
+          <div className={gameStyles.gameInterfaceEndStatLabel}>Taux de Réussite</div>
+          <div className={gameStyles.gameInterfaceEndStatValue}>{percentage}%</div>
         </div>
       </div>
-      <div className="game-interface-end-actions">
+      <div className={gameStyles.gameInterfaceEndActions}>
         {(gameMode === 'solo' || isHost) && (
           <button
-            className="game-interface-end-btn primary"
+            className={`${gameStyles.gameInterfaceEndBtn} ${gameStyles.gameInterfaceEndBtnPrimary}`}
             onClick={() => {
               soundManager.playStart()
               onRestart()
@@ -91,7 +92,7 @@ export default function Score({
           </button>
         )}
         <button
-          className="game-interface-end-btn"
+          className={gameStyles.gameInterfaceEndBtn}
           onClick={() => {
             soundManager.playClick()
             onQuit()
@@ -107,5 +108,5 @@ export default function Score({
     return scoreContent
   }
 
-  return <div className="score-screen">{scoreContent}</div>
+  return <div className={gameStyles.scoreScreen}>{scoreContent}</div>
 }

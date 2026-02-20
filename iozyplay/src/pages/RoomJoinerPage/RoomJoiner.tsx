@@ -1,3 +1,4 @@
+import styles from './RoomJoiner.module.scss'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRoomSocket, type UseRoomSocketJoinResult } from '@/hooks/useRoomSocket'
@@ -60,10 +61,10 @@ export default function RoomJoiner({
 
   if (!hasJoined) {
     return (
-      <div className="room-joiner">
-        <div className="room-info-card">
+      <div className={styles.roomJoiner}>
+        <div className={styles.roomInfoCard}>
           <h2>👥 Rejoindre le salon : {roomCode}</h2>
-          <div className="name-input-section">
+          <div className={styles.nameInputSection}>
             <label>
               Votre nom
               <input
@@ -72,7 +73,6 @@ export default function RoomJoiner({
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Entrez votre nom"
                 maxLength={20}
-                className="player-name-input"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && playerName.trim()) {
                     e.preventDefault()
@@ -84,12 +84,12 @@ export default function RoomJoiner({
               />
             </label>
           </div>
-          <div className="room-actions">
-            <button className="back-button" onClick={onBack}>
+          <div className={styles.roomActions}>
+            <button className={styles.backButton} onClick={onBack}>
               ← Retour
             </button>
             <button
-              className="start-button"
+              className={styles.startButton}
               onClick={handleJoin}
               disabled={!playerName.trim()}
               aria-label={
@@ -105,26 +105,25 @@ export default function RoomJoiner({
   }
 
   return (
-    <div className="room-joiner">
-      <div className="room-info-card">
+    <div className={styles.roomJoiner}>
+      <div className={styles.roomInfoCard}>
         <h2>👥 Salon : {roomCode}</h2>
 
-        <div className="players-list">
+        <div className={styles.playersList}>
           <h3>Joueurs ({players.length})</h3>
-          <div className="players-grid">
+          <div className={styles.playersGrid}>
             {players.map((player) => (
               <div
                 key={player.id}
-                className={`player-badge ${player.isHost ? 'host' : ''} ${!player.connected ? 'disconnected' : ''}`}
+                className={`${styles.playerBadge} ${player.isHost ? styles.host : ''} ${!player.connected ? styles.disconnected : ''}`}
                 title={player.isHost ? 'Hôte' : 'Joueur'}
               >
                 {player.name}
-                {player.isHost && <span className="host-badge">👑</span>}
+                {player.isHost && <span className={styles.hostBadge}>👑</span>}
                 {!player.connected && (
                   <span
-                    className="disconnected-badge"
+                    className={styles.disconnectedBadge}
                     title="Déconnecté"
-                    style={{ fontSize: '0.875rem' }}
                   >
                     ⚠
                   </span>
@@ -135,18 +134,18 @@ export default function RoomJoiner({
         </div>
 
         {!gameStarted && (
-          <div className="waiting-state">
+          <div className={styles.waitingState}>
             <p>⏳ En attente que l'hôte démarre la partie...</p>
           </div>
         )}
 
         {gameStarted && (
-          <div className="game-starting">
+          <div className={styles.gameStarting}>
             <p>La partie démarre !</p>
           </div>
         )}
 
-        <button className="back-button" onClick={handleBack}>
+        <button className={styles.backButton} onClick={handleBack}>
           ← Quitter le salon
         </button>
       </div>

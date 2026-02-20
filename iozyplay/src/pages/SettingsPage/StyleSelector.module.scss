@@ -1,0 +1,101 @@
+.wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: var(--z-floating);
+  font-family: system-ui, sans-serif;
+}
+
+.triggerButton {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  min-width: 300px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e5e7eb;
+}
+
+.title {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.optionButton {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: left;
+  transition: all 0.2s ease;
+  border: 2px solid;
+}
+
+.optionButton.selected {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.optionButton:not(.selected) {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #e5e7eb;
+  font-weight: 500;
+}
+
+.optionButton:not(.selected):hover {
+  background: #e5e7eb;
+}
+
+.optionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.optionEmoji {
+  font-size: 1.2rem;
+}
+
+.optionDescription {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.closeButton {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #6b7280;
+}

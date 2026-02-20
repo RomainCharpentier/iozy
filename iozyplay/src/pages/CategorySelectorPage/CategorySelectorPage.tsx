@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './CategorySelectorPage.module.scss'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -60,24 +62,15 @@ export default function CategorySelectorPage() {
 
   return (
     <>
-      <header className="app-header">
-        <button className="editor-toggle-button" onClick={() => navigate('/')}>
+      <header className={styles.appHeader}>
+        <button className={styles.editorToggleButton} onClick={() => navigate('/')}>
           ← Retour au menu
         </button>
       </header>
       {isLoadingQuestions ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '400px',
-            flexDirection: 'column',
-            gap: 'var(--spacing-md)',
-          }}
-        >
-          <div className="spinner" style={{ margin: '0 auto' }}></div>
-          <p className="text-secondary">Chargement des questions...</p>
+        <div className={styles.loadingState}>
+          <div className={styles.spinner} style={{ margin: '0 auto' }}></div>
+          <p className={ds.textSecondary}>Chargement des questions...</p>
         </div>
       ) : (
         <CategorySelector onStartGame={handleStartGame} />

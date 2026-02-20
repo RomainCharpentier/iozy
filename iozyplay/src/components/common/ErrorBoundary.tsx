@@ -1,5 +1,6 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './ErrorBoundary.module.scss'
 import React, { Component, ErrorInfo, ReactNode } from 'react'
-import '../../styles/error-boundary.css'
 
 interface Props {
   children: ReactNode
@@ -37,29 +38,29 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="error-boundary">
-          <div className="error-boundary-content">
-            <div className="error-boundary-icon" style={{ fontSize: '64px' }}>
+        <div className={styles.root}>
+          <div className={styles.content}>
+            <div className={styles.icon} style={{ fontSize: '64px' }}>
               ⚠️
             </div>
-            <h1 className="error-boundary-title">Oups ! Une erreur est survenue</h1>
-            <p className="error-boundary-message">
+            <h1 className={styles.title}>Oups ! Une erreur est survenue</h1>
+            <p className={styles.message}>
               L'application a rencontré un problème inattendu.
             </p>
             {import.meta.env.DEV && this.state.error && (
-              <details className="error-boundary-details">
+              <details className={styles.details}>
                 <summary>Détails de l'erreur (développement)</summary>
-                <pre className="error-boundary-stack">
+                <pre className={styles.stack}>
                   {this.state.error.toString()}
                   {this.state.error.stack}
                 </pre>
               </details>
             )}
-            <div className="error-boundary-actions">
-              <button className="btn btn-primary" onClick={this.handleReset}>
+            <div className={styles.actions}>
+              <button className={`${ds.btn} ${ds.btnPrimary}`} onClick={this.handleReset}>
                 Retour à l'accueil
               </button>
-              <button className="btn btn-secondary" onClick={() => window.location.reload()}>
+              <button className={`${ds.btn} ${ds.btnSecondary}`} onClick={() => window.location.reload()}>
                 Recharger la page
               </button>
             </div>

@@ -1,3 +1,4 @@
+import styles from '../MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import { extractYouTubeId } from '@/utils/youtube'
 import Soundwave from '@/components/media/Soundwave'
@@ -274,7 +275,7 @@ export default function YouTubePlayer({
 
   return (
     <div
-      className="youtube-player"
+      className={styles.youtubePlayer}
       style={{
         width: '100%',
         height: '100%',

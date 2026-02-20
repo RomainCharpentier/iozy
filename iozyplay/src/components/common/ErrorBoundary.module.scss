@@ -1,4 +1,4 @@
-.error-boundary {
+.root {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7,7 +7,7 @@
   background: var(--color-bg-primary);
 }
 
-.error-boundary-content {
+.content {
   max-width: 600px;
   width: 100%;
   text-align: center;
@@ -17,7 +17,7 @@
   box-shadow: var(--shadow-xl);
 }
 
-.error-boundary-icon {
+.icon {
   margin-bottom: var(--space-4);
   animation: errorShake 0.5s ease-in-out;
 }
@@ -35,21 +35,21 @@
   }
 }
 
-.error-boundary-title {
+.title {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-4);
 }
 
-.error-boundary-message {
+.message {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-6);
   line-height: var(--line-height-relaxed);
 }
 
-.error-boundary-details {
+.details {
   text-align: left;
   margin-bottom: var(--space-6);
   padding: var(--space-4);
@@ -58,14 +58,14 @@
   border: var(--border-width-thin) solid var(--color-border);
 }
 
-.error-boundary-details summary {
+.details summary {
   cursor: pointer;
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-2);
 }
 
-.error-boundary-stack {
+.stack {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
   color: var(--color-error);
@@ -75,7 +75,7 @@
   margin-top: var(--space-2);
 }
 
-.error-boundary-actions {
+.actions {
   display: flex;
   gap: var(--space-3);
   justify-content: center;
@@ -83,15 +83,15 @@
 }
 
 @media (max-width: 768px) {
-  .error-boundary-content {
+  .content {
     padding: var(--space-6);
   }
 
-  .error-boundary-actions {
+  .actions {
     flex-direction: column;
   }
 
-  .error-boundary-actions .btn {
+  .actions :global(.btn) {
     width: 100%;
   }
 }

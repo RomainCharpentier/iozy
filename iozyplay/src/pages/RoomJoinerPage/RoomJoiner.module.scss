@@ -1,0 +1,153 @@
+.roomJoiner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.roomInfoCard {
+  background: var(--card-bg);
+  border-radius: 1.5rem;
+  padding: 3rem;
+  text-align: center;
+  border: 2px solid var(--border-color);
+  max-width: 600px;
+  width: 100%;
+}
+
+.nameInputSection {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--bg-color);
+  border-radius: 1rem;
+  border: 2px solid var(--border-color);
+}
+
+.nameInputSection label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.nameInputSection input {
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.nameInputSection input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.roomActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.backButton {
+  padding: 1rem 2rem;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.backButton:hover {
+  border-color: var(--error-color);
+  background: var(--error-color);
+  color: white;
+}
+
+.startButton {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.startButton:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+}
+
+.startButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.playersList {
+  margin: 2rem 0;
+}
+
+.playersList h3 {
+  margin-bottom: 1rem;
+}
+
+.playersGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.playerBadge {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.playerBadge.host {
+  border-color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.playerBadge.disconnected {
+  opacity: 0.6;
+}
+
+.disconnectedBadge {
+  font-size: 0.875rem;
+}
+
+.hostBadge {
+  font-size: 1.2rem;
+}
+
+.waitingState,
+.gameStarting {
+  padding: 1rem;
+  margin: 1rem 0;
+  background: var(--bg-color);
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.gameStarting {
+  border: 2px solid var(--success-color);
+  color: var(--success-color);
+}

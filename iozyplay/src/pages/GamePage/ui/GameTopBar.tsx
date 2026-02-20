@@ -1,3 +1,4 @@
+import gameStyles from '../Game.module.scss'
 import { GameService } from '@/services/gameService'
 import type { Question } from '@/types'
 import { soundManager } from '@/utils/sounds'
@@ -33,28 +34,28 @@ export default function GameTopBar({
   }
 
   return (
-    <div className="game-interface-header" data-testid="game-topbar">
-      <div className="game-interface-header-main">
-        <div className="game-interface-progress-section">
-          <div className="game-interface-progress-header">
+    <div className={gameStyles.gameInterfaceHeader} data-testid="game-topbar">
+      <div className={gameStyles.gameInterfaceHeaderMain}>
+        <div className={gameStyles.gameInterfaceProgressSection}>
+          <div className={gameStyles.gameInterfaceProgressHeader}>
             {isGameEnded ? (
               <>
-                <span className="game-interface-question">Question {totalQuestions}</span>
-                <span className="game-interface-separator">sur</span>
-                <span className="game-interface-total">{totalQuestions}</span>
+                <span className={gameStyles.gameInterfaceQuestion}>Question {totalQuestions}</span>
+                <span className={gameStyles.gameInterfaceSeparator}>sur</span>
+                <span className={gameStyles.gameInterfaceTotal}>{totalQuestions}</span>
               </>
             ) : (
               <>
-                <span className="game-interface-question">Question {currentQuestionIndex + 1}</span>
-                <span className="game-interface-separator">sur</span>
-                <span className="game-interface-total">{totalQuestions}</span>
+                <span className={gameStyles.gameInterfaceQuestion}>Question {currentQuestionIndex + 1}</span>
+                <span className={gameStyles.gameInterfaceSeparator}>sur</span>
+                <span className={gameStyles.gameInterfaceTotal}>{totalQuestions}</span>
               </>
             )}
           </div>
-          <div className="game-interface-progress-container">
-            <div className="game-interface-progress-bar">
+          <div className={gameStyles.gameInterfaceProgressContainer}>
+            <div className={gameStyles.gameInterfaceProgressBar}>
               <div
-                className="game-interface-progress-fill"
+                className={gameStyles.gameInterfaceProgressFill}
                 style={{
                   width: isGameEnded
                     ? '100%'
@@ -64,22 +65,22 @@ export default function GameTopBar({
             </div>
           </div>
         </div>
-        <div className="game-interface-timer-section">
-          <div className="game-interface-timer-icon" style={{ fontSize: '20px' }}>
+        <div className={gameStyles.gameInterfaceTimerSection}>
+          <div className={gameStyles.gameInterfaceTimerIcon} style={{ fontSize: '20px' }}>
             {isGameEnded ? '🏁' : '⏱️'}
           </div>
-          <div className="game-interface-timer-value">
+          <div className={gameStyles.gameInterfaceTimerValue}>
             {isGameEnded ? 'Terminé' : formatTime(timeRemaining)}
           </div>
         </div>
-        <div className="game-interface-score-section">
-          <div className="game-interface-score-label">{isGameEnded ? 'Score Final' : 'Score'}</div>
-          <div className="game-interface-score-value">{score}</div>
+        <div className={gameStyles.gameInterfaceScoreSection}>
+          <div className={gameStyles.gameInterfaceScoreLabel}>{isGameEnded ? 'Score Final' : 'Score'}</div>
+          <div className={gameStyles.gameInterfaceScoreValue}>{score}</div>
         </div>
       </div>
-      <div className="game-interface-header-actions">
+      <div className={gameStyles.gameInterfaceHeaderActions}>
         <button
-          className="game-interface-action-btn"
+          className={gameStyles.gameInterfaceActionBtn}
           title="Fichiers"
           aria-label="Fichiers"
           disabled
@@ -88,7 +89,7 @@ export default function GameTopBar({
         </button>
         {onSettings && (
           <button
-            className="game-interface-action-btn"
+            className={gameStyles.gameInterfaceActionBtn}
             onClick={() => {
               soundManager.playClick()
               onSettings()
@@ -99,7 +100,7 @@ export default function GameTopBar({
           </button>
         )}
         <button
-          className="game-interface-action-btn danger"
+          className={`${gameStyles.gameInterfaceActionBtn} ${gameStyles.gameInterfaceActionBtnDanger}`}
           onClick={() => {
             soundManager.playClick()
             onQuit()

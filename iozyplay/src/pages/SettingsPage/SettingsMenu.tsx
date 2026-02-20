@@ -1,10 +1,10 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './SettingsMenu.module.scss'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { settingsService, UserSettings } from '@/services/settingsService'
 import { soundManager } from '@/utils/sounds'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
-import '../../styles/design-system.css'
-import '../../styles/settings-menu.css'
 
 export default function SettingsMenu() {
   const navigate = useNavigate()
@@ -13,7 +13,6 @@ export default function SettingsMenu() {
   const [showResetDialog, setShowResetDialog] = useState(false)
 
   useEffect(() => {
-    // Appliquer les settings au chargement
     soundManager.setEnabled(settings.soundEnabled)
     soundManager.setVolume(settings.soundVolume)
   }, [])
@@ -23,7 +22,6 @@ export default function SettingsMenu() {
     setSettings(newSettings)
     settingsService.updateSetting(key, value)
 
-    // Appliquer immédiatement pour le son
     if (key === 'soundEnabled') {
       soundManager.setEnabled(value as boolean)
       if (value) {
@@ -35,7 +33,6 @@ export default function SettingsMenu() {
         soundManager.playClick()
       }
     }
-    // Le thème est appliqué automatiquement par settingsService.updateSetting
   }
 
   const handleReset = () => {
@@ -52,83 +49,79 @@ export default function SettingsMenu() {
   }
 
   return (
-    <div className="settings-layout">
-      <div className="settings-container">
+    <div className={styles.settingsLayout}>
+      <div className={styles.settingsContainer}>
         {/* Header */}
-        <div className="settings-header">
+        <div className={styles.settingsHeader}>
           <button
-            className="btn btn-secondary btn-icon"
+            className={`${ds.btn} ${ds.btnSecondary} ${ds.btnIcon} ${styles.headerBack}`}
             onClick={() => {
               soundManager.playClick()
               navigate(-1)
             }}
-            style={{ marginRight: 'auto' }}
             aria-label="Retour"
           >
             ← Retour
           </button>
-          <h1
-            className="settings-title"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <span style={{ fontSize: '24px' }}>⚙️</span> Réglages
+          <h1 className={styles.settingsTitle}>
+            <span className={styles.titleIcon}>⚙️</span> Réglages
           </h1>
-          <div style={{ width: '100px' }}></div>
+          <div className={styles.headerSpacer} aria-hidden="true" />
         </div>
 
-        <div className="settings-content">
+        <div className={styles.settingsContent}>
           {/* Sidebar Navigation */}
-          <div className="settings-sidebar">
+          <div className={styles.settingsSidebar}>
             <button
-              className={`settings-nav-item ${activeSection === 'account' ? 'active' : ''}`}
+              className={`${styles.settingsNavItem} ${activeSection === 'account' ? styles.active : ''}`}
               onClick={() => {
                 setActiveSection('account')
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>
+              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
                 👤
               </span>
-              <span className="nav-label">Compte</span>
+              <span className={styles.navLabel}>Compte</span>
             </button>
             <button
-              className={`settings-nav-item ${activeSection === 'sound' ? 'active' : ''}`}
+              className={`${styles.settingsNavItem} ${activeSection === 'sound' ? styles.active : ''}`}
               onClick={() => {
                 setActiveSection('sound')
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>
+              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
                 🔊
               </span>
-              <span className="nav-label">Son</span>
+              <span className={styles.navLabel}>Son</span>
             </button>
             <button
-              className={`settings-nav-item ${activeSection === 'interface' ? 'active' : ''}`}
+              className={`${styles.settingsNavItem} ${activeSection === 'interface' ? styles.active : ''}`}
               onClick={() => {
                 setActiveSection('interface')
                 soundManager.playClick()
               }}
             >
-              <span className="nav-icon" style={{ fontSize: '18px' }}>
+              <span className={styles.navIcon} style={{ fontSize: '18px' }}>
                 🎨
               </span>
-              <span className="nav-label">Interface</span>
+              <span className={styles.navLabel}>Interface</span>
             </button>
           </div>
 
           {/* Main Content */}
-          <div className="settings-main">
+          <div className={styles.settingsMain}>
             {/* Section Compte */}
             {activeSection === 'account' && (
-              <div className="settings-section">
-                <h2 className="section-title">Profil</h2>
+              <div className={styles.settingsSection}>
+                <h2 className={styles.sectionTitle}>Profil</h2>
 
-                <div className="setting-group">
-                  <label className="setting-label">
-                    <span className="label-text">Nom d'utilisateur</span>
+                <div className={styles.settingGroup}>
+                  <label className={styles.settingLabel}>
+                    <span className={styles.labelText}>Nom d'utilisateur</span>
                     <span
-                      className="label-description"
+                      className={styles.labelDescription}
                       style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-xs)' }}
                     >
                       Affiché dans les parties multijoueur
@@ -136,7 +129,7 @@ export default function SettingsMenu() {
                   </label>
                   <input
                     type="text"
-                    className="input"
+                    className={ds.input}
                     value={settings.username}
                     onChange={(e) => handleSettingChange('username', e.target.value)}
                     placeholder="Votre nom"
@@ -150,10 +143,10 @@ export default function SettingsMenu() {
 
             {/* Section Son */}
             {activeSection === 'sound' && (
-              <div className="settings-section">
-                <h2 className="section-title">Réglages audio</h2>
+              <div className={styles.settingsSection}>
+                <h2 className={styles.sectionTitle}>Réglages audio</h2>
 
-                <div className="setting-group">
+                <div className={styles.settingGroup}>
                   <div
                     style={{
                       display: 'flex',
@@ -162,10 +155,10 @@ export default function SettingsMenu() {
                       marginBottom: 'var(--spacing-md)',
                     }}
                   >
-                    <label className="setting-label" style={{ marginBottom: 0 }}>
-                      <span className="label-text">Activer les sons</span>
+                    <label className={styles.settingLabel} style={{ marginBottom: 0 }}>
+                      <span className={styles.labelText}>Activer les sons</span>
                     </label>
-                    <div className="toggle-switch">
+                    <div className={styles.toggleSwitch}>
                       <input
                         type="checkbox"
                         id="soundEnabled"
@@ -173,14 +166,14 @@ export default function SettingsMenu() {
                         onChange={(e) => handleSettingChange('soundEnabled', e.target.checked)}
                         aria-label="Activer les sons"
                       />
-                      <label htmlFor="soundEnabled" className="toggle-label">
-                        <span className="toggle-slider"></span>
+                      <label htmlFor="soundEnabled" className={styles.toggleLabel}>
+                        <span className={styles.toggleSlider}></span>
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="setting-group">
+                <div className={styles.settingGroup}>
                   <div
                     style={{
                       display: 'flex',
@@ -189,8 +182,8 @@ export default function SettingsMenu() {
                       marginBottom: 'var(--spacing-sm)',
                     }}
                   >
-                    <label className="setting-label" style={{ marginBottom: 0 }}>
-                      <span className="label-text">Volume</span>
+                    <label className={styles.settingLabel} style={{ marginBottom: 0 }}>
+                      <span className={styles.labelText}>Volume</span>
                     </label>
                     <span
                       style={{
@@ -208,7 +201,7 @@ export default function SettingsMenu() {
                     max="100"
                     value={settings.soundVolume}
                     onChange={(e) => handleSettingChange('soundVolume', parseInt(e.target.value))}
-                    className="slider"
+                    className={styles.slider}
                     disabled={!settings.soundEnabled}
                     aria-label="Volume du son"
                     aria-valuemin={0}
@@ -230,9 +223,9 @@ export default function SettingsMenu() {
                   </div>
                 </div>
 
-                <div className="setting-group" style={{ marginTop: 'var(--spacing-xl)' }}>
+                <div className={styles.settingGroup} style={{ marginTop: 'var(--spacing-xl)' }}>
                   <button
-                    className="btn btn-secondary"
+                    className={`${ds.btn} ${ds.btnSecondary}`}
                     onClick={() => {
                       if (settings.soundEnabled) {
                         soundManager.playSuccess()
@@ -250,15 +243,15 @@ export default function SettingsMenu() {
 
             {/* Section Interface */}
             {activeSection === 'interface' && (
-              <div className="settings-section">
-                <h2 className="section-title">Apparence</h2>
+              <div className={styles.settingsSection}>
+                <h2 className={styles.sectionTitle}>Apparence</h2>
 
-                <div className="setting-group">
-                  <label className="setting-label">
-                    <span className="label-text">Thème</span>
+                <div className={styles.settingGroup}>
+                  <label className={styles.settingLabel}>
+                    <span className={styles.labelText}>Thème</span>
                   </label>
-                  <div className="radio-group">
-                    <label className="radio-option">
+                  <div className={styles.radioGroup}>
+                    <label className={styles.radioOption}>
                       <input
                         type="radio"
                         name="theme"
@@ -270,7 +263,7 @@ export default function SettingsMenu() {
                         <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>🌙</span> Sombre
                       </span>
                     </label>
-                    <label className="radio-option">
+                    <label className={styles.radioOption}>
                       <input
                         type="radio"
                         name="theme"
@@ -290,16 +283,16 @@ export default function SettingsMenu() {
         </div>
 
         {/* Footer Actions */}
-        <div className="settings-footer">
+        <div className={styles.settingsFooter}>
           <button
-            className="btn btn-danger"
+            className={`${ds.btn} ${ds.btnDanger}`}
             onClick={handleReset}
             aria-label="Réinitialiser tous les réglages"
           >
             🔄 Réinitialiser
           </button>
           <button
-            className="btn btn-primary"
+            className={`${ds.btn} ${ds.btnPrimary}`}
             onClick={() => {
               soundManager.playSuccess()
               navigate(-1)

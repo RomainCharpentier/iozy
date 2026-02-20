@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './RoomCreator.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import type { Category, Question } from '@/types'
@@ -10,7 +12,6 @@ import { QuestionService } from '@/services/questionService'
 import RoomConnectingState from './ui/RoomConnectingState'
 import RoomPlayersPanel from './ui/RoomPlayersPanel'
 import RoomConfigPanel from './ui/RoomConfigPanel'
-import '../../styles/design-system.css'
 
 interface RoomCreatorProps {
   categories: Category[]
@@ -329,32 +330,14 @@ export default function RoomCreator({
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 'calc(100vh - 4rem)',
-        maxWidth: '100%',
-        margin: '0',
-        width: '100%',
-      }}
-    >
+    <div className={styles.layout}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 'var(--spacing-lg)',
-          paddingBottom: 'var(--spacing-md)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
+      <div className={styles.header}>
         <div>
-          <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-xs)' }}>
+          <h1 className={styles.headerTitle}>
             {isSoloMode ? '🎮 Partie Solo' : `Salon ${roomCode}`}
           </h1>
-          <p className="text-secondary">
+          <p className={ds.textSecondary}>
             {isSoloMode
               ? 'Configurez votre partie et commencez à jouer'
               : (() => {
@@ -364,8 +347,8 @@ export default function RoomCreator({
           </p>
         </div>
         {!isSoloMode && (
-          <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-            <button className="btn btn-secondary" onClick={handleCopyLink}>
+          <div className={styles.headerActions}>
+            <button className={`${ds.btn} ${ds.btnSecondary}`} onClick={handleCopyLink}>
               {copied ? '✓ Copié !' : '📋 Partager'}
             </button>
           </div>
@@ -373,7 +356,7 @@ export default function RoomCreator({
       </div>
 
       {/* Main Layout: 2 Columns */}
-      <div className="grid-2" style={{ flex: 1, alignItems: 'start' }}>
+      <div className={`${ds.grid2} ${styles.mainGrid}`}>
         {!isSoloMode && (
           <RoomPlayersPanel
             players={players}

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import styles from './Soundwave.module.scss'
 
 interface SoundwaveProps {
   isPlaying: boolean
@@ -17,7 +18,7 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
 
     // Générer des barres actives de manière aléatoire pour créer un effet visuel
     const interval = setInterval(() => {
-      const numBars = 20
+      const numBars = 24
       const active: number[] = []
 
       for (let i = 0; i < numBars; i++) {
@@ -39,18 +40,18 @@ export default function Soundwave({ isPlaying }: SoundwaveProps) {
   }, [isPlaying])
 
   return (
-    <div className="audio-waves">
-      {Array.from({ length: 20 }).map((_, index) => {
+    <div className={styles.audioWaves}>
+      {Array.from({ length: 24 }).map((_, index) => {
         const heightPercent = activeBars.includes(index) ? barHeightsRef.current[index] || 20 : 20
 
         return (
           <div
             key={index}
-            className={`wave-bar ${activeBars.includes(index) ? 'active' : ''}`}
+            className={activeBars.includes(index) ? `${styles.waveBar} ${styles.waveBarActive}` : styles.waveBar}
             style={{
               height: `${heightPercent}%`,
               minHeight: '20px',
-              maxHeight: '200px',
+              maxHeight: 'none',
             }}
           />
         )

@@ -1,3 +1,4 @@
+import styles from './CategoryManager.module.scss'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -291,7 +292,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
   ).filter((emoji) => iconSearch === '' || emoji === iconSearch)
 
   if (isLoading) {
-    return <div className="loading-state">⏳ Chargement des catégories...</div>
+    return <div className={styles.loadingState}>⏳ Chargement des catégories...</div>
   }
 
   return (
@@ -305,23 +306,26 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
         onCancel={() => setConfirmDialog({ isOpen: false, message: '', onConfirm: () => {} })}
         variant="danger"
       />
-      <div className="editor-panel">
-        <div className="panel-header">
+      <div className={styles.editorPanel}>
+        <div className={styles.panelHeader}>
           <h2>📁 Catégories</h2>
         </div>
 
         {(showAddForm || editingId !== null) && (
-          <div className="modal-overlay" onClick={cancelEdit}>
-            <div className="modal-content editor-form-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
+          <div className={styles.modalOverlay} onClick={cancelEdit}>
+            <div
+              className={`${styles.modalContent} ${styles.editorFormModal}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
                 <h2>{editingId !== null ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
-                <button className="close-button" onClick={cancelEdit} title="Fermer">
+                <button className={styles.closeButton} onClick={cancelEdit} title="Fermer">
                   <span style={{ fontSize: '16px' }}>✕</span>
                 </button>
               </div>
-              <div className="modal-body">
+              <div className={styles.modalBody}>
                 <form
-                  className="category-form"
+                  className={styles.categoryForm}
                   onSubmit={handleSubmit(editingId !== null ? onUpdate : onSubmit)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -330,19 +334,19 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     }
                   }}
                 >
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>
                       Nom de la catégorie *
                       <input
                         type="text"
                         {...register('name')}
                         placeholder="ex: Musique française"
-                        className={errors.name ? 'input-error' : ''}
+                        className={errors.name ? styles.inputError : ''}
                       />
                       <small>L'ID sera généré automatiquement à partir du nom</small>
                       {errors.name && (
-                        <div className="youtube-error-message">
-                          <span className="error-icon" style={{ fontSize: '16px' }}>
+                        <div className={styles.youtubeErrorMessage}>
+                          <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
                             ⚠️
                           </span>
                           <span>{errors.name.message}</span>
@@ -351,13 +355,13 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     </label>
                   </div>
 
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label>
                       Emoji *
-                      <div className="emoji-selector">
-                        <div className="emoji-search-wrapper">
+                      <div className={styles.emojiSelector}>
+                        <div className={styles.emojiSearchWrapper}>
                           <select
-                            className="emoji-category-select"
+                            className={styles.emojiCategorySelect}
                             value={emojiCategory}
                             onChange={(e) => setEmojiCategory(e.target.value)}
                           >
@@ -370,20 +374,20 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                           </select>
                           <input
                             type="text"
-                            className="emoji-search-input"
+                            className={styles.emojiSearchInput}
                             placeholder="Rechercher un emoji..."
                             value={iconSearch}
                             onChange={(e) => setIconSearch(e.target.value)}
                           />
                         </div>
-                        <div className="emojis-grid">
+                        <div className={styles.emojisGrid}>
                           {filteredEmojis.map((emoji) => {
                             const isSelected = watchedEmoji === emoji
                             return (
                               <button
                                 key={emoji}
                                 type="button"
-                                className={`emoji-option ${isSelected ? 'selected' : ''}`}
+                                className={`${styles.emojiOption} ${isSelected ? styles.selected : ''}`}
                                 onClick={() => {
                                   setValue('emoji', emoji, { shouldValidate: true })
                                 }}
@@ -395,14 +399,14 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                           })}
                         </div>
                         {watchedEmoji && (
-                          <div className="selected-icon-preview">
+                          <div className={styles.selectedIconPreview}>
                             Emoji sélectionné:{' '}
                             <span style={{ fontSize: '32px' }}>{watchedEmoji}</span>
                           </div>
                         )}
                         {errors.emoji && (
-                          <div className="youtube-error-message field-error-inline">
-                            <span className="error-icon" style={{ fontSize: '16px' }}>
+                          <div className={`${styles.youtubeErrorMessage} ${styles.fieldErrorInline}`}>
+                            <span className={styles.errorIcon} style={{ fontSize: '16px' }}>
                               ⚠️
                             </span>
                             <span>{errors.emoji.message}</span>
@@ -412,10 +416,10 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     </label>
                   </div>
 
-                  <div className="form-actions">
+                  <div className={styles.formActions}>
                     <button
                       type="submit"
-                      className="submit-button"
+                      className={styles.submitButton}
                       disabled={isSubmitting || !!errors.name || !!errors.emoji}
                       title={
                         errors.name || errors.emoji
@@ -425,7 +429,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                     >
                       {isSubmitting ? (
                         <>
-                          <span className="spinner" style={{ fontSize: '16px' }}>
+                          <span className={styles.spinner} style={{ fontSize: '16px' }}>
                             ⏳
                           </span>{' '}
                           Chargement...
@@ -442,7 +446,7 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
                         </>
                       )}
                     </button>
-                    <button type="button" className="cancel-button" onClick={cancelEdit}>
+                    <button type="button" className={styles.cancelButton} onClick={cancelEdit}>
                       Annuler
                     </button>
                   </div>
@@ -452,12 +456,12 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
           </div>
         )}
 
-        <div className="panel-content">
-          <div className="panel-section">
-            <div className="section-header">
+        <div className={styles.panelContent}>
+          <div className={styles.panelSection}>
+            <div className={styles.sectionHeader}>
               <h3>Catégories existantes</h3>
               <button
-                className="add-button"
+                className={styles.addButton}
                 onClick={() => {
                   cancelEdit()
                   setShowAddForm(true)
@@ -468,27 +472,27 @@ export default function CategoryManager({ onClose, onCategoriesChange }: Categor
               </button>
             </div>
 
-            <div className="categories-grid-manager">
+            <div className={styles.categoriesGridManager}>
               {categories.map((category) => (
-                <div key={category.id} className="category-card-manager">
-                  <div className="category-display">
-                    <span className="category-emoji-large" style={{ fontSize: '32px' }}>
+                <div key={category.id} className={styles.categoryCardManager}>
+                  <div className={styles.categoryDisplay}>
+                    <span className={styles.categoryEmojiLarge} style={{ fontSize: '32px' }}>
                       {category.emoji}
                     </span>
-                    <div className="category-info-manager">
-                      <div className="category-name-manager">{category.name}</div>
+                    <div className={styles.categoryInfoManager}>
+                      <div className={styles.categoryNameManager}>{category.name}</div>
                     </div>
                   </div>
-                  <div className="category-actions-manager">
+                  <div className={styles.categoryActionsManager}>
                     <button
-                      className="edit-button-small"
+                      className={styles.editButtonSmall}
                       onClick={() => handleEdit(category)}
                       title="Modifier"
                     >
                       <span style={{ fontSize: '16px' }}>✏️</span>
                     </button>
                     <button
-                      className="delete-button-small"
+                      className={styles.deleteButtonSmall}
                       onClick={() => handleDelete(category.id)}
                       title="Supprimer"
                     >

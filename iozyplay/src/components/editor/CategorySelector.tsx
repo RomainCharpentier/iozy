@@ -1,6 +1,6 @@
+import styles from './CategorySelector.module.scss'
 import { useState, useMemo } from 'react'
 import type { Category, CategoryInfo } from '@/types'
-import '../../styles/category-selector.css'
 
 interface CategorySelectorProps {
   categories: CategoryInfo[]
@@ -50,12 +50,11 @@ export default function CategorySelector({
   }
 
   return (
-    <div className="category-selector-editor">
-      {/* Champ de recherche */}
-      <div className="category-search-wrapper">
+    <div className={styles.root}>
+      <div className={styles.searchWrapper}>
         <input
           type="text"
-          className="category-search-input"
+          className={styles.searchInput}
           placeholder="🔍 Rechercher une catégorie..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -63,7 +62,7 @@ export default function CategorySelector({
         {searchQuery && (
           <button
             type="button"
-            className="category-search-clear"
+            className={styles.searchClear}
             onClick={() => setSearchQuery('')}
             title="Effacer la recherche"
           >
@@ -72,30 +71,29 @@ export default function CategorySelector({
         )}
       </div>
 
-      {/* Grille avec scroll */}
-      <div className="category-cards-container">
+      <div className={styles.cardsContainer}>
         {filteredCategories.length === 0 ? (
-          <div className="category-no-results">
+          <div className={styles.noResults}>
             <span>🔍</span>
             <span>Aucune catégorie trouvée</span>
           </div>
         ) : (
-          <div className="category-cards-grid">
+          <div className={styles.cardsGrid}>
             {filteredCategories.map((category) => {
               const isSelected = selectedCategories.includes(category.id)
               return (
                 <button
                   key={category.id}
                   type="button"
-                  className={`category-card-editor ${isSelected ? 'selected' : ''}`}
+                  className={`${styles.card} ${isSelected ? styles.cardSelected : ''}`}
                   onClick={() => toggleCategory(category.id)}
                   title={category.name}
                 >
-                  <span className="category-emoji-large" style={{ fontSize: '32px' }}>
+                  <span className={styles.emojiLarge} style={{ fontSize: '32px' }}>
                     {category.emoji}
                   </span>
-                  <span className="category-name-text">{category.name}</span>
-                  {isSelected && <span className="selected-indicator">✓</span>}
+                  <span className={styles.nameText}>{category.name}</span>
+                  {isSelected && <span className={styles.selectedIndicator}>✓</span>}
                 </button>
               )
             })}
@@ -103,18 +101,16 @@ export default function CategorySelector({
         )}
       </div>
 
-      {/* Compteur de sélection */}
       {multiple && selectedCategories.length > 0 && (
-        <div className="category-selection-count">
+        <div className={styles.selectionCount}>
           {selectedCategories.length} catégorie{selectedCategories.length > 1 ? 's' : ''}{' '}
           sélectionnée{selectedCategories.length > 1 ? 's' : ''}
         </div>
       )}
 
-      {/* Message d'erreur si requis et aucune sélection */}
       {required && selectedCategories.length === 0 && (
-        <div className="category-selector-error">
-          <span className="error-icon" style={{ fontSize: '1rem' }}>
+        <div className={styles.error}>
+          <span className={styles.errorIcon} style={{ fontSize: '1rem' }}>
             ⚠
           </span>
           <span>Veuillez sélectionner au moins une catégorie</span>

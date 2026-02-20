@@ -1,0 +1,35 @@
+.audioWaves {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 0;
+  height: 160px;
+}
+
+.waveBar {
+  width: 8px;
+  flex-shrink: 0;
+  background: linear-gradient(to top, var(--accent-primary), var(--accent-secondary));
+  border-radius: 4px;
+  transition: height 0.1s ease;
+  min-height: 20%;
+  align-self: flex-end;
+}
+
+.waveBarActive {
+  animation: waveAnimation 1s ease-in-out infinite;
+}
+
+@keyframes waveAnimation {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

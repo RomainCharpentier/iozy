@@ -1,9 +1,6 @@
-/* ============================================
-   RESPONSIVE STYLES - Pleine largeur optimisée
-   ============================================ */
+@use 'breakpoints' as bp;
 
-/* RoomCreator Responsive */
-@media (max-width: 1023px) {
+@media (max-width: (bp.$bp-lg - 1px)) {
   .room-creator-header {
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -19,7 +16,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: (bp.$bp-md - 1px)) {
   .room-creator-header h1 {
     font-size: var(--font-size-lg) !important;
   }
@@ -37,15 +34,14 @@
   }
 }
 
-/* CategorySelector Responsive */
-@media (max-width: 1024px) {
+@media (max-width: bp.$bp-lg) {
   .categories-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
     gap: var(--spacing-md) !important;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: bp.$bp-md) {
   .categories-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
     gap: var(--spacing-sm) !important;
@@ -65,7 +61,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: bp.$bp-xs) {
   .categories-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
     gap: var(--spacing-xs) !important;
@@ -83,10 +79,25 @@
   .category-name {
     font-size: var(--font-size-xs) !important;
   }
+
+  .app {
+    padding: var(--spacing-sm) !important;
+  }
+
+  .home-layout {
+    padding: var(--spacing-sm) !important;
+  }
+
+  .card {
+    padding: var(--spacing-sm) !important;
+  }
+
+  .grid-3 {
+    gap: var(--spacing-sm) !important;
+  }
 }
 
-/* HomeMenu Responsive */
-@media (max-width: 1023px) {
+@media (max-width: (bp.$bp-lg - 1px)) {
   .home-menu-title {
     font-size: var(--font-size-xl) !important;
   }
@@ -96,7 +107,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: (bp.$bp-md - 1px)) {
   .home-menu-title {
     font-size: var(--font-size-lg) !important;
     padding: 0 var(--spacing-sm) !important;
@@ -138,14 +149,13 @@
   }
 }
 
-/* Settings Responsive amélioré */
-@media (max-width: 1023px) {
+@media (max-width: (bp.$bp-lg - 1px)) {
   .settings-container {
     margin: var(--spacing-md) !important;
   }
 }
 
-@media (max-width: 599px) {
+@media (max-width: (bp.$bp-sm - 1px)) {
   .settings-header {
     flex-direction: column !important;
     gap: var(--spacing-md) !important;
@@ -184,8 +194,7 @@
   }
 }
 
-/* App Overlay Responsive */
-@media (max-width: 767px) {
+@media (max-width: (bp.$bp-md - 1px)) {
   .app-overlay {
     padding: 12px 16px !important;
   }
@@ -195,8 +204,7 @@
   }
 }
 
-/* Input et Form Responsive */
-@media (max-width: 767px) {
+@media (max-width: (bp.$bp-md - 1px)) {
   .input {
     font-size: var(--font-size-sm) !important;
     padding: var(--spacing-xs) var(--spacing-sm) !important;
@@ -213,21 +221,3 @@
   }
 }
 
-/* Amélioration générale pour très petits écrans */
-@media (max-width: 480px) {
-  .app {
-    padding: var(--spacing-sm) !important;
-  }
-
-  .home-layout {
-    padding: var(--spacing-sm) !important;
-  }
-
-  .card {
-    padding: var(--spacing-sm) !important;
-  }
-
-  .grid-3 {
-    gap: var(--spacing-sm) !important;
-  }
-}

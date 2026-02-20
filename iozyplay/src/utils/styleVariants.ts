@@ -22,23 +22,15 @@ export const STYLE_VARIANTS = {
 export type StyleVariant = (typeof STYLE_VARIANTS)[keyof typeof STYLE_VARIANTS]
 
 /**
- * Charge dynamiquement une variante de style
+ * Charge une variante de style (data-theme sur html)
+ * Les variantes sont incluses dans main.scss
  */
 export function loadStyleVariant(variant: StyleVariant): void {
-  // Retire toutes les variantes existantes
-  const existingLinks = document.querySelectorAll('link[data-style-variant]')
-  existingLinks.forEach((link) => link.remove())
-
   if (variant === STYLE_VARIANTS.DEFAULT) {
-    return // Utilise le style par défaut
+    document.documentElement.removeAttribute('data-theme')
+    return
   }
-
-  // Crée un nouveau lien pour la variante
-  const link = document.createElement('link')
-  link.rel = 'stylesheet'
-  link.href = `/src/styles/variants/${variant}.css`
-  link.setAttribute('data-style-variant', variant)
-  document.head.appendChild(link)
+  document.documentElement.setAttribute('data-theme', variant)
 }
 
 /**

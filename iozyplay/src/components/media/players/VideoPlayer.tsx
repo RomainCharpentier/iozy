@@ -1,3 +1,4 @@
+import styles from '../MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
 import { soundManager } from '@/utils/sounds'
@@ -201,7 +202,7 @@ export default function VideoPlayer({
   // Pendant la phase de révélation (showVideo = true), montrer la vidéo
   return (
     <div
-      className="video-player"
+      className={styles.videoPlayer}
       style={{
         width: '100%',
         height: '100%',

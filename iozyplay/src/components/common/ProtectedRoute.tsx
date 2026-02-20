@@ -1,3 +1,5 @@
+import ds from '@/styles/shared/DesignSystem.module.scss'
+import styles from './ProtectedRoute.module.scss'
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { authService } from '@/services/authService'
@@ -21,17 +23,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // En attente de vérification
   if (isAuthenticated === null) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          color: 'var(--text-color)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingContent}>
+          <div className={ds.spinner} style={{ margin: '0 auto 1rem' }}></div>
           <p>Chargement...</p>
         </div>
       </div>

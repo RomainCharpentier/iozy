@@ -1,3 +1,4 @@
+import styles from './MediaPlayer.module.scss'
 import { useEffect } from 'react'
 import type { MediaType } from '@/types'
 import { isYouTubeUrl } from '@/utils/youtube'
@@ -34,7 +35,33 @@ export default function MediaPlayer({
   onRevealVideoStart,
   startTime,
 }: MediaPlayerProps) {
-  // Si c'est une URL YouTube, utiliser le composant YouTube
+  useEffect(() => {
+    if (type === 'image' && onMediaReady) {
+      const img = new Image()
+      let timeoutId: number | null = null
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+      }
+      img.onload = () => {
+        cleanup()
+        onMediaReady()
+      }
+      img.onerror = () => {
+        cleanup()
+        onMediaReady()
+      }
+      timeoutId = window.setTimeout(() => {
+        cleanup()
+        onMediaReady()
+      }, 30000)
+      img.src = mediaUrl
+      return cleanup
+    }
+  }, [type, mediaUrl, onMediaReady])
+
   if (isYouTubeUrl(mediaUrl)) {
     return (
       <YouTubePlayer
@@ -54,52 +81,9 @@ export default function MediaPlayer({
   }
 
   if (type === 'image') {
-    // Pour les images, appeler onMediaReady dès que l'image est chargée
-    useEffect(() => {
-      if (onMediaReady) {
-        // Pour les images, considérer qu'elles sont prêtes immédiatement
-        // car elles chargent très rapidement
-        const img = new Image()
-        let timeoutId: number | null = null
-
-        const cleanup = () => {
-          if (timeoutId) {
-            clearTimeout(timeoutId)
-            timeoutId = null
-          }
-        }
-
-        img.onload = () => {
-          cleanup()
-          if (onMediaReady) {
-            onMediaReady()
-          }
-        }
-        img.onerror = () => {
-          cleanup()
-          // Même en cas d'erreur, signaler que le média est "prêt" pour ne pas bloquer
-          if (onMediaReady) {
-            onMediaReady()
-          }
-        }
-
-        // Timeout de 30 secondes pour le chargement
-        timeoutId = window.setTimeout(() => {
-          cleanup()
-          if (onMediaReady) {
-            onMediaReady()
-          }
-        }, 30000)
-
-        img.src = mediaUrl
-
-        return cleanup
-      }
-    }, [mediaUrl, onMediaReady])
-
     return (
       <div
-        className="media-player image-player"
+        className={styles.mediaPlayerImage}
         style={{
           width: '100%',
           height: '100%',
@@ -111,7 +95,7 @@ export default function MediaPlayer({
         <img
           src={mediaUrl}
           alt="Blindtest"
-          className="blindtest-image"
+          className={styles.blindtestImage}
           style={{
             maxWidth: '100%',
             maxHeight: '100%',

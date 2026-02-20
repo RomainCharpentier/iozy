@@ -1,0 +1,45 @@
+html[data-theme='gaming'] {
+  --primary-color: #00f5ff;
+  --primary-dark: #00d4ff;
+  --secondary-color: #ff00ff;
+  --success-color: #00ff88;
+  --error-color: #ff3366;
+  --bg-color: #0a0e27;
+  --card-bg: #1a1f3a;
+  --text-color: #ffffff;
+  --text-secondary: #a0aec0;
+  --border-color: #2d3748;
+  --color-primary: #00f5ff;
+  --color-primary-dark: #00d4ff;
+  --color-bg-primary: #0a0e27;
+  --color-card-bg: #1a1f3a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0aec0;
+  --color-border: #2d3748;
+  --accent-primary: #00f5ff;
+  --accent-secondary: #ff00ff;
+  --bg-primary: #0a0e27;
+  --bg-secondary: #1a1f3a;
+  --bg-tertiary: #252b45;
+  --text-primary: #ffffff;
+  --border: #2d3748;
+  --border-hover: #4a5568;
+}
+
+html[data-theme='gaming'] body {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+  color: var(--text-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}

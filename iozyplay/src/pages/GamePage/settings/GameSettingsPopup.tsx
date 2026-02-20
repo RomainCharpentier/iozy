@@ -1,3 +1,4 @@
+import gameStyles from '../Game.module.scss'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { type Category, type Question, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
@@ -127,11 +128,11 @@ export default function GameSettingsPopup({
   }
 
   return (
-    <div className="game-settings-popup">
-      <div className="game-settings-header">
+    <div className={gameStyles.gameSettingsPopup}>
+      <div className={gameStyles.gameSettingsHeader}>
         <h2>Modifier les paramètres</h2>
         <button
-          className="close-button"
+          className={gameStyles.closeButton}
           onClick={() => {
             soundManager.playClick()
             onClose()
@@ -141,27 +142,27 @@ export default function GameSettingsPopup({
         </button>
       </div>
 
-      <div className="game-settings-section">
+      <div className={gameStyles.gameSettingsSection}>
         <h3>Thèmes</h3>
         {selectedCategories.length === 0 ? (
-          <p className="no-categories">Aucun thème sélectionné</p>
+          <p className={gameStyles.noCategories}>Aucun thème sélectionné</p>
         ) : (
-          <div className="selected-categories-list">
+          <div className={gameStyles.selectedCategoriesList}>
             {selectedCategories.map((category) => {
               const catInfo = categories.find((c) => c.id === category)
               return (
-                <div key={category} className="selected-category-badge">
-                  <span className="category-emoji">
+                <div key={category} className={gameStyles.selectedCategoryBadge}>
+                  <span className={gameStyles.categoryEmoji}>
                     <CategoryIcon categoryId={category} iconId={catInfo?.emoji} size={20} />
                   </span>
-                  <span className="category-name">{catInfo?.name || category}</span>
+                  <span className={gameStyles.categoryName}>{catInfo?.name || category}</span>
                 </div>
               )
             })}
           </div>
         )}
         <button
-          className="config-button secondary"
+          className={gameStyles.configButtonSecondary}
           onClick={() => {
             soundManager.playClick()
             setShowCategorySelector(true)
@@ -172,11 +173,11 @@ export default function GameSettingsPopup({
       </div>
 
       {showCategorySelector && (
-        <div className="category-selector-inline">
-          <div className="category-selector-header">
+        <div className={gameStyles.categorySelectorInline}>
+          <div className={gameStyles.categorySelectorHeader}>
             <h3>Sélectionner les thèmes</h3>
             <button
-              className="close-inline-button"
+              className={gameStyles.closeInlineButton}
               onClick={() => {
                 soundManager.playClick()
                 setShowCategorySelector(false)
@@ -191,10 +192,10 @@ export default function GameSettingsPopup({
         </div>
       )}
 
-      <div className="game-settings-section">
+      <div className={gameStyles.gameSettingsSection}>
         <h3>Timer par question</h3>
-        <div className="timer-config">
-          <label className="timer-config-label">
+        <div className={gameStyles.timerConfig}>
+          <label className={gameStyles.timerConfigLabel}>
             Durée (en secondes)
             <input
               type="range"
@@ -206,20 +207,20 @@ export default function GameSettingsPopup({
                 setTimeLimit(value)
                 soundManager.playClick()
               }}
-              className="timer-slider"
+              className={gameStyles.timerSlider}
             />
           </label>
-          <div className="timer-preview">
-            <span className="timer-value">{timeLimit}s</span>
-            <span className="timer-hint">par question</span>
+          <div className={gameStyles.timerPreview}>
+            <span className={gameStyles.timerValue}>{timeLimit}s</span>
+            <span className={gameStyles.timerHint}>par question</span>
           </div>
         </div>
       </div>
 
-      <div className="game-settings-section">
+      <div className={gameStyles.gameSettingsSection}>
         <h3>Nombre de questions</h3>
-        <div className="timer-config">
-          <label className="timer-config-label">
+        <div className={gameStyles.timerConfig}>
+          <label className={gameStyles.timerConfigLabel}>
             Nombre de questions
             <input
               type="range"
@@ -237,17 +238,17 @@ export default function GameSettingsPopup({
                   soundManager.playClick()
                 }
               }}
-              className="timer-slider"
+              className={gameStyles.timerSlider}
               disabled={availableQuestionsCount === 0}
             />
           </label>
-          <div className="timer-preview">
-            <span className="timer-value">
+          <div className={gameStyles.timerPreview}>
+            <span className={gameStyles.timerValue}>
               {typeof questionCount === 'number' && !isNaN(questionCount)
                 ? questionCount
                 : QUESTION_COUNT.MIN}
             </span>
-            <span className="timer-hint">
+            <span className={gameStyles.timerHint}>
               {availableQuestionsCount > 0
                 ? `sur ${availableQuestionsCount} disponibles`
                 : 'questions'}
@@ -256,9 +257,9 @@ export default function GameSettingsPopup({
         </div>
       </div>
 
-      <div className="game-settings-actions">
+      <div className={gameStyles.gameSettingsActions}>
         <button
-          className="config-button secondary"
+          className={gameStyles.configButtonSecondary}
           onClick={() => {
             soundManager.playClick()
             onClose()
@@ -267,7 +268,7 @@ export default function GameSettingsPopup({
           Annuler
         </button>
         <button
-          className="config-button primary"
+          className={gameStyles.configButtonPrimary}
           onClick={handleSave}
           disabled={selectedCategories.length === 0}
         >

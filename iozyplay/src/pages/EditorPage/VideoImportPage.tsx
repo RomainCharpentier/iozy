@@ -1,3 +1,4 @@
+import styles from './VideoImportPage.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -12,8 +13,6 @@ import {
 import type { Category, CategoryInfo, Question } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import { QuestionService } from '@/services/questionService'
-import '../../styles/index.css'
-import '../../styles/video-import-page.css'
 
 interface VideoWithAnswer {
   videoId: string
@@ -372,21 +371,21 @@ export default function VideoImportPage() {
   )
 
   return (
-    <div className="video-import-page">
-      <header className="video-import-header">
-        <button className="back-button" onClick={handleCancel} title="Retour à l'éditeur">
+    <div className={styles.videoImportPage}>
+      <header className={styles.videoImportHeader}>
+        <button className={styles.backButton} onClick={handleCancel} title="Retour à l'éditeur">
           <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>◀️</span> Retour
         </button>
-        <h1>Importer une vidéo YouTube</h1>
+        <h1 className={styles.headerTitle}>Importer une vidéo YouTube</h1>
       </header>
 
-      <div className="video-import-content">
-        <div className="playlist-input-section">
-          <div className="input-section-header">
+      <div className={styles.videoImportContent}>
+        <div className={styles.playlistInputSection}>
+          <div className={styles.inputSectionHeader}>
             <label htmlFor="youtube-url-input">URL YouTube :</label>
             {videos.length > 0 && (
               <button
-                className="clear-button"
+                className={styles.clearButton}
                 onClick={handleClearVideos}
                 title="Effacer toutes les vidéos chargées"
                 aria-label="Effacer toutes les vidéos"
@@ -395,7 +394,7 @@ export default function VideoImportPage() {
               </button>
             )}
           </div>
-          <div className="input-wrapper">
+          <div className={styles.inputRow}>
             <input
               id="youtube-url-input"
               type="text"
@@ -411,15 +410,14 @@ export default function VideoImportPage() {
               disabled={loading}
               aria-label="URL YouTube"
             />
-          </div>
-          <button
-            className="load-button"
+            <button
+              className={styles.loadButton}
             onClick={handleLoadVideo}
             disabled={loading || !videoUrl.trim()}
             aria-label="Charger la vidéo ou playlist"
           >
             {loading ? (
-              <span className="spinner" style={{ fontSize: '16px' }}>
+              <span className={styles.spinner} style={{ fontSize: '16px' }}>
                 ⏳
               </span>
             ) : (
@@ -427,15 +425,16 @@ export default function VideoImportPage() {
             )}
             {loading ? 'Chargement...' : 'Charger'}
           </button>
+          </div>
         </div>
 
         {videos.length > 0 && (
           <>
-            <div className="categories-selection">
+            <div className={styles.categoriesSelection}>
               <label>Catégories :</label>
-              <div className="categories-checkboxes">
+              <div className={styles.categoriesCheckboxes}>
                 {categories.map((cat) => (
-                  <label key={cat.id} className="category-checkbox">
+                  <label key={cat.id} className={styles.categoryCheckbox}>
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(cat.id)}
@@ -447,18 +446,18 @@ export default function VideoImportPage() {
               </div>
             </div>
 
-            <div className="videos-list">
-              <div className="videos-list-header">
+            <div className={styles.videosList}>
+              <div className={styles.videosListHeader}>
                 <h3>
                   {isPlaylist
                     ? `Vidéos (${selectedVideosCount}/${videos.length} sélectionnées${videosWithoutAnswer > 0 ? `, ${videosWithoutAnswer} sans réponse` : ''})`
                     : 'Vidéo à importer'}
                 </h3>
                 {isPlaylist && videos.length > 0 && (
-                  <div className="select-all-buttons">
+                  <div className={styles.selectAllButtons}>
                     {!allSelected && (
                       <button
-                        className="select-all-button"
+                        className={styles.selectAllButton}
                         onClick={handleSelectAll}
                         title="Sélectionner toutes les vidéos"
                         aria-label="Sélectionner toutes les vidéos"
@@ -468,7 +467,7 @@ export default function VideoImportPage() {
                     )}
                     {!noneSelected && (
                       <button
-                        className="deselect-all-button"
+                        className={styles.deselectAllButton}
                         onClick={handleDeselectAll}
                         title="Désélectionner toutes les vidéos"
                         aria-label="Désélectionner toutes les vidéos"
@@ -479,15 +478,15 @@ export default function VideoImportPage() {
                   </div>
                 )}
               </div>
-              <div className={`videos-grid ${!isPlaylist ? 'single-video' : ''}`}>
+              <div className={`${styles.videosGrid} ${!isPlaylist ? styles.singleVideo : ''}`}>
                 {videos.map((video, index) => (
                   <div
                     key={video.videoId}
-                    className={`video-item ${!video.selected ? 'unselected' : ''}`}
+                    className={`${styles.videoItem} ${!video.selected ? styles.unselected : ''}`}
                   >
                     {isPlaylist && (
-                      <div className="video-header">
-                        <label className="video-checkbox">
+                      <div className={styles.videoHeader}>
+                        <label className={styles.videoCheckbox}>
                           <input
                             type="checkbox"
                             checked={video.selected}
@@ -497,25 +496,25 @@ export default function VideoImportPage() {
                         <img
                           src={video.thumbnailUrl}
                           alt={video.title}
-                          className="video-thumbnail"
+                          className={styles.videoThumbnail}
                         />
                       </div>
                     )}
 
                     {!isPlaylist && (
-                      <div className="video-header-single">
+                      <div className={styles.videoHeaderSingle}>
                         <img
                           src={video.thumbnailUrl}
                           alt={video.title}
-                          className="video-thumbnail"
+                          className={styles.videoThumbnail}
                         />
                       </div>
                     )}
 
-                    <div className="video-info">
+                    <div className={styles.videoInfo}>
                       {isPlaylist && (
                         <button
-                          className="remove-video-button"
+                          className={styles.removeVideoButton}
                           onClick={() => handleRemoveVideo(index)}
                           title="Retirer cette vidéo"
                         >
@@ -523,15 +522,15 @@ export default function VideoImportPage() {
                         </button>
                       )}
 
-                      <div className="video-title-wrapper">
-                        <div className="video-title" title={video.title}>
+                      <div className={styles.videoTitleWrapper}>
+                        <div className={styles.videoTitle} title={video.title}>
                           {video.title}
                         </div>
                         <a
                           href={video.videoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="video-external-link"
+                          className={styles.videoExternalLink}
                           title="Ouvrir sur YouTube"
                           aria-label="Ouvrir la vidéo sur YouTube"
                           onClick={(e) => e.stopPropagation()}
@@ -542,7 +541,7 @@ export default function VideoImportPage() {
 
                       {!video.answer.trim() && video.selected && (
                         <div
-                          className="video-warning"
+                          className={styles.videoWarning}
                           title="Cette vidéo n'a pas de réponse et ne sera pas importée"
                         >
                           <span style={{ marginRight: '0.5rem', fontSize: '16px' }}>⚠️</span> Aucune
@@ -551,7 +550,7 @@ export default function VideoImportPage() {
                       )}
 
                       {editingIndex === index ? (
-                        <div className="video-edit-form">
+                        <div className={styles.videoEditForm}>
                           <input
                             type="text"
                             value={video.answer}
@@ -593,9 +592,9 @@ export default function VideoImportPage() {
                             placeholder="Indice (optionnel)"
                             aria-label="Indice (optionnel)"
                           />
-                          <div className="edit-actions">
+                          <div className={styles.editActions}>
                             <button
-                              className="save-edit-button"
+                              className={styles.saveEditButton}
                               onClick={() => handleEditAnswer(index, video.answer, video.hint)}
                               title="Valider (Entrée)"
                               aria-label="Valider"
@@ -603,7 +602,7 @@ export default function VideoImportPage() {
                               <span style={{ fontSize: '16px' }}>✅</span>
                             </button>
                             <button
-                              className="cancel-edit-button"
+                              className={styles.cancelEditButton}
                               onClick={() => setEditingIndex(null)}
                               title="Annuler (Échap)"
                               aria-label="Annuler"
@@ -613,17 +612,17 @@ export default function VideoImportPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="video-answer">
-                          <div className="answer-text">
+                        <div className={styles.videoAnswer}>
+                          <div className={styles.answerText}>
                             <strong>Réponse :</strong> {video.answer || <em>Aucune réponse</em>}
                           </div>
                           {video.hint && (
-                            <div className="hint-text">
+                            <div className={styles.hintText}>
                               <strong>Indice :</strong> {video.hint}
                             </div>
                           )}
                           <button
-                            className="edit-answer-button"
+                            className={styles.editAnswerButton}
                             onClick={() => setEditingIndex(index)}
                             title="Modifier la réponse"
                           >
@@ -638,10 +637,10 @@ export default function VideoImportPage() {
               </div>
             </div>
 
-            <div className="video-import-footer">
+            <div className={styles.videoImportFooter}>
               {isImporting && (
-                <div className="import-progress">
-                  <span className="spinner" style={{ fontSize: '16px' }}>
+                <div className={styles.importProgress}>
+                  <span className={styles.spinner} style={{ fontSize: '16px' }}>
                     ⏳
                   </span>
                   <span>
@@ -649,11 +648,11 @@ export default function VideoImportPage() {
                   </span>
                 </div>
               )}
-              <button className="cancel-button" onClick={handleCancel} disabled={isImporting}>
+              <button className={styles.footerCancelButton} onClick={handleCancel} disabled={isImporting}>
                 Annuler
               </button>
               <button
-                className="import-button"
+                className={styles.importButton}
                 onClick={handleImport}
                 disabled={
                   isImporting || selectedCategories.length === 0 || selectedVideos.length === 0
@@ -662,7 +661,7 @@ export default function VideoImportPage() {
               >
                 {isImporting ? (
                   <>
-                    <span className="spinner" style={{ fontSize: '16px' }}>
+                    <span className={styles.spinner} style={{ fontSize: '16px' }}>
                       ⏳
                     </span>
                     Importation...

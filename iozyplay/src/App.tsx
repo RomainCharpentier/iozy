@@ -1,3 +1,4 @@
+import styles from './App.module.scss'
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
@@ -20,8 +21,8 @@ function GameOverlay() {
   if (!isGamePage) return null
 
   return (
-    <div className="app-overlay">
-      <div className="app-overlay-content">🎵 Devine la musique ! 🎵</div>
+    <div className={styles.appOverlay}>
+      <div className={styles.appOverlayContent}>🎵 Devine la musique ! 🎵</div>
     </div>
   )
 }
@@ -34,7 +35,7 @@ function App() {
   return (
     <GameProvider>
       <BrowserRouter>
-        <div className="app">
+        <div className={styles.app}>
           <Toaster position="top-right" richColors closeButton />
           <UpdateNotification />
           <GameOverlay />
@@ -50,7 +51,7 @@ function App() {
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+                  <div className={styles.spinner} style={{ margin: '0 auto 1rem' }} />
                   <p>Chargement...</p>
                 </div>
               </div>

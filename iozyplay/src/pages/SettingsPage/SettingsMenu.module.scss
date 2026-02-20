@@ -1,16 +1,13 @@
-/* Settings Menu Styles */
-
-.settings-layout {
+.settingsLayout {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-xl);
-  background: var(--bg-primary);
   box-sizing: border-box;
 }
 
-.settings-container {
+.settingsContainer {
   width: 100%;
   max-width: 1200px;
   background: var(--bg-secondary);
@@ -22,31 +19,47 @@
   overflow: hidden;
 }
 
-.settings-header {
-  display: flex;
+.settingsHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--border);
   background: var(--bg-tertiary);
 }
 
-.settings-title {
+.headerBack {
+  justify-self: start;
+}
+
+.headerSpacer {
+  min-width: 0;
+}
+
+.settingsTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  justify-self: center;
 }
 
-.settings-content {
+.titleIcon {
+  font-size: 1.5rem;
+}
+
+.settingsContent {
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: 500px;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 180px);
   overflow: hidden;
 }
 
-.settings-sidebar {
+.settingsSidebar {
   background: var(--bg-tertiary);
   border-right: 1px solid var(--border);
   padding: var(--spacing-lg);
@@ -56,7 +69,7 @@
   overflow-y: auto;
 }
 
-.settings-nav-item {
+.settingsNavItem {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -73,35 +86,44 @@
   width: 100%;
 }
 
-.settings-nav-item:hover {
+.settingsNavItem:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
 
-.settings-nav-item.active {
+.settingsNavItem.active {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-primary);
   font-weight: 600;
 }
 
-.nav-icon {
+.navIcon {
   font-size: var(--font-size-lg);
 }
 
-.nav-label {
+.navLabel {
   flex: 1;
 }
 
-.settings-main {
+.settingsMain {
   padding: var(--spacing-xl);
   overflow-y: auto;
 }
 
-.settings-section {
+.settingsSection {
   animation: fadeIn 0.3s ease;
 }
 
-.section-title {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sectionTitle {
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--text-primary);
@@ -110,37 +132,36 @@
   border-bottom: 2px solid var(--border);
 }
 
-.setting-group {
+.settingGroup {
   margin-bottom: var(--spacing-xl);
 }
 
-.setting-label {
+.settingLabel {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-md);
 }
 
-.label-text {
+.labelText {
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.label-description {
+.labelDescription {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
-/* Avatar Grid */
-.avatar-grid {
+.avatarGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
 }
 
-.avatar-option {
+.avatarOption {
   aspect-ratio: 1;
   font-size: 2rem;
   background: var(--bg-tertiary);
@@ -154,29 +175,28 @@
   padding: 0;
 }
 
-.avatar-option:hover {
+.avatarOption:hover {
   border-color: var(--accent-primary);
   transform: scale(1.1);
   box-shadow: var(--shadow-glow);
 }
 
-.avatar-option.selected {
+.avatarOption.selected {
   border-color: var(--accent-primary);
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   box-shadow: var(--shadow-glow);
 }
 
-/* Toggle Switch */
-.toggle-switch {
+.toggleSwitch {
   display: flex;
   align-items: center;
 }
 
-.toggle-switch input[type='checkbox'] {
+.toggleSwitch input[type='checkbox'] {
   display: none;
 }
 
-.toggle-label {
+.toggleLabel {
   position: relative;
   display: inline-block;
   width: 56px;
@@ -184,7 +204,7 @@
   cursor: pointer;
 }
 
-.toggle-slider {
+.toggleSlider {
   position: absolute;
   top: 0;
   left: 0;
@@ -196,7 +216,7 @@
   transition: all 0.3s ease;
 }
 
-.toggle-slider:before {
+.toggleSlider::before {
   content: '';
   position: absolute;
   height: 20px;
@@ -208,22 +228,21 @@
   transition: all 0.3s ease;
 }
 
-.toggle-switch input:checked + .toggle-label .toggle-slider {
+.toggleSwitch input:checked + .toggleLabel .toggleSlider {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   border-color: var(--accent-primary);
 }
 
-.toggle-switch input:checked + .toggle-label .toggle-slider:before {
+.toggleSwitch input:checked + .toggleLabel .toggleSlider::before {
   transform: translateX(28px);
   background: var(--text-primary);
 }
 
-.toggle-switch input:disabled + .toggle-label {
+.toggleSwitch input:disabled + .toggleLabel {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Slider */
 .slider {
   width: 100%;
   height: 8px;
@@ -261,15 +280,14 @@
   cursor: not-allowed;
 }
 
-/* Radio Group */
-.radio-group {
+.radioGroup {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
 }
 
-.radio-option {
+.radioOption {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -281,28 +299,28 @@
   transition: all 0.2s ease;
 }
 
-.radio-option:hover {
+.radioOption:hover {
   border-color: var(--accent-primary);
   background: var(--bg-secondary);
 }
 
-.radio-option input[type='radio'] {
+.radioOption input[type='radio'] {
   margin: 0;
   cursor: pointer;
   accent-color: var(--accent-primary);
 }
 
-.radio-option input[type='radio']:checked + span {
+.radioOption input[type='radio']:checked + span {
   font-weight: 600;
   color: var(--accent-primary);
 }
 
-.radio-option span {
+.radioOption span {
   flex: 1;
   color: var(--text-primary);
 }
 
-.settings-footer {
+.settingsFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -311,41 +329,30 @@
   background: var(--bg-tertiary);
 }
 
-.btn-icon {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.btn-danger {
-  background: linear-gradient(135deg, var(--error), #dc2626);
-  color: var(--text-primary);
-  border: 1px solid var(--error);
-}
-
-.btn-danger:hover {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-}
-
-/* Responsive pour le bouton de réglages dans HomeMenu */
 @media (max-width: 768px) {
-  .settings-btn-text {
+  .settingsHeader {
+    grid-template-columns: auto 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .settingsTitle {
+    justify-self: start;
+  }
+
+  .headerSpacer {
     display: none;
   }
-}
 
-/* Responsive */
-@media (max-width: 768px) {
-  .settings-layout {
+  .settingsLayout {
     padding: var(--spacing-md);
   }
 
-  .settings-content {
+  .settingsContent {
     grid-template-columns: 1fr;
     max-height: none;
   }
 
-  .settings-sidebar {
+  .settingsSidebar {
     flex-direction: row;
     overflow-x: auto;
     border-right: none;
@@ -353,30 +360,30 @@
     padding: var(--spacing-md);
   }
 
-  .settings-nav-item {
+  .settingsNavItem {
     flex-direction: column;
     min-width: 80px;
     padding: var(--spacing-sm);
   }
 
-  .nav-icon {
+  .navIcon {
     font-size: var(--font-size-xl);
   }
 
-  .nav-label {
+  .navLabel {
     font-size: var(--font-size-xs);
   }
 
-  .settings-main {
+  .settingsMain {
     padding: var(--spacing-lg);
   }
 
-  .settings-footer {
+  .settingsFooter {
     flex-direction: column;
     gap: var(--spacing-md);
   }
 
-  .settings-footer button {
+  .settingsFooter button {
     width: 100%;
   }
 }

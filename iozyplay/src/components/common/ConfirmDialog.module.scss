@@ -1,8 +1,4 @@
-/* Confirm Dialog - Modal centré pour les confirmations */
-
-/* Radix Dialog Overlay */
-.confirm-dialog-overlay,
-.game-modal-overlay {
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -17,7 +13,7 @@
   padding: var(--space-4);
 }
 
-.confirm-dialog {
+.dialog {
   background: var(--color-card-bg);
   border: var(--border-width-medium) solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -36,14 +32,13 @@
     opacity: 0;
     transform: scale(0.95) translateY(-20px);
   }
-
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
 }
 
-.confirm-dialog-header {
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -51,14 +46,14 @@
   border-bottom: var(--border-width-thin) solid var(--color-border);
 }
 
-.confirm-dialog-title {
+.title {
   margin: 0;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.confirm-dialog-close {
+.close {
   background: transparent;
   border: none;
   color: var(--color-text-secondary);
@@ -72,12 +67,12 @@
   font-size: var(--font-size-lg);
 }
 
-.confirm-dialog-close:hover {
+.close:hover {
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
 }
 
-.confirm-dialog-body {
+.body {
   padding: var(--space-8) var(--space-6);
   display: flex;
   flex-direction: column;
@@ -86,7 +81,7 @@
   gap: var(--space-4);
 }
 
-.confirm-dialog-icon {
+.icon {
   width: 64px;
   height: 64px;
   border-radius: var(--radius-full);
@@ -97,22 +92,22 @@
   flex-shrink: 0;
 }
 
-.confirm-dialog-icon-danger {
+.iconDanger {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
 }
 
-.confirm-dialog-icon-warning {
+.iconWarning {
   background: rgba(245, 158, 11, 0.1);
   color: var(--color-warning);
 }
 
-.confirm-dialog-icon-info {
+.iconInfo {
   background: rgba(99, 102, 241, 0.1);
   color: var(--color-primary);
 }
 
-.confirm-dialog-message {
+.message {
   margin: 0;
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
@@ -120,7 +115,7 @@
   word-break: break-word;
 }
 
-.confirm-dialog-actions {
+.actions {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-6);
@@ -128,7 +123,7 @@
   justify-content: flex-end;
 }
 
-.confirm-dialog-button {
+.button {
   padding: var(--space-3) var(--space-6);
   border: none;
   border-radius: var(--radius-md);
@@ -139,71 +134,70 @@
   min-width: 100px;
 }
 
-.confirm-dialog-button-cancel {
+.buttonCancel {
   background: var(--color-card-bg);
   color: var(--color-text-primary);
   border: var(--border-width-medium) solid var(--color-border);
 }
 
-.confirm-dialog-button-cancel:hover {
+.buttonCancel:hover {
   background: var(--color-bg-tertiary);
   border-color: var(--color-border-light);
 }
 
-.confirm-dialog-button-confirm {
+.buttonConfirm {
   color: white;
 }
 
-.confirm-dialog-button-danger {
+.buttonDanger {
   background: var(--color-error);
 }
 
-.confirm-dialog-button-danger:hover {
+.buttonDanger:hover {
   background: var(--color-error-dark);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.confirm-dialog-button-warning {
+.buttonWarning {
   background: var(--color-warning);
 }
 
-.confirm-dialog-button-warning:hover {
+.buttonWarning:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.confirm-dialog-button-info {
+.buttonInfo {
   background: var(--color-primary);
 }
 
-.confirm-dialog-button-info:hover {
+.buttonInfo:hover {
   background: var(--color-primary-dark);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
-  .confirm-dialog {
+  .dialog {
     max-width: 90%;
     margin: var(--space-4);
   }
 
-  .confirm-dialog-header {
+  .header {
     padding: var(--space-4);
   }
 
-  .confirm-dialog-body {
+  .body {
     padding: var(--space-6) var(--space-4);
   }
 
-  .confirm-dialog-actions {
+  .actions {
     flex-direction: column-reverse;
     padding: var(--space-4);
   }
 
-  .confirm-dialog-button {
+  .button {
     width: 100%;
   }
 }

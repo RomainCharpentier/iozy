@@ -1,3 +1,4 @@
+import styles from '../MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
 
@@ -109,7 +110,7 @@ export default function AudioPlayer({
 
   return (
     <div
-      className="audio-player"
+      className={styles.audioPlayer}
       style={{
         width: '100%',
         height: 'auto',
@@ -117,7 +118,7 @@ export default function AudioPlayer({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '20px',
+        gap: '1.5rem',
         padding: '1.5rem',
         boxSizing: 'border-box',
       }}
@@ -128,10 +129,6 @@ export default function AudioPlayer({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flex: '0 0 auto',
-          minHeight: '120px',
-          maxHeight: '200px',
-          height: 'auto',
           overflow: 'visible',
         }}
       >

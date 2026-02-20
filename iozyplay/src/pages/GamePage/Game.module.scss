@@ -1,0 +1,1117 @@
+.game {
+  display: grid !important;
+  grid-template-columns: 1fr 300px !important;
+  grid-template-rows: auto 1fr !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: var(--spacing-lg) !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+
+.game:not(:has(.gamePlayersPanel)) {
+  grid-template-columns: 1fr !important;
+}
+
+.gameInterfaceLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.gameMain {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: var(--spacing-md) 0 !important;
+  box-sizing: border-box !important;
+}
+
+.gameInterfaceBody {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  position: relative;
+  transition: grid-template-columns 0.3s ease;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.gameInterfaceBodySoloEnd {
+  grid-template-columns: 1fr;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gameInterfaceBodySidebarCollapsed {
+  grid-template-columns: 1fr 120px;
+}
+
+.gameInterfaceGame {
+  min-height: 0;
+  overflow: visible;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.questionCard {
+  display: grid !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: 0 !important;
+  row-gap: var(--spacing-md) !important;
+  column-gap: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  align-items: start !important;
+  align-content: start !important;
+  justify-items: stretch !important;
+}
+
+.questionCardGameInterfaceGame {
+  display: grid !important;
+  flex-direction: unset !important;
+  gap: 0 !important;
+  row-gap: 0 !important;
+  column-gap: 0 !important;
+  align-items: start !important;
+  align-content: start !important;
+  justify-items: stretch !important;
+  justify-content: stretch !important;
+}
+
+.questionHeader {
+  grid-row: 1 !important;
+  flex-shrink: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.gameInterfaceGameHeader {
+  grid-row: 1 !important;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.gameInterfaceCategory {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-alpha-2);
+  border: 1px solid var(--accent-alpha-3);
+  border-radius: 12px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
+  margin: 0;
+}
+
+.gameInterfaceCategoryIcon {
+  font-size: 1.25rem;
+}
+
+.gameInterfaceCategoryText {
+  font-weight: 600;
+  color: var(--accent-secondary);
+  font-size: 0.875rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mediaContainer {
+  grid-row: 2 !important;
+  margin: 0 !important;
+  align-self: start !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 1 auto !important;
+  min-height: 300px !important;
+  max-height: 500px !important;
+  height: auto !important;
+  background: var(--bg-tertiary) !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  overflow: visible !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.mediaContainer > * {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.gameInterfaceMedia {
+  width: 100%;
+  flex: 0 1 auto;
+  min-height: 300px;
+  max-height: 500px;
+  height: auto;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  position: relative;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+
+.gameInterfaceAnswer {
+  grid-row: 3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: start !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.gameInterfaceHeader {
+  padding: 1.25rem 2rem;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: fit-content;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.gameInterfaceHeaderMain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.gameInterfaceProgressSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gameInterfaceProgressHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.gameInterfaceQuestion {
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.gameInterfaceSeparator {
+  color: var(--text-secondary, #94a3b8);
+}
+
+.gameInterfaceTotal {
+  color: var(--text-secondary, #94a3b8);
+}
+
+.gameInterfaceProgressContainer {
+  width: 100%;
+}
+
+.gameInterfaceProgressBar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.gameInterfaceProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  transition: width 0.4s ease;
+}
+
+.gameInterfaceTimerSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #334155);
+}
+
+.gameInterfaceTimerIcon {
+  font-size: 1.25rem;
+}
+
+.gameInterfaceTimerValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  color: var(--accent-primary);
+}
+
+.gameInterfaceScoreSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-alpha-2);
+  border: 1px solid var(--accent-alpha-3);
+  border-radius: 12px;
+}
+
+.gameInterfaceScoreLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gameInterfaceScoreValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.gameInterfaceHeaderActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gameInterfaceActionBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border-color, #334155);
+  color: var(--text-color, #f1f5f9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.gameInterfaceActionBtn:hover {
+  background: var(--accent-alpha-2);
+  border-color: var(--accent-primary);
+}
+
+.gameInterfaceActionBtnDanger {
+  color: var(--error);
+}
+
+.gameInterfaceActionBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--error);
+}
+
+.gamePlayersPanel {
+  grid-column: 2 !important;
+  grid-row: 2 / 4 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--spacing-md) !important;
+  padding-left: var(--spacing-md) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.gameInterfaceSidebar {
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #334155);
+  max-height: 100%;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.gameInterfaceSidebarCollapsed {
+  padding: 1rem;
+  overflow: hidden;
+  width: 120px;
+}
+
+.gameInterfaceSidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-color, #334155);
+}
+
+.gameInterfaceSidebarTitleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gameInterfaceSidebarTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-color, #f1f5f9);
+}
+
+.gameInterfaceSidebarCount {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+.gameInterfacePlayers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gameInterfacePlayer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #334155);
+  transition: all 0.2s ease;
+}
+
+.gameInterfacePlayer:hover {
+  background: var(--accent-alpha-1);
+  border-color: var(--accent-primary);
+}
+
+.gameInterfacePlayerTop {
+  border-color: var(--accent-primary);
+  background: var(--accent-alpha-2);
+  box-shadow: var(--shadow-glow);
+}
+
+.gameInterfacePlayerWinner {
+  position: relative;
+}
+
+.gameInterfacePlayerCorrect {
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.gameInterfacePlayerIncorrect {
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.gameInterfacePlayerSkipRequesting {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.gameInterfacePlayerRank {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  min-width: 32px;
+}
+
+.gameInterfaceWinnerCrown {
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+  z-index: 1;
+}
+
+.gameInterfacePlayerAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.gameInterfacePlayerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.gameInterfacePlayerName {
+  font-weight: 600;
+  color: var(--text-color, #f1f5f9);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameInterfacePlayerAnswer {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #94a3b8);
+  font-style: italic;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameInterfacePlayerAnswerCorrect {
+  color: var(--success);
+}
+
+.gameInterfacePlayerAnswerIncorrect {
+  color: var(--error);
+}
+
+.gameInterfacePlayerScore {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  min-width: 48px;
+  text-align: right;
+}
+
+.gameInterfacePlayerBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.gameInterfacePlayerBadgeCorrect {
+  background: var(--success);
+  color: white;
+}
+
+.gameInterfacePlayerBadgeIncorrect {
+  background: var(--error);
+  color: white;
+}
+
+.gameInterfacePlayerFinalScore {
+  font-size: 0.875rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  margin-top: 0.25rem;
+}
+
+.answerBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-alpha-2);
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.validationIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.validationIconCorrect {
+  background: var(--success);
+  color: white;
+}
+
+.validationIconIncorrect {
+  background: var(--error);
+  color: white;
+}
+
+.gameInterfaceSidebarCompact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  height: 100%;
+}
+
+.gameInterfaceCompactTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gameInterfaceCompactScore {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.gameInterfaceCompactDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-color, #334155);
+}
+
+.gameInterfaceCompactPlayersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  align-items: center;
+}
+
+.gameInterfaceCompactPlayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  position: relative;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.gameInterfaceCompactPlayerCorrect {
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.gameInterfaceCompactPlayerIncorrect {
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.gameInterfaceCompactPlayerSkip {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.gameInterfaceCompactPlayerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  border: 2px solid transparent;
+}
+
+.gameInterfaceCompactPlayerScore {
+  font-weight: 700;
+  color: var(--accent-primary);
+  font-size: 0.875rem;
+}
+
+.gameInterfaceSidebarToggle {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) translateX(50%);
+  width: 36px;
+  height: 60px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color, #334155);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  color: var(--text-color, #f1f5f9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.gameInterfaceSidebarToggle:hover {
+  background: var(--accent-alpha-2);
+  border-color: var(--accent-primary);
+}
+
+.gameInterfaceSidebarToggleCollapsed {
+  right: 120px;
+  transform: translateY(-50%) translateX(50%);
+  border-radius: 0 12px 12px 0;
+}
+
+.hint {
+  grid-row: 4 !important;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--accent-alpha-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-alpha-2);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.hintIcon {
+  font-size: 16px;
+  margin-right: 0.5rem;
+}
+
+.gameInterfaceGameEnd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.gameInterfaceEndIcon {
+  font-size: 4rem;
+  line-height: 1;
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.gameInterfaceEndTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin: 0;
+}
+
+.gameInterfaceEndSubtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  margin: 0;
+}
+
+.gameInterfaceEndStats {
+  display: flex;
+  gap: 3rem;
+  margin-top: 1rem;
+}
+
+.gameInterfaceEndStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gameInterfaceEndStatLabel {
+  font-size: 0.875rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gameInterfaceEndStatValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.gameInterfaceEndActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.gameInterfaceEndBtn {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-secondary, rgba(51, 65, 85, 0.6));
+  color: var(--text-primary, #fff);
+}
+
+.gameInterfaceEndBtn:hover {
+  background: var(--bg-secondary-hover, rgba(51, 65, 85, 0.8));
+  transform: translateY(-2px);
+}
+
+.gameInterfaceEndBtnPrimary {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.gameInterfaceEndBtnPrimary:hover {
+  background: var(--accent-primary-hover, #4f46e5);
+}
+
+.scoreScreen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.gameModalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: var(--z-game-modal-overlay);
+  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gameModalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--card-bg);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 2px solid var(--border-color, #334155);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: var(--z-game-modal);
+  animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gameModalContent:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@keyframes overlayShow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes contentShow {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.noQuestions {
+  text-align: center;
+  padding: 3rem;
+  background: var(--card-bg);
+  border-radius: 1rem;
+  border: 2px solid var(--border-color);
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.mediaLoading {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(10px) !important;
+  z-index: var(--z-dropdown) !important;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.gameSettingsPopup {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.gameSettingsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.gameSettingsHeader h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--text-color);
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-color);
+}
+
+.gameSettingsSection {
+  margin-bottom: 2rem;
+}
+
+.gameSettingsSection h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: var(--text-color);
+}
+
+.noCategories {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.selectedCategoriesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.selectedCategoryBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.categoryEmoji {
+  font-size: 1.2rem;
+}
+
+.categoryName {
+  font-weight: 600;
+}
+
+.configButtonSecondary {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.configButtonSecondary:hover {
+  border-color: var(--primary-color);
+  background: var(--accent-alpha-1);
+}
+
+.configButtonPrimary {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border: none;
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.configButtonPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.categorySelectorInline {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--bg-color);
+  border-radius: 0.5rem;
+  border: 2px solid var(--border-color);
+}
+
+.categorySelectorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.categorySelectorHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.closeInlineButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+.closeInlineButton:hover {
+  color: var(--text-color);
+}
+
+.timerConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timerConfigLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.timerSlider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-color);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.timerSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+}
+
+.timerPreview {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.timerValue {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.timerHint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.gameSettingsActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}

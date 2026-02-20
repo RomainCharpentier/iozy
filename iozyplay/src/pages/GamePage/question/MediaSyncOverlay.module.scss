@@ -1,0 +1,27 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-overlay);
+  z-index: var(--z-dropdown);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+
+.content {
+  text-align: center;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+}
+
+.message {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+  margin-top: var(--spacing-sm);
+}

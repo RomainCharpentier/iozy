@@ -1,3 +1,6 @@
+import gameStyles from '../Game.module.scss'
+import styles from './MediaSyncOverlay.module.scss'
+
 interface MediaSyncOverlayProps {
   gameStep: string
   mediaReady: boolean
@@ -13,34 +16,11 @@ export default function MediaSyncOverlay({ gameStep, mediaReady }: MediaSyncOver
   }
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 100,
-        borderRadius: '0.5rem',
-        pointerEvents: 'none',
-      }}
-    >
-      <div
-        style={{
-          textAlign: 'center',
-          color: 'white',
-          background: 'rgba(0, 0, 0, 0.8)',
-          padding: '20px',
-          borderRadius: '0.5rem',
-        }}
-      >
-        <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
+    <div className={styles.overlay}>
+      <div className={styles.content}>
+        <div className={gameStyles.loadingSpinner} style={{ margin: '0 auto var(--spacing-md)' }} />
         <p>⏳ Synchronisation...</p>
-        <p style={{ fontSize: '0.9em', opacity: 0.8 }}>{getMessage()}</p>
+        <p className={styles.message}>{getMessage()}</p>
       </div>
     </div>
   )

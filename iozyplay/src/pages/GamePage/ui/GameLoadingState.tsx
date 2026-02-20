@@ -1,3 +1,5 @@
+import gameStyles from '../Game.module.scss'
+
 interface GameLoadingStateProps {
   message: string
   subMessage?: string
@@ -12,11 +14,11 @@ export default function GameLoadingState({
   onBack,
 }: GameLoadingStateProps) {
   return (
-    <div className="no-questions">
-      <div className="loading-state">
+    <div className={gameStyles.noQuestions}>
+      <div className={gameStyles.loadingState}>
         <h2>{message}</h2>
         {subMessage && <p>{subMessage}</p>}
-        {showSpinner && <div className="spinner"></div>}
+        {showSpinner && <div className={gameStyles.loadingSpinner}></div>}
         {onBack && (
           <button onClick={onBack} style={{ marginTop: '1rem' }}>
             Retour au menu

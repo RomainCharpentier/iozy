@@ -1,10 +1,10 @@
+import styles from './AnswerInput.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { getPlayerId } from '@/utils/playerId'
-import '@/styles/answer-input.css'
 
 interface AnswerInputProps {
   value: string
@@ -213,13 +213,13 @@ export default function AnswerInput({
         setOpen(newOpen)
       }}
     >
-      <div className="answer-input-wrapper">
+      <div className={styles.answerInputWrapper}>
         <Popover.Anchor asChild>
           <motion.div
-            className={`game-interface-answer-actions variant-4 ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+            className={`${styles.answerActions} ${isReveal ? styles.answerActionsReveal : ''} ${isReveal && hasSubmitted && isCorrect === true ? styles.answerActionsCorrect : ''} ${isReveal && hasSubmitted && isCorrect === false ? styles.answerActionsIncorrect : ''}`}
             {...revealAnimation}
           >
-            <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+            <div className={styles.inputWrapper}>
               <input
                 ref={inputRef}
                 type="text"
@@ -244,7 +244,7 @@ export default function AnswerInput({
                 onKeyDown={handleKeyPress}
                 disabled={disabled}
                 maxLength={200}
-                className={`game-interface-input with-skip ${disabled ? 'disabled' : ''} ${hasSubmitted ? 'submitted' : ''} ${isReveal ? 'reveal' : ''} ${isReveal && hasSubmitted && isCorrect === true ? 'correct' : ''} ${isReveal && hasSubmitted && isCorrect === false ? 'incorrect' : ''}`}
+                className={`${styles.input} ${disabled ? styles.inputDisabled : ''} ${hasSubmitted ? '' : ''} ${isReveal ? '' : ''} ${isReveal && hasSubmitted && isCorrect === true ? styles.inputCorrect : ''} ${isReveal && hasSubmitted && isCorrect === false ? styles.inputIncorrect : ''}`}
                 aria-label="Zone de saisie de la réponse"
                 aria-autocomplete="list"
                 aria-expanded={shouldOpen}
@@ -253,14 +253,14 @@ export default function AnswerInput({
                 style={hasSubmitted && !isReveal ? { paddingRight: '3rem' } : {}}
               />
               {hasSubmitted && !isReveal && (
-                <span className="game-interface-check-icon" title="Réponse enregistrée">
+                <span className={styles.checkIcon} title="Réponse enregistrée">
                   ✓
                 </span>
               )}
             </div>
             {canSkip && (
               <button
-                className="game-interface-skip variant-4"
+                className={styles.skipBtn}
                 onClick={onSkipVote}
                 disabled={!canSkip}
                 title={
@@ -277,13 +277,13 @@ export default function AnswerInput({
               </button>
             )}
             {shouldOpen && (
-              <div className="game-interface-suggestions">
+              <div className={styles.suggestions}>
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion}
                     role="option"
                     aria-selected={index === selectedIndex}
-                    className={`game-interface-suggestion ${index === selectedIndex ? 'active' : ''}`}
+                    className={`${styles.suggestion} ${index === selectedIndex ? styles.suggestionActive : ''}`}
                     onClick={() => handleSuggestionClick(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     onMouseDown={(e) => {
@@ -296,15 +296,15 @@ export default function AnswerInput({
               </div>
             )}
             {isReveal && correctAnswer && (
-              <div className={`game-interface-overlay ${isCorrect === false ? 'incorrect' : ''}`}>
+              <div className={`${styles.overlay} ${isCorrect === false ? styles.overlayIncorrect : ''}`}>
                 <div
-                  className={`game-interface-overlay-icon ${isCorrect === false ? 'incorrect' : ''}`}
+                  className={`${styles.overlayIcon} ${isCorrect === false ? styles.overlayIconIncorrect : ''}`}
                 >
                   {isCorrect === true ? '✓' : isCorrect === false ? '✗' : '✓'}
                 </div>
-                <div className="game-interface-overlay-content">
-                  <div className="game-interface-overlay-label">Réponse correcte</div>
-                  <div className="game-interface-overlay-answer">{correctAnswer}</div>
+                <div className={styles.overlayContent}>
+                  <div className={styles.overlayLabel}>Réponse correcte</div>
+                  <div className={styles.overlayAnswer}>{correctAnswer}</div>
                 </div>
               </div>
             )}
