@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './RoomPlayersPanel.module.scss'
+import styles from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel.module.scss'
 import type { Player } from '@/lib/game/types'
 
 interface RoomPlayersPanelProps {

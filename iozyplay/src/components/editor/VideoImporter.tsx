@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './VideoImporter.module.scss'
+import styles from '@/components/editor/VideoImporter.module.scss'
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {

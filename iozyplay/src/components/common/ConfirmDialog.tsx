@@ -1,4 +1,4 @@
-import styles from './ConfirmDialog.module.scss'
+import styles from '@/components/common/ConfirmDialog.module.scss'
 import * as Dialog from '@radix-ui/react-dialog'
 
 interface ConfirmDialogProps {

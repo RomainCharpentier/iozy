@@ -1,14 +1,14 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '@/lib/game/GameContext'
+import { isOnline } from '@/lib/game/gameMode'
 import type { Category, Question } from '@/types'
-import Game from './Game'
+import Game from '@/pages/GamePage/Game'
 
 export default function GamePage() {
   const navigate = useNavigate()
   const { gameState, updateGameState, clearGameState } = useGameState()
-
-  const isMultiplayer = gameState?.gameMode === 'online'
+  const isMultiplayer = isOnline(gameState?.gameMode)
 
   useEffect(() => {
     if (!gameState) {

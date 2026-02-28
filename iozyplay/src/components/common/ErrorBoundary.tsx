@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './ErrorBoundary.module.scss'
+import styles from '@/components/common/ErrorBoundary.module.scss'
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 
 interface Props {

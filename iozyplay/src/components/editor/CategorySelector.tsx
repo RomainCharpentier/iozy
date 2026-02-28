@@ -1,4 +1,4 @@
-import styles from './CategorySelector.module.scss'
+import styles from '@/components/editor/CategorySelector.module.scss'
 import { useState, useMemo } from 'react'
 import type { Category, CategoryInfo } from '@/types'
 

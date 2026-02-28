@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest } from '@/api/client'
 import type { Question, QuestionsData, Category } from '@/types'
 
 export const questionsApi = {

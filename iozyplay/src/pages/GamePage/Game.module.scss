@@ -1,34 +1,14 @@
-.game {
+/* Layout principal - structure verticale simple */
+.gameScreen {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1rem;
   width: 100%;
-  max-width: 1520px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0.45rem 0.7rem;
+  padding: 1rem;
+  padding-top: 4.5rem;
   min-height: 0;
-  height: auto;
-  overflow-y: visible;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  background: transparent;
-}
-
-.game:not(:has(.gamePlayersPanel)) {
-  width: 100%;
-}
-
-.gameInterfaceLayout {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0;
-  max-width: none;
-  margin: 0;
-  min-height: 0;
-  height: auto;
-  overflow-y: visible;
-  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -36,72 +16,64 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
-  overflow: visible;
-  padding: 0.15rem 0 0;
+  flex: 1;
   box-sizing: border-box;
 }
 
+/* Corps : flex horizontal sur desktop, vertical sur mobile */
 .gameInterfaceBody {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 0.7rem;
-  position: relative;
-  transition: grid-template-columns 0.3s ease;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: visible;
-  box-sizing: border-box;
-  align-items: start;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  min-width: 0;
+  align-items: flex-start;
 }
 
 .gameInterfaceBodyNoSidebar {
-  grid-template-columns: minmax(0, 1fr);
+  justify-content: center;
 }
 
 .gameInterfaceBodySoloEnd {
-  grid-template-columns: 1fr;
-  display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .gameInterfaceGame {
-  min-height: 0;
-  overflow: visible;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 700px;
   width: 100%;
   box-sizing: border-box;
-  max-width: 1100px;
+}
+
+.gameInterfaceBodyNoSidebar .gameInterfaceGame,
+.gameInterfaceBodySoloEnd .gameInterfaceGame {
   margin: 0 auto;
 }
 
 .questionCard {
   display: grid;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto auto auto;
   gap: 0;
   row-gap: var(--spacing-md);
-  column-gap: 0;
   height: auto;
   min-height: 0;
+  min-width: 0;
   width: 100%;
   background: transparent;
   border: none;
   padding: 0;
   align-items: start;
-  align-content: start;
   justify-items: stretch;
 }
 
 .questionCardGameInterfaceGame {
   display: grid;
-  flex-direction: unset;
-  gap: 0;
-  row-gap: 0.45rem;
-  column-gap: 0;
+  grid-template-rows: auto auto auto;
+  row-gap: 1rem;
   align-items: start;
-  align-content: start;
   justify-items: stretch;
-  justify-content: stretch;
+  min-width: 0;
 }
 
 .questionHeader {
@@ -114,13 +86,12 @@
   grid-row: 1;
   display: flex;
   justify-content: flex-start;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
-  position: relative;
   margin: 0;
-  padding: 0 0 0.1rem 0;
-  flex-wrap: nowrap;
+  padding: 0;
 }
 
 .gameInterfaceCategory {
@@ -131,11 +102,9 @@
   background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-tertiary));
   border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, var(--border));
   border-radius: 999px;
-  width: fit-content;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
-  flex-shrink: 0;
-  position: relative;
   margin: 0;
 }
 
@@ -161,18 +130,19 @@
   align-items: center;
   justify-content: center;
   flex: 0 1 auto;
-  min-height: clamp(170px, 26dvh, 230px);
-  max-height: clamp(210px, 33dvh, 300px);
-  height: auto;
+  min-height: clamp(240px, 35vh, 360px);
+  max-height: clamp(280px, 40vh, 440px);
+  width: 100%;
+  min-width: 0;
   background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent-primary) 10%, transparent),
       transparent 60%
     ),
     var(--bg-tertiary);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 1rem;
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 72%, var(--accent-primary));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -181,26 +151,27 @@
 
 .mediaContainer > * {
   width: 100%;
-  height: auto;
-  max-height: none;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .gameInterfaceMedia {
   width: 100%;
   flex: 0 1 auto;
-  min-height: clamp(170px, 26dvh, 230px);
-  max-height: clamp(210px, 33dvh, 300px);
-  height: auto;
+  min-height: clamp(240px, 35vh, 360px);
+  max-height: clamp(280px, 40vh, 440px);
+  min-width: 0;
   background: transparent;
-  border-radius: 18px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   padding: 1rem;
   box-sizing: border-box;
@@ -217,12 +188,13 @@
   gap: 0;
   position: relative;
   width: 100%;
+  min-width: 0;
   flex-shrink: 0;
   border-radius: 0;
   border: none;
   background: transparent;
   box-shadow: none;
-  margin-top: 0.05rem;
+  overflow: visible;
 }
 
 .gameInterfaceAnswer > * {
@@ -230,39 +202,45 @@
 }
 
 .gameInterfaceHeader {
-  padding: 0.62rem 0.8rem;
+  padding: 0.75rem 1rem;
   background: color-mix(in srgb, var(--bg-tertiary) 88%, black);
   border-radius: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   flex-shrink: 0;
-  min-height: fit-content;
-  overflow: visible;
+  min-width: 0;
+  overflow: hidden;
   box-sizing: border-box;
   border: 1px solid color-mix(in srgb, var(--border) 78%, var(--accent-primary));
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
 }
 
 .gameInterfaceHeaderMain {
-  flex: 1;
+  flex: 1 1 200px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .gameInterfaceMeta {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .gameInterfaceProgressSection {
-  flex: 1;
+  flex: 1 1 140px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .gameInterfaceProgressHeader {
@@ -270,6 +248,8 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.95rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .gameInterfaceQuestion {
@@ -287,11 +267,12 @@
 
 .gameInterfaceProgressContainer {
   width: 100%;
+  min-width: 0;
 }
 
 .gameInterfaceProgressBar {
   width: 100%;
-  height: 8px;
+  height: 10px;
   background: color-mix(in srgb, var(--bg-secondary) 85%, black);
   border-radius: 999px;
   overflow: hidden;
@@ -319,10 +300,11 @@
 }
 
 .gameInterfaceTimerValue {
-  font-size: 1.18rem;
+  font-size: 1.35rem;
   font-weight: 700;
   font-family: var(--font-family-mono);
   color: var(--accent-primary);
+  letter-spacing: 0.02em;
 }
 
 .gameInterfaceScoreSection {
@@ -344,14 +326,15 @@
 }
 
 .gameInterfaceScoreValue {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--accent-primary);
 }
 
 .gameInterfaceHeaderActions {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .gameInterfaceActionBtn {
@@ -390,21 +373,13 @@
 }
 
 .gamePlayersPanel {
-  grid-column: 2;
-  grid-row: 2 / 4;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding-left: 0.1rem;
+  flex: 0 0 300px;
   min-width: 0;
-  overflow: visible;
-  max-height: none;
-  position: sticky;
-  top: 0.25rem;
+  max-width: 300px;
 }
 
 .gameInterfaceSidebar {
-  padding: 0.8rem;
+  padding: 0.75rem;
   background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--accent-primary) 10%, transparent),
@@ -413,10 +388,9 @@
     color-mix(in srgb, var(--bg-tertiary) 88%, black);
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border-color, #334155) 78%, var(--accent-primary));
-  max-height: none;
-  overflow-y: visible;
-  transition: all 0.3s ease;
-  position: relative;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
 }
 
@@ -1045,152 +1019,64 @@
   margin-top: 1.5rem;
 }
 
-/* Desktop-first responsive tuning for game interface */
-@media (max-width: 1400px) {
-  .game {
-    max-width: 1360px;
-  }
-
-  .gameInterfaceBody {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 0.8rem;
-  }
-
-  .gameInterfaceHeaderMain {
-    gap: 0.85rem;
-  }
-
-  .gameInterfaceMeta {
-    gap: 0.55rem;
-  }
-}
-
-@media (max-width: 1200px) {
-  .game {
-    min-height: auto;
-    height: auto;
-    overflow-y: auto;
+/* Responsive */
+@media (max-width: 1024px) {
+  .gameScreen {
     padding: 0.75rem;
   }
 
-  .gameInterfaceLayout {
-    padding: 1rem;
-    gap: 1rem;
-    height: auto;
-    overflow-y: visible;
-  }
-
   .gameInterfaceBody {
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
-  }
-
-  .gameMain {
-    padding: 0.5rem 0;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .gamePlayersPanel {
-    grid-column: 1;
-    grid-row: auto;
-    padding-left: 0;
-    max-height: none;
-    overflow: visible;
-    position: static;
+    flex: 0 0 auto;
+    max-width: none;
   }
 
   .gameInterfaceHeader {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.6rem;
-    padding: 0.7rem;
   }
 
   .gameInterfaceHeaderMain {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 0.65rem;
-  }
-
-  .gameInterfaceMeta {
-    margin-left: auto;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .gameInterfaceProgressSection {
-    min-width: 220px;
-    flex: 1 1 100%;
-  }
-
-  .gameInterfaceTimerSection,
-  .gameInterfaceScoreSection {
-    flex: 0 0 auto;
-  }
-
-  .gameInterfaceHeaderActions {
-    align-self: flex-end;
-  }
-}
-
-@media (max-width: 768px) {
-  .game {
-    padding: var(--spacing-sm);
-  }
-
-  .gameInterfaceLayout {
-    padding: 0.75rem;
-  }
-
-  .gameInterfaceHeader {
-    padding: 0.75rem;
+    flex: 1 1 auto;
   }
 
   .gameInterfaceMeta {
-    width: 100%;
+    flex-direction: row;
     justify-content: space-between;
-    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .gameScreen {
+    padding: 0.5rem;
+    gap: 0.75rem;
   }
 
   .mediaContainer,
   .gameInterfaceMedia {
-    min-height: 200px;
-    max-height: 280px;
-    padding: 0.7rem;
+    min-height: 180px;
+    max-height: 260px;
+    padding: 0.75rem;
   }
 
-  .gameInterfaceAnswer {
-    padding: 0;
-  }
-
-  .gameInterfaceActionBtn {
-    width: 42px;
-    height: 42px;
-  }
-
-  .gameInterfaceActionIcon {
-    font-size: 1rem;
+  .gameInterfaceHeader {
+    padding: 0.6rem 0.75rem;
   }
 
   .gameInterfaceTimerValue {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
   }
 
   .gameInterfaceScoreValue {
-    font-size: 1.1rem;
-  }
-
-  .gameInterfacePlayer {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    padding: 0.6rem 0.65rem;
-  }
-
-  .gameInterfacePlayerAvatar {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-
-  .gameInterfacePlayerScore {
-    font-size: 1rem;
-    min-width: 34px;
+    font-size: 1.2rem;
   }
 }

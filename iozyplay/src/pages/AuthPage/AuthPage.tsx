@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './AuthPage.module.scss'
+import styles from '@/pages/AuthPage/AuthPage.module.scss'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@/services/authService'

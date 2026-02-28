@@ -1,17 +1,18 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './RoomCreator.module.scss'
+import styles from '@/pages/RoomCreatorPage/RoomCreator.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import type { Category, Question } from '@/types'
 import type { Player } from '@/lib/game/types'
+import { isSolo } from '@/lib/game/gameMode'
 import { getSocket, disconnectSocketIfConnected } from '@/utils/socket'
 import { soundManager } from '@/utils/sounds'
 import { useRoomSocket, type UseRoomSocketCreateResult } from '@/hooks/useRoomSocket'
 import { TIMING, QUESTION_COUNT } from '@/services/gameService'
 import { QuestionService } from '@/services/questionService'
-import RoomConnectingState from './ui/RoomConnectingState'
-import RoomPlayersPanel from './ui/RoomPlayersPanel'
-import RoomConfigPanel from './ui/RoomConfigPanel'
+import RoomConnectingState from '@/pages/RoomCreatorPage/ui/RoomConnectingState'
+import RoomPlayersPanel from '@/pages/RoomCreatorPage/ui/RoomPlayersPanel'
+import RoomConfigPanel from '@/pages/RoomCreatorPage/ui/RoomConfigPanel'
 
 interface RoomCreatorProps {
   categories: Category[]
@@ -30,7 +31,7 @@ export default function RoomCreator({
   onRoomCreated,
   onBack,
 }: RoomCreatorProps) {
-  const isSoloMode = gameMode === 'solo'
+  const isSoloMode = isSolo(gameMode)
   const [copied, setCopied] = useState(false)
   const [playerName, setPlayerName] = useState<string>(() => {
     // Utiliser le nom depuis les settings si disponible

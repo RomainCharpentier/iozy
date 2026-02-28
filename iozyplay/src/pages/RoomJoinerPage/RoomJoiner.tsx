@@ -1,4 +1,4 @@
-import styles from './RoomJoiner.module.scss'
+import styles from '@/pages/RoomJoinerPage/RoomJoiner.module.scss'
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRoomSocket, type UseRoomSocketJoinResult } from '@/hooks/useRoomSocket'

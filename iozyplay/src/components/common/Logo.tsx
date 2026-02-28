@@ -1,4 +1,4 @@
-import styles from './Logo.module.scss'
+import styles from '@/components/common/Logo.module.scss'
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large'

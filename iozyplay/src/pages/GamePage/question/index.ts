@@ -1,3 +1,3 @@
-export { default as QuestionCard } from './QuestionCard'
-export { default as AnswerInput } from './AnswerInput'
-export { default as MediaSyncOverlay } from './MediaSyncOverlay'
+export { default as QuestionCard } from '@/pages/GamePage/question/QuestionCard'
+export { default as AnswerInput } from '@/pages/GamePage/question/AnswerInput'
+export { default as MediaSyncOverlay } from '@/pages/GamePage/question/MediaSyncOverlay'

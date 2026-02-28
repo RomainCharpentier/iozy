@@ -1,1 +1,1 @@
-export { default as GameSettingsPopup } from './GameSettingsPopup'
+export { default as GameSettingsPopup } from '@/pages/GamePage/settings/GameSettingsPopup'

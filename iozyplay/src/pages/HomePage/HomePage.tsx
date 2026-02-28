@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
-import HomeMenu from './HomeMenu'
+import HomeMenu from '@/pages/HomePage/HomeMenu'
 import UsernameGuard from '@/components/common/UsernameGuard'
 
 export default function HomePage() {

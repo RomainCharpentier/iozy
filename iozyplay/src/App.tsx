@@ -1,4 +1,4 @@
-import styles from './App.module.scss'
+import styles from '@/App.module.scss'
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
@@ -7,6 +7,7 @@ import { QuestionService } from '@/services/questionService'
 import { UpdateNotification } from '@/components/common/UpdateNotification'
 
 const HomePage = lazy(() => import('@/pages/HomePage/HomePage'))
+const UsernamePage = lazy(() => import('@/pages/UsernamePage/UsernamePage'))
 const CategorySelectorPage = lazy(() => import('@/pages/CategorySelectorPage/CategorySelectorPage'))
 const GamePage = lazy(() => import('@/pages/GamePage/GamePage'))
 const EditorPage = lazy(() => import('@/pages/EditorPage/EditorPage'))
@@ -59,6 +60,7 @@ function App() {
           >
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/username" element={<UsernamePage />} />
               <Route path="/categories" element={<CategorySelectorPage />} />
               <Route path="/game" element={<GamePage />} />
               <Route path="/editor" element={<EditorPage />} />

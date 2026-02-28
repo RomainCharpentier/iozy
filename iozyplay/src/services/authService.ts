@@ -3,7 +3,7 @@
  */
 
 import { getPlayerId } from '@/utils/playerId'
-import ProfileService, { type PlayerProfile } from './profileService'
+import ProfileService, { type PlayerProfile } from '@/services/profileService'
 
 const AUTH_KEY = 'blindtest-auth'
 

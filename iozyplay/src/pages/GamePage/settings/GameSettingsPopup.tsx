@@ -1,4 +1,4 @@
-import gameStyles from '../Game.module.scss'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { type Category, type Question, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'

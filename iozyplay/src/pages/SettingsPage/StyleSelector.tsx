@@ -1,4 +1,4 @@
-import styles from './StyleSelector.module.scss'
+import styles from '@/pages/SettingsPage/StyleSelector.module.scss'
 import { useState, useEffect } from 'react'
 import {
   STYLE_VARIANTS,

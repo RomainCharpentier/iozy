@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './CategorySelector.module.scss'
+import styles from '@/pages/CategorySelectorPage/CategorySelector.module.scss'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'

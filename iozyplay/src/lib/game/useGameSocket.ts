@@ -3,6 +3,7 @@ import { getSocket } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import type { Question } from '@/types'
 import type { Player } from '@/lib/game/types'
+import { isOnline } from '@/lib/game/gameMode'
 
 interface UseGameSocketParams {
   gameMode: 'solo' | 'online'
@@ -60,7 +61,7 @@ export function useGameSocket({
   leaveRoom,
 }: UseGameSocketParams) {
   useEffect(() => {
-    if (gameMode !== 'online' || !roomCode) return
+    if (!isOnline(gameMode) || !roomCode) return
 
     const socket = getSocket()
     if (!socket) return

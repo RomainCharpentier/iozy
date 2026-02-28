@@ -1,4 +1,4 @@
-import styles from './CategoryManager.module.scss'
+import styles from '@/pages/EditorPage/CategoryManager.module.scss'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

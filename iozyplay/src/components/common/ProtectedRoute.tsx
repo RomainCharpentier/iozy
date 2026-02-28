@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './ProtectedRoute.module.scss'
+import styles from '@/components/common/ProtectedRoute.module.scss'
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { authService } from '@/services/authService'

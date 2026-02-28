@@ -1,4 +1,4 @@
-import styles from '../MediaPlayer.module.scss'
+import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
 

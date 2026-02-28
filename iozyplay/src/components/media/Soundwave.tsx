@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import styles from './Soundwave.module.scss'
+import styles from '@/components/media/Soundwave.module.scss'
 
 interface SoundwaveProps {
   isPlaying: boolean

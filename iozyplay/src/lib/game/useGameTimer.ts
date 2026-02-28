@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { isSolo } from '@/lib/game/gameMode'
 
 interface UseGameTimerParams {
   gameMode: 'solo' | 'online'
@@ -119,7 +120,7 @@ export function useGameTimer({
           const revealDurationMs = gameDurationMsRef.current
 
           const revealTimer = setTimeout(() => {
-            if (gameMode === 'solo' && onTimeUp) {
+            if (isSolo(gameMode) && onTimeUp) {
               onTimeUp()
             }
           }, revealDurationMs)
@@ -130,7 +131,7 @@ export function useGameTimer({
       if (
         newIsTimeUp &&
         !isTimeUp &&
-        gameMode === 'solo' &&
+        isSolo(gameMode) &&
         !revealTimerStartedRef.current &&
         onTimeUp
       ) {

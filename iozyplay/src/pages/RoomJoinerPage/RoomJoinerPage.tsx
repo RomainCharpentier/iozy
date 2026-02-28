@@ -1,6 +1,7 @@
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGameState } from '@/lib/game/GameContext'
-import RoomJoiner from './RoomJoiner'
+import RoomJoiner from '@/pages/RoomJoinerPage/RoomJoiner'
 
 export default function RoomJoinerPage() {
   const navigate = useNavigate()
@@ -8,8 +9,13 @@ export default function RoomJoinerPage() {
   const { setRoomCode, startGame } = useGameState()
   const roomCode = searchParams.get('room')
 
+  useEffect(() => {
+    if (!roomCode) {
+      navigate('/', { replace: true })
+    }
+  }, [roomCode, navigate])
+
   if (!roomCode) {
-    navigate('/')
     return null
   }
 

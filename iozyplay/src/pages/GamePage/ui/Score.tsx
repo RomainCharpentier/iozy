@@ -1,7 +1,8 @@
-import gameStyles from '../Game.module.scss'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
 import { useEffect, useRef } from 'react'
 import { soundManager } from '@/utils/sounds'
 import type { GameMode, Player } from '@/lib/game/types'
+import { isSolo } from '@/lib/game/gameMode'
 import { GameService } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
 
@@ -36,7 +37,7 @@ export default function Score({
 
   // Calculer le score du joueur actuel
   const currentPlayerScore =
-    gameMode === 'solo' ? score : players.find((p) => p.id === getPlayerId())?.score || 0
+    isSolo(gameMode) ? score : players.find((p) => p.id === getPlayerId())?.score || 0
 
   const percentage = GameService.calculatePercentage(currentPlayerScore, totalQuestions)
 
@@ -80,7 +81,7 @@ export default function Score({
         </div>
       </div>
       <div className={gameStyles.gameInterfaceEndActions}>
-        {(gameMode === 'solo' || isHost) && (
+        {(isSolo(gameMode) || isHost) && (
           <button
             className={`${gameStyles.gameInterfaceEndBtn} ${gameStyles.gameInterfaceEndBtnPrimary}`}
             onClick={() => {

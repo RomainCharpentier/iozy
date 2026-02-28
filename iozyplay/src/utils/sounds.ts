@@ -1,10 +1,14 @@
 // Utilitaire pour gérer les effets sonores
 // Utilise l'API Web Audio pour générer des sons simples
 
+// Cooldown minimum entre deux jouages du même son (évite les boucles)
+const SOUND_COOLDOWN_MS = 500
+
 class SoundManager {
   private audioContext: AudioContext | null = null
   private enabled: boolean = true
   private volume: number = 0.7 // 0-1 (70% par défaut)
+  private lastPlayedAt: Record<string, number> = {}
 
   constructor() {
     // Initialiser l'audio context quand l'utilisateur interagit avec la page
@@ -29,9 +33,18 @@ class SoundManager {
     return this.audioContext
   }
 
+  private canPlay(soundName: string): boolean {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    const last = this.lastPlayedAt[soundName] ?? 0
+    if (now - last < SOUND_COOLDOWN_MS) return false
+    this.lastPlayedAt[soundName] = now
+    return true
+  }
+
   // Générer un son de succès (fréquence montante)
   playSuccess() {
     if (!this.enabled) return
+    if (!this.canPlay('success')) return
     const ctx = this.getAudioContext()
     if (!ctx) return
 
@@ -173,6 +186,7 @@ class SoundManager {
   // Générer un son de révélation (transition guess -> reveal)
   playReveal() {
     if (!this.enabled) return
+    if (!this.canPlay('reveal')) return
     const ctx = this.getAudioContext()
     if (!ctx) return
 

@@ -1,4 +1,4 @@
-import gameStyles from '../Game.module.scss'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
 import { GameService } from '@/services/gameService'
 import type { Question } from '@/types'
 import { soundManager } from '@/utils/sounds'

@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameState } from '@/lib/game/GameContext'
+import { isSolo } from '@/lib/game/gameMode'
 import type { Question } from '@/types'
-import RoomCreator from './RoomCreator'
+import RoomCreator from '@/pages/RoomCreatorPage/RoomCreator'
 
 export default function RoomCreatorPage() {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ export default function RoomCreatorPage() {
     return null
   }
 
-  const isSoloMode = gameState.gameMode === 'solo'
+  const isSoloMode = isSolo(gameState.gameMode)
 
   const handleRoomCreated = (code: string, questions?: Question[]) => {
     if (!isSoloMode) {

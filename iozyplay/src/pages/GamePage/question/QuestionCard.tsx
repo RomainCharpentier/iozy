@@ -1,10 +1,11 @@
-import gameStyles from '../Game.module.scss'
-import { useState, useEffect, useRef } from 'react'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
+import { isSolo, isOnline } from '@/lib/game/gameMode'
 import MediaPlayer from '@/components/media/MediaPlayer'
-import AnswerInput from './AnswerInput'
-import MediaSyncOverlay from './MediaSyncOverlay'
+import AnswerInput from '@/pages/GamePage/question/AnswerInput'
+import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
 import { soundManager } from '@/utils/sounds'
 import { TIMING } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
@@ -98,27 +99,27 @@ export default function QuestionCard({
 
   // Utiliser les valeurs externes en mode multijoueur, sinon les valeurs locales
   const timeRemaining =
-    gameMode === 'online' && externalTimeRemaining !== undefined
+    isOnline(gameMode) && externalTimeRemaining !== undefined
       ? externalTimeRemaining
       : localTimeRemaining
   const isTimeUp =
-    gameMode === 'online' && externalIsTimeUp !== undefined ? externalIsTimeUp : localIsTimeUp
+    isOnline(gameMode) && externalIsTimeUp !== undefined ? externalIsTimeUp : localIsTimeUp
 
   // En mode multijoueur, déterminer si le joueur actuel a répondu correctement
-  const currentPlayerId = gameMode === 'online' ? getPlayerId() : null
+  const currentPlayerId = isOnline(gameMode) ? getPlayerId() : null
   const isCurrentPlayerCorrect =
-    gameMode === 'online' && currentPlayerId
+    isOnline(gameMode) && currentPlayerId
       ? validatedAnswers[currentPlayerId] === true
       : isCorrect
 
   // Fonctions pour mettre à jour le temps (utilisées seulement en mode solo)
   const setTimeRemaining = (value: number | ((prev: number) => number)) => {
-    if (gameMode === 'solo') {
+    if (isSolo(gameMode)) {
       setLocalTimeRemaining(value)
     }
   }
   const setIsTimeUp = (value: boolean) => {
-    if (gameMode === 'solo') {
+    if (isSolo(gameMode)) {
       setLocalIsTimeUp(value)
     }
   }
@@ -140,7 +141,7 @@ export default function QuestionCard({
       timeoutRef.current = null
     }
 
-    if (gameMode === 'online') {
+    if (isOnline(gameMode)) {
       // En mode multijoueur, permettre le chargement du média même si on attend le "go"
       // Le média doit charger pour que onMediaReady soit appelé et que game:ready soit envoyé
       setShouldStartMedia(true)
@@ -152,6 +153,14 @@ export default function QuestionCard({
           mediaReadySentRef.current = true
           setMediaReady(true)
           onMediaReady()
+        }
+        timeoutRef.current = null
+      }, 3000)
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        if (!mediaReadySentRef.current) {
+          mediaReadySentRef.current = true
+          setMediaReady(true)
         }
         timeoutRef.current = null
       }, 3000)
@@ -170,7 +179,7 @@ export default function QuestionCard({
       clearTimeout(focusTimeoutRef.current)
     }
     focusTimeoutRef.current = window.setTimeout(() => {
-      const inputKey = gameMode === 'solo' ? 'solo' : 'online'
+      const inputKey = isSolo(gameMode) ? 'solo' : 'online'
       inputRefs.current[inputKey]?.focus()
       focusTimeoutRef.current = null
     }, 100)
@@ -191,7 +200,7 @@ export default function QuestionCard({
   }, [question.id, question.timeLimit, gameMode])
 
   useEffect(() => {
-    if (gameMode === 'online') {
+    if (isOnline(gameMode)) {
       // En mode multijoueur, permettre le chargement du média même si on attend le "go"
       // Le média doit charger pour que onMediaReady soit appelé et que game:ready soit envoyé
       if (!shouldStartMedia) {
@@ -201,11 +210,11 @@ export default function QuestionCard({
   }, [waitingForGo, gameMode, shouldStartMedia])
 
   useEffect(() => {
-    const hasAnswered = gameMode === 'solo' ? isCorrect : questionAnsweredBy !== null
+    const hasAnswered = isSolo(gameMode) ? isCorrect : questionAnsweredBy !== null
 
     // En mode multijoueur, utiliser le timer externe (géré par Game.tsx)
     // mais seulement si on n'attend plus le "go"
-    if (gameMode === 'online') {
+    if (isOnline(gameMode)) {
       // Le timer est géré par le parent (Game.tsx) via externalTimeRemaining et externalIsTimeUp
       // On ne fait rien ici, le parent gère le timer
       return
@@ -238,6 +247,19 @@ export default function QuestionCard({
     }
   }, [timeRemaining, isTimeUp, onTimerUpdate])
 
+  const handleMediaReady = useCallback(() => {
+    if (mediaReadySentRef.current) return
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    setMediaReady(true)
+    mediaReadySentRef.current = true
+    if (isOnline(gameMode) && onMediaReady) {
+      setTimeout(() => onMediaReady(), 100)
+    }
+  }, [gameMode, onMediaReady])
+
   const handleSubmit = (playerId?: string, answerValue?: string) => {
     // Utiliser la valeur fournie en paramètre si disponible, sinon utiliser userAnswer
     const answerToUse = answerValue !== undefined ? answerValue : userAnswer
@@ -248,16 +270,15 @@ export default function QuestionCard({
     let isAnswerCorrect = false
 
     // En mode solo, valider immédiatement pour donner un feedback
-    if (gameMode === 'solo') {
+    if (isSolo(gameMode)) {
       // Utiliser la fonction de normalisation pour gérer les accents et caractères spéciaux
       isAnswerCorrect = compareAnswers(answer, question.answer)
 
       if (isAnswerCorrect) {
         setIsCorrect(true)
-        // Mettre à jour userAnswer avec la réponse correcte pour l'affichage
         setUserAnswer(answer)
-        // Ne pas vider le champ pour montrer la bonne réponse
-        // L'input sera désactivé par isCorrect
+        setIsTimeUp(true)
+        onTimeUp()
       } else {
         setIsCorrect(false)
         // Vider le champ pour permettre de réessayer
@@ -279,20 +300,17 @@ export default function QuestionCard({
     onAnswer(answer, timeRemaining, playerId)
 
     // En mode solo, si la réponse est correcte, garder hasSubmitted pour montrer le feedback
-    if (gameMode === 'solo' && isAnswerCorrect) {
+    if (isSolo(gameMode) && isAnswerCorrect) {
       // Ne pas réinitialiser hasSubmitted si c'est correct - on veut garder le feedback
       return
     }
 
     // En mode multijoueur ou si incorrect en solo, permettre de modifier après un délai
     // pour montrer le feedback visuel (icône check) mais permettre de modifier
-    if (gameMode === 'solo' && !isAnswerCorrect) {
-      // En solo, si ce n'est pas correct, permettre de réessayer après un délai
-      setTimeout(() => {
-        setHasSubmitted(false)
-        inputRefs.current['solo']?.focus()
-      }, 1500) // Délai pour voir le feedback visuel
-    } else if (gameMode !== 'solo') {
+    if (isSolo(gameMode) && !isAnswerCorrect) {
+      setHasSubmitted(false)
+      inputRefs.current['solo']?.focus()
+    } else if (!isSolo(gameMode)) {
       // En multijoueur, garder hasSubmitted pour montrer le feedback
       // Ne pas réinitialiser automatiquement - l'utilisateur peut modifier en tapant
       // hasSubmitted sera réinitialisé par handleAnswerChange quand l'utilisateur tape
@@ -346,48 +364,23 @@ export default function QuestionCard({
       <div className={`${gameStyles.mediaContainer} ${gameStyles.gameInterfaceMedia}`} data-testid="media-container">
         {question.mediaUrl && (
           <>
-            {waitingForGo && gameMode === 'online' && gameStep !== 'playing' && (
+            {waitingForGo && isOnline(gameMode) && gameStep !== 'playing' && (
               <MediaSyncOverlay gameStep={gameStep} mediaReady={mediaReady} />
             )}
             <MediaPlayer
               type={question.type}
               mediaUrl={question.mediaUrl}
               autoPlay={
-                gameMode === 'solo' ||
-                (gameMode === 'online' && shouldStartMedia && !waitingForGo && mediaReady)
+                isSolo(gameMode) ||
+                (isOnline(gameMode) && shouldStartMedia && !waitingForGo && mediaReady)
               }
               showVideo={isTimeUp}
               restartVideo={false}
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
               onVideoRestarted={() => {}}
-              shouldPause={shouldPause || (gameMode === 'online' && waitingForGo)}
+              shouldPause={shouldPause || (isOnline(gameMode) && waitingForGo)}
               onRevealVideoStart={onRevealVideoStart}
-              onMediaReady={() => {
-                // Éviter d'envoyer plusieurs fois game:ready pour la même question
-                if (mediaReadySentRef.current) {
-                  return
-                }
-
-                // Annuler le timeout car le média est chargé
-                if (timeoutRef.current) {
-                  clearTimeout(timeoutRef.current)
-                  timeoutRef.current = null
-                }
-
-                // Toujours marquer le média comme prêt pour le chargement
-                setMediaReady(true)
-                mediaReadySentRef.current = true
-
-                // En mode multijoueur, toujours signaler au serveur que le média est prêt
-                // même si on attend le signal "go" - c'est nécessaire pour que le serveur
-                // envoie le signal "go" quand tous les joueurs sont prêts
-                if (gameMode === 'online' && onMediaReady) {
-                  // Appeler onMediaReady de manière asynchrone pour s'assurer que le média est vraiment prêt
-                  setTimeout(() => {
-                    onMediaReady()
-                  }, 100)
-                }
-              }}
+              onMediaReady={handleMediaReady}
               onMediaStart={() => {
                 if (onMediaStart) {
                   onMediaStart()
@@ -400,7 +393,7 @@ export default function QuestionCard({
       </div>
 
       <div className={gameStyles.gameInterfaceAnswer}>
-        {gameMode === 'solo' ? (
+        {isSolo(gameMode) ? (
           <>
             <AnswerInput
               value={userAnswer}

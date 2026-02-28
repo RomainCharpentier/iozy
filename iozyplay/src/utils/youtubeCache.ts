@@ -1,7 +1,7 @@
 /**
  * Cache pour les métadonnées YouTube
  */
-import type { YouTubeMetadata } from './youtube'
+import type { YouTubeMetadata } from '@/utils/youtube'
 
 interface CacheEntry {
   metadata: YouTubeMetadata

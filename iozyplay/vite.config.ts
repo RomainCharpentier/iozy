@@ -10,12 +10,8 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: undefined
-      }
-    },
-    chunkSizeWarningLimit: 1000
+    target: 'esnext',
+    chunkSizeWarningLimit: 1000,
   },
   optimizeDeps: {
     include: []

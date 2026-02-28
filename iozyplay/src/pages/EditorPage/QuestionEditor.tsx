@@ -1,4 +1,4 @@
-import styles from './QuestionEditor.module.scss'
+import styles from '@/pages/EditorPage/QuestionEditor.module.scss'
 import ds from '@/styles/shared/DesignSystem.module.scss'
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'

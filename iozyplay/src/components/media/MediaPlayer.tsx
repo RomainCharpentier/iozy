@@ -1,10 +1,10 @@
-import styles from './MediaPlayer.module.scss'
+import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect } from 'react'
 import type { MediaType } from '@/types'
 import { isYouTubeUrl } from '@/utils/youtube'
-import YouTubePlayer from './players/YouTubePlayer'
-import AudioPlayer from './players/AudioPlayer'
-import VideoPlayer from './players/VideoPlayer'
+import YouTubePlayer from '@/components/media/players/YouTubePlayer'
+import AudioPlayer from '@/components/media/players/AudioPlayer'
+import VideoPlayer from '@/components/media/players/VideoPlayer'
 
 interface MediaPlayerProps {
   type: MediaType

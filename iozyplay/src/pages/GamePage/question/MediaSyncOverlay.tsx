@@ -1,5 +1,5 @@
-import gameStyles from '../Game.module.scss'
-import styles from './MediaSyncOverlay.module.scss'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
+import styles from '@/pages/GamePage/question/MediaSyncOverlay.module.scss'
 
 interface MediaSyncOverlayProps {
   gameStep: string

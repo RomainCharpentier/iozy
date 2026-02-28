@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './SettingsMenu.module.scss'
+import styles from '@/pages/SettingsPage/SettingsMenu.module.scss'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { settingsService, UserSettings } from '@/services/settingsService'

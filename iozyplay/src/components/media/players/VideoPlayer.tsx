@@ -1,7 +1,6 @@
-import styles from '../MediaPlayer.module.scss'
+import styles from '@/components/media/MediaPlayer.module.scss'
 import { useEffect, useRef, useState } from 'react'
 import Soundwave from '@/components/media/Soundwave'
-import { soundManager } from '@/utils/sounds'
 
 interface VideoPlayerProps {
   mediaUrl: string
@@ -137,14 +136,8 @@ export default function VideoPlayer({
     }
   }, [restartVideo, showVideo, onVideoRestarted])
 
-  // Détecter la transition guess -> reveal et jouer le son
+  // Mettre à jour previousShowVideoRef (le son de reveal est joué par Game.tsx)
   useEffect(() => {
-    // Détecter le changement de showVideo de false à true
-    if (showVideo && !previousShowVideoRef.current) {
-      // Transition vers la phase reveal - jouer le son
-      soundManager.playReveal()
-    }
-
     previousShowVideoRef.current = showVideo
   }, [showVideo])
 

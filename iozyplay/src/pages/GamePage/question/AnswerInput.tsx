@@ -1,9 +1,10 @@
-import styles from './AnswerInput.module.scss'
+import styles from '@/pages/GamePage/question/AnswerInput.module.scss'
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import type { Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
+import { isSolo } from '@/lib/game/gameMode'
 import { getPlayerId } from '@/utils/playerId'
 
 interface AnswerInputProps {
@@ -202,7 +203,7 @@ export default function AnswerInput({
     : {}
 
   // Gestion du bouton skip
-  const playerId = gameMode === 'solo' ? 'solo' : getPlayerId() || ''
+  const playerId = isSolo(gameMode) ? 'solo' : getPlayerId() || ''
   const hasVoted = skipVotes.has(playerId)
   const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
 

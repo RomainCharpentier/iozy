@@ -1,4 +1,4 @@
-import styles from './VideoImportPage.module.scss'
+import styles from '@/pages/EditorPage/VideoImportPage.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'

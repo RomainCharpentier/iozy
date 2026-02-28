@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './RoomConfigPanel.module.scss'
+import styles from '@/pages/RoomCreatorPage/ui/RoomConfigPanel.module.scss'
 import { type Category, type CategoryInfo, DEFAULT_CATEGORIES } from '@/types'
 import { loadCategories } from '@/services/categoryService'
 import { TIMING } from '@/services/gameService'

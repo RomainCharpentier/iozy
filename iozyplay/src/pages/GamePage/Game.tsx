@@ -1,14 +1,16 @@
-import gameStyles from './Game.module.scss'
-import { useState, useRef, useEffect, useCallback } from 'react'
-import QuestionCard from './question/QuestionCard'
-import Score from './ui/Score'
-import GameSettingsPopup from './settings/GameSettingsPopup'
-import GameTopBar from './ui/GameTopBar'
-import PlayersPanel from './ui/PlayersPanel'
-import GameLoadingState from './ui/GameLoadingState'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import QuestionCard from '@/pages/GamePage/question/QuestionCard'
+import Score from '@/pages/GamePage/ui/Score'
+import GameSettingsPopup from '@/pages/GamePage/settings/GameSettingsPopup'
+import GameTopBar from '@/pages/GamePage/ui/GameTopBar'
+import PlayersPanel from '@/pages/GamePage/ui/PlayersPanel'
+import GameLoadingState from '@/pages/GamePage/ui/GameLoadingState'
 import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
-import { getSocket, disconnectSocketIfConnected } from '@/utils/socket'
+import { isSolo, isOnline } from '@/lib/game/gameMode'
+import { getGameModeStrategy } from '@/lib/game/strategies'
+import { getSocket } from '@/utils/socket'
 import { getPlayerId } from '@/utils/playerId'
 import { GameService, TIMING } from '@/services/gameService'
 import { toast } from 'sonner'
@@ -34,27 +36,32 @@ export default function Game({
   onEndGame,
   onRestartWithNewCategories,
 }: GameProps) {
-  useEffect(() => {
-    if (gameMode === 'solo') {
-      disconnectSocketIfConnected()
-    }
-  }, [gameMode])
+  const soloAnswersRef = useRef<string[]>([])
+
+  const strategy = useMemo(
+    () =>
+      getGameModeStrategy(
+        gameMode,
+        isSolo(gameMode)
+          ? { soloAnswersRef }
+          : { roomCode: roomCode ?? null }
+      ),
+    [gameMode, roomCode]
+  )
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [gamePlayers, setGamePlayers] = useState<Player[]>(players)
   const [showScore, setShowScore] = useState(false)
   const [isHost, setIsHost] = useState(true)
-  const [gameStarted, setGameStarted] = useState(gameMode === 'solo')
+  const [gameStarted, setGameStarted] = useState(strategy.getInitialGameStarted())
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
-  // En mode multijoueur, initialiser avec un tableau vide car les questions viennent du serveur
   const [gameQuestions, setGameQuestions] = useState<Question[]>(
-    gameMode === 'online' ? [] : questions
+    strategy.getInitialQuestions(questions)
   )
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
-  // En mode multijoueur, initialiser avec un tableau vide car les questions viennent du serveur
-  const questionsRef = useRef<Question[]>(gameMode === 'online' ? [] : questions)
+  const questionsRef = useRef<Question[]>(strategy.getInitialQuestions(questions))
   const timeoutRefs = useRef<number[]>([])
   const revealTimerStartedRef = useRef<boolean>(false) // Pour éviter de démarrer le timer du reveal plusieurs fois
   const mediaStartTimeRef = useRef<number | null>(null) // Timestamp quand le média commence vraiment à jouer
@@ -68,7 +75,9 @@ export default function Game({
   const gameEndedRef = useRef<boolean>(false)
   const successSoundPlayedRef = useRef<boolean>(false) // Pour éviter que le son de fin joue plusieurs fois
   const lastSkipVoteTimeRef = useRef<number>(0) // Pour le debounce
-  const [waitingForGo, setWaitingForGo] = useState<boolean>(gameMode === 'online') // En mode multijoueur, on attend toujours le signal "go" au début
+  const [waitingForGo, setWaitingForGo] = useState<boolean>(
+    strategy.getInitialWaitingForGo()
+  )
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
   const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
   const handleTimeUpRef = useRef<(() => void) | null>(null) // Référence à handleTimeUp pour l'utiliser dans startTimerCalculation
@@ -77,10 +86,13 @@ export default function Game({
   const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont soumis une réponse (pendant le guess)
   const [validatedAnswers, setValidatedAnswers] = useState<Record<string, boolean>>({}) // Réponses validées par le serveur (mode multijoueur)
   const [playerAnswers, setPlayerAnswers] = useState<Record<string, string>>({}) // Réponses des joueurs
-  const soloAnswersRef = useRef<string[]>([]) // Réponses stockées en mode solo (non validées)
 
   const previousQuestionsRef = useRef<string>('')
   const gameInstanceKeyRef = useRef<number>(0)
+
+  useEffect(() => {
+    strategy.onMount?.()
+  }, [strategy])
 
   const resetGameState = useCallback(() => {
     setCurrentQuestionIndex(0)
@@ -88,7 +100,7 @@ export default function Game({
     setShowScore(false)
     setIsTimeUp(false)
     setTimeRemaining(0)
-    setWaitingForGo(gameMode === 'online')
+    setWaitingForGo(strategy.getInitialWaitingForGo())
     setGameStep('loading')
     setSkipVotes(new Set())
     setCorrectPlayers(new Set())
@@ -108,14 +120,14 @@ export default function Game({
     revealStartTimeRef.current = null
     revealStartTimeClientRef.current = null
     lastSkipVoteTimeRef.current = 0
-    soloAnswersRef.current = []
+    strategy.clearAnswersForNextQuestion?.()
 
     clearTimerInterval()
     timeoutRefs.current.forEach((timeoutId) => clearTimeout(timeoutId))
     timeoutRefs.current = []
 
     setGamePlayers(players.map((p) => ({ ...p, score: 0 })))
-  }, [gameMode, players])
+  }, [strategy, players])
 
   useEffect(() => {
     if (gameQuestions.length === 0) return
@@ -144,7 +156,7 @@ export default function Game({
 
   useEffect(() => {
     // En mode solo, utiliser les questions des props
-    if (gameMode === 'solo' && questions.length > 0) {
+    if (isSolo(gameMode) && questions.length > 0) {
       const questionsKey = JSON.stringify(questions.map((q) => q.id || q.mediaUrl))
       if (gameQuestions.length === 0 || previousQuestionsRef.current !== questionsKey) {
         setGameQuestions(questions)
@@ -158,7 +170,7 @@ export default function Game({
 
   useEffect(() => {
     if (gameQuestions.length === 0) {
-      if (gameMode === 'solo') {
+      if (isSolo(gameMode)) {
         toast.error(
           'Aucune question disponible. Veuillez sélectionner des catégories avec des questions.'
         )
@@ -187,18 +199,11 @@ export default function Game({
   }, [currentQuestionIndex, gameQuestions.length, showScore, gameMode, onEndGame])
 
   const leaveRoom = () => {
-    if (gameMode === 'online' && roomCode) {
-      const socket = getSocket()
-      if (socket && socket.connected) {
-        socket.emit('room:leave', { roomCode })
-      }
-    } else if (gameMode === 'solo') {
-      disconnectSocketIfConnected()
-    }
+    strategy.leaveRoom()
   }
 
-  const handleMediaReady = () => {
-    if (!gameMode || gameMode !== 'online' || !roomCode) {
+  const handleMediaReady = useCallback(() => {
+    if (!gameMode || !isOnline(gameMode) || !roomCode) {
       return
     }
 
@@ -233,7 +238,7 @@ export default function Game({
 
     // Si le signal "go" a déjà été reçu, programmer le démarrage du média au bon moment
     // (cela sera géré dans handleGameGo)
-  }
+  }, [gameMode, roomCode])
 
   const handleMediaStart = () => {
     // Le média commence vraiment à jouer maintenant
@@ -242,7 +247,7 @@ export default function Game({
     const currentQuestion = gameQuestions[currentQuestionIndex]
     let durationMs: number
 
-    if (gameMode === 'online') {
+    if (isOnline(gameMode)) {
       if (!gameDurationMsRef.current) {
         console.warn('[Game] handleMediaStart: gameDurationMsRef non disponible en mode online')
         return
@@ -259,6 +264,7 @@ export default function Game({
 
     const now = Date.now()
     mediaStartTimeRef.current = now
+    mediaReadyRef.current = true
 
     // Réinitialiser les états avant de démarrer le timer
     setIsTimeUp(false)
@@ -390,7 +396,7 @@ export default function Game({
           // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
           if (
             revealRemaining <= 0.5 &&
-            gameMode === 'solo' &&
+            isSolo(gameMode) &&
             handleTimeUpRef.current &&
             !gameEndedRef.current
           ) {
@@ -420,7 +426,7 @@ export default function Game({
         // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
         if (
           revealRemaining <= 0.5 &&
-          gameMode === 'solo' &&
+          isSolo(gameMode) &&
           handleTimeUpRef.current &&
           !gameEndedRef.current
         ) {
@@ -447,7 +453,7 @@ export default function Game({
 
       // En mode solo, définir revealStartTimeRef et revealStartTimeClientRef dès que isTimeUp devient true
       // et mettre à jour gameDurationMsRef avec la durée de reveal
-      if (newIsTimeUp && !isTimeUp && gameMode === 'solo') {
+      if (newIsTimeUp && !isTimeUp && isSolo(gameMode)) {
         if (revealStartTimeRef.current === null) {
           revealStartTimeRef.current = Date.now()
         }
@@ -468,7 +474,7 @@ export default function Game({
       if (
         newIsTimeUp &&
         !isTimeUp &&
-        gameMode === 'solo' &&
+        isSolo(gameMode) &&
         !revealTimerStartedRef.current &&
         handleTimeUpRef.current &&
         !gameEndedRef.current
@@ -489,14 +495,14 @@ export default function Game({
 
   // Initialiser waitingForGo en mode multijoueur
   useEffect(() => {
-    if (gameMode === 'online') {
+    if (isOnline(gameMode)) {
       setWaitingForGo(true)
     } else {
       setWaitingForGo(false)
     }
   }, [gameMode])
 
-  const handleRevealVideoStart = () => {
+  const handleRevealVideoStart = useCallback(() => {
     const now = Date.now()
     revealStartTimeClientRef.current = now
     revealStartTimeRef.current = now
@@ -512,10 +518,10 @@ export default function Game({
 
     // S'assurer que isTimeUp est true pour que le timer utilise la logique reveal
     setIsTimeUp(true)
-  }
+  }, [gameQuestions, currentQuestionIndex])
 
   useEffect(() => {
-    if (gameMode !== 'online' || !roomCode) return
+    if (!isOnline(gameMode) || !roomCode) return
 
     const socket = getSocket()
     if (!socket) return
@@ -775,7 +781,7 @@ export default function Game({
       setSkipVotes(new Set())
       setCorrectPlayers(new Set())
       setAnsweredPlayers(new Set())
-      soloAnswersRef.current = []
+      strategy.clearAnswersForNextQuestion?.()
 
       // Réinitialiser le debounce pour permettre le skip sur la nouvelle question
       lastSkipVoteTimeRef.current = 0
@@ -1039,60 +1045,27 @@ export default function Game({
     }
   }, [])
 
-  const handleTimerUpdate = (timeRemaining: number, isTimeUp: boolean) => {
+  const handleTimerUpdate = useCallback((timeRemaining: number, isTimeUp: boolean) => {
     setTimeRemaining(timeRemaining)
     setIsTimeUp(isTimeUp)
-  }
+  }, [])
 
   const handleAnswer = (answer: string, _timeRemaining: number, _playerId?: string) => {
     if (showScore) return
     if (isTransitioningRef.current) return
 
-    // En mode multijoueur, stocker la réponse sans la valider
-    if (gameMode === 'online' && roomCode) {
-      const socket = getSocket()
-      if (socket) {
-        socket.emit('game:answer', {
-          roomCode,
-          answer: answer.trim(),
-        })
-      }
-      // La validation se fera à la fin du guess (timer ou skip)
-      return
-    }
-
-    // En mode solo, stocker la réponse sans la valider
-    // La validation se fera à la fin du guess (timer ou skip)
-    // answer est déjà trim()-ée dans handleSubmit
-    soloAnswersRef.current.push(answer)
+    strategy.submitAnswer(answer)
   }
 
-  // Valider les réponses en mode solo
-  const validateSoloAnswers = () => {
-    const currentQuestion = gameQuestions[currentQuestionIndex]
-    if (!currentQuestion) return
-
-    const correctAnswer = currentQuestion.answer.toLowerCase().trim()
-    let hasCorrect = false
-
-    // Vérifier toutes les réponses stockées
-    for (const answer of soloAnswersRef.current) {
-      const isCorrect = answer.toLowerCase().trim() === correctAnswer
-      if (isCorrect) {
-        hasCorrect = true
-        break
-      }
-    }
-
-    // Si une réponse est correcte, donner le point et surligner
-    if (hasCorrect) {
-      setScore((prev) => prev + 1)
-      setCorrectPlayers(new Set(['solo']))
-    }
-
-    // Réinitialiser les réponses stockées
-    soloAnswersRef.current = []
-  }
+  const validateAnswers = useCallback(() => {
+    strategy.validateAnswers({
+      gameQuestions,
+      currentQuestionIndex,
+      soloAnswersRef,
+      setScore,
+      setCorrectPlayers,
+    })
+  }, [strategy, gameQuestions, currentQuestionIndex])
 
   const handleSkipVote = useCallback(() => {
     const now = Date.now()
@@ -1112,7 +1085,7 @@ export default function Game({
     }
 
     // Vérifier si le joueur a déjà voté skip
-    const playerId = gameMode === 'solo' ? 'solo' : getPlayerId() || ''
+    const playerId = strategy.getPlayerId()
     if (skipVotes.has(playerId)) {
       return
     }
@@ -1120,7 +1093,7 @@ export default function Game({
     // Mettre à jour le timestamp du dernier clic
     lastSkipVoteTimeRef.current = now
 
-    if (gameMode === 'online' && roomCode) {
+    if (isOnline(gameMode) && roomCode) {
       const socket = getSocket()
       if (socket) {
         socket.emit('game:skip-vote', { roomCode })
@@ -1141,7 +1114,7 @@ export default function Game({
         clearTimerInterval()
 
         // Valider les réponses
-        validateSoloAnswers()
+        validateAnswers()
 
         // Initialiser le timer du reveal
         const revealNow = Date.now()
@@ -1187,12 +1160,12 @@ export default function Game({
       }
     }
   }, [
-    gameMode,
+    strategy,
     isTimeUp,
     roomCode,
     waitingForGo,
     skipVotes,
-    validateSoloAnswers,
+    validateAnswers,
     gameQuestions,
     currentQuestionIndex,
   ])
@@ -1207,11 +1180,11 @@ export default function Game({
       soundManager.playReveal()
     }
 
-    if (gameMode === 'solo') {
+    if (isSolo(gameMode)) {
       // En mode solo, valider les réponses à la fin du guess
       if (!isTimeUp) {
         // Phase guess : valider les réponses avant de passer au reveal
-        validateSoloAnswers()
+        validateAnswers()
         setIsTimeUp(true)
         return // Ne pas passer à la question suivante, juste passer au reveal
       }
@@ -1222,6 +1195,11 @@ export default function Game({
       setPlayerAnswers({}) // Réinitialiser les réponses pour la nouvelle question
 
       const timeoutId = window.setTimeout(() => {
+        gameStartedAtRef.current = null
+        gameDurationMsRef.current = null
+        revealStartTimeRef.current = null
+        revealStartTimeClientRef.current = null
+
         setCurrentQuestionIndex((prev) => {
           const totalQuestions = questionsRef.current.length
           if (GameService.canGoToNextQuestion(prev, totalQuestions)) {
@@ -1243,7 +1221,7 @@ export default function Game({
         })
       }, TIMING.REVEAL_DELAY)
       timeoutRefs.current.push(timeoutId)
-    } else if (gameMode === 'online') {
+    } else if (isOnline(gameMode)) {
       // En mode multijoueur, le serveur gère le timer et décide quand passer à la question suivante
       // Le serveur enverra game:next quand le timer expire
       questionAnsweredByRef.current = null
@@ -1255,11 +1233,15 @@ export default function Game({
     handleTimeUpRef.current = handleTimeUp
   }, [handleTimeUp])
 
+  const handleScoreSoundPlayed = useCallback(() => {
+    successSoundPlayedRef.current = true
+  }, [])
+
   const handleRestart = () => {
     resetGameState()
     gameInstanceKeyRef.current += 1
 
-    if (gameMode === 'online' && roomCode) {
+    if (isOnline(gameMode) && roomCode) {
       const socket = getSocket()
       if (socket) {
         socket.emit('game:restart', { roomCode })
@@ -1286,7 +1268,7 @@ export default function Game({
     questionAnsweredByRef.current = null
     isTransitioningRef.current = false
 
-    if (gameMode === 'online' && roomCode) {
+    if (isOnline(gameMode) && roomCode) {
       const socket = getSocket()
       if (socket) {
         socket.emit('game:restart-with-categories', {
@@ -1315,7 +1297,7 @@ export default function Game({
   }
 
   // En mode multijoueur, gérer différemment l'absence de questions
-  if (gameMode === 'online') {
+  if (isOnline(gameMode)) {
     if (!gameStarted) {
       return (
         <GameLoadingState
@@ -1372,16 +1354,14 @@ export default function Game({
   }
 
   return (
-    <div className={`${gameStyles.game} ${gameStyles.gameInterfaceLayout}`} data-testid="game-screen">
+    <div className={gameStyles.gameScreen} data-testid="game-screen">
       <GameTopBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={gameQuestions.length}
         currentQuestion={currentQuestion}
         timeRemaining={timeRemaining}
         isTimeUp={isTimeUp}
-        score={
-          gameMode === 'solo' ? score : gamePlayers.find((p) => p.id === getPlayerId())?.score || 0
-        }
+        score={strategy.getDisplayScore(score, gamePlayers)}
         onQuit={() => {
           leaveRoom()
           onEndGame()
@@ -1393,14 +1373,14 @@ export default function Game({
       {/* Main: Zone media/waveform centrée */}
       <div className={gameStyles.gameMain} data-testid="game-main">
         <div
-          className={`${gameStyles.gameInterfaceBody} ${gameMode !== 'online' ? gameStyles.gameInterfaceBodyNoSidebar : ''} ${showScore && gameMode === 'solo' ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
+          className={`${gameStyles.gameInterfaceBody} ${!isOnline(gameMode) ? gameStyles.gameInterfaceBodyNoSidebar : ''} ${showScore && isSolo(gameMode) ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
           id="game-interface-body"
         >
           {showScore ? (
             <>
               <div className={gameStyles.gameInterfaceGame}>
                 <Score
-                  score={gameMode === 'solo' ? score : 0}
+                  score={strategy.getDisplayScore(score, gamePlayers)}
                   totalQuestions={gameQuestions.length}
                   gameMode={gameMode}
                   players={gamePlayers}
@@ -1410,12 +1390,10 @@ export default function Game({
                   onQuit={onEndGame}
                   isPopup={false}
                   shouldPlaySound={!successSoundPlayedRef.current}
-                  onSoundPlayed={() => {
-                    successSoundPlayedRef.current = true
-                  }}
+                  onSoundPlayed={handleScoreSoundPlayed}
                 />
               </div>
-              {gameMode === 'online' && (
+              {isOnline(gameMode) && (
                 <div className={gameStyles.gamePlayersPanel}>
                   <PlayersPanel
                     players={gamePlayers}
@@ -1445,25 +1423,25 @@ export default function Game({
                 questionAnsweredBy={questionAnsweredByRef.current}
                 shouldPause={showSettingsPopup}
                 onTimerUpdate={handleTimerUpdate}
-                onMediaReady={gameMode === 'online' ? handleMediaReady : undefined}
+                onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}
                 onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
                 onRevealVideoStart={handleRevealVideoStart}
                 waitingForGo={waitingForGo}
                 gameStep={gameStep}
-                externalTimeRemaining={gameMode === 'online' ? timeRemaining : undefined}
-                externalIsTimeUp={gameMode === 'online' ? isTimeUp : undefined}
+                externalTimeRemaining={isOnline(gameMode) ? timeRemaining : undefined}
+                externalIsTimeUp={isOnline(gameMode) ? isTimeUp : undefined}
                 skipVotes={skipVotes}
                 correctPlayers={correctPlayers}
                 startTime={
-                  gameMode === 'online' ? revealStartTimeRef.current || undefined : undefined
+                  isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
                 }
                 isGameEnded={gameEndedRef.current}
                 isMediaReady={mediaReadyRef.current && !waitingForGo}
                 allQuestions={gameQuestions}
-                validatedAnswers={gameMode === 'online' ? validatedAnswers : undefined}
+                validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
               />
 
-              {gameMode === 'online' && (
+              {isOnline(gameMode) && (
                 <div className={gameStyles.gamePlayersPanel}>
                   <PlayersPanel
                     players={gamePlayers}

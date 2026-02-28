@@ -1,5 +1,5 @@
 import ds from '@/styles/shared/DesignSystem.module.scss'
-import styles from './RoomConnectingState.module.scss'
+import styles from '@/pages/RoomCreatorPage/ui/RoomConnectingState.module.scss'
 
 interface RoomConnectingStateProps {
   isConnecting: boolean

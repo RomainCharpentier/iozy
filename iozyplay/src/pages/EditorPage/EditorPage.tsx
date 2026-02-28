@@ -1,11 +1,11 @@
-import styles from './EditorPage.module.scss'
+import styles from '@/pages/EditorPage/EditorPage.module.scss'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { QuestionService } from '@/services/questionService'
 import type { Question } from '@/types'
-import QuestionEditor from './QuestionEditor'
-import CategoryManager from './CategoryManager'
+import QuestionEditor from '@/pages/EditorPage/QuestionEditor'
+import CategoryManager from '@/pages/EditorPage/CategoryManager'
 
 type EditorTab = 'questions' | 'categories'
 

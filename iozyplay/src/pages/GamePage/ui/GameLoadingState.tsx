@@ -1,4 +1,4 @@
-import gameStyles from '../Game.module.scss'
+import gameStyles from '@/pages/GamePage/Game.module.scss'
 
 interface GameLoadingStateProps {
   message: string
