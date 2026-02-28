@@ -206,13 +206,15 @@ export default function VideoPlayer({
       style={{
         width: '100%',
         height: '100%',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        gap: '20px',
+        gap: 0,
         boxSizing: 'border-box',
+        overflow: 'hidden',
       }}
     >
       <div
@@ -234,7 +236,7 @@ export default function VideoPlayer({
           pointerEvents: showVideo ? 'none' : 'auto',
           zIndex: showVideo ? 0 : 5,
           willChange: 'opacity',
-          padding: '2rem',
+          padding: '0.5rem',
           boxSizing: 'border-box',
         }}
       >
@@ -263,7 +265,7 @@ export default function VideoPlayer({
           transform: showVideo ? 'scale(1)' : 'scale(0.94)',
           filter: showVideo ? 'brightness(1) contrast(1)' : 'brightness(0.6) contrast(0.8)',
           willChange: showVideo ? 'opacity, transform, filter' : 'auto',
-          padding: '2rem',
+          padding: '0.5rem',
           boxSizing: 'border-box',
         }}
       >
@@ -273,10 +275,10 @@ export default function VideoPlayer({
           controls={showVideo}
           muted={!showVideo}
           style={{
-            width: 'auto',
-            height: 'auto',
-            maxHeight: '70vh',
-            maxWidth: '90%',
+            width: '100%',
+            height: '100%',
+            maxHeight: '100%',
+            maxWidth: '100%',
             objectFit: 'contain',
             borderRadius: '0.5rem',
             boxShadow: showVideo ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',

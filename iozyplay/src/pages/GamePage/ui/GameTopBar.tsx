@@ -65,28 +65,24 @@ export default function GameTopBar({
             </div>
           </div>
         </div>
-        <div className={gameStyles.gameInterfaceTimerSection}>
-          <div className={gameStyles.gameInterfaceTimerIcon} style={{ fontSize: '20px' }}>
-            {isGameEnded ? '🏁' : '⏱️'}
+        <div className={gameStyles.gameInterfaceMeta}>
+          <div className={gameStyles.gameInterfaceTimerSection}>
+            <div className={gameStyles.gameInterfaceTimerIcon}>
+              {isGameEnded ? '🏁' : '⏱️'}
+            </div>
+            <div className={gameStyles.gameInterfaceTimerValue}>
+              {isGameEnded ? 'Terminé' : formatTime(timeRemaining)}
+            </div>
           </div>
-          <div className={gameStyles.gameInterfaceTimerValue}>
-            {isGameEnded ? 'Terminé' : formatTime(timeRemaining)}
+          <div className={gameStyles.gameInterfaceScoreSection}>
+            <div className={gameStyles.gameInterfaceScoreLabel}>
+              {isGameEnded ? 'Score final' : 'Score'}
+            </div>
+            <div className={gameStyles.gameInterfaceScoreValue}>{score}</div>
           </div>
-        </div>
-        <div className={gameStyles.gameInterfaceScoreSection}>
-          <div className={gameStyles.gameInterfaceScoreLabel}>{isGameEnded ? 'Score Final' : 'Score'}</div>
-          <div className={gameStyles.gameInterfaceScoreValue}>{score}</div>
         </div>
       </div>
       <div className={gameStyles.gameInterfaceHeaderActions}>
-        <button
-          className={gameStyles.gameInterfaceActionBtn}
-          title="Fichiers"
-          aria-label="Fichiers"
-          disabled
-        >
-          <span style={{ fontSize: '18px' }}>📁</span>
-        </button>
         {onSettings && (
           <button
             className={gameStyles.gameInterfaceActionBtn}
@@ -96,7 +92,7 @@ export default function GameTopBar({
             }}
             title="Paramètres"
           >
-            <span style={{ fontSize: '18px' }}>⚙️</span>
+            <span className={gameStyles.gameInterfaceActionIcon}>⚙️</span>
           </button>
         )}
         <button
@@ -109,7 +105,7 @@ export default function GameTopBar({
           title="Quitter"
           aria-label="Quitter la partie"
         >
-          <span style={{ fontSize: '18px' }}>🚪</span>
+          <span className={gameStyles.gameInterfaceActionIcon}>🚪</span>
         </button>
       </div>
     </div>

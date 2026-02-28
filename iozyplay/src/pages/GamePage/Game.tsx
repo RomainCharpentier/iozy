@@ -1393,7 +1393,7 @@ export default function Game({
       {/* Main: Zone media/waveform centrée */}
       <div className={gameStyles.gameMain} data-testid="game-main">
         <div
-          className={`${gameStyles.gameInterfaceBody} ${showScore && gameMode === 'solo' ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
+          className={`${gameStyles.gameInterfaceBody} ${gameMode !== 'online' ? gameStyles.gameInterfaceBodyNoSidebar : ''} ${showScore && gameMode === 'solo' ? gameStyles.gameInterfaceBodySoloEnd : ''}`}
           id="game-interface-body"
         >
           {showScore ? (
