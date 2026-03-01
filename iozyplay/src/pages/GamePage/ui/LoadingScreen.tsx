@@ -1,18 +1,18 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
 
-interface GameLoadingStateProps {
+interface LoadingScreenProps {
   message: string
   subMessage?: string
   showSpinner?: boolean
   onBack?: () => void
 }
 
-export default function GameLoadingState({
+export default function LoadingScreen({
   message,
   subMessage,
   showSpinner = true,
   onBack,
-}: GameLoadingStateProps) {
+}: LoadingScreenProps) {
   return (
     <div className={gameStyles.noQuestions}>
       <div className={gameStyles.loadingState}>

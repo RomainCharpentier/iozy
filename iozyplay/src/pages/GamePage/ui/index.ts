@@ -1,4 +1,6 @@
 export { default as GameTopBar } from '@/pages/GamePage/ui/GameTopBar'
 export { default as PlayersPanel } from '@/pages/GamePage/ui/PlayersPanel'
-export { default as GameLoadingState } from '@/pages/GamePage/ui/GameLoadingState'
+export { default as LoadingScreen } from '@/pages/GamePage/ui/LoadingScreen'
 export { default as Score } from '@/pages/GamePage/ui/Score'
+export { default as RoundScreen } from '@/pages/GamePage/ui/RoundScreen'
+export { default as EndScreen } from '@/pages/GamePage/ui/EndScreen'

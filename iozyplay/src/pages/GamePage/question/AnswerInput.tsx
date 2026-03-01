@@ -57,8 +57,9 @@ export default function AnswerInput({
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [open, setOpen] = useState(false)
+  const [hasSelectedSuggestion, setHasSelectedSuggestion] = useState(false)
+  const [lastSubmittedValue, setLastSubmittedValue] = useState('')
   const contentRef = useRef<HTMLDivElement>(null)
-  const lastSubmittedValueRef = useRef<string>('') // Valeur au moment où on a appuyé sur Enter
 
   // Générer les suggestions avec debounce léger
   useEffect(() => {
@@ -66,12 +67,15 @@ export default function AnswerInput({
     if (hasSubmitted) {
       setOpen(false)
       setSelectedIndex(-1)
+      setHasSelectedSuggestion(false)
+      setLastSubmittedValue('')
       return
     }
 
     if (disabled || !value.trim() || value.length < 2) {
       setSuggestions([])
       setOpen(false)
+      setHasSelectedSuggestion(false)
       return
     }
 
@@ -84,7 +88,6 @@ export default function AnswerInput({
     const searchTerm = value.toLowerCase().trim()
 
     // Inclure toutes les questions pour les suggestions (même la question actuelle)
-    // car on veut pouvoir suggérer toutes les réponses possibles
     const questionsWithAnswers = allQuestions.filter((q) => q.answer && q.answer.trim().length > 0)
 
     const allAnswers = questionsWithAnswers
@@ -96,22 +99,21 @@ export default function AnswerInput({
       .slice(0, 5)
 
     setSuggestions(matching)
-    // Les suggestions réapparaissent automatiquement quand value change et correspond
-    // Mais seulement si la valeur a vraiment changé depuis la dernière soumission (Enter)
-    if (matching.length > 0) {
-      // Ouvrir seulement si la valeur actuelle est différente de celle qu'on avait au moment d'Enter
-      // ou si on n'a jamais soumis (lastSubmittedValueRef est vide)
-      if (value !== lastSubmittedValueRef.current || !lastSubmittedValueRef.current) {
+    // Ne pas rouvrir si l'utilisateur a sélectionné une suggestion puis réécrit
+    if (hasSelectedSuggestion) {
+      setOpen(false)
+    } else if (matching.length > 0) {
+      // Ouvrir seulement si la valeur actuelle est différente de celle soumise
+      if (value !== lastSubmittedValue || !lastSubmittedValue) {
         setOpen(true)
       } else {
-        // Même valeur qu'au moment d'Enter, ne pas rouvrir
         setOpen(false)
       }
     } else {
       setOpen(false)
     }
     setSelectedIndex(-1)
-  }, [value, allQuestions, currentQuestionId, disabled, hasSubmitted])
+  }, [value, allQuestions, currentQuestionId, disabled, hasSubmitted, hasSelectedSuggestion, lastSubmittedValue])
 
   // Scroll automatique vers la suggestion sélectionnée
   useEffect(() => {
@@ -128,30 +130,21 @@ export default function AnswerInput({
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      // Si une suggestion est sélectionnée, l'utiliser
+      e.preventDefault()
       if (open && selectedIndex >= 0 && suggestions[selectedIndex]) {
-        e.preventDefault()
         const selectedSuggestion = suggestions[selectedIndex]
-        // Mettre à jour la valeur d'abord, puis soumettre après un court délai
-        // pour laisser le temps au state de se mettre à jour
+        setHasSelectedSuggestion(true)
         onChange(selectedSuggestion)
         setOpen(false)
         setSelectedIndex(-1)
-        // Mémoriser la valeur soumise pour éviter de rouvrir immédiatement
-        lastSubmittedValueRef.current = selectedSuggestion
-        // Soumettre automatiquement la suggestion sélectionnée
-        // Passer directement la valeur sélectionnée pour éviter les problèmes de timing
-        setTimeout(() => {
-          onSubmit(selectedSuggestion)
-        }, 50)
+        setLastSubmittedValue(selectedSuggestion)
+        onSubmit(selectedSuggestion)
       } else {
-        // Sinon, soumettre la réponse actuelle et fermer les suggestions
         if (open) {
           setOpen(false)
           setSelectedIndex(-1)
         }
-        // Mémoriser la valeur soumise pour éviter de rouvrir immédiatement
-        lastSubmittedValueRef.current = value
+        setLastSubmittedValue(value)
         onSubmit()
       }
     } else if (e.key === 'ArrowDown') {
@@ -177,16 +170,10 @@ export default function AnswerInput({
   }
 
   const handleSuggestionClick = (suggestion: string) => {
+    setHasSelectedSuggestion(true)
     onChange(suggestion)
     setOpen(false)
     setSelectedIndex(-1)
-    // Mémoriser la valeur soumise pour éviter de rouvrir immédiatement
-    lastSubmittedValueRef.current = suggestion
-    // Soumettre automatiquement la suggestion sélectionnée
-    // Passer directement la valeur sélectionnée pour éviter les problèmes de timing
-    setTimeout(() => {
-      onSubmit(suggestion)
-    }, 50)
   }
 
   // Fermer les suggestions si une réponse a été soumise ou si on est en phase reveal
@@ -205,7 +192,9 @@ export default function AnswerInput({
   // Gestion du bouton skip
   const playerId = isSolo(gameMode) ? 'solo' : getPlayerId() || ''
   const hasVoted = skipVotes.has(playerId)
-  const canSkip = !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
+  const canSkip = Boolean(
+    !isGameEnded && isMediaReady && !waitingForGo && !hasVoted && onSkipVote
+  )
 
   return (
     <Popover.Root
@@ -261,8 +250,12 @@ export default function AnswerInput({
             </div>
             {canSkip && (
               <button
+                type="button"
                 className={styles.skipBtn}
-                onClick={onSkipVote}
+                onClick={() => {
+                  setOpen(false)
+                  onSkipVote?.()
+                }}
                 disabled={!canSkip}
                 title={
                   isGameEnded

@@ -6,7 +6,6 @@ import { isSolo, isOnline } from '@/lib/game/gameMode'
 import MediaPlayer from '@/components/media/MediaPlayer'
 import AnswerInput from '@/pages/GamePage/question/AnswerInput'
 import MediaSyncOverlay from '@/pages/GamePage/question/MediaSyncOverlay'
-import { soundManager } from '@/utils/sounds'
 import { TIMING } from '@/services/gameService'
 import { getPlayerId } from '@/utils/playerId'
 import { compareAnswers } from '@/utils/answerNormalization'
@@ -18,20 +17,19 @@ import { loadCategories } from '@/services/categoryService'
 interface QuestionCardProps {
   question: Question
   onAnswer: (answer: string, timeRemaining: number, playerId?: string) => void // Modifié pour accepter la réponse (string) au lieu de isCorrect
-  onTimeUp: () => void
+  onPhaseEnd: () => void
   onSkipVote?: () => void // Fonction pour voter skip
   gameMode?: GameMode
   players?: Player[]
   questionAnsweredBy?: string | null
   shouldPause?: boolean
-  onTimerUpdate?: (timeRemaining: number, isTimeUp: boolean) => void
   onMediaReady?: () => void
   onMediaStart?: () => void // Appelé quand le média commence vraiment à jouer
   onRevealVideoStart?: () => void // Callback appelé quand la vidéo display démarre en phase reveal
   waitingForGo?: boolean
   gameStep?: string // loading, ready, starting, playing
   externalTimeRemaining?: number // Temps restant depuis le parent (pour mode multijoueur)
-  externalIsTimeUp?: boolean // État isTimeUp depuis le parent (pour mode multijoueur)
+  externalIsRevealPhase?: boolean
   skipVotes?: Set<string> // Joueurs qui ont voté skip
   correctPlayers?: Set<string> // Joueurs qui ont répondu correctement (pour surlignage vert)
   startTime?: number // Timestamp serveur pour synchroniser le démarrage (pour mode multijoueur)
@@ -44,20 +42,19 @@ interface QuestionCardProps {
 export default function QuestionCard({
   question,
   onAnswer,
-  onTimeUp,
+  onPhaseEnd,
   onSkipVote,
   gameMode = 'solo',
   players = [],
   questionAnsweredBy = null,
   shouldPause = false,
-  onTimerUpdate,
   onMediaReady,
   onMediaStart,
   onRevealVideoStart,
   waitingForGo = false,
   gameStep = 'loading',
   externalTimeRemaining,
-  externalIsTimeUp,
+  externalIsRevealPhase,
   skipVotes = new Set(),
   correctPlayers = new Set(),
   startTime,
@@ -91,19 +88,16 @@ export default function QuestionCard({
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(
     question.timeLimit || TIMING.DEFAULT_TIME_LIMIT
   )
-  const [localIsTimeUp, setLocalIsTimeUp] = useState<boolean>(false)
+  const [localIsRevealPhase, setLocalIsRevealPhase] = useState<boolean>(false)
   const [mediaReady, setMediaReady] = useState<boolean>(false)
   const [shouldStartMedia, setShouldStartMedia] = useState<boolean>(false)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const focusTimeoutRef = useRef<number | null>(null)
 
-  // Utiliser les valeurs externes en mode multijoueur, sinon les valeurs locales
   const timeRemaining =
-    isOnline(gameMode) && externalTimeRemaining !== undefined
-      ? externalTimeRemaining
-      : localTimeRemaining
-  const isTimeUp =
-    isOnline(gameMode) && externalIsTimeUp !== undefined ? externalIsTimeUp : localIsTimeUp
+    externalTimeRemaining !== undefined ? externalTimeRemaining : localTimeRemaining
+  const isRevealPhase =
+    externalIsRevealPhase !== undefined ? externalIsRevealPhase : localIsRevealPhase
 
   // En mode multijoueur, déterminer si le joueur actuel a répondu correctement
   const currentPlayerId = isOnline(gameMode) ? getPlayerId() : null
@@ -118,9 +112,9 @@ export default function QuestionCard({
       setLocalTimeRemaining(value)
     }
   }
-  const setIsTimeUp = (value: boolean) => {
+  const setIsRevealPhase = (value: boolean) => {
     if (isSolo(gameMode)) {
-      setLocalIsTimeUp(value)
+      setLocalIsRevealPhase(value)
     }
   }
 
@@ -185,7 +179,7 @@ export default function QuestionCard({
     }, 100)
 
     setTimeRemaining(question.timeLimit || TIMING.DEFAULT_TIME_LIMIT)
-    setIsTimeUp(false)
+    setIsRevealPhase(false)
 
     return () => {
       if (timeoutRef.current) {
@@ -209,43 +203,7 @@ export default function QuestionCard({
     }
   }, [waitingForGo, gameMode, shouldStartMedia])
 
-  useEffect(() => {
-    const hasAnswered = isSolo(gameMode) ? isCorrect : questionAnsweredBy !== null
-
-    // En mode multijoueur, utiliser le timer externe (géré par Game.tsx)
-    // mais seulement si on n'attend plus le "go"
-    if (isOnline(gameMode)) {
-      // Le timer est géré par le parent (Game.tsx) via externalTimeRemaining et externalIsTimeUp
-      // On ne fait rien ici, le parent gère le timer
-      return
-    }
-
-    // Mode solo : gérer le timer localement
-    if (hasAnswered || isTimeUp || !mediaReady) return
-
-    const timer = setInterval(() => {
-      setTimeRemaining((prev: number) => {
-        if (prev <= 1) {
-          setIsTimeUp(true)
-          soundManager.playCountdownEnd()
-          onTimeUp()
-          return 0
-        }
-        if (prev === TIMING.COUNTDOWN_WARNING_THRESHOLD) {
-          soundManager.playClick()
-        }
-        return prev - 1
-      })
-    }, TIMING.TIMER_INTERVAL)
-
-    return () => clearInterval(timer)
-  }, [isCorrect, isTimeUp, questionAnsweredBy, gameMode, mediaReady])
-
-  useEffect(() => {
-    if (onTimerUpdate) {
-      onTimerUpdate(timeRemaining, isTimeUp)
-    }
-  }, [timeRemaining, isTimeUp, onTimerUpdate])
+  // Timer géré par Game - QuestionCard affiche les valeurs reçues en props
 
   const handleMediaReady = useCallback(() => {
     if (mediaReadySentRef.current) return
@@ -264,7 +222,7 @@ export default function QuestionCard({
     // Utiliser la valeur fournie en paramètre si disponible, sinon utiliser userAnswer
     const answerToUse = answerValue !== undefined ? answerValue : userAnswer
 
-    if (!answerToUse.trim() || isTimeUp) return
+    if (!answerToUse.trim() || isRevealPhase) return
 
     const answer = answerToUse.trim()
     let isAnswerCorrect = false
@@ -277,8 +235,10 @@ export default function QuestionCard({
       if (isAnswerCorrect) {
         setIsCorrect(true)
         setUserAnswer(answer)
-        setIsTimeUp(true)
-        onTimeUp()
+        setIsRevealPhase(true)
+        // IMPORTANT: onAnswer AVANT onPhaseEnd pour que validateAnswers trouve la réponse dans soloAnswersRef
+        onAnswer(answer, timeRemaining, playerId)
+        onPhaseEnd()
       } else {
         setIsCorrect(false)
         // Vider le champ pour permettre de réessayer
@@ -291,13 +251,15 @@ export default function QuestionCard({
       }
     }
 
-    // Stocker la réponse sans la valider (validation à la fin du guess)
+    // Validation finale faite en fin de phase guess (timer ou skip)
     setAttempts((prev) => prev + 1)
     setHasSubmitted(true) // Marquer qu'une réponse a été soumise (pour le feedback visuel)
 
     // Envoyer la réponse au parent (qui la stockera côté serveur en multijoueur)
-    // Utiliser answer qui vient de answerToUse (valeur passée ou userAnswer)
-    onAnswer(answer, timeRemaining, playerId)
+    // En solo correct: déjà fait plus haut. En solo incorrect ou multi: faire ici
+    if (!(isSolo(gameMode) && isAnswerCorrect)) {
+      onAnswer(answer, timeRemaining, playerId)
+    }
 
     // En mode solo, si la réponse est correcte, garder hasSubmitted pour montrer le feedback
     if (isSolo(gameMode) && isAnswerCorrect) {
@@ -374,7 +336,7 @@ export default function QuestionCard({
                 isSolo(gameMode) ||
                 (isOnline(gameMode) && shouldStartMedia && !waitingForGo && mediaReady)
               }
-              showVideo={isTimeUp}
+              showVideo={isRevealPhase}
               restartVideo={false}
               timeLimit={question.timeLimit || TIMING.DEFAULT_TIME_LIMIT}
               onVideoRestarted={() => {}}
@@ -399,16 +361,16 @@ export default function QuestionCard({
               value={userAnswer}
               onChange={handleAnswerChange}
               onSubmit={(value) => handleSubmit(undefined, value)}
-              disabled={isCorrect || isTimeUp}
+              disabled={isCorrect || isRevealPhase}
               inputRef={(el) => {
                 inputRefs.current['solo'] = el
               }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
-              isReveal={isTimeUp}
-              isCorrect={isTimeUp ? isCorrect : undefined}
-              correctAnswer={isTimeUp ? question.answer : undefined}
+              isReveal={isRevealPhase}
+              isCorrect={isRevealPhase ? isCorrect : undefined}
+              correctAnswer={isRevealPhase ? question.answer : undefined}
               onSkipVote={onSkipVote}
               skipVotes={skipVotes}
               gameMode={gameMode}
@@ -424,16 +386,16 @@ export default function QuestionCard({
               value={userAnswer}
               onChange={handleAnswerChange}
               onSubmit={(value) => handleSubmit(undefined, value)}
-              disabled={questionAnsweredBy !== null || isTimeUp}
+              disabled={questionAnsweredBy !== null || isRevealPhase}
               inputRef={(el) => {
                 inputRefs.current['online'] = el
               }}
               hasSubmitted={hasSubmitted}
               allQuestions={allQuestions}
               currentQuestionId={question.id}
-              isReveal={isTimeUp}
-              isCorrect={isTimeUp ? isCurrentPlayerCorrect : undefined}
-              correctAnswer={isTimeUp ? question.answer : undefined}
+              isReveal={isRevealPhase}
+              isCorrect={isRevealPhase ? isCurrentPlayerCorrect : undefined}
+              correctAnswer={isRevealPhase ? question.answer : undefined}
               onSkipVote={onSkipVote}
               skipVotes={skipVotes}
               gameMode={gameMode}

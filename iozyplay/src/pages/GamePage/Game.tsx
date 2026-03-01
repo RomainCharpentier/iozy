@@ -1,11 +1,10 @@
 import gameStyles from '@/pages/GamePage/Game.module.scss'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import QuestionCard from '@/pages/GamePage/question/QuestionCard'
-import Score from '@/pages/GamePage/ui/Score'
 import GameSettingsPopup from '@/pages/GamePage/settings/GameSettingsPopup'
 import GameTopBar from '@/pages/GamePage/ui/GameTopBar'
-import PlayersPanel from '@/pages/GamePage/ui/PlayersPanel'
-import GameLoadingState from '@/pages/GamePage/ui/GameLoadingState'
+import RoundScreen from '@/pages/GamePage/ui/RoundScreen'
+import EndScreen from '@/pages/GamePage/ui/EndScreen'
+import LoadingScreen from '@/pages/GamePage/ui/LoadingScreen'
 import type { Category, Question } from '@/types'
 import type { GameMode, Player } from '@/lib/game/types'
 import { isSolo, isOnline } from '@/lib/game/gameMode'
@@ -60,18 +59,24 @@ export default function Game({
     strategy.getInitialQuestions(questions)
   )
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
-  const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
+  const [phase, setPhase] = useState<'guess' | 'reveal'>('guess')
+  const phaseRef = useRef<'guess' | 'reveal'>('guess')
+  const isRevealPhase = phase === 'reveal'
+  const setIsRevealPhase = (v: boolean) => {
+    const p = v ? 'reveal' : 'guess'
+    setPhase(p)
+    phaseRef.current = p
+  }
   const questionsRef = useRef<Question[]>(strategy.getInitialQuestions(questions))
   const timeoutRefs = useRef<number[]>([])
-  const revealTimerStartedRef = useRef<boolean>(false) // Pour éviter de démarrer le timer du reveal plusieurs fois
+  const revealTimerStartedRef = useRef<boolean>(false) // Éviter double démarrage du timer reveal
   const mediaStartTimeRef = useRef<number | null>(null) // Timestamp quand le média commence vraiment à jouer
   const isTransitioningRef = useRef(false)
   const questionAnsweredByRef = useRef<string | null>(null)
   const timerIntervalRef = useRef<number | null>(null)
-  const gameStartedAtRef = useRef<number | null>(null)
+  const phaseStartTimeRef = useRef<number | null>(null) // Timestamp du début de la phase actuelle (guess ou reveal)
   const gameDurationMsRef = useRef<number | null>(null)
-  const revealStartTimeRef = useRef<number | null>(null)
-  const revealStartTimeClientRef = useRef<number | null>(null)
+  const revealStartTimeRef = useRef<number | null>(null) // Pour sync serveur (multi)
   const gameEndedRef = useRef<boolean>(false)
   const successSoundPlayedRef = useRef<boolean>(false) // Pour éviter que le son de fin joue plusieurs fois
   const lastSkipVoteTimeRef = useRef<number>(0) // Pour le debounce
@@ -80,15 +85,17 @@ export default function Game({
   )
   const mediaReadyRef = useRef<boolean>(false) // Indique si le média est préchargé
   const [gameStep, setGameStep] = useState<string>('loading') // Étape actuelle: loading, ready, starting, playing
-  const handleTimeUpRef = useRef<(() => void) | null>(null) // Référence à handleTimeUp pour l'utiliser dans startTimerCalculation
+  const handlePhaseEndRef = useRef<(() => void) | null>(null) // Référence à handlePhaseEnd pour l'utiliser dans startTimerCalculation
   const [skipVotes, setSkipVotes] = useState<Set<string>>(new Set()) // Joueurs qui ont voté skip
   const [correctPlayers, setCorrectPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont répondu correctement (pour surlignage vert)
-  const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs qui ont soumis une réponse (pendant le guess)
+  const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(new Set()) // Joueurs ayant soumis pendant la phase guess
   const [validatedAnswers, setValidatedAnswers] = useState<Record<string, boolean>>({}) // Réponses validées par le serveur (mode multijoueur)
   const [playerAnswers, setPlayerAnswers] = useState<Record<string, string>>({}) // Réponses des joueurs
 
   const previousQuestionsRef = useRef<string>('')
   const gameInstanceKeyRef = useRef<number>(0)
+  const countdownWarningPlayedRef = useRef<boolean>(false)
+  const countdownEndPlayedRef = useRef<boolean>(false)
 
   useEffect(() => {
     strategy.onMount?.()
@@ -98,7 +105,8 @@ export default function Game({
     setCurrentQuestionIndex(0)
     setScore(0)
     setShowScore(false)
-    setIsTimeUp(false)
+    setPhase('guess')
+    phaseRef.current = 'guess'
     setTimeRemaining(0)
     setWaitingForGo(strategy.getInitialWaitingForGo())
     setGameStep('loading')
@@ -115,10 +123,11 @@ export default function Game({
     mediaReadyRef.current = false
     revealTimerStartedRef.current = false
     mediaStartTimeRef.current = null
-    gameStartedAtRef.current = null
+    countdownWarningPlayedRef.current = false
+    countdownEndPlayedRef.current = false
+    phaseStartTimeRef.current = null
     gameDurationMsRef.current = null
     revealStartTimeRef.current = null
-    revealStartTimeClientRef.current = null
     lastSkipVoteTimeRef.current = 0
     strategy.clearAnswersForNextQuestion?.()
 
@@ -198,6 +207,15 @@ export default function Game({
     }
   }, [currentQuestionIndex, gameQuestions.length, showScore, gameMode, onEndGame])
 
+  // Initialiser timeRemaining avant le démarrage du média (solo + multi)
+  useEffect(() => {
+    const q = gameQuestions[currentQuestionIndex]
+    if (q && phaseStartTimeRef.current === null && !showScore) {
+      const limit = GameService.validateTimeLimit(q.timeLimit)
+      setTimeRemaining(limit)
+    }
+  }, [currentQuestionIndex, gameQuestions, showScore])
+
   const leaveRoom = () => {
     strategy.leaveRoom()
   }
@@ -266,9 +284,10 @@ export default function Game({
     mediaStartTimeRef.current = now
     mediaReadyRef.current = true
 
-    // Réinitialiser les états avant de démarrer le timer
-    setIsTimeUp(false)
+    setIsRevealPhase(false)
     revealTimerStartedRef.current = false
+    countdownWarningPlayedRef.current = false
+    countdownEndPlayedRef.current = false
 
     // Initialiser le temps restant correctement AVANT de démarrer le timer
     const initialRemaining = durationMs / 1000
@@ -295,24 +314,24 @@ export default function Game({
     serverTime?: number
   ) => {
     // Éviter le double démarrage du timer
-    if (gameStartedAtRef.current !== null && gameDurationMsRef.current !== null) {
+    if (phaseStartTimeRef.current !== null && gameDurationMsRef.current !== null) {
       return
     }
 
     clearTimerInterval()
 
     // Réinitialiser les états au démarrage du timer
-    setIsTimeUp(false)
+    setIsRevealPhase(false)
     revealTimerStartedRef.current = false
 
-    gameStartedAtRef.current = startedAt
+    phaseStartTimeRef.current = startedAt
     gameDurationMsRef.current = durationMs
 
     // Utiliser le temps restant calculé par le serveur si disponible
     if (serverTimeRemainingMs !== undefined && serverTime !== undefined && receivedAt) {
       const initialRemaining = serverTimeRemainingMs / 1000
       setTimeRemaining(initialRemaining)
-      setIsTimeUp(initialRemaining === 0)
+      setIsRevealPhase(initialRemaining === 0)
 
       const updateTimer = () => {
         if (gameEndedRef.current) {
@@ -323,23 +342,23 @@ export default function Game({
 
         const clientNow = Date.now()
 
-        // Si revealStartTimeClientRef est défini, on est en phase reveal
-        // Utiliser revealStartTimeClientRef au lieu de isTimeUp pour éviter les problèmes de closure
-        if (revealStartTimeClientRef.current !== null) {
-          // revealStartTimeClientRef.current est le timestamp client du début du chrono reveal
+        // Si phaseStartTimeRef est défini, on est en phase reveal
+        // Utiliser phaseStartTimeRef au lieu de isRevealPhase pour éviter les problèmes de closure
+        if (phaseStartTimeRef.current !== null) {
+          // phaseStartTimeRef.current est le timestamp client du début du chrono reveal
           // gameDurationMsRef.current contient maintenant la durée de reveal (mise à jour dans handleRevealVideoStart ou handleGameReveal)
-          const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+          const elapsed = Math.max(0, clientNow - phaseStartTimeRef.current)
           const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
 
           setTimeRemaining(revealRemaining)
-          setIsTimeUp(true)
+          setIsRevealPhase(true)
 
           // Si le reveal est terminé, le serveur devrait envoyer game:next
           // Mais on peut aussi vérifier ici pour être sûr
           if (revealRemaining <= 0.1) {
             // Le reveal est terminé, mais on attend le serveur pour passer à la question suivante
             setTimeRemaining(0)
-            setIsTimeUp(true)
+            setIsRevealPhase(true)
           }
           return
         }
@@ -350,7 +369,7 @@ export default function Game({
           const elapsedSinceReceive = clientNow - receivedAt
           const remaining = Math.max(0, (serverTimeRemainingMs - elapsedSinceReceive) / 1000)
           setTimeRemaining(remaining)
-          setIsTimeUp(remaining === 0)
+          setIsRevealPhase(remaining === 0)
         } else {
           // Si receivedAt n'est pas défini, on ne peut pas calculer le temps restant
           // Cela ne devrait pas arriver en mode multijoueur, mais on gère le cas
@@ -375,40 +394,40 @@ export default function Game({
         return
       }
 
-      if (gameStartedAtRef.current === null || gameDurationMsRef.current === null) {
+      if (phaseStartTimeRef.current === null || gameDurationMsRef.current === null) {
         return
       }
 
       const clientNow = Date.now()
 
-      // Si on est en phase reveal, calculer le temps restant
-      if (isTimeUp) {
+      // Si on est en phase reveal, calculer le temps restant (utiliser phaseRef pour éviter closure stale)
+      if (phaseRef.current === 'reveal') {
         // Si revealStartTimeRef est défini (timestamp serveur), l'utiliser pour synchroniser précisément
-        if (revealStartTimeClientRef.current !== null) {
-          // revealStartTimeClientRef.current est le timestamp client du début du chrono (chrono à la durée complète)
+        if (phaseStartTimeRef.current !== null) {
+          // phaseStartTimeRef.current est le timestamp client du début du chrono (chrono à la durée complète)
           // Le chrono compte depuis ce moment jusqu'à 0
-          const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+          const elapsed = Math.max(0, clientNow - phaseStartTimeRef.current)
           const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
 
           setTimeRemaining(revealRemaining)
-          setIsTimeUp(true)
+          setIsRevealPhase(true)
 
-          // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
+          // Si le reveal est terminé, appeler handlePhaseEnd pour le mode solo
           if (
             revealRemaining <= 0.5 &&
             isSolo(gameMode) &&
-            handleTimeUpRef.current &&
+            handlePhaseEndRef.current &&
             !gameEndedRef.current
           ) {
-            handleTimeUpRef.current()
+            handlePhaseEndRef.current()
           }
           return
         }
 
-        // Si revealStartTimeClientRef n'est pas encore défini, initialiser le chrono immédiatement
+        // Si phaseStartTimeRef n'est pas encore défini, initialiser le chrono immédiatement
         // (fallback pour le mode solo ou si onRevealVideoStart n'a pas été appelé)
-        if (revealStartTimeClientRef.current === null) {
-          revealStartTimeClientRef.current = clientNow
+        if (phaseStartTimeRef.current === null) {
+          phaseStartTimeRef.current = clientNow
           // S'assurer que gameDurationMsRef contient la durée de reveal
           const currentQuestion = gameQuestions[currentQuestionIndex]
           if (currentQuestion) {
@@ -417,48 +436,60 @@ export default function Game({
           }
         }
 
-        // Calculer le temps restant en utilisant revealStartTimeClientRef
-        const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+        // Calculer le temps restant en utilisant phaseStartTimeRef
+        const elapsed = Math.max(0, clientNow - phaseStartTimeRef.current)
         const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
         setTimeRemaining(revealRemaining)
-        setIsTimeUp(true)
+        setIsRevealPhase(true)
 
-        // Si le reveal est terminé, appeler handleTimeUp pour le mode solo
+        // Si le reveal est terminé, appeler handlePhaseEnd pour le mode solo
         if (
           revealRemaining <= 0.5 &&
           isSolo(gameMode) &&
-          handleTimeUpRef.current &&
+          handlePhaseEndRef.current &&
           !gameEndedRef.current
         ) {
-          handleTimeUpRef.current()
+          handlePhaseEndRef.current()
         }
         return
       }
 
       // Phase guess : calculer le temps écoulé depuis le début de la question
-      // gameStartedAtRef.current est maintenant un timestamp client (pas serveur)
+      // phaseStartTimeRef.current est maintenant un timestamp client (pas serveur)
       // donc on peut le comparer directement avec clientNow
-      const elapsed = Math.max(0, clientNow - gameStartedAtRef.current)
-      // Calculer le temps restant
+      const elapsed = Math.max(0, clientNow - phaseStartTimeRef.current)
       const remaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
+
+      if (
+        remaining <= TIMING.COUNTDOWN_WARNING_THRESHOLD &&
+        remaining > 0.5 &&
+        !countdownWarningPlayedRef.current
+      ) {
+        countdownWarningPlayedRef.current = true
+        soundManager.playClick()
+      }
+      if (remaining <= 0.5 && isSolo(gameMode) && !countdownEndPlayedRef.current) {
+        countdownEndPlayedRef.current = true
+        soundManager.playCountdownEnd()
+      }
 
       setTimeRemaining(remaining)
 
-      // isTimeUp devient true seulement quand le temps de guess est complètement écoulé
+      // isRevealPhase devient true seulement quand le temps de guess est complètement écoulé
       // On accepte aussi remaining <= 0.5 pour gérer les cas où le serveur passe à la question suivante
       // avant que le timer client ne soit complètement terminé (le serveur peut avoir un léger délai)
       const hasFullyElapsed = elapsed >= gameDurationMsRef.current || remaining <= 0.5
-      const newIsTimeUp =
-        hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
+      const newIsRevealPhase =
+        hasFullyElapsed && phaseStartTimeRef.current !== null && gameDurationMsRef.current !== null
 
-      // En mode solo, définir revealStartTimeRef et revealStartTimeClientRef dès que isTimeUp devient true
+      // En mode solo, définir revealStartTimeRef et phaseStartTimeRef dès que phase devient reveal
       // et mettre à jour gameDurationMsRef avec la durée de reveal
-      if (newIsTimeUp && !isTimeUp && isSolo(gameMode)) {
+      if (newIsRevealPhase && phaseRef.current === 'guess' && isSolo(gameMode)) {
         if (revealStartTimeRef.current === null) {
           revealStartTimeRef.current = Date.now()
         }
-        if (revealStartTimeClientRef.current === null) {
-          revealStartTimeClientRef.current = Date.now()
+        if (phaseStartTimeRef.current === null) {
+          phaseStartTimeRef.current = Date.now()
           // Mettre à jour gameDurationMsRef avec la durée de reveal
           const currentQuestion = gameQuestions[currentQuestionIndex]
           if (currentQuestion) {
@@ -468,18 +499,18 @@ export default function Game({
         }
       }
 
-      setIsTimeUp(newIsTimeUp)
+      setIsRevealPhase(newIsRevealPhase)
 
-      // Si le temps est écoulé, appeler handleTimeUp une seule fois (mode solo seulement, avant le reveal)
+      // Si le temps est écoulé, appeler handlePhaseEnd une seule fois (mode solo seulement, avant le reveal)
       if (
-        newIsTimeUp &&
-        !isTimeUp &&
+        newIsRevealPhase &&
+        phaseRef.current === 'guess' &&
         isSolo(gameMode) &&
         !revealTimerStartedRef.current &&
-        handleTimeUpRef.current &&
+        handlePhaseEndRef.current &&
         !gameEndedRef.current
       ) {
-        handleTimeUpRef.current()
+        handlePhaseEndRef.current()
       }
     }
 
@@ -504,7 +535,7 @@ export default function Game({
 
   const handleRevealVideoStart = useCallback(() => {
     const now = Date.now()
-    revealStartTimeClientRef.current = now
+    phaseStartTimeRef.current = now
     revealStartTimeRef.current = now
 
     const currentQuestion = gameQuestions[currentQuestionIndex]
@@ -516,8 +547,8 @@ export default function Game({
     // Initialiser le temps restant avec la durée complète de reveal
     setTimeRemaining(revealDurationMs / 1000)
 
-    // S'assurer que isTimeUp est true pour que le timer utilise la logique reveal
-    setIsTimeUp(true)
+    // S'assurer que isRevealPhase est true pour que le timer utilise la logique reveal
+    setIsRevealPhase(true)
   }, [gameQuestions, currentQuestionIndex])
 
   useEffect(() => {
@@ -598,7 +629,7 @@ export default function Game({
           // En mode multijoueur, ne pas démarrer le timer ici
           // Le timer sera démarré dans handleMediaStart quand le média commence vraiment à jouer
           setWaitingForGo(false)
-          setIsTimeUp(false)
+          setIsRevealPhase(false)
           setTimeRemaining(0) // Sera mis à jour dans handleMediaStart
         } else {
           setWaitingForGo(true)
@@ -650,7 +681,7 @@ export default function Game({
       clearTimerInterval()
 
       // Réinitialiser le timer au démarrage de la partie
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0) // Sera mis à jour quand le timer démarre
       revealTimerStartedRef.current = false
       mediaStartTimeRef.current = null
@@ -669,7 +700,7 @@ export default function Game({
       setGameStep('playing')
 
       // Réinitialiser les états - le timer sera démarré dans handleMediaStart
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       revealTimerStartedRef.current = false
       mediaStartTimeRef.current = null
       setTimeRemaining(0)
@@ -680,7 +711,7 @@ export default function Game({
           mediaStartTimeRef.current === null &&
           gameDurationMsRef.current &&
           mediaReadyRef.current &&
-          gameStartedAtRef.current === null
+          phaseStartTimeRef.current === null
         ) {
           console.warn('[Game] Fallback: onMediaStart pas appelé après 3s, démarrage du timer')
           const fallbackNow = Date.now()
@@ -693,14 +724,14 @@ export default function Game({
             undefined
           )
           setTimeRemaining(gameDurationMsRef.current / 1000)
-          setIsTimeUp(false)
+          setIsRevealPhase(false)
         }
       }, 3000)
 
       // Nettoyer le fallback si handleMediaStart est appelé
       const cleanupTimerRef = { current: null as NodeJS.Timeout | null }
       cleanupTimerRef.current = setInterval(() => {
-        if (mediaStartTimeRef.current !== null || gameStartedAtRef.current !== null) {
+        if (mediaStartTimeRef.current !== null || phaseStartTimeRef.current !== null) {
           clearTimeout(fallbackTimer)
           if (cleanupTimerRef.current) {
             clearInterval(cleanupTimerRef.current)
@@ -762,19 +793,19 @@ export default function Game({
       setWaitingForGo(true)
       mediaReadyRef.current = false
       revealStartTimeRef.current = null
-      revealStartTimeClientRef.current = null
+      phaseStartTimeRef.current = null
       setGameStep('loading')
       clearTimerInterval()
 
       // Réinitialiser le timer pour la nouvelle question
       // Le timer sera démarré dans handleMediaStart quand le média commence vraiment à jouer
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0) // Reste à 0 jusqu'à ce que le média démarre
       revealTimerStartedRef.current = false
       mediaStartTimeRef.current = null
 
       // Réinitialiser les refs du timer pour éviter les valeurs résiduelles
-      gameStartedAtRef.current = null
+      phaseStartTimeRef.current = null
       gameDurationMsRef.current = null
 
       // Réinitialiser les votes skip, les joueurs corrects, les réponses stockées et les joueurs ayant répondu pour la nouvelle question
@@ -855,7 +886,7 @@ export default function Game({
       // Stocker les valeurs pour que handleMediaStart puisse les utiliser
       gameDurationMsRef.current = durationMs
       // Ne pas démarrer le timer ici - attendre handleMediaStart
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0) // Sera mis à jour dans handleMediaStart
     }
 
@@ -874,7 +905,7 @@ export default function Game({
 
       // Initialiser le timer du reveal
       const now = Date.now()
-      revealStartTimeClientRef.current = now
+      phaseStartTimeRef.current = now
       revealStartTimeRef.current = now
 
       // Utiliser la durée du serveur si disponible, sinon celle de la question, sinon la valeur par défaut
@@ -885,7 +916,7 @@ export default function Game({
 
       // Mettre à jour le temps restant pour le reveal
       setTimeRemaining(revealDurationMs / 1000)
-      setIsTimeUp(true)
+      setIsRevealPhase(true)
 
       // Réinitialiser les votes skip pour la phase reveal
       setSkipVotes(new Set())
@@ -896,21 +927,21 @@ export default function Game({
           return
         }
 
-        if (gameDurationMsRef.current === null || revealStartTimeClientRef.current === null) {
+        if (gameDurationMsRef.current === null || phaseStartTimeRef.current === null) {
           return
         }
 
         const clientNow = Date.now()
-        const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
+        const elapsed = Math.max(0, clientNow - phaseStartTimeRef.current)
         const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
 
         setTimeRemaining(revealRemaining)
-        setIsTimeUp(true)
+        setIsRevealPhase(true)
 
         // Si le reveal est terminé, le serveur devrait envoyer game:next
         if (revealRemaining <= 0.1) {
           setTimeRemaining(0)
-          setIsTimeUp(true)
+          setIsRevealPhase(true)
         }
       }
 
@@ -1045,10 +1076,6 @@ export default function Game({
     }
   }, [])
 
-  const handleTimerUpdate = useCallback((timeRemaining: number, isTimeUp: boolean) => {
-    setTimeRemaining(timeRemaining)
-    setIsTimeUp(isTimeUp)
-  }, [])
 
   const handleAnswer = (answer: string, _timeRemaining: number, _playerId?: string) => {
     if (showScore) return
@@ -1070,25 +1097,12 @@ export default function Game({
   const handleSkipVote = useCallback(() => {
     const now = Date.now()
 
-    // Debounce : empêcher les clics trop rapides (minimum 500ms entre deux clics)
-    if (now - lastSkipVoteTimeRef.current < 500) {
-      return
-    }
+    if (now - lastSkipVoteTimeRef.current < 500) return
+    if (gameEndedRef.current) return
+    if (!isSolo(gameMode) && (!mediaReadyRef.current || waitingForGo)) return
 
-    // Vérifier que le média est prêt et que la partie n'est pas terminée
-    if (gameEndedRef.current) {
-      return
-    }
-
-    if (!mediaReadyRef.current || waitingForGo) {
-      return
-    }
-
-    // Vérifier si le joueur a déjà voté skip
     const playerId = strategy.getPlayerId()
-    if (skipVotes.has(playerId)) {
-      return
-    }
+    if (skipVotes.has(playerId)) return
 
     // Mettre à jour le timestamp du dernier clic
     lastSkipVoteTimeRef.current = now
@@ -1099,93 +1113,43 @@ export default function Game({
         socket.emit('game:skip-vote', { roomCode })
       }
     } else {
-      // En mode solo, skip directement (pas besoin de vote)
-      if (isTimeUp) {
-        // Phase reveal : passer à la question suivante
-        if (handleTimeUpRef.current) {
-          handleTimeUpRef.current()
-        }
-        // Réinitialiser les votes skip
-        setSkipVotes(new Set())
-      } else {
-        // Phase guess : valider les réponses et passer au reveal
-
-        // Arrêter le timer du guess
-        clearTimerInterval()
-
-        // Valider les réponses
-        validateAnswers()
-
-        // Initialiser le timer du reveal
-        const revealNow = Date.now()
-        revealStartTimeClientRef.current = revealNow
-        revealStartTimeRef.current = revealNow
-
-        const currentQuestion = gameQuestions[currentQuestionIndex]
-        const revealDurationMs = GameService.validateTimeLimit(currentQuestion?.timeLimit) * 1000
-        gameDurationMsRef.current = revealDurationMs
-
-        // Mettre à jour le temps restant pour le reveal
-        setTimeRemaining(revealDurationMs / 1000)
-        setIsTimeUp(true)
-
-        // Redémarrer le timer pour la phase reveal
-        const updateRevealTimer = () => {
-          if (gameEndedRef.current) {
-            return
-          }
-
-          if (gameDurationMsRef.current === null || revealStartTimeClientRef.current === null) {
-            return
-          }
-
-          const clientNow = Date.now()
-          const elapsed = Math.max(0, clientNow - revealStartTimeClientRef.current)
-          const revealRemaining = Math.max(0, (gameDurationMsRef.current - elapsed) / 1000)
-
-          setTimeRemaining(revealRemaining)
-
-          // Si le reveal est terminé, passer à la question suivante
-          if (revealRemaining <= 0.5 && handleTimeUpRef.current && !gameEndedRef.current) {
-            clearTimerInterval()
-            handleTimeUpRef.current()
-          }
-        }
-
-        updateRevealTimer()
-        timerIntervalRef.current = window.setInterval(updateRevealTimer, 100)
-
-        // Marquer qu'on a voté skip (pour l'affichage)
-        setSkipVotes(new Set(['solo']))
+      // En mode solo, skip = handlePhaseEnd (même logique que timer à 0)
+      if (handlePhaseEndRef.current) {
+        handlePhaseEndRef.current()
       }
+      setSkipVotes(new Set())
     }
-  }, [
-    strategy,
-    isTimeUp,
-    roomCode,
-    waitingForGo,
-    skipVotes,
-    validateAnswers,
-    gameQuestions,
-    currentQuestionIndex,
-  ])
+  }, [strategy, roomCode, waitingForGo, skipVotes])
 
-  const handleTimeUp = () => {
+  const handlePhaseEnd = () => {
     if (showScore) return
     if (isTransitioningRef.current) return
     if (gameEndedRef.current) return // Ne pas continuer si la partie est terminée
 
-    // Jouer le son de révélation/time's up (seulement quand on passe de guess à reveal)
-    if (!isTimeUp) {
+    // Jouer le son de transition guess → reveal
+    if (phaseRef.current === 'guess') {
       soundManager.playReveal()
     }
 
     if (isSolo(gameMode)) {
       // En mode solo, valider les réponses à la fin du guess
-      if (!isTimeUp) {
-        // Phase guess : valider les réponses avant de passer au reveal
+      if (phaseRef.current === 'guess') {
+        // Phase guess : valider les réponses avant de passer en phase reveal
         validateAnswers()
-        setIsTimeUp(true)
+        // Initialiser les refs du timer reveal pour que updateTimer puisse continuer
+        const revealNow = Date.now()
+        phaseStartTimeRef.current = revealNow
+        revealStartTimeRef.current = revealNow
+        const currentQuestion = gameQuestions[currentQuestionIndex]
+        if (currentQuestion) {
+          gameDurationMsRef.current =
+            GameService.validateTimeLimit(currentQuestion.timeLimit) * 1000
+        }
+        setTimeRemaining((gameDurationMsRef.current ?? 0) / 1000)
+        setPhase('reveal')
+        phaseRef.current = 'reveal'
+        countdownWarningPlayedRef.current = false
+        countdownEndPlayedRef.current = false
         return // Ne pas passer à la question suivante, juste passer au reveal
       }
 
@@ -1195,10 +1159,10 @@ export default function Game({
       setPlayerAnswers({}) // Réinitialiser les réponses pour la nouvelle question
 
       const timeoutId = window.setTimeout(() => {
-        gameStartedAtRef.current = null
+        phaseStartTimeRef.current = null
         gameDurationMsRef.current = null
         revealStartTimeRef.current = null
-        revealStartTimeClientRef.current = null
+        phaseStartTimeRef.current = null
 
         setCurrentQuestionIndex((prev) => {
           const totalQuestions = questionsRef.current.length
@@ -1230,8 +1194,8 @@ export default function Game({
 
   // Mettre à jour la ref pour que startTimerCalculation puisse l'utiliser
   useEffect(() => {
-    handleTimeUpRef.current = handleTimeUp
-  }, [handleTimeUp])
+    handlePhaseEndRef.current = handlePhaseEnd
+  }, [handlePhaseEnd])
 
   const handleScoreSoundPlayed = useCallback(() => {
     successSoundPlayedRef.current = true
@@ -1300,7 +1264,7 @@ export default function Game({
   if (isOnline(gameMode)) {
     if (!gameStarted) {
       return (
-        <GameLoadingState
+        <LoadingScreen
           message="En attente du démarrage..."
           subMessage="L'hôte va démarrer la partie."
           showSpinner={true}
@@ -1311,7 +1275,7 @@ export default function Game({
     // Si la partie a démarré mais pas encore de questions, attendre
     if (gameQuestions.length === 0) {
       return (
-        <GameLoadingState
+        <LoadingScreen
           message="Chargement de la partie..."
           subMessage="Récupération des questions depuis le serveur."
           showSpinner={true}
@@ -1322,7 +1286,7 @@ export default function Game({
     // En mode solo, vérifier les questions normalement
     if (gameQuestions.length === 0) {
       return (
-        <GameLoadingState
+        <LoadingScreen
           message="Aucune question disponible pour les catégories sélectionnées."
           showSpinner={false}
           onBack={onEndGame}
@@ -1333,7 +1297,7 @@ export default function Game({
 
   if (currentQuestionIndex < 0 || currentQuestionIndex >= gameQuestions.length) {
     return (
-      <GameLoadingState
+      <LoadingScreen
         message="Erreur : Index de question invalide."
         showSpinner={false}
         onBack={onEndGame}
@@ -1345,7 +1309,7 @@ export default function Game({
 
   if (!currentQuestion) {
     return (
-      <GameLoadingState
+      <LoadingScreen
         message="Erreur : Question introuvable."
         showSpinner={false}
         onBack={onEndGame}
@@ -1360,7 +1324,7 @@ export default function Game({
         totalQuestions={gameQuestions.length}
         currentQuestion={currentQuestion}
         timeRemaining={timeRemaining}
-        isTimeUp={isTimeUp}
+        isRevealPhase={isRevealPhase}
         score={strategy.getDisplayScore(score, gamePlayers)}
         onQuit={() => {
           leaveRoom()
@@ -1377,86 +1341,49 @@ export default function Game({
           id="game-interface-body"
         >
           {showScore ? (
-            <>
-              <div className={gameStyles.gameInterfaceGame}>
-                <Score
-                  score={strategy.getDisplayScore(score, gamePlayers)}
-                  totalQuestions={gameQuestions.length}
-                  gameMode={gameMode}
-                  players={gamePlayers}
-                  isHost={isHost}
-                  onRestart={handleRestart}
-                  onModifySettings={handleModifySettings}
-                  onQuit={onEndGame}
-                  isPopup={false}
-                  shouldPlaySound={!successSoundPlayedRef.current}
-                  onSoundPlayed={handleScoreSoundPlayed}
-                />
-              </div>
-              {isOnline(gameMode) && (
-                <div className={gameStyles.gamePlayersPanel}>
-                  <PlayersPanel
-                    players={gamePlayers}
-                    questionAnsweredBy={null}
-                  correctPlayers={new Set()}
-                  answeredPlayers={new Set()}
-                  isTimeUp={false}
-                  playerAnswers={{}}
-                  validatedAnswers={{}}
-                  skipVotes={new Set()}
-                  isGameEnded={true}
-                  totalQuestions={gameQuestions.length}
-                  />
-                </div>
-              )}
-            </>
+            <EndScreen
+              score={strategy.getDisplayScore(score, gamePlayers)}
+              totalQuestions={gameQuestions.length}
+              gameMode={gameMode}
+              players={gamePlayers}
+              isHost={isHost}
+              shouldPlaySound={!successSoundPlayedRef.current}
+              onRestart={handleRestart}
+              onModifySettings={handleModifySettings}
+              onQuit={onEndGame}
+              onSoundPlayed={handleScoreSoundPlayed}
+            />
           ) : (
-            <>
-              <QuestionCard
-                key={`game-${gameInstanceKeyRef.current}-q-${currentQuestionIndex}`}
-                question={currentQuestion}
-                onAnswer={handleAnswer}
-                onTimeUp={handleTimeUp}
-                onSkipVote={handleSkipVote}
-                gameMode={gameMode}
-                players={gamePlayers}
-                questionAnsweredBy={questionAnsweredByRef.current}
-                shouldPause={showSettingsPopup}
-                onTimerUpdate={handleTimerUpdate}
-                onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}
-                onMediaStart={handleMediaStart} // Toujours utiliser handleMediaStart pour démarrer le timer au bon moment
-                onRevealVideoStart={handleRevealVideoStart}
-                waitingForGo={waitingForGo}
-                gameStep={gameStep}
-                externalTimeRemaining={isOnline(gameMode) ? timeRemaining : undefined}
-                externalIsTimeUp={isOnline(gameMode) ? isTimeUp : undefined}
-                skipVotes={skipVotes}
-                correctPlayers={correctPlayers}
-                startTime={
-                  isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
-                }
-                isGameEnded={gameEndedRef.current}
-                isMediaReady={mediaReadyRef.current && !waitingForGo}
-                allQuestions={gameQuestions}
-                validatedAnswers={isOnline(gameMode) ? validatedAnswers : undefined}
-              />
-
-              {isOnline(gameMode) && (
-                <div className={gameStyles.gamePlayersPanel}>
-                  <PlayersPanel
-                    players={gamePlayers}
-                    questionAnsweredBy={questionAnsweredByRef.current}
-                  correctPlayers={correctPlayers}
-                  answeredPlayers={answeredPlayers}
-                  isTimeUp={isTimeUp}
-                  playerAnswers={playerAnswers}
-                  validatedAnswers={validatedAnswers}
-                  skipVotes={skipVotes}
-                  isGameEnded={false}
-                  />
-                </div>
-              )}
-            </>
+            <RoundScreen
+              question={currentQuestion}
+              instanceKey={gameInstanceKeyRef.current}
+              currentQuestionIndex={currentQuestionIndex}
+              gameMode={gameMode}
+              players={gamePlayers}
+              questionAnsweredBy={questionAnsweredByRef.current}
+              timeRemaining={timeRemaining}
+              isRevealPhase={isRevealPhase}
+              skipVotes={skipVotes}
+              correctPlayers={correctPlayers}
+              answeredPlayers={answeredPlayers}
+              playerAnswers={playerAnswers}
+              validatedAnswers={validatedAnswers}
+              allQuestions={gameQuestions}
+              waitingForGo={waitingForGo}
+              gameStep={gameStep}
+              showSettingsPopup={showSettingsPopup}
+              isGameEnded={gameEndedRef.current}
+              isMediaReady={isSolo(gameMode) || (mediaReadyRef.current && !waitingForGo)}
+              revealStartTime={
+                isOnline(gameMode) ? revealStartTimeRef.current || undefined : undefined
+              }
+              onAnswer={handleAnswer}
+              onPhaseEnd={handlePhaseEnd}
+              onSkipVote={handleSkipVote}
+              onMediaReady={isOnline(gameMode) ? handleMediaReady : undefined}
+              onMediaStart={handleMediaStart}
+              onRevealVideoStart={handleRevealVideoStart}
+            />
           )}
         </div>
       </div>

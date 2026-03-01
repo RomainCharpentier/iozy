@@ -1,6 +1,7 @@
 import type { Question } from '@/types'
 import type { Player } from '@/lib/game/types'
 import { disconnectSocketIfConnected } from '@/utils/socket'
+import { compareAnswers } from '@/utils/answerNormalization'
 import type { GameModeStrategy, ValidateAnswersContext } from '@/lib/game/strategies/GameModeStrategy'
 
 export interface SoloGameStrategyDeps {
@@ -30,13 +31,15 @@ export class SoloGameStrategy implements GameModeStrategy {
     const { gameQuestions, currentQuestionIndex, soloAnswersRef, setScore, setCorrectPlayers } =
       context
     const currentQuestion = gameQuestions[currentQuestionIndex]
-    if (!currentQuestion) return
+    if (!currentQuestion) {
+      console.log('[SoloGameStrategy] validateAnswers: no current question')
+      return
+    }
 
-    const correctAnswer = currentQuestion.answer.toLowerCase().trim()
+    const correctAnswer = currentQuestion.answer
     let hasCorrect = false
-
     for (const answer of soloAnswersRef.current) {
-      const isCorrect = answer.toLowerCase().trim() === correctAnswer
+      const isCorrect = compareAnswers(answer.trim(), correctAnswer)
       if (isCorrect) {
         hasCorrect = true
         break

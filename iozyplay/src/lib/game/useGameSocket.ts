@@ -17,7 +17,7 @@ interface UseGameSocketParams {
   setWaitingForGo: (waiting: boolean) => void
   setGameStep: (step: string) => void
   setTimeRemaining: (time: number) => void
-  setIsTimeUp: (isTimeUp: boolean) => void
+  setIsRevealPhase: (isRevealPhase: boolean) => void
   clearTimer: () => void
   questionsRef: React.MutableRefObject<Question[]>
   questionAnsweredByRef: React.MutableRefObject<string | null>
@@ -48,7 +48,7 @@ export function useGameSocket({
   setWaitingForGo,
   setGameStep,
   setTimeRemaining,
-  setIsTimeUp,
+  setIsRevealPhase,
   clearTimer,
   questionsRef,
   questionAnsweredByRef,
@@ -124,7 +124,7 @@ export function useGameSocket({
 
         if (newGameStep === 'playing') {
           setWaitingForGo(false)
-          setIsTimeUp(false)
+          setIsRevealPhase(false)
           setTimeRemaining(0)
         } else {
           setWaitingForGo(true)
@@ -174,7 +174,7 @@ export function useGameSocket({
       setGameStep('loading')
       clearTimer()
 
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0)
       mediaStartTimeRef.current = null
     }
@@ -199,7 +199,7 @@ export function useGameSocket({
         setWaitingForGo(false)
         setGameStep('playing')
 
-        setIsTimeUp(false)
+        setIsRevealPhase(false)
         mediaStartTimeRef.current = null
         setTimeRemaining(0)
 
@@ -216,7 +216,7 @@ export function useGameSocket({
             mediaStartTimeRef.current = fallbackNow
             startTimer(fallbackNow, gameDurationMsRef.current, fallbackNow, undefined, undefined)
             setTimeRemaining(gameDurationMsRef.current / 1000)
-            setIsTimeUp(false)
+            setIsRevealPhase(false)
           }
         }, 3000)
 
@@ -320,7 +320,7 @@ export function useGameSocket({
       setGameStep('loading')
       clearTimer()
 
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0)
       mediaStartTimeRef.current = null
     }
@@ -363,7 +363,7 @@ export function useGameSocket({
       setGameStep('playing')
       setCurrentQuestionIndex(questionIndex)
       gameDurationMsRef.current = durationMs
-      setIsTimeUp(false)
+      setIsRevealPhase(false)
       setTimeRemaining(0)
     }
 

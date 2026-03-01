@@ -6,7 +6,7 @@ interface PlayersPanelProps {
   questionAnsweredBy: string | null
   correctPlayers?: Set<string> // Joueurs qui ont répondu correctement (pour surlignage vert)
   answeredPlayers?: Set<string> // Joueurs qui ont soumis une réponse (pendant le guess)
-  isTimeUp?: boolean // Si on est en phase reveal
+  isRevealPhase?: boolean
   playerAnswers?: Record<string, string> // Réponses des joueurs
   validatedAnswers?: Record<string, boolean> // Validation des réponses
   skipVotes?: Set<string> // Joueurs qui ont voté skip
@@ -19,7 +19,7 @@ export default function PlayersPanel({
   questionAnsweredBy,
   correctPlayers = new Set(),
   answeredPlayers = new Set(),
-  isTimeUp = false,
+  isRevealPhase = false,
   playerAnswers = {},
   validatedAnswers = {},
   skipVotes = new Set(),
@@ -42,8 +42,8 @@ export default function PlayersPanel({
       </div>
       <div className={gameStyles.gameInterfacePlayers}>
         {sortedPlayers.map((player, index) => {
-          const isCorrect = isTimeUp && correctPlayers.has(player.id)
-          const hasAnswered = !isTimeUp && answeredPlayers.has(player.id)
+          const isCorrect = isRevealPhase && correctPlayers.has(player.id)
+          const hasAnswered = !isRevealPhase && answeredPlayers.has(player.id)
           const playerAnswer = playerAnswers[player.id]
           const isValidated = validatedAnswers[player.id] !== undefined
           const isPlayerCorrect = validatedAnswers[player.id] === true
@@ -52,7 +52,7 @@ export default function PlayersPanel({
           return (
             <div
               key={player.id}
-              className={`${gameStyles.gameInterfacePlayer} ${index === 0 && isGameEnded ? `${gameStyles.gameInterfacePlayerTop} ${gameStyles.gameInterfacePlayerWinner}` : index === 0 ? gameStyles.gameInterfacePlayerTop : ''} ${isCorrect ? gameStyles.gameInterfacePlayerCorrect : ''} ${isTimeUp && isValidated && !isPlayerCorrect ? gameStyles.gameInterfacePlayerIncorrect : ''} ${isRequestingSkip ? gameStyles.gameInterfacePlayerSkipRequesting : ''}`}
+              className={`${gameStyles.gameInterfacePlayer} ${index === 0 && isGameEnded ? `${gameStyles.gameInterfacePlayerTop} ${gameStyles.gameInterfacePlayerWinner}` : index === 0 ? gameStyles.gameInterfacePlayerTop : ''} ${isCorrect ? gameStyles.gameInterfacePlayerCorrect : ''} ${isRevealPhase && isValidated && !isPlayerCorrect ? gameStyles.gameInterfacePlayerIncorrect : ''} ${isRequestingSkip ? gameStyles.gameInterfacePlayerSkipRequesting : ''}`}
             >
               <div className={gameStyles.gameInterfacePlayerRank}>#{index + 1}</div>
               {index === 0 && isGameEnded && (
@@ -61,7 +61,7 @@ export default function PlayersPanel({
               <div className={gameStyles.gameInterfacePlayerAvatar}>{player.name[0]}</div>
               <div className={gameStyles.gameInterfacePlayerInfo}>
                 <div className={gameStyles.gameInterfacePlayerName}>{player.name}</div>
-                {!isGameEnded && isTimeUp && playerAnswer && (
+                {!isGameEnded && isRevealPhase && playerAnswer && (
                   <div
                     className={`${gameStyles.gameInterfacePlayerAnswer} ${isPlayerCorrect ? gameStyles.gameInterfacePlayerAnswerCorrect : gameStyles.gameInterfacePlayerAnswerIncorrect}`}
                   >
@@ -73,10 +73,10 @@ export default function PlayersPanel({
                     {player.score} / {totalQuestions}
                   </div>
                 )}
-                {!isGameEnded && !isTimeUp && isRequestingSkip && (
+                {!isGameEnded && !isRevealPhase && isRequestingSkip && (
                   <div className={gameStyles.gameInterfacePlayerAnswer}>Vote skip</div>
                 )}
-                {!isGameEnded && !isTimeUp && !isRequestingSkip && hasAnswered && (
+                {!isGameEnded && !isRevealPhase && !isRequestingSkip && hasAnswered && (
                   <div className={gameStyles.gameInterfacePlayerAnswer}>Réponse envoyée</div>
                 )}
               </div>

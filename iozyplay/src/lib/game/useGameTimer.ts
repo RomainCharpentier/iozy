@@ -4,12 +4,12 @@ import { isSolo } from '@/lib/game/gameMode'
 interface UseGameTimerParams {
   gameMode: 'solo' | 'online'
   currentQuestionTimeLimit?: number
-  onTimeUp?: () => void
+  onPhaseEnd?: () => void
 }
 
 interface UseGameTimerReturn {
   timeRemaining: number
-  isTimeUp: boolean
+  isRevealPhase: boolean
   startTimer: (
     startedAt: number,
     durationMs: number,
@@ -19,16 +19,16 @@ interface UseGameTimerReturn {
   ) => void
   clearTimer: () => void
   setTimeRemaining: (value: number) => void
-  setIsTimeUp: (value: boolean) => void
+  setIsRevealPhase: (value: boolean) => void
 }
 
 export function useGameTimer({
   gameMode,
   currentQuestionTimeLimit,
-  onTimeUp,
+  onPhaseEnd,
 }: UseGameTimerParams): UseGameTimerReturn {
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
-  const [isTimeUp, setIsTimeUp] = useState<boolean>(false)
+  const [isRevealPhase, setIsRevealPhase] = useState<boolean>(false)
   const timerIntervalRef = useRef<number | null>(null)
   const gameStartedAtRef = useRef<number | null>(null)
   const gameDurationMsRef = useRef<number | null>(null)
@@ -57,7 +57,7 @@ export function useGameTimer({
     clearTimerInterval()
 
     // Réinitialiser les états au démarrage du timer
-    setIsTimeUp(false)
+    setIsRevealPhase(false)
     revealTimerStartedRef.current = false
 
     gameStartedAtRef.current = startedAt
@@ -68,14 +68,14 @@ export function useGameTimer({
       serverTimeOffsetRef.current = serverTime - receivedAt
       const initialRemaining = serverTimeRemainingMs / 1000
       setTimeRemaining(initialRemaining)
-      setIsTimeUp(initialRemaining === 0)
+      setIsRevealPhase(initialRemaining === 0)
 
       const updateTimer = () => {
         if (gameDurationMsRef.current === null) return
         const elapsedSinceReceive = Date.now() - receivedAt
         const remaining = Math.max(0, (serverTimeRemainingMs - elapsedSinceReceive) / 1000)
         setTimeRemaining(remaining)
-        setIsTimeUp(remaining === 0)
+        setIsRevealPhase(remaining === 0)
       }
 
       updateTimer()
@@ -107,35 +107,35 @@ export function useGameTimer({
       setTimeRemaining(remaining)
 
       const hasFullyElapsed = elapsed >= gameDurationMsRef.current
-      const newIsTimeUp =
+      const newIsRevealPhase =
         hasFullyElapsed && gameStartedAtRef.current !== null && gameDurationMsRef.current !== null
 
-      setIsTimeUp(newIsTimeUp)
+      setIsRevealPhase(newIsRevealPhase)
 
       // Si le timer de guess atteint 0, démarrer le timer du reveal
-      if (newIsTimeUp && !revealTimerStartedRef.current) {
+      if (newIsRevealPhase && !revealTimerStartedRef.current) {
         revealTimerStartedRef.current = true
 
         if (gameDurationMsRef.current !== null) {
           const revealDurationMs = gameDurationMsRef.current
 
           const revealTimer = setTimeout(() => {
-            if (isSolo(gameMode) && onTimeUp) {
-              onTimeUp()
+            if (isSolo(gameMode) && onPhaseEnd) {
+              onPhaseEnd()
             }
           }, revealDurationMs)
         }
       }
 
-      // Si le temps est écoulé, appeler onTimeUp une seule fois (mode solo seulement)
+      // Si le temps est écoulé, appeler onPhaseEnd une seule fois (mode solo seulement)
       if (
-        newIsTimeUp &&
-        !isTimeUp &&
+        newIsRevealPhase &&
+        !isRevealPhase &&
         isSolo(gameMode) &&
         !revealTimerStartedRef.current &&
-        onTimeUp
+        onPhaseEnd
       ) {
-        onTimeUp()
+        onPhaseEnd()
       }
     }
 
@@ -151,7 +151,7 @@ export function useGameTimer({
     gameStartedAtRef.current = null
     gameDurationMsRef.current = null
     revealTimerStartedRef.current = false
-    setIsTimeUp(false)
+    setIsRevealPhase(false)
     setTimeRemaining(0)
   }
 
@@ -163,10 +163,10 @@ export function useGameTimer({
 
   return {
     timeRemaining,
-    isTimeUp,
+    isRevealPhase,
     startTimer,
     clearTimer,
     setTimeRemaining,
-    setIsTimeUp,
+    setIsRevealPhase,
   }
 }

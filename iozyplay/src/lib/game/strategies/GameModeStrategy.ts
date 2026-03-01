@@ -24,7 +24,7 @@ export interface GameModeStrategy {
   /** Soumettre une réponse (solo: stocker localement, online: emit socket) */
   submitAnswer(answer: string): void
 
-  /** Valider les réponses à la fin du guess (solo: validateSoloAnswers, online: no-op serveur) */
+  /** Valider les réponses à la fin de la phase guess (solo: validateSoloAnswers, online: no-op serveur) */
   validateAnswers(context: ValidateAnswersContext): void
 
   /** Quitter la room (solo: disconnectSocket, online: room:leave) */

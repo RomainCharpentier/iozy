@@ -8,7 +8,7 @@ interface GameTopBarProps {
   totalQuestions: number
   currentQuestion: Question
   timeRemaining: number
-  isTimeUp: boolean
+  isRevealPhase: boolean
   score: number
   onQuit: () => void
   onSettings?: () => void
@@ -20,7 +20,7 @@ export default function GameTopBar({
   totalQuestions,
   currentQuestion,
   timeRemaining,
-  isTimeUp,
+  isRevealPhase,
   score,
   onQuit,
   onSettings,
