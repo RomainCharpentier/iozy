@@ -1317,6 +1317,11 @@ export default function Game({
     )
   }
 
+  const inviteLink =
+    typeof window !== 'undefined' && isOnline(gameMode) && roomCode
+      ? `${window.location.origin}/?room=${roomCode}`
+      : null
+
   return (
     <div className={gameStyles.gameScreen} data-testid="game-screen">
       <GameTopBar
@@ -1326,6 +1331,7 @@ export default function Game({
         timeRemaining={timeRemaining}
         isRevealPhase={isRevealPhase}
         score={strategy.getDisplayScore(score, gamePlayers)}
+        inviteLink={inviteLink}
         onQuit={() => {
           leaveRoom()
           onEndGame()

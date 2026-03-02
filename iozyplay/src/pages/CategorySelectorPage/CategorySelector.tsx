@@ -8,6 +8,7 @@ import type { Player } from '@/lib/game/types'
 import { soundManager } from '@/utils/sounds'
 import CategoryIcon from '@/components/common/CategoryIcon'
 import { QuestionService } from '@/services/questionService'
+import { settingsService } from '@/services/settingsService'
 interface CategorySelectorProps {
   onStartGame: (
     categories: Category[],
@@ -25,6 +26,11 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
 
   useEffect(() => {
     loadCategoriesList()
+    // Récupérer le nom de l'utilisateur défini sur la page Username
+    const settings = settingsService.getSettings()
+    if (settings.username && settings.username.trim()) {
+      setPlayerName(settings.username.trim())
+    }
   }, [])
 
   const loadCategoriesList = async () => {
@@ -74,11 +80,13 @@ export default function CategorySelector({ onStartGame }: CategorySelectorProps)
       return
     }
 
-    const name = 'Joueur'
-    const players: Player[] = [{ id: 'solo', name: 'Joueur', score: 0 }]
+    const name = playerName && playerName.trim() ? playerName.trim() : 'Joueur'
+    // On laisse le mode de jeu se décider plus tard via le lobby.
+    // Ici, on prépare juste la configuration et on passe par le flux salon.
+    const players: Player[] = []
 
     soundManager.playStart()
-    await onStartGame(selectedCategories, 'solo', players, name)
+    await onStartGame(selectedCategories, 'online', players, name)
   }
 
   return (

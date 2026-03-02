@@ -13,6 +13,7 @@ interface GameTopBarProps {
   onQuit: () => void
   onSettings?: () => void
   isGameEnded?: boolean
+  inviteLink?: string | null
 }
 
 export default function GameTopBar({
@@ -25,12 +26,23 @@ export default function GameTopBar({
   onQuit,
   onSettings,
   isGameEnded = false,
+  inviteLink,
 }: GameTopBarProps) {
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return '0:00'
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      soundManager.playClick()
+    } catch (err) {
+      console.error('Erreur lors de la copie du lien de salon :', err)
+    }
   }
 
   return (
@@ -83,6 +95,16 @@ export default function GameTopBar({
         </div>
       </div>
       <div className={gameStyles.gameInterfaceHeaderActions}>
+        {inviteLink && (
+          <button
+            className={gameStyles.gameInterfaceActionBtn}
+            onClick={handleCopyInviteLink}
+            title="Copier le lien du salon"
+            aria-label="Copier le lien du salon"
+          >
+            <span className={gameStyles.gameInterfaceActionIcon}>🔗</span>
+          </button>
+        )}
         {onSettings && (
           <button
             className={gameStyles.gameInterfaceActionBtn}
