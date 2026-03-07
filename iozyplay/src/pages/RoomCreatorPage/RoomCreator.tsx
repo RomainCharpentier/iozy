@@ -257,7 +257,8 @@ export default function RoomCreator({
         socket.off('game:start', handleGameStarted)
         socket.off('error', handleError)
         setIsStartingGame(false)
-        isStartingGameRef.current = false
+        // Ne pas remettre la ref à false ici : au démontage, useRoomSocket doit ne pas appeler leaveRoom()
+        // pour que le salon reste actif quand on navigue vers la page de jeu.
         onRoomCreated(roomCode)
       }
 

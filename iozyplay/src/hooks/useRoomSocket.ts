@@ -175,6 +175,8 @@ function useRoomSocketCreate(
       const socket = connectSocket()
 
       const handleConnect = () => {
+        // Ne créer qu'un seul salon : si on a déjà un code (création précédente ou effect re-run), ne pas re-émettre
+        if (roomCodeRef.current) return
         setIsConnecting(false)
         setError(null)
         socket.emit('room:create', {
@@ -225,7 +227,16 @@ function useRoomSocketCreate(
       }
 
       const handleError = ({ code, message }: { code: string; message: string }) => {
-        setError(`Erreur: ${message}`)
+        // En mode création : ROOM_NOT_FOUND peut arriver après une reconnexion (ex: serveur redémarré)
+        if (code === 'ROOM_NOT_FOUND' && roomCodeRef.current) {
+          setError(
+            'Le salon a été perdu (connexion interrompue). Cliquez sur Retour et recréez un salon.'
+          )
+          roomCodeRef.current = null
+          setRoomCode(null)
+        } else {
+          setError(`Erreur: ${message}`)
+        }
         setIsConnecting(false)
         onError?.(code, message)
       }
@@ -240,6 +251,11 @@ function useRoomSocketCreate(
         const code = roomCodeRef.current
         if (code) socket.emit('room:rejoin', { roomCode: code, playerId })
       })
+
+      // Si le socket est déjà connecté (ex: navigation depuis une autre page), émettre room:create une seule fois
+      if (socket.connected) {
+        handleConnect()
+      }
 
       timeoutId = window.setTimeout(() => {
         if (!roomCodeRef.current && !error) {
@@ -258,15 +274,23 @@ function useRoomSocketCreate(
         socket.off('room:state', handleRoomState)
         socket.off('error', handleError)
         socket.off('reconnect')
-        if (!skipLeaveOnUnmountRef?.current) {
-          leaveRoom()
-        }
+        // Ne pas quitter ici : l'effet se ré-exécute quand playerName/categories/etc. changent.
+        // On quitte uniquement au démontage (voir effet ci-dessous).
       }
     } catch {
       setError('Erreur lors de la connexion au serveur.')
       setIsConnecting(false)
     }
-  }, [enabled, categories, playerName, timeLimit, skipLeaveOnUnmountRef, onRoomCreated, onError, leaveRoom])
+  }, [enabled, categories, playerName, timeLimit, skipLeaveOnUnmountRef, onRoomCreated, onError])
+
+  // Quitter le salon uniquement au démontage du composant (pas à chaque re-run de l'effet ci-dessus)
+  useEffect(() => {
+    return () => {
+      if (!skipLeaveOnUnmountRef?.current) {
+        leaveRoom()
+      }
+    }
+  }, [skipLeaveOnUnmountRef, leaveRoom])
 
   return {
     roomCode,

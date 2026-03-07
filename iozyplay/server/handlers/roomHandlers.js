@@ -100,7 +100,7 @@ export function setupRoomHandlers(socket, io) {
     broadcastRoomState(io, roomCode, room);
   });
 
-  socket.on('room:join', async ({ roomCode, playerId, playerName }) => {
+  socket.on('room:join', async ({ roomCode, playerId, playerName, playerAvatar }) => {
     if (!playerId) {
       sendError(socket, 'INVALID_PLAYER_ID', 'playerId requis');
       return;
@@ -149,7 +149,7 @@ export function setupRoomHandlers(socket, io) {
       return;
     }
 
-    addPlayer(room, playerId, socket.id, finalPlayerName, playerAvatar);
+    addPlayer(room, playerId, socket.id, finalPlayerName, playerAvatar || '🎮');
     roomRepository.update(roomCode, room);
     
     // Joindre la room AVANT de broadcaster
