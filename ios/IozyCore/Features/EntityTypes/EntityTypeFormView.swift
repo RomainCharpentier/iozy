@@ -141,7 +141,8 @@ struct EntityTypeFormView: View {
                     await MainActor.run {
                         modelContext.insert(EntityTypeRecord(
                             id: dto.id, code: dto.code, label: dto.label,
-                            allowedExperienceTypes: dto.allowedExperienceTypes, customFieldKeys: dto.customFieldKeys))
+                            allowedExperienceTypes: dto.allowedExperienceTypes, customFieldKeys: dto.customFieldKeys,
+                            hasMetadataProvider: dto.hasMetadataProvider))
                         dismiss()
                     }
                 case .edit(let type):

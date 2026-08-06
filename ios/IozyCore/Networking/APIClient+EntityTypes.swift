@@ -10,6 +10,9 @@ struct EntityTypeDTO: Codable, Identifiable, Hashable {
     let label: String
     let allowedExperienceTypes: [String]
     let customFieldKeys: [String]
+    /// Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
+    /// type - jamais le cas pour un type personnalisé créé via cet éditeur.
+    let hasMetadataProvider: Bool
 }
 
 struct CreateEntityTypeRequest: Encodable {
