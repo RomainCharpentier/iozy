@@ -14,6 +14,14 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backend-tests.yml"
+  # Déclenchement manuel avec filtre optionnel (utile pour isoler un test
+  # flaky sans installer Java/Maven en local, ex: -Dtest=Xxx#method).
+  workflow_dispatch:
+    inputs:
+      maven_args:
+        description: "Arguments mvn (défaut : test)"
+        required: false
+        default: "test"
 
 jobs:
   test:
@@ -33,4 +41,4 @@ jobs:
           cache: maven
 
       - name: mvn test (unitaires + intégration Testcontainers)
-        run: mvn -B test
+        run: mvn -B ${{ github.event.inputs.maven_args || 'test' }}
