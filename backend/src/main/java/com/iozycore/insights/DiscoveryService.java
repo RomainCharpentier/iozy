@@ -10,6 +10,7 @@ import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.bgg.BggCollectionItem;
 import com.iozycore.metadata.bgg.BggHotListFetcher;
 import com.iozycore.metadata.bgg.BggThingFetcher;
+import com.iozycore.metadata.igdb.IgdbSimilarGamesFetcher;
 import com.iozycore.metadata.jikan.JikanMetadataProvider;
 import org.springframework.stereotype.Service;
 
@@ -46,19 +47,22 @@ public class DiscoveryService {
     private final JikanMetadataProvider jikanMetadataProvider;
     private final BggThingFetcher bggThingFetcher;
     private final BggHotListFetcher bggHotListFetcher;
+    private final IgdbSimilarGamesFetcher igdbSimilarGamesFetcher;
 
     public DiscoveryService(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
                              ExperienceRepository experienceRepository,
                              JikanMetadataProvider jikanMetadataProvider,
                              BggThingFetcher bggThingFetcher,
-                             BggHotListFetcher bggHotListFetcher) {
+                             BggHotListFetcher bggHotListFetcher,
+                             IgdbSimilarGamesFetcher igdbSimilarGamesFetcher) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.experienceRepository = experienceRepository;
         this.jikanMetadataProvider = jikanMetadataProvider;
         this.bggThingFetcher = bggThingFetcher;
         this.bggHotListFetcher = bggHotListFetcher;
+        this.igdbSimilarGamesFetcher = igdbSimilarGamesFetcher;
     }
 
     /** Résout l'id du type par son code bien connu - reste volontairement câblé sur le code
@@ -177,6 +181,54 @@ public class DiscoveryService {
                 suggestions.add(new DiscoveryCandidate(
                         "BGG", hotGame.externalId(), hotGame.title(), null,
                         "En commun : " + String.join(", ", shared)));
+            }
+        }
+        return suggestions;
+    }
+
+    /**
+     * Jeux vidéo "similaires" (champ similar_games d'IGDB, calculé côté
+     * IGDB) à tes jeux possédés, en excluant ce que tu as déjà. Plus
+     * simple que discoverBoardGames() : IGDB expose la similarité
+     * directement par jeu, pas besoin de croiser catégories/mécaniques
+     * via un second signal (BGG /hot). Même limite assumée que pour les
+     * jeux de société : ne considère que les jeux dont igdbId a été
+     * capturé (recherche via metadata search) - un jeu ajouté à la main
+     * n'est pas pris en compte.
+     */
+    public List<DiscoveryCandidate> discoverVideoGames() {
+        UUID videoGameTypeId = resolveTypeId("VIDEO_GAME");
+        if (videoGameTypeId == null) {
+            return List.of();
+        }
+        List<Entity> ownedGames = entityRepository.findAllByType(videoGameTypeId);
+        List<String> ownedIgdbIds = ownedGames.stream()
+                .map(e -> e.attributes().get("igdbId"))
+                .filter(id -> id instanceof String s && !s.isBlank())
+                .map(Object::toString)
+                .limit(MAX_OWNED_GAMES_EXAMINED)
+                .toList();
+
+        if (ownedIgdbIds.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> ownedTitlesLower = ownedGames.stream()
+                .map(e -> e.title().toLowerCase())
+                .collect(Collectors.toSet());
+
+        List<DiscoveryCandidate> suggestions = new ArrayList<>();
+        for (String igdbId : ownedIgdbIds) {
+            for (MetadataCandidate similar : igdbSimilarGamesFetcher.fetchSimilarGames(igdbId)) {
+                if (suggestions.size() >= MAX_SUGGESTIONS) {
+                    break;
+                }
+                if (ownedTitlesLower.contains(similar.title().toLowerCase())) {
+                    continue; // déjà dans la collection
+                }
+                suggestions.add(new DiscoveryCandidate(
+                        "IGDB", similar.externalId(), similar.title(), similar.imageUrl(),
+                        "Similaire à un jeu que tu possèdes"));
             }
         }
         return suggestions;

@@ -36,15 +36,16 @@ public class InsightsController {
     }
 
     @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
-            + "les mieux notés, ou jeux de société tendance partageant des catégories avec les tiens. "
-            + "entityTypeCode attendu : MANGA ou BOARD_GAME")
+            + "les mieux notés, jeux de société tendance partageant des catégories avec les tiens, "
+            + "ou jeux vidéo similaires aux tiens (IGDB). entityTypeCode attendu : MANGA, BOARD_GAME ou VIDEO_GAME")
     @GetMapping("/discover")
     public List<DiscoveryCandidate> discover(@RequestParam String entityTypeCode) {
         return switch (entityTypeCode) {
             case "MANGA" -> discoveryService.discoverManga();
             case "BOARD_GAME" -> discoveryService.discoverBoardGames();
+            case "VIDEO_GAME" -> discoveryService.discoverVideoGames();
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "entityTypeCode doit être MANGA ou BOARD_GAME (pas de découverte pour VIDEO_GAME - IGDB non branché)");
+                    "entityTypeCode doit être MANGA, BOARD_GAME ou VIDEO_GAME");
         };
     }
 }
