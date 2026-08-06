@@ -1,0 +1,83 @@
+version: "3.9"
+
+# Déploiement IozyCore sur NAS Synology (Container Manager / docker-compose).
+# 3 services : API, base de données, reverse proxy HTTPS.
+# PostgreSQL n'est jamais exposé directement à l'extérieur.
+
+services:
+  iozycore-api:
+    build: .
+    image: iozycore-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-iozycore}
+      DB_USER: ${DB_USER:-iozycore}
+      DB_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
+      BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
+    volumes:
+      - media_data:/app/media
+    networks:
+      - internal
+      - proxy
+    labels:
+      # Labels Traefik : routage HTTPS automatique avec Let's Encrypt.
+      # Remplacer iozycore.mondomaine.tld par ton propre domaine/DDNS Synology.
+      - "traefik.enable=true"
+      - "traefik.http.routers.iozycore.rule=Host(`iozycore.mondomaine.tld`)"
+      - "traefik.http.routers.iozycore.entrypoints=websecure"
+      - "traefik.http.routers.iozycore.tls.certresolver=letsencrypt"
+      - "traefik.http.services.iozycore.loadbalancer.server.port=8080"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-iozycore}
+      POSTGRES_USER: ${DB_USER:-iozycore}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-iozycore}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Pas de port exposé publiquement : uniquement accessible depuis
+    # le réseau interne "internal" par iozycore-api.
+
+  reverse-proxy:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?erreur - définir ACME_EMAIL dans .env}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt_data:/letsencrypt
+    networks:
+      - proxy
+
+networks:
+  internal:
+  proxy:
+
+volumes:
+  postgres_data:
+  media_data:
+  letsencrypt_data:

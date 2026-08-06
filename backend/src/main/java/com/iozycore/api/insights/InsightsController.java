@@ -1,0 +1,50 @@
+package com.iozycore.api.insights;
+
+import com.iozycore.insights.DiscoveryCandidate;
+import com.iozycore.insights.DiscoveryService;
+import com.iozycore.insights.StatsService;
+import com.iozycore.insights.StatsSummary;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/insights")
+@Tag(name = "Insights", description = "UC6 - statistiques et découverte (lecture seule)")
+public class InsightsController {
+
+    private final StatsService statsService;
+    private final DiscoveryService discoveryService;
+
+    public InsightsController(StatsService statsService, DiscoveryService discoveryService) {
+        this.statsService = statsService;
+        this.discoveryService = discoveryService;
+    }
+
+    @Operation(summary = "Statistiques agrégées : nombre d'entités/possessions par type, "
+            + "note moyenne, expériences de l'année en cours, tags les plus utilisés")
+    @GetMapping("/stats")
+    public StatsSummary stats() {
+        return statsService.computeSummary();
+    }
+
+    @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
+            + "les mieux notés, ou jeux de société tendance partageant des catégories avec les tiens. "
+            + "entityTypeCode attendu : MANGA ou BOARD_GAME")
+    @GetMapping("/discover")
+    public List<DiscoveryCandidate> discover(@RequestParam String entityTypeCode) {
+        return switch (entityTypeCode) {
+            case "MANGA" -> discoveryService.discoverManga();
+            case "BOARD_GAME" -> discoveryService.discoverBoardGames();
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "entityTypeCode doit être MANGA ou BOARD_GAME (pas de découverte pour VIDEO_GAME - IGDB non branché)");
+        };
+    }
+}

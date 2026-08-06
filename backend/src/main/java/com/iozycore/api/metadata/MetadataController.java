@@ -1,0 +1,68 @@
+package com.iozycore.api.metadata;
+
+import com.iozycore.application.BggCollectionImportService;
+import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.metadata.MetadataSearchService;
+import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/metadata")
+@Tag(name = "Metadata", description = "Recherche de métadonnées externes (Jikan pour les mangas, BGG pour les jeux de société)")
+public class MetadataController {
+
+    private final MetadataSearchService metadataSearchService;
+    private final BggCollectionImportService bggCollectionImportService;
+
+    public MetadataController(MetadataSearchService metadataSearchService,
+                               BggCollectionImportService bggCollectionImportService) {
+        this.metadataSearchService = metadataSearchService;
+        this.bggCollectionImportService = bggCollectionImportService;
+    }
+
+    @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1)")
+    @GetMapping("/search")
+    public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query) {
+        EntityType entityType = EntityType.byId(entityTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+
+        if (query == null || query.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
+        }
+
+        return metadataSearchService.search(entityType, query);
+    }
+
+    @Operation(summary = "Retrouver les métadonnées d'un élément à partir d'un code-barres scanné (ISBN pour les mangas)")
+    @GetMapping("/lookup-barcode")
+    public MetadataCandidate lookupBarcode(@RequestParam UUID entityTypeId, @RequestParam String barcode) {
+        EntityType entityType = EntityType.byId(entityTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+
+        return metadataSearchService.lookupByBarcode(entityType, barcode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Aucune métadonnée trouvée pour le code-barres : " + barcode));
+    }
+
+    @Operation(summary = "Importer en masse les jeux marqués \"possédés\" de la collection BGG d'un utilisateur "
+            + "(déduplication automatique via le même mécanisme que l'ajout rapide)")
+    @PostMapping("/bgg/import")
+    public BggCollectionImportService.ImportResult importBggCollection(@RequestParam String username) {
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'username' est requis");
+        }
+        try {
+            return bggCollectionImportService.importOwnedGames(username);
+        } catch (BggCollectionUnavailableException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+        }
+    }
+}

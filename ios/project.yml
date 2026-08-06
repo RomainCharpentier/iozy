@@ -1,0 +1,31 @@
+name: IozyCore
+options:
+  deploymentTarget:
+    iOS: "17.0"
+
+# Config.xcconfig est le SEUL fichier à modifier pour renommer l'app
+# (nom affiché + identifiant technique) - voir les commentaires dedans.
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+
+targets:
+  IozyCore:
+    type: application
+    platform: iOS
+    sources:
+      - path: IozyCore
+        excludes:
+          - "Info.plist"
+          - "Fonts/README.md"
+    info:
+      path: IozyCore/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+        PRODUCT_NAME: $(APP_NAME)
+        SWIFT_VERSION: "5.0"
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_PREVIEWS: YES
