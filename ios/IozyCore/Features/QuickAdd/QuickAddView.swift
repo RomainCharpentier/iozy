@@ -24,6 +24,14 @@ struct QuickAddView: View {
     @State private var candidates: [MetadataCandidateDTO] = []
     @State private var selectedCandidateAttributes: [String: String] = [:]
     @State private var searchTask: Task<Void, Never>?
+    // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/
+    // IGDB) - sans ça, une recherche qui ne trouve rien (fournisseur en
+    // panne, pas de correspondance...) est invisible et donne l'impression
+    // qu'aucune recherche n'a lieu, contrairement au scan code-barres qui
+    // affiche toujours un résultat explicite.
+    @State private var isSearching = false
+    @State private var searchCompletedWithNoResults = false
+    @State private var searchFailed = false
 
     /// Type sélectionné, ou le premier de la liste chargée par défaut - les
     /// types ne sont plus codés en dur, la liste peut être vide un court
@@ -65,6 +73,20 @@ struct QuickAddView: View {
                         } label: {
                             Image(systemName: "barcode.viewfinder")
                         }
+                    }
+
+                    if isSearching {
+                        Text("Recherche...")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    } else if searchFailed {
+                        Text("La recherche de métadonnées a échoué.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    } else if searchCompletedWithNoResults {
+                        Text("Aucun résultat pour ce titre.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
                     }
 
                     Picker("État", selection: $condition) {
@@ -142,21 +164,38 @@ struct QuickAddView: View {
     /// Recherche débouncée (300ms) pour ne pas spammer Jikan/BGG/IGDB à chaque frappe.
     private func triggerSearch() {
         searchTask?.cancel()
-        guard let typeId = selectedType?.id else { return }
+        candidates = []
+        searchCompletedWithNoResults = false
+        searchFailed = false
+        guard let typeId = selectedType?.id else {
+            isSearching = false
+            return
+        }
         let query = title
         guard query.trimmingCharacters(in: .whitespaces).count >= 2 else {
-            candidates = []
+            isSearching = false
             return
         }
 
+        isSearching = true
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             do {
                 let results = try await APIClient.shared.searchMetadata(entityTypeId: typeId, query: query)
-                await MainActor.run { candidates = results }
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    candidates = results
+                    searchCompletedWithNoResults = results.isEmpty
+                    isSearching = false
+                }
             } catch {
-                await MainActor.run { candidates = [] }
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    candidates = []
+                    searchFailed = true
+                    isSearching = false
+                }
             }
         }
     }
@@ -183,6 +222,8 @@ struct QuickAddView: View {
         title = candidate.title
         selectedCandidateAttributes = candidate.attributes.mapValues { $0.stringValue }
         candidates = []
+        searchCompletedWithNoResults = false
+        searchFailed = false
     }
 
     private func submit() {
@@ -216,6 +257,8 @@ struct QuickAddView: View {
                     title = ""
                     selectedCandidateAttributes = [:]
                     candidates = []
+                    searchCompletedWithNoResults = false
+                    searchFailed = false
                     isSubmitting = false
                 }
             } catch {

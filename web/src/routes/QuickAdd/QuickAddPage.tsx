@@ -34,11 +34,12 @@ export function QuickAddPage() {
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
 
   const debouncedTitle = useDebouncedValue(title, 300)
+  const searchEnabled = !!entityTypeId && debouncedTitle.trim().length >= 2 && debouncedTitle !== attributesSourceTitle
 
   const suggestionsQuery = useQuery({
     queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
     queryFn: () => searchMetadata(entityTypeId!, debouncedTitle),
-    enabled: !!entityTypeId && debouncedTitle.trim().length >= 2 && debouncedTitle !== attributesSourceTitle,
+    enabled: searchEnabled,
   })
 
   const addMutation = useMutation({
@@ -74,8 +75,16 @@ export function QuickAddPage() {
     setAttributesSourceTitle(null)
   }
 
-  const showSuggestions =
-    suggestionsQuery.isSuccess && suggestionsQuery.data.length > 0 && debouncedTitle !== attributesSourceTitle
+  // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/IGDB)
+  // - sans ça, une recherche qui ne trouve rien (fournisseur en panne, pas de
+  // correspondance...) est invisible et donne l'impression qu'aucune
+  // recherche n'a lieu, contrairement au champ code-barres qui affiche
+  // toujours un état explicite.
+  const showSearching = searchEnabled && suggestionsQuery.isFetching
+  const showSuggestions = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isSuccess && suggestionsQuery.data.length > 0
+  const showNoResults =
+    searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isSuccess && suggestionsQuery.data.length === 0
+  const showSearchError = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isError
 
   return (
     <div className="flex flex-col gap-5">
@@ -108,6 +117,10 @@ export function QuickAddPage() {
             className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
             autoComplete="off"
           />
+
+          {showSearching && <p className="text-xs text-textDim">Recherche...</p>}
+          {showNoResults && <p className="text-xs text-textDim">Aucun résultat pour ce titre.</p>}
+          {showSearchError && <p className="text-xs text-textDim">La recherche de métadonnées a échoué.</p>}
 
           {showSuggestions && (
             <ul className="flex flex-col gap-1 rounded-xl bg-surface p-2">
