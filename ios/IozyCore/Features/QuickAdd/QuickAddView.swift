@@ -23,6 +23,11 @@ struct QuickAddView: View {
 
     @State private var candidates: [MetadataCandidateDTO] = []
     @State private var selectedCandidateAttributes: [String: String] = [:]
+    // Titre depuis lequel `selectedCandidateAttributes` a été rempli - si le
+    // titre est retouché manuellement après avoir choisi un candidat, il est
+    // considéré périmé (même règle que côté web). Sert aussi à savoir si le
+    // titre courant est "vérifié" pour le blocage de soumission ci-dessous.
+    @State private var verifiedTitle: String?
     @State private var searchTask: Task<Void, Never>?
     // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/
     // IGDB) - sans ça, une recherche qui ne trouve rien (fournisseur en
@@ -39,6 +44,17 @@ struct QuickAddView: View {
     private var selectedType: EntityTypeRecord? {
         guard let selectedTypeId else { return entityTypes.first }
         return entityTypes.first { $0.id == selectedTypeId } ?? entityTypes.first
+    }
+
+    /// Un type avec fournisseur (Manga/Jeu vidéo/Jeu de société) exige
+    /// d'avoir choisi une suggestion (recherche ou code-barres) avant de
+    /// valider - un type personnalisé (jamais de fournisseur) reste en
+    /// saisie libre, sinon il deviendrait définitivement impossible d'y
+    /// ajouter quoi que ce soit.
+    private var requiresMatch: Bool { selectedType?.hasMetadataProvider ?? false }
+    private var hasVerifiedMatch: Bool { verifiedTitle != nil && verifiedTitle == title }
+    private var blockedByMissingMatch: Bool {
+        requiresMatch && !title.trimmingCharacters(in: .whitespaces).isEmpty && !hasVerifiedMatch
     }
 
     var body: some View {
@@ -64,8 +80,10 @@ struct QuickAddView: View {
                     HStack {
                         TextField("Titre", text: $title)
                             .textInputAutocapitalization(.words)
-                            .onChange(of: title) { _, _ in
-                                selectedCandidateAttributes = [:]  // le titre a été retouché manuellement
+                            .onChange(of: title) { _, newValue in
+                                if newValue != verifiedTitle {
+                                    selectedCandidateAttributes = [:]  // le titre a été retouché manuellement
+                                }
                                 triggerSearch()
                             }
                         Button {
@@ -85,6 +103,12 @@ struct QuickAddView: View {
                             .foregroundStyle(Theme.textDim)
                     } else if searchCompletedWithNoResults {
                         Text("Aucun résultat pour ce titre.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+
+                    if blockedByMissingMatch {
+                        Text("Ce type nécessite de choisir une suggestion ci-dessus (ou via le code-barres) avant de valider.")
                             .font(.caption)
                             .foregroundStyle(Theme.textDim)
                     }
@@ -146,8 +170,10 @@ struct QuickAddView: View {
                         .padding()
                 }
                 .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
-                .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting ? 0.5 : 1)
+                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting || blockedByMissingMatch)
+                .opacity(
+                    title.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting || blockedByMissingMatch
+                        ? 0.5 : 1)
                 .padding()
             }
             .sheet(isPresented: $showingScanner) {
@@ -221,13 +247,14 @@ struct QuickAddView: View {
     private func selectCandidate(_ candidate: MetadataCandidateDTO) {
         title = candidate.title
         selectedCandidateAttributes = candidate.attributes.mapValues { $0.stringValue }
+        verifiedTitle = candidate.title
         candidates = []
         searchCompletedWithNoResults = false
         searchFailed = false
     }
 
     private func submit() {
-        guard let typeId = selectedType?.id else { return }
+        guard let typeId = selectedType?.id, !blockedByMissingMatch else { return }
         isSubmitting = true
         errorMessage = nil
         let submittedTitle = title
@@ -256,6 +283,7 @@ struct QuickAddView: View {
                         : "« \(submittedTitle) » ajouté"
                     title = ""
                     selectedCandidateAttributes = [:]
+                    verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false
                     searchFailed = false

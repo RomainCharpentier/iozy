@@ -65,7 +65,7 @@ export function QuickAddPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!title.trim() || !entityTypeId) return
+    if (!title.trim() || !entityTypeId || blockedByMissingMatch) return
     addMutation.mutate({ entityTypeId, title: title.trim(), condition, attributes })
   }
 
@@ -85,6 +85,14 @@ export function QuickAddPage() {
   const showNoResults =
     searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isSuccess && suggestionsQuery.data.length === 0
   const showSearchError = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isError
+
+  // Un type avec fournisseur (Manga/Jeu vidéo/Jeu de société) exige d'avoir
+  // choisi une suggestion (recherche ou code-barres) avant de valider - un
+  // type personnalisé (jamais de fournisseur) reste en saisie libre, sinon
+  // il deviendrait définitivement impossible d'y ajouter quoi que ce soit.
+  const requiresMatch = !!selectedType?.hasMetadataProvider
+  const hasVerifiedMatch = attributesSourceTitle !== null && attributesSourceTitle === title
+  const blockedByMissingMatch = requiresMatch && title.trim().length > 0 && !hasVerifiedMatch
 
   return (
     <div className="flex flex-col gap-5">
@@ -165,9 +173,15 @@ export function QuickAddPage() {
           <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
         )}
 
+        {blockedByMissingMatch && (
+          <p className="text-xs text-textDim">
+            Ce type nécessite de choisir une suggestion ci-dessus (ou via le code-barres) avant de valider.
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={!title.trim() || !entityTypeId || addMutation.isPending}
+          disabled={!title.trim() || !entityTypeId || blockedByMissingMatch || addMutation.isPending}
           className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
         >
           {addMutation.isPending ? 'Ajout...' : 'Ajouter'}

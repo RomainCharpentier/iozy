@@ -131,6 +131,9 @@ export interface EntityTypeDto {
   label: string
   allowedExperienceTypes: string[]
   customFieldKeys: string[]
+  // Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
+  // type - jamais le cas pour un type personnalisé créé via cet éditeur.
+  hasMetadataProvider: boolean
 }
 
 export interface CreateEntityTypeRequest {

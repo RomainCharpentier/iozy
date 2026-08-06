@@ -14,15 +14,21 @@ final class EntityTypeRecord {
     var label: String
     var allowedExperienceTypesJSON: String   // [String] encodé en JSON, même convention que attributesJSON
     var customFieldKeysJSON: String
+    /// Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
+    /// type - jamais le cas pour un type personnalisé créé via cet éditeur
+    /// (voir QuickAddView : l'ajout est bloqué sans suggestion choisie
+    /// uniquement quand c'est vrai).
+    var hasMetadataProvider: Bool
     var lastSyncedAt: Date
 
     init(id: UUID, code: String, label: String, allowedExperienceTypes: [String], customFieldKeys: [String],
-         lastSyncedAt: Date = .now) {
+         hasMetadataProvider: Bool, lastSyncedAt: Date = .now) {
         self.id = id
         self.code = code
         self.label = label
         self.allowedExperienceTypesJSON = Self.encode(allowedExperienceTypes)
         self.customFieldKeysJSON = Self.encode(customFieldKeys)
+        self.hasMetadataProvider = hasMetadataProvider
         self.lastSyncedAt = lastSyncedAt
     }
 
@@ -41,6 +47,7 @@ final class EntityTypeRecord {
         label = dto.label
         allowedExperienceTypesJSON = Self.encode(dto.allowedExperienceTypes)
         customFieldKeysJSON = Self.encode(dto.customFieldKeys)
+        hasMetadataProvider = dto.hasMetadataProvider
         lastSyncedAt = .now
     }
 
@@ -71,7 +78,8 @@ final class EntityTypeRecord {
             } else {
                 let record = EntityTypeRecord(
                     id: dto.id, code: dto.code, label: dto.label,
-                    allowedExperienceTypes: dto.allowedExperienceTypes, customFieldKeys: dto.customFieldKeys)
+                    allowedExperienceTypes: dto.allowedExperienceTypes, customFieldKeys: dto.customFieldKeys,
+                    hasMetadataProvider: dto.hasMetadataProvider)
                 modelContext.insert(record)
                 byId[dto.id] = record
             }
