@@ -6,13 +6,14 @@ import SwiftData
 /// magasin en moins de 5 secondes.
 ///
 /// Intègre la recherche de métadonnées (module Metadata Enrichment,
-/// Jikan pour les mangas / BGG pour les jeux de société - IGDB non
-/// branché, voir README) : taper un titre déclenche une recherche, un
-/// candidat choisi pré-remplit le titre et transmet ses attributs à
-/// l'ajout rapide sans ressaisie.
+/// Jikan pour les mangas / BGG pour les jeux de société / IGDB pour les
+/// jeux vidéo) : taper un titre déclenche une recherche, un candidat
+/// choisi pré-remplit le titre et transmet ses attributs à l'ajout rapide
+/// sans ressaisie.
 struct QuickAddView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selectedType: EntityTypeMVP = .manga
+    @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
+    @State private var selectedTypeId: UUID?
     @State private var title: String = ""
     @State private var condition: String = "NEW"
     @State private var isSubmitting = false
@@ -24,17 +25,33 @@ struct QuickAddView: View {
     @State private var selectedCandidateAttributes: [String: String] = [:]
     @State private var searchTask: Task<Void, Never>?
 
+    /// Type sélectionné, ou le premier de la liste chargée par défaut - les
+    /// types ne sont plus codés en dur, la liste peut être vide un court
+    /// instant au tout premier lancement (avant la première synchronisation).
+    private var selectedType: EntityTypeRecord? {
+        guard let selectedTypeId else { return entityTypes.first }
+        return entityTypes.first { $0.id == selectedTypeId } ?? entityTypes.first
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(EntityTypeMVP.allCases) { type in
-                            Label(type.label, systemImage: type.iconName).tag(type)
+                    if entityTypes.isEmpty {
+                        Text("Chargement des types...")
+                            .foregroundStyle(Theme.textDim)
+                    } else {
+                        Picker("Type", selection: Binding(
+                            get: { selectedType?.id },
+                            set: { selectedTypeId = $0 }
+                        )) {
+                            ForEach(entityTypes) { type in
+                                Label(type.label, systemImage: Theme.icon(for: type.code)).tag(Optional(type.id))
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .onChange(of: selectedTypeId) { _, _ in triggerSearch() }
                     }
-                    .pickerStyle(.segmented)
-                    .onChange(of: selectedType) { _, _ in triggerSearch() }
 
                     HStack {
                         TextField("Titre", text: $title)
@@ -58,7 +75,7 @@ struct QuickAddView: View {
                 }
 
                 if !candidates.isEmpty {
-                    Section("Suggestions (Jikan / BGG)") {
+                    Section("Suggestions (Jikan / BGG / IGDB)") {
                         ForEach(candidates) { candidate in
                             Button {
                                 selectCandidate(candidate)
@@ -116,12 +133,16 @@ struct QuickAddView: View {
                     handleScannedBarcode(scannedCode)
                 }
             }
+            .task {
+                await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
+            }
         }
     }
 
-    /// Recherche débouncée (300ms) pour ne pas spammer Jikan/BGG à chaque frappe.
+    /// Recherche débouncée (300ms) pour ne pas spammer Jikan/BGG/IGDB à chaque frappe.
     private func triggerSearch() {
         searchTask?.cancel()
+        guard let typeId = selectedType?.id else { return }
         let query = title
         guard query.trimmingCharacters(in: .whitespaces).count >= 2 else {
             candidates = []
@@ -132,7 +153,7 @@ struct QuickAddView: View {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             do {
-                let results = try await APIClient.shared.searchMetadata(entityTypeId: selectedType.uuid, query: query)
+                let results = try await APIClient.shared.searchMetadata(entityTypeId: typeId, query: query)
                 await MainActor.run { candidates = results }
             } catch {
                 await MainActor.run { candidates = [] }
@@ -140,16 +161,17 @@ struct QuickAddView: View {
         }
     }
 
-    /// Tente un vrai lookup ISBN via Open Library (couvre MANGA uniquement -
-    /// voir OpenLibraryBarcodeProvider côté backend). En cas d'échec ou de
-    /// type non couvert, se rabat sur le code brut comme avant.
+    /// Tente un vrai lookup ISBN via Open Library (couvre le type MANGA
+    /// uniquement, par son code bien connu - voir OpenLibraryBarcodeProvider
+    /// côté backend). En cas d'échec ou de type non couvert, se rabat sur
+    /// le code brut comme avant.
     private func handleScannedBarcode(_ code: String) {
-        guard selectedType == .manga else {
+        guard let type = selectedType, type.code == "MANGA" else {
             title = code
             return
         }
         Task {
-            if let found = try? await APIClient.shared.lookupBarcode(entityTypeId: selectedType.uuid, barcode: code) {
+            if let found = try? await APIClient.shared.lookupBarcode(entityTypeId: type.id, barcode: code) {
                 await MainActor.run { selectCandidate(found) }
             } else {
                 await MainActor.run { title = code }
@@ -164,6 +186,7 @@ struct QuickAddView: View {
     }
 
     private func submit() {
+        guard let typeId = selectedType?.id else { return }
         isSubmitting = true
         errorMessage = nil
         let submittedTitle = title
@@ -172,7 +195,7 @@ struct QuickAddView: View {
         Task {
             do {
                 let result = try await APIClient.shared.quickAdd(
-                    entityTypeId: selectedType.uuid, title: submittedTitle, condition: condition, attributes: attributes)
+                    entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes)
                 await MainActor.run {
                     // On n'insère un nouvel EntityRecord dans le cache local que si
                     // le backend a vraiment créé une nouvelle Entity - sinon on
@@ -180,7 +203,7 @@ struct QuickAddView: View {
                     if !result.matchedExistingEntity {
                         let record = EntityRecord(
                             id: result.entityId,
-                            entityTypeId: selectedType.uuid,
+                            entityTypeId: typeId,
                             title: submittedTitle,
                             attributesJSON: "{}"
                         )

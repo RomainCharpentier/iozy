@@ -12,6 +12,7 @@ import SwiftData
 /// /thing par jeu) peuvent prendre plusieurs secondes.
 struct StatsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
 
     @State private var summary: StatsSummaryDTO?
     @State private var isLoading = false
@@ -19,6 +20,7 @@ struct StatsView: View {
 
     @State private var mangaDiscoveries: [DiscoveryCandidateDTO]?
     @State private var boardGameDiscoveries: [DiscoveryCandidateDTO]?
+    @State private var videoGameDiscoveries: [DiscoveryCandidateDTO]?
     @State private var isLoadingDiscoveries = false
     @State private var addedTitles: Set<String> = []
 
@@ -50,6 +52,9 @@ struct StatsView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .refreshable { await load() }
             .task { await load() }
+            .task {
+                await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
+            }
         }
     }
 
@@ -133,7 +138,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("Découvertes")
 
-            if mangaDiscoveries == nil && boardGameDiscoveries == nil {
+            if mangaDiscoveries == nil && boardGameDiscoveries == nil && videoGameDiscoveries == nil {
                 Button {
                     Task { await loadDiscoveries() }
                 } label: {
@@ -154,8 +159,15 @@ struct StatsView: View {
                 }
                 .disabled(isLoadingDiscoveries)
             } else {
-                discoveryList(mangaDiscoveries, entityTypeId: EntityTypeMVP.manga.uuid, condition: "NEW")
-                discoveryList(boardGameDiscoveries, entityTypeId: EntityTypeMVP.boardGame.uuid, condition: "NEW")
+                if let mangaTypeId = entityTypes.first(where: { $0.code == "MANGA" })?.id {
+                    discoveryList(mangaDiscoveries, entityTypeId: mangaTypeId, condition: "NEW")
+                }
+                if let boardGameTypeId = entityTypes.first(where: { $0.code == "BOARD_GAME" })?.id {
+                    discoveryList(boardGameDiscoveries, entityTypeId: boardGameTypeId, condition: "NEW")
+                }
+                if let videoGameTypeId = entityTypes.first(where: { $0.code == "VIDEO_GAME" })?.id {
+                    discoveryList(videoGameDiscoveries, entityTypeId: videoGameTypeId, condition: "NEW")
+                }
             }
 
             Text("Suggestions basées sur ce que tu possèdes déjà (même auteur, catégories en commun) - pas de recommandation par IA.")
@@ -196,6 +208,7 @@ struct StatsView: View {
         var attributes: [String: String] = [:]
         if candidate.source == "BGG" { attributes["bggId"] = candidate.externalId }
         if candidate.source == "JIKAN" { attributes["malId"] = candidate.externalId }
+        if candidate.source == "IGDB" { attributes["igdbId"] = candidate.externalId }
 
         if let result = try? await APIClient.shared.quickAdd(
             entityTypeId: entityTypeId, title: candidate.title, condition: condition, attributes: attributes) {
@@ -213,9 +226,11 @@ struct StatsView: View {
         isLoadingDiscoveries = true
         async let mangaTask = try? APIClient.shared.fetchDiscovery(entityTypeCode: "MANGA")
         async let boardGameTask = try? APIClient.shared.fetchDiscovery(entityTypeCode: "BOARD_GAME")
-        let (manga, boardGames) = await (mangaTask, boardGameTask)
+        async let videoGameTask = try? APIClient.shared.fetchDiscovery(entityTypeCode: "VIDEO_GAME")
+        let (manga, boardGames, videoGames) = await (mangaTask, boardGameTask, videoGameTask)
         mangaDiscoveries = manga ?? []
         boardGameDiscoveries = boardGames ?? []
+        videoGameDiscoveries = videoGames ?? []
         isLoadingDiscoveries = false
     }
 

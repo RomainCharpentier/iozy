@@ -25,9 +25,11 @@ final class EntityRecord {
         self.lastSyncedAt = lastSyncedAt
     }
 
-    var entityType: EntityTypeMVP? {
-        EntityTypeMVP.from(uuid: entityTypeId)
-    }
+    // Plus de propriété `entityType` calculée ici : les types sont
+    // désormais dynamiques (EntityTypeRecord, éditeur de types), donc leur
+    // résolution a besoin de la liste chargée - voir
+    // EntityTypeRecord.find(id:in:), appelé depuis chaque vue avec son
+    // propre @Query plutôt que déduit ici d'un enum à cas fixes.
 }
 
 @Model

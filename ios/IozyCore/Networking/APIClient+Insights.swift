@@ -42,8 +42,7 @@ extension APIClient {
         try await get("/insights/stats")
     }
 
-    /// entityTypeCode attendu : "MANGA" ou "BOARD_GAME" (pas de découverte
-    /// pour les jeux vidéo, IGDB non branché - voir InsightsController).
+    /// entityTypeCode attendu : "MANGA", "BOARD_GAME" ou "VIDEO_GAME".
     func fetchDiscovery(entityTypeCode: String) async throws -> [DiscoveryCandidateDTO] {
         try await get("/insights/discover?entityTypeCode=\(entityTypeCode)")
     }

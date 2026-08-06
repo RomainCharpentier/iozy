@@ -6,7 +6,9 @@ import SwiftData
 /// avec repli automatique sur le cache local si le réseau est indisponible
 /// (le parcours doit fonctionner hors ligne, comme validé en conception).
 struct SearchView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var cachedEntities: [EntityRecord]
+    @Query private var entityTypes: [EntityTypeRecord]
     @State private var query: String = ""
     @State private var onlineStatus: APIClient.LookupStatus?
     @State private var isChecking = false
@@ -20,7 +22,6 @@ struct SearchView: View {
         let id: UUID
         let title: String
         let entityTypeId: UUID
-        var entityType: EntityTypeMVP? { EntityTypeMVP.from(uuid: entityTypeId) }
     }
 
     /// Résultats affichés : ceux du serveur s'ils ont pu être récupérés
@@ -45,7 +46,7 @@ struct SearchView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(item.title).font(Theme.bodySemibold(15)).foregroundStyle(Theme.textPrimary)
-                            if let type = item.entityType {
+                            if let type = EntityTypeRecord.find(id: item.entityTypeId, in: entityTypes) {
                                 Text(type.label).font(Theme.body(12)).foregroundStyle(Theme.textDim)
                             }
                         }
@@ -91,6 +92,9 @@ struct SearchView: View {
                 if isChecking || isSearchingServer {
                     ProgressView().tint(Theme.accent)
                 }
+            }
+            .task {
+                await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
             }
         }
     }

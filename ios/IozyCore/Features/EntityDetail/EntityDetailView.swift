@@ -21,6 +21,7 @@ struct EntityDetailView: View {
     @Query private var allEntities: [EntityRecord]
     @Query private var allOwnerships: [OwnershipRecord]
     @Query private var allExperiences: [ExperienceRecord]
+    @Query private var entityTypes: [EntityTypeRecord]
 
     @State private var showingAddExperience = false
     @State private var isSyncing = false
@@ -34,6 +35,9 @@ struct EntityDetailView: View {
     @State private var showingAddRelationship = false
 
     private var entity: EntityRecord? { allEntities.first { $0.id == entityId } }
+    private var resolvedType: EntityTypeRecord? {
+        entity.flatMap { EntityTypeRecord.find(id: $0.entityTypeId, in: entityTypes) }
+    }
     private var ownerships: [OwnershipRecord] { allOwnerships.filter { $0.entityId == entityId } }
     private var experiences: [ExperienceRecord] { allExperiences.filter { $0.entityId == entityId } }
     private var entityTags: [TagDTO] { allTags.filter { entityTagIds.contains($0.id) } }
@@ -73,7 +77,7 @@ struct EntityDetailView: View {
         .refreshable { await syncFromServer() }
         .sheet(isPresented: $showingAddExperience) {
             if let entity {
-                AddExperienceSheet(entityId: entity.id, allowedTypes: entity.entityType?.allowedExperienceTypes ?? []) { dto in
+                AddExperienceSheet(entityId: entity.id, allowedTypes: resolvedType?.allowedExperienceTypes ?? []) { dto in
                     upsertExperience(dto)
                 }
             }
@@ -111,7 +115,7 @@ struct EntityDetailView: View {
                 .frame(height: 210)
 
             VStack(alignment: .leading, spacing: 8) {
-                if let type = entity?.entityType {
+                if let type = resolvedType {
                     Text(type.label.uppercased())
                         .font(Theme.bodySemibold(11))
                         .foregroundStyle(.white.opacity(0.85))
@@ -285,6 +289,7 @@ struct EntityDetailView: View {
             allTags = tags
             relationshipsFrom = relFrom
             relationshipsTo = relTo
+            await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
         } catch {
             // Échec réseau : on garde le cache local existant (utile hors ligne),
             // on informe juste que la synchronisation n'a pas pu se faire.

@@ -64,6 +64,21 @@ enum Theme {
             endPoint: .bottomTrailing
         )
     }
+
+    // MARK: - Icône de type (éditeur de types dynamique)
+
+    /// Un type créé par l'utilisateur n'a pas d'icône SF Symbol curatée
+    /// (contrairement aux 3 types MVP historiques : book.closed/gamecontroller/
+    /// dice) - même principe que gradient(for:) : hash déterministe du code
+    /// vers une petite liste d'icônes génériques, zéro décision à la création.
+    private static let iconFallbacks: [String] = [
+        "tag", "square.stack", "shippingbox", "folder", "bookmark",
+        "cube", "square.grid.3x3", "puzzlepiece", "archivebox",
+    ]
+
+    static func icon(for code: String) -> String {
+        iconFallbacks[Int(code.hashValue.magnitude % UInt(iconFallbacks.count))]
+    }
 }
 
 extension Color {
