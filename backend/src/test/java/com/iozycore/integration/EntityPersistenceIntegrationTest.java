@@ -2,7 +2,7 @@ package com.iozycore.integration;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.ownership.Ownership;
@@ -67,7 +67,7 @@ class EntityPersistenceIntegrationTest {
 
     @Test
     void an_entity_can_be_saved_reloaded_with_its_variant_and_tag() {
-        Entity entity = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         entity.addVariant("Black Edition", java.util.Map.of("volumeCount", 6));
 
         Tag tag = tagRepository.save(new Tag(UUID.randomUUID(), "seinen"));
@@ -85,7 +85,7 @@ class EntityPersistenceIntegrationTest {
 
     @Test
     void an_ownership_can_be_acquired_then_marked_sold_and_reloaded() {
-        Entity entity = Entity.create(EntityType.VIDEO_GAME.id(), "Hollow Knight");
+        Entity entity = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(entity);
 
         Ownership ownership = Ownership.acquire(entity.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
@@ -102,12 +102,12 @@ class EntityPersistenceIntegrationTest {
 
     @Test
     void search_matches_by_title_across_types_and_respects_type_and_tag_filters() {
-        Entity deathNote = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Tag seinen = tagRepository.save(new Tag(UUID.randomUUID(), "seinen-" + UUID.randomUUID()));
         deathNote.addTag(seinen.id());
         entityRepository.save(deathNote);
 
-        Entity hollowKnight = Entity.create(EntityType.VIDEO_GAME.id(), "Hollow Knight");
+        Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(hollowKnight);
 
         // Recherche transversale par titre, sans filtre de type : ne doit
@@ -117,7 +117,7 @@ class EntityPersistenceIntegrationTest {
                 .containsExactly(deathNote.id());
 
         // Recherche vide + filtre de type uniquement : tous les mangas.
-        assertThat(entityRepository.search(null, EntityType.MANGA.id(), null))
+        assertThat(entityRepository.search(null, EntityTypeFixtures.MANGA.id(), null))
                 .extracting(Entity::id)
                 .contains(deathNote.id())
                 .doesNotContain(hollowKnight.id());

@@ -3,6 +3,7 @@ package com.iozycore.insights;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.experience.Experience;
@@ -35,17 +36,20 @@ public class StatsService {
     private final ExperienceRepository experienceRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
     private final TagRepository tagRepository;
+    private final EntityTypeRepository entityTypeRepository;
 
     public StatsService(EntityRepository entityRepository,
                          OwnershipRepository ownershipRepository,
                          ExperienceRepository experienceRepository,
                          WishlistEntryRepository wishlistEntryRepository,
-                         TagRepository tagRepository) {
+                         TagRepository tagRepository,
+                         EntityTypeRepository entityTypeRepository) {
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
         this.experienceRepository = experienceRepository;
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.tagRepository = tagRepository;
+        this.entityTypeRepository = entityTypeRepository;
     }
 
     public StatsSummary computeSummary() {
@@ -54,7 +58,7 @@ public class StatsService {
         List<Entity> allEntities = new ArrayList<>();
 
         List<StatsSummary.TypeStats> byType = new ArrayList<>();
-        for (EntityType type : EntityType.mvpTypes()) {
+        for (EntityType type : entityTypeRepository.findAll()) {
             List<Entity> entitiesOfType = entityRepository.findAllByType(type.id());
             allEntities.addAll(entitiesOfType);
             Set<UUID> entityIds = entitiesOfType.stream().map(Entity::id).collect(Collectors.toSet());

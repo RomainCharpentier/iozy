@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface EntityJpaRepository extends JpaRepository<EntityJpaEntity, UUID> {
     Optional<EntityJpaEntity> findByEntityTypeIdAndTitleIgnoreCase(UUID entityTypeId, String title);
     List<EntityJpaEntity> findByEntityTypeId(UUID entityTypeId);
+    boolean existsByEntityTypeId(UUID entityTypeId);
 
     /**
      * Recherche transversale (UC4) : titleQuery/entityTypeId/tagId sont

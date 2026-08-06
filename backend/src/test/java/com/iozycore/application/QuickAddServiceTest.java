@@ -2,7 +2,7 @@ package com.iozycore.application;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -29,7 +29,7 @@ class QuickAddServiceTest {
         QuickAddService service = newService();
 
         QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
-                EntityType.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
+                EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
 
         assertThat(result.matchedExistingEntity()).isFalse();
     }
@@ -42,10 +42,10 @@ class QuickAddServiceTest {
         });
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
-                EntityType.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
+                EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
         // Casse différente volontairement, pour vérifier le match insensible à la casse.
         QuickAddService.QuickAddResult second = service.addNewEntityWithOwnership(
-                EntityType.MANGA.id(), "death note - tome 1", OwnershipCondition.USED);
+                EntityTypeFixtures.MANGA.id(), "death note - tome 1", OwnershipCondition.USED);
 
         assertThat(second.matchedExistingEntity()).isTrue();
         assertThat(second.entityId()).isEqualTo(first.entityId());
@@ -58,9 +58,9 @@ class QuickAddServiceTest {
         QuickAddService service = newService();
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
-                EntityType.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
+                EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
         QuickAddService.QuickAddResult second = service.addNewEntityWithOwnership(
-                EntityType.MANGA.id(), "Death Note - Tome 2", OwnershipCondition.NEW);
+                EntityTypeFixtures.MANGA.id(), "Death Note - Tome 2", OwnershipCondition.NEW);
 
         assertThat(second.matchedExistingEntity()).isFalse();
         assertThat(second.entityId()).isNotEqualTo(first.entityId());
@@ -72,12 +72,12 @@ class QuickAddServiceTest {
         QuickAddService service = new QuickAddService(repo, new InMemoryOwnershipRepository(), event -> {
         });
 
-        service.addNewEntityWithOwnership(EntityType.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
+        service.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
                 Map.of("mangaka", "Saisie manuelle"));
-        service.addNewEntityWithOwnership(EntityType.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
+        service.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
                 Map.of("mangaka", "Ohba, Tsugumi", "publisher", "Kana"));
 
-        Entity entity = repo.findByTypeAndTitle(EntityType.MANGA.id(), "Death Note - Tome 1").orElseThrow();
+        Entity entity = repo.findByTypeAndTitle(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1").orElseThrow();
         assertThat(entity.attributes()).containsEntry("mangaka", "Saisie manuelle"); // pas écrasé
         assertThat(entity.attributes()).containsEntry("publisher", "Kana"); // complété
     }
@@ -128,6 +128,11 @@ class QuickAddServiceTest {
                     .filter(e -> entityTypeId == null || e.entityTypeId().equals(entityTypeId))
                     .filter(e -> tagId == null || e.tagIds().contains(tagId))
                     .collect(java.util.stream.Collectors.toList());
+        }
+
+        @Override
+        public boolean existsByType(UUID entityTypeId) {
+            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
         }
 
         @Override

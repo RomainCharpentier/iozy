@@ -2,6 +2,7 @@ package com.iozycore.api.metadata;
 
 import com.iozycore.application.BggCollectionImportService;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataSearchService;
 import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
@@ -16,22 +17,26 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/metadata")
-@Tag(name = "Metadata", description = "Recherche de métadonnées externes (Jikan pour les mangas, BGG pour les jeux de société)")
+@Tag(name = "Metadata", description = "Recherche de métadonnées externes (Jikan pour les mangas, "
+        + "BGG pour les jeux de société, IGDB pour les jeux vidéo)")
 public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
     private final BggCollectionImportService bggCollectionImportService;
+    private final EntityTypeRepository entityTypeRepository;
 
     public MetadataController(MetadataSearchService metadataSearchService,
-                               BggCollectionImportService bggCollectionImportService) {
+                               BggCollectionImportService bggCollectionImportService,
+                               EntityTypeRepository entityTypeRepository) {
         this.metadataSearchService = metadataSearchService;
         this.bggCollectionImportService = bggCollectionImportService;
+        this.entityTypeRepository = entityTypeRepository;
     }
 
     @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1)")
     @GetMapping("/search")
     public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query) {
-        EntityType entityType = EntityType.byId(entityTypeId)
+        EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
         if (query == null || query.isBlank()) {
@@ -44,7 +49,7 @@ public class MetadataController {
     @Operation(summary = "Retrouver les métadonnées d'un élément à partir d'un code-barres scanné (ISBN pour les mangas)")
     @GetMapping("/lookup-barcode")
     public MetadataCandidate lookupBarcode(@RequestParam UUID entityTypeId, @RequestParam String barcode) {
-        EntityType entityType = EntityType.byId(entityTypeId)
+        EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
         return metadataSearchService.lookupByBarcode(entityType, barcode)

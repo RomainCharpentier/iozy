@@ -15,7 +15,7 @@ class EntityTest {
 
     @Test
     void creating_an_entity_raises_entity_created_event() {
-        Entity entity = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
 
         List<?> events = entity.pullDomainEvents();
 
@@ -26,7 +26,7 @@ class EntityTest {
 
     @Test
     void pulling_domain_events_clears_them() {
-        Entity entity = Entity.create(EntityType.VIDEO_GAME.id(), "Hollow Knight");
+        Entity entity = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entity.pullDomainEvents();
 
         assertTrue(entity.pullDomainEvents().isEmpty());
@@ -34,12 +34,12 @@ class EntityTest {
 
     @Test
     void title_cannot_be_blank() {
-        assertThrows(IllegalArgumentException.class, () -> Entity.create(EntityType.BOARD_GAME.id(), "  "));
+        assertThrows(IllegalArgumentException.class, () -> Entity.create(EntityTypeFixtures.BOARD_GAME.id(), "  "));
     }
 
     @Test
     void a_variant_can_be_added_without_existing_outside_its_entity() {
-        Entity entity = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
 
         Variant variant = entity.addVariant("Black Edition", Map.of("volumeCount", 6));
 
@@ -50,7 +50,7 @@ class EntityTest {
     @Test
     void reconstituted_entity_does_not_raise_new_events() {
         UUID id = UUID.randomUUID();
-        Entity entity = Entity.reconstitute(id, EntityType.MANGA.id(), "Berserk",
+        Entity entity = Entity.reconstitute(id, EntityTypeFixtures.MANGA.id(), "Berserk",
                 Map.of(), List.of(), Set.of());
 
         assertTrue(entity.pullDomainEvents().isEmpty());

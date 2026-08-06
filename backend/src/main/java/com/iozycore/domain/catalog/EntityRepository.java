@@ -25,6 +25,9 @@ public interface EntityRepository {
     /** Utilisé pour rafraîchir un client après un import en masse (ex: collection BGG). */
     List<Entity> findAllByType(UUID entityTypeId);
 
+    /** Utilisé par le garde-fou de suppression d'un EntityType (on ne charge pas les Entity juste pour compter). */
+    boolean existsByType(UUID entityTypeId);
+
     /**
      * Recherche transversale sur la collection (UC4, étape 1/6 de la
      * conception : "recherche instantanée transversale"). entityTypeId et

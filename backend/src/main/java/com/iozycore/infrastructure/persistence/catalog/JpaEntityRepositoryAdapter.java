@@ -79,6 +79,11 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
     }
 
     @Override
+    public boolean existsByType(UUID entityTypeId) {
+        return entityJpaRepository.existsByEntityTypeId(entityTypeId);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         entityJpaRepository.deleteById(id);
     }

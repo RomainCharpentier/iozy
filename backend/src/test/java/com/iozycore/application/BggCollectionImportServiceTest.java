@@ -2,6 +2,9 @@ package com.iozycore.application;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.bgg.BggCollectionFetcher;
@@ -33,7 +36,8 @@ class BggCollectionImportServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
         });
-        BggCollectionImportService importService = new BggCollectionImportService(fetcher, quickAddService);
+        BggCollectionImportService importService =
+                new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
 
         BggCollectionImportService.ImportResult result = importService.importOwnedGames("someuser");
 
@@ -52,7 +56,8 @@ class BggCollectionImportServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
         });
-        BggCollectionImportService importService = new BggCollectionImportService(fetcher, quickAddService);
+        BggCollectionImportService importService =
+                new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
 
         importService.importOwnedGames("someuser");
         BggCollectionImportService.ImportResult second = importService.importOwnedGames("someuser");
@@ -118,12 +123,49 @@ class BggCollectionImportServiceTest {
         }
 
         @Override
+        public boolean existsByType(UUID entityTypeId) {
+            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
+        }
+
+        @Override
         public void deleteById(UUID id) {
             store.remove(id);
         }
 
         int count() {
             return store.size();
+        }
+    }
+
+    /** Seedé avec la fixture BOARD_GAME - le seul type que l'import BGG résout (par code). */
+    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
+        private final Map<UUID, EntityType> store = new HashMap<>(
+                Map.of(EntityTypeFixtures.BOARD_GAME.id(), EntityTypeFixtures.BOARD_GAME));
+
+        @Override
+        public EntityType save(EntityType entityType) {
+            store.put(entityType.id(), entityType);
+            return entityType;
+        }
+
+        @Override
+        public Optional<EntityType> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<EntityType> findByCode(String code) {
+            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
+        }
+
+        @Override
+        public List<EntityType> findAll() {
+            return List.copyOf(store.values());
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
         }
     }
 

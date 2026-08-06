@@ -3,6 +3,8 @@ package com.iozycore.insights;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.experience.Experience;
@@ -33,14 +35,15 @@ class StatsServiceTest {
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
 
-        Entity deathNote = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Tag seinen = new Tag(UUID.randomUUID(), "seinen");
         deathNote.addTag(seinen.id());
         tagRepository.save(seinen);
         entityRepository.save(deathNote);
 
-        Entity hollowKnight = Entity.create(EntityType.VIDEO_GAME.id(), "Hollow Knight");
+        Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(hollowKnight);
 
         ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
@@ -54,7 +57,8 @@ class StatsServiceTest {
         wishlistEntryRepository.save(WishlistEntry.add(UUID.randomUUID(), LocalDate.now()));
 
         StatsService statsService = new StatsService(
-                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository);
+                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
+                entityTypeRepository);
 
         StatsSummary summary = statsService.computeSummary();
 
@@ -114,6 +118,44 @@ class StatsServiceTest {
         @Override
         public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
             return List.of(); // non exercé par ce test
+        }
+
+        @Override
+        public boolean existsByType(UUID entityTypeId) {
+            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+    }
+
+    /** Seedé avec les fixtures MANGA/VIDEO_GAME - les 2 types exercés par ce test. */
+    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
+        private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
+                EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,
+                EntityTypeFixtures.VIDEO_GAME.id(), EntityTypeFixtures.VIDEO_GAME));
+
+        @Override
+        public EntityType save(EntityType entityType) {
+            store.put(entityType.id(), entityType);
+            return entityType;
+        }
+
+        @Override
+        public Optional<EntityType> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<EntityType> findByCode(String code) {
+            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
+        }
+
+        @Override
+        public List<EntityType> findAll() {
+            return List.copyOf(store.values());
         }
 
         @Override

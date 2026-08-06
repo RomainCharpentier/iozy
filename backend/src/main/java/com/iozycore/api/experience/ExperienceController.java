@@ -5,6 +5,7 @@ import com.iozycore.api.dto.ExperienceDtos.RecordExperienceRequest;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,10 +25,13 @@ public class ExperienceController {
 
     private final ExperienceRepository experienceRepository;
     private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
 
-    public ExperienceController(ExperienceRepository experienceRepository, EntityRepository entityRepository) {
+    public ExperienceController(ExperienceRepository experienceRepository, EntityRepository entityRepository,
+                                 EntityTypeRepository entityTypeRepository) {
         this.experienceRepository = experienceRepository;
         this.entityRepository = entityRepository;
+        this.entityTypeRepository = entityTypeRepository;
     }
 
     @Operation(summary = "Enregistrer une Experience (lu/joué/terminé...), sans exiger de possession")
@@ -38,7 +42,7 @@ public class ExperienceController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Entity introuvable : " + request.entityId()));
 
-        EntityType entityType = EntityType.byId(entity.entityTypeId())
+        EntityType entityType = entityTypeRepository.findById(entity.entityTypeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "EntityType inconnu pour cette Entity"));
 

@@ -1,6 +1,5 @@
 package com.iozycore.domain.catalog;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -8,10 +7,11 @@ import java.util.UUID;
  * Définit une catégorie d'Entity : ses champs personnalisés attendus
  * (schema) et les types d'Experience valides pour ce type.
  * <p>
- * Au MVP, seules 3 instances existent, codées en dur via {@link #mvpTypes()} :
- * MANGA, VIDEO_GAME, BOARD_GAME. La structure reste néanmoins un vrai
- * agrégat pour que l'éditeur de types dynamique (V2) ne soit qu'une
- * interface d'édition par-dessus, sans refonte du moteur.
+ * Éditeur de types dynamique (V2) : les instances sont créées/modifiées
+ * par l'utilisateur via {@link com.iozycore.application.EntityTypeService}
+ * et persistées dans la table {@code entity_type} (déjà présente depuis
+ * V1, seedée avec les 3 types MVP historiques) - ce record reste un
+ * agrégat pur, sans dépendance à sa persistance.
  */
 public record EntityType(
         UUID id,
@@ -21,36 +21,39 @@ public record EntityType(
         Set<String> customFieldKeys
 ) {
 
-    public static final EntityType MANGA = new EntityType(
-            UUID.fromString("00000000-0000-0000-0000-000000000001"),
-            "MANGA",
-            "Manga",
-            Set.of("READ", "IN_PROGRESS", "ABANDONED"),
-            Set.of("mangaka", "publisher", "volumeNumber", "seriesStatus")
-    );
-
-    public static final EntityType VIDEO_GAME = new EntityType(
-            UUID.fromString("00000000-0000-0000-0000-000000000002"),
-            "VIDEO_GAME",
-            "Jeu vidéo",
-            Set.of("FINISHED", "IN_PROGRESS", "ABANDONED"),
-            Set.of("platform", "studio", "averageDurationHours")
-    );
-
-    public static final EntityType BOARD_GAME = new EntityType(
-            UUID.fromString("00000000-0000-0000-0000-000000000003"),
-            "BOARD_GAME",
-            "Jeu de société",
-            Set.of("PLAYED"),
-            Set.of("minPlayers", "maxPlayers", "averageDurationMinutes")
-    );
-
-    public static Set<EntityType> mvpTypes() {
-        return Set.of(MANGA, VIDEO_GAME, BOARD_GAME);
+    public EntityType {
+        if (label == null || label.isBlank()) {
+            throw new IllegalArgumentException("Le label d'un EntityType ne peut pas être vide");
+        }
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Le code d'un EntityType ne peut pas être vide");
+        }
+        // Normalisé en UPPER_SNAKE_CASE pour rester cohérent avec les codes
+        // historiques (MANGA, VIDEO_GAME, BOARD_GAME) quel que soit ce que
+        // l'utilisateur saisit dans l'éditeur (ex: "Films d'animation" -> "FILMS_D_ANIMATION").
+        code = code.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_").replaceAll("^_+|_+$", "");
+        allowedExperienceTypes = allowedExperienceTypes == null ? Set.of() : Set.copyOf(allowedExperienceTypes);
+        customFieldKeys = customFieldKeys == null ? Set.of() : Set.copyOf(customFieldKeys);
     }
 
-    public static Optional<EntityType> byId(UUID id) {
-        return mvpTypes().stream().filter(t -> t.id().equals(id)).findFirst();
+    /** Crée un nouveau type (id généré, code normalisé). */
+    public static EntityType create(String code, String label, Set<String> allowedExperienceTypes,
+                                     Set<String> customFieldKeys) {
+        return new EntityType(UUID.randomUUID(), code, label, allowedExperienceTypes, customFieldKeys);
+    }
+
+    /** Reconstruit un type depuis la persistance (mêmes garanties que {@link #create}, id conservé). */
+    public static EntityType reconstitute(UUID id, String code, String label, Set<String> allowedExperienceTypes,
+                                           Set<String> customFieldKeys) {
+        return new EntityType(id, code, label, allowedExperienceTypes, customFieldKeys);
+    }
+
+    /** Retourne une copie avec le label/schema modifiés - le code ne change jamais après création
+     * (même invariant que {@link Entity#entityTypeId()} : changer de code ferait perdre le sens
+     * des attributs déjà enregistrés sous l'ancien code). */
+    public EntityType withUpdatedFields(String newLabel, Set<String> newAllowedExperienceTypes,
+                                         Set<String> newCustomFieldKeys) {
+        return new EntityType(id, code, newLabel, newAllowedExperienceTypes, newCustomFieldKeys);
     }
 
     public boolean allows(String experienceType) {
