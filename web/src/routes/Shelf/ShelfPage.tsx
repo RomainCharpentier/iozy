@@ -1,20 +1,21 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Upload } from 'lucide-react'
+import { Settings, Upload } from 'lucide-react'
 import { searchEntities } from '../../api/entities'
 import { importBggCollection } from '../../api/metadata'
+import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
 import { StatCard } from '../../components/StatCard'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { BOARD_GAME, MANGA, VIDEO_GAME } from '../../types/entityTypes'
 import { TypeFilterChips } from './TypeFilterChips'
 import { useNavigate } from 'react-router-dom'
-import type { EntityResponse } from '../../types/api'
+import type { EntityResponse, EntityTypeDto } from '../../types/api'
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
 // serait recréé à chaque render et invaliderait la mémoïsation de `counts`.
 const EMPTY_ENTITIES: EntityResponse[] = []
+const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
 
 export function ShelfPage() {
   const navigate = useNavigate()
@@ -30,6 +31,7 @@ export function ShelfPage() {
     queryKey: queryKeys.entities.search({}),
     queryFn: () => searchEntities({}),
   })
+  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
 
   const importMutation = useMutation({
     mutationFn: importBggCollection,
@@ -41,14 +43,17 @@ export function ShelfPage() {
   })
 
   const entities = entitiesQuery.data ?? EMPTY_ENTITIES
+  const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
 
-  const counts = useMemo(
-    () => ({
-      total: entities.length,
-      manga: entities.filter((e) => e.entityTypeId === MANGA.id).length,
-      games: entities.filter((e) => e.entityTypeId === VIDEO_GAME.id || e.entityTypeId === BOARD_GAME.id).length,
-    }),
-    [entities],
+  // Généralisé en un compte par type plutôt que le bucket fixe "Mangas/Jeux"
+  // d'origine (n'avait de sens qu'avec exactement 3 types codés en dur) -
+  // un type sans aucune Entity n'apparaît pas.
+  const countsByType = useMemo(
+    () =>
+      entityTypes
+        .map((type) => ({ type, count: entities.filter((e) => e.entityTypeId === type.id).length }))
+        .filter((entry) => entry.count > 0),
+    [entities, entityTypes],
   )
 
   const visibleEntities = selectedTypeId
@@ -59,14 +64,24 @@ export function ShelfPage() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold text-textPrimary">Tes étagères</h1>
-        <button
-          type="button"
-          onClick={() => setImportOpen((v) => !v)}
-          className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-textDim hover:text-textPrimary"
-        >
-          <Upload size={16} />
-          Importer depuis BGG
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/types')}
+            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-textDim hover:text-textPrimary"
+          >
+            <Settings size={16} />
+            Gérer les types
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-textDim hover:text-textPrimary"
+          >
+            <Upload size={16} />
+            Importer depuis BGG
+          </button>
+        </div>
       </div>
 
       {importOpen && (
@@ -100,13 +115,14 @@ export function ShelfPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard value={String(counts.total)} label="Total" />
-        <StatCard value={String(counts.manga)} label="Mangas" />
-        <StatCard value={String(counts.games)} label="Jeux" />
+      <div className="flex gap-3 overflow-x-auto">
+        <StatCard value={String(entities.length)} label="Total" />
+        {countsByType.map((entry) => (
+          <StatCard key={entry.type.id} value={String(entry.count)} label={entry.type.label} />
+        ))}
       </div>
 
-      <TypeFilterChips selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
+      <TypeFilterChips entityTypes={entityTypes} selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
 
       {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
 

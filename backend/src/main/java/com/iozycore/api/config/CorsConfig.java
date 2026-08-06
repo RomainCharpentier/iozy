@@ -1,27 +1,40 @@
 package com.iozycore.api.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Autorise le client web (React/Vite) à appeler l'API depuis un port
- * différent - utile uniquement pour `npm run dev` (localhost:5173). En dev
- * comme en prod, le proxy Vite (web/vite.config.ts) ou nginx (web/nginx.conf,
- * services "web" de docker-compose.yml et docker-compose.synology.yml)
- * redirige déjà /api vers ce serveur sans passer par le navigateur - donc
- * cette config CORS n'est pas structurante au quotidien, seulement un filet
- * de sécurité pour les cas où le front n'est pas servi via un de ces deux
- * proxys (ex: `vite preview`, ou un appel direct à l'API depuis un autre
- * outil web pointant sur localhost:5173).
+ * Autorise le client web (React) à appeler l'API. Contrairement à ce qu'on
+ * pourrait attendre, ceci EST structurant même quand nginx/Vite proxient
+ * déjà /api en apparence "same-origin" pour le navigateur : les requêtes
+ * avec une méthode qui modifie l'état (POST/PATCH/DELETE) embarquent
+ * toujours un header Origin, même same-origin (contrairement aux GET) -
+ * Spring le vérifie sur toute requête qui le porte, qu'il s'agisse d'un
+ * vrai cross-origin ou d'un proxy transparent en amont. Sans cette config,
+ * ces requêtes échouent en 403 "Invalid CORS request" (constaté en testant
+ * la création d'un type depuis le build Docker sur :8081).
+ * <p>
+ * Liste configurable via web.allowed-origins (WEB_ALLOWED_ORIGINS, CSV) -
+ * par défaut les deux origines locales connues : le serveur de dev Vite
+ * (:5173) et le build Docker local (:8081, service "web" de
+ * docker-compose.yml). Pour un déploiement Synology, définir cette
+ * variable avec le vrai domaine du service web (voir
+ * docker-compose.synology.yml, sous-domaine app.iozycore.mondomaine.tld).
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
+    // Valeur par défaut définie dans application.yml (web.allowed-origins),
+    // configurable via WEB_ALLOWED_ORIGINS.
+    @Value("${web.allowed-origins}")
+    private String allowedOriginsCsv;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:5173")
+                .allowedOrigins(allowedOriginsCsv.split(","))
                 .allowedMethods("GET", "POST", "PATCH", "DELETE")
                 .allowedHeaders("*");
     }
