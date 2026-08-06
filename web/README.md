@@ -56,11 +56,13 @@ classes Tailwind générées depuis `src/index.css` : `bg-surface`,
 `text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
 cohérent avec le reste de l'app et avec le client iOS.
 
-**Le backend n'a pas de CORS ouvert par défaut** (voir
-`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java`) — en
-dev, `vite.config.ts` proxy `/api` vers `http://localhost:8080`, donc tous
-les appels du client passent par une URL relative (`/api/...`), jamais une
-URL absolue vers le backend.
+**Tous les appels du client passent par une URL relative** (`/api/...`),
+jamais une URL absolue vers le backend — en dev, `vite.config.ts` proxy
+`/api` vers `http://localhost:8080` ; en prod (Docker), `nginx.conf` fait
+la même chose vers le service `iozycore-api`. Le backend n'a donc pas
+besoin de CORS ouvert pour un usage normal (voir
+`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java` pour le
+filet de sécurité qui existe quand même).
 
 ### État actuel
 
@@ -89,7 +91,11 @@ le backend lancé, pas pour un usage nomade comme l'iOS).
 ## Lancer
 
 Le backend doit déjà tourner (`cd ../backend && docker compose up --build`
-— voir `../README.md`).
+— voir `../README.md`) - cette commande lance d'ailleurs déjà un build de
+prod de cette app web sur `http://localhost:8081` (service `web` de
+`docker-compose.yml`, voir `Dockerfile`/`nginx.conf`).
+
+Pour développer avec rechargement à chaud à la place :
 
 ```bash
 cd web
@@ -105,3 +111,12 @@ Ouvre `http://localhost:5173`.
 - `npm run build` — vérification TypeScript + build de production dans `dist/`
 - `npm run preview` — sert le build de production en local
 - `npm run lint` — oxlint
+
+## Déploiement (Docker)
+
+`Dockerfile` (build Node → build de prod servi par nginx) et `nginx.conf`
+(sert les fichiers statiques + proxy `/api` en interne vers le service
+`iozycore-api`, fallback SPA vers `index.html` pour les routes client-side
+comme `/entity/:id`). Utilisé par `docker-compose.yml` (dev local, port
+`8081`) et `docker-compose.synology.yml` (prod, sous-domaine Traefik
+séparé de l'API - voir ce fichier pour le détail).

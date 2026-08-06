@@ -33,6 +33,25 @@ services:
       - "traefik.http.routers.iozycore.tls.certresolver=letsencrypt"
       - "traefik.http.services.iozycore.loadbalancer.server.port=8080"
 
+  web:
+    build: ../web
+    image: iozycore-web:latest
+    restart: unless-stopped
+    depends_on:
+      - iozycore-api
+    networks:
+      - internal   # pour joindre iozycore-api via le proxy nginx interne (voir web/nginx.conf)
+      - proxy      # pour être routable par Traefik
+    labels:
+      # Sous-domaine séparé de l'API (iozycore.mondomaine.tld reste dédié à
+      # l'iOS/Swagger/accès direct) - nginx proxy /api en interne vers
+      # iozycore-api, donc pas besoin de CORS entre les deux origines.
+      - "traefik.enable=true"
+      - "traefik.http.routers.iozycore-web.rule=Host(`app.iozycore.mondomaine.tld`)"
+      - "traefik.http.routers.iozycore-web.entrypoints=websecure"
+      - "traefik.http.routers.iozycore-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.iozycore-web.loadbalancer.server.port=80"
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
