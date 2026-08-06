@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -28,9 +29,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Couvre le scénario UC1 → UC2 → UC5 : création d'une Entity, ajout d'un
  * Tag, ajout d'une Ownership, puis vérification qu'une Entity récupérée
  * depuis la base porte bien ses Variant/Tag/Ownership associés.
+ *
+ * @Transactional isole chaque méthode : les repositories (eux-mêmes
+ * @Transactional, propagation REQUIRED) rejoignent la transaction ouverte
+ * par le test au lieu d'en ouvrir une nouvelle, et Spring la rollback à la
+ * fin de chaque méthode - sans ça les 3 méthodes partagent le même
+ * conteneur Postgres statique et polluent les résultats les unes des
+ * autres (constaté : le filtre par tag remontait aussi une Entity créée
+ * par une méthode précédente).
  */
 @Testcontainers
 @SpringBootTest
+@Transactional
 class EntityPersistenceIntegrationTest {
 
     @Container
