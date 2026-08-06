@@ -53,6 +53,9 @@ docker compose up --build
 Premier lancement : 1-2 minutes (téléchargement des images + build Maven).
 Les suivants sont quasi instantanés. La base PostgreSQL est initialisée
 automatiquement (migrations Flyway), avec les 3 types du MVP déjà en place.
+Cette même commande lance aussi un build de l'app web sur
+`http://localhost:8081` (voir Partie 3, Option B) — si tu veux juste tester
+l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**
 ```bash
@@ -227,22 +230,24 @@ Mêmes parcours que l'iOS (voir `web/README.md` pour le détail), plus une
 Wishlist réellement fonctionnelle (l'endpoint de liste manquait côté
 backend - ajouté à cette occasion, partagé avec l'iOS).
 
-### Prérequis
-
-- **Node.js** (18+) et npm.
-- Le **backend doit déjà tourner** (Partie 1) avant de lancer l'app.
-
 ### Lancer
 
+**Option A — avec rechargement à chaud (dev)** :
 ```bash
+# Prérequis : Node.js (18+) et npm, backend déjà lancé (Partie 1)
 cd web
 npm install
 npm run dev
 ```
-
 Ouvre `http://localhost:5173`. Le serveur de dev proxy les appels `/api`
 vers `http://localhost:8080` (voir `web/vite.config.ts`) — pas de config
 CORS à faire pour développer en local.
+
+**Option B — build de prod, sans installer Node** : le service `web` est
+maintenant inclus dans `docker compose up --build` (Partie 1) — ouvre
+directement `http://localhost:8081`. nginx sert le build statique et
+proxy `/api` en interne vers le backend (voir `web/nginx.conf`), donc pas
+de rechargement à chaud mais aucune installation locale requise.
 
 ### Tester le flux complet (backend + Web ensemble)
 
@@ -293,10 +298,10 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   jour être exposée au-delà du réseau local. Le schéma de base est déjà
   préparé pour ça (`owner_id` sur les possessions/expériences/wishlist,
   Catalog partagé) sans que ce soit encore exploité.
-- La **config CORS** du backend (`api/config/CorsConfig.java`) n'autorise
-  aujourd'hui que le serveur de dev Vite (`localhost:5173`) — dev-only, pas
-  encore de topologie de déploiement pour l'app Web buildée (voir le TODO
-  dans ce fichier).
+- Le sous-domaine Traefik de l'app Web dans `docker-compose.synology.yml`
+  (`app.iozycore.mondomaine.tld`) est un exemple à adapter à ton propre
+  domaine/DDNS, comme celui de l'API — voir "Renommer le projet" plus haut
+  pour l'équivalent côté API.
 - L'app Web ne gère pas le **scan de code-barres par caméra** (saisie
   manuelle à la place) et n'a pas de **cache hors-ligne** persistant
   (contrairement au cache SwiftData de l'iOS) — pensée pour tester avec le

@@ -1,13 +1,16 @@
 version: "3.9"
 
-# Compose de DÉVELOPPEMENT LOCAL : lance juste l'API et PostgreSQL,
-# exposés directement sur localhost, sans reverse proxy ni HTTPS.
-# Pour le déploiement réel sur le NAS Synology, utiliser
-# docker-compose.synology.yml (avec Traefik + Let's Encrypt).
+# Compose de DÉVELOPPEMENT LOCAL : lance l'API, PostgreSQL et le build de
+# prod de l'app web, exposés directement sur localhost, sans reverse proxy
+# ni HTTPS. Pour développer l'app web avec rechargement à chaud, préférer
+# `npm run dev` dans web/ (voir web/README.md) plutôt que ce service "web"
+# qui sert un build statique. Pour le déploiement réel sur le NAS Synology,
+# utiliser docker-compose.synology.yml (avec Traefik + Let's Encrypt).
 #
 # Démarrage : docker compose up --build
-# API disponible sur http://localhost:8080
-# Swagger UI sur   http://localhost:8080/swagger-ui.html
+# API disponible sur  http://localhost:8080
+# Swagger UI sur       http://localhost:8080/swagger-ui.html
+# App web sur          http://localhost:8081
 
 services:
   iozycore-api:
@@ -30,6 +33,14 @@ services:
       - "8080:8080"
     volumes:
       - media_data:/app/media
+
+  web:
+    build: ../web
+    restart: unless-stopped
+    depends_on:
+      - iozycore-api
+    ports:
+      - "8081:80"
 
   postgres:
     image: postgres:16-alpine
