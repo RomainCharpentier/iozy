@@ -13,7 +13,8 @@ struct IozyCoreApp: App {
             VariantRecord.self,
             OwnershipRecord.self,
             ExperienceRecord.self,
-            WishlistEntryRecord.self
+            WishlistEntryRecord.self,
+            EntityTypeRecord.self
         ])
     }
 }

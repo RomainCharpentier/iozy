@@ -19,11 +19,13 @@ uniquement — voir plus bas), organisation par fonctionnalité :
 
 ```
 IozyCore/
-  DesignSystem/       Theme (couleurs/polices/dégradés), CoverTile, Chip, StatCard
-  Models/             EntityTypeMVP (les 3 types, miroir du backend), SwiftDataModels (cache local)
+  DesignSystem/       Theme (couleurs/polices/dégradés/icônes), CoverTile, Chip, StatCard
+  Models/             EntityTypeRecord (types dynamiques, synchronisés depuis le backend -
+                       éditeur de types, voir Features/EntityTypes/), SwiftDataModels (cache local)
   Networking/         APIClient (cœur HTTP) + une extension par domaine
-                       (APIClient+Collections, +Insights, +TagsAndRelationships)
-  Features/           un dossier par écran : Shelf, Search, QuickAdd, EntityDetail, Wishlist, Stats
+                       (APIClient+Collections, +Insights, +TagsAndRelationships, +EntityTypes)
+  Features/           un dossier par écran : Shelf, Search, QuickAdd, EntityDetail, Wishlist,
+                       Stats, EntityTypes (gestion des types - liste + création/édition)
   IozyCoreApp.swift   point d'entrée, TabView racine, thème forcé en sombre
 ```
 

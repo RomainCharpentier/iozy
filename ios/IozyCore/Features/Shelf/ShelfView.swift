@@ -9,7 +9,8 @@ import SwiftData
 struct ShelfView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EntityRecord.title) private var entities: [EntityRecord]
-    @State private var selectedType: EntityTypeMVP?
+    @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
+    @State private var selectedTypeId: UUID?
     @State private var sortOrder: ShelfSortOrder = .recentlyAdded
     @State private var showingBggImport = false
 
@@ -22,15 +23,22 @@ struct ShelfView: View {
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
     private var displayedEntities: [EntityRecord] {
-        var result = selectedType == nil ? entities : entities.filter { $0.entityType == selectedType }
+        var result = selectedTypeId == nil ? entities : entities.filter { $0.entityTypeId == selectedTypeId }
         if sortOrder == .random {
             result.shuffle()
         }
         return result
     }
 
-    private var mangaCount: Int { entities.filter { $0.entityType == .manga }.count }
-    private var gameCount: Int { entities.filter { $0.entityType == .videoGame || $0.entityType == .boardGame }.count }
+    /// Généralisé en un compte par type plutôt que le bucket fixe
+    /// "Mangas/Jeux" d'origine (n'avait de sens qu'avec exactement 3 types
+    /// codés en dur) - un type sans aucune Entity n'apparaît pas.
+    private var countsByType: [(type: EntityTypeRecord, count: Int)] {
+        entityTypes.compactMap { type in
+            let count = entities.filter { $0.entityTypeId == type.id }.count
+            return count > 0 ? (type, count) : nil
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -54,12 +62,19 @@ struct ShelfView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
-                        Button("Tous les types") { selectedType = nil }
-                        ForEach(EntityTypeMVP.allCases) { type in
-                            Button(type.label) { selectedType = type }
+                        Button("Tous les types") { selectedTypeId = nil }
+                        ForEach(entityTypes) { type in
+                            Button(type.label) { selectedTypeId = type.id }
                         }
                     } label: {
                         Label("Filtrer", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        EntityTypeListView()
+                    } label: {
+                        Label("Gérer les types", systemImage: "slider.horizontal.3")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -79,6 +94,9 @@ struct ShelfView: View {
             }
             .sheet(isPresented: $showingBggImport) {
                 BggImportSheet { insertNewlyImportedBoardGames() }
+            }
+            .task {
+                await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
             }
         }
     }
@@ -101,12 +119,12 @@ struct ShelfView: View {
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Button { selectedType = nil } label: {
-                    Chip(label: "Tout", isActive: selectedType == nil)
+                Button { selectedTypeId = nil } label: {
+                    Chip(label: "Tout", isActive: selectedTypeId == nil)
                 }
-                ForEach(EntityTypeMVP.allCases) { type in
-                    Button { selectedType = type } label: {
-                        Chip(label: type.label, isActive: selectedType == type)
+                ForEach(entityTypes) { type in
+                    Button { selectedTypeId = type.id } label: {
+                        Chip(label: type.label, isActive: selectedTypeId == type.id)
                     }
                 }
             }
@@ -115,10 +133,13 @@ struct ShelfView: View {
     }
 
     private var statsRow: some View {
-        HStack(spacing: 10) {
-            StatCard(value: "\(entities.count)", label: "Au total")
-            StatCard(value: "\(mangaCount)", label: "Mangas")
-            StatCard(value: "\(gameCount)", label: "Jeux")
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                StatCard(value: "\(entities.count)", label: "Au total")
+                ForEach(countsByType, id: \.type.id) { entry in
+                    StatCard(value: "\(entry.count)", label: entry.type.label)
+                }
+            }
         }
         .padding(.bottom, 22)
     }
@@ -140,8 +161,14 @@ struct ShelfView: View {
     /// local) - la réponse de l'import ne contient que des compteurs, pas
     /// le détail des Entity créées.
     private func insertNewlyImportedBoardGames() {
+        // Résolu par code bien connu plutôt qu'un uuid figé (voir
+        // resolveTypeId côté backend) - l'import BGG reste intrinsèquement
+        // lié au type "jeu de société", quel que soit son id réel.
+        guard let boardGameTypeId = entityTypes.first(where: { $0.code == "BOARD_GAME" })?.id else {
+            return
+        }
         Task {
-            guard let allBoardGames = try? await APIClient.shared.fetchAllEntities(entityTypeId: EntityTypeMVP.boardGame.uuid) else {
+            guard let allBoardGames = try? await APIClient.shared.fetchAllEntities(entityTypeId: boardGameTypeId) else {
                 return
             }
             await MainActor.run {

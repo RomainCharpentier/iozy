@@ -102,6 +102,20 @@ final class APIClient {
         return try decoder.decode(T.self, from: data)
     }
 
+    func patch<Body: Encodable, T: Decodable>(_ path: String, body: Body) async throws -> T {
+        guard let url = URL(string: baseURL.absoluteString + path) else {
+            throw APIError.invalidResponse
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try encoder.encode(body)
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response)
+        return try decoder.decode(T.self, from: data)
+    }
+
     /// POST sans corps de requête ni réponse à décoder (ex: attacher un tag
     /// existant à une Entity - l'action seule compte, rien à lire en retour).
     func postEmpty(_ path: String) async throws {
