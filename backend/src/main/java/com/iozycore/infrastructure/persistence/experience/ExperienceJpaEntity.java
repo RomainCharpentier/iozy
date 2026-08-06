@@ -1,6 +1,8 @@
 package com.iozycore.infrastructure.persistence.experience;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -25,9 +27,11 @@ public class ExperienceJpaEntity {
     private LocalDate occurredAt;
 
     // Le type Integer suffit côté Java (mêmes bornes que le CHECK SQL 0-10) ;
-    // columnDefinition force Hibernate à valider contre le SMALLINT réel de
-    // la migration V1 plutôt que son mapping par défaut (INTEGER).
-    @Column(columnDefinition = "smallint")
+    // @JdbcTypeCode force le type JDBC utilisé par Hibernate pour la
+    // validation de schéma (ddl-auto=validate) à SMALLINT, qui est le type
+    // réel de la colonne créée par la migration V1. columnDefinition seul
+    // ne suffit pas : il ne pilote que la génération DDL, pas la validation.
+    @JdbcTypeCode(SqlTypes.SMALLINT)
     private Integer rating;
 
     private String comment;
