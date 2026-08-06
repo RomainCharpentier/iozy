@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/wishlist")
@@ -34,6 +36,14 @@ public class WishlistController {
     public WishlistEntryResponse add(@RequestBody AddToWishlistRequest request) {
         WishlistEntry entry = WishlistEntry.add(request.entityId(), LocalDate.now());
         return WishlistEntryResponse.from(wishlistEntryRepository.save(entry));
+    }
+
+    @Operation(summary = "Lister toutes les entrées de la wishlist (onglet Wishlist)")
+    @GetMapping
+    public List<WishlistEntryResponse> listAll() {
+        return wishlistEntryRepository.findAll().stream()
+                .map(WishlistEntryResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Operation(summary = "Parcours 3 : vérifier en un appel si une Entity est possédée, en wishlist, ou inconnue")

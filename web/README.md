@@ -1,0 +1,107 @@
+# IozyCore — App Web
+
+## Le projet
+
+IozyCore est une base de connaissances personnelle, auto-hébergée et
+mono-utilisateur : cataloguer une collection (mangas, jeux vidéo, jeux de
+société), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
+joué, terminé, avec note et commentaire), enrichi automatiquement via des
+API publiques gratuites. Ce dossier est le client Web (React) ; le backend
+(Spring Boot) et le client iOS sont dans des dossiers séparés du même dépôt
+(`../backend`, `../ios`). Créé pour tester facilement la collection depuis
+un PC, sans dépendre d'un simulateur Xcode.
+
+Document de conception complet : `../docs/CONCEPTION.md`. Ce README
+documente l'état du code tel qu'il existe.
+
+### Architecture
+
+React + TypeScript + Vite + TanStack Query + React Router, Tailwind CSS v4
+pour le style :
+
+```
+web/
+  src/
+    api/            client HTTP (client.ts) + un module par ressource
+                     (entities.ts, ownerships.ts, experiences.ts, wishlist.ts,
+                     tags.ts, relationships.ts, insights.ts, metadata.ts)
+    types/          api.ts (DTOs miroir camelCase du backend), entityTypes.ts
+                     (les 3 types codés en dur, pas d'endpoint backend pour ça)
+    theme/          tokens.ts (couleurs/dégradés), gradient.ts (hash déterministe
+                     pour les tuiles de "couverture", pas d'images réelles)
+    components/     design system réutilisable : CoverTile, Chip, StatCard,
+                     StatusPill, ErrorBanner, layout/AppShell + TabBar
+    routes/         un dossier par écran (Shelf, Search, QuickAdd, EntityDetail,
+                     Wishlist, Stats), 1 page + sous-composants chacun
+    lib/            useDebouncedValue, queryKeys (clés TanStack Query centralisées)
+```
+
+Chaque écran suit le même patron que le client iOS : une page publique par
+route, des sous-composants dans le même dossier pour ses sections/formulaires
+(voir `routes/EntityDetail/` comme référence la plus complète : TagsSection,
+OwnershipsSection, ExperiencesSection, RelationshipsSection).
+
+### Comment travailler sur ce projet
+
+**Ajouter un appel API** : dans le module `api/<domaine>.ts` pertinent (ou
+en créer un nouveau si le domaine n'existe pas encore), jamais directement
+dans un composant de page. Les types de requête/réponse vont dans
+`types/api.ts` — mêmes noms de champs en camelCase que les DTO Java du
+backend (Jackson et JSON s'accordent nativement dessus).
+
+**Ajouter un écran** : nouveau dossier sous `routes/`, réutilise les
+composants de `components/` (`Chip`/`CoverTile`/`StatCard`/`StatusPill`)
+plutôt que du style en dur, et les tokens de `theme/tokens.ts` (ou les
+classes Tailwind générées depuis `src/index.css` : `bg-surface`,
+`text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
+cohérent avec le reste de l'app et avec le client iOS.
+
+**Le backend n'a pas de CORS ouvert par défaut** (voir
+`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java`) — en
+dev, `vite.config.ts` proxy `/api` vers `http://localhost:8080`, donc tous
+les appels du client passent par une URL relative (`/api/...`), jamais une
+URL absolue vers le backend.
+
+### État actuel
+
+Construit : les 5 onglets (Étagères/Recherche/Ajouter/Wishlist/Stats) + la
+fiche détail, mêmes parcours que le client iOS - ajout rapide avec
+suggestions de métadonnées, recherche transversale avec vérification avant
+achat, wishlist réellement fonctionnelle (contrairement au client iOS
+actuel, voir note ci-dessous), tags/relations/expériences sur la fiche
+détail, import BGG, statistiques et découverte à la demande.
+
+Deux différences volontaires avec l'iOS :
+- **Wishlist fonctionnelle** : l'endpoint `GET /api/wishlist` (liste) a été
+  ajouté au backend pour cette app web (il n'existait pas, l'onglet
+  Wishlist de l'iOS est de fait toujours vide aujourd'hui) - un seul
+  changement backend, partagé, plutôt que dupliqué par client.
+- **Suivi de "candidat ajouté" en découverte** par `entityId` retourné
+  plutôt que par titre (le suivi par titre côté iOS peut se tromper en cas
+  de collision).
+
+Volontairement pas construit : scan de code-barres par caméra (saisie
+manuelle à la place, cohérent avec un usage desktop), cache
+offline/hors-ligne (TanStack Query sert de cache mémoire pendant la
+session, mais rien n'est persisté - cet outil est pensé pour tester avec
+le backend lancé, pas pour un usage nomade comme l'iOS).
+
+## Lancer
+
+Le backend doit déjà tourner (`cd ../backend && docker compose up --build`
+— voir `../README.md`).
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Ouvre `http://localhost:5173`.
+
+## Scripts
+
+- `npm run dev` — serveur de dev avec rechargement à chaud
+- `npm run build` — vérification TypeScript + build de production dans `dist/`
+- `npm run preview` — sert le build de production en local
+- `npm run lint` — oxlint

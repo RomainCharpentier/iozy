@@ -1,0 +1,31 @@
+// Clés de requête TanStack Query centralisées, pour que les invalidations
+// (ex: après une mutation) restent cohérentes entre écrans sans dupliquer
+// des tableaux de clés à la main partout.
+export const queryKeys = {
+  entities: {
+    all: ['entities'] as const,
+    search: (params: { q?: string; entityTypeId?: string; tagId?: string }) =>
+      ['entities', 'search', params] as const,
+    detail: (id: string) => ['entities', id] as const,
+  },
+  ownerships: (entityId: string) => ['ownerships', entityId] as const,
+  experiences: (entityId: string) => ['experiences', entityId] as const,
+  tags: {
+    all: ['tags'] as const,
+  },
+  relationships: {
+    from: (entityId: string) => ['relationships', 'from', entityId] as const,
+    to: (entityId: string) => ['relationships', 'to', entityId] as const,
+  },
+  wishlist: {
+    all: ['wishlist'] as const,
+    lookup: (entityId: string) => ['wishlist', 'lookup', entityId] as const,
+  },
+  insights: {
+    stats: ['insights', 'stats'] as const,
+    discover: (entityTypeCode: string) => ['insights', 'discover', entityTypeCode] as const,
+  },
+  metadata: {
+    search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,
+  },
+} as const

@@ -32,6 +32,9 @@ infrastructure/     adaptateurs JPA qui implémentent les ports du domaine
 metadata/           Bounded Context "Metadata Enrichment" (Jikan, BGG, Open Library)
 insights/           Bounded Context "Insights" (StatsService, DiscoveryService - lecture seule)
 api/                contrôleurs REST + DTOs, un package par ressource
+  config/            configuration transverse (CorsConfig - autorise le client
+                     Web en dev, voir web/README.md), ne correspond pas au
+                     découpage "un package par ressource" du reste de api/
 ```
 
 Chaque agrégat du domaine a une interface de repository (`EntityRepository`,
@@ -77,6 +80,12 @@ Construit : les 3 types MVP (Manga/Jeu vidéo/Jeu de société), ajout rapide
 avec déduplication, Ownership/Experience/Wishlist/Tag/Relationship, recherche
 transversale, statistiques, découverte heuristique, import de collection BGG,
 préparation multi-utilisateur (`owner_id`, non exploitée).
+
+`GET /api/wishlist` (liste complète, à ne pas confondre avec
+`GET /api/wishlist/lookup` qui vérifie une seule Entity) a été ajouté pour
+l'onglet Wishlist du client Web (`../web`) - `WishlistEntryRepository.findAll()`
+et son implémentation JPA existaient déjà (utilisés par Insights), seule la
+route de contrôleur manquait.
 
 Volontairement pas construit : IGDB (jeux vidéo, bloqué sur un compte
 développeur Twitch à créer), authentification réelle, app Web, CI.

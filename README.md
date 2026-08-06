@@ -1,9 +1,10 @@
 # IozyCore — Guide de démarrage
 
 Ce guide réunit en un seul endroit tout ce qu'il faut pour lancer et tester
-IozyCore : le backend (API + base de données) et l'app iOS. Les deux
-dossiers (`backend/` et `ios/`) ont chacun leur propre README plus
-détaillé sur leur partie ; celui-ci sert de point d'entrée et de check-list.
+IozyCore : le backend (API + base de données), l'app iOS et l'app Web. Les
+trois dossiers (`backend/`, `ios/`, `web/`) ont chacun leur propre README
+plus détaillé sur leur partie ; celui-ci sert de point d'entrée et de
+check-list.
 
 Pour reprendre le projet en profondeur (architecture, conventions de code,
 comment ajouter une fonctionnalité) — humain ou IA — chaque README a une
@@ -13,18 +14,25 @@ Ce guide-ci reste volontairement pratique (lancer/tester), pas architectural.
 ## Vue d'ensemble
 
 ```
-┌─────────────────┐      HTTP       ┌──────────────────┐      SQL      ┌────────────┐
-│   App iOS        │ ───────────▶   │  API Spring Boot  │ ───────────▶  │ PostgreSQL │
-│ (Xcode/simulateur)│  localhost:8080│  (Docker)          │                │ (Docker)   │
-└─────────────────┘                 └──────────────────┘                └────────────┘
-                                              │
-                                              ▼
-                                     Jikan / BGG (APIs publiques)
+┌─────────────────┐      HTTP
+│   App iOS        │ ──────────────┐
+│ (Xcode/simulateur)│               │
+└─────────────────┘               ▼
+                          ┌──────────────────┐      SQL      ┌────────────┐
+                          │  API Spring Boot  │ ───────────▶  │ PostgreSQL │
+                          │  (Docker)          │                │ (Docker)   │
+                          └──────────────────┘                └────────────┘
+┌─────────────────┐               ▲                   │
+│   App Web         │ ──────────────┘                   ▼
+│ (Vite, :5173)      │  localhost:8080          Jikan / BGG (APIs publiques)
+└─────────────────┘  (proxy /api en dev)
 ```
 
 Le backend peut être testé **seul** (via Swagger UI ou `requests.http`,
-sans aucune app cliente). L'app iOS a besoin du backend lancé pour
-fonctionner (elle appelle `http://localhost:8080/api`).
+sans aucune app cliente). L'app iOS et l'app Web ont chacune besoin du
+backend lancé pour fonctionner (elles appellent `http://localhost:8080/api`,
+directement pour l'iOS, via le proxy de dev Vite pour le Web — voir
+`web/README.md`).
 
 ---
 
@@ -212,6 +220,49 @@ Dans Xcode : choisir un simulateur iPhone, cliquer sur **Run** (▶).
 
 ---
 
+## Partie 3 — App Web
+
+Client React pour tester la collection depuis un PC, sans simulateur Xcode.
+Mêmes parcours que l'iOS (voir `web/README.md` pour le détail), plus une
+Wishlist réellement fonctionnelle (l'endpoint de liste manquait côté
+backend - ajouté à cette occasion, partagé avec l'iOS).
+
+### Prérequis
+
+- **Node.js** (18+) et npm.
+- Le **backend doit déjà tourner** (Partie 1) avant de lancer l'app.
+
+### Lancer
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Ouvre `http://localhost:5173`. Le serveur de dev proxy les appels `/api`
+vers `http://localhost:8080` (voir `web/vite.config.ts`) — pas de config
+CORS à faire pour développer en local.
+
+### Tester le flux complet (backend + Web ensemble)
+
+1. Backend lancé (`docker compose up --build`).
+2. App Web lancée (`npm run dev` dans `web/`).
+3. Onglet **Ajouter** : taper "Death Note" → suggestions Jikan → en choisir
+   une pré-remplit titre + attributs → **Ajouter**.
+4. Onglet **Étagères** : le manga apparaît immédiatement.
+5. Cliquer dessus → la fiche récupère Ownership/Experience/Tags/Relations
+   depuis l'API. "Ajouter une expérience" → note + commentaire →
+   **Enregistrer**.
+6. Onglet **Recherche** : taper "Death Note" → résultat remonté par la
+   recherche transversale côté serveur → "Vérifier" confirme "Possédé".
+7. Onglet **Recherche** sur un titre pas encore possédé → "Vérifier" →
+   "Ajouter à la wishlist" → onglet **Wishlist** : le titre y apparaît.
+8. Onglet **Stats** : les compteurs reflètent ce qui vient d'être ajouté ;
+   "Voir des suggestions" propose des mangas/jeux à ajouter en un clic.
+
+---
+
 ## Renommer le projet
 
 Backend et iOS ont chacun un point de départ documenté pour ça (section
@@ -242,9 +293,14 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   jour être exposée au-delà du réseau local. Le schéma de base est déjà
   préparé pour ça (`owner_id` sur les possessions/expériences/wishlist,
   Catalog partagé) sans que ce soit encore exploité.
-- L'app Web (React) n'existe pas encore — prévue en V2 dans la roadmap.
-- Aucun environnement de CI n'est configuré — les tests se lancent
-  manuellement pour l'instant (commande `docker run ... mvn test`).
+- La **config CORS** du backend (`api/config/CorsConfig.java`) n'autorise
+  aujourd'hui que le serveur de dev Vite (`localhost:5173`) — dev-only, pas
+  encore de topologie de déploiement pour l'app Web buildée (voir le TODO
+  dans ce fichier).
+- L'app Web ne gère pas le **scan de code-barres par caméra** (saisie
+  manuelle à la place) et n'a pas de **cache hors-ligne** persistant
+  (contrairement au cache SwiftData de l'iOS) — pensée pour tester avec le
+  backend lancé, pas pour un usage nomade.
 
 ## En cas de problème
 
