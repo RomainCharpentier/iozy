@@ -163,6 +163,70 @@ requête 11) ou un import de collection (requête 14) — plus aucun message
 
 ---
 
+## Obtenir et configurer des identifiants IGDB/Twitch (requis pour les jeux vidéo)
+
+IGDB (métadonnées et découverte pour les jeux vidéo) appartient à Twitch et
+s'authentifie via son flux OAuth2 client-credentials. **Contrairement à
+BGG, il n'y a pas de mode dégradé** : sans ces identifiants, la recherche
+et la découverte jeux vidéo renvoient simplement une liste vide — le reste
+de l'app fonctionne normalement.
+
+### 1. Créer un compte Twitch (si tu n'en as pas déjà un)
+
+Sur [twitch.tv](https://www.twitch.tv), en haut à droite, "S'inscrire".
+Gratuit.
+
+### 2. Enregistrer une application
+
+1. Une fois connecté, va sur
+   [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) et
+   clique sur "Register Your Application".
+2. Remplis le formulaire :
+   - **Name** : ce que tu veux, ex. `IozyCore`.
+   - **OAuth Redirect URLs** : `http://localhost` (le flux
+     client-credentials ne redirige jamais réellement vers cette URL,
+     mais Twitch exige d'en renseigner une).
+   - **Category** : "Application Integration".
+3. Valide (une vérification par captcha/téléphone peut être demandée par
+   Twitch selon ton compte).
+
+### 3. Récupérer Client ID et générer un Client Secret
+
+1. Ton application enregistrée apparaît dans
+   [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) —
+   clique dessus.
+2. Le **Client ID** est affiché directement.
+3. Clique sur "New Secret" pour générer le **Client Secret** (affiché une
+   seule fois — note-le quelque part de sûr, ex. ton gestionnaire de mots
+   de passe).
+
+### 4. Ajouter les identifiants au projet
+
+Dans le dossier `backend/` :
+
+1. Si ce n'est pas déjà fait, copie `.env.example` en `.env` :
+   ```bash
+   cp .env.example .env
+   ```
+2. Ouvre `.env` et renseigne :
+   ```
+   IGDB_CLIENT_ID=ton_client_id
+   IGDB_CLIENT_SECRET=ton_client_secret
+   ```
+3. Relance le backend pour qu'il prenne les variables en compte :
+   ```bash
+   docker compose up --build
+   ```
+
+**Vérifier que ça marche :** dans l'app (iOS ou Web), onglet Ajouter, type
+"Jeu vidéo", tape un titre — des suggestions IGDB doivent apparaître après
+un court instant. Ou en ligne de commande :
+```bash
+curl "http://localhost:8080/api/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000002&query=zelda"
+```
+
+---
+
 ## Partie 2 — App iOS
 
 Direction visuelle : fond sombre, accent vert-jaune vif, grille de
@@ -218,8 +282,12 @@ Dans Xcode : choisir un simulateur iPhone, cliquer sur **Run** (▶).
     apparaissent dans les Étagères après quelques secondes.
 11. Onglet **Stats** : vérifie que les compteurs reflètent ce qui vient
     d'être ajouté (total, par type, note moyenne).
-12. Toujours dans Stats, "Voir des suggestions" : mangas du même auteur ou
-    jeux tendance BGG en commun apparaissent — "Ajouter" les intègre direct.
+12. Toujours dans Stats, "Voir des suggestions" : mangas du même auteur,
+    jeux tendance BGG en commun, ou jeux vidéo similaires (IGDB, si des
+    identifiants sont configurés) apparaissent — "Ajouter" les intègre direct.
+13. Onglet **Étagères**, icône "Gérer les types" : crée un type personnalisé
+    (ex: "Films", champ personnalisé "réalisateur") — il apparaît aussitôt
+    dans le picker de l'onglet Ajouter et les filtres des Étagères.
 
 ---
 
@@ -264,7 +332,11 @@ de rechargement à chaud mais aucune installation locale requise.
 7. Onglet **Recherche** sur un titre pas encore possédé → "Vérifier" →
    "Ajouter à la wishlist" → onglet **Wishlist** : le titre y apparaît.
 8. Onglet **Stats** : les compteurs reflètent ce qui vient d'être ajouté ;
-   "Voir des suggestions" propose des mangas/jeux à ajouter en un clic.
+   "Voir des suggestions" propose des mangas/jeux (et jeux vidéo via IGDB,
+   si des identifiants sont configurés) à ajouter en un clic.
+9. Bouton "Gérer les types" (écran Étagères) : crée un type personnalisé
+   (ex: "Films", champ personnalisé "réalisateur") — il apparaît aussitôt
+   dans le sélecteur de l'onglet Ajouter et les filtres des Étagères.
 
 ---
 
@@ -288,11 +360,20 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
 - **Import BGG** ne récupère que les jeux marqués "possédés" (`own=1`) —
   pas la wishlist BGG, pas les notes/stats, pas les images (l'endpoint de
   recherche BGG utilisé par ailleurs n'en fournit pas non plus).
-- **IGDB** (métadonnées jeux vidéo) n'est pas branché — nécessite un compte
-  développeur Twitch à créer soi-même.
+- **Identifiants IGDB/Twitch requis** : contrairement à BGG, pas de mode
+  dégradé — sans `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`, la recherche et la
+  découverte jeux vidéo renvoient simplement une liste vide (voir "Obtenir
+  et configurer des identifiants IGDB/Twitch" plus haut).
 - Le **lookup par code-barres** ne couvre que les mangas (ISBN, via Open
   Library) — les jeux vidéo/société utilisent des codes-barres UPC/EAN,
   hors du périmètre d'Open Library ; le scan y pré-remplit juste le code brut.
+- **Éditeur de types dynamique** : les champs personnalisés
+  (`customFieldKeys`) restent purement descriptifs, rien ne valide côté
+  serveur qu'une Entity respecte les champs déclarés par son type. Le
+  lookup code-barres, l'import BGG et la découverte restent câblés sur les
+  3 codes historiques (`MANGA`/`BOARD_GAME`/`VIDEO_GAME`) — un type créé
+  par l'utilisateur n'a accès à aucun de ces trois, intrinsèquement liés à
+  des API externes spécifiques.
 - Pas d'**authentification** (JWT) sur les appels réseau — cohérent avec le
   choix mono-utilisateur strict de la conception, à ajouter si l'app doit un
   jour être exposée au-delà du réseau local. Le schéma de base est déjà
@@ -325,3 +406,14 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   "Obtenir et configurer un token BGG") — le token n'est vérifié qu'au moment
   de l'appel, pas au démarrage, donc si tu viens de l'ajouter à `.env`,
   vérifie que `docker compose up --build` a bien redémarré le conteneur.
+- **La recherche/découverte jeux vidéo renvoie toujours une liste vide** :
+  normal sans identifiants IGDB (voir "Obtenir et configurer des
+  identifiants IGDB/Twitch") — contrairement à BGG, aucun message `WARN`
+  n'apparaît par défaut tant que la fonctionnalité n'est pas appelée.
+- **Créer/modifier un type (ou toute autre action d'écriture) échoue en
+  403 "Invalid CORS request" depuis l'app Web** : l'origine du navigateur
+  n'est pas dans `WEB_ALLOWED_ORIGINS` côté backend (voir
+  `api/config/CorsConfig.java`) — par défaut seuls `localhost:5173` (dev
+  Vite) et `localhost:8081` (build Docker local) sont autorisés ; en
+  déploiement Synology, définir cette variable avec le vrai domaine du
+  service web dans `.env`.

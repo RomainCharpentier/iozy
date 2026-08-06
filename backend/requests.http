@@ -130,3 +130,29 @@ GET {{baseUrl}}/insights/discover?entityTypeCode=MANGA
 ### avec les tiens (nécessite des jeux possédés avec un bggId capturé - via recherche
 ### ou import de collection)
 GET {{baseUrl}}/insights/discover?entityTypeCode=BOARD_GAME
+
+### 21. Rechercher des métadonnées jeu vidéo via IGDB (nécessite IGDB_CLIENT_ID/SECRET
+### configurés dans .env - sinon renvoie une liste vide, voir README)
+GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000002&query=zelda
+
+### 22. Découverte jeux vidéo - jeux similaires (IGDB similar_games) aux tiens
+### (nécessite des jeux possédés avec un igdbId capturé, et des identifiants IGDB configurés)
+GET {{baseUrl}}/insights/discover?entityTypeCode=VIDEO_GAME
+
+### 23. Éditeur de types dynamique - lister tous les types (les 3 historiques + tout type créé)
+GET {{baseUrl}}/entity-types
+
+### 24. Créer un type personnalisé (code normalisé en UPPER_SNAKE_CASE côté serveur)
+POST {{baseUrl}}/entity-types
+Content-Type: application/json
+
+{
+  "code": "films",
+  "label": "Films",
+  "allowedExperienceTypes": ["WATCHED"],
+  "customFieldKeys": ["director"]
+}
+
+### 25. Tenter de supprimer un type encore utilisé par une Entity (doit renvoyer 409 Conflict)
+### Remplacer par l'id d'un type réellement référencé, ex: MANGA si l'étape 1 a été jouée.
+DELETE {{baseUrl}}/entity-types/00000000-0000-0000-0000-000000000001

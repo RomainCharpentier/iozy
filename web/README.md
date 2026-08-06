@@ -25,14 +25,17 @@ web/
     api/            client HTTP (client.ts) + un module par ressource
                      (entities.ts, ownerships.ts, experiences.ts, wishlist.ts,
                      tags.ts, relationships.ts, insights.ts, metadata.ts)
-    types/          api.ts (DTOs miroir camelCase du backend), entityTypes.ts
-                     (les 3 types codés en dur, pas d'endpoint backend pour ça)
+    types/          api.ts (DTOs miroir camelCase du backend, dont EntityTypeDto),
+                     entityTypes.ts (constantes domaine-wide non liées à un type -
+                     CONDITIONS, RELATIONSHIP_TYPE_PRESETS... - plus les 3 types
+                     eux-mêmes, désormais dynamiques via api/entityTypes.ts)
     theme/          tokens.ts (couleurs/dégradés), gradient.ts (hash déterministe
                      pour les tuiles de "couverture", pas d'images réelles)
     components/     design system réutilisable : CoverTile, Chip, StatCard,
                      StatusPill, ErrorBanner, layout/AppShell + TabBar
     routes/         un dossier par écran (Shelf, Search, QuickAdd, EntityDetail,
-                     Wishlist, Stats), 1 page + sous-composants chacun
+                     Wishlist, Stats, EntityTypes - gestion des types), 1 page
+                     + sous-composants chacun
     lib/            useDebouncedValue, queryKeys (clés TanStack Query centralisées)
 ```
 
@@ -59,21 +62,30 @@ cohérent avec le reste de l'app et avec le client iOS.
 **Tous les appels du client passent par une URL relative** (`/api/...`),
 jamais une URL absolue vers le backend — en dev, `vite.config.ts` proxy
 `/api` vers `http://localhost:8080` ; en prod (Docker), `nginx.conf` fait
-la même chose vers le service `iozycore-api`. Le backend n'a donc pas
-besoin de CORS ouvert pour un usage normal (voir
-`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java` pour le
-filet de sécurité qui existe quand même).
+la même chose vers le service `iozycore-api`.
+
+**Piège déjà rencontré** : ce proxy rend les requêtes *lecture* (GET)
+transparentes pour le navigateur, mais pas les requêtes qui modifient
+l'état (POST/PATCH/DELETE) — celles-ci embarquent toujours un header
+`Origin`, même en apparence same-origin via un proxy. Sans l'origine
+correspondante dans `web.allowed-origins` côté backend (voir
+`../backend/src/main/java/com/iozycore/api/config/CorsConfig.java`), ces
+requêtes échouent en 403 "Invalid CORS request" - constaté en testant la
+création d'un type depuis le build Docker (`:8081`, absent de la liste au
+départ, seul `:5173` y était). Toute nouvelle origine servant cette app
+(nouveau port, domaine de prod) doit être ajoutée côté backend.
 
 ### État actuel
 
 Construit : les 5 onglets (Étagères/Recherche/Ajouter/Wishlist/Stats) + la
-fiche détail, mêmes parcours que le client iOS - ajout rapide avec
-suggestions de métadonnées, recherche transversale avec vérification avant
-achat, wishlist réellement fonctionnelle (contrairement au client iOS
-actuel, voir note ci-dessous), tags/relations/expériences sur la fiche
-détail, import BGG, statistiques et découverte à la demande.
+fiche détail + l'éditeur de types (`/types`), mêmes parcours que le client
+iOS - ajout rapide avec suggestions de métadonnées (Jikan/BGG/IGDB),
+recherche transversale avec vérification avant achat, wishlist réellement
+fonctionnelle (contrairement au client iOS actuel, voir note ci-dessous),
+tags/relations/expériences sur la fiche détail, import BGG, statistiques
+et découverte à la demande (mangas/jeux de société/jeux vidéo).
 
-Deux différences volontaires avec l'iOS :
+Trois différences volontaires avec l'iOS :
 - **Wishlist fonctionnelle** : l'endpoint `GET /api/wishlist` (liste) a été
   ajouté au backend pour cette app web (il n'existait pas, l'onglet
   Wishlist de l'iOS est de fait toujours vide aujourd'hui) - un seul
@@ -81,6 +93,10 @@ Deux différences volontaires avec l'iOS :
 - **Suivi de "candidat ajouté" en découverte** par `entityId` retourné
   plutôt que par titre (le suivi par titre côté iOS peut se tromper en cas
   de collision).
+- **Types d'expérience/champs personnalisés en saisie libre** dans le
+  formulaire de création de type, pas en multi-select : aucune liste
+  canonique commune n'existe côté backend (chaque type a la sienne), même
+  choix que côté iOS.
 
 Volontairement pas construit : scan de code-barres par caméra (saisie
 manuelle à la place, cohérent avec un usage desktop), cache
