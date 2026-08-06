@@ -23,3 +23,12 @@ bgg:
   # Laissé vide, les appels BGG restent fonctionnels pour le développement
   # local mais ne sont pas conformes aux conditions actuelles de BGG.
   application-token: ${BGG_APPLICATION_TOKEN:}
+
+igdb:
+  # Identifiants Twitch Developer Console (flux OAuth2 client-credentials) -
+  # voir README.md, section "Obtenir et configurer des identifiants
+  # IGDB/Twitch". Contrairement à BGG, IGDB ne fonctionne pas du tout sans
+  # ces identifiants (pas de mode dégradé/anonyme) : recherche et
+  # découverte jeux vidéo renvoient une liste vide tant qu'ils sont absents.
+  client-id: ${IGDB_CLIENT_ID:}
+  client-secret: ${IGDB_CLIENT_SECRET:}
