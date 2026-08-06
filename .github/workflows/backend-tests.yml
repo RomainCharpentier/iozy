@@ -1,0 +1,36 @@
+name: Backend tests
+
+# Déclenché sur push/PR touchant le backend (Testcontainers a besoin du
+# Docker daemon, disponible nativement sur les runners GitHub-hosted -
+# pas besoin du montage "Docker-in-Docker" utilisé en local, voir
+# backend/README.md section 3).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: mvn test (unitaires + intégration Testcontainers)
+        run: mvn -B test
