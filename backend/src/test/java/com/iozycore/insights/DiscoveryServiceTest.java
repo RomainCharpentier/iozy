@@ -3,6 +3,8 @@ package com.iozycore.insights;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.metadata.MetadataCandidate;
@@ -27,7 +29,7 @@ class DiscoveryServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
 
-        Entity deathNote = Entity.create(EntityType.MANGA.id(), "Death Note");
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         deathNote.setAttribute("mangaka", "Ohba, Tsugumi");
         entityRepository.save(deathNote);
         experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.now(), 9, null));
@@ -38,7 +40,8 @@ class DiscoveryServiceTest {
         ));
 
         DiscoveryService service = new DiscoveryService(
-                entityRepository, experienceRepository, jikan, new BggThingFetcher(), new BggHotListFetcher());
+                entityRepository, new InMemoryEntityTypeRepository(), experienceRepository, jikan,
+                new BggThingFetcher(), new BggHotListFetcher());
 
         List<DiscoveryCandidate> suggestions = service.discoverManga();
 
@@ -49,7 +52,7 @@ class DiscoveryServiceTest {
     @Test
     void returns_an_empty_list_when_nothing_is_owned() {
         DiscoveryService service = new DiscoveryService(
-                new InMemoryEntityRepository(), new InMemoryExperienceRepository(),
+                new InMemoryEntityRepository(), new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(),
                 new StubJikanMetadataProvider(List.of()), new BggThingFetcher(), new BggHotListFetcher());
 
         assertThat(service.discoverManga()).isEmpty();
@@ -97,6 +100,44 @@ class DiscoveryServiceTest {
         @Override
         public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
             return List.of();
+        }
+
+        @Override
+        public boolean existsByType(UUID entityTypeId) {
+            return store.values().stream().anyMatch(e -> e.entityTypeId().equals(entityTypeId));
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+    }
+
+    /** Seedé avec les fixtures MANGA/BOARD_GAME - suffisant pour discoverManga()/discoverBoardGames(). */
+    private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
+        private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
+                EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,
+                EntityTypeFixtures.BOARD_GAME.id(), EntityTypeFixtures.BOARD_GAME));
+
+        @Override
+        public EntityType save(EntityType entityType) {
+            store.put(entityType.id(), entityType);
+            return entityType;
+        }
+
+        @Override
+        public Optional<EntityType> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<EntityType> findByCode(String code) {
+            return store.values().stream().filter(t -> t.code().equals(code)).findFirst();
+        }
+
+        @Override
+        public List<EntityType> findAll() {
+            return List.copyOf(store.values());
         }
 
         @Override

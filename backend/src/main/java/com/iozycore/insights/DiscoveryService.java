@@ -3,6 +3,7 @@ package com.iozycore.insights;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.metadata.MetadataCandidate;
@@ -40,21 +41,31 @@ public class DiscoveryService {
     private static final int MAX_SUGGESTIONS = 8;
 
     private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
     private final ExperienceRepository experienceRepository;
     private final JikanMetadataProvider jikanMetadataProvider;
     private final BggThingFetcher bggThingFetcher;
     private final BggHotListFetcher bggHotListFetcher;
 
     public DiscoveryService(EntityRepository entityRepository,
+                             EntityTypeRepository entityTypeRepository,
                              ExperienceRepository experienceRepository,
                              JikanMetadataProvider jikanMetadataProvider,
                              BggThingFetcher bggThingFetcher,
                              BggHotListFetcher bggHotListFetcher) {
         this.entityRepository = entityRepository;
+        this.entityTypeRepository = entityTypeRepository;
         this.experienceRepository = experienceRepository;
         this.jikanMetadataProvider = jikanMetadataProvider;
         this.bggThingFetcher = bggThingFetcher;
         this.bggHotListFetcher = bggHotListFetcher;
+    }
+
+    /** Résout l'id du type par son code bien connu - reste volontairement câblé sur le code
+     * (pas sur un id hardcodé) pour continuer à fonctionner même si le label/schema du type
+     * a été édité via l'éditeur de types ; renvoie null si ce type a été supprimé. */
+    private UUID resolveTypeId(String code) {
+        return entityTypeRepository.findByCode(code).map(EntityType::id).orElse(null);
     }
 
     /**
@@ -62,7 +73,11 @@ public class DiscoveryService {
      * excluant ce que tu possèdes déjà.
      */
     public List<DiscoveryCandidate> discoverManga() {
-        List<Entity> ownedManga = entityRepository.findAllByType(EntityType.MANGA.id());
+        UUID mangaTypeId = resolveTypeId("MANGA");
+        if (mangaTypeId == null) {
+            return List.of();
+        }
+        List<Entity> ownedManga = entityRepository.findAllByType(mangaTypeId);
         if (ownedManga.isEmpty()) {
             return List.of();
         }
@@ -111,7 +126,11 @@ public class DiscoveryService {
      * jeu ajouté à la main sans passer par ces flux n'est pas pris en compte.
      */
     public List<DiscoveryCandidate> discoverBoardGames() {
-        List<Entity> ownedGames = entityRepository.findAllByType(EntityType.BOARD_GAME.id());
+        UUID boardGameTypeId = resolveTypeId("BOARD_GAME");
+        if (boardGameTypeId == null) {
+            return List.of();
+        }
+        List<Entity> ownedGames = entityRepository.findAllByType(boardGameTypeId);
         List<String> ownedBggIds = ownedGames.stream()
                 .map(e -> e.attributes().get("bggId"))
                 .filter(id -> id instanceof String s && !s.isBlank())

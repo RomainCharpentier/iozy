@@ -1,6 +1,6 @@
 package com.iozycore.application;
 
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.metadata.bgg.BggCollectionFetcher;
 import com.iozycore.metadata.bgg.BggCollectionItem;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Importe en une fois les jeux de société marqués "possédés" dans la
@@ -29,10 +30,13 @@ public class BggCollectionImportService {
 
     private final BggCollectionFetcher collectionFetcher;
     private final QuickAddService quickAddService;
+    private final EntityTypeRepository entityTypeRepository;
 
-    public BggCollectionImportService(BggCollectionFetcher collectionFetcher, QuickAddService quickAddService) {
+    public BggCollectionImportService(BggCollectionFetcher collectionFetcher, QuickAddService quickAddService,
+                                       EntityTypeRepository entityTypeRepository) {
         this.collectionFetcher = collectionFetcher;
         this.quickAddService = quickAddService;
+        this.entityTypeRepository = entityTypeRepository;
     }
 
     public record ImportResult(int totalFound, int created, int matchedExisting, int failed) {
@@ -40,6 +44,12 @@ public class BggCollectionImportService {
 
     public ImportResult importOwnedGames(String bggUsername) {
         List<BggCollectionItem> items = collectionFetcher.fetchOwnedGames(bggUsername);
+
+        // Résolu une fois (pas par item) - l'import BGG reste intrinsèquement
+        // lié au type "jeu de société", câblé sur son code bien connu.
+        UUID boardGameTypeId = entityTypeRepository.findByCode("BOARD_GAME")
+                .orElseThrow(() -> new IllegalStateException("Type BOARD_GAME introuvable"))
+                .id();
 
         int created = 0;
         int matchedExisting = 0;
@@ -52,7 +62,7 @@ public class BggCollectionImportService {
                         : Map.of("bggId", item.externalId());
 
                 QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
-                        EntityType.BOARD_GAME.id(), item.title(), OwnershipCondition.USED, attributes);
+                        boardGameTypeId, item.title(), OwnershipCondition.USED, attributes);
 
                 if (result.matchedExistingEntity()) {
                     matchedExisting++;

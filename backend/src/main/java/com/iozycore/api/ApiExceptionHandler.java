@@ -1,6 +1,7 @@
 package com.iozycore.api;
 
 import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
+import com.iozycore.domain.shared.EntityTypeDeletionNotAllowedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +14,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(EntityDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleDeletionNotAllowed(EntityDeletionNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(EntityTypeDeletionNotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleTypeDeletionNotAllowed(EntityTypeDeletionNotAllowedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
     }
 

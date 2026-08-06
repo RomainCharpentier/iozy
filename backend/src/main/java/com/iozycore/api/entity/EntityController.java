@@ -7,6 +7,7 @@ import com.iozycore.application.EntityDeletionService;
 import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -24,13 +25,16 @@ import java.util.stream.Collectors;
 public class EntityController {
 
     private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
     private final QuickAddService quickAddService;
     private final EntityDeletionService entityDeletionService;
 
     public EntityController(EntityRepository entityRepository,
+                             EntityTypeRepository entityTypeRepository,
                              QuickAddService quickAddService,
                              EntityDeletionService entityDeletionService) {
         this.entityRepository = entityRepository;
+        this.entityTypeRepository = entityTypeRepository;
         this.quickAddService = quickAddService;
         this.entityDeletionService = entityDeletionService;
     }
@@ -40,6 +44,12 @@ public class EntityController {
     @PostMapping("/quick-add")
     @ResponseStatus(HttpStatus.CREATED)
     public QuickAddResponse quickAdd(@RequestBody QuickAddRequest request) {
+        // Auparavant seule la contrainte FK Postgres protégeait ce chemin, ce
+        // qui remontait une exception SQL brute plutôt qu'un 400 propre.
+        entityTypeRepository.findById(request.entityTypeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "EntityType inconnu : " + request.entityTypeId()));
+
         QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty());
         return new QuickAddResponse(result.entityId(), result.matchedExistingEntity());
