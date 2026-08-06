@@ -24,6 +24,10 @@ public class ExperienceJpaEntity {
     @Column(name = "occurred_at", nullable = false)
     private LocalDate occurredAt;
 
+    // Le type Integer suffit côté Java (mêmes bornes que le CHECK SQL 0-10) ;
+    // columnDefinition force Hibernate à valider contre le SMALLINT réel de
+    // la migration V1 plutôt que son mapping par défaut (INTEGER).
+    @Column(columnDefinition = "smallint")
     private Integer rating;
 
     private String comment;
