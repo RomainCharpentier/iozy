@@ -8,7 +8,8 @@ mono-utilisateur : un "second cerveau" pour cataloguer une collection
 possède (`Ownership`) indépendamment de ce qu'on a vécu (`Experience` —
 lu/joué/terminé, note, commentaire), avec enrichissement automatique des
 métadonnées via des API publiques gratuites (Jikan pour les mangas, BGG
-pour les jeux de société, Open Library pour le lookup ISBN).
+pour les jeux de société, IGDB pour les jeux vidéo, Open Library pour le
+lookup ISBN).
 
 Document de conception complet (vision, personas, DDD, modèle de données,
 UML, roadmap - 21 étapes) : `../docs/CONCEPTION.md`. Ce
@@ -21,7 +22,8 @@ Clean Architecture + DDD, en monolithe modulaire :
 
 ```
 domain/            agrégats métier purs (aucune dépendance Spring/JPA)
-  catalog/          Entity, Variant, Tag, Relationship, EntityType (partagé, pas de owner)
+  catalog/          Entity, Variant, Tag, Relationship, EntityType (partagé, pas de owner -
+                     éditeur de types dynamique, plus de constantes codées en dur)
   ownership/        Ownership (possession d'un exemplaire)
   experience/        Experience (vécu : lu/joué/terminé)
   wishlist/          WishlistEntry
@@ -32,9 +34,12 @@ infrastructure/     adaptateurs JPA qui implémentent les ports du domaine
 metadata/           Bounded Context "Metadata Enrichment" (Jikan, BGG, Open Library)
 insights/           Bounded Context "Insights" (StatsService, DiscoveryService - lecture seule)
 api/                contrôleurs REST + DTOs, un package par ressource
-  config/            configuration transverse (CorsConfig - autorise le client
-                     Web en dev, voir web/README.md), ne correspond pas au
-                     découpage "un package par ressource" du reste de api/
+  config/            configuration transverse (CorsConfig - autorise les
+                     requêtes d'écriture du client Web, voir web/README.md
+                     et web.allowed-origins dans application.yml), ne
+                     correspond pas au découpage "un package par ressource"
+                     du reste de api/
+  entitytype/        EntityTypeController (éditeur de types dynamique)
 ```
 
 Chaque agrégat du domaine a une interface de repository (`EntityRepository`,
@@ -76,10 +81,11 @@ conception - à consulter en cas de doute sur le "pourquoi" d'un choix.
 
 ### État actuel (voir aussi "Limites connues" dans `../README.md`)
 
-Construit : les 3 types MVP (Manga/Jeu vidéo/Jeu de société), ajout rapide
-avec déduplication, Ownership/Experience/Wishlist/Tag/Relationship, recherche
-transversale, statistiques, découverte heuristique, import de collection BGG,
-préparation multi-utilisateur (`owner_id`, non exploitée).
+Construit : éditeur de types dynamique (`entity-types`, plus de 3 types
+figés en dur - voir section dédiée), ajout rapide avec déduplication,
+Ownership/Experience/Wishlist/Tag/Relationship, recherche transversale,
+statistiques, découverte heuristique (Jikan/BGG/IGDB), import de collection
+BGG, préparation multi-utilisateur (`owner_id`, non exploitée).
 
 `GET /api/wishlist` (liste complète, à ne pas confondre avec
 `GET /api/wishlist/lookup` qui vérifie une seule Entity) a été ajouté pour
@@ -87,8 +93,9 @@ l'onglet Wishlist du client Web (`../web`) - `WishlistEntryRepository.findAll()`
 et son implémentation JPA existaient déjà (utilisés par Insights), seule la
 route de contrôleur manquait.
 
-Volontairement pas construit : IGDB (jeux vidéo, bloqué sur un compte
-développeur Twitch à créer), authentification réelle, app Web, CI.
+Volontairement pas construit : authentification réelle, validation serveur
+des `customFieldKeys` d'un type contre les attributs d'une Entity (reste
+descriptif).
 
 ## Prérequis
 
@@ -167,14 +174,33 @@ docker compose down -v     # arrête et supprime aussi les volumes (repart à z�
   (voir `.env.example`) et un vrai nom de domaine pointant vers le NAS.
 - `scripts/backup.sh` — sauvegarde PostgreSQL, à planifier en prod uniquement.
 
+## Éditeur de types dynamique
+
+`entity_type` est une vraie table (déjà créée par `V1__init_schema.sql`,
+seedée avec les 3 types historiques MANGA/VIDEO_GAME/BOARD_GAME), pas des
+constantes Java figées - `GET/POST/PATCH/DELETE /api/entity-types`
+permettent de lister/créer/modifier/supprimer des types (label, types
+d'expérience autorisés, champs personnalisés). Le `code` est normalisé en
+UPPER_SNAKE_CASE à la création et ne change jamais ensuite (même invariant
+que `entityTypeId` sur `Entity` - changer de code ferait perdre le sens des
+attributs déjà enregistrés). Suppression bloquée (409) tant qu'au moins une
+`Entity` référence encore le type (`EntityTypeDeletionNotAllowedException`,
+même garde-fou que la suppression d'une `Entity`).
+
+Les fonctionnalités intrinsèquement liées à une source externe précise
+(lookup ISBN, import BGG, découverte) restent câblées sur les 3 codes
+historiques via `findByCode(...)`, jamais sur un id figé ni généralisées à
+un type créé par l'utilisateur - éditer le label/schema d'un de ces 3
+types n'interrompt donc pas ces fonctionnalités.
+
 ## Metadata Enrichment (recherche automatique)
 
 `GET /api/metadata/search?entityTypeId=...&query=...` interroge automatiquement
-**Jikan** (mangas, aucune clé requise) ou **BGG** (jeux de société, token
+**Jikan** (mangas, aucune clé requise), **BGG** (jeux de société, token
 d'application requis pour un usage conforme — voir section dédiée ci-dessous)
-selon le type demandé, et renvoie une liste de candidats (titre, image si
-disponible, attributs). IGDB (jeux vidéo) n'est volontairement pas branché
-dans cet incrément — nécessite un compte développeur Twitch.
+ou **IGDB** (jeux vidéo, identifiants Twitch obligatoires - pas de mode
+dégradé, voir section dédiée) selon le type demandé, et renvoie une liste de
+candidats (titre, image si disponible, attributs).
 
 `GET /api/metadata/lookup-barcode?entityTypeId=...&barcode=...` retrouve un
 manga à partir de son ISBN (le code-barres scanné) via **Open Library**
@@ -186,9 +212,9 @@ Le résultat choisi peut être transmis tel quel dans `attributes` du corps de
 `POST /api/entities/quick-add` (voir `requests.http`, requêtes 10-12) pour
 pré-remplir l'Entity sans ressaisie manuelle.
 
-Une panne de Jikan/BGG ne fait jamais échouer la recherche : elle renvoie
-simplement une liste vide pour la source en panne (voir les logs `WARN`),
-l'utilisateur peut toujours saisir le titre à la main.
+Une panne de Jikan/BGG/IGDB ne fait jamais échouer la recherche : elle
+renvoie simplement une liste vide pour la source en panne (voir les logs
+`WARN`), l'utilisateur peut toujours saisir le titre à la main.
 
 ## ⚠️ Token BGG requis pour un usage conforme
 
@@ -224,18 +250,47 @@ Le guide `../README.md` (racine du repo) détaille chaque étape avec plus de
 contexte si besoin. Aucune clé n'est nécessaire pour Jikan (mangas) ou Open
 Library (lookup ISBN).
 
-## Découverte heuristique (mangaka / catégories BGG)
+## ⚠️ Identifiants IGDB/Twitch requis (pas de mode dégradé)
 
-`GET /api/insights/discover?entityTypeCode=MANGA` ou `BOARD_GAME` - suggestions
-justifiées par un signal concret, jamais un moteur de recommandation IA :
+IGDB (jeux vidéo) appartient à Twitch et s'authentifie via son flux OAuth2
+client-credentials (`IgdbTokenProvider` - token mis en cache en mémoire,
+rafraîchi automatiquement à expiration). **Contrairement à BGG, il n'y a
+aucun mode dégradé** : sans `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET` configurés
+dans `.env`, la recherche et la découverte jeux vidéo renvoient simplement
+une liste vide (voir les logs `WARN` de `IgdbTokenProvider`).
+
+**Marche à suivre complète :**
+
+1. Crée un compte sur [twitch.tv](https://www.twitch.tv) si tu n'en as pas
+   déjà un (gratuit).
+2. Connecté, va sur
+   [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) →
+   "Register Your Application" (nom libre, OAuth Redirect URL
+   `http://localhost`, catégorie "Application Integration").
+3. Une fois l'application créée, récupère le **Client ID** (affiché
+   directement) et génère un **Client Secret** ("New Secret", affiché une
+   seule fois - note-le quelque part de sûr).
+4. Dans le projet : copie `.env.example` en `.env` si ce n'est pas déjà
+   fait, renseigne `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`, puis relance
+   `docker compose up --build`.
+
+Le guide `../README.md` (racine du repo) détaille chaque étape avec plus de
+contexte si besoin.
+
+## Découverte heuristique (mangaka / catégories BGG / similarité IGDB)
+
+`GET /api/insights/discover?entityTypeCode=MANGA|BOARD_GAME|VIDEO_GAME` -
+suggestions justifiées par un signal concret, jamais un moteur de
+recommandation IA :
 
 - **Mangas** : d'autres œuvres du même mangaka que tes mangas les mieux notés
   (via Jikan), en excluant ce que tu possèdes déjà.
 - **Jeux de société** : jeux tendance BGG (`/hot`) partageant des catégories
   ou mécaniques avec tes jeux possédés (via `/thing`, limité aux jeux dont le
   `bggId` a été capturé - recherche ou import de collection).
-
-Pas de découverte pour les jeux vidéo (IGDB non branché).
+- **Jeux vidéo** : jeux "similaires" (champ `similar_games`, calculé par
+  IGDB lui-même - plus simple que le croisement catégories/mécaniques de
+  BGG) à tes jeux possédés, limité aux jeux dont l'`igdbId` a été capturé.
 
 ## Statistiques (UC6)
 

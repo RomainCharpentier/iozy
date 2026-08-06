@@ -68,14 +68,17 @@ conflit de conformance à la compilation.
 ### État actuel
 
 Construit : les 4 parcours de la conception (ajout rapide avec recherche de
-métadonnées et scan ISBN, fiche détail avec sync serveur, recherche
-transversale, étagères), Tag/Relationship, import BGG, statistiques,
-découverte heuristique, direction visuelle dédiée (voir plus bas).
+métadonnées - Jikan/BGG/IGDB - et scan ISBN, fiche détail avec sync
+serveur, recherche transversale, étagères), Tag/Relationship, import BGG,
+statistiques, découverte heuristique (mangas/jeux de société/jeux vidéo),
+éditeur de types dynamique (`Features/EntityTypes/`), direction visuelle
+dédiée (voir plus bas).
 
-Volontairement pas construit : authentification, app Web (ce dossier ne
-couvre que iOS), synchronisation Tag/Relationship en tant que telle avec le
-cache local (elles vivent uniquement en mémoire le temps de la session sur
-la fiche détail).
+Volontairement pas construit : authentification, synchronisation
+Tag/Relationship en tant que telle avec le cache local (elles vivent
+uniquement en mémoire le temps de la session sur la fiche détail),
+validation locale des `customFieldKeys` d'un type contre les attributs
+saisis (reste descriptif, comme côté backend).
 
 ## Direction visuelle
 
