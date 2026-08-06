@@ -1,45 +1,18 @@
-// Miroir de backend/src/main/java/com/iozycore/domain/catalog/EntityType.java
-// et de ios/IozyCore/Models/EntityTypeMVP.swift. Pas d'endpoint backend pour
-// lister les types d'entité (MVP à 3 types codés en dur) - donc codé en dur
-// ici aussi, comme le fait déjà le client iOS.
-export interface EntityTypeDef {
-  id: string
-  code: 'MANGA' | 'VIDEO_GAME' | 'BOARD_GAME'
-  label: string
-  allowedExperienceTypes: string[]
-  customFieldKeys: string[]
-}
+// Les types sont désormais dynamiques (éditeur de types, GET /api/entity-types
+// via src/api/entityTypes.ts) - plus de constantes codées en dur ici. Voir
+// EntityTypeDto dans types/api.ts pour la forme exacte (miroir du backend).
+//
+// CONDITIONS/CONDITION_LABELS/OWNERSHIP_STATUS_LABELS/RELATIONSHIP_TYPE_PRESETS
+// restent ici : ce ne sont pas des données par type (domaine-wide), rien à
+// changer pour elles.
+import type { EntityTypeDto } from './api'
 
-export const MANGA: EntityTypeDef = {
-  id: '00000000-0000-0000-0000-000000000001',
-  code: 'MANGA',
-  label: 'Manga',
-  allowedExperienceTypes: ['READ', 'IN_PROGRESS', 'ABANDONED'],
-  customFieldKeys: ['mangaka', 'publisher', 'volumeNumber', 'seriesStatus'],
-}
-
-export const VIDEO_GAME: EntityTypeDef = {
-  id: '00000000-0000-0000-0000-000000000002',
-  code: 'VIDEO_GAME',
-  label: 'Jeu vidéo',
-  allowedExperienceTypes: ['FINISHED', 'IN_PROGRESS', 'ABANDONED'],
-  customFieldKeys: ['platform', 'studio', 'averageDurationHours'],
-}
-
-export const BOARD_GAME: EntityTypeDef = {
-  id: '00000000-0000-0000-0000-000000000003',
-  code: 'BOARD_GAME',
-  label: 'Jeu de société',
-  allowedExperienceTypes: ['PLAYED'],
-  customFieldKeys: ['minPlayers', 'maxPlayers', 'averageDurationMinutes'],
-}
-
-export const ENTITY_TYPES: readonly EntityTypeDef[] = [MANGA, VIDEO_GAME, BOARD_GAME]
-
-const BY_ID = new Map(ENTITY_TYPES.map((t) => [t.id, t]))
-
-export function entityTypeById(id: string): EntityTypeDef | undefined {
-  return BY_ID.get(id)
+/** Résout un type par son code bien connu (ex: "MANGA", "BOARD_GAME") - utilisé
+ * pour les comportements intentionnellement câblés sur un type précis
+ * (lookup code-barres, import BGG, sections de découverte), jamais
+ * généralisés à des types créés par l'utilisateur. */
+export function findEntityTypeByCode(types: EntityTypeDto[], code: string): EntityTypeDto | undefined {
+  return types.find((t) => t.code === code)
 }
 
 export const CONDITIONS = ['NEW', 'USED', 'DAMAGED'] as const

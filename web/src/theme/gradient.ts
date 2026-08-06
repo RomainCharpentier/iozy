@@ -9,7 +9,7 @@ import { gradientPalettes } from './tokens'
  * une cohérence interne : un même titre donne toujours le même dégradé
  * sur cette app web, à chaque rechargement.
  */
-function djb2Hash(value: string): number {
+export function djb2Hash(value: string): number {
   let hash = 5381
   for (let i = 0; i < value.length; i++) {
     hash = (hash * 33) ^ value.charCodeAt(i)

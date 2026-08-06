@@ -1,18 +1,20 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { searchMetadata } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
+import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { CONDITIONS, CONDITION_LABELS, ENTITY_TYPES, MANGA, type Condition } from '../../types/entityTypes'
+import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import type { MetadataCandidateDto } from '../../types/api'
 
 export function QuickAddPage() {
   const queryClient = useQueryClient()
-  const [entityTypeId, setEntityTypeId] = useState(MANGA.id)
+  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
+  const [entityTypeId, setEntityTypeId] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
   const [condition, setCondition] = useState<Condition>('NEW')
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
@@ -21,12 +23,22 @@ export function QuickAddPage() {
   // considérés périmés (même règle que côté iOS).
   const [attributesSourceTitle, setAttributesSourceTitle] = useState<string | null>(null)
 
+  // Type par défaut = le premier de la liste chargée (les types ne sont
+  // plus codés en dur, la liste est vide un court instant au chargement).
+  useEffect(() => {
+    if (!entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
+      setEntityTypeId(entityTypesQuery.data[0].id)
+    }
+  }, [entityTypeId, entityTypesQuery.data])
+
+  const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
+
   const debouncedTitle = useDebouncedValue(title, 300)
 
   const suggestionsQuery = useQuery({
-    queryKey: queryKeys.metadata.search(entityTypeId, debouncedTitle),
-    queryFn: () => searchMetadata(entityTypeId, debouncedTitle),
-    enabled: debouncedTitle.trim().length >= 2 && debouncedTitle !== attributesSourceTitle,
+    queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
+    queryFn: () => searchMetadata(entityTypeId!, debouncedTitle),
+    enabled: !!entityTypeId && debouncedTitle.trim().length >= 2 && debouncedTitle !== attributesSourceTitle,
   })
 
   const addMutation = useMutation({
@@ -52,7 +64,7 @@ export function QuickAddPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim() || !entityTypeId) return
     addMutation.mutate({ entityTypeId, title: title.trim(), condition, attributes })
   }
 
@@ -70,8 +82,11 @@ export function QuickAddPage() {
       <h1 className="font-display text-2xl font-bold text-textPrimary">Ajout rapide</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {entityTypesQuery.isLoading && <p className="text-sm text-textDim">Chargement des types...</p>}
+        {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
+
         <div className="flex flex-wrap gap-2">
-          {ENTITY_TYPES.map((type) => (
+          {(entityTypesQuery.data ?? []).map((type) => (
             <Chip
               key={type.id}
               label={type.label}
@@ -133,13 +148,13 @@ export function QuickAddPage() {
           </div>
         </div>
 
-        {entityTypeId === MANGA.id && (
+        {selectedType?.code === 'MANGA' && entityTypeId && (
           <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
         )}
 
         <button
           type="submit"
-          disabled={!title.trim() || addMutation.isPending}
+          disabled={!title.trim() || !entityTypeId || addMutation.isPending}
           className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
         >
           {addMutation.isPending ? 'Ajout...' : 'Ajouter'}

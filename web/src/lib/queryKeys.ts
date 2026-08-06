@@ -28,4 +28,7 @@ export const queryKeys = {
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,
   },
+  entityTypes: {
+    all: ['entityTypes'] as const,
+  },
 } as const

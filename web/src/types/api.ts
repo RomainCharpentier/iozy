@@ -117,11 +117,34 @@ export interface DiscoveryCandidateDto {
 
 // --- Metadata ---
 export interface MetadataCandidateDto {
-  source: 'JIKAN' | 'BGG'
+  source: 'JIKAN' | 'BGG' | 'IGDB'
   externalId: string
   title: string
   imageUrl: string | null
   attributes: Record<string, unknown>
+}
+
+// --- EntityType (éditeur de types dynamique) ---
+export interface EntityTypeDto {
+  id: UUID
+  code: string
+  label: string
+  allowedExperienceTypes: string[]
+  customFieldKeys: string[]
+}
+
+export interface CreateEntityTypeRequest {
+  code: string
+  label: string
+  allowedExperienceTypes: string[]
+  customFieldKeys: string[]
+}
+
+/** Le code n'est jamais modifiable après création (voir EntityTypeService côté backend). */
+export interface UpdateEntityTypeRequest {
+  label: string
+  allowedExperienceTypes: string[]
+  customFieldKeys: string[]
 }
 
 export interface BggImportResult {

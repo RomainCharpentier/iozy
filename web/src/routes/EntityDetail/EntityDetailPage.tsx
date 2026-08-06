@@ -5,9 +5,9 @@ import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
+import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { entityTypeById } from '../../types/entityTypes'
 import { gradientFor } from '../../theme/gradient'
 import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
@@ -42,13 +42,14 @@ export function EntityDetailPage() {
     queryKey: queryKeys.relationships.to(entityId),
     queryFn: () => relationshipsTo(entityId),
   })
+  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
 
   if (entityQuery.isLoading) return <p className="text-textDim">Chargement...</p>
   if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
   if (!entityQuery.data) return null
 
   const entity = entityQuery.data
-  const entityType = entityTypeById(entity.entityTypeId)
+  const entityType = entityTypesQuery.data?.find((t) => t.id === entity.entityTypeId)
   const ownerships = ownershipsQuery.data ?? []
   const experiences = experiencesQuery.data ?? []
 

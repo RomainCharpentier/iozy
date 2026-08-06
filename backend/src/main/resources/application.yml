@@ -16,6 +16,15 @@ spring:
 server:
   port: 8080
 
+web:
+  # Origines autorisées pour les requêtes POST/PATCH/DELETE du client web
+  # (voir api/config/CorsConfig.java pour le pourquoi - même en usage
+  # nginx-proxied "same-origin", ces méthodes envoient un header Origin
+  # que Spring vérifie). CSV, valeurs par défaut = dev Vite (:5173) +
+  # build Docker local (:8081). En Synology, définir avec le vrai domaine
+  # du service web.
+  allowed-origins: ${WEB_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8081}
+
 bgg:
   # Requis par BGG depuis juillet 2025 pour la quasi-totalité de son API XML
   # (voir boardgamegeek.com/using_the_xml_api) - enregistrer une application

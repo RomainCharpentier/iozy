@@ -29,6 +29,11 @@ services:
       # fonctionnels pour tester en local mais ne sont pas conformes aux
       # conditions actuelles de BGG (voir README, section "Statistiques").
       BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
+      # Optionnel - voir .env.example. Sans identifiants, recherche et
+      # découverte jeux vidéo renvoient une liste vide (IGDB n'a pas de
+      # mode dégradé, contrairement à BGG).
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID:-}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET:-}
     ports:
       - "8080:8080"
     volumes:

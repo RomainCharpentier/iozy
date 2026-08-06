@@ -19,6 +19,13 @@ services:
       DB_USER: ${DB_USER:-iozycore}
       DB_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
       BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID:-}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET:-}
+      # Doit correspondre au domaine du service "web" ci-dessous - requis
+      # même si nginx proxy /api en apparence "same-origin" pour le
+      # navigateur : les requêtes POST/PATCH/DELETE envoient toujours un
+      # header Origin, que Spring vérifie (voir api/config/CorsConfig.java).
+      WEB_ALLOWED_ORIGINS: ${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://app.iozycore.mondomaine.tld)}
     volumes:
       - media_data:/app/media
     networks:
@@ -45,7 +52,10 @@ services:
     labels:
       # Sous-domaine séparé de l'API (iozycore.mondomaine.tld reste dédié à
       # l'iOS/Swagger/accès direct) - nginx proxy /api en interne vers
-      # iozycore-api, donc pas besoin de CORS entre les deux origines.
+      # iozycore-api. Ce domaine doit être répété dans WEB_ALLOWED_ORIGINS
+      # (service iozycore-api ci-dessus) : nginx rend la lecture "same-origin"
+      # pour le navigateur, mais les requêtes d'écriture (POST/PATCH/DELETE)
+      # envoient quand même un header Origin que Spring vérifie.
       - "traefik.enable=true"
       - "traefik.http.routers.iozycore-web.rule=Host(`app.iozycore.mondomaine.tld`)"
       - "traefik.http.routers.iozycore-web.entrypoints=websecure"
