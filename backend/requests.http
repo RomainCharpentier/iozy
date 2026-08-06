@@ -1,0 +1,132 @@
+### IozyCore - requêtes de test
+### Prérequis : `docker compose up --build` doit tourner (API sur localhost:8080)
+### Avec VS Code : installer l'extension "REST Client", puis cliquer sur "Send Request"
+### au-dessus de chaque bloc. Avec IntelliJ/DataGrip : ouvrir ce fichier tel quel.
+
+@baseUrl = http://localhost:8080/api
+
+### 1. Ajout rapide d'un manga (parcours 1) - UUID = EntityType.MANGA (voir EntityType.java)
+### Réponse : { "entityId": "...", "matchedExistingEntity": false } - remplacer
+### REMPLACER_PAR_UUID_RETOURNE ci-dessous par la valeur de entityId.
+# @name quickAddManga
+POST {{baseUrl}}/entities/quick-add
+Content-Type: application/json
+
+{
+  "entityTypeId": "00000000-0000-0000-0000-000000000001",
+  "title": "Death Note - Tome 1",
+  "condition": "NEW"
+}
+
+### 1bis. Rejouer EXACTEMENT la même requête - doit renvoyer "matchedExistingEntity": true
+### avec le même entityId (déduplication UC1), et une 2e Ownership est créée pour ce même Entity.
+POST {{baseUrl}}/entities/quick-add
+Content-Type: application/json
+
+{
+  "entityTypeId": "00000000-0000-0000-0000-000000000001",
+  "title": "death note - tome 1",
+  "condition": "USED"
+}
+
+### 2. Consulter l'Entity créée (remplacer {{id}} par l'UUID renvoyé ci-dessus)
+GET {{baseUrl}}/entities/REMPLACER_PAR_UUID_RETOURNE
+
+### 3. Vérifier le statut avant achat (parcours 3) - doit renvoyer OWNED juste après l'étape 1
+GET {{baseUrl}}/wishlist/lookup?entityId=REMPLACER_PAR_UUID_RETOURNE
+
+### 4. Enregistrer une Experience (UC3) - "READ" est autorisé pour le type MANGA
+POST {{baseUrl}}/experiences
+Content-Type: application/json
+
+{
+  "entityId": "REMPLACER_PAR_UUID_RETOURNE",
+  "experienceType": "READ",
+  "occurredAt": "2026-07-30",
+  "rating": 9,
+  "comment": "Excellent premier tome"
+}
+
+### 5. Tenter un type d'Experience non autorisé (doit renvoyer 400)
+POST {{baseUrl}}/experiences
+Content-Type: application/json
+
+{
+  "entityId": "REMPLACER_PAR_UUID_RETOURNE",
+  "experienceType": "PLAYED",
+  "occurredAt": "2026-07-30",
+  "rating": 5,
+  "comment": "Ne devrait pas passer"
+}
+
+### 6. Créer un Tag et l'associer à l'Entity
+POST {{baseUrl}}/tags
+Content-Type: application/json
+
+{
+  "label": "seinen"
+}
+
+### 7. Note : quick-add crée toujours une Entity + son Ownership ensemble
+### (voir QuickAddService.java). Il n'existe pas encore d'endpoint pour
+### créer une Entity "nue" à ajouter directement en wishlist sans la
+### posséder - à ajouter si ce cas d'usage est prioritaire pour toi.
+### En attendant, /api/wishlist attend un entityId d'une Entity déjà
+### existante (récupérée via une recherche par exemple).
+
+### 8. Tenter de supprimer l'Entity du manga créée à l'étape 1 (doit renvoyer 409 Conflict,
+### car son Ownership existe toujours)
+DELETE {{baseUrl}}/entities/REMPLACER_PAR_UUID_RETOURNE
+
+### 9. Consulter la documentation OpenAPI générée automatiquement
+GET http://localhost:8080/v3/api-docs
+
+### 10. Rechercher des métadonnées manga via Jikan (Metadata Enrichment)
+GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000001&query=Death Note
+
+### 11. Rechercher des métadonnées jeu de société via BGG (Metadata Enrichment)
+GET {{baseUrl}}/metadata/search?entityTypeId=00000000-0000-0000-0000-000000000003&query=Catan
+
+### 12. Retrouver un manga à partir d'un ISBN scanné (Open Library, aucune clé requise)
+GET {{baseUrl}}/metadata/lookup-barcode?entityTypeId=00000000-0000-0000-0000-000000000001&barcode=9782723492607
+
+### 13. Ajout rapide avec attributs pré-remplis (issus d'un candidat choisi à l'étape 10)
+POST {{baseUrl}}/entities/quick-add
+Content-Type: application/json
+
+{
+  "entityTypeId": "00000000-0000-0000-0000-000000000001",
+  "title": "Death Note",
+  "condition": "NEW",
+  "attributes": {
+    "mangaka": "Ohba, Tsugumi",
+    "publisher": "Weekly Shonen Jump"
+  }
+}
+
+### 14. Importer en masse ta collection BGG (jeux marqués "possédés" uniquement)
+### Remplace "someuser" par un vrai pseudo BGG. Peut prendre quelques secondes
+### (BGG répond parfois 202 le temps de préparer l'export - géré automatiquement
+### avec retry côté backend). Réponse : { totalFound, created, matchedExisting, failed }
+POST {{baseUrl}}/metadata/bgg/import?username=someuser
+
+### 15. Lister tous les jeux de société (utilisé par l'app iOS pour rafraîchir les Étagères après un import BGG)
+GET {{baseUrl}}/entities?entityTypeId=00000000-0000-0000-0000-000000000003
+
+### 16. Recherche transversale dans ta collection (UC4) - tous types confondus
+GET {{baseUrl}}/entities/search?q=death
+
+### 17. Recherche transversale filtrée par type (mangas uniquement)
+GET {{baseUrl}}/entities/search?entityTypeId=00000000-0000-0000-0000-000000000001
+
+### 18. Statistiques de la collection (UC6) - nombre d'entités/possessions par type,
+### note moyenne, expériences de l'année en cours, tags les plus utilisés
+GET {{baseUrl}}/insights/stats
+
+### 19. Découverte manga - autres œuvres du même auteur que tes mangas les mieux notés
+GET {{baseUrl}}/insights/discover?entityTypeCode=MANGA
+
+### 20. Découverte jeux de société - jeux tendance BGG partageant des catégories/mécaniques
+### avec les tiens (nécessite des jeux possédés avec un bggId capturé - via recherche
+### ou import de collection)
+GET {{baseUrl}}/insights/discover?entityTypeCode=BOARD_GAME

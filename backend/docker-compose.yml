@@ -1,0 +1,53 @@
+version: "3.9"
+
+# Compose de DÉVELOPPEMENT LOCAL : lance juste l'API et PostgreSQL,
+# exposés directement sur localhost, sans reverse proxy ni HTTPS.
+# Pour le déploiement réel sur le NAS Synology, utiliser
+# docker-compose.synology.yml (avec Traefik + Let's Encrypt).
+#
+# Démarrage : docker compose up --build
+# API disponible sur http://localhost:8080
+# Swagger UI sur   http://localhost:8080/swagger-ui.html
+
+services:
+  iozycore-api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: iozycore
+      DB_USER: iozycore
+      DB_PASSWORD: iozycore_dev
+      # Optionnel - voir .env.example. Sans token, les appels BGG restent
+      # fonctionnels pour tester en local mais ne sont pas conformes aux
+      # conditions actuelles de BGG (voir README, section "Statistiques").
+      BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - media_data:/app/media
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: iozycore
+      POSTGRES_USER: iozycore
+      POSTGRES_PASSWORD: iozycore_dev
+    ports:
+      - "5432:5432"   # exposé en local uniquement, pratique pour un client SQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iozycore"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  media_data:

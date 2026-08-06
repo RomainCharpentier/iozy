@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: iozycore
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:iozycore}
+    username: ${DB_USER:iozycore}
+    password: ${DB_PASSWORD:changeme}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # le schéma est piloté par Flyway, jamais par Hibernate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+bgg:
+  # Requis par BGG depuis juillet 2025 pour la quasi-totalité de son API XML
+  # (voir boardgamegeek.com/using_the_xml_api) - enregistrer une application
+  # sur boardgamegeek.com/applications, puis renseigner le token ici.
+  # Laissé vide, les appels BGG restent fonctionnels pour le développement
+  # local mais ne sont pas conformes aux conditions actuelles de BGG.
+  application-token: ${BGG_APPLICATION_TOKEN:}

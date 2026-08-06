@@ -1,0 +1,80 @@
+package com.iozycore.infrastructure.persistence.ownership;
+
+import com.iozycore.domain.ownership.Ownership;
+import com.iozycore.domain.ownership.OwnershipCondition;
+import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.ownership.OwnershipStatus;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Repository
+@Transactional
+public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
+
+    private final OwnershipJpaRepository jpaRepository;
+
+    public JpaOwnershipRepositoryAdapter(OwnershipJpaRepository jpaRepository) {
+        this.jpaRepository = jpaRepository;
+    }
+
+    @Override
+    public Ownership save(Ownership ownership) {
+        OwnershipJpaEntity saved = jpaRepository.save(toJpa(ownership));
+        return toDomain(saved);
+    }
+
+    @Override
+    public Optional<Ownership> findById(UUID id) {
+        return jpaRepository.findById(id).map(JpaOwnershipRepositoryAdapter::toDomain);
+    }
+
+    @Override
+    public List<Ownership> findByEntityId(UUID entityId) {
+        return jpaRepository.findByEntityId(entityId).stream()
+                .map(JpaOwnershipRepositoryAdapter::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean existsByEntityId(UUID entityId) {
+        return jpaRepository.existsByEntityId(entityId);
+    }
+
+    @Override
+    public List<Ownership> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(JpaOwnershipRepositoryAdapter::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    private static OwnershipJpaEntity toJpa(Ownership ownership) {
+        return new OwnershipJpaEntity(
+                ownership.id(),
+                ownership.entityId(),
+                ownership.variantId().orElse(null),
+                ownership.ownerId(),
+                ownership.condition().name(),
+                ownership.status().name(),
+                ownership.acquiredAt(),
+                ownership.note()
+        );
+    }
+
+    private static Ownership toDomain(OwnershipJpaEntity jpaEntity) {
+        return Ownership.reconstitute(
+                jpaEntity.getId(),
+                jpaEntity.getEntityId(),
+                jpaEntity.getVariantId(),
+                jpaEntity.getOwnerId(),
+                OwnershipCondition.valueOf(jpaEntity.getCondition()),
+                OwnershipStatus.valueOf(jpaEntity.getStatus()),
+                jpaEntity.getAcquiredAt(),
+                jpaEntity.getNote()
+        );
+    }
+}
