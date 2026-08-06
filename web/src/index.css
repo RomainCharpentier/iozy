@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Design tokens Tailwind - miroir de web/src/theme/tokens.ts (source de
+   vérité pour le TS/JS, ex: theme/gradient.ts) et de
+   ios/IozyCore/DesignSystem/Theme.swift (direction visuelle d'origine).
+   Garder les deux en synchro si une couleur change. */
+@theme {
+  /* Suffixes en camelCase (pas kebab-case) pour matcher 1:1 les noms de
+     Theme.swift (textPrimary, accentText...) - Tailwind v4 génère les
+     classes utilitaires à partir du nom exact après "color-", donc ceci
+     donne bg-surface2, text-textPrimary, text-accentText, etc. plutôt que
+     l'ambigu "text-text-primary". */
+  --color-background: #131316;
+  --color-surface: #1d1d21;
+  --color-surface2: #26262b;
+  --color-textPrimary: #f5f4f2;
+  --color-textDim: #8c8b92;
+  --color-accent: #b8ff3c;
+  --color-accentText: #0e1500;
+  --color-violet: #8b7fff;
+  --color-pink: #ff6fa5;
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* Thème sombre forcé app-wide, pas de suivi de préférence système -
+   même choix que .preferredColorScheme(.dark) côté iOS. */
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-textPrimary);
+  font-family: var(--font-body);
+}
