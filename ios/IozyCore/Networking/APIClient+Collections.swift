@@ -34,6 +34,20 @@ struct MetadataCandidateDTO: Codable, Identifiable {
     var id: String { "\(source)-\(externalId)" }
 }
 
+/// Un tome précis d'une édition réelle d'une série (voir VolumeCandidate
+/// côté backend) - pour la sélection visuelle des tomes possédés (façon
+/// Mangacollec), plutôt qu'une saisie manuelle du numéro de tome.
+struct VolumeCandidateDTO: Codable, Identifiable, Hashable {
+    let edition: String
+    let volumeNumber: Int
+    let imageUrl: String?
+    let title: String
+
+    // Une même série peut avoir plusieurs éditions avec chacune un tome
+    // numéro 1 - l'id doit donc combiner édition + numéro, jamais le numéro seul.
+    var id: String { "\(edition)|\(volumeNumber)" }
+}
+
 /// Wrapper minimal pour décoder un Map<String, Object> JSON hétérogène
 /// (String/Number/Bool) renvoyé par le backend (attributes de MetadataCandidate).
 struct AnyCodableValue: Codable {
@@ -110,9 +124,11 @@ extension APIClient {
         }
     }
 
-    /// volumeNumber/edition sont optionnels et réservés au cas "tome d'une
-    /// série" (Manga) - voir QuickAddService côté backend. nil pour les
-    /// appelants qui n'en ont pas besoin (ex: ajout depuis Découverte).
+    /// volumeNumber/edition/volumeImageUrl sont optionnels et réservés au cas
+    /// "tome d'une série" (Manga) - voir QuickAddService côté backend. nil
+    /// pour les appelants qui n'en ont pas besoin (ex: ajout depuis Découverte).
+    /// volumeImageUrl est la jaquette de CE tome précis (voir VolumeCandidateDTO),
+    /// distincte de la jaquette de la série éventuellement présente dans `attributes`.
     struct QuickAddWithAttributesRequest: Encodable {
         let entityTypeId: UUID
         let title: String
@@ -120,14 +136,29 @@ extension APIClient {
         let attributes: [String: String]
         let volumeNumber: Int?
         let edition: String?
+        let volumeImageUrl: String?
     }
 
     func quickAdd(entityTypeId: UUID, title: String, condition: String, attributes: [String: String],
-                  volumeNumber: Int? = nil, edition: String? = nil) async throws -> APIClient.QuickAddResponse {
+                  volumeNumber: Int? = nil, edition: String? = nil, volumeImageUrl: String? = nil) async throws -> APIClient.QuickAddResponse {
         let body = QuickAddWithAttributesRequest(
             entityTypeId: entityTypeId, title: title, condition: condition, attributes: attributes,
-            volumeNumber: volumeNumber, edition: edition)
+            volumeNumber: volumeNumber, edition: edition, volumeImageUrl: volumeImageUrl)
         return try await post("/entities/quick-add", body: body)
+    }
+
+    /// Recherche best-effort des tomes réels (avec jaquette) des éditions
+    /// françaises d'une série (Google Books) - pour la sélection visuelle des
+    /// tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
+    /// jamais une erreur : l'appelant garde alors la saisie manuelle du tome.
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil) async throws -> [VolumeCandidateDTO] {
+        let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
+        var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
+        if let author, !author.isEmpty {
+            let encodedAuthor = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+            path += "&author=\(encodedAuthor)"
+        }
+        return try await get(path)
     }
 
     // MARK: - Ownership (UC2)

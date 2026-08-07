@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { markSold } from '../../api/ownerships'
 import { queryKeys } from '../../lib/queryKeys'
+import { coverImageUrlFrom } from '../../lib/coverImage'
 import { CONDITION_LABELS, OWNERSHIP_STATUS_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
@@ -48,30 +49,39 @@ export function OwnershipsSection({
       <ul className="flex flex-col gap-2">
         {sortedOwnerships.map((ownership) => {
           const variant = ownership.variantId ? variantsById.get(ownership.variantId) : undefined
+          // Jaquette propre à ce tome (voir VolumeSelectionGrid côté Ajout
+          // rapide) si elle a été trouvée à l'ajout - absente pour un tome
+          // ajouté manuellement ou avant l'introduction de cette fonctionnalité.
+          const variantCoverUrl = variant ? coverImageUrlFrom(variant.attributes) : null
           return (
-            <li key={ownership.id} className="flex items-center justify-between rounded-xl bg-surface p-3">
-              <div className="text-sm">
-                {/* Le libellé du tome (ex: "Tome 3 — Kana") prime sur l'état/statut
-                    quand il est connu - c'est l'info qui distingue vraiment cette
-                    ligne des autres Ownership de la même fiche. */}
-                {variant && <p className="font-medium text-textPrimary">{variant.label}</p>}
-                <p className="text-textPrimary">
-                  {OWNERSHIP_STATUS_LABELS[ownership.status] ?? ownership.status} ·{' '}
-                  {CONDITION_LABELS[ownership.condition as Condition] ?? ownership.condition}
-                </p>
-                <p className="text-textDim">Acquis le {ownership.acquiredAt}</p>
-                {ownership.note && <p className="text-textDim">{ownership.note}</p>}
-              </div>
-              {ownership.status === 'OWNED' && (
-                <button
-                  type="button"
-                  onClick={() => sellMutation.mutate(ownership.id)}
-                  disabled={sellMutation.isPending}
-                  className="shrink-0 rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
-                >
-                  Marquer vendu
-                </button>
+            <li key={ownership.id} className="flex items-center gap-3 rounded-xl bg-surface p-3">
+              {variantCoverUrl && (
+                <img src={variantCoverUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
               )}
+              <div className="flex flex-1 items-center justify-between gap-3">
+                <div className="text-sm">
+                  {/* Le libellé du tome (ex: "Tome 3 — Kana") prime sur l'état/statut
+                      quand il est connu - c'est l'info qui distingue vraiment cette
+                      ligne des autres Ownership de la même fiche. */}
+                  {variant && <p className="font-medium text-textPrimary">{variant.label}</p>}
+                  <p className="text-textPrimary">
+                    {OWNERSHIP_STATUS_LABELS[ownership.status] ?? ownership.status} ·{' '}
+                    {CONDITION_LABELS[ownership.condition as Condition] ?? ownership.condition}
+                  </p>
+                  <p className="text-textDim">Acquis le {ownership.acquiredAt}</p>
+                  {ownership.note && <p className="text-textDim">{ownership.note}</p>}
+                </div>
+                {ownership.status === 'OWNED' && (
+                  <button
+                    type="button"
+                    onClick={() => sellMutation.mutate(ownership.id)}
+                    disabled={sellMutation.isPending}
+                    className="shrink-0 rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
+                  >
+                    Marquer vendu
+                  </button>
+                )}
+              </div>
             </li>
           )
         })}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
-import { fetchFrenchTitle, searchMetadata } from '../../api/metadata'
+import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
@@ -10,9 +10,10 @@ import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { BarcodeLookupField } from './BarcodeLookupField'
+import { VolumeSelectionGrid, volumeKey } from './VolumeSelectionGrid'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import { candidateDisplayTitle, isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
-import type { MetadataCandidateDto } from '../../types/api'
+import type { MetadataCandidateDto, VolumeCandidateDto } from '../../types/api'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -33,6 +34,31 @@ function candidateKey(candidate: MetadataCandidateDto): string {
   return `${candidate.source}-${candidate.externalId}`
 }
 
+interface QuickAddOutcome {
+  addedCount: number
+  alreadyOwnedCount: number
+  matchedExistingEntity: boolean
+}
+
+/** Résume le résultat d'un ajout (potentiellement plusieurs tomes en un seul
+ * clic - voir addMutation) en une phrase. alreadyOwnedCount ne bloque jamais
+ * l'ajout (voir QuickAddService côté backend, un 2e exemplaire du même tome
+ * reste légitime) - "déjà possédé" avertit juste que ce tome précis avait
+ * déjà une Ownership active, sans empêcher l'exemplaire d'être ajouté. */
+function formatAddResultMessage(outcome: QuickAddOutcome): string {
+  const { addedCount, alreadyOwnedCount, matchedExistingEntity } = outcome
+  if (addedCount === 0 && alreadyOwnedCount > 0) {
+    return alreadyOwnedCount > 1
+      ? `Tu possèdes déjà ces ${alreadyOwnedCount} tomes - exemplaires ajoutés quand même.`
+      : 'Tu possèdes déjà ce tome (cette édition) - exemplaire ajouté quand même.'
+  }
+  const suffix = alreadyOwnedCount > 0 ? ` (dont ${alreadyOwnedCount} déjà possédé${alreadyOwnedCount > 1 ? 's' : ''})` : ''
+  if (addedCount > 1) {
+    return `${addedCount} tomes ajoutés${suffix}.`
+  }
+  return matchedExistingEntity ? `Nouveau tome ajouté à une fiche existante${suffix}.` : `Ajouté à ta collection${suffix}.`
+}
+
 export function QuickAddPage() {
   const queryClient = useQueryClient()
   // Réglage utilisateur (voir Réglages > Titre des mangas, lib/titleLanguage.ts) -
@@ -51,6 +77,16 @@ export function QuickAddPage() {
   // possède le tome 12 de Naruto, édition Kana" (ce qu'on possède vraiment).
   const [volumeNumber, setVolumeNumber] = useState('')
   const [edition, setEdition] = useState('')
+  // Sélection visuelle des tomes possédés par jaquette (voir VolumeSelectionGrid,
+  // façon Mangacollec) - déclenchée après sélection d'un candidat Manga
+  // (voir triggerVolumeSearch). volumeNumber/edition ci-dessus restent
+  // disponibles en repli manuel (tome introuvable dans la recherche) et se
+  // combinent avec cette sélection au moment de l'ajout (voir addMutation).
+  const [volumeCandidates, setVolumeCandidates] = useState<VolumeCandidateDto[]>([])
+  const [isSearchingVolumes, setIsSearchingVolumes] = useState(false)
+  const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
+  const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
+  const volumeSearchAbortRef = useRef<AbortController | null>(null)
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
   // Titre depuis lequel `attributes` a été rempli - si le titre est retouché
   // manuellement après avoir choisi un candidat, les attributs sont
@@ -132,11 +168,84 @@ export function QuickAddPage() {
   }, [suggestionsQuery.data, entityTypeId, titleComposition])
 
   const addMutation = useMutation({
-    mutationFn: quickAdd,
+    mutationFn: async (): Promise<QuickAddOutcome> => {
+      const manualVolumeNumber = volumeNumber.trim() ? Number(volumeNumber) : undefined
+      // Chaque couverture cochée dans la grille devient un ajout, plus
+      // éventuellement le tome saisi manuellement (repli "introuvable dans la
+      // recherche") en plus - jamais l'un OU l'autre, les deux se combinent.
+      const items: Array<{ volumeNumber?: number; edition?: string; volumeImageUrl?: string }> = volumeCandidates
+        .filter((v) => selectedVolumeKeys.has(volumeKey(v)))
+        .map((v) => ({ volumeNumber: v.volumeNumber, edition: v.edition, volumeImageUrl: v.imageUrl ?? undefined }))
+      if (manualVolumeNumber !== undefined) {
+        items.push({ volumeNumber: manualVolumeNumber, edition: edition.trim() || undefined })
+      }
+      if (items.length === 0) {
+        items.push({}) // pas de tome précisé (jeu vidéo/jeu de société, ou manga sans tome)
+      }
+
+      let addedCount = 0
+      let alreadyOwnedCount = 0
+      let matchedExistingEntity = false
+      // Séquentiel, jamais Promise.all : le premier appel crée l'Entity-série
+      // si elle n'existe pas encore côté backend (aucune contrainte unique en
+      // base sur entity_type_id+title) - des appels concurrents créeraient
+      // potentiellement plusieurs fiches en double pour la même série.
+      for (const item of items) {
+        const result = await quickAdd({
+          entityTypeId: entityTypeId!,
+          title: title.trim(),
+          condition,
+          attributes,
+          volumeNumber: item.volumeNumber,
+          edition: item.edition,
+          volumeImageUrl: item.volumeImageUrl,
+        })
+        matchedExistingEntity = matchedExistingEntity || result.matchedExistingEntity
+        if (result.matchedExistingVariant) alreadyOwnedCount++
+        else addedCount++
+      }
+      return { addedCount, alreadyOwnedCount, matchedExistingEntity }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
     },
   })
+
+  /** Cherche les tomes réels (avec jaquette) des éditions françaises de cette
+   * série (voir VolumeSelectionGrid) - best-effort, une liste vide laisse
+   * simplement les champs manuels comme unique moyen d'ajouter un tome. */
+  function triggerVolumeSearch(seriesTitle: string, author: string | undefined) {
+    if (!entityTypeId) return
+    volumeSearchAbortRef.current?.abort()
+    const controller = new AbortController()
+    volumeSearchAbortRef.current = controller
+    setIsSearchingVolumes(true)
+    setVolumeCandidates([])
+    setSelectedVolumeKeys(new Set())
+    searchVolumes(entityTypeId, seriesTitle, author, controller.signal)
+      .then((results) => {
+        if (controller.signal.aborted) return
+        setVolumeCandidates(results)
+      })
+      .catch(() => {
+        // Best-effort par nature : une panne laisse simplement la grille
+        // vide, les champs manuels restent utilisables.
+      })
+      .finally(() => {
+        if (volumeSearchAbortRef.current === controller) {
+          setIsSearchingVolumes(false)
+        }
+      })
+  }
+
+  function toggleVolumeSelection(key: string) {
+    setSelectedVolumeKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   function pickCandidate(candidate: MetadataCandidateDto) {
     frenchTitleAbortRef.current?.abort()
@@ -166,6 +275,18 @@ export function QuickAddPage() {
     if (typeof candidate.attributes.publisher === 'string') {
       setEdition(candidate.attributes.publisher)
     }
+    setShowManualVolumeFields(false)
+
+    const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
+    // Recherche immédiate avec le titre déjà résolu - correct dans la
+    // majorité des cas (beaucoup de titres de mangas restent identiques en
+    // VF, ex: "Death Note", "One Piece"). Si le titre français arrive plus
+    // tard (voir plus bas) et diffère, la recherche est refaite avec le bon
+    // titre : le cas où "L'Attaque des Titans" doit remplacer "Attack on
+    // Titan" pour trouver l'édition française sur Google Books.
+    if (selectedType?.code === 'MANGA') {
+      triggerVolumeSearch(resolvedTitle, author)
+    }
 
     // Rien de plus à faire si "Français" n'est pas activé (aucun appel
     // externe dans ce cas), ni si le titre français est déjà connu (appliqué
@@ -192,7 +313,6 @@ export function QuickAddPage() {
     // qu'un mot anglais distinctif (ex: "Titan") le retrouve souvent.
     if (entityTypeId && (candidate.source === 'JIKAN' || candidate.source === 'MYANIMELIST')) {
       const searchTerm = candidate.title
-      const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
       const controller = new AbortController()
       frenchTitleAbortRef.current = controller
       setIsTranslating(true)
@@ -201,6 +321,9 @@ export function QuickAddPage() {
           if (controller.signal.aborted || !frenchTitle) return
           setTitle(frenchTitle)
           setAttributesSourceTitle(frenchTitle)
+          if (selectedType?.code === 'MANGA') {
+            triggerVolumeSearch(frenchTitle, author)
+          }
         })
         .catch(() => {
           // Best-effort : une panne ne doit jamais bloquer l'ajout, le titre
@@ -221,21 +344,20 @@ export function QuickAddPage() {
     if (value !== attributesSourceTitle) {
       setAttributes(undefined)
       setAttributesSourceTitle(null)
+      // La sélection de tomes/jaquettes a été résolue pour l'ancien titre -
+      // un titre retouché à la main invalide cette sélection (plus aucune
+      // garantie que ces tomes correspondent encore à ce qui est saisi).
+      volumeSearchAbortRef.current?.abort()
+      setVolumeCandidates([])
+      setSelectedVolumeKeys(new Set())
+      setIsSearchingVolumes(false)
     }
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim() || !entityTypeId || blockedByMissingMatch) return
-    const parsedVolumeNumber = volumeNumber.trim() ? Number(volumeNumber) : undefined
-    addMutation.mutate({
-      entityTypeId,
-      title: title.trim(),
-      condition,
-      attributes,
-      volumeNumber: parsedVolumeNumber,
-      edition: edition.trim() || undefined,
-    })
+    addMutation.mutate()
   }
 
   function resetForm() {
@@ -244,6 +366,9 @@ export function QuickAddPage() {
     setAttributesSourceTitle(null)
     setVolumeNumber('')
     setEdition('')
+    setVolumeCandidates([])
+    setSelectedVolumeKeys(new Set())
+    setShowManualVolumeFields(false)
   }
 
   // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/IGDB)
@@ -383,7 +508,33 @@ export function QuickAddPage() {
           </div>
         </div>
 
-        {selectedType?.code === 'MANGA' && (
+        {selectedType?.code === 'MANGA' && isSearchingVolumes && (
+          <p className="flex items-center gap-1.5 text-xs text-textDim">
+            <Loader2 size={12} className="animate-spin" />
+            Recherche des tomes disponibles...
+          </p>
+        )}
+
+        {selectedType?.code === 'MANGA' && volumeCandidates.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm text-textDim">
+              Tomes possédés {selectedVolumeKeys.size > 0 && `(${selectedVolumeKeys.size} sélectionné${selectedVolumeKeys.size > 1 ? 's' : ''})`}
+            </span>
+            <VolumeSelectionGrid volumes={volumeCandidates} selectedKeys={selectedVolumeKeys} onToggle={toggleVolumeSelection} />
+          </div>
+        )}
+
+        {selectedType?.code === 'MANGA' && volumeCandidates.length > 0 && !showManualVolumeFields && (
+          <button
+            type="button"
+            onClick={() => setShowManualVolumeFields(true)}
+            className="w-fit text-xs text-accent underline"
+          >
+            + Tome introuvable ci-dessus ? Ajouter manuellement
+          </button>
+        )}
+
+        {selectedType?.code === 'MANGA' && (volumeCandidates.length === 0 || showManualVolumeFields) && !isSearchingVolumes && (
           <div className="flex gap-2">
             <div className="flex flex-1 flex-col gap-1.5">
               <label className="text-sm text-textDim" htmlFor="volumeNumber">
@@ -431,7 +582,11 @@ export function QuickAddPage() {
           disabled={!title.trim() || !entityTypeId || blockedByMissingMatch || addMutation.isPending || isTranslating}
           className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
         >
-          {addMutation.isPending ? 'Ajout...' : 'Ajouter'}
+          {addMutation.isPending
+            ? 'Ajout...'
+            : selectedVolumeKeys.size > 1
+              ? `Ajouter ${selectedVolumeKeys.size} tomes`
+              : 'Ajouter'}
         </button>
       </form>
 
@@ -439,11 +594,7 @@ export function QuickAddPage() {
 
       {addMutation.isSuccess && (
         <div className="rounded-xl bg-surface p-3 text-sm text-textPrimary">
-          {addMutation.data.matchedExistingVariant
-            ? 'Tu possèdes déjà ce tome (cette édition) - exemplaire ajouté quand même.'
-            : addMutation.data.matchedExistingEntity
-              ? 'Nouveau tome ajouté à une fiche existante.'
-              : 'Ajouté à ta collection.'}
+          {formatAddResultMessage(addMutation.data)}
           <button type="button" onClick={resetForm} className="ml-2 text-accent underline">
             Ajouter autre chose
           </button>
