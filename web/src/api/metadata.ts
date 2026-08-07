@@ -1,5 +1,5 @@
 import { get, post, buildQuery, ApiError } from './client'
-import type { BggImportResult, MetadataCandidateDto } from '../types/api'
+import type { BggImportResult, MetadataCandidateDto, VolumeCandidateDto } from '../types/api'
 
 export function searchMetadata(
   entityTypeId: string,
@@ -48,4 +48,17 @@ export async function fetchFrenchTitle(
     if (error instanceof ApiError && error.status === 404) return null
     throw error
   }
+}
+
+/** Recherche best-effort des tomes réels (avec jaquette) des éditions
+ * françaises d'une série (Google Books) - pour la sélection visuelle des
+ * tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
+ * jamais une erreur : l'appelant garde alors la saisie manuelle du tome. */
+export function searchVolumes(
+  entityTypeId: string,
+  title: string,
+  author?: string,
+  signal?: AbortSignal,
+): Promise<VolumeCandidateDto[]> {
+  return get<VolumeCandidateDto[]>(`/metadata/volumes${buildQuery({ entityTypeId, title, author })}`, signal)
 }

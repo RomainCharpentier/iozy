@@ -16,12 +16,15 @@ public final class EntityDtos {
 
     /** Corps de requête de l'ajout rapide (UC1 / parcours 1). attributes est
      * optionnel - typiquement rempli avec les attributs d'un MetadataCandidate
-     * choisi après une recherche via GET /api/metadata/search. volumeNumber et
-     * edition sont optionnels et tous deux réservés au cas "tome d'une série"
-     * (Manga) : voir QuickAddService pour la distinction série (Entity) / tome
-     * précis d'une édition (Variant). */
+     * choisi après une recherche via GET /api/metadata/search. volumeNumber,
+     * edition et volumeImageUrl sont optionnels et tous réservés au cas "tome
+     * d'une série" (Manga) : voir QuickAddService pour la distinction série
+     * (Entity) / tome précis d'une édition (Variant). volumeImageUrl est la
+     * jaquette de CE tome précis (voir VolumeCandidate), distincte de la
+     * jaquette de la série éventuellement présente dans attributes. */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
-                                   Map<String, Object> attributes, Integer volumeNumber, String edition) {
+                                   Map<String, Object> attributes, Integer volumeNumber, String edition,
+                                   String volumeImageUrl) {
         public Map<String, Object> attributesOrEmpty() {
             return attributes == null ? Map.of() : attributes;
         }

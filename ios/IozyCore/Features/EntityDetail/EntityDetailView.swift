@@ -247,24 +247,41 @@ struct EntityDetailView: View {
     }
 
     private func ownershipCard(_ ownership: OwnershipRecord) -> some View {
+        let variant = ownership.variantId.flatMap { variantsById[$0] }
         // Le libellé du tome (ex: "Tome 3 — Kana") prime sur "Possession" quand
         // il est connu - c'est l'info qui distingue vraiment cette carte des
-        // autres possessions de la même fiche.
-        let variantLabel = ownership.variantId.flatMap { variantsById[$0] }?.label
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(variantLabel ?? "Possession").font(Theme.bodySemibold(13)).foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Text(ownership.status).font(Theme.bodyMedium(12)).foregroundStyle(Theme.textDim)
+        // autres possessions de la même fiche. La jaquette propre à ce tome
+        // (voir VolumeSelectionGrid côté Ajout rapide) n'est présente que si
+        // elle a été trouvée à l'ajout - absente pour un tome ajouté
+        // manuellement ou avant l'introduction de cette fonctionnalité.
+        let variantCoverURL = variant.flatMap { CoverImage.url(from: $0.attributes) }
+        return HStack(alignment: .top, spacing: 10) {
+            if let variantCoverURL {
+                AsyncImage(url: variantCoverURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Color(.systemGray5)
+                    }
+                }
+                .frame(width: 44, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
-            Text(ownership.condition.capitalized).font(Theme.body(12.5)).foregroundStyle(Theme.textDim)
-            if let note = ownership.note, !note.isEmpty {
-                Text(note).font(Theme.body(12.5)).foregroundStyle(Theme.textDim)
-            }
-            if ownership.status == "OWNED" {
-                Button("Marquer vendu") { markSold(ownership) }
-                    .font(Theme.bodyMedium(12))
-                    .foregroundStyle(Theme.pink)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(variant?.label ?? "Possession").font(Theme.bodySemibold(13)).foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(ownership.status).font(Theme.bodyMedium(12)).foregroundStyle(Theme.textDim)
+                }
+                Text(ownership.condition.capitalized).font(Theme.body(12.5)).foregroundStyle(Theme.textDim)
+                if let note = ownership.note, !note.isEmpty {
+                    Text(note).font(Theme.body(12.5)).foregroundStyle(Theme.textDim)
+                }
+                if ownership.status == "OWNED" {
+                    Button("Marquer vendu") { markSold(ownership) }
+                        .font(Theme.bodyMedium(12))
+                        .foregroundStyle(Theme.pink)
+                }
             }
         }
         .padding(14)

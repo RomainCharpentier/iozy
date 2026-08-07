@@ -24,6 +24,16 @@ struct QuickAddView: View {
     // possède vraiment).
     @State private var volumeNumberText: String = ""
     @State private var edition: String = ""
+    // Sélection visuelle des tomes possédés par jaquette (voir VolumeSelectionGrid,
+    // façon Mangacollec) - déclenchée après sélection d'un candidat Manga
+    // (voir triggerVolumeSearch). volumeNumberText/edition ci-dessus restent
+    // disponibles en repli manuel (tome introuvable dans la recherche) et se
+    // combinent avec cette sélection au moment de l'ajout (voir submit).
+    @State private var volumeCandidates: [VolumeCandidateDTO] = []
+    @State private var isSearchingVolumes = false
+    @State private var selectedVolumeIds: Set<String> = []
+    @State private var showManualVolumeFields = false
+    @State private var volumeSearchTask: Task<Void, Never>?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var lastAddedMessage: String?
@@ -168,11 +178,42 @@ struct QuickAddView: View {
                         Text("Abîmé").tag("DAMAGED")
                     }
 
-                    if selectedType?.code == "MANGA" {
+                    if selectedType?.code == "MANGA" && isSearchingVolumes {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text("Recherche des tomes disponibles...")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                    }
+
+                    if selectedType?.code == "MANGA" && (volumeCandidates.isEmpty || showManualVolumeFields) && !isSearchingVolumes {
                         TextField("Tome n°", text: $volumeNumberText)
                             .keyboardType(.numberPad)
                         TextField("Édition (ex: Kana, Perfect Edition...)", text: $edition)
                             .textInputAutocapitalization(.words)
+                    }
+                }
+
+                if selectedType?.code == "MANGA" && !volumeCandidates.isEmpty {
+                    Section(
+                        selectedVolumeIds.isEmpty
+                            ? "Tomes possédés"
+                            : "Tomes possédés (\(selectedVolumeIds.count) sélectionné\(selectedVolumeIds.count > 1 ? "s" : ""))"
+                    ) {
+                        VolumeSelectionGrid(volumes: volumeCandidates, selectedIds: selectedVolumeIds) { volume in
+                            if selectedVolumeIds.contains(volume.id) {
+                                selectedVolumeIds.remove(volume.id)
+                            } else {
+                                selectedVolumeIds.insert(volume.id)
+                            }
+                        }
+                        if !showManualVolumeFields {
+                            Button("+ Tome introuvable ci-dessus ? Ajouter manuellement") {
+                                showManualVolumeFields = true
+                            }
+                            .font(.caption)
+                        }
                     }
                 }
 
@@ -239,7 +280,7 @@ struct QuickAddView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .safeAreaInset(edge: .bottom) {
                 Button(action: submit) {
-                    Text("Ajouter")
+                    Text(selectedVolumeIds.count > 1 ? "Ajouter \(selectedVolumeIds.count) tomes" : "Ajouter")
                         .font(Theme.bodySemibold(16))
                         .foregroundStyle(Theme.accentText)
                         .frame(maxWidth: .infinity)
@@ -425,6 +466,25 @@ struct QuickAddView: View {
         return secondary.isEmpty ? mainTitle : "\(mainTitle) (\(secondary.joined(separator: ", ")))"
     }
 
+    /// Cherche les tomes réels (avec jaquette) des éditions françaises de
+    /// cette série (voir VolumeSelectionGrid) - best-effort, une liste vide
+    /// laisse simplement les champs manuels comme unique moyen d'ajouter un tome.
+    private func triggerVolumeSearch(seriesTitle: String, author: String?) {
+        guard let typeId = selectedType?.id else { return }
+        volumeSearchTask?.cancel()
+        isSearchingVolumes = true
+        volumeCandidates = []
+        selectedVolumeIds = []
+        volumeSearchTask = Task {
+            let results = (try? await APIClient.shared.searchVolumes(entityTypeId: typeId, title: seriesTitle, author: author)) ?? []
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                volumeCandidates = results
+                isSearchingVolumes = false
+            }
+        }
+    }
+
     private func selectCandidate(_ candidate: MetadataCandidateDTO) {
         frenchTitleTask?.cancel()
         isTranslatingTitle = false
@@ -453,10 +513,22 @@ struct QuickAddView: View {
         if let publisher = candidate.attributes["publisher"]?.stringValue {
             edition = publisher
         }
+        showManualVolumeFields = false
         verifiedTitle = resolvedTitle
         candidates = []
         searchCompletedWithNoResults = false
         searchFailed = false
+
+        let author = candidate.attributes["mangaka"]?.stringValue
+        // Recherche immédiate avec le titre déjà résolu - correct dans la
+        // majorité des cas (beaucoup de titres de mangas restent identiques en
+        // VF, ex: "Death Note", "One Piece"). Si le titre français arrive plus
+        // tard (voir plus bas) et diffère, la recherche est refaite avec le bon
+        // titre : le cas où "L'Attaque des Titans" doit remplacer "Attack on
+        // Titan" pour trouver l'édition française sur Google Books.
+        if selectedType?.code == "MANGA" {
+            triggerVolumeSearch(seriesTitle: resolvedTitle, author: author)
+        }
 
         // Rien de plus à faire si "Français" n'est pas activé (aucun appel
         // externe dans ce cas), ni si le titre français est déjà connu
@@ -492,8 +564,19 @@ struct QuickAddView: View {
             await MainActor.run {
                 title = frenchTitle
                 verifiedTitle = frenchTitle
+                if selectedType?.code == "MANGA" {
+                    triggerVolumeSearch(seriesTitle: frenchTitle, author: candidate.attributes["mangaka"]?.stringValue)
+                }
             }
         }
+    }
+
+    /// Un tome à ajouter - soit une couverture cochée dans la grille (voir
+    /// VolumeSelectionGrid), soit le tome saisi manuellement en repli.
+    private struct VolumeToAdd {
+        let volumeNumber: Int?
+        let edition: String?
+        let volumeImageUrl: String?
     }
 
     private func submit() {
@@ -502,23 +585,53 @@ struct QuickAddView: View {
         errorMessage = nil
         let submittedTitle = title
         let attributes = selectedCandidateAttributes
+
+        // Chaque couverture cochée dans la grille devient un ajout, plus
+        // éventuellement le tome saisi manuellement (repli "introuvable dans
+        // la recherche") en plus - jamais l'un OU l'autre, les deux se combinent.
+        var items: [VolumeToAdd] = volumeCandidates
+            .filter { selectedVolumeIds.contains($0.id) }
+            .map { VolumeToAdd(volumeNumber: $0.volumeNumber, edition: $0.edition, volumeImageUrl: $0.imageUrl) }
         let trimmedVolumeText = volumeNumberText.trimmingCharacters(in: .whitespaces)
-        let submittedVolumeNumber = trimmedVolumeText.isEmpty ? nil : Int(trimmedVolumeText)
-        let trimmedEdition = edition.trimmingCharacters(in: .whitespaces)
-        let submittedEdition = trimmedEdition.isEmpty ? nil : trimmedEdition
+        if let manualVolumeNumber = trimmedVolumeText.isEmpty ? nil : Int(trimmedVolumeText) {
+            let trimmedEdition = edition.trimmingCharacters(in: .whitespaces)
+            items.append(VolumeToAdd(volumeNumber: manualVolumeNumber, edition: trimmedEdition.isEmpty ? nil : trimmedEdition, volumeImageUrl: nil))
+        }
+        if items.isEmpty {
+            items.append(VolumeToAdd(volumeNumber: nil, edition: nil, volumeImageUrl: nil)) // pas de tome précisé (jeu vidéo/jeu de société, ou manga sans tome)
+        }
 
         Task {
             do {
-                let result = try await APIClient.shared.quickAdd(
-                    entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes,
-                    volumeNumber: submittedVolumeNumber, edition: submittedEdition)
+                var addedCount = 0
+                var alreadyOwnedCount = 0
+                var matchedExistingEntity = false
+                var lastEntityId: UUID?
+                // Séquentiel, jamais en parallèle (pas de TaskGroup) : le
+                // premier appel crée l'Entity-série si elle n'existe pas
+                // encore côté backend (aucune contrainte unique en base sur
+                // entity_type_id+title) - des appels concurrents créeraient
+                // potentiellement plusieurs fiches en double pour la même série.
+                for item in items {
+                    let result = try await APIClient.shared.quickAdd(
+                        entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes,
+                        volumeNumber: item.volumeNumber, edition: item.edition, volumeImageUrl: item.volumeImageUrl)
+                    matchedExistingEntity = matchedExistingEntity || result.matchedExistingEntity
+                    lastEntityId = result.entityId
+                    if result.matchedExistingVariant {
+                        alreadyOwnedCount += 1
+                    } else {
+                        addedCount += 1
+                    }
+                }
+
                 await MainActor.run {
                     // On n'insère un nouvel EntityRecord dans le cache local que si
                     // le backend a vraiment créé une nouvelle Entity - sinon on
                     // dupliquerait localement ce qui ne l'est pas côté serveur.
-                    if !result.matchedExistingEntity {
+                    if !matchedExistingEntity, let lastEntityId {
                         let record = EntityRecord(
-                            id: result.entityId,
+                            id: lastEntityId,
                             entityTypeId: typeId,
                             title: submittedTitle,
                             attributesJSON: "{}"
@@ -526,9 +639,14 @@ struct QuickAddView: View {
                         modelContext.insert(record)
                     }
 
-                    if result.matchedExistingVariant {
-                        lastAddedMessage = "« \(submittedTitle) » — tu possèdes déjà ce tome (cette édition), exemplaire ajouté quand même"
-                    } else if result.matchedExistingEntity {
+                    if addedCount == 0 && alreadyOwnedCount > 0 {
+                        lastAddedMessage = alreadyOwnedCount > 1
+                            ? "« \(submittedTitle) » — tu possèdes déjà ces \(alreadyOwnedCount) tomes, exemplaires ajoutés quand même"
+                            : "« \(submittedTitle) » — tu possèdes déjà ce tome (cette édition), exemplaire ajouté quand même"
+                    } else if addedCount > 1 {
+                        let suffix = alreadyOwnedCount > 0 ? " (dont \(alreadyOwnedCount) déjà possédé\(alreadyOwnedCount > 1 ? "s" : ""))" : ""
+                        lastAddedMessage = "« \(submittedTitle) » — \(addedCount) tomes ajoutés\(suffix)"
+                    } else if matchedExistingEntity {
                         lastAddedMessage = "« \(submittedTitle) » — nouveau tome ajouté à une fiche existante"
                     } else {
                         lastAddedMessage = "« \(submittedTitle) » ajouté"
@@ -537,6 +655,9 @@ struct QuickAddView: View {
                     selectedCandidateAttributes = [:]
                     volumeNumberText = ""
                     edition = ""
+                    volumeCandidates = []
+                    selectedVolumeIds = []
+                    showManualVolumeFields = false
                     verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false

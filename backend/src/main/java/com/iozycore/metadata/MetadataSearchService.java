@@ -31,6 +31,7 @@ public class MetadataSearchService {
     private final List<BarcodeMetadataProvider> barcodeProviders;
     private final EntityRepository entityRepository;
     private final List<FrenchTitleProvider> frenchTitleProviders;
+    private final List<VolumeSearchProvider> volumeSearchProviders;
 
     // Clé = entityTypeId + requête/code-barres normalisés. La recherche par
     // titre cache le résultat BRUT des providers (avant filtrage "déjà
@@ -56,15 +57,21 @@ public class MetadataSearchService {
     private final TtlCache<String, List<MetadataCandidate>> searchCache = new TtlCache<>(Duration.ofMinutes(15), 300);
     private final TtlCache<String, MetadataCandidate> barcodeCache = new TtlCache<>(Duration.ofHours(24), 500);
     private final TtlCache<String, String> frenchTitleCache = new TtlCache<>(Duration.ofHours(24), 500);
+    // Les éditions/tomes d'une série ne changent presque jamais - TTL aussi
+    // long que barcode/frenchTitle, même règle anti-poison (voir plus bas) :
+    // seul un résultat non vide est mis en cache.
+    private final TtlCache<String, List<VolumeCandidate>> volumeSearchCache = new TtlCache<>(Duration.ofHours(24), 300);
 
     public MetadataSearchService(List<MetadataProvider> providers,
                                   List<BarcodeMetadataProvider> barcodeProviders,
                                   EntityRepository entityRepository,
-                                  List<FrenchTitleProvider> frenchTitleProviders) {
+                                  List<FrenchTitleProvider> frenchTitleProviders,
+                                  List<VolumeSearchProvider> volumeSearchProviders) {
         this.providers = providers;
         this.barcodeProviders = barcodeProviders;
         this.entityRepository = entityRepository;
         this.frenchTitleProviders = frenchTitleProviders;
+        this.volumeSearchProviders = volumeSearchProviders;
     }
 
     /**
@@ -146,6 +153,31 @@ public class MetadataSearchService {
                 .map(Optional::get)
                 .findFirst();
         result.ifPresent(title -> frenchTitleCache.put(cacheKey, title));
+        return result;
+    }
+
+    /**
+     * Recherche best-effort des tomes réels (avec jaquette) des éditions
+     * françaises d'une série (voir GoogleBooksVolumeSearchProvider) -
+     * déclenchée après sélection d'une suggestion, pour proposer une
+     * sélection visuelle des tomes possédés plutôt qu'une saisie manuelle
+     * du numéro de tome. Vide si le type n'est pas couvert ou si rien n'a
+     * été trouvé (l'appelant garde alors le parcours de saisie manuelle).
+     */
+    public List<VolumeCandidate> searchVolumes(EntityType entityType, String seriesTitle, String author) {
+        String cacheKey = entityType.id() + "|" + normalize(seriesTitle) + "|" + normalize(author == null ? "" : author);
+        Optional<List<VolumeCandidate>> cached = volumeSearchCache.get(cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
+        List<VolumeCandidate> result = volumeSearchProviders.stream()
+                .filter(provider -> provider.supports(entityType))
+                .flatMap(provider -> provider.searchVolumes(seriesTitle, author).stream())
+                .collect(Collectors.toList());
+        if (!result.isEmpty()) {
+            volumeSearchCache.put(cacheKey, result);
+        }
         return result;
     }
 }

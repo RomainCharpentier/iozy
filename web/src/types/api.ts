@@ -18,6 +18,9 @@ export interface QuickAddRequest {
   attributes?: Record<string, unknown>
   volumeNumber?: number
   edition?: string
+  // Jaquette de CE tome précis (voir VolumeCandidateDto), distincte de la
+  // jaquette de la série éventuellement présente dans `attributes`.
+  volumeImageUrl?: string
 }
 
 export interface QuickAddResponse {
@@ -139,6 +142,15 @@ export interface MetadataCandidateDto {
   title: string
   imageUrl: string | null
   attributes: Record<string, unknown>
+}
+
+/** Un tome précis d'une édition réelle d'une série (voir VolumeCandidate
+ * côté backend) - pour la sélection visuelle des tomes possédés. */
+export interface VolumeCandidateDto {
+  edition: string
+  volumeNumber: number
+  imageUrl: string | null
+  title: string
 }
 
 // --- EntityType (éditeur de types dynamique) ---

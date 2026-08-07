@@ -88,6 +88,21 @@ public class QuickAddService {
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition) {
+        return addNewEntityWithOwnership(entityTypeId, title, condition, prefilledAttributes, volumeNumber, edition, null);
+    }
+
+    /**
+     * Variante complète avec jaquette propre au tome (voir VolumeCandidate,
+     * module Metadata Enrichment) - typiquement une jaquette réelle trouvée
+     * via la sélection visuelle des tomes (Google Books), distincte de la
+     * jaquette de la SÉRIE dans prefilledAttributes (celle de Jikan/MAL).
+     * Stockée sur le Variant, jamais sur l'Entity : chaque tome garde sa
+     * propre jaquette plutôt que d'écraser celle de la série.
+     */
+    @Transactional
+    public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
+                                                      Map<String, Object> prefilledAttributes,
+                                                      Integer volumeNumber, String edition, String volumeImageUrl) {
         String normalizedTitle = title.trim();
         Optional<Entity> existing = entityRepository.findByTypeAndTitle(entityTypeId, normalizedTitle);
 
@@ -114,7 +129,7 @@ public class QuickAddService {
         if (volumeNumber != null) {
             String label = variantLabel(volumeNumber, edition);
             Optional<Variant> existingVariant = entity.findVariantByLabel(label);
-            Variant variant = existingVariant.orElseGet(() -> entity.addVariant(label, variantAttributes(volumeNumber, edition)));
+            Variant variant = existingVariant.orElseGet(() -> entity.addVariant(label, variantAttributes(volumeNumber, edition, volumeImageUrl)));
             variantId = variant.id();
             // Un Variant déjà présent sur l'Entity ne veut pas forcément dire que ce
             // tome précis est déjà possédé (il a pu être vendu/perdu depuis) - on ne
@@ -141,11 +156,19 @@ public class QuickAddService {
         return (edition == null || edition.isBlank()) ? base : base + " — " + edition.trim();
     }
 
-    private Map<String, Object> variantAttributes(int volumeNumber, String edition) {
+    private Map<String, Object> variantAttributes(int volumeNumber, String edition, String volumeImageUrl) {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("volumeNumber", volumeNumber);
         if (edition != null && !edition.isBlank()) {
             attributes.put("edition", edition.trim());
+        }
+        // Même clé que COVER_IMAGE_ATTRIBUTE_KEY côté web/iOS (voir
+        // lib/coverImage.ts) - convention partagée pour qu'une jaquette de
+        // Variant se lise avec exactement la même fonction qu'une jaquette
+        // d'Entity, seule la source (Entity.attributes vs Variant.attributes)
+        // change à l'appel.
+        if (volumeImageUrl != null && !volumeImageUrl.isBlank()) {
+            attributes.put("coverImageUrl", volumeImageUrl);
         }
         return attributes;
     }

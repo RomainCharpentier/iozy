@@ -5,6 +5,7 @@ import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataSearchService;
+import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -93,5 +94,23 @@ public class MetadataController {
     }
 
     public record FrenchTitleResponse(String frenchTitle) {
+    }
+
+    @Operation(summary = "Recherche best-effort des tomes réels (avec jaquette) des éditions françaises d'une "
+            + "série (Google Books) - pour proposer une sélection visuelle des tomes possédés plutôt qu'une saisie "
+            + "manuelle du numéro de tome. Liste vide si rien trouvé (jamais une erreur) : le client garde alors le "
+            + "parcours de saisie manuelle. Déclenché uniquement à la sélection d'une suggestion, jamais pour toute "
+            + "une liste de résultats de recherche - voir MetadataSearchService.searchVolumes.")
+    @GetMapping("/volumes")
+    public List<VolumeCandidate> volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
+                                          @RequestParam(required = false) String author) {
+        EntityType entityType = entityTypeRepository.findById(entityTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
+        }
+
+        return metadataSearchService.searchVolumes(entityType, title, author);
     }
 }
