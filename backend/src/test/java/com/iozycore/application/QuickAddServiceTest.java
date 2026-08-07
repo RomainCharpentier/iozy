@@ -82,6 +82,74 @@ class QuickAddServiceTest {
         assertThat(entity.attributes()).containsEntry("publisher", "Kana"); // complété
     }
 
+    @Test
+    void adding_two_different_volume_numbers_of_the_same_series_creates_two_variants_on_one_entity() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository, event -> {
+        });
+
+        QuickAddService.QuickAddResult tome1 = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 1, null);
+        QuickAddService.QuickAddResult tome2 = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 2, null);
+
+        assertThat(tome1.entityId()).isEqualTo(tome2.entityId()); // même série, une seule fiche
+        assertThat(tome1.variantId()).isNotEqualTo(tome2.variantId()); // deux tomes distincts
+        assertThat(tome1.matchedExistingVariant()).isFalse();
+        assertThat(tome2.matchedExistingVariant()).isFalse();
+
+        Entity entity = entityRepository.findById(tome1.entityId()).orElseThrow();
+        assertThat(entity.variants()).hasSize(2);
+        assertThat(ownershipRepository.findByEntityId(entity.id())).hasSize(2);
+    }
+
+    @Test
+    void re_adding_the_same_volume_number_reuses_the_variant_and_flags_it_as_already_owned() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository, event -> {
+        });
+
+        QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 3, null);
+        QuickAddService.QuickAddResult second = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 3, null);
+
+        assertThat(second.variantId()).isEqualTo(first.variantId()); // même tome, pas de doublon de Variant
+        assertThat(second.matchedExistingVariant()).isTrue();
+
+        Entity entity = entityRepository.findById(first.entityId()).orElseThrow();
+        assertThat(entity.variants()).hasSize(1); // un seul "Tome 3", pas deux
+    }
+
+    @Test
+    void same_volume_number_with_a_different_edition_is_a_distinct_variant() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
+        });
+
+        QuickAddService.QuickAddResult pika = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 1, "Pika");
+        QuickAddService.QuickAddResult perfectEdition = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
+
+        assertThat(pika.variantId()).isNotEqualTo(perfectEdition.variantId());
+        Entity entity = entityRepository.findById(pika.entityId()).orElseThrow();
+        assertThat(entity.variants()).hasSize(2);
+    }
+
+    @Test
+    void no_volume_number_means_no_variant_at_all_legacy_behavior() {
+        QuickAddService service = newService();
+
+        QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW);
+
+        assertThat(result.variantId()).isNull();
+        assertThat(result.matchedExistingVariant()).isFalse();
+    }
+
     private QuickAddService newService() {
         return new QuickAddService(new InMemoryEntityRepository(), new InMemoryOwnershipRepository(), event -> {
         });

@@ -100,7 +100,7 @@ export function EntityDetailPage() {
         <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data} />
       )}
 
-      <OwnershipsSection entityId={entityId} ownerships={ownerships} />
+      <OwnershipsSection entityId={entityId} ownerships={ownerships} variants={entity.variants} />
 
       <ExperiencesSection
         entityId={entityId}

@@ -8,16 +8,32 @@ export type UUID = string
 export type LocalDateString = string // "YYYY-MM-DD"
 
 // --- Entity ---
+// volumeNumber/edition sont réservés au cas "tome d'une série" (Manga) : voir
+// QuickAddService côté backend pour la distinction série (Entity) / tome
+// précis d'une édition (Variant).
 export interface QuickAddRequest {
   entityTypeId: UUID
   title: string
   condition: string
   attributes?: Record<string, unknown>
+  volumeNumber?: number
+  edition?: string
 }
 
 export interface QuickAddResponse {
   entityId: UUID
   matchedExistingEntity: boolean
+  variantId: UUID | null
+  // Une Ownership active référence déjà ce même Variant (ce tome précis) -
+  // ne bloque jamais l'ajout (un 2e exemplaire du même tome est légitime),
+  // sert seulement à avertir l'utilisateur.
+  matchedExistingVariant: boolean
+}
+
+export interface VariantDto {
+  id: UUID
+  label: string
+  attributes: Record<string, unknown>
 }
 
 export interface EntityResponse {
@@ -26,6 +42,7 @@ export interface EntityResponse {
   title: string
   attributes: Record<string, unknown>
   tagIds: UUID[]
+  variants: VariantDto[]
 }
 
 // --- Ownership ---

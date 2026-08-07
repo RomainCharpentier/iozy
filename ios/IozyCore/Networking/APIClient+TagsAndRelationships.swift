@@ -40,12 +40,25 @@ extension APIClient {
 
     // MARK: - Entity (détail, avec tagIds - distinct de EntityRecord qui est le cache local)
 
+    /// Tome précis d'une édition (ex: "Tome 3 — Kana") - voir Variant côté
+    /// domaine backend. attributes contient typiquement volumeNumber (Int)
+    /// et edition (String), tous deux facultatifs.
+    struct VariantDTO: Codable, Identifiable, Hashable {
+        let id: UUID
+        let label: String
+        let attributes: [String: AnyCodableValue]
+
+        static func == (lhs: VariantDTO, rhs: VariantDTO) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    }
+
     struct EntityDetailDTO: Codable {
         let id: UUID
         let entityTypeId: UUID
         let title: String
         let attributes: [String: AnyCodableValue]
         let tagIds: [UUID]
+        let variants: [VariantDTO]
     }
 
     func fetchEntity(id: UUID) async throws -> EntityDetailDTO {
