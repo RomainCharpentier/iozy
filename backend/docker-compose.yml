@@ -38,6 +38,9 @@ services:
       # manga (relais quand MyAnimeList bloque Jikan) ; sans Client ID,
       # Jikan reste seul comme avant, comportement inchangé.
       MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
+      # Optionnel - voir .env.example. Sans clé, appels Google Books
+      # fonctionnels mais sur le quota anonyme partagé (429 fréquents).
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
     ports:
       - "8080:8080"
     volumes:
