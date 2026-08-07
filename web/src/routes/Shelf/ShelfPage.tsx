@@ -6,6 +6,7 @@ import { importBggCollection } from '../../api/metadata'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
+import { coverImageUrlFrom } from '../../lib/coverImage'
 import { StatCard } from '../../components/StatCard'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TypeFilterChips } from './TypeFilterChips'
@@ -136,7 +137,12 @@ export function ShelfPage() {
 
       <div className="grid grid-cols-3 gap-3">
         {visibleEntities.map((entity) => (
-          <CoverTile key={entity.id} title={entity.title} onClick={() => navigate(`/entity/${entity.id}`)} />
+          <CoverTile
+            key={entity.id}
+            title={entity.title}
+            imageUrl={coverImageUrlFrom(entity.attributes)}
+            onClick={() => navigate(`/entity/${entity.id}`)}
+          />
         ))}
       </div>
     </div>

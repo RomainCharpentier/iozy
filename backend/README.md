@@ -277,6 +277,39 @@ une liste vide (voir les logs `WARN` de `IgdbTokenProvider`).
 Le guide `../README.md` (racine du repo) détaille chaque étape avec plus de
 contexte si besoin.
 
+## Client ID MyAnimeList (optionnel, relais quand Jikan est down)
+
+Jikan est un wrapper tiers non-officiel : il doit lui-même se reconnecter à
+MyAnimeList à chaque requête, et MyAnimeList le bloque/throttle par
+intermittence (pannes `504 "failed to connect to MyAnimeList"`, en général
+temporaires mais imprévisibles). `MyAnimeListMetadataProvider` interroge à la
+place l'**API officielle** MyAnimeList v2 (authentifiée par un simple Client
+ID, pas un flux OAuth complet) - elle n'est pas concernée par ces blocages
+puisqu'elle sert MyAnimeList directement.
+
+**Complète Jikan, ne le remplace jamais** : les deux fournisseurs sont
+agrégés par `MetadataSearchService`. Sans `MAL_CLIENT_ID` configuré, ce
+fournisseur reste simplement absent (`supports()` renvoie `false`) et Jikan
+continue de fonctionner seul, comme avant - comportement inchangé.
+
+**Marche à suivre complète :**
+
+1. Crée un compte sur [myanimelist.net](https://myanimelist.net) si tu n'en
+   as pas déjà un (gratuit).
+2. Connecté, va sur
+   [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig) → "Create
+   ID".
+3. Remplis le formulaire : nom d'app libre (ex. `IozyCore`), App Type
+   "web", Redirect URL `http://localhost` (jamais réellement utilisée pour
+   la recherche publique, mais requise par le formulaire), Homepage URL
+   optionnelle.
+4. Une fois créée, l'application affiche directement un **Client ID** -
+   pas de Client Secret à générer, pas d'attente d'approbation manuelle
+   (contrairement à BGG).
+5. Dans le projet : copie `.env.example` en `.env` si ce n'est pas déjà
+   fait, renseigne `MAL_CLIENT_ID=<ton-client-id>`, puis relance
+   `docker compose up --build`.
+
 ## Découverte heuristique (mangaka / catégories BGG / similarité IGDB)
 
 `GET /api/insights/discover?entityTypeCode=MANGA|BOARD_GAME|VIDEO_GAME` -

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Search, PlusCircle, Star, BarChart3 } from 'lucide-react'
+import { LayoutGrid, Search, PlusCircle, Star, BarChart3, Languages } from 'lucide-react'
 
 interface TabDef {
   to: string
@@ -15,6 +15,7 @@ const TABS: TabDef[] = [
   { to: '/add', label: 'Ajouter', icon: PlusCircle },
   { to: '/wishlist', label: 'Wishlist', icon: Star },
   { to: '/stats', label: 'Stats', icon: BarChart3 },
+  { to: '/settings', label: 'Réglages', icon: Languages },
 ]
 
 export function TabBar() {

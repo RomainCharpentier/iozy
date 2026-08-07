@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { ScanBarcode } from 'lucide-react'
+import { Loader2, ScanBarcode } from 'lucide-react'
 import { lookupBarcode } from '../../api/metadata'
 import type { MetadataCandidateDto } from '../../types/api'
 
@@ -49,7 +49,7 @@ export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupField
           disabled={!barcode.trim() || mutation.isPending}
           className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
-          <ScanBarcode size={16} />
+          {mutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ScanBarcode size={16} />}
           {mutation.isPending ? 'Recherche...' : 'Rechercher'}
         </button>
       </div>

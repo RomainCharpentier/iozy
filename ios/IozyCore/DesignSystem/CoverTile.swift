@@ -1,17 +1,29 @@
 import SwiftUI
 
-/// Tuile de "couverture" générée (dégradé + titre) : remplace les
-/// couvertures officielles qu'on n'a pas encore le droit d'afficher
-/// (droits d'image des éditeurs/studios) tout en donnant à chaque élément
-/// une identité visuelle propre et reconnaissable au premier coup d'œil.
+/// Tuile de "couverture" : jaquette réelle quand une source externe en a
+/// fourni une (Jikan / Google Books via scan ISBN / Open Library), avec le
+/// dégradé déterministe (calculé depuis le titre) comme repli - saisie
+/// libre, recherche sans résultat, ou simple échec de chargement de
+/// l'image. Miroir de CoverTile.tsx.
 struct CoverTile: View {
     let title: String
+    var imageURL: URL? = nil
     var showBadge: Bool = false
     var aspectRatio: CGFloat = 2.0 / 3.0
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Theme.gradient(for: title)
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Theme.gradient(for: title)
+                    }
+                }
+            } else {
+                Theme.gradient(for: title)
+            }
 
             LinearGradient(
                 colors: [.clear, Color.black.opacity(0.55)],

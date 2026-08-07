@@ -17,7 +17,7 @@ struct WishlistView: View {
                 if let entity = entity(for: entry) {
                     NavigationLink(value: entity.id) {
                         HStack(spacing: 12) {
-                            CoverTile(title: entity.title)
+                            CoverTile(title: entity.title, imageURL: CoverImage.url(fromAttributesJSON: entity.attributesJSON))
                                 .frame(width: 44)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(entity.title).font(Theme.bodySemibold(15)).foregroundStyle(Theme.textPrimary)

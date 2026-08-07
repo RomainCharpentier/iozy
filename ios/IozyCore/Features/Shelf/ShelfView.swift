@@ -148,7 +148,7 @@ struct ShelfView: View {
         LazyVGrid(columns: columns, spacing: 10) {
             ForEach(displayedEntities) { entity in
                 NavigationLink(value: entity.id) {
-                    CoverTile(title: entity.title)
+                    CoverTile(title: entity.title, imageURL: CoverImage.url(fromAttributesJSON: entity.attributesJSON))
                 }
                 .buttonStyle(.plain)
             }

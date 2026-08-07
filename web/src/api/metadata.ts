@@ -1,8 +1,12 @@
 import { get, post, buildQuery, ApiError } from './client'
 import type { BggImportResult, MetadataCandidateDto } from '../types/api'
 
-export function searchMetadata(entityTypeId: string, query: string): Promise<MetadataCandidateDto[]> {
-  return get<MetadataCandidateDto[]>(`/metadata/search${buildQuery({ entityTypeId, query })}`)
+export function searchMetadata(
+  entityTypeId: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<MetadataCandidateDto[]> {
+  return get<MetadataCandidateDto[]>(`/metadata/search${buildQuery({ entityTypeId, query })}`, signal)
 }
 
 /** 404 = pas de correspondance trouvée, pas une erreur (comme côté iOS) -
@@ -20,4 +24,28 @@ export async function lookupBarcode(entityTypeId: string, barcode: string): Prom
  * progression bloquant pendant l'appel. */
 export function importBggCollection(username: string): Promise<BggImportResult> {
   return post<BggImportResult>(`/metadata/bgg/import${buildQuery({ username })}`)
+}
+
+/** Recherche best-effort d'un titre d'édition française (Open Library, puis
+ * Google Books en repli) - à n'appeler qu'une fois par sélection de
+ * suggestion (voir QuickAddPage), pas pour toute une liste de résultats.
+ * `author` (mangaka) est optionnel mais améliore nettement la précision.
+ * 404 = rien trouvé, pas une erreur : renvoie null, l'appelant garde alors
+ * le titre anglais/romaji déjà affiché. */
+export async function fetchFrenchTitle(
+  entityTypeId: string,
+  query: string,
+  author?: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  try {
+    const result = await get<{ frenchTitle: string }>(
+      `/metadata/french-title${buildQuery({ entityTypeId, query, author })}`,
+      signal,
+    )
+    return result.frenchTitle
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
 }

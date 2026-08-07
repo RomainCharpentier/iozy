@@ -44,6 +44,7 @@ extension APIClient {
         let id: UUID
         let entityTypeId: UUID
         let title: String
+        let attributes: [String: AnyCodableValue]
         let tagIds: [UUID]
     }
 
