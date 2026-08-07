@@ -16,6 +16,14 @@ struct QuickAddView: View {
     @State private var selectedTypeId: UUID?
     @State private var title: String = ""
     @State private var condition: String = "NEW"
+    // Réservés au Manga (voir QuickAddService côté backend) : le titre
+    // identifie la SÉRIE, volumeNumber+edition identifient le TOME précis
+    // qu'on ajoute réellement à l'étagère - deux champs distincts pour ne pas
+    // mélanger "je possède Naruto" (faux, personne ne possède "la série" en
+    // un bloc) et "je possède le tome 12 de Naruto, édition Kana" (ce qu'on
+    // possède vraiment).
+    @State private var volumeNumberText: String = ""
+    @State private var edition: String = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var lastAddedMessage: String?
@@ -158,6 +166,13 @@ struct QuickAddView: View {
                         Text("Neuf").tag("NEW")
                         Text("Occasion").tag("USED")
                         Text("Abîmé").tag("DAMAGED")
+                    }
+
+                    if selectedType?.code == "MANGA" {
+                        TextField("Tome n°", text: $volumeNumberText)
+                            .keyboardType(.numberPad)
+                        TextField("Édition (ex: Kana, Perfect Edition...)", text: $edition)
+                            .textInputAutocapitalization(.words)
                     }
                 }
 
@@ -430,6 +445,14 @@ struct QuickAddView: View {
         if let imageUrl = candidate.imageUrl {
             selectedCandidateAttributes[CoverImage.attributeKey] = imageUrl
         }
+        // Pré-remplit l'édition depuis l'éditeur renvoyé par le candidat (ex:
+        // Google Books/Open Library sur un scan ISBN renvoient l'édition
+        // exacte scannée) - laissé vide pour Jikan/MyAnimeList/BGG/IGDB qui
+        // ne connaissent pas d'éditeur français. Simple pré-remplissage,
+        // jamais écrasé après coup : rien n'empêche de le corriger.
+        if let publisher = candidate.attributes["publisher"]?.stringValue {
+            edition = publisher
+        }
         verifiedTitle = resolvedTitle
         candidates = []
         searchCompletedWithNoResults = false
@@ -479,11 +502,16 @@ struct QuickAddView: View {
         errorMessage = nil
         let submittedTitle = title
         let attributes = selectedCandidateAttributes
+        let trimmedVolumeText = volumeNumberText.trimmingCharacters(in: .whitespaces)
+        let submittedVolumeNumber = trimmedVolumeText.isEmpty ? nil : Int(trimmedVolumeText)
+        let trimmedEdition = edition.trimmingCharacters(in: .whitespaces)
+        let submittedEdition = trimmedEdition.isEmpty ? nil : trimmedEdition
 
         Task {
             do {
                 let result = try await APIClient.shared.quickAdd(
-                    entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes)
+                    entityTypeId: typeId, title: submittedTitle, condition: condition, attributes: attributes,
+                    volumeNumber: submittedVolumeNumber, edition: submittedEdition)
                 await MainActor.run {
                     // On n'insère un nouvel EntityRecord dans le cache local que si
                     // le backend a vraiment créé une nouvelle Entity - sinon on
@@ -498,11 +526,17 @@ struct QuickAddView: View {
                         modelContext.insert(record)
                     }
 
-                    lastAddedMessage = result.matchedExistingEntity
-                        ? "« \(submittedTitle) » — nouvel exemplaire ajouté à une fiche existante"
-                        : "« \(submittedTitle) » ajouté"
+                    if result.matchedExistingVariant {
+                        lastAddedMessage = "« \(submittedTitle) » — tu possèdes déjà ce tome (cette édition), exemplaire ajouté quand même"
+                    } else if result.matchedExistingEntity {
+                        lastAddedMessage = "« \(submittedTitle) » — nouveau tome ajouté à une fiche existante"
+                    } else {
+                        lastAddedMessage = "« \(submittedTitle) » ajouté"
+                    }
                     title = ""
                     selectedCandidateAttributes = [:]
+                    volumeNumberText = ""
+                    edition = ""
                     verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false

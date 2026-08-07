@@ -2,13 +2,16 @@ package com.iozycore.infrastructure.persistence.catalog;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.Variant;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 @Transactional
@@ -31,10 +34,23 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
 
         EntityJpaEntity saved = entityJpaRepository.save(EntityMapper.toJpa(entity, createdAt));
 
-        // Les variants sont internes à l'Entity : on les remplace intégralement
-        // à chaque sauvegarde plutôt que de diffé les changements (simple et
-        // suffisant tant que le volume de variants par Entity reste faible).
-        variantJpaRepository.deleteAll(variantJpaRepository.findByEntityId(entity.id()));
+        // Les variants sont internes à l'Entity, mais peuvent être référencés
+        // par une Ownership (FK ownership.variant_id) - on ne peut donc pas les
+        // supprimer intégralement puis les recréer à l'identique comme avant :
+        // supprimer un Variant encore référencé lève une violation de contrainte,
+        // même s'il est réinséré avec le même id juste après (constaté : ajouter
+        // un 2e tome à une série qui possède déjà une Ownership sur son 1er tome
+        // levait une DataIntegrityViolationException). On ne supprime donc que
+        // les variants qui ont réellement disparu de l'Entity, et on upsert
+        // (save) le reste - un id déjà connu de Postgres devient une mise à
+        // jour, un id inconnu une insertion (même mécanisme que EntityJpaEntity
+        // ci-dessus).
+        List<VariantJpaEntity> existingVariants = variantJpaRepository.findByEntityId(entity.id());
+        Set<UUID> currentVariantIds = entity.variants().stream().map(Variant::id).collect(Collectors.toSet());
+        List<VariantJpaEntity> removedVariants = existingVariants.stream()
+                .filter(variant -> !currentVariantIds.contains(variant.getId()))
+                .collect(Collectors.toList());
+        variantJpaRepository.deleteAll(removedVariants);
         variantJpaRepository.saveAll(EntityMapper.toJpaVariants(entity));
 
         return EntityMapper.toDomain(saved, variantJpaRepository.findByEntityId(entity.id()));

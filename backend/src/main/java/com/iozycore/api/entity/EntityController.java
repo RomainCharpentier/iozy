@@ -51,8 +51,10 @@ public class EntityController {
                         "EntityType inconnu : " + request.entityTypeId()));
 
         QuickAddResult result = quickAddService.addNewEntityWithOwnership(
-                request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty());
-        return new QuickAddResponse(result.entityId(), result.matchedExistingEntity());
+                request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty(),
+                request.volumeNumber(), request.edition());
+        return new QuickAddResponse(
+                result.entityId(), result.matchedExistingEntity(), result.variantId(), result.matchedExistingVariant());
     }
 
     @Operation(summary = "Consulter une Entity par son identifiant")

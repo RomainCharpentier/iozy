@@ -110,16 +110,23 @@ extension APIClient {
         }
     }
 
+    /// volumeNumber/edition sont optionnels et réservés au cas "tome d'une
+    /// série" (Manga) - voir QuickAddService côté backend. nil pour les
+    /// appelants qui n'en ont pas besoin (ex: ajout depuis Découverte).
     struct QuickAddWithAttributesRequest: Encodable {
         let entityTypeId: UUID
         let title: String
         let condition: String
         let attributes: [String: String]
+        let volumeNumber: Int?
+        let edition: String?
     }
 
-    func quickAdd(entityTypeId: UUID, title: String, condition: String, attributes: [String: String]) async throws -> APIClient.QuickAddResponse {
+    func quickAdd(entityTypeId: UUID, title: String, condition: String, attributes: [String: String],
+                  volumeNumber: Int? = nil, edition: String? = nil) async throws -> APIClient.QuickAddResponse {
         let body = QuickAddWithAttributesRequest(
-            entityTypeId: entityTypeId, title: title, condition: condition, attributes: attributes)
+            entityTypeId: entityTypeId, title: title, condition: condition, attributes: attributes,
+            volumeNumber: volumeNumber, edition: edition)
         return try await post("/entities/quick-add", body: body)
     }
 

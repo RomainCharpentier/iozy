@@ -31,6 +31,10 @@ struct EntityDetailView: View {
     @State private var allTags: [TagDTO] = []
     @State private var relationshipsFrom: [RelationshipDTO] = []
     @State private var relationshipsTo: [RelationshipDTO] = []
+    // Tomes précis d'une édition (Manga) - voir Variant côté domaine backend.
+    // Récupérés en direct depuis l'API (entityDetail.variants), même logique
+    // que coverImageURL ci-dessous.
+    @State private var variants: [APIClient.VariantDTO] = []
     @State private var showingAddTag = false
     @State private var showingAddRelationship = false
     // Récupérée en direct depuis l'API (entityDetail.attributes) plutôt que
@@ -50,6 +54,24 @@ struct EntityDetailView: View {
     private var relatedEntities: [EntityRecord] {
         let ids = relationshipsFrom.map(\.targetEntityId) + relationshipsTo.map(\.sourceEntityId)
         return ids.compactMap { id in allEntities.first { $0.id == id } }
+    }
+    private var variantsById: [UUID: APIClient.VariantDTO] { Dictionary(uniqueKeysWithValues: variants.map { ($0.id, $0) }) }
+    /// Trie par numéro de tome (Manga) quand l'info est disponible, pour
+    /// afficher "Tome 1, Tome 2, Tome 3..." dans l'ordre plutôt que dans
+    /// l'ordre d'ajout (souvent différent : un tome manquant est fréquemment
+    /// complété plus tard). Miroir de sortByVolumeNumber côté web
+    /// (OwnershipsSection.tsx).
+    private var sortedOwnerships: [OwnershipRecord] {
+        ownerships.sorted { a, b in
+            let volumeA = a.variantId.flatMap { variantsById[$0] }?.attributes["volumeNumber"]?.stringValue
+            let volumeB = b.variantId.flatMap { variantsById[$0] }?.attributes["volumeNumber"]?.stringValue
+            switch (volumeA.flatMap(Int.init), volumeB.flatMap(Int.init)) {
+            case let (.some(va), .some(vb)): return va < vb
+            case (.some, .none): return true
+            case (.none, .some): return false
+            case (.none, .none): return false
+            }
+        }
     }
 
     var body: some View {
@@ -207,7 +229,7 @@ struct EntityDetailView: View {
             if ownerships.isEmpty && experiences.isEmpty {
                 EmptyView()
             }
-            ForEach(ownerships) { ownership in
+            ForEach(sortedOwnerships) { ownership in
                 ownershipCard(ownership)
             }
             ForEach(experiences.sorted(by: { $0.occurredAt > $1.occurredAt })) { experience in
@@ -225,9 +247,13 @@ struct EntityDetailView: View {
     }
 
     private func ownershipCard(_ ownership: OwnershipRecord) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // Le libellé du tome (ex: "Tome 3 — Kana") prime sur "Possession" quand
+        // il est connu - c'est l'info qui distingue vraiment cette carte des
+        // autres possessions de la même fiche.
+        let variantLabel = ownership.variantId.flatMap { variantsById[$0] }?.label
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Possession").font(Theme.bodySemibold(13)).foregroundStyle(Theme.textPrimary)
+                Text(variantLabel ?? "Possession").font(Theme.bodySemibold(13)).foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text(ownership.status).font(Theme.bodyMedium(12)).foregroundStyle(Theme.textDim)
             }
@@ -310,6 +336,7 @@ struct EntityDetailView: View {
             for dto in fetchedExperiences { upsertExperience(dto) }
             entityTagIds = Set(entityDetail.tagIds)
             coverImageURL = CoverImage.url(from: entityDetail.attributes)
+            variants = entityDetail.variants
             allTags = tags
             relationshipsFrom = relFrom
             relationshipsTo = relTo

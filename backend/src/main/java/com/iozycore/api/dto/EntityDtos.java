@@ -1,8 +1,10 @@
 package com.iozycore.api.dto;
 
 import com.iozycore.domain.catalog.Entity;
+import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.OwnershipCondition;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -14,23 +16,38 @@ public final class EntityDtos {
 
     /** Corps de requête de l'ajout rapide (UC1 / parcours 1). attributes est
      * optionnel - typiquement rempli avec les attributs d'un MetadataCandidate
-     * choisi après une recherche via GET /api/metadata/search. */
+     * choisi après une recherche via GET /api/metadata/search. volumeNumber et
+     * edition sont optionnels et tous deux réservés au cas "tome d'une série"
+     * (Manga) : voir QuickAddService pour la distinction série (Entity) / tome
+     * précis d'une édition (Variant). */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
-                                   Map<String, Object> attributes) {
+                                   Map<String, Object> attributes, Integer volumeNumber, String edition) {
         public Map<String, Object> attributesOrEmpty() {
             return attributes == null ? Map.of() : attributes;
         }
     }
 
-    public record EntityResponse(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,
-                                  Set<UUID> tagIds) {
-        public static EntityResponse from(Entity entity) {
-            return new EntityResponse(
-                    entity.id(), entity.entityTypeId(), entity.title(), entity.attributes(), entity.tagIds());
+    public record VariantResponse(UUID id, String label, Map<String, Object> attributes) {
+        public static VariantResponse from(Variant variant) {
+            return new VariantResponse(variant.id(), variant.label(), variant.attributes());
         }
     }
 
-    /** Réponse de l'ajout rapide - matchedExistingEntity indique qu'un doublon a été évité (UC1, étape 6). */
-    public record QuickAddResponse(UUID entityId, boolean matchedExistingEntity) {
+    public record EntityResponse(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,
+                                  Set<UUID> tagIds, List<VariantResponse> variants) {
+        public static EntityResponse from(Entity entity) {
+            return new EntityResponse(
+                    entity.id(), entity.entityTypeId(), entity.title(), entity.attributes(), entity.tagIds(),
+                    entity.variants().stream().map(VariantResponse::from).toList());
+        }
+    }
+
+    /** Réponse de l'ajout rapide - matchedExistingEntity indique qu'un doublon
+     * a été évité en réutilisant une Entity existante (UC1, étape 6). variantId
+     * est null si aucun tome n'a été précisé ; matchedExistingVariant indique
+     * qu'une Ownership active référence déjà ce même tome (utile pour avertir
+     * l'utilisateur qu'il possède peut-être déjà cette édition de ce tome). */
+    public record QuickAddResponse(UUID entityId, boolean matchedExistingEntity,
+                                    UUID variantId, boolean matchedExistingVariant) {
     }
 }

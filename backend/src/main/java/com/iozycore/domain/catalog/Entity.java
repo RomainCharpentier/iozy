@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -70,6 +71,13 @@ public class Entity {
         Variant variant = new Variant(UUID.randomUUID(), label, variantAttributes);
         variants.add(variant);
         return variant;
+    }
+
+    /** Retrouve un Variant existant par son label (insensible à la casse) - utilisé
+     * par QuickAddService pour éviter de recréer "Tome 3" en double si l'utilisateur
+     * ajoute un deuxième exemplaire du même tome. */
+    public Optional<Variant> findVariantByLabel(String label) {
+        return variants.stream().filter(v -> v.label().equalsIgnoreCase(label)).findFirst();
     }
 
     public void addTag(UUID tagId) {

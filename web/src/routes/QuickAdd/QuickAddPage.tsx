@@ -44,6 +44,13 @@ export function QuickAddPage() {
   const [entityTypeId, setEntityTypeId] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
   const [condition, setCondition] = useState<Condition>('NEW')
+  // Réservés au Manga (voir QuickAddService côté backend) : le titre identifie
+  // la SÉRIE, volumeNumber+edition identifient le TOME précis qu'on ajoute
+  // réellement à l'étagère - deux champs distincts pour ne pas mélanger "je
+  // possède Naruto" (faux, personne ne possède "la série" en un bloc) et "je
+  // possède le tome 12 de Naruto, édition Kana" (ce qu'on possède vraiment).
+  const [volumeNumber, setVolumeNumber] = useState('')
+  const [edition, setEdition] = useState('')
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
   // Titre depuis lequel `attributes` a été rempli - si le titre est retouché
   // manuellement après avoir choisi un candidat, les attributs sont
@@ -151,6 +158,14 @@ export function QuickAddPage() {
         : candidate.attributes,
     )
     setAttributesSourceTitle(resolvedTitle)
+    // Pré-remplit l'édition depuis l'éditeur renvoyé par le candidat (ex:
+    // Google Books/Open Library sur un scan ISBN renvoient l'édition exacte
+    // scannée) - laissé vide pour Jikan/MyAnimeList/BGG/IGDB qui ne connaissent
+    // pas d'éditeur français. Simple pré-remplissage, jamais écrasé après coup :
+    // rien n'empêche l'utilisateur de le corriger.
+    if (typeof candidate.attributes.publisher === 'string') {
+      setEdition(candidate.attributes.publisher)
+    }
 
     // Rien de plus à faire si "Français" n'est pas activé (aucun appel
     // externe dans ce cas), ni si le titre français est déjà connu (appliqué
@@ -212,13 +227,23 @@ export function QuickAddPage() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim() || !entityTypeId || blockedByMissingMatch) return
-    addMutation.mutate({ entityTypeId, title: title.trim(), condition, attributes })
+    const parsedVolumeNumber = volumeNumber.trim() ? Number(volumeNumber) : undefined
+    addMutation.mutate({
+      entityTypeId,
+      title: title.trim(),
+      condition,
+      attributes,
+      volumeNumber: parsedVolumeNumber,
+      edition: edition.trim() || undefined,
+    })
   }
 
   function resetForm() {
     setTitle('')
     setAttributes(undefined)
     setAttributesSourceTitle(null)
+    setVolumeNumber('')
+    setEdition('')
   }
 
   // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/IGDB)
@@ -358,6 +383,39 @@ export function QuickAddPage() {
           </div>
         </div>
 
+        {selectedType?.code === 'MANGA' && (
+          <div className="flex gap-2">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-sm text-textDim" htmlFor="volumeNumber">
+                Tome n°
+              </label>
+              <input
+                id="volumeNumber"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={volumeNumber}
+                onChange={(e) => setVolumeNumber(e.target.value)}
+                placeholder="ex: 12"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-[2] flex-col gap-1.5">
+              <label className="text-sm text-textDim" htmlFor="edition">
+                Édition
+              </label>
+              <input
+                id="edition"
+                value={edition}
+                onChange={(e) => setEdition(e.target.value)}
+                placeholder="ex: Kana, Perfect Edition..."
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        )}
+
         {selectedType?.code === 'MANGA' && entityTypeId && (
           <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
         )}
@@ -381,9 +439,11 @@ export function QuickAddPage() {
 
       {addMutation.isSuccess && (
         <div className="rounded-xl bg-surface p-3 text-sm text-textPrimary">
-          {addMutation.data.matchedExistingEntity
-            ? 'Nouvel exemplaire ajouté à une fiche existante.'
-            : 'Ajouté à ta collection.'}
+          {addMutation.data.matchedExistingVariant
+            ? 'Tu possèdes déjà ce tome (cette édition) - exemplaire ajouté quand même.'
+            : addMutation.data.matchedExistingEntity
+              ? 'Nouveau tome ajouté à une fiche existante.'
+              : 'Ajouté à ta collection.'}
           <button type="button" onClick={resetForm} className="ml-2 text-accent underline">
             Ajouter autre chose
           </button>

@@ -43,9 +43,14 @@ final class APIClient {
     /// Miroir de EntityDtos.QuickAddResponse côté backend. matchedExistingEntity
     /// indique que l'ajout a été dédupliqué (UC1, étape 6) : aucune nouvelle
     /// fiche créée, juste une Ownership de plus sur une Entity déjà existante.
+    /// variantId/matchedExistingVariant concernent le tome précis d'une série
+    /// (Manga) - voir QuickAddService côté backend pour la distinction
+    /// série (Entity) / tome d'une édition (Variant).
     struct QuickAddResponse: Decodable {
         let entityId: UUID
         let matchedExistingEntity: Bool
+        let variantId: UUID?
+        let matchedExistingVariant: Bool
     }
 
     func quickAdd(entityTypeId: UUID, title: String, condition: String) async throws -> QuickAddResponse {
