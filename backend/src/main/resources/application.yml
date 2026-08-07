@@ -51,3 +51,11 @@ mal:
   # avant. Utile quand Jikan est indisponible (MyAnimeList bloque/throttle
   # ce wrapper tiers par intermittence, contrairement à l'API officielle).
   client-id: ${MAL_CLIENT_ID:}
+
+google-books:
+  # Clé API Google Books (console.cloud.google.com, API "Books API" activée) -
+  # optionnelle : sans clé, les appels restent fonctionnels mais partagent le
+  # quota anonyme mondial (429 "Quota exceeded" fréquents en pratique). Une
+  # clé donne un quota dédié à ce projet. Utilisée par GoogleBooksBarcodeProvider
+  # (scan ISBN) et GoogleBooksFrenchTitleProvider (repli derrière Open Library).
+  api-key: ${GOOGLE_BOOKS_API_KEY:}

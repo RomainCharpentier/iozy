@@ -6,6 +6,7 @@ import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.FrenchTitleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +47,9 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=5";
 
+    @Value("${google-books.api-key:}")
+    private String apiKey;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
@@ -65,8 +69,12 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
 
         try {
             String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
+            String url = SEARCH_URL.formatted(encodedQuery);
+            if (apiKey != null && !apiKey.isBlank()) {
+                url += "&key=" + apiKey;
+            }
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SEARCH_URL.formatted(encodedQuery)))
+                    .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(8))
                     .GET()
                     .build();

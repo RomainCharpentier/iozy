@@ -7,6 +7,7 @@ import com.iozycore.metadata.BarcodeMetadataProvider;
 import com.iozycore.metadata.MetadataCandidate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -20,12 +21,17 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Interroge l'API publique Google Books (aucune clé requise pour ce volume
- * de requêtes) pour retrouver un livre/manga à partir de son ISBN. Un ISBN
- * scanné identifie une édition précise : contrairement à une recherche par
- * titre (Jikan), Google Books indexe souvent l'édition française exacte de
- * ce code-barres (éditeur VF, jaquette VF), là où Open Library retombe
- * plus souvent sur une édition anglophone générique.
+ * Interroge l'API publique Google Books pour retrouver un livre/manga à
+ * partir de son ISBN. Un ISBN scanné identifie une édition précise :
+ * contrairement à une recherche par titre (Jikan), Google Books indexe
+ * souvent l'édition française exacte de ce code-barres (éditeur VF,
+ * jaquette VF), là où Open Library retombe plus souvent sur une édition
+ * anglophone générique.
+ * <p>
+ * Clé API optionnelle (voir README.md, section "Obtenir une clé API Google
+ * Books") : sans elle, les appels restent fonctionnels mais partagent le
+ * quota anonyme mondial de Google Books, fréquemment épuisé en pratique
+ * (429 "Quota exceeded"). Une clé donne un quota dédié à ce projet.
  * <p>
  * Priorité plus haute (@Order) que {@link com.iozycore.metadata.openlibrary.OpenLibraryBarcodeProvider}
  * dans {@code MetadataSearchService.lookupByBarcode} - Open Library reste
@@ -38,6 +44,9 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksBarcodeProvider.class);
     private static final String LOOKUP_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s";
+
+    @Value("${google-books.api-key:}")
+    private String apiKey;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -57,8 +66,12 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
         }
 
         try {
+            String url = LOOKUP_URL.formatted(isbn);
+            if (apiKey != null && !apiKey.isBlank()) {
+                url += "&key=" + apiKey;
+            }
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(LOOKUP_URL.formatted(isbn)))
+                    .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(8))
                     .GET()
                     .build();
