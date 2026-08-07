@@ -44,7 +44,7 @@ class GoogleBooksVolumeSearchProviderTest {
 
         List<VolumeCandidate> result = provider.parse(body, "One Piece");
 
-        assertThat(result.get(0).edition()).isEqualTo("Édition originale");
+        assertThat(result.get(0).edition()).isEqualTo("Édition Originale"); // capitalisé mot par mot
         assertThat(result.get(0).volumeNumber()).isEqualTo(60);
     }
 

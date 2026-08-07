@@ -1,14 +1,19 @@
 import SwiftUI
 
-/// Sélection visuelle des tomes possédés par jaquette (façon Mangacollec),
-/// groupés par édition détectée (voir VolumeCandidateDTO côté backend) -
-/// plutôt que de saisir un numéro de tome à l'aveugle, on coche directement
-/// les couvertures des tomes qu'on possède. Miroir de VolumeSelectionGrid.tsx
-/// côté web.
+/// Sélection visuelle des tomes possédés par jaquette (façon Mangacollec) :
+/// on choisit d'abord l'édition (une série peut en avoir plusieurs - ex:
+/// "Édition Originale" et "Perfect Edition" pour Dragon Ball, chacune avec
+/// ses propres tomes/jaquettes), puis on coche les tomes possédés dans la
+/// grille de cette édition. La sélection est conservée en changeant
+/// d'édition (voir selectedIds, géré par le parent) - possible de cocher
+/// des tomes dans plusieurs éditions avant de valider. Miroir de
+/// VolumeSelectionGrid.tsx côté web.
 struct VolumeSelectionGrid: View {
     let volumes: [VolumeCandidateDTO]
     let selectedIds: Set<String>
     let onToggle: (VolumeCandidateDTO) -> Void
+
+    @State private var activeEdition: String?
 
     private let columns = [GridItem(.adaptive(minimum: 64, maximum: 80), spacing: 8)]
 
@@ -22,15 +27,35 @@ struct VolumeSelectionGrid: View {
         return order
     }
 
+    private var resolvedActiveEdition: String? {
+        // L'édition active peut disparaître si une nouvelle recherche
+        // remplace `volumes` (nouveau candidat choisi) sans que cette vue
+        // soit recréée - on retombe alors sur la première édition
+        // disponible plutôt qu'un onglet qui n'existe plus.
+        if let activeEdition, editionsInOrder.contains(activeEdition) {
+            return activeEdition
+        }
+        return editionsInOrder.first
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(editionsInOrder, id: \.self) { edition in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(edition).font(.subheadline.weight(.medium))
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(volumes.filter { $0.edition == edition }) { volume in
-                            volumeCell(volume)
+        VStack(alignment: .leading, spacing: 10) {
+            if editionsInOrder.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(editionsInOrder, id: \.self) { edition in
+                            let count = volumes.filter { $0.edition == edition && selectedIds.contains($0.id) }.count
+                            Chip(label: count > 0 ? "\(edition) (\(count))" : edition, isActive: edition == resolvedActiveEdition)
+                                .onTapGesture { activeEdition = edition }
                         }
+                    }
+                }
+            }
+
+            if let resolvedActiveEdition {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(volumes.filter { $0.edition == resolvedActiveEdition }) { volume in
+                        volumeCell(volume)
                     }
                 }
             }
