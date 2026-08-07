@@ -21,6 +21,7 @@ services:
       BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
       IGDB_CLIENT_ID: ${IGDB_CLIENT_ID:-}
       IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET:-}
+      MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
       # Doit correspondre au domaine du service "web" ci-dessous - requis
       # même si nginx proxy /api en apparence "same-origin" pour le
       # navigateur : les requêtes POST/PATCH/DELETE envoient toujours un

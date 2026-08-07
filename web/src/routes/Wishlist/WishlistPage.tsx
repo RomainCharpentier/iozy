@@ -5,6 +5,7 @@ import { getEntity } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CoverTile } from '../../components/CoverTile'
+import { coverImageUrlFrom } from '../../lib/coverImage'
 import type { WishlistEntryResponse } from '../../types/api'
 
 /** Jointure client-side vers le titre de l'entité - pas de dénormalisation
@@ -23,7 +24,11 @@ function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
 
   return (
     <li className="w-28 shrink-0">
-      <CoverTile title={entityQuery.data.title} onClick={() => navigate(`/entity/${entry.entityId}`)} />
+      <CoverTile
+        title={entityQuery.data.title}
+        imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
+        onClick={() => navigate(`/entity/${entry.entityId}`)}
+      />
     </li>
   )
 }

@@ -74,7 +74,7 @@ public class JikanMetadataProvider implements MetadataProvider {
 
         for (JsonNode item : data) {
             String malId = item.path("mal_id").asText();
-            String title = item.path("title").asText();
+            String defaultTitle = item.path("title").asText();
             String imageUrl = item.path("images").path("jpg").path("image_url").asText(null);
 
             Map<String, Object> attributes = new HashMap<>();
@@ -88,9 +88,52 @@ public class JikanMetadataProvider implements MetadataProvider {
                 attributes.put("publisher", serializations.get(0).path("name").asText(null));
             }
             attributes.put("seriesStatus", item.path("status").asText(null));
+            // Un même titre peut désigner plusieurs œuvres distinctes chez MAL/Jikan
+            // (ex: le manga "Naruto" et un one-shot pilote également titré "Naruto") -
+            // type + année de première publication permettent à l'utilisateur de les
+            // distinguer dans la liste de suggestions (voir QuickAddPage/QuickAddView).
+            attributes.put("mediaType", item.path("type").asText(null));
+            attributes.put("startYear", extractYear(item.path("published").path("from").asText(null)));
+
+            // Le "titre" MAL/Jikan (defaultTitle) est souvent le romaji/japonais
+            // (ex: "Shingeki no Kyojin"), pas très lisible pour reconnaître
+            // l'œuvre. Aucune de nos sources ne connaît de vrai titre français
+            // (ex: "L'Attaque des Titans") - à défaut, le titre anglais (quand
+            // fourni et différent) est utilisé comme titre affiché/retenu, les
+            // éditeurs français le reprenant parfois tel quel. Le romaji
+            // d'origine est conservé en attribut ("originalTitle") pour ne pas
+            // perdre l'info, sans polluer l'affichage principal.
+            String titleEnglish = item.path("title_english").asText(null);
+            String title = defaultTitle;
+            if (titleEnglish != null && !titleEnglish.isBlank() && !titleEnglish.equalsIgnoreCase(defaultTitle)) {
+                title = titleEnglish;
+                attributes.put("originalTitle", defaultTitle);
+            }
+            // "titleRomaji"/"titleEnglish" (inconditionnels, contrairement à
+            // "originalTitle" ci-dessus qui ne sert que le repli anglais) -
+            // permettent au client de composer librement l'affichage du titre
+            // entre français (best-effort, voir /metadata/french-title),
+            // anglais et romaji selon la préférence utilisateur (voir Réglages
+            // > Titre des mangas), sans dépendre du choix déjà fait ci-dessus.
+            attributes.put("titleRomaji", defaultTitle);
+            if (titleEnglish != null && !titleEnglish.isBlank()) {
+                attributes.put("titleEnglish", titleEnglish);
+            }
+            // Titre japonais natif (ex: "進撃の巨人") - toujours utile en repère
+            // visuel à côté du titre retenu (voir candidateDisplayTitle côté
+            // web/iOS), qu'il ait ou non déjà servi ci-dessus.
+            String titleJapanese = item.path("title_japanese").asText(null);
+            if (titleJapanese != null && !titleJapanese.isBlank()) {
+                attributes.put("titleJapanese", titleJapanese);
+            }
 
             candidates.add(new MetadataCandidate("JIKAN", malId, title, imageUrl, attributes));
         }
         return candidates;
+    }
+
+    /** Extrait "1999" de "1999-09-21T00:00:00+00:00" (format published.from de Jikan). */
+    private static String extractYear(String isoDateTime) {
+        return isoDateTime != null && isoDateTime.length() >= 4 ? isoDateTime.substring(0, 4) : null;
     }
 }

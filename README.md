@@ -227,6 +227,67 @@ curl "http://localhost:8080/api/metadata/search?entityTypeId=00000000-0000-0000-
 
 ---
 
+## Obtenir et configurer un Client ID MyAnimeList (optionnel, recommandé)
+
+Jikan (utilisé pour la recherche manga) est un wrapper tiers non-officiel :
+il doit lui-même se reconnecter à MyAnimeList à chaque requête, et
+MyAnimeList le bloque/throttle par intermittence - ça se manifeste par des
+pannes `504` où la recherche manga ne renvoie plus rien pendant un moment
+(temporaire, mais imprévisible et hors de notre contrôle). Un Client ID
+MyAnimeList permet d'utiliser l'**API officielle** en complément de Jikan
+(jamais à sa place) : elle prend le relais automatiquement quand Jikan est
+indisponible.
+
+### 1. Créer un compte MyAnimeList (si tu n'en as pas déjà un)
+
+Sur [myanimelist.net](https://myanimelist.net), "Sign Up". Gratuit.
+
+### 2. Créer un Client ID
+
+1. Une fois connecté, va sur
+   [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
+2. Clique sur "Create ID".
+3. Remplis le formulaire :
+   - **App Name** : ce que tu veux, ex. `IozyCore`.
+   - **App Type** : `web`.
+   - **App Redirect URL** : `http://localhost` (jamais réellement utilisée
+     pour la recherche publique, mais le formulaire l'exige).
+   - **Homepage URL** : laisse vide si tu n'as rien à mettre.
+   - **App Description** : une phrase suffit, ex. "Personal collection
+     tracker for my own use".
+4. Envoie le formulaire.
+
+### 3. Récupérer le Client ID
+
+Contrairement à BGG, **pas d'attente d'approbation manuelle** : le Client ID
+est affiché immédiatement sur la page de ton application, une fois créée.
+Pas de Client Secret à générer non plus - un Client ID suffit pour la
+recherche publique.
+
+### 4. Ajouter le Client ID au projet
+
+Dans le dossier `backend/` :
+
+1. Si ce n'est pas déjà fait, copie `.env.example` en `.env` :
+   ```bash
+   cp .env.example .env
+   ```
+2. Ouvre `.env` et renseigne la ligne :
+   ```
+   MAL_CLIENT_ID=ton_client_id
+   ```
+3. Relance le backend pour qu'il prenne la variable en compte :
+   ```bash
+   docker compose up --build
+   ```
+
+**Vérifier que ça marche :** dans l'app (iOS ou Web), onglet Ajouter, type
+"Manga", tape un titre - si Jikan est aussi up, tu peux voir des
+suggestions des deux sources (`JIKAN` et `MYANIMELIST`) pour un même titre,
+c'est normal (les deux sont agrégées, jamais l'une à la place de l'autre).
+
+---
+
 ## Partie 2 — App iOS
 
 Direction visuelle : fond sombre, accent vert-jaune vif, grille de

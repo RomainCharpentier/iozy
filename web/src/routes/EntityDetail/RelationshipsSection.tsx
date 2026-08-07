@@ -6,6 +6,7 @@ import { createRelationship } from '../../api/relationships'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { CoverTile } from '../../components/CoverTile'
+import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { RELATIONSHIP_TYPE_PRESETS } from '../../types/entityTypes'
 import type { RelationshipDto } from '../../types/api'
@@ -19,7 +20,11 @@ function RelatedEntityTile({ entityId }: { entityId: string }) {
   if (!query.data) return null
   return (
     <div className="w-28 shrink-0">
-      <CoverTile title={query.data.title} onClick={() => navigate(`/entity/${entityId}`)} />
+      <CoverTile
+        title={query.data.title}
+        imageUrl={coverImageUrlFrom(query.data.attributes)}
+        onClick={() => navigate(`/entity/${entityId}`)}
+      />
     </div>
   )
 }

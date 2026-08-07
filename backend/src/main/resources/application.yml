@@ -41,3 +41,13 @@ igdb:
   # découverte jeux vidéo renvoient une liste vide tant qu'ils sont absents.
   client-id: ${IGDB_CLIENT_ID:}
   client-secret: ${IGDB_CLIENT_SECRET:}
+
+mal:
+  # Client ID MyAnimeList (API officielle v2, pas de flux OAuth complet
+  # requis pour la recherche publique) - voir README.md, section "Obtenir
+  # et configurer un Client ID MyAnimeList". Complète Jikan pour le type
+  # MANGA (jamais à sa place) : sans Client ID configuré, ce fournisseur
+  # reste simplement absent et Jikan continue de fonctionner seul comme
+  # avant. Utile quand Jikan est indisponible (MyAnimeList bloque/throttle
+  # ce wrapper tiers par intermittence, contrairement à l'API officielle).
+  client-id: ${MAL_CLIENT_ID:}

@@ -8,6 +8,7 @@ import { WishlistPage } from './routes/Wishlist/WishlistPage'
 import { StatsPage } from './routes/Stats/StatsPage'
 import { EntityTypesPage } from './routes/EntityTypes/EntityTypesPage'
 import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
+import { SettingsPage } from './routes/Settings/SettingsPage'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/types" element={<EntityTypesPage />} />
         <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
         <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </AppShell>
   )

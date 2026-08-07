@@ -49,6 +49,9 @@ struct RootTabView: View {
 
             StatsView()
                 .tabItem { Label("Stats", systemImage: "chart.bar") }
+
+            SettingsView()
+                .tabItem { Label("Réglages", systemImage: "globe") }
         }
         .tint(Theme.accent)
     }

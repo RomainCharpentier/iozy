@@ -70,4 +70,28 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
         }
     }
+
+    @Operation(summary = "Recherche best-effort d'un titre d'édition française (Open Library, puis Google Books en "
+            + "repli) pour un titre déjà choisi (mangas) - ni Jikan ni MyAnimeList n'en connaissent. Déclenché "
+            + "uniquement à la sélection d'une suggestion côté client, jamais pour toute une liste de résultats de "
+            + "recherche (coût en appels externes) - voir MetadataSearchService.findFrenchTitle. 404 si rien "
+            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché.")
+    @GetMapping("/french-title")
+    public FrenchTitleResponse frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
+                                            @RequestParam(required = false) String author) {
+        EntityType entityType = entityTypeRepository.findById(entityTypeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
+
+        if (query == null || query.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
+        }
+
+        return metadataSearchService.findFrenchTitle(entityType, query, author)
+                .map(FrenchTitleResponse::new)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Aucun titre français trouvé pour : " + query));
+    }
+
+    public record FrenchTitleResponse(String frenchTitle) {
+    }
 }

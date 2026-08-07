@@ -85,6 +85,31 @@ extension APIClient {
         }
     }
 
+    private struct FrenchTitleResponse: Decodable {
+        let frenchTitle: String
+    }
+
+    /// Recherche best-effort d'un titre d'édition française (Open Library,
+    /// puis Google Books en repli) - à n'appeler qu'une fois par sélection de
+    /// suggestion (voir QuickAddView.selectCandidate), jamais pour toute une
+    /// liste de résultats. `author` (mangaka) est optionnel mais améliore
+    /// nettement la précision. Renvoie nil si rien trouvé (404), pas une
+    /// erreur : l'appelant garde alors le titre anglais/romaji déjà affiché.
+    func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil) async throws -> String? {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        var path = "/metadata/french-title?entityTypeId=\(entityTypeId.uuidString)&query=\(encodedQuery)"
+        if let author, !author.isEmpty {
+            let encodedAuthor = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
+            path += "&author=\(encodedAuthor)"
+        }
+        do {
+            let response: FrenchTitleResponse = try await get(path)
+            return response.frenchTitle
+        } catch APIError.serverError(let statusCode, _) where statusCode == 404 {
+            return nil
+        }
+    }
+
     struct QuickAddWithAttributesRequest: Encodable {
         let entityTypeId: UUID
         let title: String

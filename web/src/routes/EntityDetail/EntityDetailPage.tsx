@@ -9,6 +9,7 @@ import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
+import { coverImageUrlFrom } from '../../lib/coverImage'
 import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
 import { ExperiencesSection } from './ExperiencesSection'
@@ -53,6 +54,7 @@ export function EntityDetailPage() {
   const ownerships = ownershipsQuery.data ?? []
   const experiences = experiencesQuery.data ?? []
 
+  const coverImageUrl = coverImageUrlFrom(entity.attributes)
   const activeOwnership = ownerships.find((o) => o.status === 'OWNED')
   const bestExperience = experiences.reduce<(typeof experiences)[number] | null>((best, exp) => {
     if (exp.rating === null) return best
@@ -64,8 +66,11 @@ export function EntityDetailPage() {
     <div className="flex flex-col gap-6">
       <div
         className="relative flex h-40 flex-col justify-end overflow-hidden rounded-2xl p-4"
-        style={{ background: gradientFor(entity.title) }}
+        style={coverImageUrl ? undefined : { background: gradientFor(entity.title) }}
       >
+        {coverImageUrl && (
+          <img src={coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <div
           className="absolute inset-x-0 bottom-0 h-2/3"
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}

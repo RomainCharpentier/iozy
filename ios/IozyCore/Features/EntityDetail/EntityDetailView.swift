@@ -33,6 +33,12 @@ struct EntityDetailView: View {
     @State private var relationshipsTo: [RelationshipDTO] = []
     @State private var showingAddTag = false
     @State private var showingAddRelationship = false
+    // Récupérée en direct depuis l'API (entityDetail.attributes) plutôt que
+    // du cache local EntityRecord (dont attributesJSON n'est aujourd'hui
+    // jamais synchronisé avec le serveur - voir EntityRecord) : cette fiche
+    // fait déjà un fetch réseau au premier affichage, donc pas de raison de
+    // se contenter d'un cache qu'on sait périmé pour ce champ précis.
+    @State private var coverImageURL: URL?
 
     private var entity: EntityRecord? { allEntities.first { $0.id == entityId } }
     private var resolvedType: EntityTypeRecord? {
@@ -108,8 +114,20 @@ struct EntityDetailView: View {
 
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
-            (entity.map { Theme.gradient(for: $0.title) } ?? LinearGradient(colors: [Theme.surface, Theme.surface2], startPoint: .top, endPoint: .bottom))
+            if let coverImageURL {
+                AsyncImage(url: coverImageURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        heroFallbackGradient
+                    }
+                }
                 .frame(height: 210)
+                .clipped()
+            } else {
+                heroFallbackGradient
+                    .frame(height: 210)
+            }
 
             LinearGradient(colors: [.clear, Theme.background], startPoint: .init(x: 0.5, y: 0.35), endPoint: .bottom)
                 .frame(height: 210)
@@ -131,6 +149,11 @@ struct EntityDetailView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 18)
         }
+    }
+
+    private var heroFallbackGradient: some View {
+        entity.map { Theme.gradient(for: $0.title) }
+            ?? LinearGradient(colors: [Theme.surface, Theme.surface2], startPoint: .top, endPoint: .bottom)
     }
 
     private var statusPills: some View {
@@ -248,7 +271,7 @@ struct EntityDetailView: View {
                 HStack(spacing: 10) {
                     ForEach(relatedEntities) { related in
                         NavigationLink(value: related.id) {
-                            CoverTile(title: related.title)
+                            CoverTile(title: related.title, imageURL: CoverImage.url(fromAttributesJSON: related.attributesJSON))
                                 .frame(width: 74)
                         }
                         .buttonStyle(.plain)
@@ -286,6 +309,7 @@ struct EntityDetailView: View {
             for dto in fetchedOwnerships { upsertOwnership(dto) }
             for dto in fetchedExperiences { upsertExperience(dto) }
             entityTagIds = Set(entityDetail.tagIds)
+            coverImageURL = CoverImage.url(from: entityDetail.attributes)
             allTags = tags
             relationshipsFrom = relFrom
             relationshipsTo = relTo

@@ -53,8 +53,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
-export function get<T>(path: string): Promise<T> {
-  return request<T>(path)
+/** `signal` optionnel (passé par TanStack Query) - annule la requête HTTP
+ * sous-jacente si elle devient obsolète avant d'avoir répondu (voir
+ * QuickAddPage, recherche de métadonnées débouncée). */
+export function get<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, { signal })
 }
 
 export function post<T>(path: string, body?: unknown): Promise<T> {
