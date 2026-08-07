@@ -22,26 +22,32 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Recherche les tomes réels (avec jaquette) des éditions françaises d'une
- * série de manga via Google Books - vérifié manuellement (voir historique
- * de la conversation) qu'une recherche {@code intitle:}+{@code inauthor:}
- * avec {@code maxResults=40} remonte souvent la quasi-totalité des tomes
- * publiés en une seule requête (chaque tome étant indexé comme une fiche
- * séparée), avec sa jaquette propre - contrairement à
- * {@link GoogleBooksFrenchTitleProvider} qui ne veut qu'UN titre pour toute
- * la série.
+ * série de manga via Google Books.
  * <p>
- * Un même appel peut mélanger plusieurs éditions (ex: "Kana" et une
- * collection "Édition originale" du même éditeur), des tomes numérotés
- * (retenus) et des chapitres numériques à l'unité ou coffrets (exclus, pas
- * de numéro de tome exploitable). Le nom d'édition est extrait du titre en
- * retirant le titre de la série et le numéro de tome ; à défaut (titre
- * réduit à la série + son numéro, cas le plus courant), on retombe sur le
- * nom de l'éditeur brut (ex: "Kana").
+ * Une seule requête {@code intitle:}+{@code inauthor:} générique s'est avérée
+ * insuffisante en pratique (vérifié manuellement, voir historique de la
+ * conversation) : Google Books classe les résultats par pertinence/popularité,
+ * pas par exhaustivité éditoriale - pour "Dragon Ball", la requête générique
+ * (même paginée sur 120 résultats) ne renvoie QUE la "Perfect Edition",
+ * l'édition originale n'apparaissant jamais dans les 40/80/120 premiers
+ * résultats. Il n'existe pas d'équivalent gratuit au catalogue édité à la
+ * main de Mangacollec.
+ * <p>
+ * Palliatif : une requête par mot-clé d'édition française courante (voir
+ * {@link #EDITION_KEYWORDS}), lancées en parallèle ({@link CompletableFuture})
+ * plutôt qu'en série pour ne pas cumuler leurs latences - chacune cible une
+ * édition précise, ce qui contourne le biais de popularité de la requête
+ * générique. Résultat fusionné et dédoublonné une seule fois à la fin (pas
+ * édition par édition : un même tome peut apparaître dans plusieurs requêtes,
+ * ex: la requête vide ET la requête "perfect edition" peuvent toutes deux
+ * remonter un tome Perfect Edition). Reste best-effort : une édition absente
+ * de tous ces mots-clés (nom de collection inhabituel) restera invisible.
  */
 @Component
 public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
@@ -49,6 +55,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksVolumeSearchProvider.class);
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=40";
+
+    // Mots-clés de collection les plus courants chez les éditeurs manga
+    // francophones (Kana, Glénat, Pika, Kurokawa...) - "" couvre l'édition de
+    // base/simple, qui ne porte généralement aucun suffixe dans son propre titre.
+    private static final List<String> EDITION_KEYWORDS = List.of(
+            "", "edition originale", "perfect edition", "star edition",
+            "ultimate edition", "deluxe", "intégrale", "collector");
 
     // "Tome 5", "Vol. 12", "T.3" - capture le numéro. Exige le mot-clé (pas un
     // simple nombre en fin de titre) pour ne jamais confondre avec une année
@@ -78,7 +91,38 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         if (seriesTitle == null || seriesTitle.isBlank()) {
             return List.of();
         }
-        String combinedQuery = "intitle:" + seriesTitle + (author == null || author.isBlank() ? "" : " inauthor:" + author);
+
+        List<CompletableFuture<List<VolumeCandidate>>> searches = EDITION_KEYWORDS.stream()
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword)))
+                .collect(Collectors.toList());
+
+        List<VolumeCandidate> combined = searches.stream()
+                .flatMap(future -> future.join().stream())
+                .collect(Collectors.toList());
+
+        return filterOutNoiseEditions(dedupeAndSort(combined));
+    }
+
+    /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
+     * de la recherche plein-texte (ex: "One Piece Party", un dérivé qui
+     * contient le titre de la série sans en être une édition) plutôt que
+     * d'une vraie petite collection - on l'écarte, sauf si c'est la SEULE
+     * édition trouvée (mieux vaut proposer un tome que rien du tout). */
+    private static List<VolumeCandidate> filterOutNoiseEditions(List<VolumeCandidate> candidates) {
+        Map<String, Long> countByEdition = candidates.stream()
+                .collect(Collectors.groupingBy(VolumeCandidate::edition, Collectors.counting()));
+        if (countByEdition.size() <= 1) {
+            return candidates;
+        }
+        return candidates.stream()
+                .filter(candidate -> countByEdition.get(candidate.edition()) >= 2)
+                .collect(Collectors.toList());
+    }
+
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword) {
+        String combinedQuery = "intitle:" + seriesTitle
+                + (editionKeyword.isBlank() ? "" : " " + editionKeyword)
+                + (author == null || author.isBlank() ? "" : " inauthor:" + author);
 
         try {
             String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
@@ -98,19 +142,26 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 return List.of();
             }
 
-            return parse(response.body(), seriesTitle);
+            return extractCandidates(response.body(), seriesTitle);
         } catch (Exception e) {
             log.warn("Échec de la recherche de tomes Google Books pour '{}' : {}", combinedQuery, e.getMessage());
             return List.of();
         }
     }
 
+    /** Miroir de {@link #searchOneEdition} pour les tests - parse une seule réponse
+     * (édition/tome dédoublonnés) sans passer par les 8 requêtes en parallèle. */
     List<VolumeCandidate> parse(String body, String seriesTitle) throws Exception {
+        return dedupeAndSort(extractCandidates(body, seriesTitle));
+    }
+
+    /** Extrait les candidats bruts d'une réponse Google Books, SANS dédoublonner -
+     * le dédoublonnage se fait une seule fois, après fusion de toutes les requêtes
+     * (voir searchVolumes), pour ne jamais préférer arbitrairement le résultat
+     * d'une requête sur une autre avant d'avoir vu l'ensemble. */
+    private List<VolumeCandidate> extractCandidates(String body, String seriesTitle) throws Exception {
         JsonNode root = objectMapper.readTree(body);
-        // Dédoublonne par (édition, tome) - Google Books renvoie parfois
-        // plusieurs fiches pour le même tome (réédition, format différent) ;
-        // on garde la première avec une jaquette plutôt que la première tout court.
-        Map<String, VolumeCandidate> bestByKey = new LinkedHashMap<>();
+        List<VolumeCandidate> candidates = new java.util.ArrayList<>();
 
         for (JsonNode item : root.path("items")) {
             JsonNode volumeInfo = item.path("volumeInfo");
@@ -134,11 +185,21 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 imageUrl = imageUrl.replaceFirst("^http://", "https://");
             }
 
-            String key = edition.toLowerCase() + "|" + volumeNumber.getAsInt();
-            VolumeCandidate candidate = new VolumeCandidate(edition, volumeNumber.getAsInt(), imageUrl, title);
+            candidates.add(new VolumeCandidate(edition, volumeNumber.getAsInt(), imageUrl, title));
+        }
+        return candidates;
+    }
+
+    /** Dédoublonne par (édition, tome) - un même tome peut ressortir de plusieurs
+     * requêtes/fiches (réédition, format différent, requêtes par mot-clé qui se
+     * recoupent) ; on garde la première avec une jaquette plutôt que la première
+     * tout court. Trié par édition puis numéro de tome pour un affichage stable. */
+    private static List<VolumeCandidate> dedupeAndSort(List<VolumeCandidate> candidates) {
+        Map<String, VolumeCandidate> bestByKey = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : candidates) {
+            String key = candidate.edition().toLowerCase() + "|" + candidate.volumeNumber();
             bestByKey.merge(key, candidate, (existing, replacement) -> existing.imageUrl() != null ? existing : replacement);
         }
-
         return bestByKey.values().stream()
                 .sorted(Comparator.comparing(VolumeCandidate::edition).thenComparingInt(VolumeCandidate::volumeNumber))
                 .collect(Collectors.toList());
@@ -156,15 +217,32 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         }
     }
 
-    /** "One Piece - Édition originale - Tome 60" + série "One Piece" -> "Édition originale".
+    /** "One Piece - Édition originale - Tome 60" + série "One Piece" -> "Édition Originale".
      * "Death Note - Tome 10" + série "Death Note" -> "" -> repli sur l'éditeur ("Kana"). */
     private static String extractEdition(String fullTitle, String seriesTitle, String publisher) {
         String remainder = Pattern.compile("(?i)^" + Pattern.quote(seriesTitle)).matcher(fullTitle).replaceFirst("");
         remainder = VOLUME_NUMBER.matcher(remainder).replaceAll("");
         remainder = LEADING_TRAILING_SEPARATORS.matcher(remainder).replaceAll("").trim();
         if (!remainder.isBlank()) {
-            return remainder;
+            return capitalizeWords(remainder);
         }
         return (publisher == null || publisher.isBlank()) ? "Édition inconnue" : publisher;
+    }
+
+    /** "perfect edition" -> "Perfect Edition" - Google Books indexe souvent le nom
+     * de collection tout en minuscules dans le titre brut, contrairement au nom
+     * de l'éditeur (déjà correctement casé, ex: "Glénat Manga") utilisé en repli. */
+    private static String capitalizeWords(String text) {
+        StringBuilder result = new StringBuilder();
+        for (String word : text.split(" ")) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (result.length() > 0) {
+                result.append(' ');
+            }
+            result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return result.toString();
     }
 }
