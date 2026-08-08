@@ -91,6 +91,53 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void strips_the_dangling_range_connector_left_over_by_a_multi_volume_omnibus_title() throws Exception {
+        // Cas réel observé (voir historique) : "L'Attaque des Titans -
+        // L'intégrale T01 à T04" (coffret de 4 tomes) contient DEUX numéros
+        // de tome ("T01" et "T04") reliés par "à" - une fois les deux numéros
+        // retirés, "à" reste seul au milieu du texte restant et se retrouve
+        // capitalisé en "À" ("L'intégrale À" au lieu de "L'intégrale").
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "L'Attaque des Titans - L'intégrale T01 à T04", "language": "fr", "publisher": "Pika" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "L'Attaque des Titans");
+
+        assertThat(result.get(0).edition()).isEqualTo("L'intégrale");
+        assertThat(result.get(0).volumeNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void treats_an_internal_hyphen_in_the_collection_name_as_a_space_so_variants_share_one_edition() throws Exception {
+        // Cas réel observé (voir historique) : Google Books indexe la même
+        // collection "My Hero Academia Team-Up Mission" sous trois formes
+        // différentes selon le tome ("Team Up Mission" sans tiret, "Team-Up
+        // Mission" et "Team-up Mission" avec tiret et casse différente) - sans
+        // normalisation, ça formait trois onglets d'édition quasi identiques
+        // au lieu d'un seul.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "My Hero Academia Team Up Mission T06", "language": "fr", "publisher": "Ki-oon" } },
+                    { "volumeInfo": { "title": "My Hero Academia Team-Up Mission Tome 7", "language": "fr", "publisher": "Ki-oon" } },
+                    { "volumeInfo": { "title": "My Hero Academia Team-up Mission T02 - Tome 2", "language": "fr", "publisher": "Ki-oon" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "My Hero Academia");
+
+        assertThat(result).extracting(VolumeCandidate::edition)
+                .containsOnly("Team Up Mission");
+    }
+
+    @Test
     void excludes_single_chapter_digital_sales_even_with_a_volume_like_number() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
