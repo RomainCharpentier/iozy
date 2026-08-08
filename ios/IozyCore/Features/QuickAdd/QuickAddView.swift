@@ -34,6 +34,12 @@ struct QuickAddView: View {
     @State private var selectedVolumeIds: Set<String> = []
     @State private var showManualVolumeFields = false
     @State private var volumeSearchTask: Task<Void, Never>?
+    // Titre/auteur de la dernière recherche de tomes déclenchée - réutilisés
+    // par le bouton "Actualiser" (voir triggerVolumeSearch) sans re-choisir le
+    // candidat. Résultat stocké durablement côté backend : sans ce bouton, un
+    // résultat une fois trouvé ne serait plus jamais rafraîchi automatiquement.
+    @State private var lastVolumeSearchTitle: String?
+    @State private var lastVolumeSearchAuthor: String?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var lastAddedMessage: String?
@@ -128,6 +134,15 @@ struct QuickAddView: View {
                                     selectedCandidateAttributes = [:]  // le titre a été retouché manuellement
                                     frenchTitleTask?.cancel()
                                     isTranslatingTitle = false
+                                    // La sélection de tomes/jaquettes a été résolue pour
+                                    // l'ancien titre - plus aucune garantie qu'elle
+                                    // corresponde encore à ce qui est saisi.
+                                    volumeSearchTask?.cancel()
+                                    volumeCandidates = []
+                                    selectedVolumeIds = []
+                                    isSearchingVolumes = false
+                                    lastVolumeSearchTitle = nil
+                                    lastVolumeSearchAuthor = nil
                                 }
                                 triggerSearch()
                             }
@@ -208,11 +223,23 @@ struct QuickAddView: View {
                                 selectedVolumeIds.insert(volume.id)
                             }
                         }
-                        if !showManualVolumeFields {
-                            Button("+ Tome introuvable ci-dessus ? Ajouter manuellement") {
-                                showManualVolumeFields = true
+                        HStack {
+                            if !showManualVolumeFields {
+                                Button("+ Tome introuvable ci-dessus ? Ajouter manuellement") {
+                                    showManualVolumeFields = true
+                                }
+                                .font(.caption)
                             }
-                            .font(.caption)
+                            Spacer()
+                            if let lastVolumeSearchTitle {
+                                Button {
+                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true)
+                                } label: {
+                                    Label("Actualiser", systemImage: "arrow.clockwise")
+                                }
+                                .font(.caption)
+                                .disabled(isSearchingVolumes)
+                            }
                         }
                     }
                 }
@@ -468,15 +495,26 @@ struct QuickAddView: View {
 
     /// Cherche les tomes réels (avec jaquette) des éditions françaises de
     /// cette série (voir VolumeSelectionGrid) - best-effort, une liste vide
-    /// laisse simplement les champs manuels comme unique moyen d'ajouter un tome.
-    private func triggerVolumeSearch(seriesTitle: String, author: String?) {
+    /// laisse simplement les champs manuels comme unique moyen d'ajouter un
+    /// tome. Résultat stocké durablement côté backend : sans forceRefresh, un
+    /// appel répété pour la même série ne relance jamais les 8 requêtes
+    /// Google Books, il sert la réponse déjà stockée.
+    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false) {
         guard let typeId = selectedType?.id else { return }
+        lastVolumeSearchTitle = seriesTitle
+        lastVolumeSearchAuthor = author
         volumeSearchTask?.cancel()
         isSearchingVolumes = true
-        volumeCandidates = []
-        selectedVolumeIds = []
+        // Un rafraîchissement manuel garde la sélection en cours (l'utilisateur
+        // ne fait que vérifier s'il y a du nouveau) - une nouvelle série
+        // (recherche initiale) repart en revanche d'une sélection vide.
+        if !forceRefresh {
+            volumeCandidates = []
+            selectedVolumeIds = []
+        }
         volumeSearchTask = Task {
-            let results = (try? await APIClient.shared.searchVolumes(entityTypeId: typeId, title: seriesTitle, author: author)) ?? []
+            let results = (try? await APIClient.shared.searchVolumes(
+                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh)) ?? []
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 volumeCandidates = results
@@ -658,6 +696,8 @@ struct QuickAddView: View {
                     volumeCandidates = []
                     selectedVolumeIds = []
                     showManualVolumeFields = false
+                    lastVolumeSearchTitle = nil
+                    lastVolumeSearchAuthor = nil
                     verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false

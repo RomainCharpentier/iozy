@@ -26,7 +26,7 @@ class MetadataSearchServiceTest {
                 candidate("Naruto"),          // déjà possédé (comparaison insensible à la casse)
                 candidate("Boruto")));         // pas encore possédé
 
-        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of());
+        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         List<MetadataCandidate> results = service.search(MANGA, "naruto");
 
@@ -40,7 +40,7 @@ class MetadataSearchServiceTest {
         FakeBarcodeProvider barcodeProvider = new FakeBarcodeProvider(candidate("Naruto"));
 
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(barcodeProvider), repository, List.of(), List.of());
+                new MetadataSearchService(List.of(), List.of(barcodeProvider), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<MetadataCandidate> result = service.lookupByBarcode(MANGA, "9780000000000");
 
@@ -52,7 +52,7 @@ class MetadataSearchServiceTest {
     void does_not_call_the_provider_again_for_a_repeated_identical_search() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeMetadataProvider provider = new FakeMetadataProvider(List.of(candidate("Boruto")));
-        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of());
+        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         service.search(MANGA, "naruto");
         service.search(MANGA, "NARUTO"); // même requête à la casse près - doit rester un cache hit
@@ -64,7 +64,7 @@ class MetadataSearchServiceTest {
     void a_newly_added_entity_is_excluded_even_though_the_underlying_search_is_served_from_cache() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeMetadataProvider provider = new FakeMetadataProvider(List.of(candidate("Naruto"), candidate("Boruto")));
-        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of());
+        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         List<MetadataCandidate> beforeOwning = service.search(MANGA, "naruto");
         repository.entities.add(Entity.create(MANGA.id(), "Naruto")); // ajouté entre les deux appels
@@ -80,7 +80,7 @@ class MetadataSearchServiceTest {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeBarcodeProvider barcodeProvider = new FakeBarcodeProvider(candidate("Naruto"));
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(barcodeProvider), repository, List.of(), List.of());
+                new MetadataSearchService(List.of(), List.of(barcodeProvider), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         service.lookupByBarcode(MANGA, "9780000000000");
         service.lookupByBarcode(MANGA, "9780000000000");
@@ -93,7 +93,7 @@ class MetadataSearchServiceTest {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of("L'Attaque des Titans"));
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of());
+                new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<String> first = service.findFrenchTitle(MANGA, "Shingeki no Kyojin", "Hajime Isayama");
         // même requête à la casse près - doit rester un cache hit
@@ -110,7 +110,7 @@ class MetadataSearchServiceTest {
         FakeFrenchTitleProvider firstProvider = new FakeFrenchTitleProvider(Optional.empty());
         FakeFrenchTitleProvider secondProvider = new FakeFrenchTitleProvider(Optional.of("L'Attaque des Titans"));
         MetadataSearchService service = new MetadataSearchService(
-                List.of(), List.of(), repository, List.of(firstProvider, secondProvider), List.of());
+                List.of(), List.of(), repository, List.of(firstProvider, secondProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<String> result = service.findFrenchTitle(MANGA, "Shingeki no Kyojin", "Hajime Isayama");
 
@@ -123,7 +123,7 @@ class MetadataSearchServiceTest {
     void does_not_cache_a_failed_barcode_lookup_so_a_later_retry_can_still_succeed() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         StatefulBarcodeProvider provider = new StatefulBarcodeProvider(candidate("Naruto"));
-        MetadataSearchService service = new MetadataSearchService(List.of(), List.of(provider), repository, List.of(), List.of());
+        MetadataSearchService service = new MetadataSearchService(List.of(), List.of(provider), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<MetadataCandidate> firstAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // panne réseau simulée
         Optional<MetadataCandidate> secondAttempt = service.lookupByBarcode(MANGA, "9780000000000"); // ré-essai qui réussit
@@ -138,7 +138,7 @@ class MetadataSearchServiceTest {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         StatefulFrenchTitleProvider provider = new StatefulFrenchTitleProvider("L'Attaque des Titans");
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), repository, List.of(provider), List.of());
+                new MetadataSearchService(List.of(), List.of(), repository, List.of(provider), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<String> firstAttempt = service.findFrenchTitle(MANGA, "Shingeki no Kyojin", "Hajime Isayama");
         Optional<String> secondAttempt = service.findFrenchTitle(MANGA, "Shingeki no Kyojin", "Hajime Isayama");
@@ -154,7 +154,7 @@ class MetadataSearchServiceTest {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of("Ne devrait jamais sortir"));
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of());
+                new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
         Optional<String> result = service.findFrenchTitle(videoGame, "Zelda", null);
 
@@ -167,7 +167,7 @@ class MetadataSearchServiceTest {
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
                 List.of(new VolumeCandidate("Kana", 1, "http://cover/1.jpg", "Death Note - Tome 1")));
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider));
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
 
         List<VolumeCandidate> result = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
@@ -179,7 +179,7 @@ class MetadataSearchServiceTest {
     void does_not_cache_an_empty_volume_search_so_a_later_retry_can_still_succeed() {
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(List.of());
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider));
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
 
         service.searchVolumes(MANGA, "Un titre introuvable", null);
         service.searchVolumes(MANGA, "Un titre introuvable", null);
@@ -192,12 +192,50 @@ class MetadataSearchServiceTest {
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
                 List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
         MetadataSearchService service =
-                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider));
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
 
         service.searchVolumes(MANGA, "Death Note", "Ohba");
         service.searchVolumes(MANGA, "Death Note", "Ohba");
 
         assertThat(provider.callCount).isEqualTo(1);
+    }
+
+    @Test
+    void a_volume_search_already_in_durable_storage_never_calls_the_provider_even_on_a_fresh_service_instance() {
+        // Simule un redémarrage du backend : le cache mémoire (TtlCache) est
+        // reconstruit à vide, mais le stockage durable (base de données) survit -
+        // deux instances distinctes de MetadataSearchService partagent le même repo.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        MetadataSearchService firstInstance =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+        firstInstance.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        MetadataSearchService afterRestart =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+        afterRestart.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.callCount).isEqualTo(1); // le "redémarrage" n'a pas relancé Google Books
+    }
+
+    @Test
+    void force_refresh_bypasses_both_caches_and_overwrites_the_durable_storage() {
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        provider.results = List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
+                new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")); // nouvelle édition parue depuis
+        List<VolumeCandidate> withoutRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba");
+        List<VolumeCandidate> withRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba", true);
+
+        assertThat(withoutRefresh).hasSize(1); // servi par le cache, ignore le changement
+        assertThat(withRefresh).hasSize(2); // "Actualiser" relance bien Google Books
+        assertThat(provider.callCount).isEqualTo(2);
     }
 
     private static MetadataCandidate candidate(String title) {
@@ -311,7 +349,9 @@ class MetadataSearchServiceTest {
     }
 
     private static final class FakeVolumeSearchProvider implements VolumeSearchProvider {
-        private final List<VolumeCandidate> results;
+        // Volontairement mutable (pas final) : force_refresh_bypasses_both_caches
+        // simule une nouvelle parution entre deux appels.
+        List<VolumeCandidate> results;
         int callCount = 0;
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
@@ -370,6 +410,23 @@ class MetadataSearchServiceTest {
         public Optional<String> findFrenchTitle(String query, String author) {
             callCount++;
             return callCount == 1 ? Optional.empty() : Optional.of(result);
+        }
+    }
+
+    /** Simule la table volume_search_cache (V3__volume_search_cache.sql) - une
+     * simple Map en mémoire suffit à vérifier que MetadataSearchService lit/écrit
+     * bien ce stockage, sans avoir besoin d'une vraie base pour ce test unitaire. */
+    private static final class FakeVolumeSearchCacheRepository implements VolumeSearchCacheRepository {
+        private final Map<String, List<VolumeCandidate>> store = new java.util.HashMap<>();
+
+        @Override
+        public Optional<List<VolumeCandidate>> find(UUID entityTypeId, String seriesTitle, String author) {
+            return Optional.ofNullable(store.get(entityTypeId + "|" + seriesTitle + "|" + author));
+        }
+
+        @Override
+        public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
+            store.put(entityTypeId + "|" + seriesTitle + "|" + author, volumes);
         }
     }
 }

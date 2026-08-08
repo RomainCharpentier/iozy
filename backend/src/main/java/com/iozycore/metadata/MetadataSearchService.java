@@ -32,6 +32,7 @@ public class MetadataSearchService {
     private final EntityRepository entityRepository;
     private final List<FrenchTitleProvider> frenchTitleProviders;
     private final List<VolumeSearchProvider> volumeSearchProviders;
+    private final VolumeSearchCacheRepository volumeSearchCacheRepository;
 
     // Clé = entityTypeId + requête/code-barres normalisés. La recherche par
     // titre cache le résultat BRUT des providers (avant filtrage "déjà
@@ -57,21 +58,23 @@ public class MetadataSearchService {
     private final TtlCache<String, List<MetadataCandidate>> searchCache = new TtlCache<>(Duration.ofMinutes(15), 300);
     private final TtlCache<String, MetadataCandidate> barcodeCache = new TtlCache<>(Duration.ofHours(24), 500);
     private final TtlCache<String, String> frenchTitleCache = new TtlCache<>(Duration.ofHours(24), 500);
-    // Les éditions/tomes d'une série ne changent presque jamais - TTL aussi
-    // long que barcode/frenchTitle, même règle anti-poison (voir plus bas) :
-    // seul un résultat non vide est mis en cache.
+    // Cache mémoire "chaud" (évite un aller-retour base pour des recherches
+    // rapprochées dans la même fenêtre) - le stockage durable, lui, est
+    // volumeSearchCacheRepository (survit aux redémarrages, voir plus bas).
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchCache = new TtlCache<>(Duration.ofHours(24), 300);
 
     public MetadataSearchService(List<MetadataProvider> providers,
                                   List<BarcodeMetadataProvider> barcodeProviders,
                                   EntityRepository entityRepository,
                                   List<FrenchTitleProvider> frenchTitleProviders,
-                                  List<VolumeSearchProvider> volumeSearchProviders) {
+                                  List<VolumeSearchProvider> volumeSearchProviders,
+                                  VolumeSearchCacheRepository volumeSearchCacheRepository) {
         this.providers = providers;
         this.barcodeProviders = barcodeProviders;
         this.entityRepository = entityRepository;
         this.frenchTitleProviders = frenchTitleProviders;
         this.volumeSearchProviders = volumeSearchProviders;
+        this.volumeSearchCacheRepository = volumeSearchCacheRepository;
     }
 
     /**
@@ -158,17 +161,44 @@ public class MetadataSearchService {
 
     /**
      * Recherche best-effort des tomes réels (avec jaquette) des éditions
-     * françaises d'une série (voir GoogleBooksVolumeSearchProvider) -
-     * déclenchée après sélection d'une suggestion, pour proposer une
-     * sélection visuelle des tomes possédés plutôt qu'une saisie manuelle
-     * du numéro de tome. Vide si le type n'est pas couvert ou si rien n'a
-     * été trouvé (l'appelant garde alors le parcours de saisie manuelle).
+     * françaises d'une série (voir GoogleBooksVolumeSearchProvider, 8
+     * requêtes en parallèle par appel - coûteux) - déclenchée après
+     * sélection d'une suggestion, pour proposer une sélection visuelle des
+     * tomes possédés plutôt qu'une saisie manuelle du numéro de tome. Vide
+     * si le type n'est pas couvert ou si rien n'a été trouvé (l'appelant
+     * garde alors le parcours de saisie manuelle).
      */
     public List<VolumeCandidate> searchVolumes(EntityType entityType, String seriesTitle, String author) {
-        String cacheKey = entityType.id() + "|" + normalize(seriesTitle) + "|" + normalize(author == null ? "" : author);
-        Optional<List<VolumeCandidate>> cached = volumeSearchCache.get(cacheKey);
-        if (cached.isPresent()) {
-            return cached.get();
+        return searchVolumes(entityType, seriesTitle, author, false);
+    }
+
+    /**
+     * @param forceRefresh ignore le cache mémoire ET le stockage durable,
+     *                      relance systématiquement les 8 requêtes Google
+     *                      Books et écrase le résultat stocké - c'est le
+     *                      point d'entrée du bouton "Actualiser" côté
+     *                      client. Sans lui, un résultat une fois stocké
+     *                      n'est plus jamais rappelé automatiquement : les
+     *                      éditions/tomes d'une série changent rarement, pas
+     *                      la peine de re-payer 8 appels externes à chaque
+     *                      sélection du même candidat.
+     */
+    public List<VolumeCandidate> searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh) {
+        String normalizedTitle = normalize(seriesTitle);
+        String normalizedAuthor = normalize(author == null ? "" : author);
+        String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
+
+        if (!forceRefresh) {
+            Optional<List<VolumeCandidate>> inMemory = volumeSearchCache.get(cacheKey);
+            if (inMemory.isPresent()) {
+                return inMemory.get();
+            }
+
+            Optional<List<VolumeCandidate>> stored = volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor);
+            if (stored.isPresent()) {
+                volumeSearchCache.put(cacheKey, stored.get()); // réchauffe le cache mémoire pour les appels suivants
+                return stored.get();
+            }
         }
 
         List<VolumeCandidate> result = volumeSearchProviders.stream()
@@ -177,6 +207,7 @@ public class MetadataSearchService {
                 .collect(Collectors.toList());
         if (!result.isEmpty()) {
             volumeSearchCache.put(cacheKey, result);
+            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
         }
         return result;
     }
