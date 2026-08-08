@@ -50,6 +50,11 @@ struct QuickAddView: View {
     // résultat une fois trouvé ne serait plus jamais rafraîchi automatiquement.
     @State private var lastVolumeSearchTitle: String?
     @State private var lastVolumeSearchAuthor: String?
+    // Déjà connus du candidat sélectionné (voir selectCandidate) - permettent
+    // d'écarter un spin-off/side-story connu (voir RelatedSeriesService côté
+    // backend), y compris sur "Actualiser"/"Chercher plus d'éditions".
+    @State private var lastVolumeSearchMalId: String?
+    @State private var lastVolumeSearchOriginalTitle: String?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var lastAddedMessage: String?
@@ -154,6 +159,8 @@ struct QuickAddView: View {
                                     isSearchingVolumes = false
                                     lastVolumeSearchTitle = nil
                                     lastVolumeSearchAuthor = nil
+                                    lastVolumeSearchMalId = nil
+                                    lastVolumeSearchOriginalTitle = nil
                                 }
                                 triggerSearch()
                             }
@@ -222,7 +229,9 @@ struct QuickAddView: View {
                             .foregroundStyle(.orange)
                             if let lastVolumeSearchTitle {
                                 Button("Réessayer") {
-                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true)
+                                    triggerVolumeSearch(
+                                        seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true,
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
                                 }
                             }
                         }
@@ -260,7 +269,9 @@ struct QuickAddView: View {
                             Spacer()
                             if let lastVolumeSearchTitle {
                                 Button {
-                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, deepSearch: true)
+                                    triggerVolumeSearch(
+                                        seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, deepSearch: true,
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
                                 } label: {
                                     Label("Chercher plus d'éditions", systemImage: "magnifyingglass")
                                 }
@@ -268,7 +279,9 @@ struct QuickAddView: View {
                                 .disabled(isSearchingVolumes)
 
                                 Button {
-                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true)
+                                    triggerVolumeSearch(
+                                        seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true,
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
                                 } label: {
                                     Label("Actualiser", systemImage: "arrow.clockwise")
                                 }
@@ -544,11 +557,15 @@ struct QuickAddView: View {
     /// Google Books, il sert la réponse déjà stockée. deepSearch (bouton
     /// "Chercher plus d'éditions") FUSIONNE avec le résultat déjà connu, il
     /// ne le remplace pas - la sélection en cours est donc toujours
-    /// conservée, comme forceRefresh.
-    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false) {
+    /// conservée, comme forceRefresh. malId/originalTitle (déjà connus du
+    /// candidat sélectionné) permettent d'écarter un spin-off/side-story
+    /// connu côté backend - best-effort.
+    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil) {
         guard let typeId = selectedType?.id else { return }
         lastVolumeSearchTitle = seriesTitle
         lastVolumeSearchAuthor = author
+        lastVolumeSearchMalId = malId
+        lastVolumeSearchOriginalTitle = originalTitle
         volumeSearchTask?.cancel()
         isSearchingVolumes = true
         // Un rafraîchissement manuel ou une recherche approfondie gardent la
@@ -562,7 +579,8 @@ struct QuickAddView: View {
         volumesQuotaExceeded = false
         volumeSearchTask = Task {
             let response = try? await APIClient.shared.searchVolumes(
-                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh, deepSearch: deepSearch)
+                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh, deepSearch: deepSearch,
+                malId: malId, originalTitle: originalTitle)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 volumeCandidates = response?.volumes ?? []
@@ -610,6 +628,10 @@ struct QuickAddView: View {
         searchFailed = false
 
         let author = candidate.attributes["mangaka"]?.stringValue
+        // malId + candidate.title (titre AVANT résolution française) permettent
+        // d'écarter un spin-off/side-story connu côté backend (voir
+        // RelatedSeriesService) - best-effort, sans effet si malId est absent.
+        let malId = candidate.attributes["malId"]?.stringValue
         // Recherche avec le titre déjà résolu - correct dans la majorité des
         // cas (beaucoup de titres de mangas restent identiques en VF, ex:
         // "Death Note", "One Piece"). Si le titre français arrive plus tard
@@ -625,7 +647,7 @@ struct QuickAddView: View {
             volumeSearchDebounceTask = Task {
                 try? await Task.sleep(nanoseconds: 600_000_000)
                 guard !Task.isCancelled else { return }
-                triggerVolumeSearch(seriesTitle: resolvedTitle, author: author)
+                triggerVolumeSearch(seriesTitle: resolvedTitle, author: author, malId: malId, originalTitle: candidate.title)
             }
         }
 
@@ -664,7 +686,9 @@ struct QuickAddView: View {
                 title = frenchTitle
                 verifiedTitle = frenchTitle
                 if selectedType?.code == "MANGA" {
-                    triggerVolumeSearch(seriesTitle: frenchTitle, author: candidate.attributes["mangaka"]?.stringValue)
+                    triggerVolumeSearch(
+                        seriesTitle: frenchTitle, author: candidate.attributes["mangaka"]?.stringValue,
+                        malId: candidate.attributes["malId"]?.stringValue, originalTitle: candidate.title)
                 }
             }
         }
@@ -760,6 +784,8 @@ struct QuickAddView: View {
                     showManualVolumeFields = false
                     lastVolumeSearchTitle = nil
                     lastVolumeSearchAuthor = nil
+                    lastVolumeSearchMalId = nil
+                    lastVolumeSearchOriginalTitle = nil
                     verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false

@@ -62,15 +62,23 @@ export async function fetchFrenchTitle(
  * plus courants). `deepSearch` (bouton "Chercher plus d'éditions") FUSIONNE
  * en plus avec des mots-clés plus rares, jamais lancés automatiquement vu
  * leur coût - incompatible avec forceRefresh, deepSearch est alors
- * prioritaire côté backend. */
+ * prioritaire côté backend. `malId`+`originalTitle` (déjà connus du candidat
+ * sélectionné) permettent d'écarter un spin-off/side-story connu (voir
+ * RelatedSeriesService côté backend) - best-effort, sans effet si l'un des
+ * deux manque. */
 export function searchVolumes(
   entityTypeId: string,
   title: string,
-  author?: string,
-  signal?: AbortSignal,
-  forceRefresh?: boolean,
-  deepSearch?: boolean,
+  options?: {
+    author?: string
+    signal?: AbortSignal
+    forceRefresh?: boolean
+    deepSearch?: boolean
+    malId?: string
+    originalTitle?: string
+  },
 ): Promise<VolumesResponseDto> {
+  const { author, signal, forceRefresh, deepSearch, malId, originalTitle } = options ?? {}
   return get<VolumesResponseDto>(
     `/metadata/volumes${buildQuery({
       entityTypeId,
@@ -78,6 +86,8 @@ export function searchVolumes(
       author,
       forceRefresh: forceRefresh ? 'true' : undefined,
       deepSearch: deepSearch ? 'true' : undefined,
+      malId,
+      originalTitle,
     })}`,
     signal,
   )

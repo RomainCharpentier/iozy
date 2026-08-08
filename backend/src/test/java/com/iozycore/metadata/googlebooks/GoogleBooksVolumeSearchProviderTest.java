@@ -238,6 +238,30 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void excludes_a_known_spin_off_series_flagged_via_related_series_fragments() throws Exception {
+        // Cas réel observé (voir historique) : "Blue Lock - Episode Nagi -
+        // Tome 5" commence bien par "Blue Lock" et respecte la séparation
+        // par espace (contrairement au cas Tokyo Ghoul:re ci-dessus) - donc
+        // structurellement indiscernable d'un vrai nom de collection, sauf à
+        // savoir par une source externe (voir RelatedSeriesService, dérivé
+        // des relations MyAnimeList) que "Episode Nagi" désigne un spin-off.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Blue Lock - Episode Nagi - Tome 5", "language": "fr", "publisher": "Pika" } },
+                    { "volumeInfo": { "title": "Blue Lock - Tome 5", "language": "fr", "publisher": "Pika" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Blue Lock", List.of("Episode Nagi"));
+
+        assertThat(result).hasSize(1); // seule la vraie édition de Blue Lock reste
+        assertThat(result.get(0).edition()).isEqualTo("Pika");
+    }
+
+    @Test
     void excludes_results_not_actually_tagged_as_french_despite_langRestrict() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """

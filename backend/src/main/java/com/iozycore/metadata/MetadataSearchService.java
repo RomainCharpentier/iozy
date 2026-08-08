@@ -210,21 +210,36 @@ public class MetadataSearchService {
      * que de laisser croire à tort "aucune édition trouvée".
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author) {
-        return searchVolumes(entityType, seriesTitle, author, false);
+        return searchVolumes(entityType, seriesTitle, author, false, List.of());
     }
 
     /**
      * @param forceRefresh ignore le cache mémoire ET le stockage durable,
-     *                      relance systématiquement les 8 requêtes Google
+     *                      relance systématiquement les requêtes Google
      *                      Books et écrase le résultat stocké - c'est le
      *                      point d'entrée du bouton "Actualiser" côté
      *                      client. Sans lui, un résultat une fois stocké
      *                      n'est plus jamais rappelé automatiquement : les
      *                      éditions/tomes d'une série changent rarement, pas
-     *                      la peine de re-payer 8 appels externes à chaque
+     *                      la peine de re-payer des appels externes à chaque
      *                      sélection du même candidat.
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh) {
+        return searchVolumes(entityType, seriesTitle, author, forceRefresh, List.of());
+    }
+
+    /**
+     * @param excludedTitleFragments fragments de titre (voir RelatedSeriesService)
+     *                               identifiant un spin-off/side-story connu de
+     *                               la série cherchée - jamais pris en compte
+     *                               pour la clé de cache (dépend seulement du
+     *                               titre/auteur cherchés, comme le reste de ce
+     *                               cache) : un résultat déjà en cache SANS ce
+     *                               filtre n'est pas nettoyé rétroactivement,
+     *                               "Actualiser"/une recherche approfondie
+     *                               restent les seuls moyens de le relancer.
+     */
+    public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh, List<String> excludedTitleFragments) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
@@ -253,7 +268,7 @@ public class MetadataSearchService {
                 continue;
             }
             try {
-                result.addAll(provider.searchVolumes(seriesTitle, author));
+                result.addAll(provider.searchVolumes(seriesTitle, author, excludedTitleFragments));
             } catch (QuotaExceededException e) {
                 quotaExceeded = true;
             }
@@ -283,6 +298,12 @@ public class MetadataSearchService {
      * les seuls moyens de la relancer).
      */
     public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author) {
+        return searchAdditionalEditions(entityType, seriesTitle, author, List.of());
+    }
+
+    /** Variante avec exclusion de spin-offs connus (voir
+     * {@link #searchVolumes(EntityType, String, String, boolean, List)}). */
+    public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author, List<String> excludedTitleFragments) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
@@ -298,7 +319,7 @@ public class MetadataSearchService {
                 continue;
             }
             try {
-                additional.addAll(provider.searchAdditionalEditions(seriesTitle, author));
+                additional.addAll(provider.searchAdditionalEditions(seriesTitle, author, excludedTitleFragments));
             } catch (QuotaExceededException e) {
                 quotaExceeded = true;
             }

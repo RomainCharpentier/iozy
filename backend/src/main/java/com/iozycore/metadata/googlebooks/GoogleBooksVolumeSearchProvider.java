@@ -132,7 +132,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     @Override
-    public List<VolumeCandidate> searchVolumes(String seriesTitle, String author) {
+    public List<VolumeCandidate> searchVolumes(String seriesTitle, String author, List<String> excludedTitleFragments) {
         if (seriesTitle == null || seriesTitle.isBlank()) {
             return List.of();
         }
@@ -142,11 +142,11 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         // mot-clé de base) plutôt que 3, pour ne pas gaspiller en échecs
         // quasi certains la capacité qui ne fait que commencer à revenir.
         List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : QUICK_EDITION_KEYWORDS;
-        return runKeywordSearches(seriesTitle, author, keywordsToTry);
+        return runKeywordSearches(seriesTitle, author, keywordsToTry, excludedTitleFragments);
     }
 
     @Override
-    public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author) {
+    public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author, List<String> excludedTitleFragments) {
         if (seriesTitle == null || seriesTitle.isBlank()) {
             return List.of();
         }
@@ -157,13 +157,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException(
                     "Quota Google Books probablement encore épuisé - recherche approfondie ignorée pour '" + seriesTitle + "'");
         }
-        return runKeywordSearches(seriesTitle, author, DEEP_EDITION_KEYWORDS);
+        return runKeywordSearches(seriesTitle, author, DEEP_EDITION_KEYWORDS, excludedTitleFragments);
     }
 
-    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords) {
+    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
         List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, anyQuotaExceeded)))
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
                 .collect(Collectors.toList());
 
         List<VolumeCandidate> combined = searches.stream()
@@ -199,7 +199,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, AtomicBoolean anyQuotaExceeded) {
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
         String combinedQuery = "intitle:" + seriesTitle
                 + (editionKeyword.isBlank() ? "" : " " + editionKeyword)
                 + (author == null || author.isBlank() ? "" : " inauthor:" + author);
@@ -210,7 +210,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             if (body == null) {
                 return List.of();
             }
-            return extractCandidates(body, seriesTitle);
+            return extractCandidates(body, seriesTitle, excludedTitleFragments);
         } catch (QuotaExceededException e) {
             // Ne PAS relancer ici : les 7 autres mots-clés (même quota
             // épuisé) vont échouer pareil - on note juste le fait, agrégé
@@ -227,14 +227,21 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     /** Miroir de {@link #searchOneEdition} pour les tests - parse une seule réponse
      * (édition/tome dédoublonnés) sans passer par les 8 requêtes en parallèle. */
     List<VolumeCandidate> parse(String body, String seriesTitle) throws Exception {
-        return dedupeAndSort(extractCandidates(body, seriesTitle));
+        return parse(body, seriesTitle, List.of());
+    }
+
+    /** Variante avec exclusion de spin-offs connus (voir RelatedSeriesService) -
+     * séparée de {@link #parse(String, String)} pour ne pas casser les tests
+     * existants qui n'en ont pas besoin. */
+    List<VolumeCandidate> parse(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
+        return dedupeAndSort(extractCandidates(body, seriesTitle, excludedTitleFragments));
     }
 
     /** Extrait les candidats bruts d'une réponse Google Books, SANS dédoublonner -
      * le dédoublonnage se fait une seule fois, après fusion de toutes les requêtes
      * (voir searchVolumes), pour ne jamais préférer arbitrairement le résultat
      * d'une requête sur une autre avant d'avoir vu l'ensemble. */
-    private List<VolumeCandidate> extractCandidates(String body, String seriesTitle) throws Exception {
+    private List<VolumeCandidate> extractCandidates(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         List<VolumeCandidate> candidates = new java.util.ArrayList<>();
 
@@ -273,6 +280,16 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             if (!isRealPrefixMatch) {
                 continue;
             }
+            // Spin-off/side-story CONNU (voir RelatedSeriesService, dérivé des
+            // relations MyAnimeList) : même structurellement identique à un
+            // vrai nom de collection ("Série - Spin-off - Tome N"), vérifié
+            // manuellement sur "Blue Lock - Episode Nagi" et "Demon Slayer
+            // School Days" (voir historique) - startsWith seul ne peut pas
+            // les distinguer d'une vraie édition, contrairement à cette
+            // information externe.
+            if (matchesKnownRelatedSeries(trimmedTitle, excludedTitleFragments)) {
+                continue;
+            }
             OptionalInt volumeNumber = extractVolumeNumber(title);
             if (volumeNumber.isEmpty()) {
                 continue; // coffret, artbook, one-shot sans numéro exploitable
@@ -289,6 +306,19 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             candidates.add(new VolumeCandidate(edition, volumeNumber.getAsInt(), imageUrl, title));
         }
         return candidates;
+    }
+
+    /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
+     * comme des caractères de mot, voir DANGLING_RANGE_CONNECTOR plus haut
+     * pour le même piège) - un simple contains() ferait matcher un fragment
+     * générique/court à l'intérieur d'un autre mot sans rapport. */
+    private static boolean matchesKnownRelatedSeries(String title, List<String> excludedTitleFragments) {
+        for (String fragment : excludedTitleFragments) {
+            if (Pattern.compile("(?iU)\\b" + Pattern.quote(fragment) + "\\b").matcher(title).find()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Dédoublonne par (édition, tome) - un même tome peut ressortir de plusieurs
