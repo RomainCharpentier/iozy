@@ -51,4 +51,24 @@ class GoogleBooksFrenchTitleProviderTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void strips_the_volume_suffix_from_the_matched_title() throws Exception {
+        // Cas réel observé (voir historique) : Google Books indexe le tome
+        // scanné ("Fragments d'elles T04"), pas la série - on ne veut que le
+        // titre de la série pour pré-remplir l'ajout.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 1,
+                  "items": [
+                    { "volumeInfo": { "title": "Fragments d'elles T04", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Fragments d'elles");
+    }
 }

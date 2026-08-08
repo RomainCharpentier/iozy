@@ -32,6 +32,27 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void extracts_the_abbreviated_t_zero_prefixed_volume_number_format() throws Exception {
+        // Cas réel observé (voir historique) : Google Books indexe parfois le
+        // tome sous la forme abrégée "T04" (sans point, zéro de tête) plutôt
+        // que "Tome 4" - ex: "Fragments d'elles T04" (Nao Emoto / Mag Hsu, Pika).
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Fragments d'elles T04", "language": "fr", "publisher": "Pika" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Fragments d'elles");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(4);
+        assertThat(result.get(0).edition()).isEqualTo("Pika"); // repli sur l'éditeur, pas de nom de collection
+    }
+
+    @Test
     void extracts_a_real_collection_name_when_present_between_the_series_title_and_the_volume_number() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
