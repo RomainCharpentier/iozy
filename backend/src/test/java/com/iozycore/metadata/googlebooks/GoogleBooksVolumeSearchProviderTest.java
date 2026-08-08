@@ -91,6 +91,50 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void treats_a_publisher_name_with_a_trailing_manga_suffix_the_same_as_without_it() throws Exception {
+        // Cas réel observé (voir historique) : "Demon Slayer" ressort à la
+        // fois avec publisher="Panini" (ex: "Demon Slayer T01") et
+        // publisher="Panini Manga" (ex: "Demon Slayer Tome 11") pour le MÊME
+        // éditeur réel - sans normalisation, ça formait deux onglets
+        // d'édition ("Panini" et "Panini Manga") au lieu d'un seul.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Demon Slayer T01", "language": "fr", "publisher": "Panini" } },
+                    { "volumeInfo": { "title": "Demon Slayer Tome 11", "language": "fr", "publisher": "Panini Manga" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Demon Slayer");
+
+        assertThat(result).extracting(VolumeCandidate::edition).containsOnly("Panini");
+    }
+
+    @Test
+    void falls_back_to_the_publisher_when_the_extracted_collection_name_just_repeats_the_series_title() throws Exception {
+        // Cas réel observé (voir historique) : "Kingdom - Tome 70 - Kingdom"
+        // répète le titre de la série APRÈS le numéro de tome sur certaines
+        // fiches Google Books - une fois le préfixe et le numéro retirés, il
+        // ne reste que ce doublon, qui ressemblerait sinon à un vrai nom de
+        // collection appelé "Kingdom" (identique à la série, donc sans
+        // valeur informative).
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Kingdom - Tome 70 - Kingdom", "language": "fr", "publisher": "Meian" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Kingdom");
+
+        assertThat(result.get(0).edition()).isEqualTo("Meian"); // repli sur l'éditeur, pas "Kingdom"
+    }
+
+    @Test
     void strips_the_dangling_range_connector_left_over_by_a_multi_volume_omnibus_title() throws Exception {
         // Cas réel observé (voir historique) : "L'Attaque des Titans -
         // L'intégrale T01 à T04" (coffret de 4 tomes) contient DEUX numéros

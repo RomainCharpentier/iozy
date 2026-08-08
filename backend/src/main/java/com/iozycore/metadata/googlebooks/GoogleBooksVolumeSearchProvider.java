@@ -318,6 +318,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         }
     }
 
+    // "Panini" et "Panini Manga" désignent le même éditeur réel côté Google
+    // Books (vérifié manuellement sur "Demon Slayer", voir historique) -
+    // certaines fiches indexent le nom complet de l'imprint manga, d'autres
+    // juste la maison mère, pour le MÊME éditeur. Sans normalisation, ça
+    // formait deux onglets d'édition pour un seul éditeur réel.
+    private static final Pattern TRAILING_MANGA_SUFFIX = Pattern.compile("(?i)\\s+manga$");
+
     /** "One Piece - Édition originale - Tome 60" + série "One Piece" -> "Édition Originale".
      * "Death Note - Tome 10" + série "Death Note" -> "" -> repli sur l'éditeur ("Kana"). */
     private static String extractEdition(String fullTitle, String seriesTitle, String publisher) {
@@ -333,10 +340,26 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         // tirets de bord (déjà retirés ci-dessus) servaient de séparateur
         // avec le reste du titre.
         remainder = remainder.replace('-', ' ').replaceAll("\\s+", " ").trim();
+        // "Kingdom - Tome 70 - Kingdom" (vérifié manuellement, voir historique) :
+        // le titre de la série se répète après le numéro de tome sur certaines
+        // fiches Google Books - une fois le préfixe et le numéro retirés, il
+        // ne reste QUE ce doublon, qui ressemblerait sinon à un vrai nom de
+        // collection appelé "Kingdom" (identique à la série elle-même, donc
+        // sans aucune valeur informative). Traité comme si rien ne restait.
+        if (remainder.equalsIgnoreCase(seriesTitle.trim())) {
+            remainder = "";
+        }
         if (!remainder.isBlank()) {
             return capitalizeWords(remainder);
         }
-        return (publisher == null || publisher.isBlank()) ? "Édition inconnue" : publisher;
+        return normalizePublisherFallback(publisher);
+    }
+
+    private static String normalizePublisherFallback(String publisher) {
+        if (publisher == null || publisher.isBlank()) {
+            return "Édition inconnue";
+        }
+        return TRAILING_MANGA_SUFFIX.matcher(publisher).replaceFirst("");
     }
 
     /** "perfect edition" -> "Perfect Edition" - Google Books indexe souvent le nom
