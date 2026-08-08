@@ -105,6 +105,27 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void excludes_a_sequel_series_glued_to_the_searched_title_with_no_separating_space() throws Exception {
+        // Cas réel observé (voir historique) : chercher "Tokyo Ghoul" remonte
+        // des tomes de "Tokyo Ghoul:re" (la suite, une série à part sur
+        // MyAnimeList) - ":re" est collé sans espace, contrairement à un vrai
+        // nom de collection ("One Piece - Édition originale"...), toujours
+        // séparé du titre de la série par un espace.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Tokyo Ghoul:re Tome 5", "language": "fr", "publisher": "Glénat Manga" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Tokyo Ghoul");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void excludes_results_not_actually_tagged_as_french_despite_langRestrict() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
