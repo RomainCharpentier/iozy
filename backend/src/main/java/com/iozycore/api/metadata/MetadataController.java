@@ -1,8 +1,13 @@
 package com.iozycore.api.metadata;
 
 import com.iozycore.application.BggCollectionImportService;
+import com.iozycore.domain.catalog.Entity;
+import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.domain.catalog.Variant;
+import com.iozycore.domain.ownership.Ownership;
+import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataSearchService;
 import com.iozycore.metadata.VolumeCandidate;
@@ -14,7 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/metadata")
@@ -25,13 +33,19 @@ public class MetadataController {
     private final MetadataSearchService metadataSearchService;
     private final BggCollectionImportService bggCollectionImportService;
     private final EntityTypeRepository entityTypeRepository;
+    private final EntityRepository entityRepository;
+    private final OwnershipRepository ownershipRepository;
 
     public MetadataController(MetadataSearchService metadataSearchService,
                                BggCollectionImportService bggCollectionImportService,
-                               EntityTypeRepository entityTypeRepository) {
+                               EntityTypeRepository entityTypeRepository,
+                               EntityRepository entityRepository,
+                               OwnershipRepository ownershipRepository) {
         this.metadataSearchService = metadataSearchService;
         this.bggCollectionImportService = bggCollectionImportService;
         this.entityTypeRepository = entityTypeRepository;
+        this.entityRepository = entityRepository;
+        this.ownershipRepository = ownershipRepository;
     }
 
     @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1)")
@@ -96,17 +110,30 @@ public class MetadataController {
     public record FrenchTitleResponse(String frenchTitle) {
     }
 
+    /** Un tome trouvé (voir VolumeCandidate), enrichi de alreadyOwned - vrai si
+     * une Ownership active référence déjà un Variant de la série existante
+     * correspondant à cette édition+ce numéro de tome. Ce croisement se fait
+     * ici (couche présentation), jamais dans MetadataSearchService qui ne
+     * connaît que des sources externes, jamais la collection de l'utilisateur. */
+    public record VolumeCandidateResponse(String edition, int volumeNumber, String imageUrl, String title, boolean alreadyOwned) {
+        static VolumeCandidateResponse from(VolumeCandidate candidate, boolean alreadyOwned) {
+            return new VolumeCandidateResponse(
+                    candidate.edition(), candidate.volumeNumber(), candidate.imageUrl(), candidate.title(), alreadyOwned);
+        }
+    }
+
     @Operation(summary = "Recherche best-effort des tomes réels (avec jaquette) des éditions françaises d'une "
             + "série (Google Books) - pour proposer une sélection visuelle des tomes possédés plutôt qu'une saisie "
-            + "manuelle du numéro de tome. Liste vide si rien trouvé (jamais une erreur) : le client garde alors le "
-            + "parcours de saisie manuelle. Résultat stocké durablement (voir V3__volume_search_cache.sql) - un "
-            + "résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
-            + "'Actualiser' côté client) est le seul moyen de relancer les 8 requêtes Google Books derrière ce "
-            + "candidat - voir MetadataSearchService.searchVolumes.")
+            + "manuelle du numéro de tome. alreadyOwned indique les tomes déjà possédés (Ownership active sur le "
+            + "Variant correspondant, si la série existe déjà dans la collection). Liste vide si rien trouvé "
+            + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle. Résultat stocké "
+            + "durablement (voir V3__volume_search_cache.sql) - un résultat une fois trouvé n'est plus jamais "
+            + "rappelé automatiquement, forceRefresh=true (bouton 'Actualiser' côté client) est le seul moyen de "
+            + "relancer les 8 requêtes Google Books derrière ce candidat - voir MetadataSearchService.searchVolumes.")
     @GetMapping("/volumes")
-    public List<VolumeCandidate> volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
-                                          @RequestParam(required = false) String author,
-                                          @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
+    public List<VolumeCandidateResponse> volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
+                                                  @RequestParam(required = false) String author,
+                                                  @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -114,6 +141,47 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
-        return metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
+        List<VolumeCandidate> candidates = metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
+        Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
+
+        return candidates.stream()
+                .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
+                .collect(Collectors.toList());
+    }
+
+    /** Clés "édition|tome" (normalisées) des Variant de la série {@code title}
+     * (si elle existe déjà) référencés par au moins une Ownership active -
+     * vide si la série n'a jamais été ajoutée, ce qui est le cas le plus
+     * fréquent (on cherche des tomes avant même de savoir si on en possède déjà). */
+    private Set<String> alreadyOwnedVariantKeys(UUID entityTypeId, String title) {
+        Optional<Entity> existingEntity = entityRepository.findByTypeAndTitle(entityTypeId, title.trim());
+        if (existingEntity.isEmpty()) {
+            return Set.of();
+        }
+        Entity entity = existingEntity.get();
+        Set<UUID> activeVariantIds = ownershipRepository.findByEntityId(entity.id()).stream()
+                .filter(Ownership::isActive)
+                .map(Ownership::variantId)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        return entity.variants().stream()
+                .filter(variant -> activeVariantIds.contains(variant.id()))
+                .map(this::variantKey)
+                .collect(Collectors.toSet());
+    }
+
+    private String variantKey(Variant variant) {
+        Object volumeNumber = variant.attributes().get("volumeNumber");
+        Object edition = variant.attributes().get("edition");
+        if (!(volumeNumber instanceof Number number)) {
+            return "unknown|" + variant.id(); // tome sans numéro exploitable - ne matchera jamais un VolumeCandidate, sans effet de bord
+        }
+        return variantKey(edition == null ? "" : edition.toString(), number.intValue());
+    }
+
+    private String variantKey(String edition, int volumeNumber) {
+        return edition.trim().toLowerCase() + "|" + volumeNumber;
     }
 }

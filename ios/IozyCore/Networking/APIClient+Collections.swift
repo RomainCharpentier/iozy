@@ -42,6 +42,10 @@ struct VolumeCandidateDTO: Codable, Identifiable, Hashable {
     let volumeNumber: Int
     let imageUrl: String?
     let title: String
+    // Une Ownership active référence déjà le Variant correspondant (série
+    // déjà présente dans la collection) - purement indicatif, ne bloque
+    // jamais la sélection (un 2e exemplaire du même tome reste possible).
+    let alreadyOwned: Bool
 
     // Une même série peut avoir plusieurs éditions avec chacune un tome
     // numéro 1 - l'id doit donc combiner édition + numéro, jamais le numéro seul.

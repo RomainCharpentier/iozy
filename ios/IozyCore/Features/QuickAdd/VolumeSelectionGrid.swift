@@ -67,36 +67,47 @@ struct VolumeSelectionGrid: View {
         return Button {
             onToggle(volume)
         } label: {
-            ZStack(alignment: .topTrailing) {
-                ZStack(alignment: .bottom) {
-                    if let imageUrlString = volume.imageUrl, let imageURL = URL(string: imageUrlString) {
-                        AsyncImage(url: imageURL) { phase in
-                            if let image = phase.image {
-                                image.resizable().aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                    } else {
-                        ZStack {
+            ZStack(alignment: .bottom) {
+                if let imageUrlString = volume.imageUrl, let imageURL = URL(string: imageUrlString) {
+                    AsyncImage(url: imageURL) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                                .opacity(volume.alreadyOwned ? 0.6 : 1)
+                        } else {
                             Color(.systemGray5)
-                            Text("T. \(volume.volumeNumber)").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
-                    Text("\(volume.volumeNumber)")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 2)
-                        .background(.black.opacity(0.7))
+                } else {
+                    ZStack {
+                        Color(.systemGray5)
+                        Text("T. \(volume.volumeNumber)").font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
-                .frame(width: 64, height: 96)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(isSelected ? Theme.accent : .clear, lineWidth: 2)
-                )
-
+                Text("\(volume.volumeNumber)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 2)
+                    .background(.black.opacity(0.7))
+            }
+            .frame(width: 64, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(isSelected ? Theme.accent : .clear, lineWidth: 2)
+            )
+            // Déjà possédé (vert, coin gauche) et sélectionné (accent, coin
+            // droit) sont deux informations distinctes qui peuvent coexister
+            // (re-sélectionner un tome déjà possédé signale un 2e exemplaire).
+            .overlay(alignment: .topLeading) {
+                if volume.alreadyOwned {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .background(Circle().fill(.white))
+                        .padding(4)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Theme.accent)
