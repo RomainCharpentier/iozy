@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, CheckCheck } from 'lucide-react'
 import { Chip } from '../../components/Chip'
 import type { VolumeCandidateDto } from '../../types/api'
 
@@ -76,12 +76,17 @@ export function VolumeSelectionGrid({
               type="button"
               onClick={() => onToggle(key)}
               aria-pressed={isSelected}
+              title={volume.alreadyOwned ? 'Déjà possédé' : undefined}
               className={`relative h-24 w-16 shrink-0 overflow-hidden rounded-lg ring-2 transition ${
                 isSelected ? 'ring-accent' : 'ring-transparent'
               }`}
             >
               {volume.imageUrl ? (
-                <img src={volume.imageUrl} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={volume.imageUrl}
+                  alt=""
+                  className={`h-full w-full object-cover ${volume.alreadyOwned ? 'opacity-60' : ''}`}
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-surface2 text-xs text-textDim">
                   T. {volume.volumeNumber}
@@ -90,6 +95,15 @@ export function VolumeSelectionGrid({
               <span className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center text-[10px] font-semibold text-white">
                 {volume.volumeNumber}
               </span>
+              {/* Déjà possédé (vert, coin gauche) et sélectionné (accent, coin
+                  droit) sont deux informations distinctes qui peuvent
+                  coexister (re-sélectionner un tome déjà possédé signale un
+                  2e exemplaire, voir formatAddResultMessage). */}
+              {volume.alreadyOwned && (
+                <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <CheckCheck size={10} strokeWidth={3} />
+                </span>
+              )}
               {isSelected && (
                 <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accentText">
                   <Check size={10} strokeWidth={3} />

@@ -65,6 +65,25 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void excludes_a_different_spin_off_series_that_merely_mentions_the_searched_title() throws Exception {
+        // Cas réel observé (voir historique) : chercher "Naruto" remonte des
+        // tomes de "Boruto - Naruto Next Generations", un spin-off distinct,
+        // pas une édition de Naruto.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Boruto - Naruto Next Generations - Tome 3", "language": "fr", "publisher": "Kana" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Naruto");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void excludes_results_not_actually_tagged_as_french_despite_langRestrict() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """

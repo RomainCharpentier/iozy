@@ -172,6 +172,16 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             if (title == null || title.isBlank() || CHAPTER_KEYWORD.matcher(title).find()) {
                 continue;
             }
+            // La recherche plein-texte matche parfois une série DIFFÉRENTE qui
+            // mentionne juste la série cherchée dans un titre plus long (ex:
+            // "Boruto - Naruto Next Generations - Tome 3" remonté pour une
+            // recherche "Naruto" - Boruto est un spin-off, pas une édition de
+            // Naruto). Exiger que le titre commence bien par la série cherchée
+            // écarte ces faux positifs sans dépendre d'une liste de noms de
+            // séries dérivées à maintenir à la main.
+            if (!title.trim().toLowerCase().startsWith(seriesTitle.trim().toLowerCase())) {
+                continue;
+            }
             OptionalInt volumeNumber = extractVolumeNumber(title);
             if (volumeNumber.isEmpty()) {
                 continue; // coffret, artbook, one-shot sans numéro exploitable

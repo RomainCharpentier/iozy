@@ -151,6 +151,10 @@ export interface VolumeCandidateDto {
   volumeNumber: number
   imageUrl: string | null
   title: string
+  // Une Ownership active référence déjà le Variant correspondant (série déjà
+  // présente dans la collection) - purement indicatif, ne bloque jamais la
+  // sélection (un 2e exemplaire du même tome reste possible).
+  alreadyOwned: boolean
 }
 
 // --- EntityType (éditeur de types dynamique) ---
