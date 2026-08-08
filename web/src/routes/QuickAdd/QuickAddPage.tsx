@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Loader2, RefreshCw, Search } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -92,6 +92,13 @@ export function QuickAddPage() {
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
   const volumeSearchAbortRef = useRef<AbortController | null>(null)
+  // Débounce du déclenchement AUTOMATIQUE de la recherche de tomes après
+  // sélection d'un candidat (voir pickCandidate) - évite de payer les 8
+  // requêtes Google Books pour chaque candidat survolé/cliqué rapidement
+  // avant de s'arrêter sur le bon (vérifié manuellement pendant cette
+  // session : c'est exactement ce schéma qui a vidé le quota). N'affecte
+  // jamais un déclenchement volontaire (bouton "Actualiser"), toujours immédiat.
+  const volumeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Titre/auteur de la dernière recherche de tomes déclenchée - réutilisés par
   // le bouton "Actualiser" (voir triggerVolumeSearch) sans avoir à re-choisir
   // le candidat. Le résultat est stocké durablement côté backend (voir
@@ -225,25 +232,28 @@ export function QuickAddPage() {
   /** Cherche les tomes réels (avec jaquette) des éditions françaises de cette
    * série (voir VolumeSelectionGrid) - best-effort, une liste vide laisse
    * simplement les champs manuels comme unique moyen d'ajouter un tome.
-   * Résultat stocké durablement côté backend : sans forceRefresh, un appel
-   * répété pour la même série ne relance jamais les 8 requêtes Google Books,
-   * il sert la réponse déjà stockée. */
-  function triggerVolumeSearch(seriesTitle: string, author: string | undefined, forceRefresh = false) {
+   * Résultat stocké durablement côté backend : sans forceRefresh/deepSearch,
+   * un appel répété pour la même série ne relance jamais Google Books, il
+   * sert la réponse déjà stockée. `deepSearch` (bouton "Chercher plus
+   * d'éditions") FUSIONNE avec le résultat déjà connu, il ne le remplace pas
+   * - la sélection en cours est donc toujours conservée, comme forceRefresh. */
+  function triggerVolumeSearch(seriesTitle: string, author: string | undefined, forceRefresh = false, deepSearch = false) {
     if (!entityTypeId) return
     setLastVolumeSearchParams({ title: seriesTitle, author })
     volumeSearchAbortRef.current?.abort()
     const controller = new AbortController()
     volumeSearchAbortRef.current = controller
     setIsSearchingVolumes(true)
-    // Un rafraîchissement manuel garde la sélection en cours (l'utilisateur
-    // ne fait que vérifier s'il y a du nouveau) - une nouvelle série
-    // (recherche initiale) repart en revanche d'une sélection vide.
-    if (!forceRefresh) {
+    // Un rafraîchissement manuel ou une recherche approfondie gardent la
+    // sélection en cours (l'utilisateur ne fait que vérifier/compléter) -
+    // une nouvelle série (recherche initiale) repart en revanche d'une
+    // sélection vide.
+    if (!forceRefresh && !deepSearch) {
       setVolumeCandidates([])
       setSelectedVolumeKeys(new Set())
     }
     setVolumesQuotaExceeded(false)
-    searchVolumes(entityTypeId, seriesTitle, author, controller.signal, forceRefresh)
+    searchVolumes(entityTypeId, seriesTitle, author, controller.signal, forceRefresh, deepSearch)
       .then((response) => {
         if (controller.signal.aborted) return
         setVolumeCandidates(response.volumes)
@@ -272,6 +282,12 @@ export function QuickAddPage() {
   function pickCandidate(candidate: MetadataCandidateDto) {
     frenchTitleAbortRef.current?.abort()
     setIsTranslating(false)
+    // Annule une recherche de tomes encore en attente pour un candidat
+    // précédent (voir le débounce plus bas) - un nouveau choix la rend obsolète.
+    if (volumeSearchDebounceRef.current) {
+      clearTimeout(volumeSearchDebounceRef.current)
+      volumeSearchDebounceRef.current = null
+    }
 
     // Titre déjà résolu selon la composition (voir Réglages > Titre des
     // mangas) : si "Français" n'est pas activé, c'est définitif (romaji/anglais
@@ -300,14 +316,24 @@ export function QuickAddPage() {
     setShowManualVolumeFields(false)
 
     const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
-    // Recherche immédiate avec le titre déjà résolu - correct dans la
-    // majorité des cas (beaucoup de titres de mangas restent identiques en
-    // VF, ex: "Death Note", "One Piece"). Si le titre français arrive plus
-    // tard (voir plus bas) et diffère, la recherche est refaite avec le bon
-    // titre : le cas où "L'Attaque des Titans" doit remplacer "Attack on
-    // Titan" pour trouver l'édition française sur Google Books.
+    // Recherche avec le titre déjà résolu - correct dans la majorité des cas
+    // (beaucoup de titres de mangas restent identiques en VF, ex: "Death
+    // Note", "One Piece"). Si le titre français arrive plus tard (voir plus
+    // bas) et diffère, la recherche est refaite avec le bon titre : le cas
+    // où "L'Attaque des Titans" doit remplacer "Attack on Titan" pour
+    // trouver l'édition française sur Google Books.
+    //
+    // Débounced (pas immédiat) : sans délai, comparer rapidement plusieurs
+    // candidats avant de choisir (clics successifs) déclenchait les 8
+    // requêtes Google Books pour CHAQUE candidat survolé, jamais retenu ou
+    // non - annulé si un autre candidat est choisi entre-temps (voir plus
+    // haut), sans impact perçu sur l'UX (la recherche elle-même prend déjà
+    // 1-2s).
     if (selectedType?.code === 'MANGA') {
-      triggerVolumeSearch(resolvedTitle, author)
+      volumeSearchDebounceRef.current = setTimeout(() => {
+        volumeSearchDebounceRef.current = null
+        triggerVolumeSearch(resolvedTitle, author)
+      }, 600)
     }
 
     // Rien de plus à faire si "Français" n'est pas activé (aucun appel
@@ -370,6 +396,10 @@ export function QuickAddPage() {
       // un titre retouché à la main invalide cette sélection (plus aucune
       // garantie que ces tomes correspondent encore à ce qui est saisi).
       volumeSearchAbortRef.current?.abort()
+      if (volumeSearchDebounceRef.current) {
+        clearTimeout(volumeSearchDebounceRef.current)
+        volumeSearchDebounceRef.current = null
+      }
       setVolumeCandidates([])
       setSelectedVolumeKeys(new Set())
       setIsSearchingVolumes(false)
@@ -384,6 +414,10 @@ export function QuickAddPage() {
   }
 
   function resetForm() {
+    if (volumeSearchDebounceRef.current) {
+      clearTimeout(volumeSearchDebounceRef.current)
+      volumeSearchDebounceRef.current = null
+    }
     setTitle('')
     setAttributes(undefined)
     setAttributesSourceTitle(null)
@@ -546,18 +580,36 @@ export function QuickAddPage() {
                 Tomes possédés {selectedVolumeKeys.size > 0 && `(${selectedVolumeKeys.size} sélectionné${selectedVolumeKeys.size > 1 ? 's' : ''})`}
               </span>
               {lastVolumeSearchParams && (
-                <button
-                  type="button"
-                  onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
-                  disabled={isSearchingVolumes}
-                  className="flex shrink-0 items-center gap-1 text-xs text-accent disabled:opacity-50"
-                  title="Relance la recherche des tomes/éditions (résultat normalement gardé tel quel)"
-                >
-                  <RefreshCw size={12} className={isSearchingVolumes ? 'animate-spin' : ''} />
-                  Actualiser
-                </button>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, false, true)}
+                    disabled={isSearchingVolumes}
+                    className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
+                    title="Cherche des éditions plus rares (star edition, collector, intégrale...) en plus de celles déjà trouvées"
+                  >
+                    <Search size={12} />
+                    Chercher plus d'éditions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
+                    disabled={isSearchingVolumes}
+                    className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
+                    title="Relance la recherche des tomes/éditions (résultat normalement gardé tel quel)"
+                  >
+                    <RefreshCw size={12} className={isSearchingVolumes ? 'animate-spin' : ''} />
+                    Actualiser
+                  </button>
+                </div>
               )}
             </div>
+            {volumesQuotaExceeded && !isSearchingVolumes && (
+              <p className="flex items-center gap-1.5 text-xs text-pink">
+                <AlertTriangle size={12} className="shrink-0" />
+                Quota Google Books dépassé - la dernière action n'a pas pu aboutir, réessaie plus tard.
+              </p>
+            )}
             <VolumeSelectionGrid volumes={volumeCandidates} selectedKeys={selectedVolumeKeys} onToggle={toggleVolumeSelection} />
           </div>
         )}

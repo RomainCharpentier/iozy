@@ -139,11 +139,15 @@ public class MetadataController {
             + "ce cas d'un quota Google Books dépassé. Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
             + "un résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
             + "'Actualiser' côté client) est le seul moyen de relancer les requêtes Google Books derrière ce "
-            + "candidat - voir MetadataSearchService.searchVolumes.")
+            + "candidat - voir MetadataSearchService.searchVolumes. Recherche par défaut limitée à quelques mots-clés "
+            + "d'édition courants ; deepSearch=true (bouton 'Chercher plus d'éditions') fusionne avec les mots-clés "
+            + "plus rares (voir MetadataSearchService.searchAdditionalEditions) - incompatible avec forceRefresh, "
+            + "deepSearch est alors prioritaire.")
     @GetMapping("/volumes")
     public VolumesResponse volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
                                     @RequestParam(required = false) String author,
-                                    @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
+                                    @RequestParam(required = false, defaultValue = "false") boolean forceRefresh,
+                                    @RequestParam(required = false, defaultValue = "false") boolean deepSearch) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -151,7 +155,9 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
-        VolumeSearchResult searchResult = metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
+        VolumeSearchResult searchResult = deepSearch
+                ? metadataSearchService.searchAdditionalEditions(entityType, title, author)
+                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
         List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
