@@ -11,6 +11,7 @@ import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataSearchService;
 import com.iozycore.metadata.VolumeCandidate;
+import com.iozycore.metadata.VolumeSearchResult;
 import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -122,18 +123,27 @@ public class MetadataController {
         }
     }
 
+    /** {@code quotaExceeded} distingue une liste vide "aucune édition
+     * trouvée" d'un quota Google Books dépassé sur toutes les clés
+     * configurées (voir VolumeSearchResult) - le client peut alors afficher
+     * un message adapté ("réessaie plus tard") plutôt que de laisser croire
+     * à tort que la série n'a aucune édition française. */
+    public record VolumesResponse(List<VolumeCandidateResponse> volumes, boolean quotaExceeded) {
+    }
+
     @Operation(summary = "Recherche best-effort des tomes réels (avec jaquette) des éditions françaises d'une "
             + "série (Google Books) - pour proposer une sélection visuelle des tomes possédés plutôt qu'une saisie "
             + "manuelle du numéro de tome. alreadyOwned indique les tomes déjà possédés (Ownership active sur le "
-            + "Variant correspondant, si la série existe déjà dans la collection). Liste vide si rien trouvé "
-            + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle. Résultat stocké "
-            + "durablement (voir V3__volume_search_cache.sql) - un résultat une fois trouvé n'est plus jamais "
-            + "rappelé automatiquement, forceRefresh=true (bouton 'Actualiser' côté client) est le seul moyen de "
-            + "relancer les 8 requêtes Google Books derrière ce candidat - voir MetadataSearchService.searchVolumes.")
+            + "Variant correspondant, si la série existe déjà dans la collection). volumes vide si rien trouvé "
+            + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle - quotaExceeded distingue "
+            + "ce cas d'un quota Google Books dépassé. Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
+            + "un résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
+            + "'Actualiser' côté client) est le seul moyen de relancer les requêtes Google Books derrière ce "
+            + "candidat - voir MetadataSearchService.searchVolumes.")
     @GetMapping("/volumes")
-    public List<VolumeCandidateResponse> volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
-                                                  @RequestParam(required = false) String author,
-                                                  @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
+    public VolumesResponse volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
+                                    @RequestParam(required = false) String author,
+                                    @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -141,12 +151,13 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
-        List<VolumeCandidate> candidates = metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
+        VolumeSearchResult searchResult = metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
-        return candidates.stream()
+        List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
                 .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
                 .collect(Collectors.toList());
+        return new VolumesResponse(candidates, searchResult.quotaExceeded());
     }
 
     /** Clés "édition|tome" (normalisées) des Variant de la série {@code title}

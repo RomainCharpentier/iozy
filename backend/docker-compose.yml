@@ -41,6 +41,10 @@ services:
       # Optionnel - voir .env.example. Sans clé, appels Google Books
       # fonctionnels mais sur le quota anonyme partagé (429 fréquents).
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      # Optionnel, séparées par des virgules - voir .env.example. Clé(s) de
+      # secours (2e projet Google Cloud, quota indépendant) essayée(s) dès
+      # que la clé principale répond 429.
+      GOOGLE_BOOKS_BACKUP_API_KEYS: ${GOOGLE_BOOKS_BACKUP_API_KEYS:-}
     ports:
       - "8080:8080"
     volumes:

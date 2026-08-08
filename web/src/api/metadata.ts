@@ -1,5 +1,5 @@
 import { get, post, buildQuery, ApiError } from './client'
-import type { BggImportResult, MetadataCandidateDto, VolumeCandidateDto } from '../types/api'
+import type { BggImportResult, MetadataCandidateDto, VolumesResponseDto } from '../types/api'
 
 export function searchMetadata(
   entityTypeId: string,
@@ -52,20 +52,21 @@ export async function fetchFrenchTitle(
 
 /** Recherche best-effort des tomes réels (avec jaquette) des éditions
  * françaises d'une série (Google Books) - pour la sélection visuelle des
- * tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
- * jamais une erreur : l'appelant garde alors la saisie manuelle du tome.
- * Résultat stocké durablement côté backend - un résultat une fois trouvé
- * n'est plus jamais rappelé automatiquement, `forceRefresh` (bouton
- * "Actualiser") est le seul moyen de relancer les 8 requêtes Google Books
- * derrière ce candidat. */
+ * tomes possédés (voir VolumeSelectionGrid). `volumes` vide = rien trouvé,
+ * jamais une erreur : l'appelant garde alors la saisie manuelle du tome -
+ * `quotaExceeded` distingue ce cas d'un quota Google Books dépassé (voir
+ * VolumesResponseDto). Résultat stocké durablement côté backend - un
+ * résultat une fois trouvé n'est plus jamais rappelé automatiquement,
+ * `forceRefresh` (bouton "Actualiser") est le seul moyen de relancer les
+ * requêtes Google Books derrière ce candidat. */
 export function searchVolumes(
   entityTypeId: string,
   title: string,
   author?: string,
   signal?: AbortSignal,
   forceRefresh?: boolean,
-): Promise<VolumeCandidateDto[]> {
-  return get<VolumeCandidateDto[]>(
+): Promise<VolumesResponseDto> {
+  return get<VolumesResponseDto>(
     `/metadata/volumes${buildQuery({ entityTypeId, title, author, forceRefresh: forceRefresh ? 'true' : undefined })}`,
     signal,
   )

@@ -188,10 +188,41 @@ class MetadataSearchServiceTest {
         MetadataSearchService service =
                 new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
 
-        List<VolumeCandidate> result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).edition()).isEqualTo("Kana");
+        assertThat(result.volumes()).hasSize(1);
+        assertThat(result.volumes().get(0).edition()).isEqualTo("Kana");
+        assertThat(result.quotaExceeded()).isFalse();
+    }
+
+    @Test
+    void reports_quota_exceeded_when_a_provider_fails_with_no_usable_result() {
+        // Cas réel qui motive VolumeSearchResult (voir historique) : un
+        // quota Google Books dépassé pendant la recherche de tomes
+        // ressemblait, côté client, à "aucune édition trouvée" - le
+        // distinguer permet d'afficher un message adapté.
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(result.volumes()).isEmpty();
+        assertThat(result.quotaExceeded()).isTrue();
+    }
+
+    @Test
+    void does_not_lose_another_providers_results_when_one_provider_hits_its_quota() {
+        FakeVolumeSearchProvider failing = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
+        FakeVolumeSearchProvider succeeding = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(failing, succeeding), new FakeVolumeSearchCacheRepository());
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(result.volumes()).hasSize(1); // le résultat de "succeeding" n'est pas perdu
+        assertThat(result.quotaExceeded()).isTrue(); // mais le quota dépassé ailleurs reste signalé
     }
 
     @Test
@@ -249,11 +280,11 @@ class MetadataSearchServiceTest {
 
         provider.results = List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
                 new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")); // nouvelle édition parue depuis
-        List<VolumeCandidate> withoutRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba");
-        List<VolumeCandidate> withRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba", true);
+        VolumeSearchResult withoutRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba");
+        VolumeSearchResult withRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba", true);
 
-        assertThat(withoutRefresh).hasSize(1); // servi par le cache, ignore le changement
-        assertThat(withRefresh).hasSize(2); // "Actualiser" relance bien Google Books
+        assertThat(withoutRefresh.volumes()).hasSize(1); // servi par le cache, ignore le changement
+        assertThat(withRefresh.volumes()).hasSize(2); // "Actualiser" relance bien Google Books
         assertThat(provider.callCount).isEqualTo(2);
     }
 
@@ -371,10 +402,19 @@ class MetadataSearchServiceTest {
         // Volontairement mutable (pas final) : force_refresh_bypasses_both_caches
         // simule une nouvelle parution entre deux appels.
         List<VolumeCandidate> results;
+        // Non-null : simule un fournisseur qui échoue systématiquement (voir
+        // reports_quota_exceeded_when_a_provider_fails_with_no_usable_result).
+        private final RuntimeException failure;
         int callCount = 0;
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
             this.results = results;
+            this.failure = null;
+        }
+
+        FakeVolumeSearchProvider(RuntimeException failure) {
+            this.results = List.of();
+            this.failure = failure;
         }
 
         @Override
@@ -385,6 +425,9 @@ class MetadataSearchServiceTest {
         @Override
         public List<VolumeCandidate> searchVolumes(String seriesTitle, String author) {
             callCount++;
+            if (failure != null) {
+                throw failure;
+            }
             return results;
         }
     }

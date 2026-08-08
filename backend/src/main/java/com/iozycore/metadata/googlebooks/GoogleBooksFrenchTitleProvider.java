@@ -4,19 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.FrenchTitleProvider;
+import com.iozycore.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -63,13 +59,19 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     // partagé, comme le reste des regex de ce module.
     private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i),?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
 
-    @Value("${google-books.api-key:}")
-    private String apiKey;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public GoogleBooksFrenchTitleProvider(GoogleBooksHttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    /** Constructeur utilisé par les tests unitaires : parse()/search() sur un
+     * corps déjà en mémoire n'ont jamais besoin d'un vrai appel réseau. */
+    GoogleBooksFrenchTitleProvider() {
+        this(new GoogleBooksHttpClient("", ""));
+    }
 
     @Override
     public boolean supports(EntityType entityType) {
@@ -107,23 +109,16 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     private Optional<String> search(String rawQuery) {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
-            String url = SEARCH_URL.formatted(encodedQuery);
-            if (apiKey != null && !apiKey.isBlank()) {
-                url += "&key=" + apiKey;
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Google Books a répondu {} pour la recherche de titre français '{}'", response.statusCode(), rawQuery);
+            String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
+            if (body == null) {
                 return Optional.empty();
             }
-
-            return parse(response.body());
+            return parse(body);
+        } catch (QuotaExceededException e) {
+            // Open Library est déjà essayé en premier (voir @Order) - pas
+            // d'alarme utilisateur nécessaire pour ce repli.
+            log.warn("Quota Google Books dépassé pour la recherche de titre français '{}'", rawQuery);
+            return Optional.empty();
         } catch (Exception e) {
             log.warn("Échec de la recherche de titre français Google Books pour '{}' : {}", rawQuery, e.getMessage());
             return Optional.empty();

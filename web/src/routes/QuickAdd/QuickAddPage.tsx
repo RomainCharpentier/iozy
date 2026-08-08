@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -83,6 +83,11 @@ export function QuickAddPage() {
   // disponibles en repli manuel (tome introuvable dans la recherche) et se
   // combinent avec cette sélection au moment de l'ajout (voir addMutation).
   const [volumeCandidates, setVolumeCandidates] = useState<VolumeCandidateDto[]>([])
+  // Quota Google Books dépassé sur toutes les clés configurées lors de la
+  // dernière recherche (voir VolumesResponseDto) - distingue ce cas d'une
+  // série qui n'a réellement aucune édition française, pour ne pas laisser
+  // croire à tort qu'il n'y a rien alors que c'est temporaire.
+  const [volumesQuotaExceeded, setVolumesQuotaExceeded] = useState(false)
   const [isSearchingVolumes, setIsSearchingVolumes] = useState(false)
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
@@ -237,10 +242,12 @@ export function QuickAddPage() {
       setVolumeCandidates([])
       setSelectedVolumeKeys(new Set())
     }
+    setVolumesQuotaExceeded(false)
     searchVolumes(entityTypeId, seriesTitle, author, controller.signal, forceRefresh)
-      .then((results) => {
+      .then((response) => {
         if (controller.signal.aborted) return
-        setVolumeCandidates(results)
+        setVolumeCandidates(response.volumes)
+        setVolumesQuotaExceeded(response.quotaExceeded)
       })
       .catch(() => {
         // Best-effort par nature : une panne laisse simplement la grille
@@ -563,6 +570,28 @@ export function QuickAddPage() {
           >
             + Tome introuvable ci-dessus ? Ajouter manuellement
           </button>
+        )}
+
+        {selectedType?.code === 'MANGA' && volumeCandidates.length === 0 && volumesQuotaExceeded && !isSearchingVolumes && (
+          // Même esprit que ErrorBanner (bg-pink/10 + AlertTriangle) - pas le
+          // composant lui-même, qui n'accepte qu'un message brut, alors qu'il
+          // faut ici un lien "Réessayer" cliquable dans le message.
+          <div className="flex items-start gap-2 rounded-xl bg-pink/10 px-4 py-3 text-xs text-pink">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Quota Google Books dépassé pour le moment - impossible de vérifier s'il existe des éditions françaises.{' '}
+              {lastVolumeSearchParams && (
+                <button
+                  type="button"
+                  onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
+                  className="underline"
+                >
+                  Réessayer
+                </button>
+              )}{' '}
+              ou ajoute le tome manuellement ci-dessous.
+            </span>
+          </div>
         )}
 
         {selectedType?.code === 'MANGA' && (volumeCandidates.length === 0 || showManualVolumeFields) && !isSearchingVolumes && (

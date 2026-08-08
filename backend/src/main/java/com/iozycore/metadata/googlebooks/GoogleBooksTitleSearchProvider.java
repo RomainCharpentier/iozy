@@ -5,19 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataProvider;
+import com.iozycore.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,13 +79,19 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
             "kazé", "nobi nobi", "komikku", "mangetsu", "bamboo", "kbooks", "taifu",
             "ototo", "urban comics", "kotoji", "kotori", "black box", "isan manga");
 
-    @Value("${google-books.api-key:}")
-    private String apiKey;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public GoogleBooksTitleSearchProvider(GoogleBooksHttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    /** Constructeur utilisé par les tests unitaires : parse() sur un corps
+     * déjà en mémoire n'a jamais besoin d'un vrai appel réseau. */
+    GoogleBooksTitleSearchProvider() {
+        this(new GoogleBooksHttpClient("", ""));
+    }
 
     @Override
     public boolean supports(EntityType entityType) {
@@ -104,23 +106,16 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
 
         try {
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = SEARCH_URL.formatted(encodedQuery);
-            if (apiKey != null && !apiKey.isBlank()) {
-                url += "&key=" + apiKey;
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Google Books a répondu {} pour la recherche par titre '{}'", response.statusCode(), query);
+            String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
+            if (body == null) {
                 return List.of();
             }
-
-            return parse(response.body());
+            return parse(body);
+        } catch (QuotaExceededException e) {
+            // Best-effort par nature (complète Jikan/MyAnimeList, jamais leur
+            // seule source) - pas d'alarme utilisateur nécessaire ici.
+            log.warn("Quota Google Books dépassé pour la recherche par titre '{}'", query);
+            return List.of();
         } catch (Exception e) {
             log.warn("Échec de la recherche par titre Google Books pour '{}' : {}", query, e.getMessage());
             return List.of();
