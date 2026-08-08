@@ -104,7 +104,15 @@ export function QuickAddPage() {
   // le candidat. Le résultat est stocké durablement côté backend (voir
   // MetadataSearchService.searchVolumes) : sans ce bouton, un résultat une
   // fois trouvé ne serait plus jamais rafraîchi automatiquement.
-  const [lastVolumeSearchParams, setLastVolumeSearchParams] = useState<{ title: string; author?: string } | null>(null)
+  const [lastVolumeSearchParams, setLastVolumeSearchParams] = useState<{
+    title: string
+    author?: string
+    // Déjà connus du candidat sélectionné (voir pickCandidate) - permettent
+    // d'écarter un spin-off/side-story connu (voir RelatedSeriesService côté
+    // backend), y compris sur "Actualiser"/"Chercher plus d'éditions".
+    malId?: string
+    originalTitle?: string
+  } | null>(null)
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
   // Titre depuis lequel `attributes` a été rempli - si le titre est retouché
   // manuellement après avoir choisi un candidat, les attributs sont
@@ -236,10 +244,17 @@ export function QuickAddPage() {
    * un appel répété pour la même série ne relance jamais Google Books, il
    * sert la réponse déjà stockée. `deepSearch` (bouton "Chercher plus
    * d'éditions") FUSIONNE avec le résultat déjà connu, il ne le remplace pas
-   * - la sélection en cours est donc toujours conservée, comme forceRefresh. */
-  function triggerVolumeSearch(seriesTitle: string, author: string | undefined, forceRefresh = false, deepSearch = false) {
+   * - la sélection en cours est donc toujours conservée, comme forceRefresh.
+   * `malId`/`originalTitle` (déjà connus du candidat sélectionné) permettent
+   * d'écarter un spin-off/side-story connu côté backend - best-effort. */
+  function triggerVolumeSearch(
+    seriesTitle: string,
+    author: string | undefined,
+    options?: { forceRefresh?: boolean; deepSearch?: boolean; malId?: string; originalTitle?: string },
+  ) {
+    const { forceRefresh = false, deepSearch = false, malId, originalTitle } = options ?? {}
     if (!entityTypeId) return
-    setLastVolumeSearchParams({ title: seriesTitle, author })
+    setLastVolumeSearchParams({ title: seriesTitle, author, malId, originalTitle })
     volumeSearchAbortRef.current?.abort()
     const controller = new AbortController()
     volumeSearchAbortRef.current = controller
@@ -253,7 +268,7 @@ export function QuickAddPage() {
       setSelectedVolumeKeys(new Set())
     }
     setVolumesQuotaExceeded(false)
-    searchVolumes(entityTypeId, seriesTitle, author, controller.signal, forceRefresh, deepSearch)
+    searchVolumes(entityTypeId, seriesTitle, { author, signal: controller.signal, forceRefresh, deepSearch, malId, originalTitle })
       .then((response) => {
         if (controller.signal.aborted) return
         setVolumeCandidates(response.volumes)
@@ -316,6 +331,11 @@ export function QuickAddPage() {
     setShowManualVolumeFields(false)
 
     const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
+    // malId + candidate.title (titre AVANT résolution française, contrairement
+    // à resolvedTitle) permettent d'écarter un spin-off/side-story connu côté
+    // backend (voir RelatedSeriesService) - best-effort, sans effet si malId
+    // est absent (candidat sans identifiant MyAnimeList exploitable).
+    const malId = typeof candidate.attributes.malId === 'string' ? candidate.attributes.malId : undefined
     // Recherche avec le titre déjà résolu - correct dans la majorité des cas
     // (beaucoup de titres de mangas restent identiques en VF, ex: "Death
     // Note", "One Piece"). Si le titre français arrive plus tard (voir plus
@@ -332,7 +352,7 @@ export function QuickAddPage() {
     if (selectedType?.code === 'MANGA') {
       volumeSearchDebounceRef.current = setTimeout(() => {
         volumeSearchDebounceRef.current = null
-        triggerVolumeSearch(resolvedTitle, author)
+        triggerVolumeSearch(resolvedTitle, author, { malId, originalTitle: candidate.title })
       }, 600)
     }
 
@@ -370,7 +390,7 @@ export function QuickAddPage() {
           setTitle(frenchTitle)
           setAttributesSourceTitle(frenchTitle)
           if (selectedType?.code === 'MANGA') {
-            triggerVolumeSearch(frenchTitle, author)
+            triggerVolumeSearch(frenchTitle, author, { malId, originalTitle: candidate.title })
           }
         })
         .catch(() => {
@@ -583,7 +603,13 @@ export function QuickAddPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, false, true)}
+                    onClick={() =>
+                      triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, {
+                        deepSearch: true,
+                        malId: lastVolumeSearchParams.malId,
+                        originalTitle: lastVolumeSearchParams.originalTitle,
+                      })
+                    }
                     disabled={isSearchingVolumes}
                     className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
                     title="Cherche des éditions plus rares (star edition, collector, intégrale...) en plus de celles déjà trouvées"
@@ -593,7 +619,13 @@ export function QuickAddPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
+                    onClick={() =>
+                      triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, {
+                        forceRefresh: true,
+                        malId: lastVolumeSearchParams.malId,
+                        originalTitle: lastVolumeSearchParams.originalTitle,
+                      })
+                    }
                     disabled={isSearchingVolumes}
                     className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
                     title="Relance la recherche des tomes/éditions (résultat normalement gardé tel quel)"
@@ -635,7 +667,13 @@ export function QuickAddPage() {
               {lastVolumeSearchParams && (
                 <button
                   type="button"
-                  onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
+                  onClick={() =>
+                    triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, {
+                      forceRefresh: true,
+                      malId: lastVolumeSearchParams.malId,
+                      originalTitle: lastVolumeSearchParams.originalTitle,
+                    })
+                  }
                   className="underline"
                 >
                   Réessayer

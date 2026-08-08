@@ -505,8 +505,11 @@ class MetadataSearchServiceTest {
             return "MANGA".equals(entityType.code());
         }
 
+        // excludedTitleFragments ignoré ici : couvert par
+        // GoogleBooksVolumeSearchProviderTest, cette fake n'a pas besoin de le
+        // vérifier à nouveau au niveau du service.
         @Override
-        public List<VolumeCandidate> searchVolumes(String seriesTitle, String author) {
+        public List<VolumeCandidate> searchVolumes(String seriesTitle, String author, List<String> excludedTitleFragments) {
             callCount++;
             if (failure != null) {
                 throw failure;
@@ -515,7 +518,7 @@ class MetadataSearchServiceTest {
         }
 
         @Override
-        public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author) {
+        public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author, List<String> excludedTitleFragments) {
             additionalCallCount++;
             if (additionalFailure != null) {
                 throw additionalFailure;

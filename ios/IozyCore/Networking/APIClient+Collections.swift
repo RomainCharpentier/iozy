@@ -172,8 +172,11 @@ extension APIClient {
     /// d'édition les plus courants). deepSearch (bouton "Chercher plus
     /// d'éditions") FUSIONNE en plus avec des mots-clés plus rares, jamais
     /// lancés automatiquement vu leur coût - incompatible avec forceRefresh,
-    /// deepSearch est alors prioritaire côté backend.
-    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false) async throws -> VolumesResponseDTO {
+    /// deepSearch est alors prioritaire côté backend. malId+originalTitle
+    /// (déjà connus du candidat sélectionné) permettent d'écarter un
+    /// spin-off/side-story connu (voir RelatedSeriesService côté backend) -
+    /// best-effort, sans effet si l'un des deux manque.
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil) async throws -> VolumesResponseDTO {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
         if let author, !author.isEmpty {
@@ -185,6 +188,13 @@ extension APIClient {
         }
         if deepSearch {
             path += "&deepSearch=true"
+        }
+        if let malId, !malId.isEmpty {
+            path += "&malId=\(malId)"
+        }
+        if let originalTitle, !originalTitle.isEmpty {
+            let encodedOriginalTitle = originalTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? originalTitle
+            path += "&originalTitle=\(encodedOriginalTitle)"
         }
         return try await get(path)
     }

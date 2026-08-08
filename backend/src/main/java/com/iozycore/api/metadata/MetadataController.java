@@ -10,6 +10,7 @@ import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataSearchService;
+import com.iozycore.metadata.RelatedSeriesService;
 import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.VolumeSearchResult;
 import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableException;
@@ -32,17 +33,20 @@ import java.util.stream.Collectors;
 public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
+    private final RelatedSeriesService relatedSeriesService;
     private final BggCollectionImportService bggCollectionImportService;
     private final EntityTypeRepository entityTypeRepository;
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
 
     public MetadataController(MetadataSearchService metadataSearchService,
+                               RelatedSeriesService relatedSeriesService,
                                BggCollectionImportService bggCollectionImportService,
                                EntityTypeRepository entityTypeRepository,
                                EntityRepository entityRepository,
                                OwnershipRepository ownershipRepository) {
         this.metadataSearchService = metadataSearchService;
+        this.relatedSeriesService = relatedSeriesService;
         this.bggCollectionImportService = bggCollectionImportService;
         this.entityTypeRepository = entityTypeRepository;
         this.entityRepository = entityRepository;
@@ -142,12 +146,16 @@ public class MetadataController {
             + "candidat - voir MetadataSearchService.searchVolumes. Recherche par défaut limitée à quelques mots-clés "
             + "d'édition courants ; deepSearch=true (bouton 'Chercher plus d'éditions') fusionne avec les mots-clés "
             + "plus rares (voir MetadataSearchService.searchAdditionalEditions) - incompatible avec forceRefresh, "
-            + "deepSearch est alors prioritaire.")
+            + "deepSearch est alors prioritaire. malId+originalTitle (déjà connus du candidat sélectionné) "
+            + "permettent d'écarter un spin-off/side-story connu (voir RelatedSeriesService) publié sous un titre "
+            + "structurellement identique à une vraie édition - best-effort, sans effet si l'un des deux manque.")
     @GetMapping("/volumes")
     public VolumesResponse volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
                                     @RequestParam(required = false) String author,
                                     @RequestParam(required = false, defaultValue = "false") boolean forceRefresh,
-                                    @RequestParam(required = false, defaultValue = "false") boolean deepSearch) {
+                                    @RequestParam(required = false, defaultValue = "false") boolean deepSearch,
+                                    @RequestParam(required = false) String malId,
+                                    @RequestParam(required = false) String originalTitle) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -155,9 +163,10 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
+        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle);
         VolumeSearchResult searchResult = deepSearch
-                ? metadataSearchService.searchAdditionalEditions(entityType, title, author)
-                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
+                ? metadataSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
+                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
         List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
