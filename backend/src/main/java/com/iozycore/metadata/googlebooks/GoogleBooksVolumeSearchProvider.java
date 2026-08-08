@@ -78,6 +78,17 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // collection, séparé par un point - sans lui, l'édition extraite
     // restait ". Edition collector" (point résiduel non nettoyé).
     private static final Pattern LEADING_TRAILING_SEPARATORS = Pattern.compile("^[\\s\\-–:,.]+|[\\s\\-–:,.]+$");
+    // "L'Attaque des Titans - L'intégrale T01 à T04" (coffret regroupant 4
+    // tomes, vérifié manuellement) : VOLUME_NUMBER retire bien "T01" ET "T04"
+    // (deux numéros dans le même titre), mais le connecteur "à" entre les
+    // deux reste seul au milieu du texte restant - ni en tête ni en fin, donc
+    // pas nettoyé par LEADING_TRAILING_SEPARATORS - et se retrouve capitalisé
+    // en "À" par capitalizeWords : "L'intégrale à" -> "L'intégrale À".
+    // (?U) indispensable ici : \b est basé par défaut sur \w ASCII (Java), qui
+    // ne considère PAS "à" comme un caractère de mot - entouré d'espaces des
+    // deux côtés (deux non-mots), \bà\b sans (?U) ne matche jamais (aucune
+    // transition mot/non-mot détectée). (?U) rend \w Unicode-aware.
+    private static final Pattern DANGLING_RANGE_CONNECTOR = Pattern.compile("(?iU)\\bà\\b");
 
     @Value("${google-books.api-key:}")
     private String apiKey;
@@ -254,7 +265,16 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     private static String extractEdition(String fullTitle, String seriesTitle, String publisher) {
         String remainder = Pattern.compile("(?i)^" + Pattern.quote(seriesTitle)).matcher(fullTitle).replaceFirst("");
         remainder = VOLUME_NUMBER.matcher(remainder).replaceAll("");
+        remainder = DANGLING_RANGE_CONNECTOR.matcher(remainder).replaceAll("");
         remainder = LEADING_TRAILING_SEPARATORS.matcher(remainder).replaceAll("").trim();
+        // "Team-up Mission" / "Team-Up Mission" / "Team Up Mission" (les trois
+        // formes existent réellement selon la fiche Google Books, vérifié
+        // manuellement sur "My Hero Academia") doivent former UNE seule
+        // édition, pas trois onglets quasi identiques - le tiret interne est
+        // traité comme un simple espace avant capitalisation ; seuls les
+        // tirets de bord (déjà retirés ci-dessus) servaient de séparateur
+        // avec le reste du titre.
+        remainder = remainder.replace('-', ' ').replaceAll("\\s+", " ").trim();
         if (!remainder.isBlank()) {
             return capitalizeWords(remainder);
         }
