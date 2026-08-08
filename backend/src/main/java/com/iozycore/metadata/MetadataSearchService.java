@@ -5,7 +5,10 @@ import com.iozycore.domain.catalog.EntityType;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -96,8 +99,9 @@ public class MetadataSearchService {
                     .filter(provider -> provider.supports(entityType))
                     .flatMap(provider -> provider.search(query).stream())
                     .collect(Collectors.toList());
-            searchCache.put(cacheKey, fetched);
-            return fetched;
+            List<MetadataCandidate> deduped = dedupeByTitle(fetched);
+            searchCache.put(cacheKey, deduped);
+            return deduped;
         });
 
         Set<String> alreadyOwnedTitles = entityRepository.findAllByType(entityType.id()).stream()
@@ -111,6 +115,27 @@ public class MetadataSearchService {
 
     private static String normalize(String value) {
         return value.trim().toLowerCase();
+    }
+
+    /**
+     * Plusieurs fournisseurs peuvent remonter le même titre - ex: "Naruto",
+     * inchangé en français, ressort à la fois de Jikan/MyAnimeList (titre
+     * original) et de GoogleBooksTitleSearchProvider (recherche par titre
+     * français) - deux entrées visuellement identiques dans la liste de
+     * suggestions, sans intérêt pour l'utilisateur. Garde la première
+     * occurrence rencontrée par titre normalisé (insensible à la casse) :
+     * l'ordre des providers (voir leurs @Order respectifs) fait gagner
+     * Jikan/MyAnimeList sur Google Books/Open Library quand les deux
+     * trouvent le même titre - attributs plus riches (titleEnglish/
+     * titleRomaji/mediaType/startYear), utiles à la résolution du titre
+     * français et à la recherche de tomes qui suivent la sélection.
+     */
+    private static List<MetadataCandidate> dedupeByTitle(List<MetadataCandidate> candidates) {
+        Map<String, MetadataCandidate> byTitle = new LinkedHashMap<>();
+        for (MetadataCandidate candidate : candidates) {
+            byTitle.putIfAbsent(normalize(candidate.title()), candidate);
+        }
+        return new ArrayList<>(byTitle.values());
     }
 
     /** Retourne le premier résultat trouvé par un provider compétent pour ce code-barres. */

@@ -76,6 +76,25 @@ class MetadataSearchServiceTest {
     }
 
     @Test
+    void deduplicates_candidates_with_the_same_title_across_providers_keeping_the_first_providers_result() {
+        // Cas réel observé (voir historique) : "Naruto", inchangé en
+        // français, ressort à la fois de Jikan/MyAnimeList et de
+        // GoogleBooksTitleSearchProvider - deux entrées identiques dans la
+        // liste sans intérêt pour l'utilisateur.
+        FakeMetadataProvider richProvider = new FakeMetadataProvider(List.of(candidate("Naruto")));
+        FakeMetadataProvider poorProvider = new FakeMetadataProvider(
+                List.of(new MetadataCandidate("GOOGLE_BOOKS", "gb1", "naruto", null, Map.of())));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(richProvider, poorProvider), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        List<MetadataCandidate> results = service.search(MANGA, "naruto");
+
+        assertThat(results).hasSize(1); // pas deux entrées "Naruto"
+        assertThat(results.get(0).source()).isEqualTo("FAKE"); // le premier provider de la liste gagne
+    }
+
+    @Test
     void does_not_call_the_barcode_provider_again_for_a_repeated_identical_barcode() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeBarcodeProvider barcodeProvider = new FakeBarcodeProvider(candidate("Naruto"));
