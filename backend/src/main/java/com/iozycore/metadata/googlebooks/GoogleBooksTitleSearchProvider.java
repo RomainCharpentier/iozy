@@ -42,6 +42,16 @@ import java.util.regex.Pattern;
  * Tourne toujours en parallèle de Jikan/MyAnimeList/Open Library (jamais en
  * repli conditionnel) - un résultat non pertinent de ces sources est
  * indiscernable à l'avance d'une recherche par titre français.
+ * <p>
+ * Filtre par éditeur manga connu (vérifié manuellement, voir historique de
+ * la conversation) : un titre générique comme "Fragment" (mot très courant
+ * en français) remonte sinon des centaines de vieux ouvrages académiques/
+ * littéraires du domaine public ("Fragment d'un mémoire sur l'éducation des
+ * femmes au Moyen Âge", etc.) qui noient complètement le manga cherché -
+ * intitle: seul ne suffit pas à limiter Google Books au rayon manga. Aucun
+ * de ces faux positifs n'a de champ publisher renseigné, ou alors un
+ * éditeur académique (Gallimard, PUF, Editions Allia...) - jamais un des
+ * éditeurs manga francophones ci-dessous.
  */
 @Component
 public class GoogleBooksTitleSearchProvider implements MetadataProvider {
@@ -55,6 +65,16 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
     // couvrent les deux formats ("Tome N" et l'abrégé "TNN" sans point,
     // vérifié manuellement) - même règle que GoogleBooksVolumeSearchProvider.
     private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i),?\\s*\\b(?:tome|vol\\.?|t\\.?)\\s*\\d+\\s*$");
+
+    // Principaux éditeurs manga/comics francophones - liste non exhaustive
+    // par nature (un éditeur absent d'ici reste invisible à ce filtre), mais
+    // couvre l'essentiel du marché. Comparaison en "contains" (insensible à
+    // la casse) : Google Books ajoute parfois un suffixe ("Glénat Manga").
+    private static final Set<String> KNOWN_MANGA_PUBLISHERS = Set.of(
+            "pika", "kana", "glénat", "kurokawa", "delcourt", "ki-oon", "soleil manga",
+            "panini manga", "doki-doki", "akata", "meian", "vega", "tonkam", "casterman",
+            "kazé", "nobi nobi", "komikku", "mangetsu", "bamboo", "kbooks", "taifu",
+            "ototo", "urban comics", "kotoji", "kotori", "black box", "isan manga");
 
     @Value("${google-books.api-key:}")
     private String apiKey;
@@ -118,7 +138,20 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
                 continue;
             }
             String title = VOLUME_SUFFIX.matcher(rawTitle).replaceFirst("").trim();
-            if (title.isBlank() || !seenTitles.add(title.toLowerCase())) {
+            if (title.isBlank()) {
+                continue;
+            }
+
+            // Le filtre éditeur DOIT précéder le dédoublonnage par série : Google
+            // Books renvoie souvent le même titre nettoyé plusieurs fois (un tome
+            // par fiche), certaines fiches sans champ publisher renseigné et
+            // d'autres avec - si la première occurrence rencontrée est filtrée
+            // (pas d'éditeur reconnu), le dédoublonnage ne doit pas empêcher une
+            // occurrence suivante, valide, de passer (bug constaté : une fiche
+            // "Tome 2" sans éditeur "consommait" la série avant qu'une fiche "T01"
+            // avec editeur "Pika" n'ait sa chance).
+            String publisher = volumeInfo.path("publisher").asText(null);
+            if (!isKnownMangaPublisher(publisher) || !seenTitles.add(title.toLowerCase())) {
                 continue;
             }
 
@@ -127,10 +160,7 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
             if (authors.isArray() && !authors.isEmpty()) {
                 attributes.put("mangaka", authors.get(0).asText(null));
             }
-            String publisher = volumeInfo.path("publisher").asText(null);
-            if (publisher != null) {
-                attributes.put("publisher", publisher);
-            }
+            attributes.put("publisher", publisher);
 
             String imageUrl = volumeInfo.path("imageLinks").path("thumbnail").asText(null);
             if (imageUrl != null) {
@@ -140,5 +170,13 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
             candidates.add(new MetadataCandidate("GOOGLE_BOOKS", id, title, imageUrl, attributes));
         }
         return candidates;
+    }
+
+    private static boolean isKnownMangaPublisher(String publisher) {
+        if (publisher == null || publisher.isBlank()) {
+            return false;
+        }
+        String normalized = publisher.toLowerCase();
+        return KNOWN_MANGA_PUBLISHERS.stream().anyMatch(normalized::contains);
     }
 }
