@@ -73,7 +73,11 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // chapitre numérique, jamais un vrai tome physique : à exclure même si un
     // numéro de tome apparaît ailleurs dans une fiche voisine du même résultat.
     private static final Pattern CHAPTER_KEYWORD = Pattern.compile("(?i)\\bchapitre\\b|\\bchapter\\b");
-    private static final Pattern LEADING_TRAILING_SEPARATORS = Pattern.compile("^[\\s\\-–:,]+|[\\s\\-–:,]+$");
+    // "." ajouté (vérifié manuellement, voir historique) : "Chainsaw Man
+    // Tome 18 . Edition collector" a son numéro de tome AVANT le nom de
+    // collection, séparé par un point - sans lui, l'édition extraite
+    // restait ". Edition collector" (point résiduel non nettoyé).
+    private static final Pattern LEADING_TRAILING_SEPARATORS = Pattern.compile("^[\\s\\-–:,.]+|[\\s\\-–:,.]+$");
 
     @Value("${google-books.api-key:}")
     private String apiKey;

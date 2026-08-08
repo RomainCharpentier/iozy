@@ -70,6 +70,27 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void strips_a_leading_period_left_over_when_the_volume_number_appears_before_the_collection_name() throws Exception {
+        // Cas réel observé (voir historique) : "Chainsaw Man Tome 18 .
+        // Edition collector" place le numéro de tome AVANT le nom de
+        // collection, séparé par un point - sans nettoyage du point,
+        // l'édition extraite restait ". Edition collector".
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Chainsaw Man Tome 18 . Edition collector", "language": "fr", "publisher": "Crunchyroll" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Chainsaw Man");
+
+        assertThat(result.get(0).edition()).isEqualTo("Edition Collector");
+        assertThat(result.get(0).volumeNumber()).isEqualTo(18);
+    }
+
+    @Test
     void excludes_single_chapter_digital_sales_even_with_a_volume_like_number() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
