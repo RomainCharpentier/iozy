@@ -7,6 +7,7 @@ import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -25,8 +26,15 @@ import java.util.Map;
  * Interroge l'API publique Jikan (https://jikan.moe), qui expose les
  * données de MyAnimeList sans nécessiter de clé d'API. Couvre le type
  * MANGA uniquement.
+ * <p>
+ * @Order(1) : passe avant GoogleBooksTitleSearchProvider dans
+ * MetadataSearchService.search - en cas de titre identique remonté par les
+ * deux (ex: "Naruto", inchangé en français), le résultat Jikan/MAL gagne le
+ * dédoublonnage (attributs plus riches : titleEnglish/titleRomaji/mediaType/
+ * startYear, utiles à la résolution du titre et à la recherche de tomes).
  */
 @Component
+@Order(1)
 public class JikanMetadataProvider implements MetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JikanMetadataProvider.class);

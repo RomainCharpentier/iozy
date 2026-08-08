@@ -8,6 +8,7 @@ import com.iozycore.metadata.MetadataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -28,20 +29,21 @@ import java.util.regex.Pattern;
 /**
  * Recherche par titre FRANÇAIS via Google Books - complète Jikan/MyAnimeList
  * qui ne connaissent que les titres japonais/anglais/romaji, jamais le titre
- * choisi par l'éditeur français, ET complète OpenLibraryTitleSearchProvider
- * qui n'indexe pas systématiquement les mêmes séries.
+ * choisi par l'éditeur français (Open Library, essayé initialement pour ce
+ * même rôle, n'avait aucune fiche pour certaines séries - voir historique de
+ * la conversation - et a été retiré au profit de Google Books, qui les
+ * indexe abondamment).
  * <p>
  * Cas réel qui motive ce provider (vérifié manuellement, voir historique de
  * la conversation) : "Forget Me Not" (Nao Emoto) est publié en France sous
- * le titre "Fragments d'elles" (Pika) - Open Library n'a AUCUNE fiche pour
- * cette série ni son auteur en français, alors que Google Books l'indexe
- * abondamment (tomes numérotés "Tome N" et "TNN"). D'où l'utilité des deux
- * sources en parallèle plutôt qu'une seule : ni l'une ni l'autre ne couvre
- * la totalité du catalogue manga francophone.
+ * le titre "Fragments d'elles" (Pika).
  * <p>
- * Tourne toujours en parallèle de Jikan/MyAnimeList/Open Library (jamais en
- * repli conditionnel) - un résultat non pertinent de ces sources est
- * indiscernable à l'avance d'une recherche par titre français.
+ * Tourne toujours en parallèle de Jikan/MyAnimeList (jamais en repli
+ * conditionnel) - un résultat non pertinent de ces sources est indiscernable
+ * à l'avance d'une recherche par titre français. @Order(3), après Jikan(1)/
+ * MyAnimeList(2) : MetadataSearchService.search dédoublonne par titre exact
+ * (ex: "Naruto", inchangé en français) en gardant le premier rencontré -
+ * Jikan/MAL doivent gagner ce dédoublonnage (attributs plus riches).
  * <p>
  * Filtre par éditeur manga connu (vérifié manuellement, voir historique de
  * la conversation) : un titre générique comme "Fragment" (mot très courant
@@ -54,17 +56,22 @@ import java.util.regex.Pattern;
  * éditeurs manga francophones ci-dessous.
  */
 @Component
+@Order(3)
 public class GoogleBooksTitleSearchProvider implements MetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksTitleSearchProvider.class);
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=intitle:%s&langRestrict=fr&maxResults=20";
 
-    // "Fragments d'elles Tome 2" / "Fragments d'elles T01" - Google Books
-    // indexe chaque tome séparément ; \b devant le mot-clé + point optionnel
-    // couvrent les deux formats ("Tome N" et l'abrégé "TNN" sans point,
-    // vérifié manuellement) - même règle que GoogleBooksVolumeSearchProvider.
-    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i),?\\s*\\b(?:tome|vol\\.?|t\\.?)\\s*\\d+\\s*$");
+    // "Fragments d'elles Tome 2" / "Fragments d'elles T01" / "Naruto -
+    // Tome 5" - Google Books indexe chaque tome séparément ; \b devant le
+    // mot-clé + point optionnel couvrent "Tome N" et l'abrégé "TNN" sans
+    // point (vérifié manuellement) - même règle que
+    // GoogleBooksVolumeSearchProvider. Le séparateur avant le mot-clé
+    // (virgule, tiret simple/moyen, espaces) est lui aussi retiré : sans ça,
+    // "Naruto - Tome 5" ne perdait que " Tome 5", laissant "Naruto -" avec
+    // un tiret résiduel (constaté en vérifiant en direct).
+    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i)[,\\-–]?\\s*\\b(?:tome|vol\\.?|t\\.?)\\s*\\d+\\s*$");
 
     // Principaux éditeurs manga/comics francophones - liste non exhaustive
     // par nature (un éditeur absent d'ici reste invisible à ce filtre), mais
