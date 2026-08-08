@@ -18,6 +18,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Recherche best-effort d'un titre d'édition française via Google Books,
@@ -38,6 +39,14 @@ import java.util.Optional;
  * recherche libre a une chance de matcher via les métadonnées/description
  * d'une fiche bien cataloguée. Reste un best-effort : pas de garantie de
  * résultat, et un faux positif thématiquement proche n'est pas à exclure.
+ * <p>
+ * Repli supplémentaire sur l'auteur seul (vérifié manuellement, voir
+ * historique de la conversation) : "Forget Me Not" (Nao Emoto) est publié
+ * en France sous le titre "Fragments d'elles" - AUCUN mot commun avec le
+ * titre original, la combinaison titre+auteur ne matche donc jamais rien.
+ * Chercher l'auteur seul remonte "Fragments d'elles" en tout premier
+ * résultat français - même principe que le dernier recours déjà en place
+ * côté OpenLibraryFrenchTitleProvider.
  */
 @Component
 @Order(2)
@@ -46,6 +55,13 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksFrenchTitleProvider.class);
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=5";
+
+    // "Fragments d'elles T04" - Google Books indexe le tome scanné, pas la
+    // série : on ne veut que le titre de la série pour pré-remplir l'ajout.
+    // Même principe que OpenLibraryFrenchTitleProvider.cleanVolumeSuffix,
+    // dupliqué ici (fournisseurs volontairement indépendants) plutôt que
+    // partagé, comme le reste des regex de ce module.
+    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i),?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
 
     @Value("${google-books.api-key:}")
     private String apiKey;
@@ -67,8 +83,30 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         }
         String combinedQuery = (author == null || author.isBlank()) ? query : author + " " + query;
 
+        Optional<String> result = search(combinedQuery);
+        if (result.isPresent()) {
+            return result;
+        }
+
+        // Dernier recours : auteur seul, sans le titre original qui peut ne
+        // partager aucun mot avec l'édition française (voir javadoc). Accepte
+        // le risque de retomber sur une autre œuvre du même auteur si rien
+        // d'autre n'a matché - même limite déjà documentée côté Open Library.
+        //
+        // inauthor: structuré, jamais en texte libre ici : vérifié
+        // manuellement qu'une recherche libre `q=Nao Emoto` remonte "New
+        // Authentic Magical Girl" (Nisioisin, aucun rapport) - Google matche
+        // les deux mots séparément n'importe où dans la fiche, alors que
+        // inauthor: exige un vrai match sur le champ auteur.
+        if (author == null || author.isBlank()) {
+            return Optional.empty();
+        }
+        return search("inauthor:\"" + author + "\"");
+    }
+
+    private Optional<String> search(String rawQuery) {
         try {
-            String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
+            String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             String url = SEARCH_URL.formatted(encodedQuery);
             if (apiKey != null && !apiKey.isBlank()) {
                 url += "&key=" + apiKey;
@@ -81,14 +119,13 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("Google Books a répondu {} pour la recherche de titre français '{}'",
-                        response.statusCode(), combinedQuery);
+                log.warn("Google Books a répondu {} pour la recherche de titre français '{}'", response.statusCode(), rawQuery);
                 return Optional.empty();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            log.warn("Échec de la recherche de titre français Google Books pour '{}' : {}", combinedQuery, e.getMessage());
+            log.warn("Échec de la recherche de titre français Google Books pour '{}' : {}", rawQuery, e.getMessage());
             return Optional.empty();
         }
     }
@@ -108,7 +145,10 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
             }
             String title = volumeInfo.path("title").asText(null);
             if (title != null && !title.isBlank()) {
-                return Optional.of(title);
+                String cleaned = VOLUME_SUFFIX.matcher(title).replaceFirst("").trim();
+                if (!cleaned.isBlank()) {
+                    return Optional.of(cleaned);
+                }
             }
         }
         return Optional.empty();

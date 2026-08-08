@@ -63,10 +63,12 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             "", "edition originale", "perfect edition", "star edition",
             "ultimate edition", "deluxe", "intégrale", "collector");
 
-    // "Tome 5", "Vol. 12", "T.3" - capture le numéro. Exige le mot-clé (pas un
-    // simple nombre en fin de titre) pour ne jamais confondre avec une année
-    // ou un numéro de chapitre isolé.
-    private static final Pattern VOLUME_NUMBER = Pattern.compile("(?i)(?:tome|vol\\.?|t\\.)\\s*0*(\\d+)");
+    // "Tome 5", "Vol. 12", "T.3", "T04" (forme abrégée sans point, courante
+    // sur Google Books - ex: "Fragments d'elles T04", vérifié manuellement)
+    // - capture le numéro. \b devant "t" évite de confondre avec un simple
+    // "t" en fin d'un autre mot ; le mot-clé exigé (jamais juste un nombre en
+    // fin de titre) évite de confondre avec une année ou un numéro de chapitre.
+    private static final Pattern VOLUME_NUMBER = Pattern.compile("(?i)\\b(?:tome|vol\\.?|t\\.?)\\s*0*(\\d+)");
     // "One Piece édition originale - Chapitre 648" - vente à l'unité d'un
     // chapitre numérique, jamais un vrai tome physique : à exclure même si un
     // numéro de tome apparaît ailleurs dans une fiche voisine du même résultat.
