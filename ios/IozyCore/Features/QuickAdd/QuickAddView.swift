@@ -30,6 +30,10 @@ struct QuickAddView: View {
     // disponibles en repli manuel (tome introuvable dans la recherche) et se
     // combinent avec cette sélection au moment de l'ajout (voir submit).
     @State private var volumeCandidates: [VolumeCandidateDTO] = []
+    // Quota Google Books dépassé sur toutes les clés configurées lors de la
+    // dernière recherche (voir VolumesResponseDTO) - distingue ce cas d'une
+    // série qui n'a réellement aucune édition française.
+    @State private var volumesQuotaExceeded = false
     @State private var isSearchingVolumes = false
     @State private var selectedVolumeIds: Set<String> = []
     @State private var showManualVolumeFields = false
@@ -200,6 +204,22 @@ struct QuickAddView: View {
                         }
                         .font(.caption)
                         .foregroundStyle(Theme.textDim)
+                    }
+
+                    if selectedType?.code == "MANGA" && volumeCandidates.isEmpty && volumesQuotaExceeded && !isSearchingVolumes {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label(
+                                "Quota Google Books dépassé pour le moment - impossible de vérifier s'il existe des éditions françaises.",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .foregroundStyle(.orange)
+                            if let lastVolumeSearchTitle {
+                                Button("Réessayer") {
+                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true)
+                                }
+                            }
+                        }
+                        .font(.caption)
                     }
 
                     if selectedType?.code == "MANGA" && (volumeCandidates.isEmpty || showManualVolumeFields) && !isSearchingVolumes {
@@ -512,12 +532,14 @@ struct QuickAddView: View {
             volumeCandidates = []
             selectedVolumeIds = []
         }
+        volumesQuotaExceeded = false
         volumeSearchTask = Task {
-            let results = (try? await APIClient.shared.searchVolumes(
-                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh)) ?? []
+            let response = try? await APIClient.shared.searchVolumes(
+                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh)
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                volumeCandidates = results
+                volumeCandidates = response?.volumes ?? []
+                volumesQuotaExceeded = response?.quotaExceeded ?? false
                 isSearchingVolumes = false
             }
         }

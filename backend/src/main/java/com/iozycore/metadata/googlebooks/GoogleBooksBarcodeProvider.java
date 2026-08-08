@@ -5,17 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.BarcodeMetadataProvider;
 import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,15 +24,19 @@ import java.util.Optional;
  * jaquette VF), là où Open Library retombe plus souvent sur une édition
  * anglophone générique.
  * <p>
- * Clé API optionnelle (voir README.md, section "Obtenir une clé API Google
- * Books") : sans elle, les appels restent fonctionnels mais partagent le
- * quota anonyme mondial de Google Books, fréquemment épuisé en pratique
- * (429 "Quota exceeded"). Une clé donne un quota dédié à ce projet.
+ * Clé API optionnelle, avec clé(s) de secours possibles (voir README.md,
+ * section "Obtenir une clé API Google Books", et {@link GoogleBooksHttpClient}
+ * qui centralise la rotation) : sans clé du tout, les appels restent
+ * fonctionnels mais partagent le quota anonyme mondial de Google Books,
+ * fréquemment épuisé en pratique (429 "Quota exceeded").
  * <p>
  * Priorité plus haute (@Order) que {@link com.iozycore.metadata.openlibrary.OpenLibraryBarcodeProvider}
  * dans {@code MetadataSearchService.lookupByBarcode} - Open Library reste
- * en repli si Google Books n'a rien indexé sous cet ISBN. Couvre le type
- * MANGA uniquement, comme les autres fournisseurs par code-barres.
+ * en repli si Google Books n'a rien indexé sous cet ISBN (ou si le quota est
+ * dépassé sur toutes les clés, voir capture de {@link QuotaExceededException}
+ * ci-dessous - pas la peine d'en informer l'utilisateur ici, Open Library
+ * prend le relais silencieusement). Couvre le type MANGA uniquement, comme
+ * les autres fournisseurs par code-barres.
  */
 @Component
 @Order(1)
@@ -45,13 +45,19 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksBarcodeProvider.class);
     private static final String LOOKUP_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s";
 
-    @Value("${google-books.api-key:}")
-    private String apiKey;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public GoogleBooksBarcodeProvider(GoogleBooksHttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    /** Constructeur utilisé par les tests unitaires : parse()/lookup() sur un
+     * corps déjà en mémoire n'ont jamais besoin d'un vrai appel réseau. */
+    GoogleBooksBarcodeProvider() {
+        this(new GoogleBooksHttpClient("", ""));
+    }
 
     @Override
     public boolean supports(EntityType entityType) {
@@ -66,23 +72,14 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
         }
 
         try {
-            String url = LOOKUP_URL.formatted(isbn);
-            if (apiKey != null && !apiKey.isBlank()) {
-                url += "&key=" + apiKey;
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Google Books a répondu {} pour l'ISBN '{}'", response.statusCode(), isbn);
+            String body = httpClient.get(LOOKUP_URL.formatted(isbn));
+            if (body == null) {
                 return Optional.empty();
             }
-
-            return parse(response.body(), isbn);
+            return parse(body, isbn);
+        } catch (QuotaExceededException e) {
+            log.warn("Quota Google Books dépassé pour l'ISBN '{}' - Open Library prend le relais", isbn);
+            return Optional.empty();
         } catch (Exception e) {
             log.warn("Échec du lookup Google Books pour '{}' : {}", isbn, e.getMessage());
             return Optional.empty();

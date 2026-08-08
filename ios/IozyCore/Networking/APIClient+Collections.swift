@@ -52,6 +52,15 @@ struct VolumeCandidateDTO: Codable, Identifiable, Hashable {
     var id: String { "\(edition)|\(volumeNumber)" }
 }
 
+/// Réponse de GET /metadata/volumes (voir VolumesResponse côté backend) -
+/// `quotaExceeded` distingue `volumes` vide "aucune édition trouvée" d'un
+/// quota Google Books dépassé sur toutes les clés configurées, pour afficher
+/// un message adapté plutôt que de laisser croire à tort qu'il n'y a rien.
+struct VolumesResponseDTO: Codable {
+    let volumes: [VolumeCandidateDTO]
+    let quotaExceeded: Bool
+}
+
 /// Wrapper minimal pour décoder un Map<String, Object> JSON hétérogène
 /// (String/Number/Bool) renvoyé par le backend (attributes de MetadataCandidate).
 struct AnyCodableValue: Codable {
@@ -153,13 +162,14 @@ extension APIClient {
 
     /// Recherche best-effort des tomes réels (avec jaquette) des éditions
     /// françaises d'une série (Google Books) - pour la sélection visuelle des
-    /// tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
-    /// jamais une erreur : l'appelant garde alors la saisie manuelle du tome.
-    /// Résultat stocké durablement côté backend - un résultat une fois trouvé
-    /// n'est plus jamais rappelé automatiquement, forceRefresh (bouton
-    /// "Actualiser") est le seul moyen de relancer les 8 requêtes Google Books
-    /// derrière ce candidat.
-    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false) async throws -> [VolumeCandidateDTO] {
+    /// tomes possédés (voir VolumeSelectionGrid). `volumes` vide = rien
+    /// trouvé, jamais une erreur : l'appelant garde alors la saisie manuelle
+    /// du tome - `quotaExceeded` distingue ce cas d'un quota Google Books
+    /// dépassé (voir VolumesResponseDTO). Résultat stocké durablement côté
+    /// backend - un résultat une fois trouvé n'est plus jamais rappelé
+    /// automatiquement, forceRefresh (bouton "Actualiser") est le seul moyen
+    /// de relancer les requêtes Google Books derrière ce candidat.
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false) async throws -> VolumesResponseDTO {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
         if let author, !author.isEmpty {

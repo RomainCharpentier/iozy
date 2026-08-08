@@ -56,6 +56,15 @@ google-books:
   # Clé API Google Books (console.cloud.google.com, API "Books API" activée) -
   # optionnelle : sans clé, les appels restent fonctionnels mais partagent le
   # quota anonyme mondial (429 "Quota exceeded" fréquents en pratique). Une
-  # clé donne un quota dédié à ce projet. Utilisée par GoogleBooksBarcodeProvider
-  # (scan ISBN) et GoogleBooksFrenchTitleProvider (repli derrière Open Library).
+  # clé donne un quota dédié à ce projet. Utilisée par les 4 fournisseurs
+  # Google Books via GoogleBooksHttpClient (scan ISBN, titre français par
+  # résolution/direct, recherche de tomes).
   api-key: ${GOOGLE_BOOKS_API_KEY:}
+  # Clé(s) de secours, séparées par des virgules (ex: "cle2,cle3") - un 2e
+  # projet Google Cloud avec sa propre clé "Books API" a son propre quota
+  # journalier indépendant : GoogleBooksHttpClient bascule dessus dès que la
+  # clé principale répond 429, avant d'abandonner. Vérifié manuellement
+  # (voir historique) : une session de tests intensifs épuise le quota par
+  # défaut d'une seule clé en quelques dizaines de recherches de tomes (8
+  # requêtes chacune).
+  backup-api-keys: ${GOOGLE_BOOKS_BACKUP_API_KEYS:}

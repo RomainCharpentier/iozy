@@ -3,26 +3,23 @@ package com.iozycore.metadata.googlebooks;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.metadata.QuotaExceededException;
 import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -90,13 +87,21 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // transition mot/non-mot détectée). (?U) rend \w Unicode-aware.
     private static final Pattern DANGLING_RANGE_CONNECTOR = Pattern.compile("(?iU)\\bà\\b");
 
-    @Value("${google-books.api-key:}")
-    private String apiKey;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public GoogleBooksVolumeSearchProvider(GoogleBooksHttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    /** Constructeur utilisé par les tests unitaires : parse()/extractCandidates()
+     * n'appellent jamais httpClient - seul searchVolumes() en a besoin, jamais
+     * exercé dans ces tests qui passent directement un corps de réponse déjà
+     * en mémoire. */
+    GoogleBooksVolumeSearchProvider() {
+        this(new GoogleBooksHttpClient("", ""));
+    }
 
     @Override
     public boolean supports(EntityType entityType) {
@@ -109,15 +114,32 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             return List.of();
         }
 
-        List<CompletableFuture<List<VolumeCandidate>>> searches = EDITION_KEYWORDS.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword)))
+        // Quota probablement encore épuisé sur toutes les clés (voir
+        // GoogleBooksHttpClient.isQuotaLikelyExhausted) : un seul appel (le
+        // mot-clé de base) plutôt que 8, pour ne pas gaspiller en échecs
+        // quasi certains la capacité qui ne fait que commencer à revenir.
+        List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : EDITION_KEYWORDS;
+
+        AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
+        List<CompletableFuture<List<VolumeCandidate>>> searches = keywordsToTry.stream()
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, anyQuotaExceeded)))
                 .collect(Collectors.toList());
 
         List<VolumeCandidate> combined = searches.stream()
                 .flatMap(future -> future.join().stream())
                 .collect(Collectors.toList());
 
-        return filterOutNoiseEditions(dedupeAndSort(combined));
+        List<VolumeCandidate> result = filterOutNoiseEditions(dedupeAndSort(combined));
+
+        // Une liste vide peut être une absence réelle d'édition française, ou
+        // le quota Google Books dépassé sur l'ensemble des requêtes - les
+        // distinguer permet à MetadataSearchService de le signaler
+        // explicitement plutôt que de laisser croire à tort "aucune édition
+        // trouvée" (voir historique de la conversation).
+        if (result.isEmpty() && anyQuotaExceeded.get()) {
+            throw new QuotaExceededException("Quota Google Books dépassé pour la recherche de tomes de '" + seriesTitle + "'");
+        }
+        return result;
     }
 
     /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
@@ -136,30 +158,25 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword) {
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, AtomicBoolean anyQuotaExceeded) {
         String combinedQuery = "intitle:" + seriesTitle
                 + (editionKeyword.isBlank() ? "" : " " + editionKeyword)
                 + (author == null || author.isBlank() ? "" : " inauthor:" + author);
 
         try {
             String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
-            String url = SEARCH_URL.formatted(encodedQuery);
-            if (apiKey != null && !apiKey.isBlank()) {
-                url += "&key=" + apiKey;
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Google Books a répondu {} pour la recherche de tomes '{}'", response.statusCode(), combinedQuery);
+            String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
+            if (body == null) {
                 return List.of();
             }
-
-            return extractCandidates(response.body(), seriesTitle);
+            return extractCandidates(body, seriesTitle);
+        } catch (QuotaExceededException e) {
+            // Ne PAS relancer ici : les 7 autres mots-clés (même quota
+            // épuisé) vont échouer pareil - on note juste le fait, agrégé
+            // ensuite par searchVolumes pour décider s'il faut le signaler.
+            anyQuotaExceeded.set(true);
+            log.warn("Quota Google Books dépassé pour la recherche de tomes '{}'", combinedQuery);
+            return List.of();
         } catch (Exception e) {
             log.warn("Échec de la recherche de tomes Google Books pour '{}' : {}", combinedQuery, e.getMessage());
             return List.of();

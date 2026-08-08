@@ -189,11 +189,14 @@ public class MetadataSearchService {
      * françaises d'une série (voir GoogleBooksVolumeSearchProvider, 8
      * requêtes en parallèle par appel - coûteux) - déclenchée après
      * sélection d'une suggestion, pour proposer une sélection visuelle des
-     * tomes possédés plutôt qu'une saisie manuelle du numéro de tome. Vide
-     * si le type n'est pas couvert ou si rien n'a été trouvé (l'appelant
-     * garde alors le parcours de saisie manuelle).
+     * tomes possédés plutôt qu'une saisie manuelle du numéro de tome.
+     * {@code volumes} vide si le type n'est pas couvert ou si rien n'a été
+     * trouvé (l'appelant garde alors le parcours de saisie manuelle) -
+     * {@code quotaExceeded} (voir VolumeSearchResult) distingue ce cas d'un
+     * quota externe dépassé, pour que le client puisse le signaler plutôt
+     * que de laisser croire à tort "aucune édition trouvée".
      */
-    public List<VolumeCandidate> searchVolumes(EntityType entityType, String seriesTitle, String author) {
+    public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author) {
         return searchVolumes(entityType, seriesTitle, author, false);
     }
 
@@ -208,7 +211,7 @@ public class MetadataSearchService {
      *                      la peine de re-payer 8 appels externes à chaque
      *                      sélection du même candidat.
      */
-    public List<VolumeCandidate> searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh) {
+    public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
@@ -216,24 +219,36 @@ public class MetadataSearchService {
         if (!forceRefresh) {
             Optional<List<VolumeCandidate>> inMemory = volumeSearchCache.get(cacheKey);
             if (inMemory.isPresent()) {
-                return inMemory.get();
+                return VolumeSearchResult.of(inMemory.get());
             }
 
             Optional<List<VolumeCandidate>> stored = volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor);
             if (stored.isPresent()) {
                 volumeSearchCache.put(cacheKey, stored.get()); // réchauffe le cache mémoire pour les appels suivants
-                return stored.get();
+                return VolumeSearchResult.of(stored.get());
             }
         }
 
-        List<VolumeCandidate> result = volumeSearchProviders.stream()
-                .filter(provider -> provider.supports(entityType))
-                .flatMap(provider -> provider.searchVolumes(seriesTitle, author).stream())
-                .collect(Collectors.toList());
+        // Boucle explicite (plutôt qu'un stream) : un fournisseur qui lève
+        // QuotaExceededException ne doit pas faire perdre les résultats déjà
+        // obtenus des AUTRES fournisseurs compétents pour ce type (contrairement
+        // à un flatMap+collect, qui abandonnerait tout dès la première exception).
+        List<VolumeCandidate> result = new ArrayList<>();
+        boolean quotaExceeded = false;
+        for (VolumeSearchProvider provider : volumeSearchProviders) {
+            if (!provider.supports(entityType)) {
+                continue;
+            }
+            try {
+                result.addAll(provider.searchVolumes(seriesTitle, author));
+            } catch (QuotaExceededException e) {
+                quotaExceeded = true;
+            }
+        }
         if (!result.isEmpty()) {
             volumeSearchCache.put(cacheKey, result);
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
         }
-        return result;
+        return new VolumeSearchResult(result, quotaExceeded);
     }
 }

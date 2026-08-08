@@ -157,6 +157,15 @@ export interface VolumeCandidateDto {
   alreadyOwned: boolean
 }
 
+/** Réponse de GET /metadata/volumes (voir VolumesResponse côté backend) -
+ * `quotaExceeded` distingue une liste vide "aucune édition trouvée" d'un
+ * quota Google Books dépassé sur toutes les clés configurées, pour afficher
+ * un message adapté plutôt que de laisser croire à tort qu'il n'y a rien. */
+export interface VolumesResponseDto {
+  volumes: VolumeCandidateDto[]
+  quotaExceeded: boolean
+}
+
 // --- EntityType (éditeur de types dynamique) ---
 export interface EntityTypeDto {
   id: UUID
