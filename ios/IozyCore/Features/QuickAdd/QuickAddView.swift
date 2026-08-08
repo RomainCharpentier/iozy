@@ -38,6 +38,12 @@ struct QuickAddView: View {
     @State private var selectedVolumeIds: Set<String> = []
     @State private var showManualVolumeFields = false
     @State private var volumeSearchTask: Task<Void, Never>?
+    // Débounce du déclenchement AUTOMATIQUE de la recherche de tomes après
+    // sélection d'un candidat (voir selectCandidate) - évite de payer les
+    // requêtes Google Books pour chaque candidat survolé/tapé rapidement
+    // avant de s'arrêter sur le bon. N'affecte jamais un déclenchement
+    // volontaire (boutons "Actualiser"/"Chercher plus d'éditions"), toujours immédiat.
+    @State private var volumeSearchDebounceTask: Task<Void, Never>?
     // Titre/auteur de la dernière recherche de tomes déclenchée - réutilisés
     // par le bouton "Actualiser" (voir triggerVolumeSearch) sans re-choisir le
     // candidat. Résultat stocké durablement côté backend : sans ce bouton, un
@@ -142,6 +148,7 @@ struct QuickAddView: View {
                                     // l'ancien titre - plus aucune garantie qu'elle
                                     // corresponde encore à ce qui est saisi.
                                     volumeSearchTask?.cancel()
+                                    volumeSearchDebounceTask?.cancel()
                                     volumeCandidates = []
                                     selectedVolumeIds = []
                                     isSearchingVolumes = false
@@ -253,6 +260,14 @@ struct QuickAddView: View {
                             Spacer()
                             if let lastVolumeSearchTitle {
                                 Button {
+                                    triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, deepSearch: true)
+                                } label: {
+                                    Label("Chercher plus d'éditions", systemImage: "magnifyingglass")
+                                }
+                                .font(.caption)
+                                .disabled(isSearchingVolumes)
+
+                                Button {
                                     triggerVolumeSearch(seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true)
                                 } label: {
                                     Label("Actualiser", systemImage: "arrow.clockwise")
@@ -260,6 +275,14 @@ struct QuickAddView: View {
                                 .font(.caption)
                                 .disabled(isSearchingVolumes)
                             }
+                        }
+                        if volumesQuotaExceeded && !isSearchingVolumes {
+                            Label(
+                                "Quota Google Books dépassé - la dernière action n'a pas pu aboutir, réessaie plus tard.",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .foregroundStyle(.orange)
+                            .font(.caption)
                         }
                     }
                 }
@@ -516,26 +539,30 @@ struct QuickAddView: View {
     /// Cherche les tomes réels (avec jaquette) des éditions françaises de
     /// cette série (voir VolumeSelectionGrid) - best-effort, une liste vide
     /// laisse simplement les champs manuels comme unique moyen d'ajouter un
-    /// tome. Résultat stocké durablement côté backend : sans forceRefresh, un
-    /// appel répété pour la même série ne relance jamais les 8 requêtes
-    /// Google Books, il sert la réponse déjà stockée.
-    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false) {
+    /// tome. Résultat stocké durablement côté backend : sans forceRefresh/
+    /// deepSearch, un appel répété pour la même série ne relance jamais
+    /// Google Books, il sert la réponse déjà stockée. deepSearch (bouton
+    /// "Chercher plus d'éditions") FUSIONNE avec le résultat déjà connu, il
+    /// ne le remplace pas - la sélection en cours est donc toujours
+    /// conservée, comme forceRefresh.
+    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false) {
         guard let typeId = selectedType?.id else { return }
         lastVolumeSearchTitle = seriesTitle
         lastVolumeSearchAuthor = author
         volumeSearchTask?.cancel()
         isSearchingVolumes = true
-        // Un rafraîchissement manuel garde la sélection en cours (l'utilisateur
-        // ne fait que vérifier s'il y a du nouveau) - une nouvelle série
-        // (recherche initiale) repart en revanche d'une sélection vide.
-        if !forceRefresh {
+        // Un rafraîchissement manuel ou une recherche approfondie gardent la
+        // sélection en cours (l'utilisateur ne fait que vérifier/compléter) -
+        // une nouvelle série (recherche initiale) repart en revanche d'une
+        // sélection vide.
+        if !forceRefresh && !deepSearch {
             volumeCandidates = []
             selectedVolumeIds = []
         }
         volumesQuotaExceeded = false
         volumeSearchTask = Task {
             let response = try? await APIClient.shared.searchVolumes(
-                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh)
+                entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh, deepSearch: deepSearch)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 volumeCandidates = response?.volumes ?? []
@@ -548,6 +575,9 @@ struct QuickAddView: View {
     private func selectCandidate(_ candidate: MetadataCandidateDTO) {
         frenchTitleTask?.cancel()
         isTranslatingTitle = false
+        // Annule une recherche de tomes encore en attente pour un candidat
+        // précédent (voir le débounce plus bas) - un nouveau choix la rend obsolète.
+        volumeSearchDebounceTask?.cancel()
 
         // Titre déjà résolu selon la préférence (voir Réglages > Titre des
         // mangas) : en .romaji/.english, c'est définitif (candidate.title est
@@ -580,14 +610,23 @@ struct QuickAddView: View {
         searchFailed = false
 
         let author = candidate.attributes["mangaka"]?.stringValue
-        // Recherche immédiate avec le titre déjà résolu - correct dans la
-        // majorité des cas (beaucoup de titres de mangas restent identiques en
-        // VF, ex: "Death Note", "One Piece"). Si le titre français arrive plus
-        // tard (voir plus bas) et diffère, la recherche est refaite avec le bon
+        // Recherche avec le titre déjà résolu - correct dans la majorité des
+        // cas (beaucoup de titres de mangas restent identiques en VF, ex:
+        // "Death Note", "One Piece"). Si le titre français arrive plus tard
+        // (voir plus bas) et diffère, la recherche est refaite avec le bon
         // titre : le cas où "L'Attaque des Titans" doit remplacer "Attack on
         // Titan" pour trouver l'édition française sur Google Books.
+        //
+        // Débounced (pas immédiat) : sans délai, comparer rapidement plusieurs
+        // candidats avant de choisir déclenchait les requêtes Google Books
+        // pour CHAQUE candidat survolé, jamais retenu ou non - annulé si un
+        // autre candidat est choisi entre-temps (voir plus haut).
         if selectedType?.code == "MANGA" {
-            triggerVolumeSearch(seriesTitle: resolvedTitle, author: author)
+            volumeSearchDebounceTask = Task {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                guard !Task.isCancelled else { return }
+                triggerVolumeSearch(seriesTitle: resolvedTitle, author: author)
+            }
         }
 
         // Rien de plus à faire si "Français" n'est pas activé (aucun appel
@@ -711,6 +750,7 @@ struct QuickAddView: View {
                     } else {
                         lastAddedMessage = "« \(submittedTitle) » ajouté"
                     }
+                    volumeSearchDebounceTask?.cancel()
                     title = ""
                     selectedCandidateAttributes = [:]
                     volumeNumberText = ""

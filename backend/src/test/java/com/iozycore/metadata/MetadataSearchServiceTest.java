@@ -226,13 +226,36 @@ class MetadataSearchServiceTest {
     }
 
     @Test
-    void does_not_cache_an_empty_volume_search_so_a_later_retry_can_still_succeed() {
+    void caches_a_genuine_empty_volume_search_so_a_later_call_does_not_hit_the_provider_again() {
+        // Optimisation ajoutée après avoir constaté (voir historique) qu'une
+        // série sans édition française relançait les 8 requêtes Google Books
+        // à CHAQUE recherche, indéfiniment, sans jamais être mémorisée -
+        // contrairement à barcodeCache/frenchTitleCache, une liste vide EST
+        // désormais un résultat comme un autre pour volumeSearchCache tant
+        // que ce n'est pas le quota qui en est la cause (voir le test suivant).
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(List.of());
         MetadataSearchService service =
                 new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
 
-        service.searchVolumes(MANGA, "Un titre introuvable", null);
-        service.searchVolumes(MANGA, "Un titre introuvable", null);
+        VolumeSearchResult first = service.searchVolumes(MANGA, "Un titre introuvable", null);
+        VolumeSearchResult second = service.searchVolumes(MANGA, "Un titre introuvable", null);
+
+        assertThat(first.volumes()).isEmpty();
+        assertThat(second.volumes()).isEmpty();
+        assertThat(provider.callCount).isEqualTo(1); // servi par le cache au 2e appel
+    }
+
+    @Test
+    void never_caches_an_empty_result_caused_by_a_quota_failure_so_a_later_retry_can_still_succeed() {
+        // Un échec transitoire (quota, timeout...) ne doit jamais condamner
+        // la même recherche pendant 24h - même principe déjà en place pour
+        // barcodeCache/frenchTitleCache.
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
+
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
 
         assertThat(provider.callCount).isEqualTo(2); // jamais servi par le cache
     }
@@ -286,6 +309,60 @@ class MetadataSearchServiceTest {
         assertThat(withoutRefresh.volumes()).hasSize(1); // servi par le cache, ignore le changement
         assertThat(withRefresh.volumes()).hasSize(2); // "Actualiser" relance bien Google Books
         assertThat(provider.callCount).isEqualTo(2);
+    }
+
+    @Test
+    void search_additional_editions_merges_with_the_already_cached_quick_result() {
+        // Recherche rapide d'abord (met "Kana" en cache), puis "Chercher plus
+        // d'éditions" (voir bouton côté client) doit AJOUTER "Perfect
+        // Edition" au résultat déjà connu, pas le remplacer.
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Death Note Perfect Edition - Tome 1"));
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), new FakeVolumeSearchCacheRepository());
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
+
+        assertThat(result.volumes()).extracting(VolumeCandidate::edition).containsExactlyInAnyOrder("Kana", "Perfect Edition");
+        assertThat(provider.additionalCallCount).isEqualTo(1);
+        assertThat(provider.callCount).isEqualTo(1); // searchVolumes (rapide) n'est PAS rappelé
+    }
+
+    @Test
+    void search_additional_editions_persists_the_merged_result_so_it_is_not_lost_on_a_later_quick_search() {
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Death Note Perfect Edition - Tome 1"));
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+        service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
+
+        VolumeSearchResult laterQuickSearch = service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(laterQuickSearch.volumes()).hasSize(2); // "Perfect Edition" reste acquis, pas juste "Kana"
+        assertThat(provider.callCount).isEqualTo(1); // jamais rappelé, servi par le cache déjà fusionné
+    }
+
+    @Test
+    void does_not_persist_the_merge_when_the_additional_search_hits_its_quota() {
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
+                List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
+        provider.additionalFailure = new QuotaExceededException("quota dépassé");
+        MetadataSearchService service =
+                new MetadataSearchService(List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
+
+        assertThat(result.volumes()).hasSize(1); // le résultat déjà connu reste renvoyé
+        assertThat(result.quotaExceeded()).isTrue();
+        assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
+                volumes -> assertThat(volumes).hasSize(1)); // pas écrasé par un échec
     }
 
     private static MetadataCandidate candidate(String title) {
@@ -406,6 +483,12 @@ class MetadataSearchServiceTest {
         // reports_quota_exceeded_when_a_provider_fails_with_no_usable_result).
         private final RuntimeException failure;
         int callCount = 0;
+        // Résultat/échec de searchAdditionalEditions - distinct de results/failure
+        // (recherche rapide) : les deux méthodes sont appelées séparément par
+        // MetadataSearchService selon l'action de l'utilisateur.
+        List<VolumeCandidate> additionalResults = List.of();
+        RuntimeException additionalFailure;
+        int additionalCallCount = 0;
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
             this.results = results;
@@ -429,6 +512,15 @@ class MetadataSearchServiceTest {
                 throw failure;
             }
             return results;
+        }
+
+        @Override
+        public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author) {
+            additionalCallCount++;
+            if (additionalFailure != null) {
+                throw additionalFailure;
+            }
+            return additionalResults;
         }
     }
 

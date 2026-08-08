@@ -36,15 +36,24 @@ import java.util.stream.Collectors;
  * résultats. Il n'existe pas d'équivalent gratuit au catalogue édité à la
  * main de Mangacollec.
  * <p>
- * Palliatif : une requête par mot-clé d'édition française courante (voir
- * {@link #EDITION_KEYWORDS}), lancées en parallèle ({@link CompletableFuture})
- * plutôt qu'en série pour ne pas cumuler leurs latences - chacune cible une
- * édition précise, ce qui contourne le biais de popularité de la requête
- * générique. Résultat fusionné et dédoublonné une seule fois à la fin (pas
- * édition par édition : un même tome peut apparaître dans plusieurs requêtes,
- * ex: la requête vide ET la requête "perfect edition" peuvent toutes deux
- * remonter un tome Perfect Edition). Reste best-effort : une édition absente
- * de tous ces mots-clés (nom de collection inhabituel) restera invisible.
+ * Palliatif : une requête par mot-clé d'édition française courante, lancées
+ * en parallèle ({@link CompletableFuture}) plutôt qu'en série pour ne pas
+ * cumuler leurs latences - chacune cible une édition précise, ce qui
+ * contourne le biais de popularité de la requête générique. Résultat fusionné
+ * et dédoublonné une seule fois à la fin (pas édition par édition : un même
+ * tome peut apparaître dans plusieurs requêtes, ex: la requête vide ET la
+ * requête "perfect edition" peuvent toutes deux remonter un tome Perfect
+ * Edition). Reste best-effort : une édition absente de tous ces mots-clés
+ * (nom de collection inhabituel) restera invisible.
+ * <p>
+ * Coût en quota externe non négligeable (une requête par mot-clé) : scindé
+ * en {@link #QUICK_EDITION_KEYWORDS} (3, lancés à chaque recherche - couvre
+ * la grande majorité des mangas, qui n'ont aucune édition spéciale) et
+ * {@link #DEEP_EDITION_KEYWORDS} (5, lancés uniquement à la demande via
+ * {@link #searchAdditionalEditions}, voir bouton "Chercher plus d'éditions"
+ * côté client) - vérifié manuellement (voir historique de la conversation) :
+ * lancer systématiquement les 8 mots-clés a été le plus gros poste de
+ * consommation de quota de toute l'application.
  */
 @Component
 public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
@@ -53,12 +62,26 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     private static final String SEARCH_URL =
             "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=40";
 
-    // Mots-clés de collection les plus courants chez les éditeurs manga
-    // francophones (Kana, Glénat, Pika, Kurokawa...) - "" couvre l'édition de
-    // base/simple, qui ne porte généralement aucun suffixe dans son propre titre.
-    private static final List<String> EDITION_KEYWORDS = List.of(
-            "", "edition originale", "perfect edition", "star edition",
-            "ultimate edition", "deluxe", "intégrale", "collector");
+    // Lancés automatiquement à CHAQUE recherche (searchVolumes) - "" couvre
+    // l'édition de base/simple (ne porte généralement aucun suffixe dans son
+    // propre titre), "perfect edition"/"edition originale" sont les deux
+    // types d'édition spéciale les plus demandés du marché manga francophone
+    // et ceux qui ont concrètement motivé la recherche par mots-clés cette
+    // session (Dragon Ball Perfect Edition, One Piece Édition Originale -
+    // absents des 120 premiers résultats d'une requête générique, voir
+    // javadoc de la classe). La grande majorité des mangas n'ont aucune
+    // édition spéciale : ces 3 requêtes suffisent à couvrir leur cas, au
+    // lieu de payer les 8 mots-clés à chaque fois (vérifié manuellement,
+    // voir historique de la conversation - c'est le plus gros poste de
+    // consommation de quota de toute l'application).
+    private static final List<String> QUICK_EDITION_KEYWORDS = List.of("", "perfect edition", "edition originale");
+
+    // Lancés uniquement à la demande (voir searchAdditionalEditions, bouton
+    // "Chercher plus d'éditions" côté client) - types d'édition plus rares,
+    // surtout pertinents pour les grandes franchises à rééditions multiples
+    // (Naruto Star Edition, coffrets/intégrales, éditions collector...).
+    private static final List<String> DEEP_EDITION_KEYWORDS = List.of(
+            "star edition", "ultimate edition", "deluxe", "intégrale", "collector");
 
     // "Tome 5", "Vol. 12", "T.3", "T04" (forme abrégée sans point, courante
     // sur Google Books - ex: "Fragments d'elles T04", vérifié manuellement)
@@ -116,12 +139,30 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
         // Quota probablement encore épuisé sur toutes les clés (voir
         // GoogleBooksHttpClient.isQuotaLikelyExhausted) : un seul appel (le
-        // mot-clé de base) plutôt que 8, pour ne pas gaspiller en échecs
+        // mot-clé de base) plutôt que 3, pour ne pas gaspiller en échecs
         // quasi certains la capacité qui ne fait que commencer à revenir.
-        List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : EDITION_KEYWORDS;
+        List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : QUICK_EDITION_KEYWORDS;
+        return runKeywordSearches(seriesTitle, author, keywordsToTry);
+    }
 
+    @Override
+    public List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author) {
+        if (seriesTitle == null || seriesTitle.isBlank()) {
+            return List.of();
+        }
+        // Action volontaire et déjà coûteuse par nature (5 requêtes) : si le
+        // quota est probablement encore épuisé, ne pas les gaspiller en
+        // échecs quasi certains - échoue tout de suite plutôt qu'en silence.
+        if (httpClient.isQuotaLikelyExhausted()) {
+            throw new QuotaExceededException(
+                    "Quota Google Books probablement encore épuisé - recherche approfondie ignorée pour '" + seriesTitle + "'");
+        }
+        return runKeywordSearches(seriesTitle, author, DEEP_EDITION_KEYWORDS);
+    }
+
+    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
-        List<CompletableFuture<List<VolumeCandidate>>> searches = keywordsToTry.stream()
+        List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
                 .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, anyQuotaExceeded)))
                 .collect(Collectors.toList());
 

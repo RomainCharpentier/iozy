@@ -168,8 +168,12 @@ extension APIClient {
     /// dépassé (voir VolumesResponseDTO). Résultat stocké durablement côté
     /// backend - un résultat une fois trouvé n'est plus jamais rappelé
     /// automatiquement, forceRefresh (bouton "Actualiser") est le seul moyen
-    /// de relancer les requêtes Google Books derrière ce candidat.
-    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false) async throws -> VolumesResponseDTO {
+    /// de relancer les requêtes couvertes par la recherche initiale (mots-clés
+    /// d'édition les plus courants). deepSearch (bouton "Chercher plus
+    /// d'éditions") FUSIONNE en plus avec des mots-clés plus rares, jamais
+    /// lancés automatiquement vu leur coût - incompatible avec forceRefresh,
+    /// deepSearch est alors prioritaire côté backend.
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false) async throws -> VolumesResponseDTO {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
         if let author, !author.isEmpty {
@@ -178,6 +182,9 @@ extension APIClient {
         }
         if forceRefresh {
             path += "&forceRefresh=true"
+        }
+        if deepSearch {
+            path += "&deepSearch=true"
         }
         return try await get(path)
     }

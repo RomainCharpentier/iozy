@@ -58,6 +58,19 @@ public class MetadataSearchService {
     // une liste de résultats vide y est une réponse légitime (aucun résultat
     // pour cette recherche), pas une distinction nette échec/succès comme
     // pour un Optional.
+    //
+    // volumeSearchCache/volumeSearchCacheRepository suivent la même logique
+    // que searchCache, PAS barcodeCache/frenchTitleCache : une liste vide
+    // "aucune édition française" (série non reprise en France, licence
+    // abandonnée...) est mise en cache comme un vrai résultat trouvé - sans
+    // ça, une série sans édition française relançait les 8 requêtes Google
+    // Books à CHAQUE recherche, indéfiniment, sans jamais être mémorisée
+    // (vérifié manuellement, voir historique de la conversation). Seul un
+    // résultat vide causé par un quota dépassé (voir QuotaExceededException)
+    // reste exclu du cache, exactement pour la raison documentée ci-dessus
+    // pour barcodeCache/frenchTitleCache (échec transitoire, pas une vraie
+    // absence de résultat) - "Actualiser" reste le seul moyen de revérifier
+    // une série déjà en cache, vide ou non.
     private final TtlCache<String, List<MetadataCandidate>> searchCache = new TtlCache<>(Duration.ofMinutes(15), 300);
     private final TtlCache<String, MetadataCandidate> barcodeCache = new TtlCache<>(Duration.ofHours(24), 500);
     private final TtlCache<String, String> frenchTitleCache = new TtlCache<>(Duration.ofHours(24), 500);
@@ -245,10 +258,76 @@ public class MetadataSearchService {
                 quotaExceeded = true;
             }
         }
-        if (!result.isEmpty()) {
+        // Une liste vide EST mise en cache (contrairement à barcodeCache/
+        // frenchTitleCache, voir le commentaire sur volumeSearchCache
+        // ci-dessus) - seul un résultat vide causé par le quota ne l'est
+        // jamais, pour ne pas condamner une recherche par un échec transitoire.
+        if (!quotaExceeded) {
             volumeSearchCache.put(cacheKey, result);
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
         }
         return new VolumeSearchResult(result, quotaExceeded);
+    }
+
+    /**
+     * Recherche approfondie optionnelle (voir GoogleBooksVolumeSearchProvider.
+     * DEEP_EDITION_KEYWORDS) - déclenchée uniquement par une action explicite
+     * de l'utilisateur ("Chercher plus d'éditions" côté client), jamais
+     * automatiquement : {@link #searchVolumes} ne couvre par défaut que les
+     * mots-clés les plus courants pour limiter le coût, la majorité des
+     * mangas n'ayant aucune édition spéciale. FUSIONNE avec le résultat déjà
+     * connu (mémoire ou stockage durable) plutôt que de le remplacer - une
+     * recherche approfondie une fois faite reste acquise dans le cache,
+     * comme le reste de {@link #searchVolumes} (jamais rappelée
+     * automatiquement, "Actualiser" ou un nouvel appel à cette méthode sont
+     * les seuls moyens de la relancer).
+     */
+    public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author) {
+        String normalizedTitle = normalize(seriesTitle);
+        String normalizedAuthor = normalize(author == null ? "" : author);
+        String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
+
+        List<VolumeCandidate> existing = volumeSearchCache.get(cacheKey)
+                .or(() -> volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor))
+                .orElseGet(List::of);
+
+        List<VolumeCandidate> additional = new ArrayList<>();
+        boolean quotaExceeded = false;
+        for (VolumeSearchProvider provider : volumeSearchProviders) {
+            if (!provider.supports(entityType)) {
+                continue;
+            }
+            try {
+                additional.addAll(provider.searchAdditionalEditions(seriesTitle, author));
+            } catch (QuotaExceededException e) {
+                quotaExceeded = true;
+            }
+        }
+
+        List<VolumeCandidate> merged = mergeVolumes(existing, additional);
+        if (!quotaExceeded) {
+            volumeSearchCache.put(cacheKey, merged);
+            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged);
+        }
+        return new VolumeSearchResult(merged, quotaExceeded);
+    }
+
+    /** Fusionne sans dupliquer par (édition, tome) - garde la version déjà
+     * connue en cas de collision plutôt que la nouvelle (peu importe
+     * laquelle en pratique, {@code additional} cible des mots-clés
+     * différents de ceux déjà utilisés pour {@code existing}). */
+    private static List<VolumeCandidate> mergeVolumes(List<VolumeCandidate> existing, List<VolumeCandidate> additional) {
+        Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : existing) {
+            byKey.put(volumeKey(candidate), candidate);
+        }
+        for (VolumeCandidate candidate : additional) {
+            byKey.putIfAbsent(volumeKey(candidate), candidate);
+        }
+        return new ArrayList<>(byKey.values());
+    }
+
+    private static String volumeKey(VolumeCandidate candidate) {
+        return candidate.edition().trim().toLowerCase() + "|" + candidate.volumeNumber();
     }
 }

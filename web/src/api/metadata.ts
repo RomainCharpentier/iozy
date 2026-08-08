@@ -58,16 +58,27 @@ export async function fetchFrenchTitle(
  * VolumesResponseDto). Résultat stocké durablement côté backend - un
  * résultat une fois trouvé n'est plus jamais rappelé automatiquement,
  * `forceRefresh` (bouton "Actualiser") est le seul moyen de relancer les
- * requêtes Google Books derrière ce candidat. */
+ * requêtes couvertes par la recherche initiale (mots-clés d'édition les
+ * plus courants). `deepSearch` (bouton "Chercher plus d'éditions") FUSIONNE
+ * en plus avec des mots-clés plus rares, jamais lancés automatiquement vu
+ * leur coût - incompatible avec forceRefresh, deepSearch est alors
+ * prioritaire côté backend. */
 export function searchVolumes(
   entityTypeId: string,
   title: string,
   author?: string,
   signal?: AbortSignal,
   forceRefresh?: boolean,
+  deepSearch?: boolean,
 ): Promise<VolumesResponseDto> {
   return get<VolumesResponseDto>(
-    `/metadata/volumes${buildQuery({ entityTypeId, title, author, forceRefresh: forceRefresh ? 'true' : undefined })}`,
+    `/metadata/volumes${buildQuery({
+      entityTypeId,
+      title,
+      author,
+      forceRefresh: forceRefresh ? 'true' : undefined,
+      deepSearch: deepSearch ? 'true' : undefined,
+    })}`,
     signal,
   )
 }
