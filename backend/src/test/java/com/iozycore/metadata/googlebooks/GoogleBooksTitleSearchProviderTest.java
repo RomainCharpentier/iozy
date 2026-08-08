@@ -42,8 +42,8 @@ class GoogleBooksTitleSearchProviderTest {
         String body = """
                 {
                   "items": [
-                    { "id": "a", "volumeInfo": { "title": "Fragments d'elles Tome 2", "language": "fr" } },
-                    { "id": "b", "volumeInfo": { "title": "Fragments d'elles T01", "language": "fr" } }
+                    { "id": "a", "volumeInfo": { "title": "Fragments d'elles Tome 2", "language": "fr", "publisher": "Pika" } },
+                    { "id": "b", "volumeInfo": { "title": "Fragments d'elles T01", "language": "fr", "publisher": "Pika" } }
                   ]
                 }
                 """;
@@ -51,6 +51,29 @@ class GoogleBooksTitleSearchProviderTest {
         List<MetadataCandidate> result = provider.parse(body);
 
         assertThat(result).hasSize(1); // une seule série, pas un candidat par tome
+        assertThat(result.get(0).title()).isEqualTo("Fragments d'elles");
+    }
+
+    @Test
+    void excludes_matches_without_a_known_manga_publisher() throws Exception {
+        // Cas réel observé (voir historique) : chercher un mot courant en
+        // français ("fragment") remonte des centaines de vieux ouvrages
+        // académiques du domaine public - aucun n'a d'éditeur manga, contrairement
+        // au vrai résultat cherché.
+        GoogleBooksTitleSearchProvider provider = new GoogleBooksTitleSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "id": "a", "volumeInfo": { "title": "Fragment d'un mémoire sur l'éducation des femmes au Moyen Âge", "language": "fr" } },
+                    { "id": "b", "volumeInfo": { "title": "L'art du fragment", "language": "fr", "publisher": "Editions L'Harmattan" } },
+                    { "id": "c", "volumeInfo": { "title": "Fragments d'elles Tome 1", "language": "fr", "publisher": "Pika" } }
+                  ]
+                }
+                """;
+
+        List<MetadataCandidate> result = provider.parse(body);
+
+        assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("Fragments d'elles");
     }
 
