@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -87,6 +87,12 @@ export function QuickAddPage() {
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
   const volumeSearchAbortRef = useRef<AbortController | null>(null)
+  // Titre/auteur de la dernière recherche de tomes déclenchée - réutilisés par
+  // le bouton "Actualiser" (voir triggerVolumeSearch) sans avoir à re-choisir
+  // le candidat. Le résultat est stocké durablement côté backend (voir
+  // MetadataSearchService.searchVolumes) : sans ce bouton, un résultat une
+  // fois trouvé ne serait plus jamais rafraîchi automatiquement.
+  const [lastVolumeSearchParams, setLastVolumeSearchParams] = useState<{ title: string; author?: string } | null>(null)
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
   // Titre depuis lequel `attributes` a été rempli - si le titre est retouché
   // manuellement après avoir choisi un candidat, les attributs sont
@@ -213,16 +219,25 @@ export function QuickAddPage() {
 
   /** Cherche les tomes réels (avec jaquette) des éditions françaises de cette
    * série (voir VolumeSelectionGrid) - best-effort, une liste vide laisse
-   * simplement les champs manuels comme unique moyen d'ajouter un tome. */
-  function triggerVolumeSearch(seriesTitle: string, author: string | undefined) {
+   * simplement les champs manuels comme unique moyen d'ajouter un tome.
+   * Résultat stocké durablement côté backend : sans forceRefresh, un appel
+   * répété pour la même série ne relance jamais les 8 requêtes Google Books,
+   * il sert la réponse déjà stockée. */
+  function triggerVolumeSearch(seriesTitle: string, author: string | undefined, forceRefresh = false) {
     if (!entityTypeId) return
+    setLastVolumeSearchParams({ title: seriesTitle, author })
     volumeSearchAbortRef.current?.abort()
     const controller = new AbortController()
     volumeSearchAbortRef.current = controller
     setIsSearchingVolumes(true)
-    setVolumeCandidates([])
-    setSelectedVolumeKeys(new Set())
-    searchVolumes(entityTypeId, seriesTitle, author, controller.signal)
+    // Un rafraîchissement manuel garde la sélection en cours (l'utilisateur
+    // ne fait que vérifier s'il y a du nouveau) - une nouvelle série
+    // (recherche initiale) repart en revanche d'une sélection vide.
+    if (!forceRefresh) {
+      setVolumeCandidates([])
+      setSelectedVolumeKeys(new Set())
+    }
+    searchVolumes(entityTypeId, seriesTitle, author, controller.signal, forceRefresh)
       .then((results) => {
         if (controller.signal.aborted) return
         setVolumeCandidates(results)
@@ -351,6 +366,7 @@ export function QuickAddPage() {
       setVolumeCandidates([])
       setSelectedVolumeKeys(new Set())
       setIsSearchingVolumes(false)
+      setLastVolumeSearchParams(null)
     }
   }
 
@@ -369,6 +385,7 @@ export function QuickAddPage() {
     setVolumeCandidates([])
     setSelectedVolumeKeys(new Set())
     setShowManualVolumeFields(false)
+    setLastVolumeSearchParams(null)
   }
 
   // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/IGDB)
@@ -517,9 +534,23 @@ export function QuickAddPage() {
 
         {selectedType?.code === 'MANGA' && volumeCandidates.length > 0 && (
           <div className="flex flex-col gap-2">
-            <span className="text-sm text-textDim">
-              Tomes possédés {selectedVolumeKeys.size > 0 && `(${selectedVolumeKeys.size} sélectionné${selectedVolumeKeys.size > 1 ? 's' : ''})`}
-            </span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-textDim">
+                Tomes possédés {selectedVolumeKeys.size > 0 && `(${selectedVolumeKeys.size} sélectionné${selectedVolumeKeys.size > 1 ? 's' : ''})`}
+              </span>
+              {lastVolumeSearchParams && (
+                <button
+                  type="button"
+                  onClick={() => triggerVolumeSearch(lastVolumeSearchParams.title, lastVolumeSearchParams.author, true)}
+                  disabled={isSearchingVolumes}
+                  className="flex shrink-0 items-center gap-1 text-xs text-accent disabled:opacity-50"
+                  title="Relance la recherche des tomes/éditions (résultat normalement gardé tel quel)"
+                >
+                  <RefreshCw size={12} className={isSearchingVolumes ? 'animate-spin' : ''} />
+                  Actualiser
+                </button>
+              )}
+            </div>
             <VolumeSelectionGrid volumes={volumeCandidates} selectedKeys={selectedVolumeKeys} onToggle={toggleVolumeSelection} />
           </div>
         )}

@@ -151,12 +151,19 @@ extension APIClient {
     /// françaises d'une série (Google Books) - pour la sélection visuelle des
     /// tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
     /// jamais une erreur : l'appelant garde alors la saisie manuelle du tome.
-    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil) async throws -> [VolumeCandidateDTO] {
+    /// Résultat stocké durablement côté backend - un résultat une fois trouvé
+    /// n'est plus jamais rappelé automatiquement, forceRefresh (bouton
+    /// "Actualiser") est le seul moyen de relancer les 8 requêtes Google Books
+    /// derrière ce candidat.
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false) async throws -> [VolumeCandidateDTO] {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
         if let author, !author.isEmpty {
             let encodedAuthor = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
             path += "&author=\(encodedAuthor)"
+        }
+        if forceRefresh {
+            path += "&forceRefresh=true"
         }
         return try await get(path)
     }

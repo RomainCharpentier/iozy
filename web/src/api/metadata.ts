@@ -53,12 +53,20 @@ export async function fetchFrenchTitle(
 /** Recherche best-effort des tomes réels (avec jaquette) des éditions
  * françaises d'une série (Google Books) - pour la sélection visuelle des
  * tomes possédés (voir VolumeSelectionGrid). Liste vide = rien trouvé,
- * jamais une erreur : l'appelant garde alors la saisie manuelle du tome. */
+ * jamais une erreur : l'appelant garde alors la saisie manuelle du tome.
+ * Résultat stocké durablement côté backend - un résultat une fois trouvé
+ * n'est plus jamais rappelé automatiquement, `forceRefresh` (bouton
+ * "Actualiser") est le seul moyen de relancer les 8 requêtes Google Books
+ * derrière ce candidat. */
 export function searchVolumes(
   entityTypeId: string,
   title: string,
   author?: string,
   signal?: AbortSignal,
+  forceRefresh?: boolean,
 ): Promise<VolumeCandidateDto[]> {
-  return get<VolumeCandidateDto[]>(`/metadata/volumes${buildQuery({ entityTypeId, title, author })}`, signal)
+  return get<VolumeCandidateDto[]>(
+    `/metadata/volumes${buildQuery({ entityTypeId, title, author, forceRefresh: forceRefresh ? 'true' : undefined })}`,
+    signal,
+  )
 }

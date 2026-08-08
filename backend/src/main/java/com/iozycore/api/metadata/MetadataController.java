@@ -99,11 +99,14 @@ public class MetadataController {
     @Operation(summary = "Recherche best-effort des tomes réels (avec jaquette) des éditions françaises d'une "
             + "série (Google Books) - pour proposer une sélection visuelle des tomes possédés plutôt qu'une saisie "
             + "manuelle du numéro de tome. Liste vide si rien trouvé (jamais une erreur) : le client garde alors le "
-            + "parcours de saisie manuelle. Déclenché uniquement à la sélection d'une suggestion, jamais pour toute "
-            + "une liste de résultats de recherche - voir MetadataSearchService.searchVolumes.")
+            + "parcours de saisie manuelle. Résultat stocké durablement (voir V3__volume_search_cache.sql) - un "
+            + "résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
+            + "'Actualiser' côté client) est le seul moyen de relancer les 8 requêtes Google Books derrière ce "
+            + "candidat - voir MetadataSearchService.searchVolumes.")
     @GetMapping("/volumes")
     public List<VolumeCandidate> volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
-                                          @RequestParam(required = false) String author) {
+                                          @RequestParam(required = false) String author,
+                                          @RequestParam(required = false, defaultValue = "false") boolean forceRefresh) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -111,6 +114,6 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
-        return metadataSearchService.searchVolumes(entityType, title, author);
+        return metadataSearchService.searchVolumes(entityType, title, author, forceRefresh);
     }
 }
