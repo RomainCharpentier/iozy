@@ -181,7 +181,23 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             // Naruto). Exiger que le titre commence bien par la série cherchée
             // écarte ces faux positifs sans dépendre d'une liste de noms de
             // séries dérivées à maintenir à la main.
-            if (!title.trim().toLowerCase().startsWith(seriesTitle.trim().toLowerCase())) {
+            //
+            // Un simple startsWith ne suffit pas : "Tokyo Ghoul:re Tome 5"
+            // (vérifié manuellement, voir historique) commence bien par
+            // "Tokyo Ghoul" mais ":re" est une suite/série à part sur
+            // MyAnimeList, pas une édition de Tokyo Ghoul - contrairement à
+            // un vrai nom de collection ("One Piece - Édition originale",
+            // "Dragon Ball perfect edition"...), toujours séparé du titre de
+            // la série par un espace. On exige donc que le préfixe soit suivi
+            // d'un espace (ou de la fin de la chaîne), jamais collé
+            // directement à d'autres lettres.
+            String trimmedTitle = title.trim();
+            String lowerTitle = trimmedTitle.toLowerCase();
+            String lowerSeriesTitle = seriesTitle.trim().toLowerCase();
+            boolean isRealPrefixMatch = lowerTitle.startsWith(lowerSeriesTitle)
+                    && (trimmedTitle.length() == lowerSeriesTitle.length()
+                        || Character.isWhitespace(trimmedTitle.charAt(lowerSeriesTitle.length())));
+            if (!isRealPrefixMatch) {
                 continue;
             }
             OptionalInt volumeNumber = extractVolumeNumber(title);
