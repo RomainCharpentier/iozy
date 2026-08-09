@@ -57,7 +57,11 @@ import java.util.stream.Collectors;
 public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
 
     private static final Logger log = LoggerFactory.getLogger(OpenLibraryFrenchTitleProvider.class);
-    private static final String SEARCH_URL = "https://openlibrary.org/search.json?q=%s&language=fre&limit=5";
+    // limit=10 (même correctif que le jumeau GoogleBooksFrenchTitleProvider,
+    // voir historique) : le dernier recours "auteur seul" est le plus
+    // bruité de la cascade, un résultat tome-numéroté exploitable pouvant
+    // apparaître au-delà des 5 premiers résultats pour un auteur prolifique.
+    private static final String SEARCH_URL = "https://openlibrary.org/search.json?q=%s&language=fre&limit=10";
 
     // "Death Note, Vol. 1" / "L'Attaque des Titans Vol. 13" / "Naruto 58" -
     // Open Library indexe chaque tome séparément avec son numéro dans le

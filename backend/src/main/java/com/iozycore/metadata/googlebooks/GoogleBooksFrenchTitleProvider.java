@@ -50,8 +50,15 @@ import java.util.regex.Pattern;
 public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksFrenchTitleProvider.class);
+    // maxResults=10 (relevé de 5, vérifié manuellement sur "Zom 100", voir
+    // historique) : le dernier recours "auteur seul" (voir findFrenchTitle)
+    // est le plus bruité de la cascade - un auteur prolifique peut avoir
+    // PLUSIEURS one-shots/rééditions sans numéro de tome avant le premier
+    // résultat tome-numéroté exploitable ("Bucket List of the Dead - Tome
+    // 19", le vrai titre français de "Zom 100", n'apparaissait qu'en 8ème
+    // position parmi les résultats pour "Haro Aso").
     private static final String SEARCH_URL =
-            "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=5";
+            "https://www.googleapis.com/books/v1/volumes?q=%s&langRestrict=fr&maxResults=10";
 
     // "Fragments d'elles T04" - Google Books indexe le tome scanné, pas la
     // série : on ne veut que le titre de la série pour pré-remplir l'ajout.
