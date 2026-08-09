@@ -115,6 +115,29 @@ class BnfVolumeSearchProviderTest {
     }
 
     @Test
+    void normalizes_the_plural_form_of_edition_too() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Blue Period" (voir
+        // historique) : "Pika éditions" (pluriel) formait encore un onglet
+        // distinct de "Pika Édition" malgré normalizes_the_edition_or_accented_word...
+        // ci-dessus - le \b final de ce premier assouplissement ne validait
+        // jamais de frontière de mot entre "n" et le "s" du pluriel.
+        BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
+        String xml = realResponse("""
+                <mxc:datafield tag="200" ind1="1" ind2=" ">
+                  <mxc:subfield code="a">Blue Period</mxc:subfield>
+                  <mxc:subfield code="h">3</mxc:subfield>
+                </mxc:datafield>
+                <mxc:datafield tag="214" ind1=" " ind2="0">
+                  <mxc:subfield code="c">Pika éditions</mxc:subfield>
+                </mxc:datafield>
+                """);
+
+        List<VolumeCandidate> result = provider.parse(xml, "Blue Period");
+
+        assertThat(result.get(0).edition()).isEqualTo("Pika Édition");
+    }
+
+    @Test
     void excludes_a_known_spin_off_series_flagged_via_related_series_fragments() throws Exception {
         BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
         String xml = realResponse("""

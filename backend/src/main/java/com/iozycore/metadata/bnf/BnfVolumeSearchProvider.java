@@ -273,8 +273,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     // sans le mot "édition"/"edition" accentué ou non selon la notice,
     // formant sinon plusieurs onglets d'édition distincts pour un seul
     // éditeur réel - même classe de problème que TRAILING_MANGA_SUFFIX côté
-    // GoogleBooksVolumeSearchProvider.
-    private static final Pattern EDITION_WORD_VARIANT = Pattern.compile("(?U)\\b[EeÉé]dition\\b");
+    // GoogleBooksVolumeSearchProvider. "s?" final (vérifié manuellement sur
+    // "Blue Period", voir historique) : "Pika éditions" (pluriel) formait
+    // encore un quatrième onglet distinct malgré ce premier assouplissement,
+    // le \b final ne validant jamais une frontière de mot entre "n" et "s".
+    private static final Pattern EDITION_WORD_VARIANT = Pattern.compile("(?U)\\b[EeÉé]ditions?\\b");
 
     private static String normalizeEditionWord(String text) {
         return EDITION_WORD_VARIANT.matcher(text).replaceAll("Édition");

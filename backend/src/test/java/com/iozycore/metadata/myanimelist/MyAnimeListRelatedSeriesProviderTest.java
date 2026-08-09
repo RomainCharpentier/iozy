@@ -50,6 +50,27 @@ class MyAnimeListRelatedSeriesProviderTest {
     }
 
     @Test
+    void keeps_a_prequel_relation() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Shaman King" (voir
+        // historique) : "Shaman King Zero" (préquelle à l'histoire propre)
+        // est taguée "prequel" sur MyAnimeList - jusqu'ici absente de
+        // DISTINCT_SERIES_RELATIONS alors que "sequel" y était déjà, sans
+        // raison de traiter différemment une préquelle d'une suite.
+        MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
+        String body = """
+                {
+                  "related_manga": [
+                    { "node": { "id": 33389, "title": "Shaman King Zero" }, "relation_type": "prequel" }
+                  ]
+                }
+                """;
+
+        List<String> result = provider.parse(body);
+
+        assertThat(result).containsExactly("Shaman King Zero");
+    }
+
+    @Test
     void keeps_an_alternative_version_relation() throws Exception {
         // Cas réel observé (voir historique, signalé directement par
         // l'utilisateur en testant "Dragon Ball") : "Dragon Ball SD"
