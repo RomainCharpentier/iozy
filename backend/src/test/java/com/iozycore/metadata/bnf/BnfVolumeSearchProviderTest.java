@@ -84,6 +84,37 @@ class BnfVolumeSearchProviderTest {
     }
 
     @Test
+    void normalizes_the_edition_or_accented_word_regardless_of_case_or_accent() throws Exception {
+        // Cas réel observé sur "Fairy Tail" (voir historique) : la BnF
+        // indexe le même éditeur ("Pika") avec ou sans le mot
+        // "édition"/"edition" accentué ou non selon la notice, formant
+        // sinon plusieurs onglets d'édition distincts pour un seul éditeur
+        // réel.
+        BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
+        String withoutAccent = realResponse("""
+                <mxc:datafield tag="200" ind1="1" ind2=" ">
+                  <mxc:subfield code="a">Fairy Tail</mxc:subfield>
+                  <mxc:subfield code="h">61</mxc:subfield>
+                </mxc:datafield>
+                <mxc:datafield tag="214" ind1=" " ind2="0">
+                  <mxc:subfield code="c">Pika Edition</mxc:subfield>
+                </mxc:datafield>
+                """);
+        String withAccent = realResponse("""
+                <mxc:datafield tag="200" ind1="1" ind2=" ">
+                  <mxc:subfield code="a">Fairy Tail</mxc:subfield>
+                  <mxc:subfield code="h">62</mxc:subfield>
+                </mxc:datafield>
+                <mxc:datafield tag="214" ind1=" " ind2="0">
+                  <mxc:subfield code="c">Pika édition</mxc:subfield>
+                </mxc:datafield>
+                """);
+
+        assertThat(provider.parse(withoutAccent, "Fairy Tail").get(0).edition()).isEqualTo("Pika Édition");
+        assertThat(provider.parse(withAccent, "Fairy Tail").get(0).edition()).isEqualTo("Pika Édition");
+    }
+
+    @Test
     void excludes_a_known_spin_off_series_flagged_via_related_series_fragments() throws Exception {
         BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
         String xml = realResponse("""

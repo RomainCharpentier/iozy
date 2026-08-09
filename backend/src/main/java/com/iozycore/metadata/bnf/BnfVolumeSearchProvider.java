@@ -168,6 +168,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             String publisher = publisherFrom214(record);
             String finalEdition = !edition.isBlank() ? edition
                     : (publisher == null || publisher.isBlank() ? "Édition inconnue" : publisher);
+            finalEdition = normalizeEditionWord(finalEdition);
 
             // Pas de jaquette dans le catalogue BnF (simple notice
             // bibliographique, pas un catalogue commercial, voir javadoc
@@ -265,5 +266,17 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
         }
         return result.toString();
+    }
+
+    // "Pika", "Pika Edition", "Pika édition" (vérifié manuellement sur
+    // "Fairy Tail", voir historique) : la BnF indexe le même éditeur avec ou
+    // sans le mot "édition"/"edition" accentué ou non selon la notice,
+    // formant sinon plusieurs onglets d'édition distincts pour un seul
+    // éditeur réel - même classe de problème que TRAILING_MANGA_SUFFIX côté
+    // GoogleBooksVolumeSearchProvider.
+    private static final Pattern EDITION_WORD_VARIANT = Pattern.compile("(?U)\\b[EeÉé]dition\\b");
+
+    private static String normalizeEditionWord(String text) {
+        return EDITION_WORD_VARIANT.matcher(text).replaceAll("Édition");
     }
 }
