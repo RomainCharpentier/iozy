@@ -10,6 +10,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GoogleBooksVolumeSearchProviderTest {
 
     @Test
+    void extracts_a_bare_zero_padded_volume_number_without_a_tome_keyword() throws Exception {
+        // Cas réel observé (voir historique) : l'édition française "Sword
+        // Art Online" (Ofelbe) numérote ses tomes SANS mot-clé "Tome"/"T."
+        // ni "Vol." - juste un numéro à zéro de tête collé au titre de
+        // série, avant le nom de l'arc ("Aincrad") - sans ce repli, la série
+        // entière ne remontait AUCUN résultat (rejetée comme un coffret sans
+        // numéro exploitable).
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Sword Art Online 001 Aincrad", "language": "fr", "publisher": "Ofelbe" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Sword Art Online");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(1);
+        assertThat(result.get(0).edition()).isEqualTo("Aincrad");
+    }
+
+    @Test
     void matches_the_series_prefix_even_when_google_books_uses_a_hyphen_where_the_series_title_has_a_space() throws Exception {
         // Cas réel observé (voir historique) : le titre officiel français est
         // indexé "ONE-PUNCH MAN" (tiret) alors que le titre de série connu
@@ -452,6 +476,43 @@ class GoogleBooksVolumeSearchProviderTest {
         List<VolumeCandidate> result = provider.parse(body, "Some Series");
 
         assertThat(result).extracting(VolumeCandidate::volumeNumber).containsExactly(1, 2);
+    }
+
+    @Test
+    void keeps_several_editions_that_each_have_only_one_volume_when_none_is_solidly_represented() {
+        // Cas réel observé sur "Sword Art Online" (voir historique) : les
+        // arcs "Aincrad", "Progressive" et "Ordinal Scale" ne ressortent
+        // chacun qu'avec UN SEUL tome trouvé (limite de couverture Google
+        // Books, pas un faux positif) - sans cet assouplissement, les TROIS
+        // étaient écartés comme du bruit (countByEdition.size() > 1), la
+        // série entière ne remontant plus AUCUN résultat. filterOutNoiseEditions
+        // testée directement (package-private) : parse() ne représente
+        // qu'une seule requête/mot-clé, ce filtre n'agit qu'après fusion de
+        // TOUTES les requêtes (voir runKeywordSearches).
+        List<VolumeCandidate> candidates = List.of(
+                new VolumeCandidate("Aincrad", 1, null, "Sword Art Online 001 Aincrad"),
+                new VolumeCandidate("Progressive", 2, null, "Sword Art Online Progressive Tome 2"),
+                new VolumeCandidate("Ordinal Scale", 4, null, "Sword Art Online - Ordinal Scale Tome 4"));
+
+        List<VolumeCandidate> result = GoogleBooksVolumeSearchProvider.filterOutNoiseEditions(candidates);
+
+        assertThat(result).extracting(VolumeCandidate::edition).containsExactlyInAnyOrder("Aincrad", "Progressive", "Ordinal Scale");
+    }
+
+    @Test
+    void still_discards_a_single_volume_edition_when_another_edition_is_solidly_represented() {
+        // Contrairement au cas ci-dessus : ici "Kana" est solidement
+        // représentée (3 tomes) - "Party" (1 seul tome) ressort alors bien
+        // comme un faux positif isolé à écarter, comportement inchangé.
+        List<VolumeCandidate> candidates = List.of(
+                new VolumeCandidate("Kana", 1, null, "One Piece - Tome 1"),
+                new VolumeCandidate("Kana", 2, null, "One Piece - Tome 2"),
+                new VolumeCandidate("Kana", 3, null, "One Piece - Tome 3"),
+                new VolumeCandidate("Party", 1, null, "One Piece Party - Tome 1"));
+
+        List<VolumeCandidate> result = GoogleBooksVolumeSearchProvider.filterOutNoiseEditions(candidates);
+
+        assertThat(result).extracting(VolumeCandidate::edition).containsOnly("Kana");
     }
 
     @Test
