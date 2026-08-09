@@ -162,15 +162,22 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
     private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
-        List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
-                .collect(Collectors.toList());
+        List<VolumeCandidate> result = runKeywordSearchesOnce(seriesTitle, author, keywords, excludedTitleFragments, anyQuotaExceeded);
 
-        List<VolumeCandidate> combined = searches.stream()
-                .flatMap(future -> future.join().stream())
-                .collect(Collectors.toList());
-
-        List<VolumeCandidate> result = filterOutNoiseEditions(dedupeAndSort(combined));
+        // Repli sans auteur si rien n'a été trouvé (vérifié manuellement sur
+        // "Haikyu!!", voir historique) : certaines fiches françaises n'ont
+        // pas le champ auteur correctement renseigné (souvent absent, ou
+        // orthographié différemment) - inauthor: combiné à intitle: peut
+        // alors éliminer PRESQUE TOUS les résultats français (confirmé :
+        // 20 résultats bruts au total avec inauthor:, un seul en français,
+        // inexploitable), alors qu'ils existent bien sans ce filtre. Un seul
+        // essai supplémentaire (jamais en boucle), et seulement si la
+        // première tentative n'a RIEN trouvé - ne coûte donc rien de plus
+        // pour la grande majorité des recherches qui aboutissent déjà avec
+        // l'auteur.
+        if (result.isEmpty() && author != null && !author.isBlank() && !anyQuotaExceeded.get()) {
+            result = runKeywordSearchesOnce(seriesTitle, null, keywords, excludedTitleFragments, anyQuotaExceeded);
+        }
 
         // Une liste vide peut être une absence réelle d'édition française, ou
         // le quota Google Books dépassé sur l'ensemble des requêtes - les
@@ -181,6 +188,18 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException("Quota Google Books dépassé pour la recherche de tomes de '" + seriesTitle + "'");
         }
         return result;
+    }
+
+    private List<VolumeCandidate> runKeywordSearchesOnce(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
+        List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
+                .collect(Collectors.toList());
+
+        List<VolumeCandidate> combined = searches.stream()
+                .flatMap(future -> future.join().stream())
+                .collect(Collectors.toList());
+
+        return filterOutNoiseEditions(dedupeAndSort(combined));
     }
 
     /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
@@ -271,12 +290,19 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             // la série par un espace. On exige donc que le préfixe soit suivi
             // d'un espace (ou de la fin de la chaîne), jamais collé
             // directement à d'autres lettres.
+            //
+            // matchSeriesPrefix (pas un simple startsWith) tolère en plus des
+            // différences d'espaces/tirets À L'INTÉRIEUR du préfixe lui-même -
+            // cas réels observés (voir historique) : le titre MyAnimeList
+            // "One Punch Man" (espace) ne matchait pas "ONE-PUNCH MAN - tome
+            // 18" (tiret) côté Google Books, et "Haikyu!!" (aucun espace) ne
+            // matchait pas "Haikyu !! - Les As du volley T10" (espace avant
+            // "!!") - deux mangas très connus, entièrement invisibles à la
+            // recherche de tomes à cause de cette seule rigidité.
             String trimmedTitle = title.trim();
-            String lowerTitle = trimmedTitle.toLowerCase();
-            String lowerSeriesTitle = seriesTitle.trim().toLowerCase();
-            boolean isRealPrefixMatch = lowerTitle.startsWith(lowerSeriesTitle)
-                    && (trimmedTitle.length() == lowerSeriesTitle.length()
-                        || Character.isWhitespace(trimmedTitle.charAt(lowerSeriesTitle.length())));
+            int prefixEnd = matchSeriesPrefix(trimmedTitle, seriesTitle.trim());
+            boolean isRealPrefixMatch = prefixEnd >= 0
+                    && (prefixEnd == trimmedTitle.length() || Character.isWhitespace(trimmedTitle.charAt(prefixEnd)));
             if (!isRealPrefixMatch) {
                 continue;
             }
@@ -296,7 +322,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             }
 
             String publisher = volumeInfo.path("publisher").asText(null);
-            String edition = extractEdition(title, seriesTitle, publisher);
+            String edition = extractEdition(trimmedTitle, prefixEnd, seriesTitle, publisher);
 
             String imageUrl = volumeInfo.path("imageLinks").path("thumbnail").asText(null);
             if (imageUrl != null) {
@@ -306,6 +332,52 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             candidates.add(new VolumeCandidate(edition, volumeNumber.getAsInt(), imageUrl, title));
         }
         return candidates;
+    }
+
+    /**
+     * Vrai préfixe "flou" : avance en parallèle dans {@code title} et
+     * {@code seriesTitle}, en sautant indépendamment les espaces/tirets de
+     * CHAQUE côté avant de comparer le caractère suivant - leur nombre ou
+     * leur nature (espace vs tiret, présence ou non) peut différer entre le
+     * titre de série connu (MyAnimeList) et le titre réel indexé par
+     * l'éditeur français sur Google Books. Un simple {@code startsWith} ne
+     * suffisait pas pour deux mangas très connus, entièrement invisibles à
+     * la recherche de tomes à cause de cette seule rigidité (vérifié
+     * manuellement, voir historique) :
+     * <ul>
+     *   <li>"One Punch Man" (espace) vs "ONE-PUNCH MAN - tome 18" (tiret)</li>
+     *   <li>"Haikyu!!" (aucun espace) vs "Haikyu !! - Les As du volley T10"
+     *       (espace avant "!!")</li>
+     * </ul>
+     *
+     * @return l'index dans {@code title} juste après le préfixe reconnu, ou
+     * -1 si {@code title} ne commence pas par {@code seriesTitle} (aux
+     * espaces/tirets près).
+     */
+    private static int matchSeriesPrefix(String title, String seriesTitle) {
+        int i = 0;
+        int j = 0;
+        while (j < seriesTitle.length()) {
+            while (i < title.length() && isFlexibleSeparator(title.charAt(i))) {
+                i++;
+            }
+            while (j < seriesTitle.length() && isFlexibleSeparator(seriesTitle.charAt(j))) {
+                j++;
+            }
+            if (j >= seriesTitle.length()) {
+                break;
+            }
+            if (i >= title.length() || Character.toLowerCase(title.charAt(i)) != Character.toLowerCase(seriesTitle.charAt(j))) {
+                return -1;
+            }
+            i++;
+            j++;
+        }
+        return i;
+    }
+
+    private static boolean isFlexibleSeparator(char c) {
+        return Character.isWhitespace(c) || c == '-';
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
@@ -356,9 +428,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     private static final Pattern TRAILING_MANGA_SUFFIX = Pattern.compile("(?i)\\s+manga$");
 
     /** "One Piece - Édition originale - Tome 60" + série "One Piece" -> "Édition Originale".
-     * "Death Note - Tome 10" + série "Death Note" -> "" -> repli sur l'éditeur ("Kana"). */
-    private static String extractEdition(String fullTitle, String seriesTitle, String publisher) {
-        String remainder = Pattern.compile("(?i)^" + Pattern.quote(seriesTitle)).matcher(fullTitle).replaceFirst("");
+     * "Death Note - Tome 10" + série "Death Note" -> "" -> repli sur l'éditeur ("Kana").
+     * {@code seriesPrefixEnd} (voir {@link #matchSeriesPrefix}) - déjà calculé
+     * par l'appelant, jamais re-dérivé ici par regex : le préfixe réel peut
+     * différer légèrement de {@code seriesTitle} en espaces/tirets (ex:
+     * "ONE-PUNCH MAN" pour la série "One Punch Man"). */
+    private static String extractEdition(String fullTitle, int seriesPrefixEnd, String seriesTitle, String publisher) {
+        String remainder = fullTitle.substring(Math.min(seriesPrefixEnd, fullTitle.length()));
         remainder = VOLUME_NUMBER.matcher(remainder).replaceAll("");
         remainder = DANGLING_RANGE_CONNECTOR.matcher(remainder).replaceAll("");
         remainder = LEADING_TRAILING_SEPARATORS.matcher(remainder).replaceAll("").trim();
