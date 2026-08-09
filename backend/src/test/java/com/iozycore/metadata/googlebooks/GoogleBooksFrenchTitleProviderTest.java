@@ -28,6 +28,28 @@ class GoogleBooksFrenchTitleProviderTest {
     }
 
     @Test
+    void strips_a_dash_separated_tome_suffix_without_leaving_a_dangling_dash() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Detective Conan" (voir
+        // historique) : "Détective Conan - Tome 14" (tiret, pas virgule)
+        // laissait "Détective Conan -" une fois le suffixe "Tome 14" retiré -
+        // le tiret résiduel empêchait ensuite tout match de préfixe côté
+        // recherche de tomes (66 résultats sans lui, 2 seulement avec).
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 1,
+                  "items": [
+                    { "volumeInfo": { "title": "Détective Conan - Tome 14", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Détective Conan");
+    }
+
+    @Test
     void skips_results_not_actually_tagged_as_french_despite_langRestrict() throws Exception {
         GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
         String body = """

@@ -50,6 +50,50 @@ class OpenLibraryFrenchTitleProviderTest {
     }
 
     @Test
+    void strips_a_dash_separated_tome_suffix_without_leaving_a_dangling_dash() throws Exception {
+        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
+        // historique) : un titre séparé par un tiret plutôt qu'une virgule
+        // laissait un tiret résiduel une fois le suffixe "Tome N" retiré.
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "Détective Conan - Tome 14", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Détective Conan");
+    }
+
+    @Test
+    void skips_a_result_whose_title_is_actually_in_japanese_and_falls_through_to_the_next_one() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Detective Conan" (voir
+        // historique) : "language=fre" DANS LA REQUÊTE ne garantit QUE
+        // l'existence d'une édition française parmi toutes celles de
+        // l'œuvre - le "title" renvoyé reste le titre canonique, souvent en
+        // japonais pour un manga ("名探偵コナン") - sans ce filet de
+        // sécurité, la recherche de tomes qui suit repartait avec du
+        // japonais comme "titre français", ne trouvant alors STRICTEMENT
+        // AUCUN résultat.
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "名探偵コナン 1", "language": ["jpn", "fre"] },
+                    { "title": "Détective Conan, tome 1", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Détective Conan");
+    }
+
+    @Test
     void returns_empty_when_there_are_no_results() throws Exception {
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
 
