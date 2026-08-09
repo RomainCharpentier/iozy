@@ -24,6 +24,15 @@ struct QuickAddView: View {
     // possède vraiment).
     @State private var volumeNumberText: String = ""
     @State private var edition: String = ""
+    // File d'attente de tomes saisis manuellement (voir queueManualVolume) -
+    // permet d'en ajouter PLUSIEURS avant de valider (ex: les tomes 4 et 5
+    // d'une "Black Edition" tous les deux introuvables dans la recherche
+    // automatique, vérifié manuellement sur "Death Note", voir historique) :
+    // sans ça, chaque tome manquant demandait de revalider tout le
+    // formulaire séparément. volumeNumberText/edition ci-dessus restent la
+    // saisie EN COURS, pas encore mise en file - un tome tapé puis validé
+    // directement (sans "+") reste géré tel quel par submit(), comme avant.
+    @State private var manualVolumes: [ManualVolumeEntry] = []
     // Sélection visuelle des tomes possédés par jaquette (voir VolumeSelectionGrid,
     // façon Mangacollec) - déclenchée après sélection d'un candidat Manga
     // (voir triggerVolumeSearch). volumeNumberText/edition ci-dessus restent
@@ -121,6 +130,39 @@ struct QuickAddView: View {
     private var blockedByMissingMatch: Bool {
         requiresMatch && !title.trimmingCharacters(in: .whitespaces).isEmpty && !hasVerifiedMatch
     }
+    /// Reflète exactement ce que submit() va soumettre - couvertures cochées
+    /// + file de tomes manuels + saisie manuelle EN COURS si non vide, pour
+    /// que le libellé du bouton ("Ajouter N tomes") ne mente jamais sur ce
+    /// qui va réellement être ajouté.
+    private var totalVolumesToAdd: Int {
+        selectedVolumeIds.count + manualVolumes.count
+            + (volumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty ? 0 : 1)
+    }
+
+    /// Un tome manuel déjà mis en file d'attente (voir queueManualVolume) -
+    /// Identifiable pour ForEach/suppression individuelle.
+    private struct ManualVolumeEntry: Identifiable {
+        let id = UUID()
+        let volumeNumber: Int
+        let edition: String
+    }
+
+    /// Ajoute la saisie manuelle EN COURS à la file d'attente plutôt que de
+    /// l'ajouter tout de suite - permet d'enchaîner plusieurs tomes manuels
+    /// (ex: T4 puis T5 d'une même édition) avant de valider le formulaire une
+    /// seule fois. Le numéro de tome est vidé pour le suivant, mais l'édition
+    /// reste : des tomes manuels consécutifs partagent presque toujours la
+    /// même édition.
+    private func queueManualVolume() {
+        let trimmed = volumeNumberText.trimmingCharacters(in: .whitespaces)
+        guard let parsed = Int(trimmed), parsed > 0 else { return }
+        manualVolumes.append(ManualVolumeEntry(volumeNumber: parsed, edition: edition.trimmingCharacters(in: .whitespaces)))
+        volumeNumberText = ""
+    }
+
+    private func removeManualVolume(_ id: UUID) {
+        manualVolumes.removeAll { $0.id == id }
+    }
 
     var body: some View {
         NavigationStack {
@@ -157,6 +199,7 @@ struct QuickAddView: View {
                                     volumeSearchDebounceTask?.cancel()
                                     volumeCandidates = []
                                     selectedVolumeIds = []
+                                    manualVolumes = []
                                     isSearchingVolumes = false
                                     lastVolumeSearchTitle = nil
                                     lastVolumeSearchAuthor = nil
@@ -242,10 +285,32 @@ struct QuickAddView: View {
                     }
 
                     if selectedType?.code == "MANGA" && (volumeCandidates.isEmpty || showManualVolumeFields) && !isSearchingVolumes {
-                        TextField("Tome n°", text: $volumeNumberText)
-                            .keyboardType(.numberPad)
-                        TextField("Édition (ex: Kana, Perfect Edition...)", text: $edition)
-                            .textInputAutocapitalization(.words)
+                        HStack {
+                            TextField("Tome n°", text: $volumeNumberText)
+                                .keyboardType(.numberPad)
+                            TextField("Édition (ex: Kana, Perfect Edition...)", text: $edition)
+                                .textInputAutocapitalization(.words)
+                            Button {
+                                queueManualVolume()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                            }
+                            .disabled(volumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                        ForEach(manualVolumes) { manual in
+                            HStack {
+                                Text("T. \(manual.volumeNumber)" + (manual.edition.isEmpty ? "" : " · \(manual.edition)"))
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textDim)
+                                Spacer()
+                                Button {
+                                    removeManualVolume(manual.id)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -368,7 +433,7 @@ struct QuickAddView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .safeAreaInset(edge: .bottom) {
                 Button(action: submit) {
-                    Text(selectedVolumeIds.count > 1 ? "Ajouter \(selectedVolumeIds.count) tomes" : "Ajouter")
+                    Text(totalVolumesToAdd > 1 ? "Ajouter \(totalVolumesToAdd) tomes" : "Ajouter")
                         .font(Theme.bodySemibold(16))
                         .foregroundStyle(Theme.accentText)
                         .frame(maxWidth: .infinity)
@@ -584,6 +649,7 @@ struct QuickAddView: View {
         if !forceRefresh && !deepSearch {
             volumeCandidates = []
             selectedVolumeIds = []
+            manualVolumes = []
         }
         volumesQuotaExceeded = false
         volumeSearchTask = Task {
@@ -727,12 +793,16 @@ struct QuickAddView: View {
         let submittedTitle = title
         let attributes = selectedCandidateAttributes
 
-        // Chaque couverture cochée dans la grille devient un ajout, plus
-        // éventuellement le tome saisi manuellement (repli "introuvable dans
-        // la recherche") en plus - jamais l'un OU l'autre, les deux se combinent.
+        // Chaque couverture cochée dans la grille devient un ajout, plus la
+        // file de tomes manuels déjà mise en attente (voir queueManualVolume),
+        // plus éventuellement la saisie manuelle EN COURS si non vide -
+        // jamais l'un OU l'autre, tout se combine.
         var items: [VolumeToAdd] = volumeCandidates
             .filter { selectedVolumeIds.contains($0.id) }
             .map { VolumeToAdd(volumeNumber: $0.volumeNumber, edition: $0.edition, volumeImageUrl: $0.imageUrl) }
+        for manual in manualVolumes {
+            items.append(VolumeToAdd(volumeNumber: manual.volumeNumber, edition: manual.edition.isEmpty ? nil : manual.edition, volumeImageUrl: nil))
+        }
         let trimmedVolumeText = volumeNumberText.trimmingCharacters(in: .whitespaces)
         if let manualVolumeNumber = trimmedVolumeText.isEmpty ? nil : Int(trimmedVolumeText) {
             let trimmedEdition = edition.trimmingCharacters(in: .whitespaces)
@@ -797,6 +867,7 @@ struct QuickAddView: View {
                     selectedCandidateAttributes = [:]
                     volumeNumberText = ""
                     edition = ""
+                    manualVolumes = []
                     volumeCandidates = []
                     selectedVolumeIds = []
                     showManualVolumeFields = false
