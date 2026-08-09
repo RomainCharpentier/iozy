@@ -220,17 +220,36 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
      * de la recherche plein-texte (ex: "One Piece Party", un dérivé qui
      * contient le titre de la série sans en être une édition) plutôt que
-     * d'une vraie petite collection - on l'écarte, sauf si c'est la SEULE
-     * édition trouvée (mieux vaut proposer un tome que rien du tout).
+     * d'une vraie petite collection - on l'écarte, MAIS seulement s'il existe
+     * par ailleurs au moins une édition solidement représentée (2+ tomes) :
+     * sans ce "groupe témoin", rien ne permet de distinguer un faux positif
+     * isolé d'une couverture simplement clairsemée sur TOUTES les éditions
+     * trouvées à la fois (voir cas réel ci-dessous) - dans ce dernier cas,
+     * mieux vaut les montrer toutes que de tout écarter.
+     * <p>
+     * Cas réel qui motive cet assouplissement (signalé en testant "Sword Art
+     * Online", voir historique) : les arcs "Aincrad", "Progressive" et
+     * "Ordinal Scale" ne ressortent chacun qu'avec UN SEUL tome trouvé
+     * (limite de couverture Google Books sur cette série, pas un faux
+     * positif) - avant cet assouplissement, countByEdition.size() &gt; 1
+     * (trois éditions distinctes) déclenchait le filtre et écartait les
+     * TROIS, alors qu'aucune n'était du bruit : la série entière ne
+     * remontait alors AUCUN résultat.
+     * <p>
      * Jamais appliqué à un one-shot déjà résolu par
      * {@link #resolveOneShotFallback} : un one-shot n'a par nature qu'UN
      * seul exemplaire par édition (jamais 2+, contrairement à une vraie
      * série multi-tomes), cette heuristique le prendrait sinon toujours à
-     * tort pour du bruit. */
-    private static List<VolumeCandidate> filterOutNoiseEditions(List<VolumeCandidate> candidates) {
+     * tort pour du bruit. Package-private (pas {@code private}) : testé
+     * directement, {@link #parse(String, String)} (utilisé par le reste des
+     * tests de cette classe) ne représente qu'UNE requête/mot-clé et n'y
+     * fait volontairement pas appel - ce filtre n'a de sens qu'après fusion
+     * de TOUTES les requêtes (voir runKeywordSearches). */
+    static List<VolumeCandidate> filterOutNoiseEditions(List<VolumeCandidate> candidates) {
         Map<String, Long> countByEdition = candidates.stream()
                 .collect(Collectors.groupingBy(VolumeCandidate::edition, Collectors.counting()));
-        if (countByEdition.size() <= 1) {
+        boolean anyMultiVolumeEdition = countByEdition.values().stream().anyMatch(count -> count >= 2);
+        if (countByEdition.size() <= 1 || !anyMultiVolumeEdition) {
             return candidates;
         }
         return candidates.stream()
@@ -346,7 +365,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             if (matchesKnownRelatedSeries(trimmedTitle, excludedTitleFragments)) {
                 continue;
             }
-            OptionalInt volumeNumber = extractVolumeNumber(title);
+            OptionalInt volumeNumber = extractVolumeNumber(trimmedTitle, prefixEnd);
 
             // Alias historique entre parenthèses collé au titre de série
             // (ex: "City Hunter (Nicky Larson)", nom de l'adaptation
@@ -503,8 +522,47 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private static OptionalInt extractVolumeNumber(String title) {
+    /**
+     * @param prefixEnd voir {@link #matchSeriesPrefix} - permet le repli
+     *                  {@link #BARE_ZERO_PADDED_VOLUME_NUMBER} quand aucun
+     *                  mot-clé n'est trouvé.
+     */
+    private static OptionalInt extractVolumeNumber(String title, int prefixEnd) {
         var matcher = VOLUME_NUMBER.matcher(title);
+        if (matcher.find()) {
+            try {
+                return OptionalInt.of(Integer.parseInt(matcher.group(1)));
+            } catch (NumberFormatException e) {
+                return OptionalInt.empty();
+            }
+        }
+        return extractBareZeroPaddedVolumeNumber(title, prefixEnd);
+    }
+
+    /**
+     * "Sword Art Online 001 Aincrad" (vérifié manuellement, édition
+     * française réelle chez Ofelbe, voir historique) : convention de
+     * numérotation SANS mot-clé "Tome"/"T." ni "Vol." - juste un numéro à
+     * zéro(s) de tête collé au titre de série, avant le nom de l'arc/tome.
+     * Sans ce repli, {@link #VOLUME_NUMBER} ne trouvant aucun mot-clé, cette
+     * édition entière (pourtant bien réelle) était invisible, rejetée comme
+     * un coffret/artbook sans numéro exploitable.
+     * <p>
+     * Volontairement scopé au texte JUSTE APRÈS le préfixe de série
+     * ({@code prefixEnd}, voir {@link #matchSeriesPrefix}), jamais cherché
+     * n'importe où dans le titre comme {@link #VOLUME_NUMBER} : un nombre
+     * isolé ailleurs (année, prix...) serait trop risqué à interpréter comme
+     * un numéro de tome sans mot-clé pour le confirmer - le zéro de tête
+     * (jamais présent dans une année à 4 chiffres usuelle) est le seul
+     * signal qui rend ce repli raisonnablement sûr.
+     */
+    private static final Pattern BARE_ZERO_PADDED_VOLUME_NUMBER = Pattern.compile("^[\\s\\-–:,.()]*0(\\d{1,3})\\b");
+
+    private static OptionalInt extractBareZeroPaddedVolumeNumber(String trimmedTitle, int prefixEnd) {
+        if (prefixEnd < 0 || prefixEnd >= trimmedTitle.length()) {
+            return OptionalInt.empty();
+        }
+        var matcher = BARE_ZERO_PADDED_VOLUME_NUMBER.matcher(trimmedTitle.substring(prefixEnd));
         if (!matcher.find()) {
             return OptionalInt.empty();
         }
@@ -531,6 +589,10 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     private static String extractEdition(String fullTitle, int seriesPrefixEnd, String seriesTitle, String publisher) {
         String remainder = fullTitle.substring(Math.min(seriesPrefixEnd, fullTitle.length()));
         remainder = VOLUME_NUMBER.matcher(remainder).replaceAll("");
+        // Numéro à zéro(s) de tête sans mot-clé (voir
+        // extractBareZeroPaddedVolumeNumber) - ex: "Sword Art Online 001
+        // Aincrad" -> ne garder que "Aincrad", pas "001 Aincrad".
+        remainder = BARE_ZERO_PADDED_VOLUME_NUMBER.matcher(remainder).replaceFirst("");
         remainder = DANGLING_RANGE_CONNECTOR.matcher(remainder).replaceAll("");
         remainder = LEADING_TRAILING_SEPARATORS.matcher(remainder).replaceAll("").trim();
         // "Team-up Mission" / "Team-Up Mission" / "Team Up Mission" (les trois
