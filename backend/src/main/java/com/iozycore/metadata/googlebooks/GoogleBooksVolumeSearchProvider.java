@@ -174,7 +174,15 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .flatMap(future -> future.join().stream())
                 .collect(Collectors.toList());
 
-        List<VolumeCandidate> result = filterOutNoiseEditions(dedupeAndSort(combined));
+        List<VolumeCandidate> deduped = dedupeAndSort(combined);
+        // filterOutNoiseEditions suppose des éditions multi-tomes (voir sa
+        // javadoc) - jamais applicable à un one-shot résolu par
+        // resolveOneShotFallback, qui n'a par nature qu'UN seul exemplaire
+        // par édition.
+        boolean isProbableOneShot = !deduped.isEmpty() && deduped.stream().allMatch(candidate -> candidate.volumeNumber() == 0);
+        List<VolumeCandidate> result = isProbableOneShot
+                ? resolveOneShotFallback(deduped)
+                : filterOutNoiseEditions(resolveOneShotFallback(deduped));
 
         // Une liste vide peut être une absence réelle d'édition française, ou
         // le quota Google Books dépassé sur l'ensemble des requêtes - les
@@ -187,11 +195,38 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         return result;
     }
 
+    /**
+     * 0 (voir {@code candidates.add} dans {@link #extractCandidates}) marque
+     * un titre nu sans "Tome N" - un one-shot probable ("Re/member",
+     * "Hideout", vérifiés manuellement, voir historique) puisqu'un manga
+     * complet en un seul tome n'a par nature aucune raison d'être numéroté.
+     * <p>
+     * Ne se déclenche QUE si absolument TOUS les candidats du lot sont dans
+     * ce cas - un mélange de tomes numérotés et de titres nus indique une
+     * vraie série multi-tomes mal couverte (le titre nu y est alors du bruit,
+     * ex: une fiche incomplète du même tome déjà vu ailleurs avec son
+     * numéro), jamais un one-shot : dans ce cas, les titres nus sont
+     * simplement écartés, jamais promus.
+     */
+    private static List<VolumeCandidate> resolveOneShotFallback(List<VolumeCandidate> candidates) {
+        if (candidates.isEmpty() || candidates.stream().anyMatch(candidate -> candidate.volumeNumber() > 0)) {
+            return candidates.stream().filter(candidate -> candidate.volumeNumber() > 0).collect(Collectors.toList());
+        }
+        return candidates.stream()
+                .map(candidate -> new VolumeCandidate(candidate.edition(), 1, candidate.imageUrl(), candidate.title()))
+                .collect(Collectors.toList());
+    }
+
     /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
      * de la recherche plein-texte (ex: "One Piece Party", un dérivé qui
      * contient le titre de la série sans en être une édition) plutôt que
      * d'une vraie petite collection - on l'écarte, sauf si c'est la SEULE
-     * édition trouvée (mieux vaut proposer un tome que rien du tout). */
+     * édition trouvée (mieux vaut proposer un tome que rien du tout).
+     * Jamais appliqué à un one-shot déjà résolu par
+     * {@link #resolveOneShotFallback} : un one-shot n'a par nature qu'UN
+     * seul exemplaire par édition (jamais 2+, contrairement à une vraie
+     * série multi-tomes), cette heuristique le prendrait sinon toujours à
+     * tort pour du bruit. */
     private static List<VolumeCandidate> filterOutNoiseEditions(List<VolumeCandidate> candidates) {
         Map<String, Long> countByEdition = candidates.stream()
                 .collect(Collectors.groupingBy(VolumeCandidate::edition, Collectors.counting()));
@@ -248,7 +283,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
      * séparée de {@link #parse(String, String)} pour ne pas casser les tests
      * existants qui n'en ont pas besoin. */
     List<VolumeCandidate> parse(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
-        return dedupeAndSort(extractCandidates(body, seriesTitle, excludedTitleFragments));
+        return resolveOneShotFallback(dedupeAndSort(extractCandidates(body, seriesTitle, excludedTitleFragments)));
     }
 
     /** Extrait les candidats bruts d'une réponse Google Books, SANS dédoublonner -
@@ -312,9 +347,6 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 continue;
             }
             OptionalInt volumeNumber = extractVolumeNumber(title);
-            if (volumeNumber.isEmpty()) {
-                continue; // coffret, artbook, one-shot sans numéro exploitable
-            }
 
             // Alias historique entre parenthèses collé au titre de série
             // (ex: "City Hunter (Nicky Larson)", nom de l'adaptation
@@ -322,6 +354,21 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             // d'édition entre parenthèses ("Yu-Gi-Oh ! (Intégrale)") qui,
             // lui, doit être conservé (voir skipLeadingAliasNotResemblingAnEdition).
             int editionStart = skipLeadingAliasNotResemblingAnEdition(trimmedTitle, prefixEnd);
+
+            // "Re/member", "Hideout" (vérifiés manuellement, voir historique) :
+            // un one-shot (manga complet en un seul tome) n'a par nature aucun
+            // "Tome N" dans son titre - le titre brut EST alors exactement le
+            // titre de la série, rien de plus. À ne pas confondre avec un
+            // "Death Note Complete Box Set" (coffret) ou un artbook, qui n'ont
+            // pas de numéro de tome NON PLUS mais laissent du texte
+            // descriptif après le titre de série - seul un titre nu (rien
+            // après le préfixe reconnu) est un candidat one-shot valable ;
+            // runKeywordSearches décide ensuite, une fois TOUS les résultats
+            // vus, si c'en est vraiment un (voir resolveOneShotFallback).
+            boolean isBareTitleMention = editionStart == trimmedTitle.length();
+            if (volumeNumber.isEmpty() && !isBareTitleMention) {
+                continue; // coffret, artbook... sans numéro exploitable et pas juste le titre nu
+            }
 
             String publisher = volumeInfo.path("publisher").asText(null);
             String edition = extractEdition(trimmedTitle, editionStart, seriesTitle, publisher);
@@ -331,7 +378,10 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 imageUrl = imageUrl.replaceFirst("^http://", "https://");
             }
 
-            candidates.add(new VolumeCandidate(edition, volumeNumber.getAsInt(), imageUrl, title));
+            // 0 = numéro de tome non extrait (voir isBareTitleMention
+            // ci-dessus) - sentinelle résolue par resolveOneShotFallback,
+            // jamais renvoyée telle quelle à l'appelant.
+            candidates.add(new VolumeCandidate(edition, volumeNumber.orElse(0), imageUrl, title));
         }
         return candidates;
     }

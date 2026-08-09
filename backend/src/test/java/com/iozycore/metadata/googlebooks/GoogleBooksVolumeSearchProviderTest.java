@@ -384,6 +384,54 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void treats_a_bare_series_title_with_no_volume_number_at_all_as_a_one_shot() throws Exception {
+        // Cas réel observé (voir historique) : "Re/member" et "Hideout" sont
+        // des one-shots (manga complets en un seul tome) - leur titre brut
+        // EST exactement le titre de la série, sans "Tome N" nulle part
+        // (contrairement à "Death Note Complete Box Set" ci-dessus, qui n'a
+        // pas de numéro non plus mais laisse du texte descriptif après le
+        // titre de série - un vrai coffret, pas un one-shot). Sans ce repli,
+        // ces mangas étaient invisibles à la recherche de tomes.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Hideout", "language": "fr", "publisher": "Editions Ki-oon" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Hideout");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(1);
+        assertThat(result.get(0).edition()).isEqualTo("Editions Ki-oon");
+    }
+
+    @Test
+    void does_not_promote_a_bare_title_mention_to_tome_one_when_real_numbered_tomes_also_exist() throws Exception {
+        // Un titre nu MÉLANGÉ à de vrais tomes numérotés indique une vraie
+        // série multi-tomes mal couverte par une fiche incomplète (ex: une
+        // republication du tome déjà listé plus loin sans son numéro) - le
+        // titre nu est alors du bruit à écarter, jamais un one-shot à
+        // promouvoir en "Tome 1" (qui existe déjà légitimement par ailleurs).
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Some Series", "language": "fr", "publisher": "Kana" } },
+                    { "volumeInfo": { "title": "Some Series - Tome 1", "language": "fr", "publisher": "Kana" } },
+                    { "volumeInfo": { "title": "Some Series - Tome 2", "language": "fr", "publisher": "Kana" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Some Series");
+
+        assertThat(result).extracting(VolumeCandidate::volumeNumber).containsExactly(1, 2);
+    }
+
+    @Test
     void deduplicates_same_edition_and_volume_preferring_the_result_with_a_cover() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
