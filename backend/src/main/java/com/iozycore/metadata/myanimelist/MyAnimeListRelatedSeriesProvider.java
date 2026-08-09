@@ -26,12 +26,20 @@ import java.util.Set;
  * connect to MyAnimeList") au moment d'écrire ce fournisseur, alors que
  * l'API officielle répondait normalement pour le même identifiant.
  * <p>
- * Seules "spin_off" et "side_story" sont retenues comme séries clairement
- * DISTINCTES (vérifié manuellement sur "Blue Lock" -&gt; "Blue Lock: Episode
- * Nagi" et "Demon Slayer" -&gt; "Kimetsu Gakuen!", tous deux tagués
- * "spin_off") - "alternative_version"/"alternative_setting" désignent
- * souvent une vraie réédition (kanzenban, couleur...) qu'on veut au
- * contraire GARDER comme résultat de recherche de tomes, pas exclure.
+ * "spin_off", "side_story" et "sequel" sont retenues comme séries
+ * clairement DISTINCTES (vérifié manuellement sur "Blue Lock" -&gt; "Blue
+ * Lock: Episode Nagi" et "Demon Slayer" -&gt; "Kimetsu Gakuen!", tous deux
+ * tagués "spin_off" ; "Dragon Ball" -&gt; "Dragon Ball Super", tagué
+ * "sequel" - une suite avec sa propre histoire, pas une édition) -
+ * "alternative_version"/"alternative_setting" restent volontairement
+ * EXCLUES de cette liste : elles désignent souvent une vraie réédition
+ * (kanzenban, couleur...) qu'on veut au contraire GARDER comme résultat de
+ * recherche de tomes. Limite assumée (vérifié manuellement, voir
+ * historique) : "Dragon Ball" -&gt; "Dragon Ball SD" (parodie/spin-off
+ * comique à l'histoire distincte) est tagué "alternative_version" sur
+ * MyAnimeList, pas "spin_off" - il reste donc affiché à tort comme une
+ * édition, MyAnimeList ne distinguant pas fiablement dans cette catégorie
+ * une vraie réédition d'une réinterprétation à l'histoire différente.
  * <p>
  * Pas de mode dégradé sans Client ID configuré (comme MyAnimeListMetadataProvider) :
  * supports() renvoie false tant que {@code mal.client-id} est vide.
@@ -41,7 +49,7 @@ public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListRelatedSeriesProvider.class);
     private static final String RELATIONS_URL = "https://api.myanimelist.net/v2/manga/%s?fields=related_manga";
-    private static final Set<String> DISTINCT_SERIES_RELATIONS = Set.of("spin_off", "side_story");
+    private static final Set<String> DISTINCT_SERIES_RELATIONS = Set.of("spin_off", "side_story", "sequel");
 
     @Value("${mal.client-id:}")
     private String clientId;
