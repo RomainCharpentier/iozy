@@ -98,11 +98,15 @@ public class MetadataController {
             + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché. malId "
             + "(déjà connu du candidat sélectionné) permet d'écarter une suite/spin-off connu(e) (voir "
             + "RelatedSeriesService) mal résolu(e) à la place du titre cherché - ex: \"Dragon Ball Super\" pour "
-            + "\"Dragon Ball\" - best-effort, sans effet si absent.")
+            + "\"Dragon Ball\" - best-effort, sans effet si absent. titleRomaji (voir "
+            + "MyAnimeListMetadataProvider.titleRomaji) est essayé en repli de 'query' pour cette même détection "
+            + "quand un spin-off est indexé sous le titre romaji plutôt que le titre affiché (ex: \"Attack on "
+            + "Titan\"/\"Shingeki no Kyojin\").")
     @GetMapping("/french-title")
     public FrenchTitleResponse frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
                                             @RequestParam(required = false) String author,
-                                            @RequestParam(required = false) String malId) {
+                                            @RequestParam(required = false) String malId,
+                                            @RequestParam(required = false) String titleRomaji) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -110,7 +114,7 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
         }
 
-        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, query);
+        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, query, titleRomaji);
         return metadataSearchService.findFrenchTitle(entityType, query, author, excludedTitleFragments)
                 .map(FrenchTitleResponse::new)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -153,14 +157,16 @@ public class MetadataController {
             + "plus rares (voir MetadataSearchService.searchAdditionalEditions) - incompatible avec forceRefresh, "
             + "deepSearch est alors prioritaire. malId+originalTitle (déjà connus du candidat sélectionné) "
             + "permettent d'écarter un spin-off/side-story connu (voir RelatedSeriesService) publié sous un titre "
-            + "structurellement identique à une vraie édition - best-effort, sans effet si l'un des deux manque.")
+            + "structurellement identique à une vraie édition - best-effort, sans effet si l'un des deux manque. "
+            + "titleRomaji est essayé en repli d'originalTitle pour cette même détection (voir /french-title).")
     @GetMapping("/volumes")
     public VolumesResponse volumes(@RequestParam UUID entityTypeId, @RequestParam String title,
                                     @RequestParam(required = false) String author,
                                     @RequestParam(required = false, defaultValue = "false") boolean forceRefresh,
                                     @RequestParam(required = false, defaultValue = "false") boolean deepSearch,
                                     @RequestParam(required = false) String malId,
-                                    @RequestParam(required = false) String originalTitle) {
+                                    @RequestParam(required = false) String originalTitle,
+                                    @RequestParam(required = false) String titleRomaji) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -168,7 +174,7 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'title' est requis");
         }
 
-        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle);
+        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle, titleRomaji);
         VolumeSearchResult searchResult = deepSearch
                 ? metadataSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
                 : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments);

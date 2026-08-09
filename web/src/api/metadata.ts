@@ -34,17 +34,21 @@ export function importBggCollection(username: string): Promise<BggImportResult> 
  * spin-off connu(e) (voir RelatedSeriesService côté backend) mal résolu(e)
  * à la place du titre cherché - ex: "Dragon Ball Super nº 18" pour "Dragon
  * Ball" (vérifié manuellement, voir historique) - best-effort, sans effet
- * si absent. 404 = rien trouvé, pas une erreur : renvoie null, l'appelant
- * garde alors le titre anglais/romaji déjà affiché. */
+ * si absent. `titleRomaji` est essayé en repli de `query` pour cette même
+ * détection (vérifié manuellement sur "Attack on Titan"/"Shingeki no
+ * Kyojin", voir historique) - un spin-off peut être indexé côté
+ * MyAnimeList sous le titre romaji plutôt que le titre affiché. 404 = rien
+ * trouvé, pas une erreur : renvoie null, l'appelant garde alors le titre
+ * anglais/romaji déjà affiché. */
 export async function fetchFrenchTitle(
   entityTypeId: string,
   query: string,
-  options?: { author?: string; malId?: string; signal?: AbortSignal },
+  options?: { author?: string; malId?: string; titleRomaji?: string; signal?: AbortSignal },
 ): Promise<string | null> {
-  const { author, malId, signal } = options ?? {}
+  const { author, malId, titleRomaji, signal } = options ?? {}
   try {
     const result = await get<{ frenchTitle: string }>(
-      `/metadata/french-title${buildQuery({ entityTypeId, query, author, malId })}`,
+      `/metadata/french-title${buildQuery({ entityTypeId, query, author, malId, titleRomaji })}`,
       signal,
     )
     return result.frenchTitle
@@ -69,7 +73,8 @@ export async function fetchFrenchTitle(
  * prioritaire côté backend. `malId`+`originalTitle` (déjà connus du candidat
  * sélectionné) permettent d'écarter un spin-off/side-story connu (voir
  * RelatedSeriesService côté backend) - best-effort, sans effet si l'un des
- * deux manque. */
+ * deux manque. `titleRomaji` est essayé en repli d'`originalTitle` pour
+ * cette même détection (voir fetchFrenchTitle ci-dessus). */
 export function searchVolumes(
   entityTypeId: string,
   title: string,
@@ -80,9 +85,10 @@ export function searchVolumes(
     deepSearch?: boolean
     malId?: string
     originalTitle?: string
+    titleRomaji?: string
   },
 ): Promise<VolumesResponseDto> {
-  const { author, signal, forceRefresh, deepSearch, malId, originalTitle } = options ?? {}
+  const { author, signal, forceRefresh, deepSearch, malId, originalTitle, titleRomaji } = options ?? {}
   return get<VolumesResponseDto>(
     `/metadata/volumes${buildQuery({
       entityTypeId,
@@ -92,6 +98,7 @@ export function searchVolumes(
       deepSearch: deepSearch ? 'true' : undefined,
       malId,
       originalTitle,
+      titleRomaji,
     })}`,
     signal,
   )

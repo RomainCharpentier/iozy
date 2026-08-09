@@ -66,6 +66,33 @@ class RelatedSeriesServiceTest {
     }
 
     @Test
+    void falls_back_to_the_romaji_title_when_the_related_title_does_not_share_the_english_titles_prefix() {
+        // Cas réel signalé en testant "Attack on Titan" (voir historique) :
+        // le titre retenu côté client est le titre anglais ("Attack on
+        // Titan"), mais MyAnimeList indexe son spin-off "Before the Fall"
+        // sous le titre romaji de la série ("Shingeki no Kyojin") - aucun
+        // lien avec le titre anglais, mais un préfixe exact avec le romaji.
+        RelatedSeriesService service = new RelatedSeriesService(
+                List.of(new FakeRelatedSeriesProvider(List.of("Shingeki no Kyojin: Before the Fall"))));
+
+        List<String> result = service.findExcludedTitleFragments(
+                MANGA, "23390", "Attack on Titan", "Shingeki no Kyojin");
+
+        assertThat(result).containsExactly("Before the Fall");
+    }
+
+    @Test
+    void ignores_the_romaji_title_when_absent_or_identical_to_the_original_title() {
+        RelatedSeriesService service = new RelatedSeriesService(
+                List.of(new FakeRelatedSeriesProvider(List.of("Blue Lock: Episode Nagi"))));
+
+        assertThat(service.findExcludedTitleFragments(MANGA, "114745", "Blue Lock", null))
+                .containsExactly("Episode Nagi");
+        assertThat(service.findExcludedTitleFragments(MANGA, "114745", "Blue Lock", "Blue Lock"))
+                .containsExactly("Episode Nagi");
+    }
+
+    @Test
     void returns_empty_without_an_external_id_or_an_original_title() {
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Blue Lock: Episode Nagi"))));
