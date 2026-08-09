@@ -95,22 +95,26 @@ class MyAnimeListRelatedSeriesProviderTest {
     }
 
     @Test
-    void excludes_an_alternative_setting_relation() throws Exception {
-        // Contrairement à "alternative_version" ci-dessus, "alternative_setting"
-        // reste volontairement exclue - aucun cas concret observé justifiant
-        // de l'ajouter, contrairement à "Dragon Ball SD".
+    void keeps_an_alternative_setting_relation() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Gantz" (voir
+        // historique) : "Gantz:E" (spin-off à l'univers alternatif, mêmes
+        // personnages, contexte différent) est tagué "alternative_setting"
+        // sur MyAnimeList - jusqu'ici volontairement exclue faute de cas
+        // concret, PREMIER cas rencontré malgré des tests étendus sur de
+        // nombreuses franchises cette session, justifiant de l'ajouter à
+        // son tour (même risque assumé que "alternative_version" ci-dessus).
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
                   "related_manga": [
-                    { "node": { "id": 1, "title": "Some Manga (Full Color Edition)" }, "relation_type": "alternative_setting" }
+                    { "node": { "id": 123754, "title": "Gantz:E" }, "relation_type": "alternative_setting" }
                   ]
                 }
                 """;
 
         List<String> result = provider.parse(body);
 
-        assertThat(result).isEmpty();
+        assertThat(result).containsExactly("Gantz:E");
     }
 
     @Test

@@ -96,6 +96,24 @@ class RelatedSeriesServiceTest {
     }
 
     @Test
+    void keeps_a_single_letter_suffix_when_both_relaxations_apply_at_once() {
+        // Cas réel trouvé en continuant les tests sur "Gantz" (voir
+        // historique) : "Gantz:E" (tagué "alternative_setting", un spin-off
+        // à l'univers alternatif) donne le suffixe "E" - une SEULE lettre,
+        // ni le seuil "sigle majuscule" ni le seuil "collé à un :" pris
+        // isolément (2 caractères chacun) ne suffit, mais leur combinaison
+        // (majuscule ET collée) est un signal encore plus distinctif -
+        // sans cet assouplissement, "Gantz:E" ressortait comme une fausse
+        // édition nommée "E".
+        RelatedSeriesService service = new RelatedSeriesService(
+                List.of(new FakeRelatedSeriesProvider(List.of("Gantz:E"))));
+
+        List<String> result = service.findExcludedTitleFragments(MANGA, "123754", "Gantz");
+
+        assertThat(result).containsExactly("E");
+    }
+
+    @Test
     void falls_back_to_the_romaji_title_when_the_related_title_does_not_share_the_english_titles_prefix() {
         // Cas réel signalé en testant "Attack on Titan" (voir historique) :
         // le titre retenu côté client est le titre anglais ("Attack on
