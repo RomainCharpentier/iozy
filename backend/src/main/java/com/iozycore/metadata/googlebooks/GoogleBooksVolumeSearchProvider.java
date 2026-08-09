@@ -13,11 +13,13 @@ import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -146,7 +148,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         // mot-clé de base) plutôt que 3, pour ne pas gaspiller en échecs
         // quasi certains la capacité qui ne fait que commencer à revenir.
         List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : QUICK_EDITION_KEYWORDS;
-        return runKeywordSearches(seriesTitle, keywordsToTry, excludedTitleFragments);
+        return runKeywordSearches(seriesTitle, author, keywordsToTry, excludedTitleFragments);
     }
 
     @Override
@@ -161,13 +163,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException(
                     "Quota Google Books probablement encore épuisé - recherche approfondie ignorée pour '" + seriesTitle + "'");
         }
-        return runKeywordSearches(seriesTitle, DEEP_EDITION_KEYWORDS, excludedTitleFragments);
+        return runKeywordSearches(seriesTitle, author, DEEP_EDITION_KEYWORDS, excludedTitleFragments);
     }
 
-    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, List<String> keywords, List<String> excludedTitleFragments) {
+    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
         List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, keyword, excludedTitleFragments, anyQuotaExceeded)))
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
                 .collect(Collectors.toList());
 
         List<VolumeCandidate> combined = searches.stream()
@@ -272,18 +274,24 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
-        // Volontairement SANS inauthor: (vérifié manuellement à trois
-        // reprises, voir historique) : certaines fiches françaises n'ont pas
-        // le champ auteur correctement renseigné - combiner intitle: et
-        // inauthor: peut alors éliminer une bonne partie voire la quasi-
-        // totalité des résultats français, au profit d'éditions dans
-        // d'autres langues qui prennent leur place dans les résultats
-        // (constaté sur "Haikyu!!" : 0 résultat exploitable au lieu de 15+ ;
-        // "Golden Kamui" : 1 au lieu de 6 ; "Komi cherche ses mots" : 2 au
-        // lieu de 14). isRealPrefixMatch + la vérification de langue déjà en
-        // place suffisent à écarter les résultats non pertinents sans ce
-        // filtre, dont le gain de précision ne compensait pas ce risque.
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
+        // Volontairement SANS inauthor: DANS LA REQUÊTE (vérifié
+        // manuellement à trois reprises, voir historique) : certaines
+        // fiches françaises n'ont pas le champ auteur correctement
+        // renseigné - combiner intitle: et inauthor: peut alors éliminer
+        // une bonne partie voire la quasi-totalité des résultats français,
+        // au profit d'éditions dans d'autres langues qui prennent leur
+        // place dans les résultats (constaté sur "Haikyu!!" : 0 résultat
+        // exploitable au lieu de 15+ ; "Golden Kamui" : 1 au lieu de 6 ;
+        // "Komi cherche ses mots" : 2 au lieu de 14). isRealPrefixMatch + la
+        // vérification de langue déjà en place suffisent à écarter la
+        // plupart des résultats non pertinents sans ce filtre à la requête.
+        // {@code author} reste néanmoins transmis à extractCandidates pour
+        // un filtre plus prudent EN SORTIE (authorMismatch) - voir sa
+        // javadoc : rejeter un résultat seulement quand Google Books liste
+        // explicitement un auteur qui n'a AUCUN rapport, jamais l'absence
+        // d'auteur, contrairement à inauthor: qui aurait exclu la requête
+        // entière dans ce cas.
         String combinedQuery = "intitle:" + seriesTitle
                 + (editionKeyword.isBlank() ? "" : " " + editionKeyword);
 
@@ -293,7 +301,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             if (body == null) {
                 return List.of();
             }
-            return extractCandidates(body, seriesTitle, excludedTitleFragments);
+            return extractCandidates(body, seriesTitle, excludedTitleFragments, author);
         } catch (QuotaExceededException e) {
             // Ne PAS relancer ici : les 7 autres mots-clés (même quota
             // épuisé) vont échouer pareil - on note juste le fait, agrégé
@@ -317,7 +325,15 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
      * séparée de {@link #parse(String, String)} pour ne pas casser les tests
      * existants qui n'en ont pas besoin. */
     List<VolumeCandidate> parse(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
-        return resolveOneShotFallback(dedupeAndSort(extractCandidates(body, seriesTitle, excludedTitleFragments)));
+        return parse(body, seriesTitle, excludedTitleFragments, null);
+    }
+
+    /** Variante avec vérification d'auteur (voir {@link #authorMismatch}) -
+     * séparée de {@link #parse(String, String, List)} pour ne pas casser les
+     * tests existants qui n'en ont pas besoin ({@code author} null =
+     * vérification désactivée, comme si l'appelant ne le connaissait pas). */
+    List<VolumeCandidate> parse(String body, String seriesTitle, List<String> excludedTitleFragments, String author) throws Exception {
+        return resolveOneShotFallback(dedupeAndSort(extractCandidates(body, seriesTitle, excludedTitleFragments, author)));
     }
 
     /** Extrait les candidats bruts d'une réponse Google Books, SANS dédoublonner -
@@ -327,7 +343,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
      * (pas {@code private}) : appelée directement par les tests de régression
      * de cette classe pour simuler PLUSIEURS réponses (une par mot-clé) avant
      * de les fusionner via {@link #mergeAndFinalize}, sans dépendre du réseau. */
-    List<VolumeCandidate> extractCandidates(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
+    List<VolumeCandidate> extractCandidates(String body, String seriesTitle, List<String> excludedTitleFragments, String author) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         List<VolumeCandidate> candidates = new java.util.ArrayList<>();
 
@@ -371,6 +387,15 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             boolean isRealPrefixMatch = prefixEnd >= 0
                     && (prefixEnd == trimmedTitle.length() || Character.isWhitespace(trimmedTitle.charAt(prefixEnd)));
             if (!isRealPrefixMatch) {
+                continue;
+            }
+            // Un titre de série COURT/générique (ex: "Monster", "Vagabond")
+            // peut être le préfixe EXACT d'une œuvre totalement différente
+            // (ex: "Monster Allergy Next Gen", une BD italienne sans aucun
+            // rapport avec le "Monster" de Naoki Urasawa - vérifié
+            // manuellement, voir historique) - le préfixe seul ne suffit
+            // alors plus à confirmer qu'il s'agit de la même œuvre.
+            if (authorMismatch(volumeInfo, author)) {
                 continue;
             }
             // Spin-off/side-story CONNU (voir RelatedSeriesService, dérivé des
@@ -523,6 +548,56 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             }
         }
         return false;
+    }
+
+    /**
+     * Vrai si {@code volumeInfo} liste EXPLICITEMENT un ou plusieurs auteurs
+     * ET qu'AUCUN ne partage de mot significatif avec {@code expectedAuthor}
+     * - signal fort qu'il s'agit d'une œuvre totalement différente qui
+     * partage juste le même préfixe de titre (voir javadoc de
+     * {@link #extractCandidates}), plutôt qu'une autre édition/traduction de
+     * la série cherchée.
+     * <p>
+     * Ne s'applique QUE quand les deux informations sont disponibles et
+     * positives - jamais en cas d'absence (contrairement à {@code inauthor:}
+     * DANS la requête, volontairement évité, voir {@link #searchOneEdition}) :
+     * {@code expectedAuthor} inconnu, ou fiche Google Books sans auteur
+     * listé (fréquent sur les éditions françaises, vérifié manuellement) ->
+     * rien à comparer, le candidat reste éligible comme avant ce filtre.
+     */
+    private static boolean authorMismatch(JsonNode volumeInfo, String expectedAuthor) {
+        if (expectedAuthor == null || expectedAuthor.isBlank()) {
+            return false;
+        }
+        JsonNode authorsNode = volumeInfo.path("authors");
+        if (!authorsNode.isArray() || authorsNode.isEmpty()) {
+            return false;
+        }
+        Set<String> expectedWords = significantWords(expectedAuthor);
+        if (expectedWords.isEmpty()) {
+            return false;
+        }
+        for (JsonNode authorNode : authorsNode) {
+            if (!Collections.disjoint(expectedWords, significantWords(authorNode.asText("")))) {
+                return false; // au moins un nom/mot en commun avec un auteur listé -> pas un mismatch
+            }
+        }
+        return true;
+    }
+
+    /** Mots d'au moins 3 lettres (ignore particules/initiales - "de", "van",
+     * "Jr."...) - comparaison volontairement approximative, juste assez pour
+     * distinguer "Naoki Urasawa" d'une œuvre sans AUCUN nom en commun, pas
+     * pour valider une orthographe exacte (translittération, ordre nom/prénom
+     * variable selon les fiches). */
+    private static Set<String> significantWords(String name) {
+        Set<String> words = new java.util.HashSet<>();
+        for (String word : name.toLowerCase().split("\\s+")) {
+            if (word.length() >= 3) {
+                words.add(word);
+            }
+        }
+        return words;
     }
 
     /** Dédoublonne par (édition, tome) - un même tome peut ressortir de plusieurs

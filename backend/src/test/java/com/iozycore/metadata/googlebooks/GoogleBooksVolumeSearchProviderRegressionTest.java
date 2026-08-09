@@ -35,7 +35,7 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
     private List<VolumeCandidate> searchAcrossKeywords(String seriesTitle, List<String> excludedTitleFragments, String... bodies) throws Exception {
         List<VolumeCandidate> combined = new ArrayList<>();
         for (String body : bodies) {
-            combined.addAll(provider.extractCandidates(body, seriesTitle, excludedTitleFragments));
+            combined.addAll(provider.extractCandidates(body, seriesTitle, excludedTitleFragments, null));
         }
         return GoogleBooksVolumeSearchProvider.mergeAndFinalize(combined);
     }

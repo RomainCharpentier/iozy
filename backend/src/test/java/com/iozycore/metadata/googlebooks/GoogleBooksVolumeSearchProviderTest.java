@@ -10,6 +10,52 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GoogleBooksVolumeSearchProviderTest {
 
     @Test
+    void excludes_a_result_whose_listed_author_shares_no_word_with_the_expected_author() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Monster" (voir
+        // historique) : "Monster Allergy Next Gen" (BD italienne) et
+        // "Monster Délices" (manga culinaire) commencent tous deux
+        // littéralement par "Monster " - un simple préfixe exact ne suffit
+        // pas à confirmer qu'il s'agit du "Monster" de Naoki Urasawa quand
+        // Google Books liste un auteur SANS AUCUN rapport.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Monster - Tome 1", "language": "fr", "publisher": "Kana",
+                        "authors": ["Naoki Urasawa"] } },
+                    { "volumeInfo": { "title": "Monster Allergy Next Gen - Tome 2", "language": "fr",
+                        "authors": ["Francesco Artibani", "Alessandro Barbucci"] } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Monster", List.of(), "Naoki Urasawa");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).title()).isEqualTo("Monster - Tome 1");
+    }
+
+    @Test
+    void keeps_a_result_with_no_author_listed_even_when_the_expected_author_is_known() throws Exception {
+        // La plupart des fiches françaises n'ont pas le champ auteur
+        // correctement renseigné (vérifié manuellement, voir historique) -
+        // l'absence d'auteur ne doit jamais exclure un résultat par ailleurs
+        // valide, contrairement à un mismatch EXPLICITE ci-dessus.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Monster - Tome 1", "language": "fr", "publisher": "Kana" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Monster", List.of(), "Naoki Urasawa");
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
     void extracts_a_bare_zero_padded_volume_number_without_a_tome_keyword() throws Exception {
         // Cas réel observé (voir historique) : l'édition française "Sword
         // Art Online" (Ofelbe) numérote ses tomes SANS mot-clé "Tome"/"T."
