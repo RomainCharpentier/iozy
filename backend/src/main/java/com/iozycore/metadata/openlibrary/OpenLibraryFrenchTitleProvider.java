@@ -67,8 +67,13 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
     // vérifié manuellement sur "Détective Conan - Tome 14" côté Google
     // Books) : sans lui, un titre séparé par un tiret plutôt qu'une virgule
     // laissait un tiret résiduel qui empêchait ensuite tout match de préfixe
-    // côté recherche de tomes.
-    private static final Pattern VOLUME_KEYWORD_SUFFIX = Pattern.compile("(?i)[,\\-–]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
+    // côté recherche de tomes. "("/")" ajoutés (même correctif que le
+    // jumeau, voir historique - vérifié manuellement sur "Gloutons et
+    // Dragons (Tome 12)", titre français réel de "Delicious in Dungeon") :
+    // sans eux, ce numéro de tome PARENTHÉSÉ n'était jamais reconnu comme
+    // tel, faisant retomber le dernier recours "auteur seul" sur un autre
+    // livre du même auteur sans numéro de tome.
+    private static final Pattern VOLUME_KEYWORD_SUFFIX = Pattern.compile("(?i)[,\\-–(]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\)?\\s*$");
     private static final Pattern TRAILING_NUMBER_SUFFIX = Pattern.compile("\\s+\\d+\\s*$");
 
     // Mots trop génériques pour servir de mot-clé distinctif (étape 2 de la

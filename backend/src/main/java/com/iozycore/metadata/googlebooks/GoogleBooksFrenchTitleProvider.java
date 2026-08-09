@@ -61,8 +61,13 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     // (vérifié manuellement sur "Détective Conan - Tome 14", voir historique) :
     // sans lui, seul " Tome 14" était retiré, laissant "Détective Conan -"
     // avec un tiret résiduel qui empêchait ensuite tout match de préfixe côté
-    // recherche de tomes (66 résultats sans lui, 2 seulement avec).
-    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i)[,\\-–]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
+    // recherche de tomes (66 résultats sans lui, 2 seulement avec). "("/")"
+    // ajoutés (vérifié manuellement sur "Gloutons et Dragons (Tome 12)" -
+    // titre français réel de "Delicious in Dungeon", voir historique) : sans
+    // eux, ce numéro de tome PARENTHÉSÉ n'était jamais reconnu comme tel par
+    // {@link #parse}, qui retombait alors sur un autre livre du même auteur
+    // sans numéro de tome ("Les Sept Rejetons du dragon", sans rapport).
+    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i)[,\\-–(]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\)?\\s*$");
 
     private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
