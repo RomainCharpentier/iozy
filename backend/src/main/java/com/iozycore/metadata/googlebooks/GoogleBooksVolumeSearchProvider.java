@@ -174,15 +174,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .flatMap(future -> future.join().stream())
                 .collect(Collectors.toList());
 
-        List<VolumeCandidate> deduped = dedupeAndSort(combined);
-        // filterOutNoiseEditions suppose des éditions multi-tomes (voir sa
-        // javadoc) - jamais applicable à un one-shot résolu par
-        // resolveOneShotFallback, qui n'a par nature qu'UN seul exemplaire
-        // par édition.
-        boolean isProbableOneShot = !deduped.isEmpty() && deduped.stream().allMatch(candidate -> candidate.volumeNumber() == 0);
-        List<VolumeCandidate> result = isProbableOneShot
-                ? resolveOneShotFallback(deduped)
-                : filterOutNoiseEditions(resolveOneShotFallback(deduped));
+        List<VolumeCandidate> result = mergeAndFinalize(combined);
 
         // Une liste vide peut être une absence réelle d'édition française, ou
         // le quota Google Books dépassé sur l'ensemble des requêtes - les
@@ -193,6 +185,29 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException("Quota Google Books dépassé pour la recherche de tomes de '" + seriesTitle + "'");
         }
         return result;
+    }
+
+    /**
+     * Étape commune à {@link #runKeywordSearches} (production, N requêtes
+     * HTTP réelles) et aux tests de régression de cette classe (fixtures
+     * déjà en mémoire, une par mot-clé simulé) : dédoublonnage, résolution
+     * one-shot, puis filtre anti-bruit - dans cet ordre précis, voir
+     * chacune des méthodes appelées pour le détail. Package-private (pas
+     * {@code private}) exactement pour cette raison : reproduire fidèlement
+     * l'enchaînement complet des étapes est ce qui a révélé l'interaction
+     * cachée entre deux bugs indépendants sur "Sword Art Online" (voir
+     * historique) - invisible en testant chaque étape isolément.
+     */
+    static List<VolumeCandidate> mergeAndFinalize(List<VolumeCandidate> combined) {
+        List<VolumeCandidate> deduped = dedupeAndSort(combined);
+        // filterOutNoiseEditions suppose des éditions multi-tomes (voir sa
+        // javadoc) - jamais applicable à un one-shot résolu par
+        // resolveOneShotFallback, qui n'a par nature qu'UN seul exemplaire
+        // par édition.
+        boolean isProbableOneShot = !deduped.isEmpty() && deduped.stream().allMatch(candidate -> candidate.volumeNumber() == 0);
+        return isProbableOneShot
+                ? resolveOneShotFallback(deduped)
+                : filterOutNoiseEditions(resolveOneShotFallback(deduped));
     }
 
     /**
@@ -308,8 +323,11 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     /** Extrait les candidats bruts d'une réponse Google Books, SANS dédoublonner -
      * le dédoublonnage se fait une seule fois, après fusion de toutes les requêtes
      * (voir searchVolumes), pour ne jamais préférer arbitrairement le résultat
-     * d'une requête sur une autre avant d'avoir vu l'ensemble. */
-    private List<VolumeCandidate> extractCandidates(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
+     * d'une requête sur une autre avant d'avoir vu l'ensemble. Package-private
+     * (pas {@code private}) : appelée directement par les tests de régression
+     * de cette classe pour simuler PLUSIEURS réponses (une par mot-clé) avant
+     * de les fusionner via {@link #mergeAndFinalize}, sans dépendre du réseau. */
+    List<VolumeCandidate> extractCandidates(String body, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         List<VolumeCandidate> candidates = new java.util.ArrayList<>();
 
