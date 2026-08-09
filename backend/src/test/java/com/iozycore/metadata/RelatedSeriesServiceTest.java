@@ -51,6 +51,21 @@ class RelatedSeriesServiceTest {
     }
 
     @Test
+    void keeps_a_short_all_uppercase_suffix_like_an_edition_acronym() {
+        // Cas réel signalé par l'utilisateur en testant "Dragon Ball" (voir
+        // historique) : "Dragon Ball SD" -> suffixe "SD", seulement 2
+        // caractères mais entièrement en majuscules - contrairement au "re"
+        // générique ci-dessus, un sigle de ce type est bien assez distinctif
+        // pour être comparé sans risque de faux positif.
+        RelatedSeriesService service = new RelatedSeriesService(
+                List.of(new FakeRelatedSeriesProvider(List.of("Dragon Ball SD"))));
+
+        List<String> result = service.findExcludedTitleFragments(MANGA, "23446", "Dragon Ball");
+
+        assertThat(result).containsExactly("SD");
+    }
+
+    @Test
     void returns_empty_without_an_external_id_or_an_original_title() {
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Blue Lock: Episode Nagi"))));
