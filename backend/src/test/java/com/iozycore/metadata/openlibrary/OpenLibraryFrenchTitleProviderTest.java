@@ -69,6 +69,43 @@ class OpenLibraryFrenchTitleProviderTest {
     }
 
     @Test
+    void prefers_a_tome_numbered_result_over_an_unrelated_homonym_from_the_same_author() throws Exception {
+        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
+        // historique) : "L'Art des Sorciers" (artbook sans rapport, même
+        // auteur) avant "L'Atelier des Sorciers T15" (le vrai manga).
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "L'Art des Sorciers", "language": ["fre"] },
+                    { "title": "L'Atelier des Sorciers T15", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("L'Atelier des Sorciers");
+    }
+
+    @Test
+    void falls_back_to_the_first_result_when_none_has_an_extractable_tome_number() throws Exception {
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "Fragments d'elles", "language": ["fre"] },
+                    { "title": "Un autre livre", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Fragments d'elles");
+    }
+
+    @Test
     void skips_a_result_whose_title_is_actually_in_japanese_and_falls_through_to_the_next_one() throws Exception {
         // Cas réel trouvé en continuant les tests sur "Detective Conan" (voir
         // historique) : "language=fre" DANS LA REQUÊTE ne garantit QUE

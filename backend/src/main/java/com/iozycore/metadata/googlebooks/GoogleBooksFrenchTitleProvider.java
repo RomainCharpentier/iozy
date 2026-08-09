@@ -143,6 +143,10 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
             return Optional.empty();
         }
 
+        // Repli si AUCUN résultat n'a de numéro de tome extractible (voir
+        // ci-dessous) - jamais le choix par défaut : un vrai manga multi-tome
+        // en a presque toujours un dans les 5 premiers résultats.
+        String firstResultWithoutTomeNumber = null;
         for (JsonNode item : root.path("items")) {
             JsonNode volumeInfo = item.path("volumeInfo");
             // langRestrict est une préférence côté Google, pas une garantie absolue -
@@ -160,12 +164,28 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
             if (matchesKnownRelatedSeries(title, excludedTitleFragments)) {
                 continue;
             }
-            String cleaned = VOLUME_SUFFIX.matcher(title).replaceFirst("").trim();
-            if (!cleaned.isBlank()) {
+            String trimmedTitle = title.trim();
+            String cleaned = VOLUME_SUFFIX.matcher(trimmedTitle).replaceFirst("").trim();
+            if (cleaned.isBlank()) {
+                continue;
+            }
+            // Un numéro de tome a bien été retiré (cleaned != trimmedTitle) :
+            // signal fort qu'il s'agit d'une vraie fiche de tome de la série,
+            // pas d'un simple homonyme - cas réel qui motive cette
+            // préférence (trouvé en continuant les tests sur "Witch Hat
+            // Atelier", voir historique) : le repli "auteur seul" (voir
+            // {@link #findFrenchTitle}) remontait en premier "L'Art des
+            // Sorciers", un ARTBOOK sans rapport du même auteur, avant
+            // "L'Atelier des Sorciers T15" (le vrai manga, correctement
+            // numéroté) un peu plus loin dans les mêmes résultats.
+            if (!cleaned.equals(trimmedTitle)) {
                 return Optional.of(cleaned);
             }
+            if (firstResultWithoutTomeNumber == null) {
+                firstResultWithoutTomeNumber = cleaned;
+            }
         }
-        return Optional.empty();
+        return Optional.ofNullable(firstResultWithoutTomeNumber);
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées

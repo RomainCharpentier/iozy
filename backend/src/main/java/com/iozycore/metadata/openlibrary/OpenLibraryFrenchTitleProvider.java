@@ -162,6 +162,10 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
      * qui n'en ont pas besoin. */
     Optional<String> parse(String body, List<String> excludedTitleFragments) throws Exception {
         JsonNode root = objectMapper.readTree(body);
+        // Repli si AUCUN résultat n'a de numéro de tome extractible (voir
+        // plus bas) - jamais le choix par défaut : un vrai manga multi-tome
+        // en a presque toujours un dans les 5 premiers résultats.
+        String firstResultWithoutTomeNumber = null;
         for (JsonNode doc : root.path("docs")) {
             String rawTitle = doc.path("title").asText(null);
             if (rawTitle == null || rawTitle.isBlank()) {
@@ -194,12 +198,25 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
             if (matchesKnownRelatedSeries(rawTitle, excludedTitleFragments)) {
                 continue;
             }
-            String cleaned = cleanVolumeSuffix(rawTitle);
-            if (!cleaned.isBlank()) {
+            String trimmedTitle = rawTitle.trim();
+            String cleaned = cleanVolumeSuffix(trimmedTitle);
+            if (cleaned.isBlank()) {
+                continue;
+            }
+            // Un numéro de tome a bien été retiré (cleaned != trimmedTitle) :
+            // signal fort qu'il s'agit d'une vraie fiche de tome de la
+            // série, pas d'un simple homonyme - même correctif que le
+            // jumeau GoogleBooksFrenchTitleProvider (voir historique) :
+            // "L'Art des Sorciers" (artbook sans rapport, même auteur)
+            // avant "L'Atelier des Sorciers T15" (le vrai manga).
+            if (!cleaned.equals(trimmedTitle)) {
                 return Optional.of(cleaned);
             }
+            if (firstResultWithoutTomeNumber == null) {
+                firstResultWithoutTomeNumber = cleaned;
+            }
         }
-        return Optional.empty();
+        return Optional.ofNullable(firstResultWithoutTomeNumber);
     }
 
     // Kanji/hiragana/katakana/hangeul - jamais présents dans un titre
