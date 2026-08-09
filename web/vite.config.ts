@@ -6,6 +6,13 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // "localhost" seul laissait Vite n'écouter QUE sur l'IPv6 ([::1]) sur
+    // cette machine (vérifié manuellement : `netstat` ne montrait aucun
+    // listener sur le 127.0.0.1 IPv4) - le navigateur résolvant "localhost"
+    // en IPv4 se voyait alors refuser la connexion. true = écoute sur
+    // toutes les interfaces (0.0.0.0 ET ::), quelle que soit la résolution
+    // DNS locale de "localhost".
+    host: true,
     // Le backend (Spring Boot, docker compose) tourne sur :8080 sans CORS
     // structurant pour ce cas - toutes les requêtes /api passent par ce
     // proxy plutôt que par une URL absolue, donc le navigateur les voit
