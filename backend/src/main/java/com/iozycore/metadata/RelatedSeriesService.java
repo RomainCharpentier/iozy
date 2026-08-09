@@ -150,6 +150,14 @@ public class RelatedSeriesService {
      *   "Blue Lock: Episode Nagi", ":" SUIVI d'un espace, reste soumis au
      *   seuil de 4 comme avant).</li>
      * </ul>
+     * Seuil ABAISSÉ à 1 seul caractère quand les DEUX assouplissements
+     * s'appliquent À LA FOIS (sigle majuscule ET collé à un ":") - cas réel
+     * qui motive ce dernier palier (trouvé en continuant les tests sur
+     * "Gantz", voir historique) : "Gantz:E" (tagué "alternative_setting",
+     * un spin-off à l'univers alternatif) donne le suffixe "E", une SEULE
+     * lettre - ni l'un ni l'autre assouplissement seul (seuil 2) ne suffit,
+     * mais leur combinaison est un signal encore plus distinctif que
+     * chacun pris isolément.
      */
     private static String distinctiveSuffix(String relatedTitle, String originalTitle) {
         String lowerRelated = relatedTitle.toLowerCase();
@@ -160,7 +168,9 @@ public class RelatedSeriesService {
         String suffix = relatedTitle.substring(trimmedOriginal.length())
                 .replaceAll("^[\\s:\\-–,]+", "")
                 .trim();
-        int minLength = isAllUppercaseAcronym(suffix) || isGluedColonSuffix(relatedTitle, trimmedOriginal) ? 2 : 4;
+        boolean isAcronym = isAllUppercaseAcronym(suffix);
+        boolean isGluedColon = isGluedColonSuffix(relatedTitle, trimmedOriginal);
+        int minLength = isAcronym && isGluedColon ? 1 : (isAcronym || isGluedColon ? 2 : 4);
         return suffix.length() >= minLength ? suffix : null;
     }
 

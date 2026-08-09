@@ -26,28 +26,26 @@ import java.util.Set;
  * connect to MyAnimeList") au moment d'écrire ce fournisseur, alors que
  * l'API officielle répondait normalement pour le même identifiant.
  * <p>
- * "spin_off", "side_story", "sequel", "prequel" et "alternative_version"
- * sont retenues comme séries clairement DISTINCTES (vérifié manuellement sur
- * "Blue Lock" -&gt; "Blue Lock: Episode Nagi" et "Demon Slayer" -&gt;
- * "Kimetsu Gakuen!", tous deux tagués "spin_off" ; "Dragon Ball" -&gt;
- * "Dragon Ball Super", tagué "sequel" - une suite avec sa propre histoire,
- * pas une édition ; "Dragon Ball" -&gt; "Dragon Ball SD", tagué
- * "alternative_version" - une parodie chibi à l'histoire distincte,
- * MyAnimeList ne distinguant pas fiablement dans cette catégorie une vraie
- * réédition (kanzenban, couleur...) d'une réinterprétation à l'histoire
- * différente comme celle-ci ; signalé directement par l'utilisateur en
- * testant "Dragon Ball", voir historique de la conversation ; "Shaman King"
- * -&gt; "Shaman King Zero", tagué "prequel" - une préquelle avec sa propre
- * histoire, ressortait à tort comme une édition nommée "0" avant l'ajout de
- * cette relation, trouvé en continuant les tests, voir historique).
- * <p>
- * "alternative_setting" reste volontairement EXCLUE de cette liste (pas de
- * cas concret observé, contrairement à "alternative_version" ci-dessus) -
- * risque assumé pour "alternative_version" : si une vraie réédition légitime
- * était un jour taguée ainsi sur MyAnimeList plutôt qu'avec un mot-clé
- * d'édition trouvable côté Google Books, elle serait écartée à tort - aucun
- * cas de ce genre rencontré malgré des tests étendus sur de nombreuses
- * franchises à éditions multiples cette session.
+ * "spin_off", "side_story", "sequel", "prequel", "alternative_version" et
+ * "alternative_setting" sont retenues comme séries clairement DISTINCTES
+ * (vérifié manuellement sur "Blue Lock" -&gt; "Blue Lock: Episode Nagi" et
+ * "Demon Slayer" -&gt; "Kimetsu Gakuen!", tous deux tagués "spin_off" ;
+ * "Dragon Ball" -&gt; "Dragon Ball Super", tagué "sequel" - une suite avec
+ * sa propre histoire, pas une édition ; "Dragon Ball" -&gt; "Dragon Ball
+ * SD", tagué "alternative_version" - une parodie chibi à l'histoire
+ * distincte, MyAnimeList ne distinguant pas fiablement dans cette catégorie
+ * une vraie réédition (kanzenban, couleur...) d'une réinterprétation à
+ * l'histoire différente comme celle-ci ; signalé directement par
+ * l'utilisateur en testant "Dragon Ball", voir historique de la
+ * conversation ; "Shaman King" -&gt; "Shaman King Zero", tagué "prequel" -
+ * une préquelle avec sa propre histoire, ressortait à tort comme une
+ * édition nommée "0" avant l'ajout de cette relation, trouvé en continuant
+ * les tests, voir historique ; "Gantz" -&gt; "Gantz:E", tagué
+ * "alternative_setting" - un spin-off à l'univers alternatif (même
+ * personnages, contexte différent), ressortait à tort comme une édition
+ * nommée "E", trouvé en continuant les tests, voir historique - PREMIER cas
+ * concret rencontré pour cette relation malgré des tests étendus sur de
+ * nombreuses franchises cette session, justifiant de l'ajouter à son tour).
  * <p>
  * Pas de mode dégradé sans Client ID configuré (comme MyAnimeListMetadataProvider) :
  * supports() renvoie false tant que {@code mal.client-id} est vide.
@@ -58,7 +56,7 @@ public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListRelatedSeriesProvider.class);
     private static final String RELATIONS_URL = "https://api.myanimelist.net/v2/manga/%s?fields=related_manga";
     private static final Set<String> DISTINCT_SERIES_RELATIONS =
-            Set.of("spin_off", "side_story", "sequel", "prequel", "alternative_version");
+            Set.of("spin_off", "side_story", "sequel", "prequel", "alternative_version", "alternative_setting");
 
     @Value("${mal.client-id:}")
     private String clientId;
