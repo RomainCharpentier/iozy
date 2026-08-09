@@ -138,6 +138,29 @@ class BnfVolumeSearchProviderTest {
     }
 
     @Test
+    void matches_the_series_title_even_when_a_word_boundary_falls_differently() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Cardcaptor Sakura"
+        // (voir historique) : le titre MyAnimeList cherché tient "Cardcaptor"
+        // en un seul mot, alors que la BnF indexe le $a réel avec un espace
+        // ("Card captor Sakura") - une simple comparaison insensible à la
+        // casse ne suffisait pas, sans jamais avoir besoin d'un préfixe flou
+        // façon Google Books (le $a de la BnF reste le titre complet, pas un
+        // titre plus long à préfixer).
+        BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
+        String xml = realResponse("""
+                <mxc:datafield tag="200" ind1="1" ind2=" ">
+                  <mxc:subfield code="a">Card captor Sakura</mxc:subfield>
+                  <mxc:subfield code="h">4</mxc:subfield>
+                </mxc:datafield>
+                """);
+
+        List<VolumeCandidate> result = provider.parse(xml, "Cardcaptor Sakura");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(4);
+    }
+
+    @Test
     void excludes_a_known_spin_off_series_flagged_via_related_series_fragments() throws Exception {
         BnfVolumeSearchProvider provider = new BnfVolumeSearchProvider();
         String xml = realResponse("""
