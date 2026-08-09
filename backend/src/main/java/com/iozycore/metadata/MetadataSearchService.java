@@ -281,6 +281,10 @@ public class MetadataSearchService {
                 quotaExceeded = true;
             }
         }
+        // Deux fournisseurs (Google Books et BnF, voir BnfVolumeSearchProvider)
+        // peuvent désormais retrouver le même tome - garde la version AVEC
+        // jaquette en cas de collision, la BnF n'en fournissant jamais.
+        result = dedupeVolumesPreferringImage(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
         // ci-dessus) - seul un résultat vide causé par le quota ne l'est
@@ -332,6 +336,7 @@ public class MetadataSearchService {
                 quotaExceeded = true;
             }
         }
+        additional = dedupeVolumesPreferringImage(additional);
 
         List<VolumeCandidate> merged = mergeVolumes(existing, additional);
         if (!quotaExceeded) {
@@ -342,18 +347,39 @@ public class MetadataSearchService {
     }
 
     /** Fusionne sans dupliquer par (édition, tome) - garde la version déjà
-     * connue en cas de collision plutôt que la nouvelle (peu importe
-     * laquelle en pratique, {@code additional} cible des mots-clés
-     * différents de ceux déjà utilisés pour {@code existing}). */
+     * connue en cas de collision, SAUF si elle n'a pas de jaquette et que la
+     * nouvelle en a une (voir {@link #dedupeVolumesPreferringImage}) : rien
+     * n'empêche une recherche approfondie de retrouver via un autre
+     * fournisseur/mot-clé un tome déjà connu sans jaquette (ex: BnF lors de
+     * {@link #searchVolumes}, Google Books lors de cette recherche
+     * approfondie). */
     private static List<VolumeCandidate> mergeVolumes(List<VolumeCandidate> existing, List<VolumeCandidate> additional) {
         Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
         for (VolumeCandidate candidate : existing) {
             byKey.put(volumeKey(candidate), candidate);
         }
         for (VolumeCandidate candidate : additional) {
-            byKey.putIfAbsent(volumeKey(candidate), candidate);
+            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::preferWithImage);
         }
         return new ArrayList<>(byKey.values());
+    }
+
+    /** Dédoublonne par (édition, tome) au sein d'une même liste (voir
+     * {@link #mergeVolumes}) - utile quand PLUSIEURS fournisseurs
+     * compétents pour le même EntityType (Google Books et BnF, voir
+     * BnfVolumeSearchProvider) retrouvent indépendamment le même tome :
+     * la BnF ne fournissant jamais de jaquette, la version Google Books
+     * (avec jaquette) est préférée en cas de collision. */
+    private static List<VolumeCandidate> dedupeVolumesPreferringImage(List<VolumeCandidate> candidates) {
+        Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : candidates) {
+            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::preferWithImage);
+        }
+        return new ArrayList<>(byKey.values());
+    }
+
+    private static VolumeCandidate preferWithImage(VolumeCandidate existing, VolumeCandidate replacement) {
+        return existing.imageUrl() != null ? existing : replacement;
     }
 
     private static String volumeKey(VolumeCandidate candidate) {
