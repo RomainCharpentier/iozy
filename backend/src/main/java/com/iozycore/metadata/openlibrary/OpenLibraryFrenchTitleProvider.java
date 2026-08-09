@@ -62,7 +62,13 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
     // "Death Note, Vol. 1" / "L'Attaque des Titans Vol. 13" / "Naruto 58" -
     // Open Library indexe chaque tome séparément avec son numéro dans le
     // titre ; on ne veut que le titre de la série pour pré-remplir l'ajout.
-    private static final Pattern VOLUME_KEYWORD_SUFFIX = Pattern.compile("(?i),?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
+    // "-" ajouté au séparateur (même correctif que le jumeau
+    // GoogleBooksFrenchTitleProvider.VOLUME_SUFFIX, voir historique - "-"
+    // vérifié manuellement sur "Détective Conan - Tome 14" côté Google
+    // Books) : sans lui, un titre séparé par un tiret plutôt qu'une virgule
+    // laissait un tiret résiduel qui empêchait ensuite tout match de préfixe
+    // côté recherche de tomes.
+    private static final Pattern VOLUME_KEYWORD_SUFFIX = Pattern.compile("(?i)[,\\-–]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
     private static final Pattern TRAILING_NUMBER_SUFFIX = Pattern.compile("\\s+\\d+\\s*$");
 
     // Mots trop génériques pour servir de mot-clé distinctif (étape 2 de la
@@ -161,6 +167,21 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
             if (rawTitle == null || rawTitle.isBlank()) {
                 continue;
             }
+            // "language=fre" dans la requête (voir SEARCH_URL) ne garantit
+            // QUE l'existence d'UNE édition française parmi toutes celles de
+            // l'œuvre - le champ "title" renvoyé reste le titre canonique de
+            // l'œuvre, souvent en japonais pour un manga (ex: "名探偵コナン"
+            // pour "Detective Conan"/"Détective Conan", vérifié manuellement
+            // en continuant les tests, voir historique) : Open Library ne
+            // propose pas de titre PAR ÉDITION dans cet endpoint de
+            // recherche, contrairement à Google Books où "language" est
+            // vérifié PAR VOLUME juste en dessous (voir
+            // GoogleBooksFrenchTitleProvider). Un titre français ne contient
+            // jamais de sinogramme/kana/hangeul - filet de sécurité peu
+            // coûteux avant de le retenir comme "titre français".
+            if (containsCjkCharacters(rawTitle)) {
+                continue;
+            }
             // "Dragon Ball Super nº 18" ressort en premier résultat pour
             // "Dragon Ball Akira Toriyama" (vérifié manuellement, voir
             // historique) - Open Library le classe avant le vrai "Dragon
@@ -179,6 +200,14 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
             }
         }
         return Optional.empty();
+    }
+
+    // Kanji/hiragana/katakana/hangeul - jamais présents dans un titre
+    // français réel, voir javadoc de parse().
+    private static final Pattern CJK_CHARACTERS = Pattern.compile("[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}]");
+
+    private static boolean containsCjkCharacters(String text) {
+        return CJK_CHARACTERS.matcher(text).find();
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées

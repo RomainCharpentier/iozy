@@ -57,8 +57,12 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     // série : on ne veut que le titre de la série pour pré-remplir l'ajout.
     // Même principe que OpenLibraryFrenchTitleProvider.cleanVolumeSuffix,
     // dupliqué ici (fournisseurs volontairement indépendants) plutôt que
-    // partagé, comme le reste des regex de ce module.
-    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i),?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
+    // partagé, comme le reste des regex de ce module. "-" ajouté au séparateur
+    // (vérifié manuellement sur "Détective Conan - Tome 14", voir historique) :
+    // sans lui, seul " Tome 14" était retiré, laissant "Détective Conan -"
+    // avec un tiret résiduel qui empêchait ensuite tout match de préfixe côté
+    // recherche de tomes (66 résultats sans lui, 2 seulement avec).
+    private static final Pattern VOLUME_SUFFIX = Pattern.compile("(?i)[,\\-–]?\\s*(vol\\.?|tome|t\\.?)\\s*\\d+\\s*$");
 
     private final GoogleBooksHttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
