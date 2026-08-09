@@ -37,6 +37,22 @@ struct EntityDetailView: View {
     @State private var variants: [APIClient.VariantDTO] = []
     @State private var showingAddTag = false
     @State private var showingAddRelationship = false
+    // Complète une édition déjà en collection (voir addVolumeSection) - ex:
+    // les tomes 4 et 5 d'une "Black Edition" jamais retrouvés par la
+    // recherche automatique côté BnF/Google Books (trou de données source,
+    // pas un bug, voir historique de la conversation sur "Death Note").
+    // Jusqu'ici le seul moyen d'ajouter un tome à une série déjà possédée
+    // était de repasser par tout le parcours Ajout rapide et de retaper le
+    // titre en entier. Même mécanique de file d'attente que QuickAddView
+    // (voir queueManualVolume côté Ajout rapide) - permet d'enchaîner
+    // plusieurs tomes avant de valider une seule fois.
+    @State private var showingAddVolume = false
+    @State private var addVolumeCondition = "NEW"
+    @State private var addVolumeNumberText = ""
+    @State private var addVolumeEdition = ""
+    @State private var addManualVolumes: [ManualVolumeEntry] = []
+    @State private var isAddingVolume = false
+    @State private var addVolumeError: String?
     // Récupérée en direct depuis l'API (entityDetail.attributes) plutôt que
     // du cache local EntityRecord (dont attributesJSON n'est aujourd'hui
     // jamais synchronisé avec le serveur - voir EntityRecord) : cette fiche
@@ -82,6 +98,7 @@ struct EntityDetailView: View {
                     statusPills
                     tagsSection
                     experiencesSection
+                    if resolvedType?.code == "MANGA" { addVolumeSection }
                     if !relatedEntities.isEmpty { relatedSection }
                     if let syncError {
                         Label(syncError, systemImage: "exclamationmark.triangle")
@@ -305,6 +322,149 @@ struct EntityDetailView: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    /// Voir la déclaration des @State associés plus haut pour le contexte -
+    /// mécanique de file d'attente identique à QuickAddView.
+    private var addVolumeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !showingAddVolume {
+                Button { showingAddVolume = true } label: {
+                    Text("+ Ajouter un tome")
+                        .font(Theme.bodyMedium(13))
+                        .foregroundStyle(Theme.accent)
+                }
+            } else {
+                sectionTitle("Ajouter un tome")
+                Picker("État", selection: $addVolumeCondition) {
+                    Text("Neuf").tag("NEW")
+                    Text("Occasion").tag("USED")
+                    Text("Abîmé").tag("DAMAGED")
+                }
+                .pickerStyle(.segmented)
+
+                HStack {
+                    TextField("Tome n°", text: $addVolumeNumberText)
+                        .keyboardType(.numberPad)
+                    TextField("Édition (ex: Kana, Black Édition...)", text: $addVolumeEdition)
+                        .textInputAutocapitalization(.words)
+                    Button {
+                        queueManualVolume()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .disabled(addVolumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(10)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                ForEach(addManualVolumes) { manual in
+                    HStack {
+                        Text("T. \(manual.volumeNumber)" + (manual.edition.isEmpty ? "" : " · \(manual.edition)"))
+                            .font(Theme.body(12.5))
+                            .foregroundStyle(Theme.textDim)
+                        Spacer()
+                        Button {
+                            removeManualVolume(manual.id)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if let addVolumeError {
+                    Text(addVolumeError).font(Theme.body(12)).foregroundStyle(.red)
+                }
+
+                HStack {
+                    Button {
+                        Task { await submitAddVolume() }
+                    } label: {
+                        Text(totalVolumesToAdd > 1 ? "Ajouter \(totalVolumesToAdd) tomes" : "Ajouter")
+                            .font(Theme.bodySemibold(14))
+                            .foregroundStyle(Theme.accentText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .disabled(totalVolumesToAdd == 0 || isAddingVolume)
+                    .opacity(totalVolumesToAdd == 0 || isAddingVolume ? 0.5 : 1)
+
+                    Button("Annuler") {
+                        showingAddVolume = false
+                        addVolumeNumberText = ""
+                        addVolumeEdition = ""
+                        addManualVolumes = []
+                        addVolumeError = nil
+                    }
+                    .font(Theme.bodyMedium(13))
+                    .foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+    }
+
+    /// Reflète exactement ce que submitAddVolume() va soumettre - même
+    /// principe que QuickAddView.totalVolumesToAdd.
+    private var totalVolumesToAdd: Int {
+        addManualVolumes.count + (addVolumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty ? 0 : 1)
+    }
+
+    private struct ManualVolumeEntry: Identifiable {
+        let id = UUID()
+        let volumeNumber: Int
+        let edition: String
+    }
+
+    private func queueManualVolume() {
+        let trimmed = addVolumeNumberText.trimmingCharacters(in: .whitespaces)
+        guard let parsed = Int(trimmed), parsed > 0 else { return }
+        addManualVolumes.append(ManualVolumeEntry(volumeNumber: parsed, edition: addVolumeEdition.trimmingCharacters(in: .whitespaces)))
+        addVolumeNumberText = ""
+    }
+
+    private func removeManualVolume(_ id: UUID) {
+        addManualVolumes.removeAll { $0.id == id }
+    }
+
+    /// `quickAdd` matche déjà une Entity existante par (entityTypeId, title)
+    /// côté backend (voir QuickAddService) - il suffit de réutiliser le
+    /// titre exact de la série déjà en collection, aucun nouvel endpoint
+    /// nécessaire. Un re-sync complet (pas d'upsert local optimiste) après
+    /// succès : plus simple et fiable, QuickAddResponse ne renvoie que
+    /// variantId, pas le label/attributes complets du Variant créé.
+    private func submitAddVolume() async {
+        guard let entity else { return }
+        var items = addManualVolumes.map { ($0.volumeNumber, $0.edition) }
+        let trimmedVolumeText = addVolumeNumberText.trimmingCharacters(in: .whitespaces)
+        if let manualVolumeNumber = trimmedVolumeText.isEmpty ? nil : Int(trimmedVolumeText) {
+            items.append((manualVolumeNumber, addVolumeEdition.trimmingCharacters(in: .whitespaces)))
+        }
+        guard !items.isEmpty else { return }
+
+        isAddingVolume = true
+        addVolumeError = nil
+        do {
+            // Séquentiel : voir QuickAddView.submit() pour la même précaution.
+            for (volumeNumber, edition) in items {
+                _ = try await APIClient.shared.quickAdd(
+                    entityTypeId: entity.entityTypeId, title: entity.title, condition: addVolumeCondition, attributes: [:],
+                    volumeNumber: volumeNumber, edition: edition.isEmpty ? nil : edition)
+            }
+            await syncFromServer()
+            await MainActor.run {
+                showingAddVolume = false
+                addVolumeNumberText = ""
+                addVolumeEdition = ""
+                addManualVolumes = []
+                isAddingVolume = false
+            }
+        } catch {
+            await MainActor.run {
+                addVolumeError = "Échec de l'ajout : \(error.localizedDescription)"
+                isAddingVolume = false
+            }
+        }
     }
 
     private var relatedSection: some View {

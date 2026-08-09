@@ -12,6 +12,7 @@ import { gradientFor } from '../../theme/gradient'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
+import { AddVolumeSection } from './AddVolumeSection'
 import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
 
@@ -101,6 +102,14 @@ export function EntityDetailPage() {
       )}
 
       <OwnershipsSection entityId={entityId} ownerships={ownerships} variants={entity.variants} />
+
+      {/* Réservé au Manga (volumeNumber/edition n'ont de sens que pour un
+          tome, voir QuickAddService côté backend) - complète une édition déjà
+          en collection sans repasser par tout le parcours Ajout rapide (voir
+          AddVolumeSection). */}
+      {entityType?.code === 'MANGA' && (
+        <AddVolumeSection entityId={entityId} entityTypeId={entity.entityTypeId} title={entity.title} />
+      )}
 
       <ExperiencesSection
         entityId={entityId}
