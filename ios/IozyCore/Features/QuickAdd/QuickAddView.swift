@@ -457,8 +457,9 @@ struct QuickAddView: View {
             for candidate in results.filter({ $0.source == "JIKAN" || $0.source == "MYANIMELIST" }).prefix(6) {
                 guard !Task.isCancelled else { return }
                 let author = candidate.attributes["mangaka"]?.stringValue
+                let malId = candidate.attributes["malId"]?.stringValue
                 guard let frenchTitle = try? await APIClient.shared.fetchFrenchTitle(
-                        entityTypeId: entityTypeId, query: candidate.title, author: author),
+                        entityTypeId: entityTypeId, query: candidate.title, author: author, malId: malId),
                       !Task.isCancelled else {
                     continue
                 }
@@ -678,7 +679,8 @@ struct QuickAddView: View {
         frenchTitleTask = Task {
             defer { if !Task.isCancelled { isTranslatingTitle = false } }
             guard let frenchTitle = try? await APIClient.shared.fetchFrenchTitle(
-                    entityTypeId: typeId, query: searchTerm, author: candidate.attributes["mangaka"]?.stringValue),
+                    entityTypeId: typeId, query: searchTerm, author: candidate.attributes["mangaka"]?.stringValue,
+                    malId: candidate.attributes["malId"]?.stringValue),
                   !Task.isCancelled else {
                 return
             }

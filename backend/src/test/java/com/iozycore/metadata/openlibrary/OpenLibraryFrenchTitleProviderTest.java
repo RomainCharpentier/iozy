@@ -27,6 +27,29 @@ class OpenLibraryFrenchTitleProviderTest {
     }
 
     @Test
+    void skips_a_known_related_series_and_falls_through_to_the_next_result() throws Exception {
+        // Cas réel observé (voir historique) : "Dragon Ball Super nº 18"
+        // ressort en PREMIER résultat pour "Dragon Ball" - sa suite, mieux
+        // référencée sur Open Library, avant le vrai "Dragon Ball, tome 1".
+        // "Dragon Ball Super" partage pourtant bien le préfixe "Dragon Ball" -
+        // seule cette information externe (suite connue, voir
+        // RelatedSeriesService) permet de l'écarter et de passer au suivant.
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "Dragon Ball Super nº 18", "language": ["fre"] },
+                    { "title": "Dragon Ball, tome 1", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body, List.of("Dragon Ball Super"));
+
+        assertThat(result).contains("Dragon Ball");
+    }
+
+    @Test
     void returns_empty_when_there_are_no_results() throws Exception {
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
 

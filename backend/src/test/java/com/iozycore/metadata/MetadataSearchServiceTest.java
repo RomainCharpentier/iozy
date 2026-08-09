@@ -469,7 +469,7 @@ class MetadataSearchServiceTest {
         }
 
         @Override
-        public Optional<String> findFrenchTitle(String query, String author) {
+        public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
             callCount++;
             return result;
         }
@@ -564,7 +564,7 @@ class MetadataSearchServiceTest {
         }
 
         @Override
-        public Optional<String> findFrenchTitle(String query, String author) {
+        public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
             callCount++;
             return callCount == 1 ? Optional.empty() : Optional.of(result);
         }

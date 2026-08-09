@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -79,13 +80,13 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     @Override
-    public Optional<String> findFrenchTitle(String query, String author) {
+    public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
         if (query == null || query.isBlank()) {
             return Optional.empty();
         }
         String combinedQuery = (author == null || author.isBlank()) ? query : author + " " + query;
 
-        Optional<String> result = search(combinedQuery);
+        Optional<String> result = search(combinedQuery, excludedTitleFragments);
         if (result.isPresent()) {
             return result;
         }
@@ -103,17 +104,17 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         if (author == null || author.isBlank()) {
             return Optional.empty();
         }
-        return search("inauthor:\"" + author + "\"");
+        return search("inauthor:\"" + author + "\"", excludedTitleFragments);
     }
 
-    private Optional<String> search(String rawQuery) {
+    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments) {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
             if (body == null) {
                 return Optional.empty();
             }
-            return parse(body);
+            return parse(body, excludedTitleFragments);
         } catch (QuotaExceededException e) {
             // Open Library est déjà essayé en premier (voir @Order) - pas
             // d'alarme utilisateur nécessaire pour ce repli.
@@ -126,6 +127,13 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     Optional<String> parse(String body) throws Exception {
+        return parse(body, List.of());
+    }
+
+    /** Variante avec exclusion de suites/spin-offs connus (voir RelatedSeriesService) -
+     * séparée de {@link #parse(String)} pour ne pas casser les tests existants
+     * qui n'en ont pas besoin. */
+    Optional<String> parse(String body, List<String> excludedTitleFragments) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         if (root.path("totalItems").asInt(0) == 0) {
             return Optional.empty();
@@ -139,13 +147,32 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
                 continue;
             }
             String title = volumeInfo.path("title").asText(null);
-            if (title != null && !title.isBlank()) {
-                String cleaned = VOLUME_SUFFIX.matcher(title).replaceFirst("").trim();
-                if (!cleaned.isBlank()) {
-                    return Optional.of(cleaned);
-                }
+            if (title == null || title.isBlank()) {
+                continue;
+            }
+            // Même biais de popularité que côté Open Library (voir
+            // OpenLibraryFrenchTitleProvider, "Dragon Ball Super nº 18" pour
+            // une recherche "Dragon Ball") - possible aussi ici en repli.
+            if (matchesKnownRelatedSeries(title, excludedTitleFragments)) {
+                continue;
+            }
+            String cleaned = VOLUME_SUFFIX.matcher(title).replaceFirst("").trim();
+            if (!cleaned.isBlank()) {
+                return Optional.of(cleaned);
             }
         }
         return Optional.empty();
+    }
+
+    /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
+     * comme des caractères de mot) - un simple contains() ferait matcher un
+     * fragment générique/court à l'intérieur d'un autre mot sans rapport. */
+    private static boolean matchesKnownRelatedSeries(String title, List<String> excludedTitleFragments) {
+        for (String fragment : excludedTitleFragments) {
+            if (Pattern.compile("(?iU)\\b" + Pattern.quote(fragment) + "\\b").matcher(title).find()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

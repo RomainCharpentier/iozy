@@ -50,15 +50,39 @@ class MyAnimeListRelatedSeriesProviderTest {
     }
 
     @Test
-    void excludes_alternative_version_since_it_is_often_a_legitimate_reedition() throws Exception {
-        // Une "alternative_version" désigne souvent une vraie réédition
-        // (kanzenban, couleur...) qu'on veut au contraire GARDER comme
-        // résultat de recherche de tomes, pas exclure.
+    void keeps_an_alternative_version_relation() throws Exception {
+        // Cas réel observé (voir historique, signalé directement par
+        // l'utilisateur en testant "Dragon Ball") : "Dragon Ball SD"
+        // (parodie chibi à l'histoire distincte) est tagué
+        // "alternative_version" sur MyAnimeList, pas "spin_off" - risque
+        // assumé de retenir cette catégorie (voir javadoc de la classe) :
+        // aucun cas observé où elle désigne une vraie réédition à tort
+        // écartée, malgré des tests étendus sur de nombreuses franchises à
+        // éditions multiples cette session.
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
                   "related_manga": [
-                    { "node": { "id": 1, "title": "Some Manga (Full Color Edition)" }, "relation_type": "alternative_version" }
+                    { "node": { "id": 23446, "title": "Dragon Ball SD" }, "relation_type": "alternative_version" }
+                  ]
+                }
+                """;
+
+        List<String> result = provider.parse(body);
+
+        assertThat(result).containsExactly("Dragon Ball SD");
+    }
+
+    @Test
+    void excludes_an_alternative_setting_relation() throws Exception {
+        // Contrairement à "alternative_version" ci-dessus, "alternative_setting"
+        // reste volontairement exclue - aucun cas concret observé justifiant
+        // de l'ajouter, contrairement à "Dragon Ball SD".
+        MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
+        String body = """
+                {
+                  "related_manga": [
+                    { "node": { "id": 1, "title": "Some Manga (Full Color Edition)" }, "relation_type": "alternative_setting" }
                   ]
                 }
                 """;

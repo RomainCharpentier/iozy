@@ -83,12 +83,12 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     @Override
-    public Optional<String> findFrenchTitle(String query, String author) {
+    public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
         if (query == null || query.isBlank()) {
             return Optional.empty();
         }
 
-        Optional<String> exactMatch = search(combine(author, query));
+        Optional<String> exactMatch = search(combine(author, query), excludedTitleFragments);
         if (exactMatch.isPresent()) {
             return exactMatch;
         }
@@ -98,13 +98,13 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
         }
 
         for (String keyword : significantWords(query)) {
-            Optional<String> byKeyword = search(combine(author, keyword));
+            Optional<String> byKeyword = search(combine(author, keyword), excludedTitleFragments);
             if (byKeyword.isPresent()) {
                 return byKeyword;
             }
         }
 
-        return search(author);
+        return search(author, excludedTitleFragments);
     }
 
     private static String combine(String author, String text) {
@@ -125,7 +125,7 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
                 .collect(Collectors.toList());
     }
 
-    private Optional<String> search(String rawQuery) {
+    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments) {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             HttpRequest request = HttpRequest.newBuilder()
@@ -140,7 +140,7 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
                 return Optional.empty();
             }
 
-            return parse(response.body());
+            return parse(response.body(), excludedTitleFragments);
         } catch (Exception e) {
             log.warn("Échec de la recherche de titre français Open Library pour '{}' : {}", rawQuery, e.getMessage());
             return Optional.empty();
@@ -148,10 +148,29 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     Optional<String> parse(String body) throws Exception {
+        return parse(body, List.of());
+    }
+
+    /** Variante avec exclusion de suites/spin-offs connus (voir RelatedSeriesService) -
+     * séparée de {@link #parse(String)} pour ne pas casser les tests existants
+     * qui n'en ont pas besoin. */
+    Optional<String> parse(String body, List<String> excludedTitleFragments) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         for (JsonNode doc : root.path("docs")) {
             String rawTitle = doc.path("title").asText(null);
             if (rawTitle == null || rawTitle.isBlank()) {
+                continue;
+            }
+            // "Dragon Ball Super nº 18" ressort en premier résultat pour
+            // "Dragon Ball Akira Toriyama" (vérifié manuellement, voir
+            // historique) - Open Library le classe avant le vrai "Dragon
+            // Ball, tome 1", exactement le même biais de popularité déjà
+            // rencontré côté Google Books (voir GoogleBooksVolumeSearchProvider).
+            // "Dragon Ball Super" partage pourtant bien le préfixe "Dragon
+            // Ball" - un simple filtre de préfixe ne suffirait pas ici,
+            // seule cette information externe (suite/spin-off connu(e) sur
+            // MyAnimeList) permet de l'écarter.
+            if (matchesKnownRelatedSeries(rawTitle, excludedTitleFragments)) {
                 continue;
             }
             String cleaned = cleanVolumeSuffix(rawTitle);
@@ -160,6 +179,18 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
             }
         }
         return Optional.empty();
+    }
+
+    /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
+     * comme des caractères de mot) - un simple contains() ferait matcher un
+     * fragment générique/court à l'intérieur d'un autre mot sans rapport. */
+    private static boolean matchesKnownRelatedSeries(String title, List<String> excludedTitleFragments) {
+        for (String fragment : excludedTitleFragments) {
+            if (Pattern.compile("(?iU)\\b" + Pattern.quote(fragment) + "\\b").matcher(title).find()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** "L'Attaque des Titans Vol. 13" -> "L'Attaque des Titans", "Naruto 58" -> "Naruto". */

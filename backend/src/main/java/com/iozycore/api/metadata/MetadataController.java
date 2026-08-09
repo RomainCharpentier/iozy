@@ -95,10 +95,14 @@ public class MetadataController {
             + "repli) pour un titre déjà choisi (mangas) - ni Jikan ni MyAnimeList n'en connaissent. Déclenché "
             + "uniquement à la sélection d'une suggestion côté client, jamais pour toute une liste de résultats de "
             + "recherche (coût en appels externes) - voir MetadataSearchService.findFrenchTitle. 404 si rien "
-            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché.")
+            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché. malId "
+            + "(déjà connu du candidat sélectionné) permet d'écarter une suite/spin-off connu(e) (voir "
+            + "RelatedSeriesService) mal résolu(e) à la place du titre cherché - ex: \"Dragon Ball Super\" pour "
+            + "\"Dragon Ball\" - best-effort, sans effet si absent.")
     @GetMapping("/french-title")
     public FrenchTitleResponse frenchTitle(@RequestParam UUID entityTypeId, @RequestParam String query,
-                                            @RequestParam(required = false) String author) {
+                                            @RequestParam(required = false) String author,
+                                            @RequestParam(required = false) String malId) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -106,7 +110,8 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
         }
 
-        return metadataSearchService.findFrenchTitle(entityType, query, author)
+        List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, query);
+        return metadataSearchService.findFrenchTitle(entityType, query, author, excludedTitleFragments)
                 .map(FrenchTitleResponse::new)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun titre français trouvé pour : " + query));
