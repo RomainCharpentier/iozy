@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, RefreshCw, Search } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -77,6 +77,15 @@ export function QuickAddPage() {
   // possède le tome 12 de Naruto, édition Kana" (ce qu'on possède vraiment).
   const [volumeNumber, setVolumeNumber] = useState('')
   const [edition, setEdition] = useState('')
+  // File d'attente de tomes saisis manuellement (voir queueManualVolume) -
+  // permet d'en ajouter PLUSIEURS avant de valider (ex: les tomes 4 et 5
+  // d'une "Black Edition" tous les deux introuvables dans la recherche
+  // automatique, vérifié manuellement sur "Death Note", voir historique) :
+  // sans ça, chaque tome manquant demandait de revalider tout le formulaire
+  // séparément. volumeNumber/edition ci-dessus restent la saisie EN COURS,
+  // pas encore mise en file - un tome tapé puis validé directement (sans
+  // cliquer sur "+") reste géré tel quel par addMutation, comme avant.
+  const [manualVolumes, setManualVolumes] = useState<Array<{ volumeNumber: number; edition: string }>>([])
   // Sélection visuelle des tomes possédés par jaquette (voir VolumeSelectionGrid,
   // façon Mangacollec) - déclenchée après sélection d'un candidat Manga
   // (voir triggerVolumeSearch). volumeNumber/edition ci-dessus restent
@@ -199,12 +208,16 @@ export function QuickAddPage() {
   const addMutation = useMutation({
     mutationFn: async (): Promise<QuickAddOutcome> => {
       const manualVolumeNumber = volumeNumber.trim() ? Number(volumeNumber) : undefined
-      // Chaque couverture cochée dans la grille devient un ajout, plus
-      // éventuellement le tome saisi manuellement (repli "introuvable dans la
-      // recherche") en plus - jamais l'un OU l'autre, les deux se combinent.
+      // Chaque couverture cochée dans la grille devient un ajout, plus la file
+      // de tomes manuels déjà mise en attente (voir queueManualVolume), plus
+      // éventuellement la saisie manuelle EN COURS si non vide - jamais l'un
+      // OU l'autre, tout se combine.
       const items: Array<{ volumeNumber?: number; edition?: string; volumeImageUrl?: string }> = volumeCandidates
         .filter((v) => selectedVolumeKeys.has(volumeKey(v)))
         .map((v) => ({ volumeNumber: v.volumeNumber, edition: v.edition, volumeImageUrl: v.imageUrl ?? undefined }))
+      for (const manual of manualVolumes) {
+        items.push({ volumeNumber: manual.volumeNumber, edition: manual.edition || undefined })
+      }
       if (manualVolumeNumber !== undefined) {
         items.push({ volumeNumber: manualVolumeNumber, edition: edition.trim() || undefined })
       }
@@ -286,6 +299,23 @@ export function QuickAddPage() {
           setIsSearchingVolumes(false)
         }
       })
+  }
+
+  /** Ajoute la saisie manuelle EN COURS à la file d'attente (voir
+   * manualVolumes) plutôt que de l'ajouter tout de suite - permet d'enchaîner
+   * plusieurs tomes manuels (ex: T4 puis T5 d'une même édition) avant de
+   * valider le formulaire une seule fois. Le numéro de tome est vidé pour le
+   * suivant, mais l'édition reste : des tomes manuels consécutifs partagent
+   * presque toujours la même édition. */
+  function queueManualVolume() {
+    const parsed = Number(volumeNumber.trim())
+    if (!volumeNumber.trim() || !Number.isInteger(parsed) || parsed <= 0) return
+    setManualVolumes((prev) => [...prev, { volumeNumber: parsed, edition: edition.trim() }])
+    setVolumeNumber('')
+  }
+
+  function removeManualVolume(index: number) {
+    setManualVolumes((prev) => prev.filter((_, i) => i !== index))
   }
 
   function toggleVolumeSelection(key: string) {
@@ -430,6 +460,7 @@ export function QuickAddPage() {
       }
       setVolumeCandidates([])
       setSelectedVolumeKeys(new Set())
+      setManualVolumes([])
       setIsSearchingVolumes(false)
       setLastVolumeSearchParams(null)
     }
@@ -451,6 +482,7 @@ export function QuickAddPage() {
     setAttributesSourceTitle(null)
     setVolumeNumber('')
     setEdition('')
+    setManualVolumes([])
     setVolumeCandidates([])
     setSelectedVolumeKeys(new Set())
     setShowManualVolumeFields(false)
@@ -475,6 +507,11 @@ export function QuickAddPage() {
   const requiresMatch = !!selectedType?.hasMetadataProvider
   const hasVerifiedMatch = attributesSourceTitle !== null && attributesSourceTitle === title
   const blockedByMissingMatch = requiresMatch && title.trim().length > 0 && !hasVerifiedMatch
+  // Reflète exactement ce que addMutation va soumettre (voir son calcul de
+  // `items`) - couvertures cochées + file de tomes manuels + saisie manuelle
+  // EN COURS si non vide, pour que le libellé du bouton ("Ajouter N tomes")
+  // ne mente jamais sur ce qui va réellement être ajouté.
+  const totalVolumesToAdd = selectedVolumeKeys.size + manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
 
   return (
     <div className="flex flex-col gap-5">
@@ -696,35 +733,68 @@ export function QuickAddPage() {
         )}
 
         {selectedType?.code === 'MANGA' && (volumeCandidates.length === 0 || showManualVolumeFields) && !isSearchingVolumes && (
-          <div className="flex gap-2">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <label className="text-sm text-textDim" htmlFor="volumeNumber">
-                Tome n°
-              </label>
-              <input
-                id="volumeNumber"
-                type="number"
-                min={1}
-                inputMode="numeric"
-                value={volumeNumber}
-                onChange={(e) => setVolumeNumber(e.target.value)}
-                placeholder="ex: 12"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-              />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-end gap-2">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <label className="text-sm text-textDim" htmlFor="volumeNumber">
+                  Tome n°
+                </label>
+                <input
+                  id="volumeNumber"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={volumeNumber}
+                  onChange={(e) => setVolumeNumber(e.target.value)}
+                  placeholder="ex: 12"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-[2] flex-col gap-1.5">
+                <label className="text-sm text-textDim" htmlFor="edition">
+                  Édition
+                </label>
+                <input
+                  id="edition"
+                  value={edition}
+                  onChange={(e) => setEdition(e.target.value)}
+                  placeholder="ex: Kana, Perfect Edition..."
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  autoComplete="off"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={queueManualVolume}
+                disabled={!volumeNumber.trim()}
+                title="Ajouter ce tome à la liste sans valider tout de suite - pratique pour en enchaîner plusieurs (ex: T4 et T5 d'une même édition)"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
+              >
+                <Plus size={16} />
+              </button>
             </div>
-            <div className="flex flex-[2] flex-col gap-1.5">
-              <label className="text-sm text-textDim" htmlFor="edition">
-                Édition
-              </label>
-              <input
-                id="edition"
-                value={edition}
-                onChange={(e) => setEdition(e.target.value)}
-                placeholder="ex: Kana, Perfect Edition..."
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-                autoComplete="off"
-              />
-            </div>
+
+            {manualVolumes.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {manualVolumes.map((manual, index) => (
+                  <li
+                    key={`${manual.volumeNumber}-${manual.edition}-${index}`}
+                    className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs text-textPrimary"
+                  >
+                    T. {manual.volumeNumber}
+                    {manual.edition && ` · ${manual.edition}`}
+                    <button
+                      type="button"
+                      onClick={() => removeManualVolume(index)}
+                      aria-label={`Retirer le tome ${manual.volumeNumber} de la liste`}
+                      className="text-textDim hover:text-textPrimary"
+                    >
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -745,8 +815,8 @@ export function QuickAddPage() {
         >
           {addMutation.isPending
             ? 'Ajout...'
-            : selectedVolumeKeys.size > 1
-              ? `Ajouter ${selectedVolumeKeys.size} tomes`
+            : totalVolumesToAdd > 1
+              ? `Ajouter ${totalVolumesToAdd} tomes`
               : 'Ajouter'}
         </button>
       </form>
