@@ -225,6 +225,29 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void falls_back_to_edition_inconnue_when_the_publisher_field_is_corrupted() throws Exception {
+        // Cas réel observé (voir historique) : le endpoint de RECHERCHE
+        // Google Books ("/volumes?q=...") renvoie "12-21" comme "publisher"
+        // pour plusieurs tomes distincts de "Vinland Saga", alors que le
+        // endpoint de LECTURE PAR IDENTIFIANT ("/volumes/{id}") renvoie
+        // pourtant "UNIVERS POCHE" pour ces mêmes identifiants - un vrai
+        // éditeur contient toujours au moins une lettre, contrairement à
+        // cette valeur numérique visiblement corrompue côté Google.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Vinland Saga - tome 5", "language": "fr", "publisher": "12-21" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Vinland Saga");
+
+        assertThat(result.get(0).edition()).isEqualTo("Édition inconnue");
+    }
+
+    @Test
     void strips_the_dangling_range_connector_left_over_by_a_multi_volume_omnibus_title() throws Exception {
         // Cas réel observé (voir historique) : "L'Attaque des Titans -
         // L'intégrale T01 à T04" (coffret de 4 tomes) contient DEUX numéros

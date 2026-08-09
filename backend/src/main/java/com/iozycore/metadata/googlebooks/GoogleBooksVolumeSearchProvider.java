@@ -556,11 +556,26 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         return normalizePublisherFallback(publisher);
     }
 
+    /** Un éditeur réel contient toujours au moins une lettre - filet de
+     * sécurité contre une incohérence de données constatée manuellement côté
+     * Google Books (voir historique) : le endpoint de RECHERCHE ({@code
+     * /volumes?q=...}) renvoie parfois un champ {@code publisher} corrompu
+     * ("12-21", ressemblant à une plage de tomes ou un code interne mal
+     * placé) pour un identifiant dont le endpoint de LECTURE ({@code
+     * /volumes/{id}}) renvoie pourtant la bonne valeur ("UNIVERS POCHE") -
+     * repéré sur plusieurs tomes distincts de "Vinland Saga". Impossible à
+     * corriger à la source (pas de second appel par identifiant, beaucoup
+     * trop coûteux pour ce best-effort) - autant retomber sur "Édition
+     * inconnue" plutôt qu'afficher un nom d'édition absurde. */
     private static String normalizePublisherFallback(String publisher) {
-        if (publisher == null || publisher.isBlank()) {
+        if (publisher == null || publisher.isBlank() || !containsLetter(publisher)) {
             return "Édition inconnue";
         }
         return TRAILING_MANGA_SUFFIX.matcher(publisher).replaceFirst("");
+    }
+
+    private static boolean containsLetter(String text) {
+        return text.chars().anyMatch(Character::isLetter);
     }
 
     /** "perfect edition" -> "Perfect Edition" - Google Books indexe souvent le nom
