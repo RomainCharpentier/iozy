@@ -73,10 +73,23 @@ public class RelatedSeriesService {
      * partie distinctive d'un titre de série liée par rapport au titre
      * d'origine. {@code null} si le titre lié ne partage même pas ce préfixe
      * (rien d'exploitable, voir javadoc de la classe) ou si le fragment
-     * restant est trop court (&lt; 4 caractères) pour être comparé sans
-     * risque de faux positif sur un mot générique (ex: le "re" de "Tokyo
-     * Ghoul:re" - trop court et déjà documenté comme limite acceptée,
-     * voir historique de la conversation).
+     * restant est trop court pour être comparé sans risque de faux positif
+     * sur un mot générique (ex: le "re" de "Tokyo Ghoul:re" - trop court et
+     * déjà documenté comme limite acceptée, voir historique de la
+     * conversation) - seuil de 4 caractères, ABAISSÉ à 2 pour un suffixe
+     * entièrement en MAJUSCULES (voir {@link #isAllUppercaseAcronym}) : un
+     * tel sigle est bien plus distinctif qu'un mot générique en minuscules,
+     * la comparaison finale restant de toute façon un match par mot ENTIER
+     * (voir GoogleBooksVolumeSearchProvider.matchesKnownRelatedSeries).
+     * <p>
+     * Cas réel qui motive cet assouplissement (signalé directement par
+     * l'utilisateur en testant "Dragon Ball", voir historique) : "Dragon
+     * Ball SD" (parodie chibi, taguée "alternative_version" sur MyAnimeList)
+     * donne le suffixe "SD" (2 caractères) - sans cet assouplissement, le
+     * seuil de 4 l'excluait silencieusement de la liste des fragments à
+     * exclure, rendant inopérant l'ajout de "alternative_version" à
+     * MyAnimeListRelatedSeriesProvider.DISTINCT_SERIES_RELATIONS pour ce cas
+     * précis malgré une relation correctement remontée par l'API.
      */
     private static String distinctiveSuffix(String relatedTitle, String originalTitle) {
         String lowerRelated = relatedTitle.toLowerCase();
@@ -87,6 +100,24 @@ public class RelatedSeriesService {
         String suffix = relatedTitle.substring(trimmedOriginal.length())
                 .replaceAll("^[\\s:\\-–,]+", "")
                 .trim();
-        return suffix.length() >= 4 ? suffix : null;
+        int minLength = isAllUppercaseAcronym(suffix) ? 2 : 4;
+        return suffix.length() >= minLength ? suffix : null;
+    }
+
+    /** Vrai si {@code suffix} ne contient aucune lettre minuscule (ex: "SD",
+     * "GT") ET au moins une lettre (un suffixe purement numérique/ponctuation
+     * n'est pas un sigle) - voir {@link #distinctiveSuffix}. */
+    private static boolean isAllUppercaseAcronym(String suffix) {
+        boolean hasLetter = false;
+        for (int i = 0; i < suffix.length(); i++) {
+            char c = suffix.charAt(i);
+            if (Character.isLetter(c)) {
+                hasLetter = true;
+                if (Character.isLowerCase(c)) {
+                    return false;
+                }
+            }
+        }
+        return hasLetter;
     }
 }
