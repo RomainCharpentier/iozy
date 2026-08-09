@@ -75,6 +75,31 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void strips_a_historical_alias_in_parentheses_stuck_to_the_series_title_before_the_volume_number() throws Exception {
+        // Cas réel observé (voir historique) : "City Hunter (Nicky Larson)
+        // Tome 1 . Edition de luxe" fait suivre le titre d'un alias
+        // historique entre parenthèses ("Nicky Larson", nom de l'adaptation
+        // française de City Hunter) AVANT le numéro de tome - sans le
+        // distinguer d'un vrai nom d'édition entre parenthèses (voir le test
+        // précédent), l'édition extraite restait "Nicky Larson) . Edition De
+        // Luxe" (parenthèse fermante orpheline mélangée au vrai nom d'édition).
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "City Hunter (Nicky Larson) Tome 1 . Edition de luxe", "language": "fr", "publisher": "Panini" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "City Hunter");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(1);
+        assertThat(result.get(0).edition()).isEqualTo("Edition De Luxe");
+    }
+
+    @Test
     void extracts_volume_number_and_falls_back_to_publisher_when_no_collection_name_remains() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         // Cas réel observé (voir historique) : le titre ne contient que la

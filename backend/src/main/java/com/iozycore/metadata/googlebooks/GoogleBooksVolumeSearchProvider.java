@@ -325,8 +325,15 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 continue; // coffret, artbook, one-shot sans numéro exploitable
             }
 
+            // Alias historique entre parenthèses collé au titre de série
+            // (ex: "City Hunter (Nicky Larson)", nom de l'adaptation
+            // française historique) - à ne jamais confondre avec un vrai nom
+            // d'édition entre parenthèses ("Yu-Gi-Oh ! (Intégrale)") qui,
+            // lui, doit être conservé (voir skipLeadingAliasNotResemblingAnEdition).
+            int editionStart = skipLeadingAliasNotResemblingAnEdition(trimmedTitle, prefixEnd);
+
             String publisher = volumeInfo.path("publisher").asText(null);
-            String edition = extractEdition(trimmedTitle, prefixEnd, seriesTitle, publisher);
+            String edition = extractEdition(trimmedTitle, editionStart, seriesTitle, publisher);
 
             String imageUrl = volumeInfo.path("imageLinks").path("thumbnail").asText(null);
             if (imageUrl != null) {
@@ -382,6 +389,49 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
     private static boolean isFlexibleSeparator(char c) {
         return Character.isWhitespace(c) || c == '-';
+    }
+
+    // Mots caractéristiques d'un VRAI nom d'édition (voir QUICK_EDITION_KEYWORDS/
+    // DEEP_EDITION_KEYWORDS) - sert à distinguer une parenthèse d'édition
+    // ("Yu-Gi-Oh ! (Intégrale)") d'un alias de titre collé au nom de série
+    // (voir skipLeadingAliasNotResemblingAnEdition juste en dessous).
+    private static final List<String> EDITION_INDICATOR_WORDS = List.of(
+            "edition", "édition", "perfect", "originale", "star", "ultimate", "deluxe", "intégrale", "integrale", "collector");
+
+    /**
+     * "City Hunter (Nicky Larson) Tome 1 . Edition de luxe" (vérifié
+     * manuellement, voir historique) : certains titres font suivre le nom de
+     * série d'un alias historique entre parenthèses ("Nicky Larson", nom de
+     * l'adaptation française de City Hunter) AVANT le numéro de tome - sans
+     * ce traitement, retirer seulement le numéro de tome au milieu du titre
+     * laissait la parenthèse fermante de l'alias orpheline, mélangée au vrai
+     * nom d'édition suivant ("Nicky Larson) . Edition De Luxe").
+     * <p>
+     * Ne s'applique QUE si le contenu entre parenthèses ne ressemble pas à
+     * un nom d'édition connu - une parenthèse comme "Yu-Gi-Oh ! (Intégrale)
+     * - Tome 1" doit au contraire être CONSERVÉE (dépouillée de ses
+     * parenthèses par {@link #LEADING_TRAILING_SEPARATORS} plus loin), son
+     * contenu étant le nom d'édition lui-même.
+     *
+     * @return l'index où commence le "reste" du titre à traiter par
+     * {@link #extractEdition} - {@code afterSeriesPrefix} inchangé si aucun
+     * alias de ce type n'est détecté.
+     */
+    private static int skipLeadingAliasNotResemblingAnEdition(String title, int afterSeriesPrefix) {
+        int i = afterSeriesPrefix;
+        while (i < title.length() && Character.isWhitespace(title.charAt(i))) {
+            i++;
+        }
+        if (i >= title.length() || title.charAt(i) != '(') {
+            return afterSeriesPrefix;
+        }
+        int closingParen = title.indexOf(')', i);
+        if (closingParen < 0) {
+            return afterSeriesPrefix;
+        }
+        String content = title.substring(i + 1, closingParen).toLowerCase();
+        boolean looksLikeEditionName = EDITION_INDICATOR_WORDS.stream().anyMatch(content::contains);
+        return looksLikeEditionName ? afterSeriesPrefix : closingParen + 1;
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
