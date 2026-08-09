@@ -146,7 +146,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         // mot-clé de base) plutôt que 3, pour ne pas gaspiller en échecs
         // quasi certains la capacité qui ne fait que commencer à revenir.
         List<String> keywordsToTry = httpClient.isQuotaLikelyExhausted() ? List.of("") : QUICK_EDITION_KEYWORDS;
-        return runKeywordSearches(seriesTitle, author, keywordsToTry, excludedTitleFragments);
+        return runKeywordSearches(seriesTitle, keywordsToTry, excludedTitleFragments);
     }
 
     @Override
@@ -161,27 +161,20 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException(
                     "Quota Google Books probablement encore épuisé - recherche approfondie ignorée pour '" + seriesTitle + "'");
         }
-        return runKeywordSearches(seriesTitle, author, DEEP_EDITION_KEYWORDS, excludedTitleFragments);
+        return runKeywordSearches(seriesTitle, DEEP_EDITION_KEYWORDS, excludedTitleFragments);
     }
 
-    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments) {
+    private List<VolumeCandidate> runKeywordSearches(String seriesTitle, List<String> keywords, List<String> excludedTitleFragments) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
-        List<VolumeCandidate> result = runKeywordSearchesOnce(seriesTitle, author, keywords, excludedTitleFragments, anyQuotaExceeded);
+        List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
+                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, keyword, excludedTitleFragments, anyQuotaExceeded)))
+                .collect(Collectors.toList());
 
-        // Repli sans auteur si rien n'a été trouvé (vérifié manuellement sur
-        // "Haikyu!!", voir historique) : certaines fiches françaises n'ont
-        // pas le champ auteur correctement renseigné (souvent absent, ou
-        // orthographié différemment) - inauthor: combiné à intitle: peut
-        // alors éliminer PRESQUE TOUS les résultats français (confirmé :
-        // 20 résultats bruts au total avec inauthor:, un seul en français,
-        // inexploitable), alors qu'ils existent bien sans ce filtre. Un seul
-        // essai supplémentaire (jamais en boucle), et seulement si la
-        // première tentative n'a RIEN trouvé - ne coûte donc rien de plus
-        // pour la grande majorité des recherches qui aboutissent déjà avec
-        // l'auteur.
-        if (result.isEmpty() && author != null && !author.isBlank() && !anyQuotaExceeded.get()) {
-            result = runKeywordSearchesOnce(seriesTitle, null, keywords, excludedTitleFragments, anyQuotaExceeded);
-        }
+        List<VolumeCandidate> combined = searches.stream()
+                .flatMap(future -> future.join().stream())
+                .collect(Collectors.toList());
+
+        List<VolumeCandidate> result = filterOutNoiseEditions(dedupeAndSort(combined));
 
         // Une liste vide peut être une absence réelle d'édition française, ou
         // le quota Google Books dépassé sur l'ensemble des requêtes - les
@@ -192,18 +185,6 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             throw new QuotaExceededException("Quota Google Books dépassé pour la recherche de tomes de '" + seriesTitle + "'");
         }
         return result;
-    }
-
-    private List<VolumeCandidate> runKeywordSearchesOnce(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
-        List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
-                .collect(Collectors.toList());
-
-        List<VolumeCandidate> combined = searches.stream()
-                .flatMap(future -> future.join().stream())
-                .collect(Collectors.toList());
-
-        return filterOutNoiseEditions(dedupeAndSort(combined));
     }
 
     /** Une "édition" à un seul tome ressort presque toujours d'un faux positif
@@ -222,10 +203,20 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
+        // Volontairement SANS inauthor: (vérifié manuellement à trois
+        // reprises, voir historique) : certaines fiches françaises n'ont pas
+        // le champ auteur correctement renseigné - combiner intitle: et
+        // inauthor: peut alors éliminer une bonne partie voire la quasi-
+        // totalité des résultats français, au profit d'éditions dans
+        // d'autres langues qui prennent leur place dans les résultats
+        // (constaté sur "Haikyu!!" : 0 résultat exploitable au lieu de 15+ ;
+        // "Golden Kamui" : 1 au lieu de 6 ; "Komi cherche ses mots" : 2 au
+        // lieu de 14). isRealPrefixMatch + la vérification de langue déjà en
+        // place suffisent à écarter les résultats non pertinents sans ce
+        // filtre, dont le gain de précision ne compensait pas ce risque.
         String combinedQuery = "intitle:" + seriesTitle
-                + (editionKeyword.isBlank() ? "" : " " + editionKeyword)
-                + (author == null || author.isBlank() ? "" : " inauthor:" + author);
+                + (editionKeyword.isBlank() ? "" : " " + editionKeyword);
 
         try {
             String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
