@@ -26,8 +26,8 @@ import java.util.Set;
  * connect to MyAnimeList") au moment d'écrire ce fournisseur, alors que
  * l'API officielle répondait normalement pour le même identifiant.
  * <p>
- * "spin_off", "side_story", "sequel" et "alternative_version" sont
- * retenues comme séries clairement DISTINCTES (vérifié manuellement sur
+ * "spin_off", "side_story", "sequel", "prequel" et "alternative_version"
+ * sont retenues comme séries clairement DISTINCTES (vérifié manuellement sur
  * "Blue Lock" -&gt; "Blue Lock: Episode Nagi" et "Demon Slayer" -&gt;
  * "Kimetsu Gakuen!", tous deux tagués "spin_off" ; "Dragon Ball" -&gt;
  * "Dragon Ball Super", tagué "sequel" - une suite avec sa propre histoire,
@@ -36,7 +36,10 @@ import java.util.Set;
  * MyAnimeList ne distinguant pas fiablement dans cette catégorie une vraie
  * réédition (kanzenban, couleur...) d'une réinterprétation à l'histoire
  * différente comme celle-ci ; signalé directement par l'utilisateur en
- * testant "Dragon Ball", voir historique de la conversation).
+ * testant "Dragon Ball", voir historique de la conversation ; "Shaman King"
+ * -&gt; "Shaman King Zero", tagué "prequel" - une préquelle avec sa propre
+ * histoire, ressortait à tort comme une édition nommée "0" avant l'ajout de
+ * cette relation, trouvé en continuant les tests, voir historique).
  * <p>
  * "alternative_setting" reste volontairement EXCLUE de cette liste (pas de
  * cas concret observé, contrairement à "alternative_version" ci-dessus) -
@@ -54,7 +57,8 @@ public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListRelatedSeriesProvider.class);
     private static final String RELATIONS_URL = "https://api.myanimelist.net/v2/manga/%s?fields=related_manga";
-    private static final Set<String> DISTINCT_SERIES_RELATIONS = Set.of("spin_off", "side_story", "sequel", "alternative_version");
+    private static final Set<String> DISTINCT_SERIES_RELATIONS =
+            Set.of("spin_off", "side_story", "sequel", "prequel", "alternative_version");
 
     @Value("${mal.client-id:}")
     private String clientId;
