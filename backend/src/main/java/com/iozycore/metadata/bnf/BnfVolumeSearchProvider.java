@@ -141,10 +141,15 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             }
             // Comparaison insensible à la casse (vérifié manuellement : la
             // BnF indexe parfois "Dragon ball" en minuscules selon la
-            // notice) - le champ $a est déjà exactement le nom de la série,
-            // pas de préfixe flou à deviner ici contrairement à Google
-            // Books (voir matchSeriesPrefix).
-            if (!rawTitle.trim().equalsIgnoreCase(seriesTitle.trim())) {
+            // notice) ET aux espaces/tirets internes (vérifié manuellement
+            // sur "Cardcaptor Sakura" - titre MyAnimeList en un seul mot -
+            // face à "Card captor Sakura", le $a réel de la BnF avec un
+            // espace, voir historique) - le champ $a est déjà exactement le
+            // nom de la série (jamais un TITRE PLUS LONG à préfixer comme
+            // côté Google Books, voir matchSeriesPrefix), mais peut différer
+            // légèrement en ponctuation/espacement du titre MyAnimeList
+            // cherché.
+            if (!normalizeForComparison(rawTitle).equals(normalizeForComparison(seriesTitle))) {
                 continue;
             }
 
@@ -236,6 +241,13 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             }
         }
         return values;
+    }
+
+    /** Retire tout espace/tiret et met en minuscules avant comparaison - voir
+     * l'appelant. "Cardcaptor" (un seul mot) et "Card captor" (deux mots)
+     * donnent tous deux "cardcaptor", peu importe où la coupure tombe. */
+    private static String normalizeForComparison(String text) {
+        return text.trim().toLowerCase().replaceAll("[\\s\\-–]+", "");
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
