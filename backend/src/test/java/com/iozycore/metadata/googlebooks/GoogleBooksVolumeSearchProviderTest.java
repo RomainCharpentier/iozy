@@ -10,6 +10,50 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GoogleBooksVolumeSearchProviderTest {
 
     @Test
+    void matches_the_series_prefix_even_when_google_books_uses_a_hyphen_where_the_series_title_has_a_space() throws Exception {
+        // Cas réel observé (voir historique) : le titre officiel français est
+        // indexé "ONE-PUNCH MAN" (tiret) alors que le titre de série connu
+        // (MyAnimeList) est "One Punch Man" (espace) - un simple startsWith
+        // rendait TOUS les tomes de ce manga très connu invisibles.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "ONE-PUNCH MAN - tome 18", "language": "fr", "publisher": "Kurokawa" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "One Punch Man");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(18);
+        assertThat(result.get(0).edition()).isEqualTo("Kurokawa");
+    }
+
+    @Test
+    void matches_the_series_prefix_even_when_google_books_inserts_a_space_the_series_title_does_not_have() throws Exception {
+        // Cas réel observé (voir historique) : le titre officiel français est
+        // indexé "Haikyu !! - Les As du volley T10" (espace avant "!!")
+        // alors que le titre de série connu (MyAnimeList) est "Haikyu!!"
+        // (aucun espace) - même limite que le cas "One Punch Man" ci-dessus.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Haikyu !! - Les As du volley T10", "language": "fr", "publisher": "Crunchyroll" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Haikyu!!");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(10);
+        assertThat(result.get(0).edition()).isEqualTo("Les As Du Volley");
+    }
+
+    @Test
     void extracts_volume_number_and_falls_back_to_publisher_when_no_collection_name_remains() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         // Cas réel observé (voir historique) : le titre ne contient que la
