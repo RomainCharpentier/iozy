@@ -97,7 +97,11 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // Tome 18 . Edition collector" a son numéro de tome AVANT le nom de
     // collection, séparé par un point - sans lui, l'édition extraite
     // restait ". Edition collector" (point résiduel non nettoyé).
-    private static final Pattern LEADING_TRAILING_SEPARATORS = Pattern.compile("^[\\s\\-–:,.]+|[\\s\\-–:,.]+$");
+    // "()" ajoutés (vérifié manuellement, voir historique) : "Yu-Gi-Oh !
+    // (Intégrale) - Tome 1" a son nom de collection entre parenthèses - sans
+    // eux dans cette classe, l'édition extraite restait "(Intégrale)" au
+    // lieu de "Intégrale".
+    private static final Pattern LEADING_TRAILING_SEPARATORS = Pattern.compile("^[\\s\\-–:,.()]+|[\\s\\-–:,.()]+$");
     // "L'Attaque des Titans - L'intégrale T01 à T04" (coffret regroupant 4
     // tomes, vérifié manuellement) : VOLUME_NUMBER retire bien "T01" ET "T04"
     // (deux numéros dans le même titre), mais le connecteur "à" entre les

@@ -54,6 +54,27 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void strips_parentheses_left_over_around_a_collection_name() throws Exception {
+        // Cas réel observé (voir historique) : "Yu-Gi-Oh ! (Intégrale) -
+        // Tome 1" a son nom de collection entre parenthèses - sans nettoyage
+        // des parenthèses, l'édition extraite restait "(Intégrale)".
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Yu-Gi-Oh ! (Intégrale) - Tome 1", "language": "fr", "publisher": "Kana" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Yu-Gi-Oh!");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).volumeNumber()).isEqualTo(1);
+        assertThat(result.get(0).edition()).isEqualTo("Intégrale");
+    }
+
+    @Test
     void extracts_volume_number_and_falls_back_to_publisher_when_no_collection_name_remains() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         // Cas réel observé (voir historique) : le titre ne contient que la
