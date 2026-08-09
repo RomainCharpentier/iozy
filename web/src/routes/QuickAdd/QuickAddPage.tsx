@@ -112,6 +112,7 @@ export function QuickAddPage() {
     // backend), y compris sur "Actualiser"/"Chercher plus d'éditions".
     malId?: string
     originalTitle?: string
+    titleRomaji?: string
   } | null>(null)
   const [attributes, setAttributes] = useState<Record<string, unknown> | undefined>(undefined)
   // Titre depuis lequel `attributes` a été rempli - si le titre est retouché
@@ -180,7 +181,8 @@ export function QuickAddPage() {
       .forEach((candidate) => {
         const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
         const malId = typeof candidate.attributes.malId === 'string' ? candidate.attributes.malId : undefined
-        fetchFrenchTitle(entityTypeId, candidate.title, { author, malId, signal: controller.signal })
+        const titleRomaji = typeof candidate.attributes.titleRomaji === 'string' ? candidate.attributes.titleRomaji : undefined
+        fetchFrenchTitle(entityTypeId, candidate.title, { author, malId, titleRomaji, signal: controller.signal })
           .then((frenchTitle) => {
             if (controller.signal.aborted || !frenchTitle) return
             setFrenchTitles((prev) => ({ ...prev, [candidateKey(candidate)]: frenchTitle }))
@@ -251,11 +253,11 @@ export function QuickAddPage() {
   function triggerVolumeSearch(
     seriesTitle: string,
     author: string | undefined,
-    options?: { forceRefresh?: boolean; deepSearch?: boolean; malId?: string; originalTitle?: string },
+    options?: { forceRefresh?: boolean; deepSearch?: boolean; malId?: string; originalTitle?: string; titleRomaji?: string },
   ) {
-    const { forceRefresh = false, deepSearch = false, malId, originalTitle } = options ?? {}
+    const { forceRefresh = false, deepSearch = false, malId, originalTitle, titleRomaji } = options ?? {}
     if (!entityTypeId) return
-    setLastVolumeSearchParams({ title: seriesTitle, author, malId, originalTitle })
+    setLastVolumeSearchParams({ title: seriesTitle, author, malId, originalTitle, titleRomaji })
     volumeSearchAbortRef.current?.abort()
     const controller = new AbortController()
     volumeSearchAbortRef.current = controller
@@ -269,7 +271,7 @@ export function QuickAddPage() {
       setSelectedVolumeKeys(new Set())
     }
     setVolumesQuotaExceeded(false)
-    searchVolumes(entityTypeId, seriesTitle, { author, signal: controller.signal, forceRefresh, deepSearch, malId, originalTitle })
+    searchVolumes(entityTypeId, seriesTitle, { author, signal: controller.signal, forceRefresh, deepSearch, malId, originalTitle, titleRomaji })
       .then((response) => {
         if (controller.signal.aborted) return
         setVolumeCandidates(response.volumes)
@@ -337,6 +339,11 @@ export function QuickAddPage() {
     // backend (voir RelatedSeriesService) - best-effort, sans effet si malId
     // est absent (candidat sans identifiant MyAnimeList exploitable).
     const malId = typeof candidate.attributes.malId === 'string' ? candidate.attributes.malId : undefined
+    // Second candidat pour cette même détection de spin-off (voir
+    // RelatedSeriesService côté backend) - un spin-off peut être indexé côté
+    // MyAnimeList sous le titre romaji plutôt que candidate.title (ex:
+    // "Attack on Titan"/"Shingeki no Kyojin", vérifié manuellement).
+    const titleRomaji = typeof candidate.attributes.titleRomaji === 'string' ? candidate.attributes.titleRomaji : undefined
     // Recherche avec le titre déjà résolu - correct dans la majorité des cas
     // (beaucoup de titres de mangas restent identiques en VF, ex: "Death
     // Note", "One Piece"). Si le titre français arrive plus tard (voir plus
@@ -353,7 +360,7 @@ export function QuickAddPage() {
     if (selectedType?.code === 'MANGA') {
       volumeSearchDebounceRef.current = setTimeout(() => {
         volumeSearchDebounceRef.current = null
-        triggerVolumeSearch(resolvedTitle, author, { malId, originalTitle: candidate.title })
+        triggerVolumeSearch(resolvedTitle, author, { malId, originalTitle: candidate.title, titleRomaji })
       }, 600)
     }
 
@@ -385,13 +392,13 @@ export function QuickAddPage() {
       const controller = new AbortController()
       frenchTitleAbortRef.current = controller
       setIsTranslating(true)
-      fetchFrenchTitle(entityTypeId, searchTerm, { author, malId, signal: controller.signal })
+      fetchFrenchTitle(entityTypeId, searchTerm, { author, malId, titleRomaji, signal: controller.signal })
         .then((frenchTitle) => {
           if (controller.signal.aborted || !frenchTitle) return
           setTitle(frenchTitle)
           setAttributesSourceTitle(frenchTitle)
           if (selectedType?.code === 'MANGA') {
-            triggerVolumeSearch(frenchTitle, author, { malId, originalTitle: candidate.title })
+            triggerVolumeSearch(frenchTitle, author, { malId, originalTitle: candidate.title, titleRomaji })
           }
         })
         .catch(() => {
@@ -609,6 +616,7 @@ export function QuickAddPage() {
                         deepSearch: true,
                         malId: lastVolumeSearchParams.malId,
                         originalTitle: lastVolumeSearchParams.originalTitle,
+                        titleRomaji: lastVolumeSearchParams.titleRomaji,
                       })
                     }
                     disabled={isSearchingVolumes}
@@ -625,6 +633,7 @@ export function QuickAddPage() {
                         forceRefresh: true,
                         malId: lastVolumeSearchParams.malId,
                         originalTitle: lastVolumeSearchParams.originalTitle,
+                        titleRomaji: lastVolumeSearchParams.titleRomaji,
                       })
                     }
                     disabled={isSearchingVolumes}
@@ -673,6 +682,7 @@ export function QuickAddPage() {
                       forceRefresh: true,
                       malId: lastVolumeSearchParams.malId,
                       originalTitle: lastVolumeSearchParams.originalTitle,
+                      titleRomaji: lastVolumeSearchParams.titleRomaji,
                     })
                   }
                   className="underline"

@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Dérive, à partir des séries liées connues d'un candidat (voir
@@ -18,20 +19,36 @@ import java.util.stream.Collectors;
  * <p>
  * Best-effort et volontairement limité (voir {@link #distinctiveSuffix}) :
  * ne fonctionne que quand le titre de la série liée partage un préfixe
- * textuel avec le titre d'origine - MyAnimeList indexe parfois un spin-off
- * sous son titre romaji d'origine, sans aucun lien textuel avec le titre
- * anglais/français utilisé pour la recherche de tomes (vérifié manuellement :
- * "Demon Slayer" -> spin-off "Kimetsu Gakuen!", aucun mot commun) - dans ce
- * cas, ce spin-off reste invisible à ce mécanisme, exactement comme avant.
+ * textuel avec au moins un des titres "d'origine" essayés (voir
+ * {@code originalTitleCandidates} de {@link #findExcludedTitleFragments}) -
+ * MyAnimeList indexe un spin-off tantôt sous le titre romaji d'origine de la
+ * série, tantôt sous une variante ne partageant aucun lien textuel avec
+ * AUCUN des titres connus (vérifié manuellement : "Demon Slayer"/"Kimetsu no
+ * Yaiba" -> spin-off "Kimetsu Gakuen!", aucun préfixe commun avec l'un ou
+ * l'autre) - dans ce dernier cas, ce spin-off reste invisible à ce
+ * mécanisme, quel que soit le nombre de candidats essayés.
+ * <p>
+ * Cas réel qui motive l'essai de PLUSIEURS candidats plutôt qu'un seul
+ * (signalé en testant "Attack on Titan", voir historique) : le titre retenu
+ * côté client est le titre anglais ("Attack on Titan"), mais MyAnimeList
+ * indexe son spin-off "Before the Fall" sous le titre romaji de la série
+ * ("Shingeki no Kyojin: Before the Fall") - aucun lien avec "Attack on
+ * Titan", mais un préfixe exact avec "Shingeki no Kyojin" (voir
+ * MyAnimeListMetadataProvider.titleRomaji, déjà connu du candidat côté
+ * client).
  */
 @Service
 public class RelatedSeriesService {
 
     private final List<RelatedSeriesProvider> providers;
     // TTL long (comme frenchTitleCache/barcodeCache de MetadataSearchService) :
-    // les relations d'une série changent rarement. Ne mémorise QUE le résultat
-    // de l'appel externe, jamais indexé par le titre français cherché (une
-    // même série malId peut être recherchée sous plusieurs titres/tomes).
+    // les relations d'une série changent rarement. Mémorise les titres BRUTS
+    // des séries liées (résultat de l'appel externe), PAS les fragments déjà
+    // dérivés - ces derniers dépendent des titres d'origine essayés, qui
+    // peuvent varier d'un appel à l'autre pour un même externalId (ex: un
+    // appel qui ne connaît pas encore le titre romaji) ; jamais indexé par le
+    // titre français cherché (une même série malId peut être recherchée sous
+    // plusieurs titres/tomes).
     private final TtlCache<String, List<String>> cache = new TtlCache<>(Duration.ofHours(24), 500);
 
     public RelatedSeriesService(List<RelatedSeriesProvider> providers) {
@@ -49,23 +66,55 @@ public class RelatedSeriesService {
      *                      partie distinctive d'un titre de série liée.
      */
     public List<String> findExcludedTitleFragments(EntityType entityType, String externalId, String originalTitle) {
-        if (externalId == null || externalId.isBlank() || originalTitle == null || originalTitle.isBlank()) {
+        return findExcludedTitleFragments(entityType, externalId, originalTitle, null);
+    }
+
+    /**
+     * Variante qui essaie un second titre "d'origine" (voir javadoc de la
+     * classe) - typiquement {@code titleRomaji} (voir
+     * MyAnimeListMetadataProvider), en repli quand {@code originalTitle}
+     * (le titre anglais/affiché) ne partage aucun préfixe avec le titre lié.
+     *
+     * @param titleRomaji second candidat, {@code null}/vide si inconnu ou
+     *                    identique à {@code originalTitle} (pas de perte si
+     *                    absent, juste moins de spin-offs détectés).
+     */
+    public List<String> findExcludedTitleFragments(EntityType entityType, String externalId, String originalTitle, String titleRomaji) {
+        List<String> originalTitleCandidates = Stream.of(originalTitle, titleRomaji)
+                .filter(candidate -> candidate != null && !candidate.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
+        if (externalId == null || externalId.isBlank() || originalTitleCandidates.isEmpty()) {
             return List.of();
         }
         String cacheKey = entityType.id() + "|" + externalId;
-        return cache.get(cacheKey).orElseGet(() -> {
-            List<String> relatedTitles = providers.stream()
+        List<String> relatedTitles = cache.get(cacheKey).orElseGet(() -> {
+            List<String> fetched = providers.stream()
                     .filter(provider -> provider.supports(entityType))
                     .flatMap(provider -> provider.findRelatedSeriesTitles(externalId).stream())
                     .collect(Collectors.toList());
-            List<String> fragments = relatedTitles.stream()
-                    .map(relatedTitle -> distinctiveSuffix(relatedTitle, originalTitle))
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.toList());
-            cache.put(cacheKey, fragments);
-            return fragments;
+            cache.put(cacheKey, fetched);
+            return fetched;
         });
+        return relatedTitles.stream()
+                .map(relatedTitle -> distinctiveSuffix(relatedTitle, originalTitleCandidates))
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /** Essaie chaque candidat dans l'ordre, garde le premier suffixe trouvé
+     * (voir javadoc de la classe) - l'ordre n'a pas d'importance en pratique,
+     * un titre lié ne partage normalement un préfixe qu'avec AU PLUS un des
+     * candidats (des titres d'origine distincts, ex: anglais vs romaji). */
+    private static String distinctiveSuffix(String relatedTitle, List<String> originalTitleCandidates) {
+        for (String originalTitle : originalTitleCandidates) {
+            String suffix = distinctiveSuffix(relatedTitle, originalTitle);
+            if (suffix != null) {
+                return suffix;
+            }
+        }
+        return null;
     }
 
     /**

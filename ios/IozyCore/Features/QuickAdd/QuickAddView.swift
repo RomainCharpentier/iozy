@@ -55,6 +55,7 @@ struct QuickAddView: View {
     // backend), y compris sur "Actualiser"/"Chercher plus d'éditions".
     @State private var lastVolumeSearchMalId: String?
     @State private var lastVolumeSearchOriginalTitle: String?
+    @State private var lastVolumeSearchTitleRomaji: String?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var lastAddedMessage: String?
@@ -161,6 +162,7 @@ struct QuickAddView: View {
                                     lastVolumeSearchAuthor = nil
                                     lastVolumeSearchMalId = nil
                                     lastVolumeSearchOriginalTitle = nil
+                                    lastVolumeSearchTitleRomaji = nil
                                 }
                                 triggerSearch()
                             }
@@ -231,7 +233,8 @@ struct QuickAddView: View {
                                 Button("Réessayer") {
                                     triggerVolumeSearch(
                                         seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true,
-                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle,
+                                        titleRomaji: lastVolumeSearchTitleRomaji)
                                 }
                             }
                         }
@@ -271,7 +274,8 @@ struct QuickAddView: View {
                                 Button {
                                     triggerVolumeSearch(
                                         seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, deepSearch: true,
-                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle,
+                                        titleRomaji: lastVolumeSearchTitleRomaji)
                                 } label: {
                                     Label("Chercher plus d'éditions", systemImage: "magnifyingglass")
                                 }
@@ -281,7 +285,8 @@ struct QuickAddView: View {
                                 Button {
                                     triggerVolumeSearch(
                                         seriesTitle: lastVolumeSearchTitle, author: lastVolumeSearchAuthor, forceRefresh: true,
-                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle)
+                                        malId: lastVolumeSearchMalId, originalTitle: lastVolumeSearchOriginalTitle,
+                                        titleRomaji: lastVolumeSearchTitleRomaji)
                                 } label: {
                                     Label("Actualiser", systemImage: "arrow.clockwise")
                                 }
@@ -458,8 +463,9 @@ struct QuickAddView: View {
                 guard !Task.isCancelled else { return }
                 let author = candidate.attributes["mangaka"]?.stringValue
                 let malId = candidate.attributes["malId"]?.stringValue
+                let titleRomaji = candidate.attributes["titleRomaji"]?.stringValue
                 guard let frenchTitle = try? await APIClient.shared.fetchFrenchTitle(
-                        entityTypeId: entityTypeId, query: candidate.title, author: author, malId: malId),
+                        entityTypeId: entityTypeId, query: candidate.title, author: author, malId: malId, titleRomaji: titleRomaji),
                       !Task.isCancelled else {
                     continue
                 }
@@ -560,13 +566,15 @@ struct QuickAddView: View {
     /// ne le remplace pas - la sélection en cours est donc toujours
     /// conservée, comme forceRefresh. malId/originalTitle (déjà connus du
     /// candidat sélectionné) permettent d'écarter un spin-off/side-story
-    /// connu côté backend - best-effort.
-    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil) {
+    /// connu côté backend - best-effort. titleRomaji est essayé en repli
+    /// d'originalTitle pour cette même détection (voir fetchFrenchTitle).
+    private func triggerVolumeSearch(seriesTitle: String, author: String?, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil, titleRomaji: String? = nil) {
         guard let typeId = selectedType?.id else { return }
         lastVolumeSearchTitle = seriesTitle
         lastVolumeSearchAuthor = author
         lastVolumeSearchMalId = malId
         lastVolumeSearchOriginalTitle = originalTitle
+        lastVolumeSearchTitleRomaji = titleRomaji
         volumeSearchTask?.cancel()
         isSearchingVolumes = true
         // Un rafraîchissement manuel ou une recherche approfondie gardent la
@@ -581,7 +589,7 @@ struct QuickAddView: View {
         volumeSearchTask = Task {
             let response = try? await APIClient.shared.searchVolumes(
                 entityTypeId: typeId, title: seriesTitle, author: author, forceRefresh: forceRefresh, deepSearch: deepSearch,
-                malId: malId, originalTitle: originalTitle)
+                malId: malId, originalTitle: originalTitle, titleRomaji: titleRomaji)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 volumeCandidates = response?.volumes ?? []
@@ -633,6 +641,11 @@ struct QuickAddView: View {
         // d'écarter un spin-off/side-story connu côté backend (voir
         // RelatedSeriesService) - best-effort, sans effet si malId est absent.
         let malId = candidate.attributes["malId"]?.stringValue
+        // Second candidat pour cette même détection de spin-off (voir
+        // RelatedSeriesService côté backend) - un spin-off peut être indexé
+        // côté MyAnimeList sous le titre romaji plutôt que candidate.title
+        // (ex: "Attack on Titan"/"Shingeki no Kyojin", vérifié manuellement).
+        let titleRomaji = candidate.attributes["titleRomaji"]?.stringValue
         // Recherche avec le titre déjà résolu - correct dans la majorité des
         // cas (beaucoup de titres de mangas restent identiques en VF, ex:
         // "Death Note", "One Piece"). Si le titre français arrive plus tard
@@ -648,7 +661,9 @@ struct QuickAddView: View {
             volumeSearchDebounceTask = Task {
                 try? await Task.sleep(nanoseconds: 600_000_000)
                 guard !Task.isCancelled else { return }
-                triggerVolumeSearch(seriesTitle: resolvedTitle, author: author, malId: malId, originalTitle: candidate.title)
+                triggerVolumeSearch(
+                    seriesTitle: resolvedTitle, author: author, malId: malId, originalTitle: candidate.title,
+                    titleRomaji: titleRomaji)
             }
         }
 
@@ -680,7 +695,7 @@ struct QuickAddView: View {
             defer { if !Task.isCancelled { isTranslatingTitle = false } }
             guard let frenchTitle = try? await APIClient.shared.fetchFrenchTitle(
                     entityTypeId: typeId, query: searchTerm, author: candidate.attributes["mangaka"]?.stringValue,
-                    malId: candidate.attributes["malId"]?.stringValue),
+                    malId: candidate.attributes["malId"]?.stringValue, titleRomaji: candidate.attributes["titleRomaji"]?.stringValue),
                   !Task.isCancelled else {
                 return
             }
@@ -690,7 +705,8 @@ struct QuickAddView: View {
                 if selectedType?.code == "MANGA" {
                     triggerVolumeSearch(
                         seriesTitle: frenchTitle, author: candidate.attributes["mangaka"]?.stringValue,
-                        malId: candidate.attributes["malId"]?.stringValue, originalTitle: candidate.title)
+                        malId: candidate.attributes["malId"]?.stringValue, originalTitle: candidate.title,
+                        titleRomaji: candidate.attributes["titleRomaji"]?.stringValue)
                 }
             }
         }
@@ -788,6 +804,7 @@ struct QuickAddView: View {
                     lastVolumeSearchAuthor = nil
                     lastVolumeSearchMalId = nil
                     lastVolumeSearchOriginalTitle = nil
+                    lastVolumeSearchTitleRomaji = nil
                     verifiedTitle = nil
                     candidates = []
                     searchCompletedWithNoResults = false

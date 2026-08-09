@@ -124,10 +124,14 @@ extension APIClient {
     /// permet d'écarter une suite/spin-off connu(e) (voir RelatedSeriesService
     /// côté backend) mal résolu(e) à la place du titre cherché - ex: "Dragon
     /// Ball Super nº 18" pour "Dragon Ball" (vérifié manuellement, voir
-    /// historique) - best-effort, sans effet si absent. Renvoie nil si rien
+    /// historique) - best-effort, sans effet si absent. `titleRomaji` est
+    /// essayé en repli de `query` pour cette même détection (vérifié
+    /// manuellement sur "Attack on Titan"/"Shingeki no Kyojin", voir
+    /// historique) - un spin-off peut être indexé côté MyAnimeList sous le
+    /// titre romaji plutôt que le titre affiché. Renvoie nil si rien
     /// trouvé (404), pas une erreur : l'appelant garde alors le titre
     /// anglais/romaji déjà affiché.
-    func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil, malId: String? = nil) async throws -> String? {
+    func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil, malId: String? = nil, titleRomaji: String? = nil) async throws -> String? {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         var path = "/metadata/french-title?entityTypeId=\(entityTypeId.uuidString)&query=\(encodedQuery)"
         if let author, !author.isEmpty {
@@ -136,6 +140,10 @@ extension APIClient {
         }
         if let malId, !malId.isEmpty {
             path += "&malId=\(malId)"
+        }
+        if let titleRomaji, !titleRomaji.isEmpty {
+            let encodedTitleRomaji = titleRomaji.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? titleRomaji
+            path += "&titleRomaji=\(encodedTitleRomaji)"
         }
         do {
             let response: FrenchTitleResponse = try await get(path)
@@ -183,8 +191,10 @@ extension APIClient {
     /// deepSearch est alors prioritaire côté backend. malId+originalTitle
     /// (déjà connus du candidat sélectionné) permettent d'écarter un
     /// spin-off/side-story connu (voir RelatedSeriesService côté backend) -
-    /// best-effort, sans effet si l'un des deux manque.
-    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil) async throws -> VolumesResponseDTO {
+    /// best-effort, sans effet si l'un des deux manque. titleRomaji est
+    /// essayé en repli d'originalTitle pour cette même détection (voir
+    /// fetchFrenchTitle ci-dessus).
+    func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil, titleRomaji: String? = nil) async throws -> VolumesResponseDTO {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"
         if let author, !author.isEmpty {
@@ -203,6 +213,10 @@ extension APIClient {
         if let originalTitle, !originalTitle.isEmpty {
             let encodedOriginalTitle = originalTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? originalTitle
             path += "&originalTitle=\(encodedOriginalTitle)"
+        }
+        if let titleRomaji, !titleRomaji.isEmpty {
+            let encodedTitleRomaji = titleRomaji.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? titleRomaji
+            path += "&titleRomaji=\(encodedTitleRomaji)"
         }
         return try await get(path)
     }
