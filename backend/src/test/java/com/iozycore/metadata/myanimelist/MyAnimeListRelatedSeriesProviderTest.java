@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
-    void keeps_only_spin_off_and_side_story_relations() throws Exception {
+    void keeps_only_spin_off_side_story_and_sequel_relations() throws Exception {
         // Fixture basée sur la vraie réponse observée pour "Blue Lock"
         // (malId 114745, vérifié manuellement, voir historique) - inclut une
         // "adaptation" (roman) qui ne doit PAS ressortir.
@@ -26,6 +26,27 @@ class MyAnimeListRelatedSeriesProviderTest {
         List<String> result = provider.parse(body);
 
         assertThat(result).containsExactly("Blue Lock: Episode Nagi");
+    }
+
+    @Test
+    void keeps_a_sequel_relation() throws Exception {
+        // Cas réel observé (voir historique) : "Dragon Ball" (malId 42) a
+        // "Dragon Ball Super" comme "sequel" - une suite avec sa propre
+        // histoire, jamais une édition de la série d'origine, contrairement
+        // à ce que laissait penser son apparition dans les résultats de
+        // recherche de tomes ("Super" ressortait comme un nom d'édition).
+        MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
+        String body = """
+                {
+                  "related_manga": [
+                    { "node": { "id": 89734, "title": "Dragon Ball Super" }, "relation_type": "sequel" }
+                  ]
+                }
+                """;
+
+        List<String> result = provider.parse(body);
+
+        assertThat(result).containsExactly("Dragon Ball Super");
     }
 
     @Test
