@@ -181,6 +181,14 @@ public class MetadataSearchService {
      *               améliore nettement la précision (voir OpenLibraryFrenchTitleProvider).
      */
     public Optional<String> findFrenchTitle(EntityType entityType, String query, String author) {
+        return findFrenchTitle(entityType, query, author, List.of());
+    }
+
+    /** Variante avec exclusion de suites/spin-offs connus (voir RelatedSeriesService) -
+     * ex: "Dragon Ball Super nº 18" résolu à tort comme titre français de
+     * "Dragon Ball" (sa suite étant beaucoup mieux référencée sur Open
+     * Library, vérifié manuellement, voir historique de la conversation). */
+    public Optional<String> findFrenchTitle(EntityType entityType, String query, String author, List<String> excludedTitleFragments) {
         String cacheKey = entityType.id() + "|" + normalize(query) + "|" + normalize(author == null ? "" : author);
         Optional<String> cached = frenchTitleCache.get(cacheKey);
         if (cached.isPresent()) {
@@ -189,7 +197,7 @@ public class MetadataSearchService {
 
         Optional<String> result = frenchTitleProviders.stream()
                 .filter(provider -> provider.supports(entityType))
-                .map(provider -> provider.findFrenchTitle(query, author))
+                .map(provider -> provider.findFrenchTitle(query, author, excludedTitleFragments))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();

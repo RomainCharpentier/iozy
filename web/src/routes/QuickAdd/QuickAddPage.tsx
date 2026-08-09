@@ -179,7 +179,8 @@ export function QuickAddPage() {
       .slice(0, 6)
       .forEach((candidate) => {
         const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
-        fetchFrenchTitle(entityTypeId, candidate.title, author, controller.signal)
+        const malId = typeof candidate.attributes.malId === 'string' ? candidate.attributes.malId : undefined
+        fetchFrenchTitle(entityTypeId, candidate.title, { author, malId, signal: controller.signal })
           .then((frenchTitle) => {
             if (controller.signal.aborted || !frenchTitle) return
             setFrenchTitles((prev) => ({ ...prev, [candidateKey(candidate)]: frenchTitle }))
@@ -384,7 +385,7 @@ export function QuickAddPage() {
       const controller = new AbortController()
       frenchTitleAbortRef.current = controller
       setIsTranslating(true)
-      fetchFrenchTitle(entityTypeId, searchTerm, author, controller.signal)
+      fetchFrenchTitle(entityTypeId, searchTerm, { author, malId, signal: controller.signal })
         .then((frenchTitle) => {
           if (controller.signal.aborted || !frenchTitle) return
           setTitle(frenchTitle)

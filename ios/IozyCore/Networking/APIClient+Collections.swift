@@ -120,14 +120,22 @@ extension APIClient {
     /// puis Google Books en repli) - à n'appeler qu'une fois par sélection de
     /// suggestion (voir QuickAddView.selectCandidate), jamais pour toute une
     /// liste de résultats. `author` (mangaka) est optionnel mais améliore
-    /// nettement la précision. Renvoie nil si rien trouvé (404), pas une
-    /// erreur : l'appelant garde alors le titre anglais/romaji déjà affiché.
-    func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil) async throws -> String? {
+    /// nettement la précision. `malId` (déjà connu du candidat sélectionné)
+    /// permet d'écarter une suite/spin-off connu(e) (voir RelatedSeriesService
+    /// côté backend) mal résolu(e) à la place du titre cherché - ex: "Dragon
+    /// Ball Super nº 18" pour "Dragon Ball" (vérifié manuellement, voir
+    /// historique) - best-effort, sans effet si absent. Renvoie nil si rien
+    /// trouvé (404), pas une erreur : l'appelant garde alors le titre
+    /// anglais/romaji déjà affiché.
+    func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil, malId: String? = nil) async throws -> String? {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         var path = "/metadata/french-title?entityTypeId=\(entityTypeId.uuidString)&query=\(encodedQuery)"
         if let author, !author.isEmpty {
             let encodedAuthor = author.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? author
             path += "&author=\(encodedAuthor)"
+        }
+        if let malId, !malId.isEmpty {
+            path += "&malId=\(malId)"
         }
         do {
             let response: FrenchTitleResponse = try await get(path)

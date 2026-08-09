@@ -30,17 +30,21 @@ export function importBggCollection(username: string): Promise<BggImportResult> 
  * Google Books en repli) - à n'appeler qu'une fois par sélection de
  * suggestion (voir QuickAddPage), pas pour toute une liste de résultats.
  * `author` (mangaka) est optionnel mais améliore nettement la précision.
- * 404 = rien trouvé, pas une erreur : renvoie null, l'appelant garde alors
- * le titre anglais/romaji déjà affiché. */
+ * `malId` (déjà connu du candidat sélectionné) permet d'écarter une suite/
+ * spin-off connu(e) (voir RelatedSeriesService côté backend) mal résolu(e)
+ * à la place du titre cherché - ex: "Dragon Ball Super nº 18" pour "Dragon
+ * Ball" (vérifié manuellement, voir historique) - best-effort, sans effet
+ * si absent. 404 = rien trouvé, pas une erreur : renvoie null, l'appelant
+ * garde alors le titre anglais/romaji déjà affiché. */
 export async function fetchFrenchTitle(
   entityTypeId: string,
   query: string,
-  author?: string,
-  signal?: AbortSignal,
+  options?: { author?: string; malId?: string; signal?: AbortSignal },
 ): Promise<string | null> {
+  const { author, malId, signal } = options ?? {}
   try {
     const result = await get<{ frenchTitle: string }>(
-      `/metadata/french-title${buildQuery({ entityTypeId, query, author })}`,
+      `/metadata/french-title${buildQuery({ entityTypeId, query, author, malId })}`,
       signal,
     )
     return result.frenchTitle

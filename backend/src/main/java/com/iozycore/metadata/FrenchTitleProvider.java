@@ -2,6 +2,7 @@ package com.iozycore.metadata;
 
 import com.iozycore.domain.catalog.EntityType;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,6 +21,13 @@ public interface FrenchTitleProvider {
      * @param query  titre à rechercher (romaji/anglais - jamais français par définition).
      * @param author mangaka, si connu - améliore nettement la précision de la
      *               recherche (voir OpenLibraryFrenchTitleProvider), peut être null/vide.
+     * @param excludedTitleFragments fragments de titre (voir RelatedSeriesService)
+     *               identifiant un spin-off/side-story/suite connu(e) du titre
+     *               cherché - à écarter des résultats candidats (ex: "Dragon
+     *               Ball Super nº 18" résolu à tort comme titre français de
+     *               "Dragon Ball", sa suite étant beaucoup mieux référencée
+     *               sur Open Library - vérifié manuellement, voir historique
+     *               de la conversation).
      */
-    Optional<String> findFrenchTitle(String query, String author);
+    Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments);
 }

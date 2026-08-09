@@ -26,20 +26,25 @@ import java.util.Set;
  * connect to MyAnimeList") au moment d'écrire ce fournisseur, alors que
  * l'API officielle répondait normalement pour le même identifiant.
  * <p>
- * "spin_off", "side_story" et "sequel" sont retenues comme séries
- * clairement DISTINCTES (vérifié manuellement sur "Blue Lock" -&gt; "Blue
- * Lock: Episode Nagi" et "Demon Slayer" -&gt; "Kimetsu Gakuen!", tous deux
- * tagués "spin_off" ; "Dragon Ball" -&gt; "Dragon Ball Super", tagué
- * "sequel" - une suite avec sa propre histoire, pas une édition) -
- * "alternative_version"/"alternative_setting" restent volontairement
- * EXCLUES de cette liste : elles désignent souvent une vraie réédition
- * (kanzenban, couleur...) qu'on veut au contraire GARDER comme résultat de
- * recherche de tomes. Limite assumée (vérifié manuellement, voir
- * historique) : "Dragon Ball" -&gt; "Dragon Ball SD" (parodie/spin-off
- * comique à l'histoire distincte) est tagué "alternative_version" sur
- * MyAnimeList, pas "spin_off" - il reste donc affiché à tort comme une
- * édition, MyAnimeList ne distinguant pas fiablement dans cette catégorie
- * une vraie réédition d'une réinterprétation à l'histoire différente.
+ * "spin_off", "side_story", "sequel" et "alternative_version" sont
+ * retenues comme séries clairement DISTINCTES (vérifié manuellement sur
+ * "Blue Lock" -&gt; "Blue Lock: Episode Nagi" et "Demon Slayer" -&gt;
+ * "Kimetsu Gakuen!", tous deux tagués "spin_off" ; "Dragon Ball" -&gt;
+ * "Dragon Ball Super", tagué "sequel" - une suite avec sa propre histoire,
+ * pas une édition ; "Dragon Ball" -&gt; "Dragon Ball SD", tagué
+ * "alternative_version" - une parodie chibi à l'histoire distincte,
+ * MyAnimeList ne distinguant pas fiablement dans cette catégorie une vraie
+ * réédition (kanzenban, couleur...) d'une réinterprétation à l'histoire
+ * différente comme celle-ci ; signalé directement par l'utilisateur en
+ * testant "Dragon Ball", voir historique de la conversation).
+ * <p>
+ * "alternative_setting" reste volontairement EXCLUE de cette liste (pas de
+ * cas concret observé, contrairement à "alternative_version" ci-dessus) -
+ * risque assumé pour "alternative_version" : si une vraie réédition légitime
+ * était un jour taguée ainsi sur MyAnimeList plutôt qu'avec un mot-clé
+ * d'édition trouvable côté Google Books, elle serait écartée à tort - aucun
+ * cas de ce genre rencontré malgré des tests étendus sur de nombreuses
+ * franchises à éditions multiples cette session.
  * <p>
  * Pas de mode dégradé sans Client ID configuré (comme MyAnimeListMetadataProvider) :
  * supports() renvoie false tant que {@code mal.client-id} est vide.
@@ -49,7 +54,7 @@ public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListRelatedSeriesProvider.class);
     private static final String RELATIONS_URL = "https://api.myanimelist.net/v2/manga/%s?fields=related_manga";
-    private static final Set<String> DISTINCT_SERIES_RELATIONS = Set.of("spin_off", "side_story", "sequel");
+    private static final Set<String> DISTINCT_SERIES_RELATIONS = Set.of("spin_off", "side_story", "sequel", "alternative_version");
 
     @Value("${mal.client-id:}")
     private String clientId;

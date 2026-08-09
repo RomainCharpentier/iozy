@@ -2,6 +2,7 @@ package com.iozycore.metadata.googlebooks;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,5 +71,26 @@ class GoogleBooksFrenchTitleProviderTest {
         Optional<String> result = provider.parse(body);
 
         assertThat(result).contains("Fragments d'elles");
+    }
+
+    @Test
+    void skips_a_known_related_series_and_falls_through_to_the_next_result() throws Exception {
+        // Même biais de popularité que côté Open Library (voir
+        // OpenLibraryFrenchTitleProviderTest, "Dragon Ball Super nº 18" pour
+        // une recherche "Dragon Ball") - possible aussi ici en repli.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 2,
+                  "items": [
+                    { "volumeInfo": { "title": "Dragon Ball Super - Tome 18", "language": "fr" } },
+                    { "volumeInfo": { "title": "Dragon Ball, tome 1", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body, List.of("Dragon Ball Super"));
+
+        assertThat(result).contains("Dragon Ball");
     }
 }
