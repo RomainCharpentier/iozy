@@ -100,6 +100,28 @@ class OpenLibraryFrenchTitleProviderTest {
     }
 
     @Test
+    void recognizes_a_parenthesized_tome_number_as_a_real_series_entry() throws Exception {
+        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
+        // historique) : "Gloutons et Dragons (Tome 12)" (titre français réel
+        // de "Delicious in Dungeon") avait son numéro PARENTHÉSÉ ignoré,
+        // faisant retomber le dernier recours "auteur seul" sur "Les Sept
+        // Rejetons du dragon", un autre livre du même auteur sans rapport.
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "Les Sept Rejetons du dragon", "language": ["fre"] },
+                    { "title": "Gloutons et Dragons (Tome 12)", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Gloutons et Dragons");
+    }
+
+    @Test
     void falls_back_to_the_first_result_when_none_has_an_extractable_tome_number() throws Exception {
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """

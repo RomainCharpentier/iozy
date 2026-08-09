@@ -132,6 +132,30 @@ class GoogleBooksFrenchTitleProviderTest {
     }
 
     @Test
+    void recognizes_a_parenthesized_tome_number_as_a_real_series_entry() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Delicious in Dungeon"
+        // (voir historique) : "Gloutons et Dragons (Tome 12)" est le vrai
+        // titre français, mais le numéro PARENTHÉSÉ n'était pas reconnu par
+        // VOLUME_SUFFIX - le repli "auteur seul" retombait alors sur "Les
+        // Sept Rejetons du dragon", un autre livre du même auteur SANS
+        // numéro de tome, qui semblait alors "préférable" à tort.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 2,
+                  "items": [
+                    { "volumeInfo": { "title": "Les Sept Rejetons du dragon", "language": "fr" } },
+                    { "volumeInfo": { "title": "Gloutons et Dragons (Tome 12)", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Gloutons et Dragons");
+    }
+
+    @Test
     void falls_back_to_the_first_result_when_none_has_an_extractable_tome_number() throws Exception {
         // Contrairement au cas ci-dessus : si AUCUN résultat n'a de numéro
         // de tome (ex: un vrai one-shot sans jamais de fiche "Tome 1"
