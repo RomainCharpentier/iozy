@@ -96,6 +96,53 @@ class GoogleBooksFrenchTitleProviderTest {
     }
 
     @Test
+    void prefers_a_tome_numbered_result_over_an_unrelated_homonym_from_the_same_author() throws Exception {
+        // Cas réel trouvé en continuant les tests sur "Witch Hat Atelier"
+        // (voir historique) : le repli "auteur seul" (voir findFrenchTitle)
+        // remonte en PREMIER "L'Art des Sorciers", un ARTBOOK sans rapport
+        // du même auteur (Kamome Shirahama), avant "L'Atelier des Sorciers
+        // T15" (le vrai manga, correctement numéroté) un peu plus loin dans
+        // les mêmes résultats - un numéro de tome extrait est un signal
+        // bien plus fort qu'une simple première position.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 2,
+                  "items": [
+                    { "volumeInfo": { "title": "L'Art des Sorciers", "language": "fr" } },
+                    { "volumeInfo": { "title": "L'Atelier des Sorciers T15", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("L'Atelier des Sorciers");
+    }
+
+    @Test
+    void falls_back_to_the_first_result_when_none_has_an_extractable_tome_number() throws Exception {
+        // Contrairement au cas ci-dessus : si AUCUN résultat n'a de numéro
+        // de tome (ex: un vrai one-shot sans jamais de fiche "Tome 1"
+        // indexée), le comportement reste inchangé - premier résultat
+        // retenu tel quel plutôt que de tout écarter.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 2,
+                  "items": [
+                    { "volumeInfo": { "title": "Fragments d'elles", "language": "fr" } },
+                    { "volumeInfo": { "title": "Un autre livre", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        Optional<String> result = provider.parse(body);
+
+        assertThat(result).contains("Fragments d'elles");
+    }
+
+    @Test
     void skips_a_known_related_series_and_falls_through_to_the_next_result() throws Exception {
         // Même biais de popularité que côté Open Library (voir
         // OpenLibraryFrenchTitleProviderTest, "Dragon Ball Super nº 18" pour
