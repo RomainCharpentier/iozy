@@ -10,6 +10,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GoogleBooksFrenchTitleProviderTest {
 
     @Test
+    void treats_a_single_word_author_as_too_generic_for_the_author_only_fallback() {
+        // Cas réel trouvé en continuant les tests sur "Akame ga Kill" (voir
+        // historique) : inauthor:"Takahiro" (mononyme, pseudonyme du
+        // scénariste) matchait aussi "Takahiro Arai", illustrateur d'une
+        // adaptation des Misérables - une personne différente sans aucun
+        // rapport.
+        assertThat(GoogleBooksFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Takahiro")).isTrue();
+        assertThat(GoogleBooksFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Akira Toriyama")).isFalse();
+    }
+
+    @Test
     void returns_the_title_of_the_first_french_language_result() throws Exception {
         GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
         String body = """

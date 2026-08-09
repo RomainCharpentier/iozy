@@ -10,6 +10,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OpenLibraryFrenchTitleProviderTest {
 
     @Test
+    void treats_a_single_word_author_as_too_generic_for_the_author_only_fallback() {
+        // Cas réel trouvé en continuant les tests sur "Akame ga Kill" (voir
+        // historique) : "Takahiro" (mononyme, pseudonyme du scénariste)
+        // remontait "Trapped Life" de "Haruki Takahiro", une personne
+        // différente sans aucun rapport - un nom complet reste bien plus
+        // distinctif.
+        assertThat(OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Takahiro")).isTrue();
+        assertThat(OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Akira Toriyama")).isFalse();
+    }
+
+    @Test
     void returns_the_cleaned_title_of_the_first_result() throws Exception {
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """

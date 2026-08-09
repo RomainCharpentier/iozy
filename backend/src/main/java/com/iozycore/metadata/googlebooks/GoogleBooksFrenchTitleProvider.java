@@ -105,10 +105,26 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         // Authentic Magical Girl" (Nisioisin, aucun rapport) - Google matche
         // les deux mots séparément n'importe où dans la fiche, alors que
         // inauthor: exige un vrai match sur le champ auteur.
-        if (author == null || author.isBlank()) {
+        //
+        // Un mononyme reste néanmoins écarté même via inauthor: (voir
+        // OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch,
+        // même risque, cas réel trouvé en continuant les tests sur "Akame ga
+        // Kill", voir historique) : inauthor:"Takahiro" matche aussi
+        // "Takahiro Arai" (illustrateur d'une adaptation des Misérables,
+        // personne différente du scénariste mononyme d'Akame ga Kill) -
+        // Google Books ne semble pas non plus exiger une correspondance
+        // EXACTE du champ auteur avec inauthor:, juste qu'un des noms listés
+        // CONTIENNE le terme cherché.
+        if (author == null || author.isBlank() || isTooGenericForAuthorOnlySearch(author)) {
             return Optional.empty();
         }
         return search("inauthor:\"" + author + "\"", excludedTitleFragments);
+    }
+
+    /** Voir OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch
+     * (même risque, dupliqué ici comme le reste des regex de ce module). */
+    static boolean isTooGenericForAuthorOnlySearch(String author) {
+        return !author.trim().contains(" ");
     }
 
     private Optional<String> search(String rawQuery, List<String> excludedTitleFragments) {

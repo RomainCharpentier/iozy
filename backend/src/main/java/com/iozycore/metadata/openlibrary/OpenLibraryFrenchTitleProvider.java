@@ -110,7 +110,31 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
             }
         }
 
+        // Un mononyme (un seul mot, ex: "Takahiro" - pseudonyme courant côté
+        // scénaristes manga) est trop risqué à chercher SEUL - voir
+        // isTooGenericForAuthorOnlySearch.
+        if (isTooGenericForAuthorOnlySearch(author)) {
+            return Optional.empty();
+        }
         return search(author, excludedTitleFragments);
+    }
+
+    /**
+     * Vrai si {@code author} tient en un seul mot - trop risqué à chercher
+     * SEUL en dernier recours (voir {@link #findFrenchTitle}) : Open Library
+     * matche n'importe quel auteur dont le nom CONTIENT ce mot, y compris
+     * une personne réelle totalement SANS RAPPORT qui partage juste un
+     * prénom courant - pire que le risque déjà documenté ailleurs (voir
+     * {@link #parse}, retomber sur une AUTRE œuvre du MÊME auteur) : ici, ce
+     * n'est même pas le bon auteur. Cas réel trouvé en continuant les tests
+     * sur "Akame ga Kill" (voir historique) : "Takahiro" (le scénariste)
+     * remontait "Trapped Life" de "Haruki Takahiro", une personne
+     * différente sans aucun rapport. Un nom COMPLET (plusieurs mots) reste
+     * tenté tel quel : bien plus distinctif, le risque de collision devient
+     * minime.
+     */
+    static boolean isTooGenericForAuthorOnlySearch(String author) {
+        return !author.trim().contains(" ");
     }
 
     private static String combine(String author, String text) {
