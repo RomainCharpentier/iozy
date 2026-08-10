@@ -121,6 +121,13 @@ export interface StatsSummaryDto {
   topTags: TagCountDto[]
 }
 
+/** "Évolution de ma collection" - un mois, voir StatsService.computeTimeline côté backend.
+ * month au format "YYYY-MM". Comptages uniquement, aucune valeur monétaire. */
+export interface MonthlyPointDto {
+  month: string
+  tomesAdded: number
+}
+
 export interface DiscoveryCandidateDto {
   source: string
   externalId: string

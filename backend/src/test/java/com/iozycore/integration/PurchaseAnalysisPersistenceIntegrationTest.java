@@ -1,5 +1,8 @@
 package com.iozycore.integration;
 
+import com.iozycore.domain.catalog.Entity;
+import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
@@ -13,6 +16,7 @@ import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingCommand;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.purchaseanalysis.PurchaseAnalysisService.NearCompleteSuggestion;
 import com.iozycore.purchaseanalysis.PurchaseAnalysis;
 import com.iozycore.purchaseanalysis.VolumeRange;
 import jakarta.persistence.EntityManager;
@@ -29,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -71,6 +76,9 @@ class PurchaseAnalysisPersistenceIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private EntityRepository entityRepository;
 
     @Test
     void a_manga_edition_can_be_saved_reloaded_and_looked_up_case_insensitively() {
@@ -197,5 +205,40 @@ class PurchaseAnalysisPersistenceIntegrationTest {
 
         assertThat(status.isKnown()).isFalse();
         assertThat(status.estimatedCostToComplete()).isNull();
+    }
+
+    @Test
+    void near_complete_suggestions_only_lists_owned_series_with_a_known_incomplete_named_edition() {
+        String seriesTitle = "My Home Hero " + UUID.randomUUID();
+        mangaEditionRepository.save(MangaEdition.create(seriesTitle, "Standard", EditionTier.STANDARD, "Kodansha",
+                26, new BigDecimal("6.90"), false, false, null));
+
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
+        for (int volume = 1; volume <= 24; volume++) {
+            entity.addVariant("Tome " + volume,
+                    Map.of("volumeNumber", volume, "edition", "Standard"));
+        }
+        entityRepository.save(entity);
+
+        List<NearCompleteSuggestion> suggestions = purchaseAnalysisService.findNearCompleteSuggestions();
+
+        NearCompleteSuggestion suggestion = suggestions.stream()
+                .filter(s -> s.entityId().equals(entity.id())).findFirst().orElseThrow();
+        assertThat(suggestion.editionName()).isEqualTo("Standard");
+        assertThat(suggestion.ownedCount()).isEqualTo(24);
+        assertThat(suggestion.totalVolumes()).isEqualTo(26);
+        assertThat(suggestion.missingCount()).isEqualTo(2);
+    }
+
+    @Test
+    void near_complete_suggestions_ignores_variants_without_a_named_edition() {
+        String seriesTitle = "Vagabond " + UUID.randomUUID();
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
+        entity.addVariant("Tome 1", Map.of("volumeNumber", 1)); // no "edition" attribute
+        entityRepository.save(entity);
+
+        List<NearCompleteSuggestion> suggestions = purchaseAnalysisService.findNearCompleteSuggestions();
+
+        assertThat(suggestions).noneMatch(s -> s.entityId().equals(entity.id()));
     }
 }

@@ -284,3 +284,18 @@ export interface PurchaseAnalysisSummaryDto {
   verdictScore: number
   totalRealCost: number
 }
+
+/** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
+ * édition nommée est connue mais incomplète (voir
+ * PurchaseAnalysisService.findNearCompleteSuggestions côté backend). */
+export interface NearCompleteSuggestionDto {
+  entityId: string
+  seriesTitle: string
+  editionName: string
+  ownedCount: number
+  totalVolumes: number
+  missingCount: number
+  missingVolumeNumbers: number[]
+  estimatedCostToComplete: number | null
+  costToCompleteBasis: PriceBasis | null
+}

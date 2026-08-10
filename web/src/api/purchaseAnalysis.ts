@@ -7,6 +7,7 @@ import type {
   CreateMangaEditionRequest,
   MangaEditionDto,
   MarketPriceObservationDto,
+  NearCompleteSuggestionDto,
   PurchaseAnalysisDto,
   PurchaseAnalysisSummaryDto,
   RecordMarketObservationRequest,
@@ -43,6 +44,11 @@ export function getCompleteness(seriesTitle: string, editionName: string, volume
   return get<CollectionStatusDto>(
     `/purchase-analysis/completeness${buildQuery({ seriesTitle, editionName, volumes: volumes.join(',') })}`,
   )
+}
+
+/** "Suggestions d'achats" (Mon profil) - triées côté backend par nombre de tomes manquants croissant. */
+export function getNearCompleteSuggestions(): Promise<NearCompleteSuggestionDto[]> {
+  return get<NearCompleteSuggestionDto[]>('/purchase-analysis/near-complete-suggestions')
 }
 
 export function createEdition(body: CreateMangaEditionRequest): Promise<MangaEditionDto> {

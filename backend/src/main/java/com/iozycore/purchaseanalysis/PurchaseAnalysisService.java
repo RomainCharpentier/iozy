@@ -1,16 +1,23 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.domain.catalog.Variant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -27,6 +34,8 @@ public class PurchaseAnalysisService {
     private final PurchaseAnalysisRepository purchaseAnalysisRepository;
     private final CollectorPreferencesRepository collectorPreferencesRepository;
     private final SeriesMatcher seriesMatcher;
+    private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -41,6 +50,8 @@ public class PurchaseAnalysisService {
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
         this.collectorPreferencesRepository = collectorPreferencesRepository;
+        this.entityRepository = entityRepository;
+        this.entityTypeRepository = entityTypeRepository;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
 
@@ -119,6 +130,63 @@ public class PurchaseAnalysisService {
                 .orElseGet(List::of);
         MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition.orElse(null), observations);
         return completenessCalculator.compute(includedVolumes, edition.orElse(null), perVolumeMarketPrice);
+    }
+
+    /**
+     * "Suggestions d'achats" (Mon profil) - séries déjà en collection dont
+     * une édition nommée est connue mais pas complète, triées par nombre de
+     * tomes manquants croissant (les plus proches de la complétion en
+     * premier). Une série sans édition nommée sur ses tomes (attribut
+     * "edition" absent/vide) n'a rien à rattacher dans manga_edition et est
+     * donc silencieusement ignorée ici, comme pour la détection d'éditions
+     * mélangées côté web (voir groupVariantsByEdition côté web/editionGroups.ts).
+     */
+    public record NearCompleteSuggestion(UUID entityId, String seriesTitle, String editionName, int ownedCount,
+                                          int totalVolumes, int missingCount, List<Integer> missingVolumeNumbers,
+                                          BigDecimal estimatedCostToComplete, PriceBasis costToCompleteBasis) {
+    }
+
+    public List<NearCompleteSuggestion> findNearCompleteSuggestions() {
+        Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
+        if (mangaType.isEmpty()) {
+            return List.of();
+        }
+        List<Entity> mangaEntities = entityRepository.findAllByType(mangaType.get().id());
+
+        List<NearCompleteSuggestion> suggestions = new ArrayList<>();
+        for (Entity entity : mangaEntities) {
+            for (Map.Entry<String, Set<Integer>> group : groupVolumesByEdition(entity).entrySet()) {
+                CollectionStatus status = computeCompleteness(entity.title(), group.getKey(), group.getValue());
+                if (status.isKnown() && !status.isComplete()) {
+                    suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), group.getKey(),
+                            group.getValue().size(), status.totalVolumes(), status.missingCount(),
+                            status.missingVolumeNumbers(), status.estimatedCostToComplete(),
+                            status.costToCompleteBasis()));
+                }
+            }
+        }
+        suggestions.sort(Comparator.comparingInt(NearCompleteSuggestion::missingCount));
+        return suggestions;
+    }
+
+    /** Server-side equivalent of the web's groupVariantsByEdition (editionGroups.ts) - variants
+     * without both a numeric "volumeNumber" and a non-blank "edition" attribute are excluded,
+     * since a suggestion needs a named edition to look up against manga_edition. */
+    private static Map<String, Set<Integer>> groupVolumesByEdition(Entity entity) {
+        Map<String, Set<Integer>> byEdition = new LinkedHashMap<>();
+        for (Variant variant : entity.variants()) {
+            Object volumeNumberObj = variant.attributes().get("volumeNumber");
+            if (!(volumeNumberObj instanceof Number number)) {
+                continue;
+            }
+            Object editionObj = variant.attributes().get("edition");
+            String edition = editionObj instanceof String s ? s.trim() : "";
+            if (edition.isEmpty()) {
+                continue;
+            }
+            byEdition.computeIfAbsent(edition, k -> new TreeSet<>()).add(number.intValue());
+        }
+        return byEdition;
     }
 
     public MangaEdition createEdition(String seriesTitle, String editionName, EditionTier tier, String publisher,

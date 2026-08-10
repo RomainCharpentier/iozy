@@ -83,6 +83,38 @@ class StatsServiceTest {
         assertThat(summary.topTags().get(0).count()).isEqualTo(1);
     }
 
+    @Test
+    void computes_a_monthly_timeline_of_tomes_added_sorted_from_oldest_to_newest() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
+        InMemoryTagRepository tagRepository = new InMemoryTagRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entityRepository.save(deathNote);
+
+        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2026, 1, 15), null));
+        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2026, 1, 20), null));
+        Ownership soldButStillCountedTowardsHistoricalGrowth = Ownership.acquire(deathNote.id(), null,
+                OwnershipCondition.USED, LocalDate.of(2026, 3, 1), null);
+        soldButStillCountedTowardsHistoricalGrowth.markSold();
+        ownershipRepository.save(soldButStillCountedTowardsHistoricalGrowth);
+
+        StatsService statsService = new StatsService(
+                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
+                entityTypeRepository);
+
+        List<StatsSummary.MonthlyPoint> timeline = statsService.computeTimeline();
+
+        assertThat(timeline).containsExactly(
+                new StatsSummary.MonthlyPoint("2026-01", 2),
+                new StatsSummary.MonthlyPoint("2026-03", 1));
+    }
+
     private static class InMemoryEntityRepository implements EntityRepository {
         private final Map<UUID, Entity> store = new HashMap<>();
 

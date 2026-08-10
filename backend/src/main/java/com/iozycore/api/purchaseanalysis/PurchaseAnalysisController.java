@@ -11,6 +11,7 @@ import com.iozycore.purchaseanalysis.PurchaseAnalysis;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingCommand;
 import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.purchaseanalysis.PurchaseAnalysisService.NearCompleteSuggestion;
 import com.iozycore.purchaseanalysis.VerdictFactor;
 import com.iozycore.purchaseanalysis.VolumeRange;
 import com.iozycore.purchaseanalysis.WeightLevel;
@@ -125,6 +126,13 @@ public class PurchaseAnalysisController {
                 .map(Integer::parseInt)
                 .collect(java.util.stream.Collectors.toSet());
         return service.computeCompleteness(seriesTitle, editionName, includedVolumes);
+    }
+
+    @Operation(summary = "\"Suggestions d'achats\" (Mon profil) - séries déjà en collection dont une édition "
+            + "nommée est connue mais incomplète, triées par nombre de tomes manquants croissant")
+    @GetMapping("/near-complete-suggestions")
+    public List<NearCompleteSuggestion> nearCompleteSuggestions() {
+        return service.findNearCompleteSuggestions();
     }
 
     public record CreateMangaEditionRequest(String seriesTitle, String editionName, String editionTier,

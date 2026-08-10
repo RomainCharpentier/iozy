@@ -23,6 +23,7 @@ export const queryKeys = {
   insights: {
     stats: ['insights', 'stats'] as const,
     discover: (entityTypeCode: string) => ['insights', 'discover', entityTypeCode] as const,
+    timeline: ['insights', 'timeline'] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,
@@ -39,9 +40,14 @@ export const queryKeys = {
     completeness: (seriesTitle: string, editionName: string, volumes: number[]) =>
       ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     preferences: ['purchaseAnalysis', 'preferences'] as const,
+    nearCompleteSuggestions: ['purchaseAnalysis', 'nearCompleteSuggestions'] as const,
   },
   loans: {
     active: ['loans', 'active'] as const,
     byOwnership: (ownershipId: string) => ['loans', 'ownership', ownershipId] as const,
+  },
+  editionUpgradeWishes: {
+    byEntity: (entityId: string) => ['editionUpgradeWishes', 'entity', entityId] as const,
+    all: ['editionUpgradeWishes', 'all'] as const,
   },
 } as const
