@@ -36,6 +36,12 @@ export const queryKeys = {
     edition: (seriesTitle: string, editionName: string) =>
       ['purchaseAnalysis', 'edition', seriesTitle, editionName] as const,
     editionsForSeries: (seriesTitle: string) => ['purchaseAnalysis', 'editions', seriesTitle] as const,
+    completeness: (seriesTitle: string, editionName: string, volumes: number[]) =>
+      ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     preferences: ['purchaseAnalysis', 'preferences'] as const,
+  },
+  loans: {
+    active: ['loans', 'active'] as const,
+    byOwnership: (ownershipId: string) => ['loans', 'ownership', ownershipId] as const,
   },
 } as const

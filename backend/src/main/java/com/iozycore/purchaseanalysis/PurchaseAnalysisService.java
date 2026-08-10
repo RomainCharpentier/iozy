@@ -28,6 +28,8 @@ public class PurchaseAnalysisService {
     private final CollectorPreferencesRepository collectorPreferencesRepository;
     private final SeriesMatcher seriesMatcher;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
+    private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
+    private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
 
     public PurchaseAnalysisService(MangaEditionRepository mangaEditionRepository,
                                     MarketPriceObservationRepository marketPriceObservationRepository,
@@ -100,6 +102,23 @@ public class PurchaseAnalysisService {
 
     public List<MangaEdition> findEditionsForSeries(String seriesTitle) {
         return mangaEditionRepository.findBySeriesTitle(seriesTitle);
+    }
+
+    /**
+     * "Coût pour compléter une série" (Ma collection) - same completeness
+     * engine as a listing being evaluated (see CompletenessCalculator),
+     * applied instead to a series already in the user's own collection.
+     * {@code editionName} is expected already resolved (e.g. from a
+     * Variant's "edition" attribute) - unknown to the system yet simply
+     * means the returned {@link CollectionStatus} is unknown, never guessed.
+     */
+    public CollectionStatus computeCompleteness(String seriesTitle, String editionName, Set<Integer> includedVolumes) {
+        Optional<MangaEdition> edition = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
+        List<MarketPriceObservation> observations = edition
+                .map(e -> marketPriceObservationRepository.findByEditionId(e.id()))
+                .orElseGet(List::of);
+        MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition.orElse(null), observations);
+        return completenessCalculator.compute(includedVolumes, edition.orElse(null), perVolumeMarketPrice);
     }
 
     public MangaEdition createEdition(String seriesTitle, String editionName, EditionTier tier, String publisher,

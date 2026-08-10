@@ -12,13 +12,9 @@ class CompletenessCalculatorTest {
 
     private final CompletenessCalculator calculator = new CompletenessCalculator();
 
-    private static ListingItem item(Set<Integer> includedVolumes) {
-        return new ListingItem(new MangaSeries("My Home Hero", null), "Standard", includedVolumes, null);
-    }
-
     @Test
     void completeness_is_unknown_when_no_edition_is_matched() {
-        CollectionStatus status = calculator.compute(item(Set.of(1, 2, 3)), null, null);
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3), null, null);
 
         assertThat(status.isKnown()).isFalse();
         assertThat(status.missingCount()).isNull();
@@ -30,7 +26,7 @@ class CompletenessCalculatorTest {
         MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
                 null, new BigDecimal("6.90"), false, false, null);
 
-        CollectionStatus status = calculator.compute(item(Set.of(1, 2, 3)), edition, null);
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3), edition, null);
 
         assertThat(status.isKnown()).isFalse();
     }
@@ -42,7 +38,7 @@ class CompletenessCalculatorTest {
         Set<Integer> owned = Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
         MarketPrice theoreticalOnly = MarketPrice.noObservations(new BigDecimal("6.90"), ConfidenceLevel.LOW);
 
-        CollectionStatus status = calculator.compute(item(owned), edition, theoreticalOnly);
+        CollectionStatus status = calculator.compute(owned, edition, theoreticalOnly);
 
         assertThat(status.isKnown()).isTrue();
         assertThat(status.totalVolumes()).isEqualTo(26);
@@ -60,7 +56,7 @@ class CompletenessCalculatorTest {
         MarketPrice observed = MarketPrice.fromObservations(3, new BigDecimal("12.00"), new BigDecimal("10.00"),
                 new BigDecimal("14.00"), new BigDecimal("14.90"), ConfidenceLevel.HIGH);
 
-        CollectionStatus status = calculator.compute(item(Set.of(1, 2, 3, 4)), edition, observed);
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3, 4), edition, observed);
 
         assertThat(status.missingCount()).isEqualTo(2); // tomes 5 et 6
         assertThat(status.costToCompleteBasis()).isEqualTo(PriceBasis.OBSERVED_MARKET);
@@ -72,7 +68,7 @@ class CompletenessCalculatorTest {
         MangaEdition edition = MangaEdition.create("Death Note", "Black Edition", EditionTier.DELUXE, "Kana",
                 6, new BigDecimal("14.90"), false, false, null);
 
-        CollectionStatus status = calculator.compute(item(Set.of(1, 2, 3, 4, 5, 6)), edition, null);
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3, 4, 5, 6), edition, null);
 
         assertThat(status.isComplete()).isTrue();
         assertThat(status.estimatedCostToComplete()).isEqualByComparingTo(BigDecimal.ZERO);

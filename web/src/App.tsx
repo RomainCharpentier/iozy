@@ -10,6 +10,7 @@ import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
 import { SettingsPage } from './routes/Settings/SettingsPage'
 import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysisPage'
 import { ProfilePage } from './routes/Profile/ProfilePage'
+import { LoansPage } from './routes/Loans/LoansPage'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/entity/:id" element={<EntityDetailPage />} />
         <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/loans" element={<LoansPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/types" element={<EntityTypesPage />} />
