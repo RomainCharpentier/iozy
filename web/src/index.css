@@ -19,6 +19,13 @@
   --color-accentText: #0e1500;
   --color-violet: #8b7fff;
   --color-pink: #ff6fa5;
+  /* Verdict "Analyse d'achat" à 5 niveaux (🟢🟢/🟡/🟠/🔴) - accent (vert lime,
+     déjà défini ci-dessus) couvre les 2 niveaux verts, pink est réutilisé pour
+     🟠 CHER (assez proche d'un orange d'alerte sur fond sombre) ; seuls warning
+     (🟡) et danger (🔴) sont de vraies nouvelles couleurs, décision validée
+     avec l'utilisateur - voir VerdictBadge.tsx. */
+  --color-warning: #f5c542;
+  --color-danger: #ff5c5c;
 
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;

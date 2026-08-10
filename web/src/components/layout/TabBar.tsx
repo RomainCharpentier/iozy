@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Search, PlusCircle, Star, BarChart3, Languages } from 'lucide-react'
+import { LayoutGrid, Search, PlusCircle, Scale, Star, BarChart3, Languages } from 'lucide-react'
 
 interface TabDef {
   to: string
@@ -8,11 +8,14 @@ interface TabDef {
   end?: boolean
 }
 
-// Même ordre que RootTabView dans IozyCoreApp.swift.
+// Même ordre que RootTabView dans IozyCoreApp.swift, à l'exception
+// d'"Évaluer" (Purchase Analysis) - web d'abord, iOS pas encore mirroré
+// (voir le plan de la fonctionnalité) : décalage temporaire assumé.
 const TABS: TabDef[] = [
   { to: '/', label: 'Étagères', icon: LayoutGrid, end: true },
   { to: '/search', label: 'Recherche', icon: Search },
   { to: '/add', label: 'Ajouter', icon: PlusCircle },
+  { to: '/purchase-analysis', label: 'Évaluer', icon: Scale },
   { to: '/wishlist', label: 'Wishlist', icon: Star },
   { to: '/stats', label: 'Stats', icon: BarChart3 },
   { to: '/settings', label: 'Réglages', icon: Languages },

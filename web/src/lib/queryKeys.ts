@@ -31,4 +31,12 @@ export const queryKeys = {
   entityTypes: {
     all: ['entityTypes'] as const,
   },
+  purchaseAnalysis: {
+    history: ['purchaseAnalysis', 'history'] as const,
+    detail: (id: string) => ['purchaseAnalysis', 'history', id] as const,
+    edition: (seriesTitle: string, editionName: string) =>
+      ['purchaseAnalysis', 'edition', seriesTitle, editionName] as const,
+    editionsForSeries: (seriesTitle: string) => ['purchaseAnalysis', 'editions', seriesTitle] as const,
+    preferences: ['purchaseAnalysis', 'preferences'] as const,
+  },
 } as const

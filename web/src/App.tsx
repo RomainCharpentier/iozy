@@ -9,6 +9,7 @@ import { StatsPage } from './routes/Stats/StatsPage'
 import { EntityTypesPage } from './routes/EntityTypes/EntityTypesPage'
 import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
 import { SettingsPage } from './routes/Settings/SettingsPage'
+import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysisPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/add" element={<QuickAddPage />} />
         <Route path="/entity/:id" element={<EntityDetailPage />} />
+        <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/types" element={<EntityTypesPage />} />
