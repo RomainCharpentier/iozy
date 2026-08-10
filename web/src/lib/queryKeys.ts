@@ -19,7 +19,6 @@ export const queryKeys = {
   },
   wishlist: {
     all: ['wishlist'] as const,
-    lookup: (entityId: string) => ['wishlist', 'lookup', entityId] as const,
   },
   insights: {
     stats: ['insights', 'stats'] as const,

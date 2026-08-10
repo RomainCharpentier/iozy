@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Search, User, Settings } from 'lucide-react'
+import { LayoutGrid, PlusCircle, User, Settings } from 'lucide-react'
 
 interface TabDef {
   to: string
@@ -8,20 +8,23 @@ interface TabDef {
   end?: boolean
 }
 
-// Réorganisation à 4 onglets pensée par parcours utilisateur plutôt qu'un
-// onglet par fonctionnalité (voir discussion "trop de menus/sous-menus") :
+// 4 onglets pensés par parcours utilisateur plutôt qu'un onglet par
+// fonctionnalité (voir discussion "trop de menus/sous-menus") :
 // - consulter ma collection (Ma collection)
-// - trouver quelque chose dans ma collection (Rechercher)
-// - tout le reste, consulté ponctuellement plutôt qu'à chaque session
-//   (Mon profil : Wishlist/Stats/Types, voir ProfilePage.tsx)
+// - en faire entrer du nouveau, recherche externe/globale incluse (Ajouter -
+//   remplace l'ancien onglet "Rechercher", qui ne fouillait QUE dans ce
+//   qu'on possédait déjà et faisait doublon avec la vraie recherche
+//   utile ici : "est-ce que ce titre existe, l'ai-je déjà ?")
+// - tout le reste, consulté ponctuellement (Mon profil : Wishlist/Stats/
+//   Types, voir ProfilePage.tsx)
 // - configuration de l'app (Paramètres)
-// "Ajouter"/"Évaluer un achat" n'ont plus d'onglet dédié : ce sont les deux
-// mêmes parcours d'acquisition, désormais centralisés dans le bouton
-// flottant "+" (voir FloatingAddButton.tsx), accessible depuis tout écran.
+// "Évaluer un achat" garde son bouton flottant dédié (voir
+// FloatingAddButton.tsx) - Ajouter ayant maintenant son propre onglet, le
+// menu du bouton flottant n'a plus besoin de proposer les deux.
 // Décalage (temporaire, assumé) avec RootTabView côté iOS, pas encore mis à jour.
 const TABS: TabDef[] = [
   { to: '/', label: 'Ma collection', icon: LayoutGrid, end: true },
-  { to: '/search', label: 'Rechercher', icon: Search },
+  { to: '/add', label: 'Ajouter', icon: PlusCircle },
   { to: '/profile', label: 'Mon profil', icon: User },
   { to: '/settings', label: 'Paramètres', icon: Settings },
 ]

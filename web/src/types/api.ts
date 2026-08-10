@@ -84,12 +84,6 @@ export interface WishlistEntryResponse {
   addedAt: LocalDateString
 }
 
-export type LookupStatus = 'OWNED' | 'WISHLISTED' | 'UNKNOWN'
-
-export interface LookupResponse {
-  status: LookupStatus
-}
-
 // --- Tag / Relationship (records de domaine exposés tels quels) ---
 export interface TagDto {
   id: UUID
