@@ -4,6 +4,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { StatCard } from '../../components/StatCard'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { DiscoverySection } from './DiscoverySection'
+import { CollectionTimelineSection } from './CollectionTimelineSection'
 
 export function StatsPage() {
   // Toujours à jour, jamais de cache - une donnée périmée n'a pas de sens
@@ -30,6 +31,8 @@ export function StatsPage() {
             <StatCard value={String(statsQuery.data.wishlistCount)} label="Wishlist" />
             <StatCard value={String(statsQuery.data.experiencesThisYear)} label="Expériences cette année" />
           </div>
+
+          <CollectionTimelineSection />
 
           <section className="flex flex-col gap-2">
             <h2 className="font-display text-lg font-semibold text-textPrimary">Par type</h2>

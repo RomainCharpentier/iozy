@@ -30,4 +30,13 @@ public record StatsSummary(
 
     public record TagCount(String label, long count) {
     }
+
+    /**
+     * Un mois de la "Évolution de ma collection" (voir StatsService.computeTimeline) -
+     * comptages uniquement, jamais de valeur monétaire : aucun champ de prix d'achat
+     * n'existe encore sur Ownership (voir purchaseanalysis, qui porte les prix
+     * mais uniquement pour des annonces analysées, pas pour la collection possédée).
+     */
+    public record MonthlyPoint(String month, long tomesAdded) {
+    }
 }

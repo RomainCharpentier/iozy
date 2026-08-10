@@ -11,6 +11,8 @@ import { SettingsPage } from './routes/Settings/SettingsPage'
 import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysisPage'
 import { ProfilePage } from './routes/Profile/ProfilePage'
 import { LoansPage } from './routes/Loans/LoansPage'
+import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
+import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/loans" element={<LoansPage />} />
+        <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
+        <Route path="/suggestions" element={<SuggestionsPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/types" element={<EntityTypesPage />} />

@@ -35,6 +35,13 @@ public class InsightsController {
         return statsService.computeSummary();
     }
 
+    @Operation(summary = "\"Évolution de ma collection\" : nombre de tomes/exemplaires ajoutés par mois, "
+            + "du plus ancien au plus récent - comptages uniquement, aucune valeur monétaire")
+    @GetMapping("/timeline")
+    public List<StatsSummary.MonthlyPoint> timeline() {
+        return statsService.computeTimeline();
+    }
+
     @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
             + "les mieux notés, jeux de société tendance partageant des catégories avec les tiens, "
             + "ou jeux vidéo similaires aux tiens (IGDB). entityTypeCode attendu : MANGA, BOARD_GAME ou VIDEO_GAME")

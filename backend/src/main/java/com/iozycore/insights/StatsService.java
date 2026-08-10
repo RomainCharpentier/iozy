@@ -14,11 +14,13 @@ import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -95,6 +97,22 @@ public class StatsService {
         List<StatsSummary.TagCount> topTags = computeTopTags(allEntities);
 
         return new StatsSummary(totalEntities, totalActiveOwnerships, wishlistCount, experiencesThisYear, byType, topTags);
+    }
+
+    /**
+     * "Évolution de ma collection" (Statistiques) - nombre de tomes/exemplaires
+     * ajoutés par mois, du plus ancien au plus récent. Compte tout Ownership
+     * ayant existé ce mois-là (y compris depuis revendu) : c'est la croissance
+     * de la collection au fil du temps qui est montrée, pas son état actuel
+     * (déjà couvert par activeOwnershipCount). Comptages uniquement - aucun
+     * champ de prix d'achat n'existe sur Ownership, voir StatsSummary.MonthlyPoint.
+     */
+    public List<StatsSummary.MonthlyPoint> computeTimeline() {
+        Map<YearMonth, Long> byMonth = ownershipRepository.findAll().stream()
+                .collect(Collectors.groupingBy(o -> YearMonth.from(o.acquiredAt()), TreeMap::new, Collectors.counting()));
+        return byMonth.entrySet().stream()
+                .map(entry -> new StatsSummary.MonthlyPoint(entry.getKey().toString(), entry.getValue()))
+                .toList();
     }
 
     private List<StatsSummary.TagCount> computeTopTags(List<Entity> allEntities) {
