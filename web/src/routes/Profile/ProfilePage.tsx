@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, BarChart3, Tags, ChevronRight } from 'lucide-react'
+import { Star, BarChart3, Tags, Scale, ChevronRight } from 'lucide-react'
 
 interface ProfileLink {
   to: string
@@ -8,12 +8,15 @@ interface ProfileLink {
   icon: typeof Star
 }
 
-// Regroupe tout ce qui n'est ni "consulter ma collection" ni "en faire
-// entrer du nouveau" (voir bouton flottant + TabBar) - pages secondaires
-// consultées ponctuellement plutôt qu'à chaque session, ça ne justifiait
-// pas chacune son propre onglet (voir "trop de menus/sous-menus").
+// Regroupe tout ce qui n'est ni "consulter ma collection" ni "chercher un
+// titre à ajouter" (voir TabBar.tsx) - pages/outils secondaires consultés
+// ponctuellement plutôt qu'à chaque session, ça ne justifiait pas chacun
+// son propre onglet (voir "trop de menus/sous-menus"). "Évaluer un achat"
+// vivait avant dans un bouton flottant dédié - pas intuitif (un FAB signale
+// "créer du nouveau", pas "analyser une annonce"), déplacé ici à la place.
 const LINKS: ProfileLink[] = [
   { to: '/wishlist', label: 'Wishlist', description: 'Ce que tu veux ajouter à ta collection', icon: Star },
+  { to: '/purchase-analysis', label: 'Évaluer un achat', description: "Analyser une annonce d'occasion avant de l'acheter", icon: Scale },
   { to: '/stats', label: 'Statistiques', description: 'Vue d\'ensemble de ta collection', icon: BarChart3 },
   { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...)', icon: Tags },
 ]
