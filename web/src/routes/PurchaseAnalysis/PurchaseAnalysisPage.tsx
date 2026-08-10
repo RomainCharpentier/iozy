@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, ChevronRight } from 'lucide-react'
 import { analyzeListing } from '../../api/purchaseAnalysis'
 import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -61,6 +61,11 @@ export function PurchaseAnalysisPage() {
   const [buyerProtectionFee, setBuyerProtectionFee] = useState('')
   const [condition, setCondition] = useState<Condition>('VERY_GOOD')
   const [conditionAppliesToContainer, setConditionAppliesToContainer] = useState(false)
+  // Replié par défaut - l'URL/titre ne servent qu'à retrouver l'annonce plus
+  // tard, aucun des deux n'entre dans le calcul (voir "améliore l'UX" : la
+  // plateforme et le prix suffisent pour démarrer, pas la peine d'afficher
+  // ces deux champs d'office).
+  const [showListingDetails, setShowListingDetails] = useState(false)
 
   const [seriesTitle, setSeriesTitle] = useState('')
   const [editionName, setEditionName] = useState('')
@@ -114,6 +119,7 @@ export function PurchaseAnalysisPage() {
     setSeriesTitle('')
     setEditionName('')
     setVolumesText('')
+    setShowListingDetails(false)
   }
 
   const canAnalyze = items.length > 0 && !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
@@ -136,93 +142,109 @@ export function PurchaseAnalysisPage() {
       </p>
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm text-textDim">Plateforme</span>
+        <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
+          <h2 className="font-display text-sm font-semibold text-textPrimary">Annonce</h2>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-textDim">Plateforme</span>
+            <div className="flex gap-2">
+              {LISTING_PLATFORMS.map((p) => (
+                <Chip key={p} label={LISTING_PLATFORM_LABELS[p]} isActive={platform === p} onClick={() => setPlatform(p)} />
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-2">
-            {LISTING_PLATFORMS.map((p) => (
-              <Chip key={p} label={LISTING_PLATFORM_LABELS[p]} isActive={platform === p} onClick={() => setPlatform(p)} />
-            ))}
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs text-textDim" htmlFor="askingPrice">
+                Prix demandé (€)
+              </label>
+              <input
+                id="askingPrice"
+                type="number"
+                min={0}
+                step="0.01"
+                value={askingPrice}
+                onChange={(e) => setAskingPrice(e.target.value)}
+                placeholder="ex: 216"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs text-textDim" htmlFor="shippingFee">
+                Frais de port (€)
+              </label>
+              <input
+                id="shippingFee"
+                type="number"
+                min={0}
+                step="0.01"
+                value={shippingFee}
+                onChange={(e) => setShippingFee(e.target.value)}
+                placeholder="0"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs text-textDim" htmlFor="buyerProtectionFee">
+                Protection acheteur (€)
+              </label>
+              <input
+                id="buyerProtectionFee"
+                type="number"
+                min={0}
+                step="0.01"
+                value={buyerProtectionFee}
+                onChange={(e) => setBuyerProtectionFee(e.target.value)}
+                placeholder="0"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm text-textDim" htmlFor="listingUrl">
-            URL de l'annonce (facultatif)
-          </label>
-          <input
-            id="listingUrl"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://..."
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-            autoComplete="off"
-          />
-        </div>
+          {showListingDetails ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-textDim" htmlFor="listingUrl">
+                  URL de l'annonce (facultatif)
+                </label>
+                <input
+                  id="listingUrl"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-textDim" htmlFor="rawTitle">
+                  Titre de l'annonce
+                </label>
+                <input
+                  id="rawTitle"
+                  value={rawTitle}
+                  onChange={(e) => setRawTitle(e.target.value)}
+                  placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowListingDetails(true)}
+              className="flex w-fit items-center gap-1 text-xs text-textDim underline"
+            >
+              <ChevronRight size={13} />
+              Ajouter l'URL et le titre de l'annonce (facultatif, pour la retrouver plus tard)
+            </button>
+          )}
+        </section>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm text-textDim" htmlFor="rawTitle">
-            Titre de l'annonce
-          </label>
-          <input
-            id="rawTitle"
-            value={rawTitle}
-            onChange={(e) => setRawTitle(e.target.value)}
-            placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-            autoComplete="off"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <label className="text-sm text-textDim" htmlFor="askingPrice">
-              Prix demandé (€)
-            </label>
-            <input
-              id="askingPrice"
-              type="number"
-              min={0}
-              step="0.01"
-              value={askingPrice}
-              onChange={(e) => setAskingPrice(e.target.value)}
-              placeholder="ex: 216"
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-            />
-          </div>
-          <div className="flex flex-1 flex-col gap-1.5">
-            <label className="text-sm text-textDim" htmlFor="shippingFee">
-              Frais de port (€)
-            </label>
-            <input
-              id="shippingFee"
-              type="number"
-              min={0}
-              step="0.01"
-              value={shippingFee}
-              onChange={(e) => setShippingFee(e.target.value)}
-              placeholder="0"
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-            />
-          </div>
-          <div className="flex flex-1 flex-col gap-1.5">
-            <label className="text-sm text-textDim" htmlFor="buyerProtectionFee">
-              Protection acheteur (€)
-            </label>
-            <input
-              id="buyerProtectionFee"
-              type="number"
-              min={0}
-              step="0.01"
-              value={buyerProtectionFee}
-              onChange={(e) => setBuyerProtectionFee(e.target.value)}
-              placeholder="0"
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm text-textDim">État déclaré</span>
+        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+          <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
           <div className="flex flex-wrap gap-2">
             {CONDITIONS.map((c) => (
               <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
@@ -236,10 +258,10 @@ export function PurchaseAnalysisPage() {
             />
             Cet état concerne un coffret/boîtier (pèse plus lourd dans le verdict)
           </label>
-        </div>
+        </section>
 
-        <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
-          <h2 className="font-display text-sm font-semibold text-textPrimary">Séries du lot</h2>
+        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+          <h2 className="font-display text-sm font-semibold text-textPrimary">Contenu du lot</h2>
 
           <div className="flex items-end gap-2">
             <div className="flex flex-1 flex-col gap-1.5">
@@ -291,6 +313,7 @@ export function PurchaseAnalysisPage() {
               <Plus size={16} />
             </button>
           </div>
+          <p className="text-xs text-textDim">Tomes : ex. "1-11" pour une plage, "1,3,5-9" pour plusieurs</p>
 
           {seriesTitle.trim() && editionName.trim() && (
             <EditionReferenceLookup seriesTitle={seriesTitle} editionName={editionName} onResolved={() => {}} />
@@ -319,7 +342,7 @@ export function PurchaseAnalysisPage() {
               ))}
             </ul>
           )}
-        </div>
+        </section>
 
         {analyzeMutation.isError && <ErrorBanner message={analyzeMutation.error.message} />}
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus, RefreshCw, ScanBarcode, Search, X } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -100,6 +100,12 @@ export function QuickAddPage() {
   const [isSearchingVolumes, setIsSearchingVolumes] = useState(false)
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
+  // Repliés par défaut - détail secondaire (attributs pré-remplis) et méthode
+  // d'ajout alternative (code-barres), pas le chemin principal "taper un
+  // titre" - voir "améliore l'UX" : trop de blocs dépliés d'office noyaient
+  // l'écran par défaut.
+  const [showAttributesDetail, setShowAttributesDetail] = useState(false)
+  const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const volumeSearchAbortRef = useRef<AbortController | null>(null)
   // Débounce du déclenchement AUTOMATIQUE de la recherche de tomes après
   // sélection d'un candidat (voir pickCandidate) - évite de payer les 8
@@ -487,6 +493,8 @@ export function QuickAddPage() {
     setSelectedVolumeKeys(new Set())
     setShowManualVolumeFields(false)
     setLastVolumeSearchParams(null)
+    setShowAttributesDetail(false)
+    setShowBarcodeLookup(false)
   }
 
   // Retour visuel pendant/après la recherche de métadonnées (Jikan/BGG/IGDB)
@@ -606,20 +614,40 @@ export function QuickAddPage() {
 
           {attributes &&
             attributesSourceTitle === title &&
-            Object.keys(attributes).filter((key) => key !== COVER_IMAGE_ATTRIBUTE_KEY).length > 0 && (
-              <div className="rounded-xl bg-surface p-3 text-sm text-textDim">
-                <p className="mb-1 font-medium text-textPrimary">Attributs pré-remplis</p>
-                <ul className="flex flex-col gap-0.5">
-                  {Object.entries(attributes)
-                    .filter(([key]) => key !== COVER_IMAGE_ATTRIBUTE_KEY)
-                    .map(([key, value]) => (
+            Object.keys(attributes).filter((key) => key !== COVER_IMAGE_ATTRIBUTE_KEY).length > 0 &&
+            (() => {
+              const entries = Object.entries(attributes).filter(([key]) => key !== COVER_IMAGE_ATTRIBUTE_KEY)
+              // Repliée par défaut - juste une confirmation discrète que des
+              // attributs ont bien été récupérés, pas un détail qu'on a besoin
+              // de lire à chaque recherche (voir "améliore l'UX" - trop
+              // d'information dépliée d'office noie l'écran).
+              return showAttributesDetail ? (
+                <div className="rounded-xl bg-surface p-3 text-sm text-textDim">
+                  <button
+                    type="button"
+                    onClick={() => setShowAttributesDetail(false)}
+                    className="mb-1 font-medium text-textPrimary underline-offset-2 hover:underline"
+                  >
+                    Attributs pré-remplis
+                  </button>
+                  <ul className="flex flex-col gap-0.5">
+                    {entries.map(([key, value]) => (
                       <li key={key}>
                         {key} : {String(value)}
                       </li>
                     ))}
-                </ul>
-              </div>
-            )}
+                  </ul>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAttributesDetail(true)}
+                  className="w-fit text-xs text-textDim underline"
+                >
+                  Voir les attributs pré-remplis ({entries.length})
+                </button>
+              )
+            })()}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -799,7 +827,18 @@ export function QuickAddPage() {
         )}
 
         {selectedType?.code === 'MANGA' && entityTypeId && (
-          <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
+          showBarcodeLookup ? (
+            <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowBarcodeLookup(true)}
+              className="flex w-fit items-center gap-1.5 text-xs text-textDim underline"
+            >
+              <ScanBarcode size={13} />
+              Scanner un code-barres / ISBN
+            </button>
+          )
         )}
 
         {blockedByMissingMatch && (
