@@ -1,5 +1,6 @@
 package com.iozycore.integration;
 
+import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
 import com.iozycore.purchaseanalysis.Condition;
@@ -173,5 +174,28 @@ class PurchaseAnalysisPersistenceIntegrationTest {
         assertThat(reloaded.itemBreakdown()).hasSize(1);
         assertThat(reloaded.itemBreakdown().get(0).matchedEdition().id()).isEqualTo(edition.id());
         assertThat(purchaseAnalysisService.history()).extracting(PurchaseAnalysis::id).contains(analysis.id());
+    }
+
+    @Test
+    void computes_completeness_for_a_series_already_in_the_collection() {
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("My Home Hero " + UUID.randomUUID(),
+                "Standard", EditionTier.STANDARD, "Kodansha", 26, new BigDecimal("6.90"), false, false, null));
+
+        CollectionStatus status = purchaseAnalysisService.computeCompleteness(
+                edition.seriesTitle(), edition.editionName(), Set.of(1, 2, 3, 4, 5));
+
+        assertThat(status.isKnown()).isTrue();
+        assertThat(status.missingCount()).isEqualTo(21);
+        assertThat(status.estimatedCostToComplete()).isEqualByComparingTo(new BigDecimal("144.90")); // 21 * 6.90
+        assertThat(status.costToCompleteBasis().name()).isEqualTo("THEORETICAL_ONLY");
+    }
+
+    @Test
+    void completeness_is_unknown_rather_than_guessed_for_an_edition_never_entered() {
+        CollectionStatus status = purchaseAnalysisService.computeCompleteness(
+                "Some Series Never Analyzed " + UUID.randomUUID(), "Standard", Set.of(1, 2));
+
+        assertThat(status.isKnown()).isFalse();
+        assertThat(status.estimatedCostToComplete()).isNull();
     }
 }

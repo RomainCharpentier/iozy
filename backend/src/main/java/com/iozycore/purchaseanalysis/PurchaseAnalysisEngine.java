@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,6 +31,7 @@ public class PurchaseAnalysisEngine {
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
     private final NegotiationEngine negotiationEngine = new NegotiationEngine();
     private final VerdictScorer verdictScorer = new VerdictScorer();
+    private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
 
     /**
      * @param matchedEdition   nullable - the item's edition may not be known to the system yet
@@ -80,12 +80,12 @@ public class PurchaseAnalysisEngine {
                         ConfidenceLevel.LOW));
             }
 
-            MarketPrice perVolumeMarketPrice = computePerVolumeMarketPrice(edition, ctx.observations());
+            MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition, ctx.observations());
             if (perVolumeMarketPrice.basis() == PriceBasis.OBSERVED_MARKET) {
                 anyObservedMarketData = true;
             }
 
-            CollectionStatus completeness = completenessCalculator.compute(item, edition, perVolumeMarketPrice);
+            CollectionStatus completeness = completenessCalculator.compute(item.includedVolumes(), edition, perVolumeMarketPrice);
             completenessStatuses.add(completeness);
             if (completeness.isKnown()) {
                 if (completeness.missingCount() > 0) {
@@ -192,47 +192,6 @@ public class PurchaseAnalysisEngine {
         return new PurchaseAnalysis(UUID.randomUUID(), Instant.now(), listing, itemAnalyses, totalRealCost,
                 finalNewValue, totalSavingsAmount, discountPercent, negotiation, outcome.verdict(), outcome.score(),
                 outcome.factorBreakdown(), listingWarnings, outcome.overallConfidence());
-    }
-
-    /**
-     * Interprets every observation as a PER-VOLUME price (an observation's
-     * {@code observedPrice} divided by its scope's volume count, or by the
-     * edition's total volume count when the observation has no scope) so
-     * that {@link CompletenessCalculator} can price missing volumes
-     * consistently regardless of how the user originally entered the
-     * observation (a single tome, a range, or a whole lot).
-     */
-    private MarketPrice computePerVolumeMarketPrice(MangaEdition edition, List<MarketPriceObservation> observations) {
-        List<BigDecimal> perVolumePrices = new ArrayList<>();
-        for (MarketPriceObservation observation : observations) {
-            Integer volumeCount = observation.scope() != null
-                    ? observation.scope().expand().size()
-                    : (edition != null ? edition.totalVolumes() : null);
-            if (volumeCount != null && volumeCount > 0) {
-                perVolumePrices.add(observation.observedPrice().divide(BigDecimal.valueOf(volumeCount), 2, RoundingMode.HALF_UP));
-            }
-        }
-
-        BigDecimal theoretical = edition != null ? edition.retailPriceNewPerVolume() : null;
-        if (perVolumePrices.isEmpty()) {
-            return MarketPrice.noObservations(theoretical, ConfidenceLevel.LOW);
-        }
-
-        Collections.sort(perVolumePrices);
-        BigDecimal median = median(perVolumePrices);
-        BigDecimal low = perVolumePrices.get(0);
-        BigDecimal high = perVolumePrices.get(perVolumePrices.size() - 1);
-        ConfidenceLevel confidence = perVolumePrices.size() >= 3 ? ConfidenceLevel.HIGH : ConfidenceLevel.MEDIUM;
-        return MarketPrice.fromObservations(perVolumePrices.size(), median, low, high, theoretical, confidence);
-    }
-
-    private static BigDecimal median(List<BigDecimal> sortedValues) {
-        int size = sortedValues.size();
-        if (size % 2 == 1) {
-            return sortedValues.get(size / 2);
-        }
-        return sortedValues.get(size / 2 - 1).add(sortedValues.get(size / 2))
-                .divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
     }
 
     /** Warns when a sibling edition of the same series outranks the matched one in the configured tier hierarchy (e.g. the Alice in Borderland case: owning a standard edition while a Perfect edition exists). */

@@ -1,5 +1,6 @@
 package com.iozycore.api.purchaseanalysis;
 
+import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.Condition;
 import com.iozycore.purchaseanalysis.EditionTier;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,6 +110,21 @@ public class PurchaseAnalysisController {
     @GetMapping("/editions/search")
     public List<MangaEdition> searchEditions(@RequestParam String seriesTitle) {
         return service.findEditionsForSeries(seriesTitle);
+    }
+
+    @Operation(summary = "\"Coût pour compléter une série\" (Ma collection) - completeness and estimated cost to "
+            + "complete for volumes already owned, using the same engine as a listing being evaluated. The edition "
+            + "being unknown to the system is not an error: the response simply reports completeness as unknown, "
+            + "never guessed.")
+    @GetMapping("/completeness")
+    public CollectionStatus completeness(@RequestParam String seriesTitle, @RequestParam String editionName,
+                                          @RequestParam String volumes) {
+        Set<Integer> includedVolumes = Arrays.stream(volumes.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isBlank())
+                .map(Integer::parseInt)
+                .collect(java.util.stream.Collectors.toSet());
+        return service.computeCompleteness(seriesTitle, editionName, includedVolumes);
     }
 
     public record CreateMangaEditionRequest(String seriesTitle, String editionName, String editionTier,

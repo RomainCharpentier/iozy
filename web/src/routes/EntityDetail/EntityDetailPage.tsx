@@ -12,6 +12,7 @@ import { gradientFor } from '../../theme/gradient'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
+import { SeriesCompletenessSection } from './SeriesCompletenessSection'
 import { AddVolumeSection } from './AddVolumeSection'
 import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
@@ -102,6 +103,13 @@ export function EntityDetailPage() {
       )}
 
       <OwnershipsSection entityId={entityId} ownerships={ownerships} variants={entity.variants} />
+
+      {/* Réservé au Manga : complétude par édition + détection d'éditions
+          mélangées (voir SeriesCompletenessSection) - n'a de sens que pour
+          une série composée de tomes numérotés. */}
+      {entityType?.code === 'MANGA' && (
+        <SeriesCompletenessSection entityTitle={entity.title} variants={entity.variants} />
+      )}
 
       {/* Réservé au Manga (volumeNumber/edition n'ont de sens que pour un
           tome, voir QuickAddService côté backend) - complète une édition déjà

@@ -1,5 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { markSold } from '../../api/ownerships'
+import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { CONDITION_LABELS, OWNERSHIP_STATUS_LABELS, type Condition } from '../../types/entityTypes'
@@ -23,6 +25,11 @@ function sortByVolumeNumber(ownerships: OwnershipResponse[], variantsById: Map<s
   })
 }
 
+/** "YYYY-MM-DD" du jour, même format que LocalDateString côté backend. */
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export function OwnershipsSection({
   entityId,
   ownerships,
@@ -33,9 +40,34 @@ export function OwnershipsSection({
   variants: VariantDto[]
 }) {
   const queryClient = useQueryClient()
+  const [lendFormOwnershipId, setLendFormOwnershipId] = useState<string | null>(null)
+  const [borrowerName, setBorrowerName] = useState('')
+
   const sellMutation = useMutation({
     mutationFn: markSold,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) }),
+  })
+
+  // Prêts en cours tous propriétaires confondus (voir LoanController.active
+  // côté backend) - filtrés côté client par ownershipId, une seule requête
+  // plutôt qu'une par possession affichée (échelle d'une collection
+  // personnelle, jamais des centaines de possessions actives à la fois).
+  const activeLoansQuery = useQuery({ queryKey: queryKeys.loans.active, queryFn: listActiveLoans })
+  const activeLoanByOwnershipId = new Map((activeLoansQuery.data ?? []).map((loan) => [loan.ownershipId, loan]))
+
+  const lendMutation = useMutation({
+    mutationFn: (ownershipId: string) =>
+      lendOwnership({ ownershipId, borrowerName: borrowerName.trim(), lentAt: today() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.loans.active })
+      setLendFormOwnershipId(null)
+      setBorrowerName('')
+    },
+  })
+
+  const returnMutation = useMutation({
+    mutationFn: markLoanReturned,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.loans.active }),
   })
 
   if (ownerships.length === 0) return null
@@ -53,33 +85,93 @@ export function OwnershipsSection({
           // rapide) si elle a été trouvée à l'ajout - absente pour un tome
           // ajouté manuellement ou avant l'introduction de cette fonctionnalité.
           const variantCoverUrl = variant ? coverImageUrlFrom(variant.attributes) : null
+          const activeLoan = activeLoanByOwnershipId.get(ownership.id)
           return (
             <li key={ownership.id} className="flex items-center gap-3 rounded-xl bg-surface p-3">
               {variantCoverUrl && (
                 <img src={variantCoverUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
               )}
-              <div className="flex flex-1 items-center justify-between gap-3">
-                <div className="text-sm">
-                  {/* Le libellé du tome (ex: "Tome 3 — Kana") prime sur l'état/statut
-                      quand il est connu - c'est l'info qui distingue vraiment cette
-                      ligne des autres Ownership de la même fiche. */}
-                  {variant && <p className="font-medium text-textPrimary">{variant.label}</p>}
-                  <p className="text-textPrimary">
-                    {OWNERSHIP_STATUS_LABELS[ownership.status] ?? ownership.status} ·{' '}
-                    {CONDITION_LABELS[ownership.condition as Condition] ?? ownership.condition}
-                  </p>
-                  <p className="text-textDim">Acquis le {ownership.acquiredAt}</p>
-                  {ownership.note && <p className="text-textDim">{ownership.note}</p>}
+              <div className="flex flex-1 flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm">
+                    {/* Le libellé du tome (ex: "Tome 3 — Kana") prime sur l'état/statut
+                        quand il est connu - c'est l'info qui distingue vraiment cette
+                        ligne des autres Ownership de la même fiche. */}
+                    {variant && <p className="font-medium text-textPrimary">{variant.label}</p>}
+                    <p className="text-textPrimary">
+                      {OWNERSHIP_STATUS_LABELS[ownership.status] ?? ownership.status} ·{' '}
+                      {CONDITION_LABELS[ownership.condition as Condition] ?? ownership.condition}
+                    </p>
+                    <p className="text-textDim">Acquis le {ownership.acquiredAt}</p>
+                    {ownership.note && <p className="text-textDim">{ownership.note}</p>}
+                    {activeLoan && (
+                      <p className="text-warning">
+                        Prêté à {activeLoan.borrowerName} depuis le {activeLoan.lentAt}
+                      </p>
+                    )}
+                  </div>
+                  {ownership.status === 'OWNED' && (
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => sellMutation.mutate(ownership.id)}
+                        disabled={sellMutation.isPending}
+                        className="rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
+                      >
+                        Marquer vendu
+                      </button>
+                      {activeLoan ? (
+                        <button
+                          type="button"
+                          onClick={() => returnMutation.mutate(activeLoan.id)}
+                          disabled={returnMutation.isPending}
+                          className="rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
+                        >
+                          Marquer rendu
+                        </button>
+                      ) : (
+                        lendFormOwnershipId !== ownership.id && (
+                          <button
+                            type="button"
+                            onClick={() => setLendFormOwnershipId(ownership.id)}
+                            className="rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary"
+                          >
+                            Prêter
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
                 </div>
-                {ownership.status === 'OWNED' && (
-                  <button
-                    type="button"
-                    onClick={() => sellMutation.mutate(ownership.id)}
-                    disabled={sellMutation.isPending}
-                    className="shrink-0 rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
-                  >
-                    Marquer vendu
-                  </button>
+
+                {lendFormOwnershipId === ownership.id && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={borrowerName}
+                      onChange={(e) => setBorrowerName(e.target.value)}
+                      placeholder="Prêté à qui ?"
+                      autoFocus
+                      className="min-w-0 flex-1 rounded-lg bg-surface2 px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => lendMutation.mutate(ownership.id)}
+                      disabled={!borrowerName.trim() || lendMutation.isPending}
+                      className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+                    >
+                      OK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLendFormOwnershipId(null)
+                        setBorrowerName('')
+                      }}
+                      className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 )}
               </div>
             </li>

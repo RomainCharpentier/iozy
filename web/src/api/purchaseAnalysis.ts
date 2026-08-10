@@ -2,6 +2,7 @@ import { get, post, patch } from './client'
 import { buildQuery } from './client'
 import type {
   AnalyzeListingRequest,
+  CollectionStatusDto,
   CollectorPreferencesDto,
   CreateMangaEditionRequest,
   MangaEditionDto,
@@ -33,6 +34,15 @@ export function findEdition(seriesTitle: string, editionName: string): Promise<M
 
 export function searchEditionsForSeries(seriesTitle: string): Promise<MangaEditionDto[]> {
   return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ seriesTitle })}`)
+}
+
+/** "Coût pour compléter une série" (Ma collection/fiche d'une série) - même
+ * moteur que l'Analyse d'achat, appliqué aux tomes déjà possédés plutôt
+ * qu'à une annonce. `volumes` : numéros de tome séparés par des virgules. */
+export function getCompleteness(seriesTitle: string, editionName: string, volumes: number[]): Promise<CollectionStatusDto> {
+  return get<CollectionStatusDto>(
+    `/purchase-analysis/completeness${buildQuery({ seriesTitle, editionName, volumes: volumes.join(',') })}`,
+  )
 }
 
 export function createEdition(body: CreateMangaEditionRequest): Promise<MangaEditionDto> {
