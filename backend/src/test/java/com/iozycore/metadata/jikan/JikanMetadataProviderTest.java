@@ -19,6 +19,7 @@ class JikanMetadataProviderTest {
                   "authors": [ { "name": "Ohba, Tsugumi" } ],
                   "serializations": [ { "name": "Weekly Shonen Jump" } ],
                   "status": "Finished",
+                  "volumes": 12,
                   "type": "Manga",
                   "published": { "from": "2003-12-01T00:00:00+00:00" },
                   "title_english": "Death Note: The Complete Series",
@@ -48,6 +49,25 @@ class JikanMetadataProviderTest {
         assertThat(candidate.attributes()).containsEntry("titleJapanese", "デスノート");
         assertThat(candidate.attributes()).containsEntry("titleRomaji", "Death Note");
         assertThat(candidate.attributes()).containsEntry("titleEnglish", "Death Note: The Complete Series");
+        assertThat(candidate.attributes()).containsEntry("seriesStatus", "Finished");
+        assertThat(candidate.attributes()).containsEntry("totalVolumes", 12);
+    }
+
+    @Test
+    void never_stores_a_total_volume_count_for_a_series_still_publishing() throws Exception {
+        JikanMetadataProvider provider = new JikanMetadataProvider();
+        String body = """
+                {
+                  "data": [
+                    { "mal_id": 30, "title": "One Piece", "status": "Publishing", "volumes": null }
+                  ]
+                }
+                """;
+
+        List<MetadataCandidate> candidates = provider.parse(body);
+
+        assertThat(candidates.get(0).attributes()).containsEntry("seriesStatus", "Publishing");
+        assertThat(candidates.get(0).attributes()).doesNotContainKey("totalVolumes");
     }
 
     @Test

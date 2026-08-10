@@ -96,6 +96,13 @@ public class JikanMetadataProvider implements MetadataProvider {
                 attributes.put("publisher", serializations.get(0).path("name").asText(null));
             }
             attributes.put("seriesStatus", item.path("status").asText(null));
+            // Absent (null)/0 pour une série encore en cours ou dont le décompte
+            // final n'est pas encore connu de MAL - jamais stocké dans ce cas
+            // (voir Ma collection côté web : "total inconnu" plutôt qu'un faux 0).
+            JsonNode volumesNode = item.path("volumes");
+            if (volumesNode.isInt() && volumesNode.asInt() > 0) {
+                attributes.put("totalVolumes", volumesNode.asInt());
+            }
             // Un même titre peut désigner plusieurs œuvres distinctes chez MAL/Jikan
             // (ex: le manga "Naruto" et un one-shot pilote également titré "Naruto") -
             // type + année de première publication permettent à l'utilisateur de les

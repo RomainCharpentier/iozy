@@ -34,6 +34,7 @@ class MyAnimeListMetadataProviderTest {
                       { "node": { "id": 83, "name": "Weekly Shonen Jump" } }
                     ],
                     "status": "finished",
+                    "num_volumes": 72,
                     "media_type": "manga",
                     "start_date": "1999-09-21",
                     "alternative_titles": { "en": "Naruto: The Complete Ninja Saga", "ja": "ナルト" }
@@ -64,6 +65,24 @@ class MyAnimeListMetadataProviderTest {
         assertThat(candidate.attributes()).containsEntry("titleJapanese", "ナルト");
         assertThat(candidate.attributes()).containsEntry("titleRomaji", "Naruto");
         assertThat(candidate.attributes()).containsEntry("titleEnglish", "Naruto: The Complete Ninja Saga");
+        assertThat(candidate.attributes()).containsEntry("totalVolumes", 72);
+    }
+
+    @Test
+    void never_stores_a_total_volume_count_when_mal_has_not_determined_it_yet() throws Exception {
+        MyAnimeListMetadataProvider provider = new MyAnimeListMetadataProvider();
+        String body = """
+                {
+                  "data": [
+                    { "node": { "id": 13, "title": "One Piece", "status": "currently_publishing", "num_volumes": 0 } }
+                  ]
+                }
+                """;
+
+        List<MetadataCandidate> candidates = provider.parse(body);
+
+        assertThat(candidates.get(0).attributes()).containsEntry("seriesStatus", "currently_publishing");
+        assertThat(candidates.get(0).attributes()).doesNotContainKey("totalVolumes");
     }
 
     @Test

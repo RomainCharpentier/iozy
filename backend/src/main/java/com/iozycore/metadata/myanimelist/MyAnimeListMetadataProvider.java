@@ -51,7 +51,7 @@ public class MyAnimeListMetadataProvider implements MetadataProvider {
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListMetadataProvider.class);
     private static final String SEARCH_URL = "https://api.myanimelist.net/v2/manga?q=%s&limit=10"
             + "&fields=main_picture,media_type,start_date,alternative_titles,"
-            + "authors%%7Bfirst_name,last_name%%7D,serialization%%7Bname%%7D,status";
+            + "authors%%7Bfirst_name,last_name%%7D,serialization%%7Bname%%7D,status,num_volumes";
 
     @Value("${mal.client-id:}")
     private String clientId;
@@ -124,6 +124,13 @@ public class MyAnimeListMetadataProvider implements MetadataProvider {
                 attributes.put("publisher", serialization.get(0).path("node").path("name").asText(null));
             }
             attributes.put("seriesStatus", node.path("status").asText(null));
+            // 0 chez MAL v2 signifie "pas encore déterminé" (série en cours ou
+            // décompte final inconnu) - jamais stocké dans ce cas (voir Ma
+            // collection côté web : "total inconnu" plutôt qu'un faux 0).
+            int numVolumes = node.path("num_volumes").asInt(0);
+            if (numVolumes > 0) {
+                attributes.put("totalVolumes", numVolumes);
+            }
             // Un même titre peut désigner plusieurs œuvres distinctes chez MAL
             // (ex: le manga "Naruto" et un one-shot pilote également titré
             // "Naruto") - type + année de première publication permettent à

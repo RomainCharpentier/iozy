@@ -6,17 +6,89 @@ import { importBggCollection } from '../../api/metadata'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
+import { Chip } from '../../components/Chip'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { totalVolumesFrom, isSeriesOngoing } from '../../lib/seriesInfo'
 import { StatCard } from '../../components/StatCard'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TypeFilterChips } from './TypeFilterChips'
 import { useNavigate } from 'react-router-dom'
-import type { EntityResponse, EntityTypeDto } from '../../types/api'
+import type { EntityResponse, EntityTypeDto, VariantDto } from '../../types/api'
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
 // serait recréé à chaque render et invaliderait la mémoïsation de `counts`.
 const EMPTY_ENTITIES: EntityResponse[] = []
 const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
+
+interface Tile {
+  key: string
+  title: string
+  subtitle?: string
+  imageUrl: string | null
+  entityId: string
+}
+
+/** "Tome 12" si un numéro de tome est exploitable (voir QuickAddService côté
+ * backend, attribut "volumeNumber" du Variant), sinon le label brut du
+ * Variant (ex: un ajout plus ancien, sans ce numéro structuré). */
+function variantSubtitle(variant: VariantDto): string {
+  const volumeNumber = variant.attributes.volumeNumber
+  return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
+}
+
+/** Une tuile par tome (jaquette du tome si connue, sinon celle de la série)
+ * - jamais une par série : voir la demande "afficher chacun des tomes avec
+ * les bonnes illustrations". Une Entity sans Variant (jeu vidéo, jeu de
+ * société, ou manga ajouté sans préciser de tome) garde une tuile unique. */
+function flattenToTomes(entities: EntityResponse[]): Tile[] {
+  const tiles: Tile[] = []
+  for (const entity of entities) {
+    if (entity.variants.length === 0) {
+      tiles.push({ key: entity.id, title: entity.title, imageUrl: coverImageUrlFrom(entity.attributes), entityId: entity.id })
+      continue
+    }
+    for (const variant of entity.variants) {
+      tiles.push({
+        key: variant.id,
+        title: entity.title,
+        subtitle: variantSubtitle(variant),
+        imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
+        entityId: entity.id,
+      })
+    }
+  }
+  return tiles
+}
+
+function formatTomeCount(count: number): string {
+  return `${count} tome${count > 1 ? 's' : ''}`
+}
+
+/** "17/26 tomes · En cours" - le total et le statut ne sont connus que pour
+ * une série ajoutée depuis que Jikan/MyAnimeList les fournissent (voir
+ * lib/seriesInfo.ts) : jamais inventés en leur absence, le compte affiché
+ * se limite alors à ce qu'on possède réellement. */
+function seriesSubtitle(entity: EntityResponse): string {
+  const owned = entity.variants.length
+  const total = totalVolumesFrom(entity.attributes)
+  const ongoing = isSeriesOngoing(entity.attributes)
+  const countPart = total !== null ? `${owned}/${total} tomes` : formatTomeCount(owned)
+  const statusPart = ongoing === null ? null : ongoing ? 'En cours' : 'Terminée'
+  return statusPart ? `${countPart} · ${statusPart}` : countPart
+}
+
+/** Une tuile par série (jaquette de la série), avec le décompte de tomes
+ * possédés en sous-titre - voir seriesSubtitle. Une Entity sans Variant
+ * (pas de notion de "tome") n'affiche que sa jaquette, sans sous-titre. */
+function groupBySeries(entities: EntityResponse[]): Tile[] {
+  return entities.map((entity) => ({
+    key: entity.id,
+    title: entity.title,
+    subtitle: entity.variants.length > 0 ? seriesSubtitle(entity) : undefined,
+    imageUrl: coverImageUrlFrom(entity.attributes),
+    entityId: entity.id,
+  }))
+}
 
 export function ShelfPage() {
   const navigate = useNavigate()
@@ -24,6 +96,10 @@ export function ShelfPage() {
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [username, setUsername] = useState('')
+  // Repliée par défaut (un tome = une tuile, avec sa propre jaquette) - voir
+  // la demande explicite "afficher chacun des tomes... par défaut". Le
+  // regroupement par série est une option, pas l'inverse.
+  const [grouped, setGrouped] = useState(false)
 
   // Sans paramètre, /entities/search renvoie toute la collection - c'est
   // notre "liste complète" pour l'étagère (pas de cache offline séparé,
@@ -60,6 +136,11 @@ export function ShelfPage() {
   const visibleEntities = selectedTypeId
     ? entities.filter((e) => e.entityTypeId === selectedTypeId)
     : entities
+
+  const tiles = useMemo(
+    () => (grouped ? groupBySeries(visibleEntities) : flattenToTomes(visibleEntities)),
+    [grouped, visibleEntities],
+  )
 
   return (
     <div className="flex flex-col gap-5">
@@ -123,7 +204,10 @@ export function ShelfPage() {
         ))}
       </div>
 
-      <TypeFilterChips entityTypes={entityTypes} selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <TypeFilterChips entityTypes={entityTypes} selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
+        <Chip label="Grouper par série" isActive={grouped} onClick={() => setGrouped((v) => !v)} />
+      </div>
 
       {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
 
@@ -136,12 +220,13 @@ export function ShelfPage() {
       )}
 
       <div className="grid grid-cols-3 gap-3">
-        {visibleEntities.map((entity) => (
+        {tiles.map((tile) => (
           <CoverTile
-            key={entity.id}
-            title={entity.title}
-            imageUrl={coverImageUrlFrom(entity.attributes)}
-            onClick={() => navigate(`/entity/${entity.id}`)}
+            key={tile.key}
+            title={tile.title}
+            subtitle={tile.subtitle}
+            imageUrl={tile.imageUrl}
+            onClick={() => navigate(`/entity/${tile.entityId}`)}
           />
         ))}
       </div>
