@@ -71,7 +71,7 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Nouveau tag"
-          className="flex-1 rounded-lg bg-surface2 px-3 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+          className="flex-1 rounded-lg bg-surface2 px-3 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
         />
         <button
           type="submit"

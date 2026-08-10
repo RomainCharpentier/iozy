@@ -49,7 +49,7 @@ export function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Chercher un titre..."
-          className="w-full bg-transparent text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+          className="w-full bg-transparent text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
           autoFocus
         />
       </div>

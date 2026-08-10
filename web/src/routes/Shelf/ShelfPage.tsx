@@ -97,7 +97,7 @@ export function ShelfPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Pseudo BoardGameGeek"
-            className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+            className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
           <button
             type="submit"

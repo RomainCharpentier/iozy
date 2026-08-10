@@ -167,7 +167,7 @@ export function PurchaseAnalysisPage() {
                 value={askingPrice}
                 onChange={(e) => setAskingPrice(e.target.value)}
                 placeholder="ex: 216"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1.5">
@@ -182,7 +182,7 @@ export function PurchaseAnalysisPage() {
                 value={shippingFee}
                 onChange={(e) => setShippingFee(e.target.value)}
                 placeholder="0"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1.5">
@@ -197,7 +197,7 @@ export function PurchaseAnalysisPage() {
                 value={buyerProtectionFee}
                 onChange={(e) => setBuyerProtectionFee(e.target.value)}
                 placeholder="0"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
           </div>
@@ -213,7 +213,7 @@ export function PurchaseAnalysisPage() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://..."
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                   autoComplete="off"
                 />
               </div>
@@ -226,7 +226,7 @@ export function PurchaseAnalysisPage() {
                   value={rawTitle}
                   onChange={(e) => setRawTitle(e.target.value)}
                   placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                   autoComplete="off"
                 />
               </div>
@@ -273,7 +273,7 @@ export function PurchaseAnalysisPage() {
                 value={seriesTitle}
                 onChange={(e) => setSeriesTitle(e.target.value)}
                 placeholder="ex: 20th Century Boys"
-                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
@@ -286,7 +286,7 @@ export function PurchaseAnalysisPage() {
                 value={editionName}
                 onChange={(e) => setEditionName(e.target.value)}
                 placeholder="ex: Perfect Edition"
-                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
@@ -299,7 +299,7 @@ export function PurchaseAnalysisPage() {
                 value={volumesText}
                 onChange={(e) => setVolumesText(e.target.value)}
                 placeholder="1-11"
-                className="w-24 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                className="w-24 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
