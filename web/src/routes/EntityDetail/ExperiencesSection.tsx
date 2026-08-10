@@ -92,7 +92,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
             onChange={(e) => setComment(e.target.value)}
             placeholder="Commentaire (optionnel)"
             rows={2}
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
 
           <button

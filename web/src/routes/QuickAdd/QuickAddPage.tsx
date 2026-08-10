@@ -549,7 +549,7 @@ export function QuickAddPage() {
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="ex: Death Note"
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             autoComplete="off"
           />
 
@@ -775,7 +775,7 @@ export function QuickAddPage() {
                   value={volumeNumber}
                   onChange={(e) => setVolumeNumber(e.target.value)}
                   placeholder="ex: 12"
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 />
               </div>
               <div className="flex flex-[2] flex-col gap-1.5">
@@ -787,7 +787,7 @@ export function QuickAddPage() {
                   value={edition}
                   onChange={(e) => setEdition(e.target.value)}
                   placeholder="ex: Kana, Perfect Edition..."
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                   autoComplete="off"
                 />
               </div>

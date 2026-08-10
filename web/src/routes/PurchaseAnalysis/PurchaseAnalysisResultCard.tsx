@@ -163,7 +163,7 @@ export function PurchaseAnalysisResultCard({ analysis, onReset }: { analysis: Pu
             readOnly
             value={offerText}
             rows={2}
-            className="resize-none rounded-lg bg-surface p-2 text-sm text-textPrimary focus:outline-none"
+            className="resize-none rounded-lg bg-surface p-2 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
           <button
             type="button"

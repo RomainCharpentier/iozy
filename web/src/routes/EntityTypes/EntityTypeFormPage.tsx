@@ -74,7 +74,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="ex : Films, Vinyles..."
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
 
@@ -93,7 +93,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="ex : FILM, VINYLE..."
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm uppercase text-textPrimary placeholder:text-textDim placeholder:normal-case focus:outline-none"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm uppercase text-textPrimary placeholder:text-textDim placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
               <p className="text-xs text-textDim">Normalisé automatiquement, ne pourra plus être modifié après la création.</p>
             </div>
@@ -159,7 +159,7 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
             }
           }}
           placeholder={placeholder}
-          className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+          className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
         />
         <button
           type="button"

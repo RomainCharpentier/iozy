@@ -109,7 +109,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
                 setSearch(e.target.value)
               }}
               placeholder="Chercher une entité à lier..."
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
             {!targetId && suggestions.length > 0 && (
               <ul className="flex flex-col gap-1 rounded-xl bg-surface2 p-2">
@@ -154,7 +154,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
             value={customType}
             onChange={(e) => setCustomType(e.target.value)}
             placeholder="Ou un type personnalisé..."
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none"
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
 
           <button

@@ -43,3 +43,25 @@ body {
   color: var(--color-textPrimary);
   font-family: var(--font-body);
 }
+
+/* Polish global des interactions, appliqué une fois ici plutôt que répété
+   composant par composant : jusqu'ici aucun bouton n'avait de retour visuel
+   au survol au-delà de `disabled:opacity`, et les changements d'état
+   (hover, disabled, focus) étaient instantanés. `:not(:disabled)` évite de
+   se cumuler avec `disabled:opacity-50` déjà posé sur certains boutons. Les
+   champs de saisie gardent en plus leur propre `focus:ring-2` (ajouté à
+   chacun) - `outline` seul aurait été invisible partout où
+   `focus:outline-none` était déjà posé, sans indicateur de remplacement. */
+button, a, input, textarea, select {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    opacity 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+button:not(:disabled):hover,
+a:hover {
+  opacity: 0.85;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
