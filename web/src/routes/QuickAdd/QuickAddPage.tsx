@@ -154,7 +154,7 @@ export function QuickAddPage() {
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
 
-  // Délai plus long que les recherches "locales" (SearchPage/RelationshipsSection,
+  // Délai plus long que les recherches "locales" (RelationshipsSection,
   // 300ms) : celles-ci ne coûtent rien (recherche SQL sur ta propre collection),
   // alors que chaque recherche ici appelle une API externe (Jikan/MAL/BGG/IGDB).
   // 500ms + un minimum de 3 caractères réduit nettement les recherches

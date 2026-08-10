@@ -1,7 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
-import { SearchPage } from './routes/Search/SearchPage'
 import { QuickAddPage } from './routes/QuickAdd/QuickAddPage'
 import { EntityDetailPage } from './routes/EntityDetail/EntityDetailPage'
 import { WishlistPage } from './routes/Wishlist/WishlistPage'
@@ -17,7 +16,6 @@ export default function App() {
     <AppShell>
       <Routes>
         <Route path="/" element={<ShelfPage />} />
-        <Route path="/search" element={<SearchPage />} />
         <Route path="/add" element={<QuickAddPage />} />
         <Route path="/entity/:id" element={<EntityDetailPage />} />
         <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />

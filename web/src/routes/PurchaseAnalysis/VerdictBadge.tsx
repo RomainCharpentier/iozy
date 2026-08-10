@@ -1,8 +1,7 @@
 import { CheckCheck, Check, Minus, TriangleAlert, X } from 'lucide-react'
 import type { Verdict } from '../../types/purchaseAnalysis'
 
-// Même patron que StatusPill.tsx (Record<Status, {label, icon, className}>).
-// EXCELLENTE/BONNE AFFAIRE partagent le token `accent` existant (différenciés
+// Record<Verdict, {label, icon, className}> - EXCELLENTE/BONNE AFFAIRE partagent le token `accent` existant (différenciés
 // par icône/libellé, voir le pictogramme 🟢🟢 vs 🟢 du cahier des charges) ;
 // PRIX CORRECT introduit --color-warning, CHER réutilise `pink`, À ÉVITER
 // introduit --color-danger - décision de palette validée avec l'utilisateur
