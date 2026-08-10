@@ -10,6 +10,10 @@ interface CoverTileProps {
    * le repli, jamais une image cassée. */
   imageUrl?: string | null
   showBadge?: boolean
+  /** Ligne secondaire sous le titre (ex: "17/26 tomes · En cours" en vue
+   * groupée par série sur Ma collection) - absente par défaut, n'affecte
+   * pas les autres usages de ce composant (Wishlist, Relations). */
+  subtitle?: string
   /** ex: "aspect-[2/3]" (défaut) ou "aspect-square" pour les listes horizontales. */
   aspectClassName?: string
   onClick?: () => void
@@ -25,6 +29,7 @@ export function CoverTile({
   title,
   imageUrl,
   showBadge = false,
+  subtitle,
   aspectClassName = 'aspect-[2/3]',
   onClick,
 }: CoverTileProps) {
@@ -55,8 +60,9 @@ export function CoverTile({
           <Check size={14} strokeWidth={3} />
         </span>
       )}
-      <span className="absolute bottom-2 left-2 right-2 line-clamp-2 font-display text-sm font-medium text-textPrimary">
-        {title}
+      <span className="absolute bottom-2 left-2 right-2 flex flex-col gap-0.5">
+        <span className="line-clamp-2 font-display text-sm font-medium text-textPrimary">{title}</span>
+        {subtitle && <span className="text-xs text-textDim">{subtitle}</span>}
       </span>
     </button>
   )
