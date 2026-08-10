@@ -64,7 +64,7 @@ export function ShelfPage() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Tes étagères</h1>
+        <h1 className="font-display text-2xl font-bold text-textPrimary">Ma collection</h1>
         <div className="flex gap-2">
           <button
             type="button"

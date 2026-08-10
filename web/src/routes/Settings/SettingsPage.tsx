@@ -69,7 +69,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Réglages</h1>
+      <h1 className="font-display text-2xl font-bold text-textPrimary">Paramètres</h1>
 
       <section className="flex flex-col gap-2">
         <h2 className="font-display text-lg font-semibold text-textPrimary">Titre des mangas</h2>

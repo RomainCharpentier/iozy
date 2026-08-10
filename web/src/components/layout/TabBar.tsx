@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Search, PlusCircle, Scale, Star, BarChart3, Languages } from 'lucide-react'
+import { LayoutGrid, Search, User, Settings } from 'lucide-react'
 
 interface TabDef {
   to: string
@@ -8,17 +8,22 @@ interface TabDef {
   end?: boolean
 }
 
-// Même ordre que RootTabView dans IozyCoreApp.swift, à l'exception
-// d'"Évaluer" (Purchase Analysis) - web d'abord, iOS pas encore mirroré
-// (voir le plan de la fonctionnalité) : décalage temporaire assumé.
+// Réorganisation à 4 onglets pensée par parcours utilisateur plutôt qu'un
+// onglet par fonctionnalité (voir discussion "trop de menus/sous-menus") :
+// - consulter ma collection (Ma collection)
+// - trouver quelque chose dans ma collection (Rechercher)
+// - tout le reste, consulté ponctuellement plutôt qu'à chaque session
+//   (Mon profil : Wishlist/Stats/Types, voir ProfilePage.tsx)
+// - configuration de l'app (Paramètres)
+// "Ajouter"/"Évaluer un achat" n'ont plus d'onglet dédié : ce sont les deux
+// mêmes parcours d'acquisition, désormais centralisés dans le bouton
+// flottant "+" (voir FloatingAddButton.tsx), accessible depuis tout écran.
+// Décalage (temporaire, assumé) avec RootTabView côté iOS, pas encore mis à jour.
 const TABS: TabDef[] = [
-  { to: '/', label: 'Étagères', icon: LayoutGrid, end: true },
-  { to: '/search', label: 'Recherche', icon: Search },
-  { to: '/add', label: 'Ajouter', icon: PlusCircle },
-  { to: '/purchase-analysis', label: 'Évaluer', icon: Scale },
-  { to: '/wishlist', label: 'Wishlist', icon: Star },
-  { to: '/stats', label: 'Stats', icon: BarChart3 },
-  { to: '/settings', label: 'Réglages', icon: Languages },
+  { to: '/', label: 'Ma collection', icon: LayoutGrid, end: true },
+  { to: '/search', label: 'Rechercher', icon: Search },
+  { to: '/profile', label: 'Mon profil', icon: User },
+  { to: '/settings', label: 'Paramètres', icon: Settings },
 ]
 
 export function TabBar() {
