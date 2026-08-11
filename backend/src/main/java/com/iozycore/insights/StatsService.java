@@ -13,6 +13,7 @@ import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -197,6 +198,57 @@ public class StatsService {
                 topCreator != null ? topCreator.getKey() : null,
                 topCreator != null ? topCreator.getValue() : 0,
                 availableYears);
+    }
+
+    /**
+     * "Calcul automatique de la valeur de la collection" (§15 V2 du document
+     * de conception) - somme des prix d'achat renseignés sur les possessions
+     * actuellement possédées (OWNED), par type. Voir CollectionValue pour le
+     * principe de ne jamais présenter cette somme comme la valeur réelle
+     * complète tant que toutes les possessions n'ont pas un prix renseigné.
+     */
+    public CollectionValue computeCollectionValue() {
+        List<Ownership> activeOwnerships = ownershipRepository.findAll().stream()
+                .filter(Ownership::isActive)
+                .toList();
+
+        Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(EntityType::id, t -> t));
+        Map<UUID, Entity> entitiesById = new HashMap<>();
+        for (Ownership ownership : activeOwnerships) {
+            entitiesById.computeIfAbsent(ownership.entityId(), id -> entityRepository.findById(id).orElse(null));
+        }
+
+        BigDecimal totalKnownValue = BigDecimal.ZERO;
+        long pricedCount = 0;
+        Map<String, BigDecimal> valueByTypeLabel = new HashMap<>();
+        Map<String, Long> pricedCountByTypeLabel = new HashMap<>();
+        Map<String, Long> totalCountByTypeLabel = new HashMap<>();
+
+        for (Ownership ownership : activeOwnerships) {
+            Entity entity = entitiesById.get(ownership.entityId());
+            String typeLabel = entity != null && typesById.containsKey(entity.entityTypeId())
+                    ? typesById.get(entity.entityTypeId()).label() : "?";
+            totalCountByTypeLabel.merge(typeLabel, 1L, Long::sum);
+
+            Optional<BigDecimal> price = ownership.purchasePrice();
+            if (price.isPresent()) {
+                totalKnownValue = totalKnownValue.add(price.get());
+                pricedCount++;
+                valueByTypeLabel.merge(typeLabel, price.get(), BigDecimal::add);
+                pricedCountByTypeLabel.merge(typeLabel, 1L, Long::sum);
+            }
+        }
+
+        List<CollectionValue.TypeValue> byType = totalCountByTypeLabel.entrySet().stream()
+                .map(entry -> new CollectionValue.TypeValue(entry.getKey(),
+                        valueByTypeLabel.getOrDefault(entry.getKey(), BigDecimal.ZERO),
+                        pricedCountByTypeLabel.getOrDefault(entry.getKey(), 0L),
+                        entry.getValue()))
+                .sorted(Comparator.comparing(CollectionValue.TypeValue::knownValue).reversed())
+                .toList();
+
+        return new CollectionValue(totalKnownValue, pricedCount, activeOwnerships.size(), byType);
     }
 
     private List<StatsSummary.TagCount> computeTopTags(List<Entity> allEntities) {

@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -103,6 +104,20 @@ public class QuickAddService {
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition, String volumeImageUrl) {
+        return addNewEntityWithOwnership(
+                entityTypeId, title, condition, prefilledAttributes, volumeNumber, edition, volumeImageUrl, null);
+    }
+
+    /**
+     * Variante complète avec prix d'achat optionnel (voir Ownership.updatePurchasePrice) -
+     * jamais deviné : null si non renseigné à l'ajout, reste modifiable ensuite
+     * via PATCH /api/ownerships/{id}/purchase-price.
+     */
+    @Transactional
+    public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
+                                                      Map<String, Object> prefilledAttributes,
+                                                      Integer volumeNumber, String edition, String volumeImageUrl,
+                                                      BigDecimal purchasePrice) {
         String normalizedTitle = title.trim();
         Optional<Entity> existing = entityRepository.findByTypeAndTitle(entityTypeId, normalizedTitle);
 
@@ -141,6 +156,9 @@ public class QuickAddService {
         }
 
         Ownership ownership = Ownership.acquire(entity.id(), variantId, condition, LocalDate.now(), null);
+        if (purchasePrice != null) {
+            ownership.updatePurchasePrice(purchasePrice);
+        }
 
         entityRepository.save(entity);
         ownershipRepository.save(ownership);

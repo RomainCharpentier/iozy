@@ -52,7 +52,7 @@ public class EntityController {
 
         QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 request.entityTypeId(), request.title(), request.condition(), request.attributesOrEmpty(),
-                request.volumeNumber(), request.edition(), request.volumeImageUrl());
+                request.volumeNumber(), request.edition(), request.volumeImageUrl(), request.purchasePrice());
         return new QuickAddResponse(
                 result.entityId(), result.matchedExistingEntity(), result.variantId(), result.matchedExistingVariant());
     }

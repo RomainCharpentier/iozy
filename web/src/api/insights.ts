@@ -1,8 +1,13 @@
 import { get, buildQuery } from './client'
-import type { DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
+import type { CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
+}
+
+/** "Calcul automatique de la valeur de la collection" (§15 V2). */
+export function getCollectionValue(): Promise<CollectionValueDto> {
+  return get<CollectionValueDto>('/insights/value')
 }
 
 /** "Évolution de ma collection" - du plus ancien au plus récent, comptages uniquement. */

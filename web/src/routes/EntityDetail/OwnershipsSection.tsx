@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { markSold } from '../../api/ownerships'
+import { markSold, updatePurchasePrice } from '../../api/ownerships'
 import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
@@ -42,10 +42,22 @@ export function OwnershipsSection({
   const queryClient = useQueryClient()
   const [lendFormOwnershipId, setLendFormOwnershipId] = useState<string | null>(null)
   const [borrowerName, setBorrowerName] = useState('')
+  const [priceFormOwnershipId, setPriceFormOwnershipId] = useState<string | null>(null)
+  const [priceInput, setPriceInput] = useState('')
 
   const sellMutation = useMutation({
     mutationFn: markSold,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) }),
+  })
+
+  const priceMutation = useMutation({
+    mutationFn: ({ ownershipId, price }: { ownershipId: string; price: number | null }) =>
+      updatePurchasePrice(ownershipId, price),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
+      setPriceFormOwnershipId(null)
+      setPriceInput('')
+    },
   })
 
   // Prêts en cours tous propriétaires confondus (voir LoanController.active
@@ -103,6 +115,20 @@ export function OwnershipsSection({
                       {CONDITION_LABELS[ownership.condition as Condition] ?? ownership.condition}
                     </p>
                     <p className="text-textDim">Acquis le {ownership.acquiredAt}</p>
+                    {priceFormOwnershipId !== ownership.id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPriceFormOwnershipId(ownership.id)
+                          setPriceInput(ownership.purchasePrice !== null ? String(ownership.purchasePrice) : '')
+                        }}
+                        className="text-textDim underline-offset-2 hover:underline"
+                      >
+                        {ownership.purchasePrice !== null
+                          ? `Prix d'achat : ${ownership.purchasePrice.toFixed(2)} €`
+                          : "Ajouter le prix d'achat"}
+                      </button>
+                    )}
                     {ownership.note && <p className="text-textDim">{ownership.note}</p>}
                     {activeLoan && (
                       <p className="text-warning">
@@ -166,6 +192,55 @@ export function OwnershipsSection({
                       onClick={() => {
                         setLendFormOwnershipId(null)
                         setBorrowerName('')
+                      }}
+                      className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                )}
+
+                {priceFormOwnershipId === ownership.id && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      inputMode="decimal"
+                      value={priceInput}
+                      onChange={(e) => setPriceInput(e.target.value)}
+                      placeholder="ex: 6.90"
+                      autoFocus
+                      className="w-24 min-w-0 rounded-lg bg-surface2 px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        priceMutation.mutate({
+                          ownershipId: ownership.id,
+                          price: priceInput.trim() ? Number(priceInput) : null,
+                        })
+                      }
+                      disabled={priceMutation.isPending}
+                      className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+                    >
+                      OK
+                    </button>
+                    {ownership.purchasePrice !== null && (
+                      <button
+                        type="button"
+                        onClick={() => priceMutation.mutate({ ownershipId: ownership.id, price: null })}
+                        disabled={priceMutation.isPending}
+                        className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
+                      >
+                        Effacer
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPriceFormOwnershipId(null)
+                        setPriceInput('')
                       }}
                       className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
                     >

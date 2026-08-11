@@ -16,6 +16,7 @@ import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -183,6 +184,51 @@ class StatsServiceTest {
         assertThat(recap.mostFeaturedCreator()).isNull();
         assertThat(recap.averageRating()).isNull();
         assertThat(recap.availableYears()).isEmpty();
+    }
+
+    @Test
+    void collection_value_sums_only_priced_active_ownerships_and_tracks_coverage() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
+        InMemoryTagRepository tagRepository = new InMemoryTagRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entityRepository.save(deathNote);
+        Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
+        entityRepository.save(hollowKnight);
+
+        Ownership priced = Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+        priced.updatePurchasePrice(new BigDecimal("6.90"));
+        ownershipRepository.save(priced);
+        // Tome sans prix renseigné (ex: ajouté avant cette fonctionnalité) - compte dans le total, pas dans la valeur connue.
+        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        Ownership pricedGame = Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+        pricedGame.updatePurchasePrice(new BigDecimal("30.00"));
+        ownershipRepository.save(pricedGame);
+        // Vendue : ne doit compter dans aucun total, même si elle a un prix.
+        Ownership sold = Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+        sold.updatePurchasePrice(new BigDecimal("99.00"));
+        sold.markSold();
+        ownershipRepository.save(sold);
+
+        StatsService statsService = new StatsService(
+                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
+                entityTypeRepository);
+
+        CollectionValue value = statsService.computeCollectionValue();
+
+        assertThat(value.totalKnownValue()).isEqualByComparingTo(new BigDecimal("36.90"));
+        assertThat(value.pricedOwnershipCount()).isEqualTo(2);
+        assertThat(value.totalActiveOwnershipCount()).isEqualTo(3); // sold excluded
+
+        CollectionValue.TypeValue mangaValue = value.byType().stream()
+                .filter(t -> t.entityTypeLabel().equals("Manga")).findFirst().orElseThrow();
+        assertThat(mangaValue.knownValue()).isEqualByComparingTo(new BigDecimal("6.90"));
+        assertThat(mangaValue.pricedCount()).isEqualTo(1);
+        assertThat(mangaValue.totalCount()).isEqualTo(2);
     }
 
     private static class InMemoryEntityRepository implements EntityRepository {

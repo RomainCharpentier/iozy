@@ -42,6 +42,7 @@ export function AddVolumeSection({
   const [condition, setCondition] = useState<Condition>('NEW')
   const [volumeNumber, setVolumeNumber] = useState('')
   const [edition, setEdition] = useState('')
+  const [purchasePrice, setPurchasePrice] = useState('')
   const [manualVolumes, setManualVolumes] = useState<ManualVolume[]>([])
 
   const totalVolumesToAdd = manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
@@ -55,6 +56,8 @@ export function AddVolumeSection({
       }
       if (items.length === 0) return { addedCount: 0, alreadyOwnedCount: 0 }
 
+      const parsedPurchasePrice = purchasePrice.trim() ? Number(purchasePrice) : undefined
+
       let addedCount = 0
       let alreadyOwnedCount = 0
       // Séquentiel : voir QuickAddPage.tsx pour la même précaution (l'Entity
@@ -67,6 +70,7 @@ export function AddVolumeSection({
           condition,
           volumeNumber: item.volumeNumber,
           edition: item.edition || undefined,
+          purchasePrice: parsedPurchasePrice,
         })
         if (result.matchedExistingVariant) alreadyOwnedCount++
         else addedCount++
@@ -78,6 +82,7 @@ export function AddVolumeSection({
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       setVolumeNumber('')
       setEdition('')
+      setPurchasePrice('')
       setManualVolumes([])
       setExpanded(false)
     },
@@ -155,6 +160,23 @@ export function AddVolumeSection({
         </button>
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm text-textDim" htmlFor="addVolumePurchasePrice">
+          Prix d'achat (optionnel)
+        </label>
+        <input
+          id="addVolumePurchasePrice"
+          type="number"
+          min={0}
+          step="0.01"
+          inputMode="decimal"
+          value={purchasePrice}
+          onChange={(e) => setPurchasePrice(e.target.value)}
+          placeholder="ex: 6.90"
+          className="w-32 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+        />
+      </div>
+
       {manualVolumes.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {manualVolumes.map((manual, index) => (
@@ -198,6 +220,7 @@ export function AddVolumeSection({
             setExpanded(false)
             setVolumeNumber('')
             setEdition('')
+            setPurchasePrice('')
             setManualVolumes([])
           }}
           className="rounded-lg px-4 py-2 text-sm text-textDim"

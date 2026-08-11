@@ -2,6 +2,7 @@ package com.iozycore.api.ownership;
 
 import com.iozycore.api.dto.OwnershipDtos.OwnershipResponse;
 import com.iozycore.api.dto.OwnershipDtos.UpdateNoteRequest;
+import com.iozycore.api.dto.OwnershipDtos.UpdatePurchasePriceRequest;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,6 +55,14 @@ public class OwnershipController {
     public OwnershipResponse updateNote(@PathVariable UUID id, @RequestBody UpdateNoteRequest request) {
         Ownership ownership = findOrThrow(id);
         ownership.updateNote(request.note());
+        return OwnershipResponse.from(ownershipRepository.save(ownership));
+    }
+
+    @Operation(summary = "Renseigner (ou effacer, si purchasePrice est null) le prix d'achat d'une Ownership")
+    @PatchMapping("/{id}/purchase-price")
+    public OwnershipResponse updatePurchasePrice(@PathVariable UUID id, @RequestBody UpdatePurchasePriceRequest request) {
+        Ownership ownership = findOrThrow(id);
+        ownership.updatePurchasePrice(request.purchasePrice());
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 

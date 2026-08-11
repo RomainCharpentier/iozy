@@ -4,6 +4,7 @@ import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -13,14 +14,20 @@ public final class OwnershipDtos {
     }
 
     public record OwnershipResponse(UUID id, UUID entityId, UUID variantId, OwnershipCondition condition,
-                                     OwnershipStatus status, LocalDate acquiredAt, String note) {
+                                     OwnershipStatus status, LocalDate acquiredAt, String note,
+                                     BigDecimal purchasePrice) {
         public static OwnershipResponse from(Ownership ownership) {
             return new OwnershipResponse(
                     ownership.id(), ownership.entityId(), ownership.variantId().orElse(null),
-                    ownership.condition(), ownership.status(), ownership.acquiredAt(), ownership.note());
+                    ownership.condition(), ownership.status(), ownership.acquiredAt(), ownership.note(),
+                    ownership.purchasePrice().orElse(null));
         }
     }
 
     public record UpdateNoteRequest(String note) {
+    }
+
+    /** {@code purchasePrice} null efface le prix renseigné (ex: saisie corrigée). */
+    public record UpdatePurchasePriceRequest(BigDecimal purchasePrice) {
     }
 }

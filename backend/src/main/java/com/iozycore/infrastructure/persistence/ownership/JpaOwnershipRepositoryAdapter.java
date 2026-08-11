@@ -61,7 +61,8 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 ownership.condition().name(),
                 ownership.status().name(),
                 ownership.acquiredAt(),
-                ownership.note()
+                ownership.note(),
+                ownership.purchasePrice().orElse(null)
         );
     }
 
@@ -74,7 +75,8 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 OwnershipCondition.valueOf(jpaEntity.getCondition()),
                 OwnershipStatus.valueOf(jpaEntity.getStatus()),
                 jpaEntity.getAcquiredAt(),
-                jpaEntity.getNote()
+                jpaEntity.getNote(),
+                jpaEntity.getPurchasePrice()
         );
     }
 }

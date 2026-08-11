@@ -3,6 +3,7 @@ package com.iozycore.domain.ownership;
 import com.iozycore.domain.shared.DefaultOwner;
 import com.iozycore.domain.shared.DomainEvent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,8 +16,15 @@ import java.util.UUID;
  * Entity (ou d'un Variant précis). Ne référence jamais une Experience
  * et sa suppression n'affecte jamais l'Entity qu'elle référence.
  * <p>
- * Volontairement simplifié suite aux échanges de conception : pas de
- * prix d'acquisition, pas de statut "prêté" — seulement possédé/vendu/perdu.
+ * Prix d'acquisition ({@code purchasePrice}) et statut "prêté" (voir
+ * com.iozycore.domain.loan.Loan) étaient explicitement hors périmètre du
+ * MVP initial ("simplification demandée", voir docs/CONCEPTION.md §4) -
+ * ajoutés depuis sur demande explicite. purchasePrice reste nullable et
+ * n'est jamais deviné : une Ownership créée avant cette fonctionnalité, ou
+ * simplement ajoutée sans prix, garde purchasePrice = null plutôt qu'une
+ * valeur inventée (voir StatsService.computeCollectionValue, qui distingue
+ * toujours la couverture connue du total réel plutôt que de sous-entendre
+ * une valeur totale complète).
  * <p>
  * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
  * multi-utilisateur n'existe) - préparation au multi-utilisateur, voir
@@ -32,6 +40,7 @@ public class Ownership {
     private OwnershipStatus status;
     private final LocalDate acquiredAt;
     private String note;
+    private BigDecimal purchasePrice; // nullable : jamais deviné, voir Javadoc de la classe
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
     private Ownership(UUID id, UUID entityId, UUID variantId, UUID ownerId, OwnershipCondition condition,
@@ -56,9 +65,10 @@ public class Ownership {
 
     public static Ownership reconstitute(UUID id, UUID entityId, UUID variantId, UUID ownerId,
                                           OwnershipCondition condition, OwnershipStatus status,
-                                          LocalDate acquiredAt, String note) {
+                                          LocalDate acquiredAt, String note, BigDecimal purchasePrice) {
         Ownership ownership = new Ownership(id, entityId, variantId, ownerId, condition, acquiredAt, note);
         ownership.status = status;
+        ownership.purchasePrice = purchasePrice;
         return ownership;
     }
 
@@ -84,6 +94,12 @@ public class Ownership {
 
     public void updateNote(String newNote) {
         this.note = newNote;
+    }
+
+    /** {@code null} efface le prix renseigné (ex: saisie corrigée) - jamais refusé,
+     * une Ownership peut tout à fait redevenir "prix inconnu" volontairement. */
+    public void updatePurchasePrice(BigDecimal newPurchasePrice) {
+        this.purchasePrice = newPurchasePrice;
     }
 
     public boolean isActive() {
@@ -126,5 +142,9 @@ public class Ownership {
 
     public String note() {
         return note;
+    }
+
+    public Optional<BigDecimal> purchasePrice() {
+        return Optional.ofNullable(purchasePrice);
     }
 }
