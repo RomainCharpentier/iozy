@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, BarChart3, Tags, Scale, HandHeart, Sparkles, TrendingUp, ChevronRight } from 'lucide-react'
+import { Star, BarChart3, Tags, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight } from 'lucide-react'
 
 interface ProfileLink {
   to: string
@@ -21,6 +21,7 @@ const LINKS: ProfileLink[] = [
   { to: '/edition-upgrades', label: 'Envies d\'amélioration', description: 'Séries dont tu recherches une meilleure édition', icon: Sparkles },
   { to: '/loans', label: 'Prêts en cours', description: 'À qui un manga ou un jeu a été prêté', icon: HandHeart },
   { to: '/stats', label: 'Statistiques', description: 'Vue d\'ensemble de ta collection', icon: BarChart3 },
+  { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
   { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...)', icon: Tags },
 ]
 

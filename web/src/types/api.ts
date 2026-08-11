@@ -128,6 +128,25 @@ export interface MonthlyPointDto {
   tomesAdded: number
 }
 
+export interface TypeCountDto {
+  entityTypeLabel: string
+  count: number
+}
+
+/** "Bilan annuel" - voir StatsService.computeYearlyRecap côté backend. Pas d'endpoint
+ * public/non-authentifié : le partage se fait en téléchargeant l'image générée côté client. */
+export interface YearlyRecapDto {
+  year: number
+  acquisitionsCount: number
+  acquisitionsByType: TypeCountDto[]
+  seriesStartedCount: number
+  experiencesCount: number
+  averageRating: number | null
+  mostFeaturedCreator: string | null
+  mostFeaturedCreatorCount: number
+  availableYears: number[]
+}
+
 export interface DiscoveryCandidateDto {
   source: string
   externalId: string
