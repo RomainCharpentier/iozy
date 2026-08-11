@@ -115,6 +115,76 @@ class StatsServiceTest {
                 new StatsSummary.MonthlyPoint("2026-03", 1));
     }
 
+    @Test
+    void computes_a_yearly_recap_with_counts_series_started_and_most_featured_creator() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
+        InMemoryTagRepository tagRepository = new InMemoryTagRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+
+        Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        deathNote.setAttribute("mangaka", "Takeshi Obata");
+        entityRepository.save(deathNote);
+        Entity bakuman = Entity.create(EntityTypeFixtures.MANGA.id(), "Bakuman");
+        bakuman.setAttribute("mangaka", "Takeshi Obata");
+        entityRepository.save(bakuman);
+        Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
+        entityRepository.save(hollowKnight);
+
+        // Death Note : premier tome en 2025 (série pas "commencée" en 2026), un second tome en 2026.
+        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2025, 12, 1), null));
+        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2026, 2, 1), null));
+        // Bakuman et Hollow Knight : toutes les deux acquises pour la première fois en 2026.
+        ownershipRepository.save(Ownership.acquire(bakuman.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2026, 3, 1), null));
+        ownershipRepository.save(Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW,
+                LocalDate.of(2026, 5, 1), null));
+
+        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.of(2026, 2, 10), 9, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.of(2025, 1, 1), 5, null));
+
+        StatsService statsService = new StatsService(
+                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
+                entityTypeRepository);
+
+        YearlyRecap recap = statsService.computeYearlyRecap(2026);
+
+        assertThat(recap.year()).isEqualTo(2026);
+        assertThat(recap.acquisitionsCount()).isEqualTo(3); // Death Note tome 2 + Bakuman + Hollow Knight
+        assertThat(recap.seriesStartedCount()).isEqualTo(2); // Bakuman + Hollow Knight, pas Death Note
+        assertThat(recap.experiencesCount()).isEqualTo(1);
+        assertThat(recap.averageRating()).isEqualTo(9.0);
+        assertThat(recap.mostFeaturedCreator()).isEqualTo("Takeshi Obata");
+        assertThat(recap.mostFeaturedCreatorCount()).isEqualTo(2);
+        assertThat(recap.availableYears()).containsExactly(2026, 2025);
+    }
+
+    @Test
+    void a_year_without_any_acquisition_reports_zeros_rather_than_an_error() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
+        InMemoryWishlistEntryRepository wishlistEntryRepository = new InMemoryWishlistEntryRepository();
+        InMemoryTagRepository tagRepository = new InMemoryTagRepository();
+        InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
+
+        StatsService statsService = new StatsService(
+                entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
+                entityTypeRepository);
+
+        YearlyRecap recap = statsService.computeYearlyRecap(2020);
+
+        assertThat(recap.acquisitionsCount()).isZero();
+        assertThat(recap.seriesStartedCount()).isZero();
+        assertThat(recap.mostFeaturedCreator()).isNull();
+        assertThat(recap.averageRating()).isNull();
+        assertThat(recap.availableYears()).isEmpty();
+    }
+
     private static class InMemoryEntityRepository implements EntityRepository {
         private final Map<UUID, Entity> store = new HashMap<>();
 

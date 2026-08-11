@@ -4,6 +4,7 @@ import com.iozycore.insights.DiscoveryCandidate;
 import com.iozycore.insights.DiscoveryService;
 import com.iozycore.insights.StatsService;
 import com.iozycore.insights.StatsSummary;
+import com.iozycore.insights.YearlyRecap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -40,6 +42,13 @@ public class InsightsController {
     @GetMapping("/timeline")
     public List<StatsSummary.MonthlyPoint> timeline() {
         return statsService.computeTimeline();
+    }
+
+    @Operation(summary = "\"Bilan annuel\" : nombre d'ajouts, séries commencées, auteur/studio le plus présent "
+            + "pour une année donnée (défaut : année en cours) - pas d'endpoint public, à télécharger en image côté client")
+    @GetMapping("/yearly-recap")
+    public YearlyRecap yearlyRecap(@RequestParam(required = false) Integer year) {
+        return statsService.computeYearlyRecap(year != null ? year : LocalDate.now().getYear());
     }
 
     @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "

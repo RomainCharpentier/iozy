@@ -16,9 +16,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -113,6 +116,87 @@ public class StatsService {
         return byMonth.entrySet().stream()
                 .map(entry -> new StatsSummary.MonthlyPoint(entry.getKey().toString(), entry.getValue()))
                 .toList();
+    }
+
+    /**
+     * "Bilan annuel" (Mon profil) - une année choisie, comptages et un
+     * "auteur le plus présent" heuristique uniquement (attribut "mangaka" ou
+     * "studio" des entités acquises cette année-là) - jamais inventé,
+     * simplement absent (null) si aucune entité acquise cette année ne porte
+     * l'un de ces attributs. Voir YearlyRecap pour la décision de ne jamais
+     * exposer ça via un lien public non authentifié.
+     */
+    public YearlyRecap computeYearlyRecap(int year) {
+        List<Ownership> allOwnerships = ownershipRepository.findAll();
+        List<Integer> availableYears = allOwnerships.stream()
+                .map(o -> o.acquiredAt().getYear())
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+
+        List<Ownership> ownershipsThisYear = allOwnerships.stream()
+                .filter(o -> o.acquiredAt().getYear() == year)
+                .toList();
+
+        Set<UUID> entityIdsThisYear = ownershipsThisYear.stream().map(Ownership::entityId).collect(Collectors.toSet());
+        Map<UUID, Entity> entitiesById = new HashMap<>();
+        for (UUID entityId : entityIdsThisYear) {
+            entityRepository.findById(entityId).ifPresent(e -> entitiesById.put(entityId, e));
+        }
+        Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(EntityType::id, t -> t));
+
+        Map<String, Long> acquisitionsByTypeLabel = ownershipsThisYear.stream()
+                .map(o -> entitiesById.get(o.entityId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(
+                        e -> typesById.containsKey(e.entityTypeId()) ? typesById.get(e.entityTypeId()).label() : "?",
+                        Collectors.counting()));
+        List<YearlyRecap.TypeCount> acquisitionsByType = acquisitionsByTypeLabel.entrySet().stream()
+                .map(e -> new YearlyRecap.TypeCount(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparingLong(YearlyRecap.TypeCount::count).reversed())
+                .toList();
+
+        // Une série est "commencée" cette année-là si sa toute première
+        // possession (tous temps confondus) tombe dans cette année.
+        Map<UUID, LocalDate> earliestAcquiredByEntity = allOwnerships.stream()
+                .collect(Collectors.groupingBy(Ownership::entityId,
+                        Collectors.minBy(Comparator.comparing(Ownership::acquiredAt))))
+                .entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().orElseThrow().acquiredAt()));
+        long seriesStartedCount = earliestAcquiredByEntity.values().stream()
+                .filter(date -> date.getYear() == year)
+                .count();
+
+        List<Experience> experiencesThisYear = experienceRepository.findAll().stream()
+                .filter(e -> e.occurredAt().getYear() == year)
+                .toList();
+        Double averageRating = experiencesThisYear.stream()
+                .map(Experience::rating)
+                .filter(Optional::isPresent)
+                .mapToInt(r -> r.get())
+                .average()
+                .stream().boxed().findFirst().orElse(null);
+
+        Map<String, Long> creatorCounts = new HashMap<>();
+        for (Entity entity : entitiesById.values()) {
+            Object creator = entity.attributes().get("mangaka");
+            if (!(creator instanceof String creatorName) || creatorName.isBlank()) {
+                creator = entity.attributes().get("studio");
+            }
+            if (creator instanceof String creatorName && !creatorName.isBlank()) {
+                creatorCounts.merge(creatorName, 1L, Long::sum);
+            }
+        }
+        Map.Entry<String, Long> topCreator = creatorCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
+
+        return new YearlyRecap(year, ownershipsThisYear.size(), acquisitionsByType, seriesStartedCount,
+                experiencesThisYear.size(), averageRating,
+                topCreator != null ? topCreator.getKey() : null,
+                topCreator != null ? topCreator.getValue() : 0,
+                availableYears);
     }
 
     private List<StatsSummary.TagCount> computeTopTags(List<Entity> allEntities) {

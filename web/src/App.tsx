@@ -13,6 +13,7 @@ import { ProfilePage } from './routes/Profile/ProfilePage'
 import { LoansPage } from './routes/Loans/LoansPage'
 import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
 import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
+import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/loans" element={<LoansPage />} />
         <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
         <Route path="/suggestions" element={<SuggestionsPage />} />
+        <Route path="/recap" element={<CollectionRecapPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/types" element={<EntityTypesPage />} />
