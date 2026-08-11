@@ -6,6 +6,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CoverTile } from '../../components/CoverTile'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { WishlistShareSection } from './WishlistShareSection'
 import type { WishlistEntryResponse } from '../../types/api'
 
 /** Jointure client-side vers le titre de l'entité - pas de dénormalisation
@@ -41,6 +42,8 @@ export function WishlistPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Wishlist</h1>
+
+      <WishlistShareSection />
 
       {wishlistQuery.isError && <ErrorBanner message={wishlistQuery.error.message} />}
       {wishlistQuery.isLoading && <p className="text-textDim">Chargement...</p>}

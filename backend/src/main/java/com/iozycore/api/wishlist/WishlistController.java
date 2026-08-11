@@ -2,10 +2,13 @@ package com.iozycore.api.wishlist;
 
 import com.iozycore.api.dto.WishlistDtos.AddToWishlistRequest;
 import com.iozycore.api.dto.WishlistDtos.LookupResponse;
+import com.iozycore.api.dto.WishlistDtos.ShareLinkResponse;
 import com.iozycore.api.dto.WishlistDtos.WishlistEntryResponse;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.domain.wishlist.WishlistShareSettings;
+import com.iozycore.domain.wishlist.WishlistShareSettingsRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -23,11 +26,14 @@ public class WishlistController {
 
     private final WishlistEntryRepository wishlistEntryRepository;
     private final OwnershipRepository ownershipRepository;
+    private final WishlistShareSettingsRepository shareSettingsRepository;
 
     public WishlistController(WishlistEntryRepository wishlistEntryRepository,
-                               OwnershipRepository ownershipRepository) {
+                               OwnershipRepository ownershipRepository,
+                               WishlistShareSettingsRepository shareSettingsRepository) {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.ownershipRepository = ownershipRepository;
+        this.shareSettingsRepository = shareSettingsRepository;
     }
 
     @Operation(summary = "Ajouter une Entity à la wishlist")
@@ -56,5 +62,26 @@ public class WishlistController {
             return LookupResponse.WISHLISTED;
         }
         return LookupResponse.UNKNOWN;
+    }
+
+    @Operation(summary = "État courant du lien de partage de la wishlist (token null = pas de lien actif)")
+    @GetMapping("/share")
+    public ShareLinkResponse shareLink() {
+        return new ShareLinkResponse(shareSettingsRepository.find().token());
+    }
+
+    @Operation(summary = "Générer (ou régénérer) le lien de partage - invalide silencieusement l'ancien jeton s'il en existait un")
+    @PostMapping("/share")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ShareLinkResponse generateShareLink() {
+        WishlistShareSettings settings = shareSettingsRepository.save(WishlistShareSettings.withNewToken());
+        return new ShareLinkResponse(settings.token());
+    }
+
+    @Operation(summary = "Supprimer le lien de partage - le jeton précédent cesse immédiatement de fonctionner")
+    @DeleteMapping("/share")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeShareLink() {
+        shareSettingsRepository.save(WishlistShareSettings.noLink());
     }
 }

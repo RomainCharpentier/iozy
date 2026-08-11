@@ -19,6 +19,8 @@ export const queryKeys = {
   },
   wishlist: {
     all: ['wishlist'] as const,
+    shareLink: ['wishlist', 'shareLink'] as const,
+    shared: (token: string) => ['wishlist', 'shared', token] as const,
   },
   insights: {
     stats: ['insights', 'stats'] as const,
