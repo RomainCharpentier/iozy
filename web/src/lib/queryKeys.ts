@@ -27,6 +27,7 @@ export const queryKeys = {
     discover: (entityTypeCode: string) => ['insights', 'discover', entityTypeCode] as const,
     timeline: ['insights', 'timeline'] as const,
     yearlyRecap: (year: number) => ['insights', 'yearlyRecap', year] as const,
+    value: ['insights', 'value'] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,

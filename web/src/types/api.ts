@@ -21,6 +21,8 @@ export interface QuickAddRequest {
   // Jaquette de CE tome précis (voir VolumeCandidateDto), distincte de la
   // jaquette de la série éventuellement présente dans `attributes`.
   volumeImageUrl?: string
+  // Optionnel, jamais deviné - reste modifiable après coup (voir ownerships.ts updatePurchasePrice).
+  purchasePrice?: number
 }
 
 export interface QuickAddResponse {
@@ -57,6 +59,7 @@ export interface OwnershipResponse {
   status: 'OWNED' | 'SOLD' | 'LOST'
   acquiredAt: LocalDateString
   note: string | null
+  purchasePrice: number | null
 }
 
 // --- Experience ---
@@ -144,6 +147,24 @@ export interface MonthlyPointDto {
 export interface TypeCountDto {
   entityTypeLabel: string
   count: number
+}
+
+export interface TypeValueDto {
+  entityTypeLabel: string
+  knownValue: number
+  pricedCount: number
+  totalCount: number
+}
+
+/** "Calcul automatique de la valeur de la collection" (§15 V2) - voir
+ * StatsService.computeCollectionValue côté backend. totalKnownValue n'est
+ * JAMAIS la valeur réelle complète : pricedOwnershipCount/totalActiveOwnershipCount
+ * indique toujours combien de possessions ont un prix renseigné. */
+export interface CollectionValueDto {
+  totalKnownValue: number
+  pricedOwnershipCount: number
+  totalActiveOwnershipCount: number
+  byType: TypeValueDto[]
 }
 
 /** "Bilan annuel" - voir StatsService.computeYearlyRecap côté backend. Pas d'endpoint

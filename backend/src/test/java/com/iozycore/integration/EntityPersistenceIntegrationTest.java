@@ -18,6 +18,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -98,6 +99,30 @@ class EntityPersistenceIntegrationTest {
         Ownership afterSale = ownershipRepository.findById(ownership.id()).orElseThrow();
         assertThat(afterSale.isActive()).isFalse();
         assertThat(ownershipRepository.existsByEntityId(entity.id())).isTrue(); // existe encore, juste vendue
+    }
+
+    @Test
+    void purchase_price_is_null_by_default_and_can_be_set_then_cleared_after_reload() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Vagabond " + UUID.randomUUID());
+        entityRepository.save(entity);
+
+        Ownership ownership = Ownership.acquire(entity.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+        ownershipRepository.save(ownership);
+
+        assertThat(ownershipRepository.findById(ownership.id()).orElseThrow().purchasePrice()).isEmpty();
+
+        Ownership reloaded = ownershipRepository.findById(ownership.id()).orElseThrow();
+        reloaded.updatePurchasePrice(new BigDecimal("6.90"));
+        ownershipRepository.save(reloaded);
+
+        assertThat(ownershipRepository.findById(ownership.id()).orElseThrow().purchasePrice())
+                .contains(new BigDecimal("6.90"));
+
+        Ownership cleared = ownershipRepository.findById(ownership.id()).orElseThrow();
+        cleared.updatePurchasePrice(null);
+        ownershipRepository.save(cleared);
+
+        assertThat(ownershipRepository.findById(ownership.id()).orElseThrow().purchasePrice()).isEmpty();
     }
 
     @Test

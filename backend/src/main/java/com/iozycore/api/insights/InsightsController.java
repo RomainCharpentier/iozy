@@ -1,5 +1,6 @@
 package com.iozycore.api.insights;
 
+import com.iozycore.insights.CollectionValue;
 import com.iozycore.insights.DiscoveryCandidate;
 import com.iozycore.insights.DiscoveryService;
 import com.iozycore.insights.StatsService;
@@ -35,6 +36,14 @@ public class InsightsController {
     @GetMapping("/stats")
     public StatsSummary stats() {
         return statsService.computeSummary();
+    }
+
+    @Operation(summary = "\"Calcul automatique de la valeur de la collection\" (§15 V2) : somme des prix d'achat "
+            + "renseignés sur les possessions actuellement possédées, par type - jamais présentée comme la valeur "
+            + "réelle complète tant que toutes les possessions n'ont pas un prix renseigné")
+    @GetMapping("/value")
+    public CollectionValue value() {
+        return statsService.computeCollectionValue();
     }
 
     @Operation(summary = "\"Évolution de ma collection\" : nombre de tomes/exemplaires ajoutés par mois, "

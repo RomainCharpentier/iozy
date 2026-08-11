@@ -70,6 +70,13 @@ export function QuickAddPage() {
   const [entityTypeId, setEntityTypeId] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
   const [condition, setCondition] = useState<Condition>('NEW')
+  // Optionnel, jamais deviné - appliqué à chaque tome de ce lot s'il y en a
+  // plusieurs (voir addMutation), modifiable après coup depuis la fiche
+  // (voir OwnershipsSection). Simplification assumée : un même lot ajouté en
+  // un clic partage un seul prix, même si en pratique un lot Vinted/occasion
+  // peut mélanger des tomes à prix différents - à corriger tome par tome
+  // ensuite si besoin plutôt que de complexifier ce formulaire.
+  const [purchasePrice, setPurchasePrice] = useState('')
   // Réservés au Manga (voir QuickAddService côté backend) : le titre identifie
   // la SÉRIE, volumeNumber+edition identifient le TOME précis qu'on ajoute
   // réellement à l'étagère - deux champs distincts pour ne pas mélanger "je
@@ -231,6 +238,8 @@ export function QuickAddPage() {
         items.push({}) // pas de tome précisé (jeu vidéo/jeu de société, ou manga sans tome)
       }
 
+      const parsedPurchasePrice = purchasePrice.trim() ? Number(purchasePrice) : undefined
+
       let addedCount = 0
       let alreadyOwnedCount = 0
       let matchedExistingEntity = false
@@ -247,6 +256,7 @@ export function QuickAddPage() {
           volumeNumber: item.volumeNumber,
           edition: item.edition,
           volumeImageUrl: item.volumeImageUrl,
+          purchasePrice: parsedPurchasePrice,
         })
         matchedExistingEntity = matchedExistingEntity || result.matchedExistingEntity
         if (result.matchedExistingVariant) alreadyOwnedCount++
@@ -488,6 +498,7 @@ export function QuickAddPage() {
     setAttributesSourceTitle(null)
     setVolumeNumber('')
     setEdition('')
+    setPurchasePrice('')
     setManualVolumes([])
     setVolumeCandidates([])
     setSelectedVolumeKeys(new Set())
@@ -657,6 +668,23 @@ export function QuickAddPage() {
               <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
             ))}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-textDim" htmlFor="purchasePrice">
+            Prix d'achat (optionnel)
+          </label>
+          <input
+            id="purchasePrice"
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+            value={purchasePrice}
+            onChange={(e) => setPurchasePrice(e.target.value)}
+            placeholder="ex: 6.90"
+            className="w-32 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          />
         </div>
 
         {selectedType?.code === 'MANGA' && isSearchingVolumes && (

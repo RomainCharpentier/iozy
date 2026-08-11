@@ -16,3 +16,8 @@ export function markLost(id: string): Promise<OwnershipResponse> {
 export function updateNote(id: string, note: string): Promise<OwnershipResponse> {
   return patch<OwnershipResponse>(`/ownerships/${id}/note`, { note })
 }
+
+/** purchasePrice null efface le prix renseigné (ex: saisie corrigée). */
+export function updatePurchasePrice(id: string, purchasePrice: number | null): Promise<OwnershipResponse> {
+  return patch<OwnershipResponse>(`/ownerships/${id}/purchase-price`, { purchasePrice })
+}

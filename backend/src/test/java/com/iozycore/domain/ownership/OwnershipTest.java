@@ -3,6 +3,7 @@ package com.iozycore.domain.ownership;
 import com.iozycore.domain.shared.DefaultOwner;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -57,5 +58,25 @@ class OwnershipTest {
                 OwnershipCondition.NEW, LocalDate.now(), null);
 
         assertEquals(variantId, ownership.variantId().orElseThrow());
+    }
+
+    @Test
+    void purchase_price_is_absent_by_default_never_guessed() {
+        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null,
+                OwnershipCondition.NEW, LocalDate.now(), null);
+
+        assertTrue(ownership.purchasePrice().isEmpty());
+    }
+
+    @Test
+    void purchase_price_can_be_set_then_cleared() {
+        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null,
+                OwnershipCondition.NEW, LocalDate.now(), null);
+
+        ownership.updatePurchasePrice(new BigDecimal("14.90"));
+        assertEquals(new BigDecimal("14.90"), ownership.purchasePrice().orElseThrow());
+
+        ownership.updatePurchasePrice(null);
+        assertTrue(ownership.purchasePrice().isEmpty());
     }
 }

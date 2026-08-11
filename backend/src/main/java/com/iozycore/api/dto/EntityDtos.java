@@ -4,6 +4,7 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.OwnershipCondition;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,10 +22,12 @@ public final class EntityDtos {
      * d'une série" (Manga) : voir QuickAddService pour la distinction série
      * (Entity) / tome précis d'une édition (Variant). volumeImageUrl est la
      * jaquette de CE tome précis (voir VolumeCandidate), distincte de la
-     * jaquette de la série éventuellement présente dans attributes. */
+     * jaquette de la série éventuellement présente dans attributes.
+     * purchasePrice est optionnel (voir Ownership.updatePurchasePrice) - jamais
+     * deviné, reste modifiable après coup via PATCH /api/ownerships/{id}/purchase-price. */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
                                    Map<String, Object> attributes, Integer volumeNumber, String edition,
-                                   String volumeImageUrl) {
+                                   String volumeImageUrl, BigDecimal purchasePrice) {
         public Map<String, Object> attributesOrEmpty() {
             return attributes == null ? Map.of() : attributes;
         }

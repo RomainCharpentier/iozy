@@ -2,6 +2,7 @@ package com.iozycore.infrastructure.persistence.ownership;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -32,11 +33,14 @@ public class OwnershipJpaEntity {
 
     private String note;
 
+    @Column(name = "purchase_price")
+    private BigDecimal purchasePrice;
+
     protected OwnershipJpaEntity() {
     }
 
     public OwnershipJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String condition,
-                               String status, LocalDate acquiredAt, String note) {
+                               String status, LocalDate acquiredAt, String note, BigDecimal purchasePrice) {
         this.id = id;
         this.entityId = entityId;
         this.variantId = variantId;
@@ -45,6 +49,7 @@ public class OwnershipJpaEntity {
         this.status = status;
         this.acquiredAt = acquiredAt;
         this.note = note;
+        this.purchasePrice = purchasePrice;
     }
 
     public UUID getId() { return id; }
@@ -55,4 +60,5 @@ public class OwnershipJpaEntity {
     public String getStatus() { return status; }
     public LocalDate getAcquiredAt() { return acquiredAt; }
     public String getNote() { return note; }
+    public BigDecimal getPurchasePrice() { return purchasePrice; }
 }
