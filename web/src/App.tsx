@@ -4,6 +4,7 @@ import { ShelfPage } from './routes/Shelf/ShelfPage'
 import { QuickAddPage } from './routes/QuickAdd/QuickAddPage'
 import { EntityDetailPage } from './routes/EntityDetail/EntityDetailPage'
 import { WishlistPage } from './routes/Wishlist/WishlistPage'
+import { SharedWishlistPage } from './routes/Wishlist/SharedWishlistPage'
 import { StatsPage } from './routes/Stats/StatsPage'
 import { EntityTypesPage } from './routes/EntityTypes/EntityTypesPage'
 import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
@@ -15,26 +16,38 @@ import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPag
 import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
 import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
 
+/** /public/wishlist/:token vit hors AppShell (voir SharedWishlistPage) :
+ * quelqu'un qui ouvre un lien de partage n'a pas de compte et ne doit
+ * jamais voir la barre d'onglets privée ni pouvoir y naviguer. Tout le
+ * reste de l'app reste dans AppShell, inchangé. */
 export default function App() {
   return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<ShelfPage />} />
-        <Route path="/add" element={<QuickAddPage />} />
-        <Route path="/entity/:id" element={<EntityDetailPage />} />
-        <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/loans" element={<LoansPage />} />
-        <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
-        <Route path="/suggestions" element={<SuggestionsPage />} />
-        <Route path="/recap" element={<CollectionRecapPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/stats" element={<StatsPage />} />
-        <Route path="/types" element={<EntityTypesPage />} />
-        <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
-        <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
-    </AppShell>
+    <Routes>
+      <Route path="/public/wishlist/:token" element={<SharedWishlistPage />} />
+      <Route
+        path="/*"
+        element={
+          <AppShell>
+            <Routes>
+              <Route path="/" element={<ShelfPage />} />
+              <Route path="/add" element={<QuickAddPage />} />
+              <Route path="/entity/:id" element={<EntityDetailPage />} />
+              <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/loans" element={<LoansPage />} />
+              <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
+              <Route path="/suggestions" element={<SuggestionsPage />} />
+              <Route path="/recap" element={<CollectionRecapPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/types" element={<EntityTypesPage />} />
+              <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
+              <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </AppShell>
+        }
+      />
+    </Routes>
   )
 }
