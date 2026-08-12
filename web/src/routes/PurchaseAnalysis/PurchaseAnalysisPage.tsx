@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Plus, X, ChevronRight } from 'lucide-react'
+import { Plus, X, ChevronRight, History } from 'lucide-react'
 import { analyzeListing } from '../../api/purchaseAnalysis'
 import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -127,7 +128,13 @@ export function PurchaseAnalysisPage() {
   if (analyzeMutation.isSuccess) {
     return (
       <div className="flex flex-col gap-5">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+          <Link to="/purchase-analysis/history" className="flex items-center gap-1.5 text-xs text-textDim underline">
+            <History size={13} />
+            Historique
+          </Link>
+        </div>
         <PurchaseAnalysisResultCard analysis={analyzeMutation.data} onReset={resetAll} />
       </div>
     )
@@ -135,7 +142,13 @@ export function PurchaseAnalysisPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+        <Link to="/purchase-analysis/history" className="flex items-center gap-1.5 text-xs text-textDim underline">
+          <History size={13} />
+          Historique
+        </Link>
+      </div>
       <p className="text-sm text-textDim">
         Aucune récupération automatique depuis une URL : ni Vinted, ni Leboncoin, ni Rakuten n'offrent d'API publique
         exploitable pour ça. Renseigne les champs ci-dessous à partir de l'annonce.

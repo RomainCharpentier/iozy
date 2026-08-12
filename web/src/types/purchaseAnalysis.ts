@@ -299,6 +299,7 @@ export interface PurchaseAnalysisSummaryDto {
   verdict: Verdict
   verdictScore: number
   totalRealCost: number
+  seriesTitles: string[]
 }
 
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
