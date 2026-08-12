@@ -16,6 +16,7 @@ interface ScanEntry {
   status: 'added' | 'not-found' | 'error'
   title?: string
   volumeNumber?: number
+  edition?: string
 }
 
 /** Best-effort, jamais autoritaire : le lookup par code-barres (voir
@@ -59,6 +60,14 @@ export function ScanPage() {
       }
 
       const volumeNumber = parseVolumeNumberFromTitle(candidate.title)
+      // Même repli que QuickAddPage.pickCandidate : l'éditeur renvoyé par le
+      // candidat (Google Books/Open Library sur un scan ISBN) sert de
+      // meilleure estimation d'édition disponible - jamais renseigné pour
+      // Jikan/MyAnimeList, qui ne connaissent pas d'éditeur français. Sans ce
+      // repli, un tome scanné restait avec une édition vide et échappait à la
+      // détection d'éditions mélangées / aux suggestions de complétion, qui
+      // regroupent toutes deux les tomes par cet attribut.
+      const edition = typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined
       const attributes = candidate.imageUrl
         ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
         : candidate.attributes
@@ -69,9 +78,10 @@ export function ScanPage() {
         condition,
         attributes,
         volumeNumber,
+        edition,
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-      setEntries((prev) => [{ code, status: 'added', title: candidate!.title, volumeNumber }, ...prev])
+      setEntries((prev) => [{ code, status: 'added', title: candidate!.title, volumeNumber, edition }, ...prev])
     } finally {
       setProcessing(false)
     }
@@ -116,7 +126,10 @@ export function ScanPage() {
                 {entry.status === 'error' && `Échec de la recherche pour ${entry.code}`}
               </span>
               {entry.volumeNumber !== undefined && (
-                <span className="shrink-0 text-xs text-textDim">Tome {entry.volumeNumber}</span>
+                <span className="shrink-0 text-xs text-textDim">
+                  Tome {entry.volumeNumber}
+                  {entry.edition && ` · ${entry.edition}`}
+                </span>
               )}
             </li>
           ))}
