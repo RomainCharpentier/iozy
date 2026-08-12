@@ -16,6 +16,13 @@ interface CoverTileProps {
   subtitle?: string
   /** ex: "aspect-[2/3]" (défaut) ou "aspect-square" pour les listes horizontales. */
   aspectClassName?: string
+  /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
+   * défaut. À surcharger quand plusieurs tuiles partagent le même titre mais
+   * doivent rester visuellement distinctes sans jaquette réelle (ex: les
+   * tomes d'une même série sur Ma collection - voir ShelfPage.flattenToTomes,
+   * qui y ajoute le sous-titre "Tome N" pour ne pas afficher le même
+   * dégradé sur chaque tome faute de jaquette propre au tome). */
+  gradientKey?: string
   onClick?: () => void
 }
 
@@ -31,6 +38,7 @@ export function CoverTile({
   showBadge = false,
   subtitle,
   aspectClassName = 'aspect-[2/3]',
+  gradientKey,
   onClick,
 }: CoverTileProps) {
   const [imageFailed, setImageFailed] = useState(false)
@@ -41,7 +49,7 @@ export function CoverTile({
       type="button"
       onClick={onClick}
       className={`relative w-full overflow-hidden rounded-2xl text-left ${aspectClassName} ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-      style={showImage ? undefined : { background: gradientFor(title) }}
+      style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
     >
       {showImage && (
         <img
