@@ -80,6 +80,34 @@ public class Entity {
         return variants.stream().filter(v -> v.label().equalsIgnoreCase(label)).findFirst();
     }
 
+    /**
+     * Complète les attributs d'un Variant déjà existant SANS écraser ceux déjà
+     * renseignés (même logique de fusion que QuickAddService pour l'Entity) -
+     * typiquement pour retrouver après coup la jaquette propre à un tome ajouté
+     * en saisie manuelle (voir "Retrouver les jaquettes manquantes", Ma
+     * collection) sans avoir à recréer le Variant. {@code additionalAttributes}
+     * gagne sur les clés déjà présentes - utilisé volontairement pour remplacer
+     * une jaquette introuvable (null) par une jaquette retrouvée, jamais l'inverse
+     * (un appelant ne doit fournir que des données fraîches qu'il veut voir
+     * persistées, jamais une valeur vide pour "effacer" un attribut existant).
+     */
+    public void mergeVariantAttributes(UUID variantId, Map<String, Object> additionalAttributes) {
+        int index = -1;
+        for (int i = 0; i < variants.size(); i++) {
+            if (variants.get(i).id().equals(variantId)) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            throw new IllegalArgumentException("Variant introuvable : " + variantId);
+        }
+        Variant existing = variants.get(index);
+        Map<String, Object> merged = new HashMap<>(existing.attributes());
+        merged.putAll(additionalAttributes);
+        variants.set(index, new Variant(existing.id(), existing.label(), merged));
+    }
+
     public void addTag(UUID tagId) {
         tagIds.add(tagId);
     }

@@ -1,4 +1,4 @@
-import { get, post, del, buildQuery } from './client'
+import { get, post, patch, del, buildQuery } from './client'
 import type { EntityResponse, QuickAddRequest, QuickAddResponse } from '../types/api'
 
 export function quickAdd(body: QuickAddRequest): Promise<QuickAddResponse> {
@@ -25,4 +25,15 @@ export function searchEntities(params: {
 
 export function deleteEntity(id: string): Promise<void> {
   return del<void>(`/entities/${id}`)
+}
+
+/** Complète les attributs d'un Variant existant sans écraser ceux déjà
+ * renseignés (ex: jaquette du tome retrouvée après coup, voir "Retrouver
+ * les jaquettes manquantes" sur Ma collection). */
+export function mergeVariantAttributes(
+  entityId: string,
+  variantId: string,
+  attributes: Record<string, unknown>,
+): Promise<EntityResponse> {
+  return patch<EntityResponse>(`/entities/${entityId}/variants/${variantId}`, attributes)
 }
