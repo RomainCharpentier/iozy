@@ -187,12 +187,23 @@ export function ShelfPage() {
   // Généralisé en un compte par type plutôt que le bucket fixe "Mangas/Jeux"
   // d'origine (n'avait de sens qu'avec exactement 3 types codés en dur) -
   // un type sans aucune Entity n'apparaît pas.
+  //
+  // Compte le nombre de TUILES (flattenToTomes/groupBySeries, jamais
+  // entities.length brut) pour rester exactement cohérent avec ce que la
+  // grille affiche selon le mode courant - sinon les cartes en haut de page
+  // ("Manga : 2") comptaient les séries même en vue par tome, contredisant
+  // visiblement la grille juste en dessous (3 tuiles pour "2"). Voir l'audit
+  // "on mélange tome et série" - même principe que StatsPage "Par type".
   const countsByType = useMemo(
     () =>
       entityTypes
-        .map((type) => ({ type, count: entities.filter((e) => e.entityTypeId === type.id).length }))
+        .map((type) => {
+          const entitiesOfType = entities.filter((e) => e.entityTypeId === type.id)
+          const count = grouped ? entitiesOfType.length : flattenToTomes(entitiesOfType).length
+          return { type, count }
+        })
         .filter((entry) => entry.count > 0),
-    [entities, entityTypes],
+    [entities, entityTypes, grouped],
   )
 
   const visibleEntities = selectedTypeId
@@ -203,6 +214,7 @@ export function ShelfPage() {
     () => (grouped ? groupBySeries(visibleEntities) : flattenToTomes(visibleEntities)),
     [grouped, visibleEntities],
   )
+  const totalCount = grouped ? entities.length : flattenToTomes(entities).length
 
   return (
     <div className="flex flex-col gap-5">
@@ -260,7 +272,7 @@ export function ShelfPage() {
       )}
 
       <div className="flex gap-3 overflow-x-auto">
-        <StatCard value={String(entities.length)} label="Total" />
+        <StatCard value={String(totalCount)} label="Total" />
         {countsByType.map((entry) => (
           <StatCard key={entry.type.id} value={String(entry.count)} label={entry.type.label} />
         ))}
