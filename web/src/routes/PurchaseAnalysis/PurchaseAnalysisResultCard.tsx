@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Copy, Heart, History, TriangleAlert, Info, CircleX } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Copy, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addToWishlist } from '../../api/wishlist'
 import { queryKeys } from '../../lib/queryKeys'
@@ -17,8 +18,22 @@ function euros(value: number | null): string {
 
 /** Résultat complet d'une analyse ("ANALYSER LE LOT") - verdict, prix,
  * négociation à 3 prix, détail par série (obligatoire pour un lot
- * multi-séries), avertissements globaux et actions. */
-export function PurchaseAnalysisResultCard({ analysis, onReset }: { analysis: PurchaseAnalysisDto; onReset: () => void }) {
+ * multi-séries), avertissements globaux et actions. Réutilisée telle
+ * quelle par AnalysisHistoryDetailPage pour revoir une analyse passée -
+ * resetLabel/resetIcon adaptent le libellé du dernier bouton selon le
+ * contexte ("Nouvelle analyse" juste après avoir analysé, "Retour à
+ * l'historique" en consultant une analyse déjà enregistrée). */
+export function PurchaseAnalysisResultCard({
+  analysis,
+  onReset,
+  resetLabel = 'Nouvelle analyse',
+  resetIcon: ResetIcon = History,
+}: {
+  analysis: PurchaseAnalysisDto
+  onReset: () => void
+  resetLabel?: string
+  resetIcon?: typeof History
+}) {
   const queryClient = useQueryClient()
   const [showOfferText, setShowOfferText] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -169,9 +184,16 @@ export function PurchaseAnalysisResultCard({ analysis, onReset }: { analysis: Pu
           <Heart size={15} />
           Ajouter à ma wishlist
         </button>
+        <Link
+          to="/purchase-analysis/history"
+          className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary"
+        >
+          <Scale size={15} />
+          Comparer les annonces
+        </Link>
         <button type="button" onClick={onReset} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-textDim">
-          <History size={15} />
-          Nouvelle analyse
+          <ResetIcon size={15} />
+          {resetLabel}
         </button>
       </div>
 

@@ -78,10 +78,14 @@ public class PurchaseAnalysisController {
     }
 
     public record PurchaseAnalysisSummaryResponse(UUID id, String createdAt, String listingTitle,
-                                                    String verdict, int verdictScore, BigDecimal totalRealCost) {
+                                                    String verdict, int verdictScore, BigDecimal totalRealCost,
+                                                    List<String> seriesTitles) {
         static PurchaseAnalysisSummaryResponse from(PurchaseAnalysis analysis) {
+            List<String> seriesTitles = analysis.listing().items().stream()
+                    .map(item -> item.series().title()).distinct().toList();
             return new PurchaseAnalysisSummaryResponse(analysis.id(), analysis.requestedAt().toString(),
-                    analysis.listing().rawTitle(), analysis.verdict().name(), analysis.verdictScore(), analysis.totalRealCost());
+                    analysis.listing().rawTitle(), analysis.verdict().name(), analysis.verdictScore(),
+                    analysis.totalRealCost(), seriesTitles);
         }
     }
 
