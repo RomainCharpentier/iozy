@@ -15,6 +15,7 @@ import { LoansPage } from './routes/Loans/LoansPage'
 import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
 import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
 import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
+import { ScanPage } from './routes/Scan/ScanPage'
 
 /** /public/wishlist/:token vit hors AppShell (voir SharedWishlistPage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de compte et ne doit
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
               <Route path="/suggestions" element={<SuggestionsPage />} />
               <Route path="/recap" element={<CollectionRecapPage />} />
+              <Route path="/scan" element={<ScanPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/types" element={<EntityTypesPage />} />
