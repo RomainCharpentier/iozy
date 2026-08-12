@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, Plus, RefreshCw, ScanBarcode, Search, X } from 'lucide-react'
+import { AlertTriangle, Camera, Loader2, Plus, RefreshCw, ScanBarcode, Search, X } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -856,7 +857,13 @@ export function QuickAddPage() {
 
         {selectedType?.code === 'MANGA' && entityTypeId && (
           showBarcodeLookup ? (
-            <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
+            <div className="flex flex-col gap-2">
+              <BarcodeLookupField entityTypeId={entityTypeId} onFound={pickCandidate} />
+              <Link to="/scan" className="flex w-fit items-center gap-1.5 text-xs text-accent underline">
+                <Camera size={13} />
+                Scanner plusieurs tomes à la suite via la caméra
+              </Link>
+            </div>
           ) : (
             <button
               type="button"
