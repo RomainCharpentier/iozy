@@ -80,6 +80,9 @@ class PurchaseAnalysisPersistenceIntegrationTest {
     @Autowired
     private EntityRepository entityRepository;
 
+    @Autowired
+    private com.iozycore.domain.ownership.OwnershipRepository ownershipRepository;
+
     @Test
     void a_manga_edition_can_be_saved_reloaded_and_looked_up_case_insensitively() {
         MangaEdition edition = MangaEdition.create("Death Note " + UUID.randomUUID(), "Black Edition",
@@ -240,5 +243,32 @@ class PurchaseAnalysisPersistenceIntegrationTest {
         List<NearCompleteSuggestion> suggestions = purchaseAnalysisService.findNearCompleteSuggestions();
 
         assertThat(suggestions).noneMatch(s -> s.entityId().equals(entity.id()));
+    }
+
+    @Test
+    void analyzing_a_listing_flags_volumes_already_owned_in_the_real_collection_as_duplicates() {
+        String seriesTitle = "My Home Hero " + UUID.randomUUID();
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
+        entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Standard"));
+        entity.addVariant("Tome 2", Map.of("volumeNumber", 2, "edition", "Standard"));
+        entityRepository.save(entity);
+
+        ownershipRepository.save(com.iozycore.domain.ownership.Ownership.acquire(entity.id(),
+                entity.findVariantByLabel("Tome 1").orElseThrow().id(),
+                com.iozycore.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
+        ownershipRepository.save(com.iozycore.domain.ownership.Ownership.acquire(entity.id(),
+                entity.findVariantByLabel("Tome 2").orElseThrow().id(),
+                com.iozycore.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
+
+        AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Lot avec doublons",
+                new BigDecimal("15"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, false,
+                List.of(new AnalyzeListingItemCommand(seriesTitle, "Standard", Set.of(1, 2, 3), null)),
+                List.of());
+
+        PurchaseAnalysis analysis = purchaseAnalysisService.analyze(command);
+
+        com.iozycore.purchaseanalysis.DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
+        assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
+        assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
     }
 }

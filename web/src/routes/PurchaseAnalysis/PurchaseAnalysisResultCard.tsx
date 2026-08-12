@@ -28,6 +28,11 @@ export function PurchaseAnalysisResultCard({ analysis, onReset }: { analysis: Pu
     .map((item) => item.item.series.knownEntityId)
     .filter((id): id is string => !!id)
 
+  // "Analyse d'un lot" (brainstorm) - affiché seulement si au moins une série
+  // du lot a un doublon, sinon ça ferait doublon (sans jeu de mots) avec le
+  // "Prix maximum" déjà affiché dans le bloc négociation ci-dessus.
+  const hasAnyDuplicate = analysis.itemBreakdown.some((item) => item.duplicates.duplicateVolumeNumbers.length > 0)
+
   const wishlistMutation = useMutation({
     mutationFn: (entityId: string) => addToWishlist(entityId),
     onSuccess: () => {
@@ -109,6 +114,19 @@ export function PurchaseAnalysisResultCard({ analysis, onReset }: { analysis: Pu
           </div>
         )}
       </div>
+
+      {hasAnyDuplicate && (
+        <div className="flex items-start gap-2 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning">
+          <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Ce lot contient des tomes que tu possèdes déjà (voir le détail par série) - il reste intéressant jusqu'à{' '}
+            {analysis.totalMaxWorthwhilePrice !== null
+              ? `~${analysis.totalMaxWorthwhilePrice.toFixed(2)} €`
+              : 'un montant non calculable (prix/tome inconnu)'}
+            , compte tenu des doublons.
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <h2 className="font-display text-sm font-semibold text-textPrimary">Détail par série</h2>

@@ -34,7 +34,7 @@ class PurchaseAnalysisEngineTest {
         Listing listing = listing(new BigDecimal("30"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.VERY_GOOD, item);
 
         PurchaseAnalysis analysis = engine.analyze(listing,
-                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of())), defaults);
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of())), defaults);
 
         MarketPrice marketPrice = analysis.itemBreakdown().get(0).marketPrice();
         assertThat(marketPrice.observationCount()).isZero();
@@ -53,7 +53,7 @@ class PurchaseAnalysisEngineTest {
         Listing listing = listing(new BigDecimal("90"), new BigDecimal("5"), new BigDecimal("2"), Condition.GOOD, item);
 
         PurchaseAnalysis analysis = engine.analyze(listing,
-                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of())), defaults);
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of())), defaults);
 
         assertThat(analysis.totalRealCost()).isEqualByComparingTo(new BigDecimal("97"));
 
@@ -80,7 +80,7 @@ class PurchaseAnalysisEngineTest {
         Listing listing = listing(new BigDecimal("15"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
 
         PurchaseAnalysis analysis = engine.analyze(listing,
-                List.of(new PurchaseAnalysisEngine.ItemContext(item, standard, List.of(perfect), List.of())), defaults);
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, standard, List.of(perfect), List.of(), Set.of())), defaults);
 
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
                 .anyMatch(warning -> warning.message().contains("PERFECT"));
@@ -94,7 +94,7 @@ class PurchaseAnalysisEngineTest {
         Listing listing = listing(new BigDecimal("10"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
 
         PurchaseAnalysis analysis = engine.analyze(listing,
-                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of())), defaults);
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of())), defaults);
 
         List<String> messages = analysis.itemBreakdown().get(0).editionWarnings().stream().map(Warning::message).toList();
         assertThat(messages).anyMatch(m -> m.contains("out of print"));
@@ -107,11 +107,50 @@ class PurchaseAnalysisEngineTest {
         Listing listing = listing(new BigDecimal("10"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
 
         PurchaseAnalysis analysis = engine.analyze(listing,
-                List.of(new PurchaseAnalysisEngine.ItemContext(item, null, List.of(), List.of())), defaults);
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, null, List.of(), List.of(), Set.of())), defaults);
 
         assertThat(analysis.itemBreakdown().get(0).matchedEdition()).isNull();
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
                 .anyMatch(w -> w.severity() == WarningSeverity.CAUTION && w.message().contains("not known yet"));
         assertThat(analysis.negotiation().advice()).isEqualTo(NegotiationAdvice.SKIP_LISTING); // no price data at all
+    }
+
+    @Test
+    void already_owned_volumes_are_flagged_as_duplicates_and_reduce_the_worthwhile_price() {
+        MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
+                26, new BigDecimal("6.90"), false, false, null);
+        ListingItem item = item("My Home Hero", Set.of(1, 2, 3));
+        Listing listing = listing(new BigDecimal("20"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
+
+        PurchaseAnalysis analysis = engine.analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of(1, 2))),
+                defaults);
+
+        DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
+        assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
+        assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
+        assertThat(analysis.itemBreakdown().get(0).editionWarnings())
+                .anyMatch(w -> w.message().contains("already owned"));
+        assertThat(analysis.totalMaxWorthwhilePrice()).isEqualByComparingTo(new BigDecimal("6.90")); // 1 useful volume
+        // Duplicates never affect the core verdict/negotiation math (unchanged from before this
+        // feature existed) - fair value below is still computed from all 3 volumes, not just the useful one.
+        assertThat(analysis.negotiation()).isNotNull();
+    }
+
+    @Test
+    void no_already_owned_volumes_means_no_duplicate_warning_and_the_full_lot_stays_worthwhile() {
+        MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
+                26, new BigDecimal("6.90"), false, false, null);
+        ListingItem item = item("My Home Hero", Set.of(1, 2, 3));
+        Listing listing = listing(new BigDecimal("20"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
+
+        PurchaseAnalysis analysis = engine.analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of())),
+                defaults);
+
+        DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
+        assertThat(duplicates.hasDuplicates()).isFalse();
+        assertThat(duplicates.usefulVolumeCount()).isEqualTo(3);
+        assertThat(analysis.totalMaxWorthwhilePrice()).isEqualByComparingTo(new BigDecimal("20.70")); // 3 * 6.90
     }
 }

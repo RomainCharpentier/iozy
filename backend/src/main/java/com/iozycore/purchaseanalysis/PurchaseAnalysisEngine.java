@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -32,18 +33,24 @@ public class PurchaseAnalysisEngine {
     private final NegotiationEngine negotiationEngine = new NegotiationEngine();
     private final VerdictScorer verdictScorer = new VerdictScorer();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
+    private final DuplicateDetector duplicateDetector = new DuplicateDetector();
 
     /**
-     * @param matchedEdition   nullable - the item's edition may not be known to the system yet
-     * @param siblingEditions  every other known edition of the same series (used to warn "a Perfect
-     *                         edition exists for this work") - excludes {@code matchedEdition} itself
-     * @param observations     market price observations recorded for {@code matchedEdition}, empty if none
+     * @param matchedEdition     nullable - the item's edition may not be known to the system yet
+     * @param siblingEditions    every other known edition of the same series (used to warn "a Perfect
+     *                           edition exists for this work") - excludes {@code matchedEdition} itself
+     * @param observations       market price observations recorded for {@code matchedEdition}, empty if none
+     * @param alreadyOwnedVolumes "Analyse d'un lot" (brainstorm) - volume numbers of this same series/edition
+     *                            already owned (active ownerships), resolved via
+     *                            {@link MangaSeries#knownEntityId()} by {@link PurchaseAnalysisService} -
+     *                            empty when the series isn't matched to an existing catalog Entity, never guessed
      */
     public record ItemContext(ListingItem item, MangaEdition matchedEdition, List<MangaEdition> siblingEditions,
-                               List<MarketPriceObservation> observations) {
+                               List<MarketPriceObservation> observations, Set<Integer> alreadyOwnedVolumes) {
         public ItemContext {
             siblingEditions = siblingEditions == null ? List.of() : List.copyOf(siblingEditions);
             observations = observations == null ? List.of() : List.copyOf(observations);
+            alreadyOwnedVolumes = alreadyOwnedVolumes == null ? Set.of() : Set.copyOf(alreadyOwnedVolumes);
         }
     }
 
@@ -65,6 +72,8 @@ public class PurchaseAnalysisEngine {
         List<EditionTier> itemTiers = new ArrayList<>();
 
         int totalVolumesInLot = itemContexts.stream().mapToInt(ctx -> ctx.item().includedVolumes().size()).sum();
+        BigDecimal totalMaxWorthwhile = BigDecimal.ZERO;
+        boolean maxWorthwhileFullyKnown = true;
 
         for (ItemContext ctx : itemContexts) {
             ListingItem item = ctx.item();
@@ -161,7 +170,28 @@ public class PurchaseAnalysisEngine {
                             .divide(BigDecimal.valueOf(totalVolumesInLot), 2, RoundingMode.HALF_UP)
                     : null;
 
-            itemAnalyses.add(new ItemAnalysis(item, edition, completeness, perVolumeMarketPrice, editionWarnings, itemCostShare));
+            DuplicateAnalysis duplicates = duplicateDetector.detect(
+                    item.includedVolumes(), ctx.alreadyOwnedVolumes(), itemCostShare, perVolumeMarketPrice);
+            if (duplicates.hasDuplicates()) {
+                editionWarnings.add(new Warning(WarningSeverity.INFO,
+                        duplicates.duplicateVolumeNumbers().size() + "/" + includedCount
+                                + " volume(s) already owned in this lot - only " + duplicates.usefulVolumeCount()
+                                + " useful volume(s)"
+                                + (duplicates.pricePerUsefulVolume() != null
+                                        ? " (~" + duplicates.pricePerUsefulVolume() + " EUR/useful volume)"
+                                        : ".") + ".",
+                        ConfidenceLevel.HIGH));
+            }
+            if (duplicates.usefulVolumeCount() > 0) {
+                if (duplicates.maxWorthwhilePrice() != null) {
+                    totalMaxWorthwhile = totalMaxWorthwhile.add(duplicates.maxWorthwhilePrice());
+                } else {
+                    maxWorthwhileFullyKnown = false;
+                }
+            }
+
+            itemAnalyses.add(new ItemAnalysis(item, edition, completeness, perVolumeMarketPrice, editionWarnings,
+                    itemCostShare, duplicates));
         }
 
         BigDecimal finalNewValue = newValueFullyKnown ? totalNewValue : null;
@@ -189,9 +219,11 @@ public class PurchaseAnalysisEngine {
                 anyBetterEditionAnnounced, negotiation.advice());
         VerdictScorer.Outcome outcome = verdictScorer.score(verdictInput, preferences);
 
+        BigDecimal finalMaxWorthwhile = maxWorthwhileFullyKnown ? totalMaxWorthwhile : null;
+
         return new PurchaseAnalysis(UUID.randomUUID(), Instant.now(), listing, itemAnalyses, totalRealCost,
                 finalNewValue, totalSavingsAmount, discountPercent, negotiation, outcome.verdict(), outcome.score(),
-                outcome.factorBreakdown(), listingWarnings, outcome.overallConfidence());
+                outcome.factorBreakdown(), listingWarnings, outcome.overallConfidence(), finalMaxWorthwhile);
     }
 
     /** Warns when a sibling edition of the same series outranks the matched one in the configured tier hierarchy (e.g. the Alice in Borderland case: owning a standard edition while a Perfect edition exists). */

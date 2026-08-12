@@ -19,8 +19,9 @@ const WARNING_COLORS: Record<WarningSeverity, string> = {
  * complétude (✓/⚠️) et avertissements d'édition, avec la distinction
  * observé/théorique toujours visible sur le prix. */
 export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
-  const { completeness, marketPrice, matchedEdition, editionWarnings } = item
+  const { completeness, marketPrice, matchedEdition, editionWarnings, duplicates } = item
   const includedCount = item.item.includedVolumes.length
+  const hasDuplicates = duplicates.duplicateVolumeNumbers.length > 0
 
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
@@ -36,6 +37,23 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
           <span className="shrink-0 text-xs text-textDim">~{item.itemCostShare.toFixed(2)} €</span>
         )}
       </div>
+
+      {hasDuplicates && (
+        <div className="flex flex-col gap-0.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+          <span>
+            Tome{duplicates.duplicateVolumeNumbers.length > 1 ? 's' : ''} déjà possédé
+            {duplicates.duplicateVolumeNumbers.length > 1 ? 's' : ''} :{' '}
+            {[...duplicates.duplicateVolumeNumbers].sort((a, b) => a - b).join(', ')}
+          </span>
+          <span>
+            {duplicates.usefulVolumeCount} tome{duplicates.usefulVolumeCount > 1 ? 's' : ''} utile
+            {duplicates.usefulVolumeCount > 1 ? 's' : ''}
+            {duplicates.pricePerUsefulVolume !== null && ` · ~${duplicates.pricePerUsefulVolume.toFixed(2)} €/tome utile`}
+            {duplicates.maxWorthwhilePrice !== null &&
+              ` · reste intéressant jusqu'à ~${duplicates.maxWorthwhilePrice.toFixed(2)} €`}
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 text-sm">
         {completeness.totalVolumes !== null ? (
@@ -81,9 +99,11 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
         )}
       </div>
 
-      {editionWarnings.length > 0 && (
+      {/* Le warning "already owned" du backend est déjà couvert par le bloc doublons
+          dédié ci-dessus (structuré, chiffré) - filtré ici pour ne pas le répéter en prose. */}
+      {editionWarnings.filter((w) => !w.message.includes('already owned')).length > 0 && (
         <ul className="flex flex-col gap-1">
-          {editionWarnings.map((warning, index) => {
+          {editionWarnings.filter((w) => !w.message.includes('already owned')).map((warning, index) => {
             const Icon = WARNING_ICONS[warning.severity]
             return (
               <li key={index} className={`flex items-start gap-1.5 text-xs ${WARNING_COLORS[warning.severity]}`}>
