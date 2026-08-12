@@ -43,9 +43,16 @@ export function StatsPage() {
               {statsQuery.data.byType.map((type) => (
                 <li key={type.entityTypeCode} className="rounded-xl bg-surface p-3">
                   <p className="font-medium text-textPrimary">{type.entityTypeLabel}</p>
+                  {/* "Fiches" (Entity, ex: une série) et "exemplaires possédés" (Ownership,
+                      ex: un tome) sont deux unités différentes - jamais mélangées sous des
+                      libellés génériques ("au total"/"possédé(s)") qui ne le précisaient pas,
+                      au point de pouvoir lire comme contradictoire (plus "possédé" que
+                      "total" est le cas normal pour un manga multi-tomes). */}
                   <p className="text-sm text-textDim">
-                    {type.entityCount} au total · {type.activeOwnershipCount} possédé(s) · {type.experienceCount}{' '}
-                    expérience(s)
+                    {type.entityCount} fiche{type.entityCount > 1 ? 's' : ''} ·{' '}
+                    {type.activeOwnershipCount} exemplaire{type.activeOwnershipCount > 1 ? 's' : ''} possédé
+                    {type.activeOwnershipCount > 1 ? 's' : ''} · {type.experienceCount} expérience
+                    {type.experienceCount > 1 ? 's' : ''}
                     {type.averageRating !== null && ` · note moyenne ${type.averageRating.toFixed(1)}/10`}
                   </p>
                 </li>
