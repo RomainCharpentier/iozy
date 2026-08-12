@@ -11,5 +11,8 @@ public interface RelationshipRepository {
 
     List<Relationship> findByTargetEntityId(UUID targetEntityId);
 
+    /** Utilisé par l'export complet de la collection (§19, docs/CONCEPTION.md - anti-enfermement). */
+    List<Relationship> findAll();
+
     void deleteById(UUID id);
 }

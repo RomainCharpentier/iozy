@@ -112,6 +112,30 @@ export function SettingsPage() {
           ))}
         </ul>
       </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-display text-lg font-semibold text-textPrimary">Export de la collection</h2>
+        <p className="text-sm text-textDim">
+          Toute ta collection (entités, tomes, possessions, expériences, wishlist, relations, tags) dans un format
+          ouvert, lisible sans cette app - pour garantir l'absence d'enfermement, même auto-hébergé.
+        </p>
+        <div className="mt-2 flex gap-2">
+          <a
+            href="/api/export/json"
+            download
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+          >
+            Télécharger en JSON
+          </a>
+          <a
+            href="/api/export/csv"
+            download
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+          >
+            Télécharger en CSV (.zip)
+          </a>
+        </div>
+      </section>
     </div>
   )
 }
