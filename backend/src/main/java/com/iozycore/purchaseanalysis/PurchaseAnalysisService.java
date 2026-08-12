@@ -5,6 +5,8 @@ import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Variant;
+import com.iozycore.domain.ownership.Ownership;
+import com.iozycore.domain.ownership.OwnershipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,7 @@ public class PurchaseAnalysisService {
     private final SeriesMatcher seriesMatcher;
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
+    private final OwnershipRepository ownershipRepository;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -45,13 +48,15 @@ public class PurchaseAnalysisService {
                                     PurchaseAnalysisRepository purchaseAnalysisRepository,
                                     CollectorPreferencesRepository collectorPreferencesRepository,
                                     EntityRepository entityRepository,
-                                    EntityTypeRepository entityTypeRepository) {
+                                    EntityTypeRepository entityTypeRepository,
+                                    OwnershipRepository ownershipRepository) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
         this.collectorPreferencesRepository = collectorPreferencesRepository;
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
+        this.ownershipRepository = ownershipRepository;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
 
@@ -86,8 +91,14 @@ public class PurchaseAnalysisService {
                     .map(edition -> marketPriceObservationRepository.findByEditionId(edition.id()))
                     .orElseGet(List::of);
 
+            // "Analyse d'un lot" (brainstorm) - jamais deviné : vide tant que la série
+            // n'est pas reconnue dans le catalogue (series.knownEntityId() == null).
+            Set<Integer> alreadyOwnedVolumes = series.knownEntityId() != null
+                    ? findOwnedVolumeNumbers(series.knownEntityId(), itemCommand.editionName())
+                    : Set.of();
+
             itemContexts.add(new PurchaseAnalysisEngine.ItemContext(
-                    item, matchedEdition.orElse(null), siblingEditions, observations));
+                    item, matchedEdition.orElse(null), siblingEditions, observations, alreadyOwnedVolumes));
         }
 
         Listing listing = new Listing(UUID.randomUUID(), command.platform(), command.url(), command.rawTitle(),
@@ -167,6 +178,47 @@ public class PurchaseAnalysisService {
         }
         suggestions.sort(Comparator.comparingInt(NearCompleteSuggestion::missingCount));
         return suggestions;
+    }
+
+    /**
+     * "Analyse d'un lot" (brainstorm) - tomes de cette édition précise actuellement possédés
+     * (ownership active uniquement : un tome revendu/perdu n'est plus un doublon si racheté).
+     * Jamais deviné : renvoie un ensemble vide si l'Entity a disparu depuis la résolution du
+     * knownEntityId, ou si aucun tome actif ne correspond à editionName.
+     */
+    private Set<Integer> findOwnedVolumeNumbers(UUID entityId, String editionName) {
+        Optional<Entity> entity = entityRepository.findById(entityId);
+        if (entity.isEmpty()) {
+            return Set.of();
+        }
+        Map<UUID, Variant> variantsById = entity.get().variants().stream()
+                .collect(java.util.stream.Collectors.toMap(Variant::id, v -> v));
+        String normalizedEdition = editionName == null ? "" : editionName.trim();
+
+        Set<Integer> owned = new TreeSet<>();
+        for (Ownership ownership : ownershipRepository.findByEntityId(entityId)) {
+            if (!ownership.isActive()) {
+                continue;
+            }
+            UUID variantId = ownership.variantId().orElse(null);
+            if (variantId == null) {
+                continue;
+            }
+            Variant variant = variantsById.get(variantId);
+            if (variant == null) {
+                continue;
+            }
+            Object editionAttr = variant.attributes().get("edition");
+            String variantEdition = editionAttr instanceof String s ? s.trim() : "";
+            if (!variantEdition.equalsIgnoreCase(normalizedEdition)) {
+                continue;
+            }
+            Object volumeNumberAttr = variant.attributes().get("volumeNumber");
+            if (volumeNumberAttr instanceof Number number) {
+                owned.add(number.intValue());
+            }
+        }
+        return owned;
     }
 
     /** Server-side equivalent of the web's groupVariantsByEdition (editionGroups.ts) - variants

@@ -234,6 +234,17 @@ export interface WarningDto {
   confidence: ConfidenceLevel
 }
 
+/** "Analyse d'un lot" (brainstorm) - doublons entre ce ListingItem et les
+ * tomes déjà possédés (voir DuplicateDetector côté backend). Purement
+ * consultatif : n'affecte jamais negotiation/verdict, dont le calcul reste
+ * exactement celui vérifié contre les exemples du cahier des charges. */
+export interface DuplicateAnalysisDto {
+  duplicateVolumeNumbers: number[]
+  usefulVolumeCount: number
+  pricePerUsefulVolume: number | null
+  maxWorthwhilePrice: number | null
+}
+
 export interface ItemAnalysisDto {
   item: ListingItemDto
   matchedEdition: MangaEditionDto | null
@@ -241,6 +252,7 @@ export interface ItemAnalysisDto {
   marketPrice: MarketPriceDto
   editionWarnings: WarningDto[]
   itemCostShare: number | null
+  duplicates: DuplicateAnalysisDto
 }
 
 export interface FactorScoreDto {
@@ -274,6 +286,10 @@ export interface PurchaseAnalysisDto {
   factorBreakdown: Partial<Record<VerdictFactor, FactorScoreDto>>
   warnings: WarningDto[]
   overallConfidence: ConfidenceLevel
+  /** "Analyse d'un lot" - jusqu'à quel prix ce lot reste intéressant une fois les doublons
+   * exclus - somme des DuplicateAnalysisDto.maxWorthwhilePrice de chaque série. Null tant
+   * qu'au moins une série avec des tomes utiles n'a pas de prix/tome connu. */
+  totalMaxWorthwhilePrice: number | null
 }
 
 export interface PurchaseAnalysisSummaryDto {

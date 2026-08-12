@@ -11,10 +11,13 @@ import java.util.List;
  * @param matchedEdition  null when the item's edition is not yet known to the system - triggers
  *                        the inline "fill in reference data" prompt on the client, and every
  *                        downstream field below stays best-effort/null accordingly
- * @param itemCostShare   this item's share of the listing's total real cost, prorated by volume count
+ * @param itemCostShare this item's share of the listing's total real cost, prorated by volume count
+ * @param duplicates    "Analyse d'un lot" (brainstorm) - which of this item's volumes are already
+ *                       owned, see {@link DuplicateAnalysis}
  */
 public record ItemAnalysis(ListingItem item, MangaEdition matchedEdition, CollectionStatus completeness,
-                            MarketPrice marketPrice, List<Warning> editionWarnings, BigDecimal itemCostShare) {
+                            MarketPrice marketPrice, List<Warning> editionWarnings, BigDecimal itemCostShare,
+                            DuplicateAnalysis duplicates) {
     public ItemAnalysis {
         editionWarnings = editionWarnings == null ? List.of() : List.copyOf(editionWarnings);
     }
