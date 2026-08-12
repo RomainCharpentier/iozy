@@ -83,6 +83,13 @@ class JpaRelationshipRepositoryAdapter implements RelationshipRepository {
     }
 
     @Override
+    public List<Relationship> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(JpaRelationshipRepositoryAdapter::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
