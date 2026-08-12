@@ -48,6 +48,39 @@ class EntityTest {
     }
 
     @Test
+    void merging_variant_attributes_adds_new_keys_without_touching_others() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Black Edition"));
+
+        entity.mergeVariantAttributes(variant.id(), Map.of("coverImageUrl", "https://example.com/tome1.jpg"));
+
+        Variant updated = entity.variants().get(0);
+        assertEquals(1, updated.attributes().get("volumeNumber"));
+        assertEquals("Black Edition", updated.attributes().get("edition"));
+        assertEquals("https://example.com/tome1.jpg", updated.attributes().get("coverImageUrl"));
+        assertEquals(variant.id(), updated.id());
+        assertEquals(variant.label(), updated.label());
+    }
+
+    @Test
+    void merging_attributes_on_an_existing_key_overwrites_it() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("coverImageUrl", "https://example.com/old.jpg"));
+
+        entity.mergeVariantAttributes(variant.id(), Map.of("coverImageUrl", "https://example.com/new.jpg"));
+
+        assertEquals("https://example.com/new.jpg", entity.variants().get(0).attributes().get("coverImageUrl"));
+    }
+
+    @Test
+    void merging_attributes_on_an_unknown_variant_fails_loudly() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> entity.mergeVariantAttributes(UUID.randomUUID(), Map.of("coverImageUrl", "https://example.com/x.jpg")));
+    }
+
+    @Test
     void reconstituted_entity_does_not_raise_new_events() {
         UUID id = UUID.randomUUID();
         Entity entity = Entity.reconstitute(id, EntityTypeFixtures.MANGA.id(), "Berserk",

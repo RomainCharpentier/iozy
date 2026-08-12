@@ -5,6 +5,7 @@ import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
+import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -20,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,6 +125,23 @@ class EntityPersistenceIntegrationTest {
         ownershipRepository.save(cleared);
 
         assertThat(ownershipRepository.findById(ownership.id()).orElseThrow().purchasePrice()).isEmpty();
+    }
+
+    @Test
+    void merged_variant_attributes_persist_after_reload() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Black Edition"));
+        entityRepository.save(entity);
+
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        reloaded.mergeVariantAttributes(variant.id(), Map.of("coverImageUrl", "https://example.com/tome1.jpg"));
+        entityRepository.save(reloaded);
+
+        Entity afterMerge = entityRepository.findById(entity.id()).orElseThrow();
+        Variant updatedVariant = afterMerge.variants().get(0);
+        assertThat(updatedVariant.attributes()).containsEntry("coverImageUrl", "https://example.com/tome1.jpg");
+        assertThat(updatedVariant.attributes()).containsEntry("volumeNumber", 1); // conservé, pas écrasé
+        assertThat(updatedVariant.attributes()).containsEntry("edition", "Black Edition");
     }
 
     @Test

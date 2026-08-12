@@ -6,6 +6,7 @@ import com.iozycore.api.dto.EntityDtos.QuickAddResponse;
 import com.iozycore.application.EntityDeletionService;
 import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
+import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -90,5 +92,20 @@ public class EntityController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         entityDeletionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Compléter les attributs d'un Variant existant sans écraser ceux déjà renseignés "
+            + "(ex: jaquette du tome retrouvée après coup, voir \"Retrouver les jaquettes manquantes\" sur Ma collection)")
+    @PatchMapping("/{entityId}/variants/{variantId}")
+    public EntityResponse mergeVariantAttributes(@PathVariable UUID entityId, @PathVariable UUID variantId,
+                                                  @RequestBody Map<String, Object> attributes) {
+        Entity entity = entityRepository.findById(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
+        try {
+            entity.mergeVariantAttributes(variantId, attributes);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+        return EntityResponse.from(entityRepository.save(entity));
     }
 }

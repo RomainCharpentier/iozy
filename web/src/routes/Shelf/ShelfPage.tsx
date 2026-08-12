@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Settings, Upload } from 'lucide-react'
-import { searchEntities } from '../../api/entities'
-import { importBggCollection } from '../../api/metadata'
+import { ImagePlus, Loader2, Settings, Upload } from 'lucide-react'
+import { mergeVariantAttributes, searchEntities } from '../../api/entities'
+import { importBggCollection, searchVolumes } from '../../api/metadata'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
@@ -12,6 +12,7 @@ import { totalVolumesFrom, isSeriesOngoing } from '../../lib/seriesInfo'
 import { StatCard } from '../../components/StatCard'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TypeFilterChips } from './TypeFilterChips'
+import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
 import { useNavigate } from 'react-router-dom'
 import type { EntityResponse, EntityTypeDto, VariantDto } from '../../types/api'
 
@@ -133,6 +134,56 @@ export function ShelfPage() {
   const entities = entitiesQuery.data ?? EMPTY_ENTITIES
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
 
+  // "Retrouver les jaquettes manquantes" - voir backfillCovers.ts. Réutilise
+  // GET /metadata/volumes (VolumeSelectionGrid côté Ajout rapide) qui met en
+  // cache son résultat côté backend : pour une série déjà recherchée à
+  // l'ajout (le cas le plus courant), ceci ne consomme aucun quota Google
+  // Books supplémentaire - seules les séries jamais recherchées en paient un.
+  const mangaType = entityTypes.find((t) => t.code === 'MANGA')
+  const entitiesMissingCovers = useMemo(
+    () => (mangaType ? entities.filter((e) => e.entityTypeId === mangaType.id && variantsMissingCover(e).length > 0) : []),
+    [entities, mangaType],
+  )
+  const [backfill, setBackfill] = useState<
+    { running: boolean; processed: number; total: number; found: number; quotaExceeded: boolean } | null
+  >(null)
+
+  async function backfillMissingCovers() {
+    if (!mangaType || entitiesMissingCovers.length === 0) return
+    setBackfill({ running: true, processed: 0, total: entitiesMissingCovers.length, found: 0, quotaExceeded: false })
+    let found = 0
+    let quotaExceeded = false
+
+    // Séquentiel, jamais Promise.all : chaque série coûte potentiellement un
+    // vrai appel Google Books (cache manquant), un lot en parallèle risquerait
+    // de vider le quota d'un coup plutôt que de s'arrêter proprement dessus.
+    for (let i = 0; i < entitiesMissingCovers.length; i++) {
+      const entity = entitiesMissingCovers[i]
+      const author = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
+      try {
+        const response = await searchVolumes(mangaType.id, entity.title, { author })
+        if (response.quotaExceeded) {
+          quotaExceeded = true
+          break
+        }
+        for (const variant of variantsMissingCover(entity)) {
+          const match = findBestCoverMatch(response.volumes, variant)
+          if (match?.imageUrl) {
+            await mergeVariantAttributes(entity.id, variant.id, { coverImageUrl: match.imageUrl })
+            found++
+          }
+        }
+      } catch {
+        // Best-effort par nature (voir VolumeSelectionGrid) - une série en échec
+        // ne doit jamais bloquer les suivantes, elle reste juste sans jaquette.
+      }
+      setBackfill({ running: true, processed: i + 1, total: entitiesMissingCovers.length, found, quotaExceeded })
+    }
+
+    setBackfill({ running: false, processed: entitiesMissingCovers.length, total: entitiesMissingCovers.length, found, quotaExceeded })
+    queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
+  }
+
   // Généralisé en un compte par type plutôt que le bucket fixe "Mangas/Jeux"
   // d'origine (n'avait de sens qu'avec exactement 3 types codés en dur) -
   // un type sans aucune Entity n'apparaît pas.
@@ -219,6 +270,31 @@ export function ShelfPage() {
         <TypeFilterChips entityTypes={entityTypes} selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
         <Chip label="Grouper par série" isActive={grouped} onClick={() => setGrouped((v) => !v)} />
       </div>
+
+      {!grouped && entitiesMissingCovers.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={backfillMissingCovers}
+            disabled={backfill?.running}
+            className="flex w-fit items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-textDim hover:text-textPrimary disabled:opacity-50"
+          >
+            {backfill?.running ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+            {backfill?.running
+              ? `Recherche des jaquettes... (${backfill.processed}/${backfill.total} séries)`
+              : 'Retrouver les jaquettes manquantes'}
+          </button>
+          {backfill && !backfill.running && (
+            <p className="text-xs text-textDim">
+              {backfill.found > 0
+                ? `${backfill.found} jaquette${backfill.found > 1 ? 's' : ''} retrouvée${backfill.found > 1 ? 's' : ''}.`
+                : 'Aucune jaquette retrouvée cette fois.'}
+              {backfill.quotaExceeded &&
+                ` Quota Google Books dépassé - ${backfill.processed}/${backfill.total} séries traitées, réessaie plus tard pour les autres.`}
+            </p>
+          )}
+        </div>
+      )}
 
       {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
 
