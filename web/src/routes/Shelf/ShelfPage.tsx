@@ -25,6 +25,7 @@ interface Tile {
   title: string
   subtitle?: string
   imageUrl: string | null
+  gradientKey?: string
   entityId: string
 }
 
@@ -36,10 +37,18 @@ function variantSubtitle(variant: VariantDto): string {
   return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
 }
 
-/** Une tuile par tome (jaquette du tome si connue, sinon celle de la série)
- * - jamais une par série : voir la demande "afficher chacun des tomes avec
- * les bonnes illustrations". Une Entity sans Variant (jeu vidéo, jeu de
- * société, ou manga ajouté sans préciser de tome) garde une tuile unique. */
+/** Une tuile par tome, avec la jaquette PROPRE À CE TOME uniquement - jamais
+ * un repli sur la jaquette de la série (voir la demande "afficher chacun
+ * des tomes avec les bonnes illustrations" : un repli sur la jaquette de
+ * série ferait apparaître la même image sur tous les tomes d'une série,
+ * ce qui va exactement à l'encontre de cette vue). Sans jaquette propre au
+ * tome (ajout en saisie libre, ou tome sélectionné hors grille visuelle),
+ * CoverTile retombe sur un dégradé - gradientKey inclut le sous-titre pour
+ * que chaque tome garde une couleur distincte plutôt que le même dégradé
+ * répété (calculé depuis le seul titre de la série sinon). Une Entity sans
+ * Variant (jeu vidéo, jeu de société, ou manga ajouté sans préciser de
+ * tome) garde une tuile unique avec la jaquette de l'Entity - elle n'a pas
+ * de tome dont la jaquette serait différente. */
 function flattenToTomes(entities: EntityResponse[]): Tile[] {
   const tiles: Tile[] = []
   for (const entity of entities) {
@@ -48,11 +57,13 @@ function flattenToTomes(entities: EntityResponse[]): Tile[] {
       continue
     }
     for (const variant of entity.variants) {
+      const subtitle = variantSubtitle(variant)
       tiles.push({
         key: variant.id,
         title: entity.title,
-        subtitle: variantSubtitle(variant),
-        imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
+        subtitle,
+        imageUrl: coverImageUrlFrom(variant.attributes),
+        gradientKey: `${entity.title} ${subtitle}`,
         entityId: entity.id,
       })
     }
@@ -226,6 +237,7 @@ export function ShelfPage() {
             title={tile.title}
             subtitle={tile.subtitle}
             imageUrl={tile.imageUrl}
+            gradientKey={tile.gradientKey}
             onClick={() => navigate(`/entity/${tile.entityId}`)}
           />
         ))}
