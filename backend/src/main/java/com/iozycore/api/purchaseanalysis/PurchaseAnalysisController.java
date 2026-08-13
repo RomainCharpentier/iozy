@@ -3,6 +3,7 @@ package com.iozycore.api.purchaseanalysis;
 import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.Condition;
+import com.iozycore.purchaseanalysis.EditionSuggestion;
 import com.iozycore.purchaseanalysis.EditionTier;
 import com.iozycore.purchaseanalysis.ListingPlatform;
 import com.iozycore.purchaseanalysis.MangaEdition;
@@ -18,6 +19,7 @@ import com.iozycore.purchaseanalysis.WeightLevel;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -137,6 +139,16 @@ public class PurchaseAnalysisController {
     @GetMapping("/near-complete-suggestions")
     public List<NearCompleteSuggestion> nearCompleteSuggestions() {
         return service.findNearCompleteSuggestions();
+    }
+
+    @Operation(summary = "AI-assisted draft of reference data for an edition unknown to the system (Phase 2) - a "
+            + "suggestion to review and correct before saving it via POST /editions, never persisted "
+            + "automatically. 204 No Content when no AI provider is configured or it could not produce a usable answer.")
+    @GetMapping("/editions/ai-suggestion")
+    public ResponseEntity<EditionSuggestion> suggestEdition(@RequestParam String seriesTitle, @RequestParam String editionName) {
+        return service.suggestEditionReferenceData(seriesTitle, editionName)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     public record CreateMangaEditionRequest(String seriesTitle, String editionName, String editionTier,

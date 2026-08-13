@@ -68,3 +68,10 @@ google-books:
   # défaut d'une seule clé en quelques dizaines de recherches de tomes (8
   # requêtes chacune).
   backup-api-keys: ${GOOGLE_BOOKS_BACKUP_API_KEYS:}
+
+openai:
+  # Clé API OpenAI (platform.openai.com, pas un abonnement ChatGPT Plus) -
+  # optionnelle : sans clé, l'assistance IA de l'analyse d'achat (fiches
+  # d'édition auto-remplies, estimation de prix) reste simplement absente,
+  # même adaptateur auto-désactivé que BGG/IGDB. Voir PurchaseAnalysisAiProvider.
+  api-key: ${OPENAI_API_KEY:}

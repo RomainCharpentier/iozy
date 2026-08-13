@@ -7,6 +7,7 @@ import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
 import com.iozycore.purchaseanalysis.Condition;
+import com.iozycore.purchaseanalysis.EditionSuggestion;
 import com.iozycore.purchaseanalysis.EditionTier;
 import com.iozycore.purchaseanalysis.ListingPlatform;
 import com.iozycore.purchaseanalysis.MangaEdition;
@@ -34,6 +35,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -208,6 +210,17 @@ class PurchaseAnalysisPersistenceIntegrationTest {
 
         assertThat(status.isKnown()).isFalse();
         assertThat(status.estimatedCostToComplete()).isNull();
+    }
+
+    @Test
+    void edition_ai_suggestion_is_safely_absent_when_no_provider_key_is_configured() {
+        // Aucune clé openai.api-key dans ce contexte de test (voir application.yml) - vérifie que le
+        // câblage Spring bout-en-bout (Service -> AiEditionAdvisor -> OpenAiEditionAdvisor) reste
+        // silencieux plutôt que d'échouer, même règle que BGG/IGDB sans identifiants.
+        Optional<EditionSuggestion> suggestion =
+                purchaseAnalysisService.suggestEditionReferenceData("Death Note", "Black Édition");
+
+        assertThat(suggestion).isEmpty();
     }
 
     @Test
