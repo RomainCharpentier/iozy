@@ -14,6 +14,8 @@ const WARNING_COLORS: Record<WarningSeverity, string> = {
   CRITICAL: 'text-danger',
 }
 
+const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as const
+
 /** Détail d'une série au sein d'un lot (obligatoire pour un lot multi-séries,
  * voir l'exemple 20th/21st Century Boys + Sanctuary du cahier des charges) -
  * complétude (✓/⚠️) et avertissements d'édition, avec la distinction
@@ -71,7 +73,9 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
                 <span className="text-textDim">
                   {' '}
                   (~{completeness.estimatedCostToComplete.toFixed(2)} €
-                  {completeness.costToCompleteBasis === 'THEORETICAL_ONLY' ? ', théorique' : ', marché'})
+                  {completeness.costToCompleteBasis === 'OBSERVED_MARKET' && ', marché'}
+                  {completeness.costToCompleteBasis === 'AI_ESTIMATED' && ', estimation IA'}
+                  {completeness.costToCompleteBasis === 'THEORETICAL_ONLY' && ', théorique'})
                 </span>
               )}
             </span>
@@ -85,12 +89,20 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
       </div>
 
       <div className="flex items-center gap-1.5 text-xs">
-        {marketPrice.basis === 'OBSERVED_MARKET' ? (
+        {marketPrice.basis === 'OBSERVED_MARKET' && (
           <span className="rounded-full bg-accent/15 px-2 py-0.5 text-accent">
             Prix observé sur {marketPrice.observationCount} annonce{marketPrice.observationCount > 1 ? 's' : ''}
             {marketPrice.observedMedian !== null && ` · médiane ${marketPrice.observedMedian.toFixed(2)} €/tome`}
           </span>
-        ) : (
+        )}
+        {marketPrice.basis === 'AI_ESTIMATED' && (
+          <span className="rounded-full border border-dashed border-warning px-2 py-0.5 text-warning">
+            Estimation IA — non vérifiée
+            {marketPrice.aiEstimatedPrice !== null && ` · ${marketPrice.aiEstimatedPrice.toFixed(2)} €/tome`}
+            {' '}(confiance {CONFIDENCE_LABELS[marketPrice.confidence]})
+          </span>
+        )}
+        {marketPrice.basis === 'THEORETICAL_ONLY' && (
           <span className="rounded-full border border-dashed border-textDim px-2 py-0.5 text-textDim">
             {marketPrice.theoreticalEstimate !== null
               ? `Estimation théorique · ${marketPrice.theoreticalEstimate.toFixed(2)} €/tome neuf`

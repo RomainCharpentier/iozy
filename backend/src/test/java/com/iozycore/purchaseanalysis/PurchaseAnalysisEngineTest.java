@@ -45,6 +45,31 @@ class PurchaseAnalysisEngineTest {
     }
 
     @Test
+    void an_ai_price_estimate_feeds_fair_value_and_negotiation_when_there_is_no_real_observation() {
+        // Prix neuf 20€/tome, état GOOD (45% de décote générique -> 11€/tome théorique) - mais l'IA
+        // estime 16€/tome (édition recherchée) : le prix retenu doit être celui de l'IA, pas la
+        // décote générique réappliquée par-dessus (ce serait compter la dépréciation deux fois).
+        MangaEdition edition = MangaEdition.create("Vinland Saga", "Deluxe", EditionTier.DELUXE, "Kurokawa", 10,
+                new BigDecimal("20.00"), false, false, null);
+        ListingItem item = item("Vinland Saga", Set.of(1));
+        Listing listing = listing(new BigDecimal("16"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, item);
+        AiPriceEstimate aiEstimate = new AiPriceEstimate(new BigDecimal("16.00"), ConfidenceLevel.MEDIUM, "Tome recherché");
+
+        PurchaseAnalysis analysis = engine.analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of(), aiEstimate)),
+                defaults);
+
+        MarketPrice marketPrice = analysis.itemBreakdown().get(0).marketPrice();
+        assertThat(marketPrice.basis()).isEqualTo(PriceBasis.AI_ESTIMATED);
+        assertThat(marketPrice.aiEstimatedPrice()).isEqualByComparingTo(new BigDecimal("16.00"));
+        // Garde-fou : une estimation IA n'est jamais comptée comme une donnée de marché réelle.
+        assertThat(marketPrice.observationCount()).isZero();
+
+        assertThat(analysis.negotiation().maxPrice()).isEqualByComparingTo(new BigDecimal("16.80")); // 16 * 1.05
+        assertThat(analysis.negotiation().targetPriceMin()).isEqualByComparingTo(new BigDecimal("15.20")); // 16 * 0.95
+    }
+
+    @Test
     void my_home_hero_1_to_17_of_26_reports_completeness_and_flags_an_overpriced_asking_price() {
         MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
                 26, new BigDecimal("6.90"), false, false, null);

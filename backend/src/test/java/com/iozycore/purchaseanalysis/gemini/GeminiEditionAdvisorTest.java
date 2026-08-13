@@ -1,4 +1,4 @@
-package com.iozycore.purchaseanalysis.openai;
+package com.iozycore.purchaseanalysis.gemini;
 
 import com.iozycore.purchaseanalysis.ConfidenceLevel;
 import com.iozycore.purchaseanalysis.EditionSuggestion;
@@ -10,15 +10,20 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class OpenAiEditionAdvisorTest {
+class GeminiEditionAdvisorTest {
 
-    // Réponse enveloppe Chat Completions - "content" porte le JSON métier tel que demandé au modèle.
+    // Enveloppe generateContent - "text" porte le JSON métier tel que demandé au modèle
+    // (generationConfig.responseMimeType=application/json).
     private static final String SAMPLE_RESPONSE = """
             {
-              "choices": [
+              "candidates": [
                 {
-                  "message": {
-                    "content": "{\\"totalVolumes\\": 12, \\"publisher\\": \\"Kana\\", \\"retailPriceNewPerVolume\\": 7.5, \\"outOfPrint\\": false, \\"betterEditionAnnounced\\": false, \\"betterEditionNote\\": null, \\"editionTier\\": \\"STANDARD\\", \\"confidence\\": \\"MEDIUM\\", \\"rationale\\": \\"Série terminée en 12 tomes chez Kana.\\"}"
+                  "content": {
+                    "parts": [
+                      {
+                        "text": "{\\"totalVolumes\\": 12, \\"publisher\\": \\"Kana\\", \\"retailPriceNewPerVolume\\": 7.5, \\"outOfPrint\\": false, \\"betterEditionAnnounced\\": false, \\"betterEditionNote\\": null, \\"editionTier\\": \\"STANDARD\\", \\"confidence\\": \\"MEDIUM\\", \\"rationale\\": \\"Série terminée en 12 tomes chez Kana.\\"}"
+                      }
+                    ]
                   }
                 }
               ]
@@ -29,7 +34,7 @@ class OpenAiEditionAdvisorTest {
     void no_api_key_configured_means_no_call_and_an_empty_result() {
         // apiKey (@Value) reste à sa valeur par défaut Java (null) hors conteneur Spring - même convention
         // que IgdbMetadataProvider/GoogleBooksHttpClient : jamais d'exception, juste absent.
-        OpenAiEditionAdvisor advisor = new OpenAiEditionAdvisor();
+        GeminiEditionAdvisor advisor = new GeminiEditionAdvisor();
 
         Optional<EditionSuggestion> suggestion = advisor.suggestReferenceData("Death Note", "Black Édition");
 
@@ -37,8 +42,8 @@ class OpenAiEditionAdvisorTest {
     }
 
     @Test
-    void parses_a_chat_completion_response_into_an_edition_suggestion() throws Exception {
-        OpenAiEditionAdvisor advisor = new OpenAiEditionAdvisor();
+    void parses_a_generate_content_response_into_an_edition_suggestion() throws Exception {
+        GeminiEditionAdvisor advisor = new GeminiEditionAdvisor();
 
         Optional<EditionSuggestion> suggestion = advisor.parseSuggestion(SAMPLE_RESPONSE);
 
@@ -56,22 +61,22 @@ class OpenAiEditionAdvisorTest {
     }
 
     @Test
-    void an_unparseable_or_empty_completion_yields_an_empty_result_never_an_exception() throws Exception {
-        OpenAiEditionAdvisor advisor = new OpenAiEditionAdvisor();
+    void an_unparseable_or_empty_response_yields_an_empty_result_never_an_exception() throws Exception {
+        GeminiEditionAdvisor advisor = new GeminiEditionAdvisor();
 
         assertThat(advisor.parseSuggestion("""
-                { "choices": [] }
+                { "candidates": [] }
                 """)).isEmpty();
     }
 
     @Test
     void an_unknown_confidence_or_tier_value_falls_back_safely_instead_of_failing() throws Exception {
-        OpenAiEditionAdvisor advisor = new OpenAiEditionAdvisor();
+        GeminiEditionAdvisor advisor = new GeminiEditionAdvisor();
 
         Optional<EditionSuggestion> suggestion = advisor.parseSuggestion("""
                 {
-                  "choices": [
-                    { "message": { "content": "{\\"editionTier\\": \\"NOT_A_REAL_TIER\\", \\"confidence\\": \\"VERY_SURE\\"}" } }
+                  "candidates": [
+                    { "content": { "parts": [ { "text": "{\\"editionTier\\": \\"NOT_A_REAL_TIER\\", \\"confidence\\": \\"VERY_SURE\\"}" } ] } }
                   ]
                 }
                 """);

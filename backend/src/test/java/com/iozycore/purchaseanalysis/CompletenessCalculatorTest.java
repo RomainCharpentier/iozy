@@ -64,6 +64,19 @@ class CompletenessCalculatorTest {
     }
 
     @Test
+    void cost_to_complete_uses_an_ai_estimate_only_when_no_real_observation_exists() {
+        MangaEdition edition = MangaEdition.create("Vinland Saga", "Deluxe", EditionTier.DELUXE, "Kurokawa",
+                10, new BigDecimal("19.90"), false, false, null);
+        MarketPrice aiEstimated = MarketPrice.aiEstimated(new BigDecimal("15.00"), new BigDecimal("19.90"), ConfidenceLevel.MEDIUM);
+
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3, 4, 5, 6, 7, 8), edition, aiEstimated);
+
+        assertThat(status.missingCount()).isEqualTo(2);
+        assertThat(status.costToCompleteBasis()).isEqualTo(PriceBasis.AI_ESTIMATED);
+        assertThat(status.estimatedCostToComplete()).isEqualByComparingTo(new BigDecimal("30.00")); // 2 * 15.00
+    }
+
+    @Test
     void a_fully_included_edition_is_reported_complete_with_zero_cost() {
         MangaEdition edition = MangaEdition.create("Death Note", "Black Edition", EditionTier.DELUXE, "Kana",
                 6, new BigDecimal("14.90"), false, false, null);

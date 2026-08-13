@@ -40,6 +40,7 @@ public class PurchaseAnalysisService {
     private final EntityTypeRepository entityTypeRepository;
     private final OwnershipRepository ownershipRepository;
     private final AiEditionAdvisor aiEditionAdvisor;
+    private final AiMarketPriceAdvisor aiMarketPriceAdvisor;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -51,7 +52,8 @@ public class PurchaseAnalysisService {
                                     EntityRepository entityRepository,
                                     EntityTypeRepository entityTypeRepository,
                                     OwnershipRepository ownershipRepository,
-                                    AiEditionAdvisor aiEditionAdvisor) {
+                                    AiEditionAdvisor aiEditionAdvisor,
+                                    AiMarketPriceAdvisor aiMarketPriceAdvisor) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -60,6 +62,7 @@ public class PurchaseAnalysisService {
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
         this.aiEditionAdvisor = aiEditionAdvisor;
+        this.aiMarketPriceAdvisor = aiMarketPriceAdvisor;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
 
@@ -100,8 +103,17 @@ public class PurchaseAnalysisService {
                     ? findOwnedVolumeNumbers(series.knownEntityId(), itemCommand.editionName())
                     : Set.of();
 
+            // Phase 2 (assistance IA) - seulement quand il n'existe aucune observation réelle : la
+            // donnée réelle a toujours priorité, l'IA ne fait que combler l'absence de données, jamais
+            // les compléter/contredire (voir AiMarketPriceAdvisor).
+            AiPriceEstimate aiEstimate = observations.isEmpty()
+                    ? aiMarketPriceAdvisor.estimateMarketPrice(series.title(), itemCommand.editionName(),
+                            itemCommand.itemConditionOverride() != null ? itemCommand.itemConditionOverride() : command.condition())
+                            .orElse(null)
+                    : null;
+
             itemContexts.add(new PurchaseAnalysisEngine.ItemContext(
-                    item, matchedEdition.orElse(null), siblingEditions, observations, alreadyOwnedVolumes));
+                    item, matchedEdition.orElse(null), siblingEditions, observations, alreadyOwnedVolumes, aiEstimate));
         }
 
         Listing listing = new Listing(UUID.randomUUID(), command.platform(), command.url(), command.rawTitle(),

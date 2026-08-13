@@ -44,13 +44,21 @@ public class PurchaseAnalysisEngine {
      *                            already owned (active ownerships), resolved via
      *                            {@link MangaSeries#knownEntityId()} by {@link PurchaseAnalysisService} -
      *                            empty when the series isn't matched to an existing catalog Entity, never guessed
+     * @param aiEstimate          Phase 2 (assistance IA) - see {@link MarketPriceCalculator#computePerVolume(MangaEdition, List, AiPriceEstimate)}
      */
     public record ItemContext(ListingItem item, MangaEdition matchedEdition, List<MangaEdition> siblingEditions,
-                               List<MarketPriceObservation> observations, Set<Integer> alreadyOwnedVolumes) {
+                               List<MarketPriceObservation> observations, Set<Integer> alreadyOwnedVolumes,
+                               AiPriceEstimate aiEstimate) {
         public ItemContext {
             siblingEditions = siblingEditions == null ? List.of() : List.copyOf(siblingEditions);
             observations = observations == null ? List.of() : List.copyOf(observations);
             alreadyOwnedVolumes = alreadyOwnedVolumes == null ? Set.of() : Set.copyOf(alreadyOwnedVolumes);
+        }
+
+        /** Existing call sites that don't resolve an AI estimate (most tests, and any future non-AI caller) - defaults to none. */
+        public ItemContext(ListingItem item, MangaEdition matchedEdition, List<MangaEdition> siblingEditions,
+                            List<MarketPriceObservation> observations, Set<Integer> alreadyOwnedVolumes) {
+            this(item, matchedEdition, siblingEditions, observations, alreadyOwnedVolumes, null);
         }
     }
 
@@ -89,7 +97,7 @@ public class PurchaseAnalysisEngine {
                         ConfidenceLevel.LOW));
             }
 
-            MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition, ctx.observations());
+            MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition, ctx.observations(), ctx.aiEstimate());
             if (perVolumeMarketPrice.basis() == PriceBasis.OBSERVED_MARKET) {
                 anyObservedMarketData = true;
             }
@@ -103,7 +111,11 @@ public class PurchaseAnalysisEngine {
                                     + " volume(s) missing to complete this edition"
                                     + (completeness.estimatedCostToComplete() != null
                                             ? " (~" + completeness.estimatedCostToComplete().setScale(2, RoundingMode.HALF_UP) + " EUR"
-                                                    + (completeness.costToCompleteBasis() == PriceBasis.THEORETICAL_ONLY ? ", theoretical estimate" : ", based on market observations")
+                                                    + switch (completeness.costToCompleteBasis()) {
+                                                        case THEORETICAL_ONLY -> ", theoretical estimate";
+                                                        case AI_ESTIMATED -> ", AI estimate - unverified";
+                                                        case OBSERVED_MARKET -> ", based on market observations";
+                                                    }
                                                     + ")"
                                             : ", cost unknown")
                                     + ".",
@@ -132,6 +144,11 @@ public class PurchaseAnalysisEngine {
             BigDecimal itemFairValue = null;
             if (perVolumeMarketPrice.basis() == PriceBasis.OBSERVED_MARKET) {
                 itemFairValue = perVolumeMarketPrice.observedMedian().multiply(BigDecimal.valueOf(includedCount));
+            } else if (perVolumeMarketPrice.basis() == PriceBasis.AI_ESTIMATED) {
+                // Déjà une estimation de prix de revente pour CET état précis (voir le prompt de
+                // GeminiMarketPriceAdvisor) - contrairement au cas théorique ci-dessous, pas de décote
+                // générique à réappliquer, ce serait compter la dépréciation deux fois.
+                itemFairValue = perVolumeMarketPrice.aiEstimatedPrice().multiply(BigDecimal.valueOf(includedCount));
             } else if (itemNewValue != null) {
                 BigDecimal discount = effectiveCondition.genericDiscountVsRetail();
                 if (edition != null && edition.outOfPrint()) {

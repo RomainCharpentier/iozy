@@ -20,6 +20,16 @@ import java.util.List;
 public class MarketPriceCalculator {
 
     public MarketPrice computePerVolume(MangaEdition edition, List<MarketPriceObservation> observations) {
+        return computePerVolume(edition, observations, null);
+    }
+
+    /**
+     * @param aiEstimate Phase 2 (assistance IA, project memory) - used only when there is no usable real
+     *                    observation ({@code perVolumePrices} empty below): real data always wins over an AI
+     *                    guess. {@code null} when no AI provider is configured or it had nothing to offer.
+     */
+    public MarketPrice computePerVolume(MangaEdition edition, List<MarketPriceObservation> observations,
+                                         AiPriceEstimate aiEstimate) {
         List<BigDecimal> perVolumePrices = new ArrayList<>();
         for (MarketPriceObservation observation : observations) {
             // Written as an if/else (not a nested ternary) on purpose: mixing an
@@ -44,6 +54,9 @@ public class MarketPriceCalculator {
 
         BigDecimal theoretical = edition != null ? edition.retailPriceNewPerVolume() : null;
         if (perVolumePrices.isEmpty()) {
+            if (aiEstimate != null) {
+                return MarketPrice.aiEstimated(aiEstimate.pricePerVolume(), theoretical, aiEstimate.confidence());
+            }
             return MarketPrice.noObservations(theoretical, ConfidenceLevel.LOW);
         }
 

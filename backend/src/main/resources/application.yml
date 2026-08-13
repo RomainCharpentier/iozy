@@ -69,9 +69,15 @@ google-books:
   # requêtes chacune).
   backup-api-keys: ${GOOGLE_BOOKS_BACKUP_API_KEYS:}
 
-openai:
-  # Clé API OpenAI (platform.openai.com, pas un abonnement ChatGPT Plus) -
-  # optionnelle : sans clé, l'assistance IA de l'analyse d'achat (fiches
-  # d'édition auto-remplies, estimation de prix) reste simplement absente,
-  # même adaptateur auto-désactivé que BGG/IGDB. Voir PurchaseAnalysisAiProvider.
-  api-key: ${OPENAI_API_KEY:}
+gemini:
+  # Clé API Google Gemini (aistudio.google.com/apikey) - palier gratuit
+  # réel (pas un essai qui expire), sans carte bancaire requise, voir
+  # README.md. Optionnelle : sans clé, l'assistance IA de l'analyse d'achat
+  # (fiches d'édition auto-remplies, estimation de prix) reste simplement
+  # absente, même adaptateur auto-désactivé que BGG/IGDB.
+  api-key: ${GEMINI_API_KEY:}
+  # Le défaut ci-dessous ne se déclenche QUE si GEMINI_MODEL est absent de
+  # l'environnement - docker-compose.yml fixe toujours cette variable (même
+  # vide), donc le vrai défaut ("gemini-3.5-flash") vit côté code (voir
+  # GeminiEditionAdvisor/GeminiMarketPriceAdvisor), pas ici.
+  model: ${GEMINI_MODEL:}

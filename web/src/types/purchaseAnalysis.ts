@@ -71,7 +71,7 @@ export const VERDICT_FACTOR_LABELS: Record<VerdictFactor, string> = {
 
 export type NegotiationAdvice = 'NEGOTIATE' | 'ACCEPTABLE_AS_IS' | 'SKIP_LISTING'
 
-export type PriceBasis = 'OBSERVED_MARKET' | 'THEORETICAL_ONLY'
+export type PriceBasis = 'OBSERVED_MARKET' | 'AI_ESTIMATED' | 'THEORETICAL_ONLY'
 
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW'
 
@@ -226,6 +226,8 @@ export interface MarketPriceDto {
   theoreticalEstimate: number | null
   basis: PriceBasis
   confidence: ConfidenceLevel
+  /** Phase 2 (assistance IA) - non null seulement quand basis === 'AI_ESTIMATED'. */
+  aiEstimatedPrice: number | null
 }
 
 export interface WarningDto {
