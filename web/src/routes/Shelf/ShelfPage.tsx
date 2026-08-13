@@ -137,8 +137,15 @@ export function ShelfPage() {
   // "Retrouver les jaquettes manquantes" - voir backfillCovers.ts. Réutilise
   // GET /metadata/volumes (VolumeSelectionGrid côté Ajout rapide) qui met en
   // cache son résultat côté backend : pour une série déjà recherchée à
-  // l'ajout (le cas le plus courant), ceci ne consomme aucun quota Google
-  // Books supplémentaire - seules les séries jamais recherchées en paient un.
+  // l'ajout (le cas le plus courant), un premier essai SANS forceRefresh ne
+  // consomme aucun quota Google Books supplémentaire. Mais ce cache peut
+  // avoir été rempli SANS jaquette pour tel tome précis (Google Books
+  // n'indexe pas toujours de miniature) - sans un vrai nouvel essai, le
+  // bouton rejouait indéfiniment ce même échec ("Aucune jaquette retrouvée
+  // cette fois" à chaque clic, y compris des mois plus tard). Voir
+  // backfillMissingCovers ci-dessous : un forceRefresh n'est déclenché
+  // qu'en second recours, uniquement pour les tomes encore sans jaquette
+  // après le premier essai gratuit - jamais pour une série déjà complète.
   const mangaType = entityTypes.find((t) => t.code === 'MANGA')
   const entitiesMissingCovers = useMemo(
     () => (mangaType ? entities.filter((e) => e.entityTypeId === mangaType.id && variantsMissingCover(e).length > 0) : []),
@@ -161,12 +168,27 @@ export function ShelfPage() {
       const entity = entitiesMissingCovers[i]
       const author = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
       try {
-        const response = await searchVolumes(mangaType.id, entity.title, { author })
+        let response = await searchVolumes(mangaType.id, entity.title, { author })
         if (response.quotaExceeded) {
           quotaExceeded = true
           break
         }
-        for (const variant of variantsMissingCover(entity)) {
+        const missingVariants = variantsMissingCover(entity)
+        const stillUnmatched = missingVariants.some((v) => !findBestCoverMatch(response.volumes, v)?.imageUrl)
+        // Le cache (essai gratuit ci-dessus) peut dater d'une recherche où
+        // Google Books n'avait justement pas de jaquette pour CE tome précis
+        // - un vrai nouvel essai (forceRefresh) est la seule façon de savoir
+        // si ça a changé depuis, plutôt que de reproduire indéfiniment le
+        // même échec. Coûte du quota réel, mais seulement pour les séries
+        // qui en ont encore besoin après le premier passage gratuit.
+        if (stillUnmatched) {
+          response = await searchVolumes(mangaType.id, entity.title, { author, forceRefresh: true })
+          if (response.quotaExceeded) {
+            quotaExceeded = true
+            break
+          }
+        }
+        for (const variant of missingVariants) {
           const match = findBestCoverMatch(response.volumes, variant)
           if (match?.imageUrl) {
             await mergeVariantAttributes(entity.id, variant.id, { coverImageUrl: match.imageUrl })
