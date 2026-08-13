@@ -45,7 +45,7 @@ class DuplicateDetectorTest {
 
     @Test
     void an_unknown_per_volume_price_never_invents_a_worthwhile_threshold() {
-        MarketPrice unknown = new MarketPrice(0, null, null, null, null, PriceBasis.THEORETICAL_ONLY, ConfidenceLevel.LOW);
+        MarketPrice unknown = new MarketPrice(0, null, null, null, null, PriceBasis.THEORETICAL_ONLY, ConfidenceLevel.LOW, null);
 
         DuplicateAnalysis result = detector.detect(Set.of(1, 2), Set.of(), new BigDecimal("20"), unknown);
 

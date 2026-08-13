@@ -1,4 +1,4 @@
-package com.iozycore.purchaseanalysis.openai;
+package com.iozycore.purchaseanalysis.gemini;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,28 +12,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * Calls the OpenAI Chat Completions API (platform.openai.com - NOT the same
- * thing as a ChatGPT Plus subscription, which does not grant API access) to
+ * Calls the Google Gemini API (ai.google.dev - genuinely free tier for
+ * Flash/Flash-Lite models, no billing required, see project memory) to
  * draft {@link EditionSuggestion}s. Self-disabled (never calls out, always
- * returns empty) when {@code openai.api-key} is blank - same convention as
+ * returns empty) when {@code gemini.api-key} is blank - same convention as
  * {@code IgdbMetadataProvider}/{@code GoogleBooksHttpClient}: an absent key
  * simply means this capability is off, never an error surfaced to the user.
  */
 @Component
-public class OpenAiEditionAdvisor implements AiEditionAdvisor {
+public class GeminiEditionAdvisor implements AiEditionAdvisor {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenAiEditionAdvisor.class);
-    private static final String CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
+    private static final Logger log = LoggerFactory.getLogger(GeminiEditionAdvisor.class);
 
     private static final String PROMPT_TEMPLATE = """
             Tu es un expert des éditions françaises de mangas. Pour la série "%s", édition "%s", \
@@ -53,10 +48,10 @@ public class OpenAiEditionAdvisor implements AiEditionAdvisor {
             pas raisonnablement certain plutôt que de deviner - une valeur absente est bien plus utile qu'une \
             valeur fausse ici.""";
 
-    @Value("${openai.api-key:}")
+    @Value("${gemini.api-key:}")
     private String apiKey;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${gemini.model:}")
     private String model;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -70,41 +65,23 @@ public class OpenAiEditionAdvisor implements AiEditionAdvisor {
             return Optional.empty();
         }
         try {
-            String requestBody = objectMapper.writeValueAsString(Map.of(
-                    "model", model,
-                    "response_format", Map.of("type", "json_object"),
-                    "temperature", 0.2,
-                    "messages", List.of(Map.of("role", "user",
-                            "content", PROMPT_TEMPLATE.formatted(seriesTitle, editionName)))));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(CHAT_COMPLETIONS_URL))
-                    .timeout(Duration.ofSeconds(20))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model,
+                    PROMPT_TEMPLATE.formatted(seriesTitle, editionName));
             if (response.statusCode() != 200) {
-                // Le corps d'erreur OpenAI (jamais la clé, seulement envoyée dans l'en-tête Authorization
-                // de LA REQUÊTE) explique la cause exacte (quota/facturation vs rate-limit) - utile pour
-                // diagnostiquer sans deviner, tronqué pour ne pas noyer les logs sur une réponse verbeuse.
-                String bodySnippet = response.body() == null ? "" : response.body().substring(0, Math.min(300, response.body().length()));
-                log.warn("OpenAI a répondu {} pour l'édition '{}' / '{}' : {}", response.statusCode(), seriesTitle, editionName, bodySnippet);
+                log.warn("Gemini ({}) a répondu {} pour l'édition '{}' / '{}' : {}", GeminiRequests.effectiveModel(model),
+                        response.statusCode(), seriesTitle, editionName, GeminiRequests.snippet(response.body()));
                 return Optional.empty();
             }
             return parseSuggestion(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel à OpenAI pour '{}' / '{}' : {}", seriesTitle, editionName, e.getMessage());
+            log.warn("Échec de l'appel à Gemini pour '{}' / '{}' : {}", seriesTitle, editionName, e.getMessage());
             return Optional.empty();
         }
     }
 
-    /** Package-private for direct unit testing with a canned response body, bypassing HTTP - same pattern as IgdbMetadataProvider#parse. */
-    Optional<EditionSuggestion> parseSuggestion(String chatCompletionResponseBody) throws Exception {
-        JsonNode root = objectMapper.readTree(chatCompletionResponseBody);
-        String content = root.path("choices").path(0).path("message").path("content").asText(null);
+    /** Package-private for direct unit testing with a canned response body, bypassing HTTP. */
+    Optional<EditionSuggestion> parseSuggestion(String generateContentResponseBody) throws Exception {
+        String content = GeminiRequests.extractText(objectMapper, generateContentResponseBody);
         if (content == null || content.isBlank()) {
             return Optional.empty();
         }

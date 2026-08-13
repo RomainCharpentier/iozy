@@ -214,8 +214,8 @@ class PurchaseAnalysisPersistenceIntegrationTest {
 
     @Test
     void edition_ai_suggestion_is_safely_absent_when_no_provider_key_is_configured() {
-        // Aucune clé openai.api-key dans ce contexte de test (voir application.yml) - vérifie que le
-        // câblage Spring bout-en-bout (Service -> AiEditionAdvisor -> OpenAiEditionAdvisor) reste
+        // Aucune clé gemini.api-key dans ce contexte de test (voir application.yml) - vérifie que le
+        // câblage Spring bout-en-bout (Service -> AiEditionAdvisor -> GeminiEditionAdvisor) reste
         // silencieux plutôt que d'échouer, même règle que BGG/IGDB sans identifiants.
         Optional<EditionSuggestion> suggestion =
                 purchaseAnalysisService.suggestEditionReferenceData("Death Note", "Black Édition");

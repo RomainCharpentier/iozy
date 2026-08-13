@@ -49,6 +49,9 @@ public class CompletenessCalculator {
             if (perVolumeMarketPrice.basis() == PriceBasis.OBSERVED_MARKET) {
                 perVolumePrice = perVolumeMarketPrice.observedMedian();
                 basis = PriceBasis.OBSERVED_MARKET;
+            } else if (perVolumeMarketPrice.basis() == PriceBasis.AI_ESTIMATED) {
+                perVolumePrice = perVolumeMarketPrice.aiEstimatedPrice();
+                basis = PriceBasis.AI_ESTIMATED;
             } else if (perVolumeMarketPrice.theoreticalEstimate() != null) {
                 perVolumePrice = perVolumeMarketPrice.theoreticalEstimate();
                 basis = PriceBasis.THEORETICAL_ONLY;

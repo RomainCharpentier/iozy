@@ -44,6 +44,35 @@ class MarketPriceCalculatorTest {
     }
 
     @Test
+    void uses_an_ai_estimate_only_when_there_is_no_real_observation() {
+        MangaEdition edition = MangaEdition.create("Vinland Saga", "Deluxe", EditionTier.DELUXE, "Kurokawa", 10,
+                new BigDecimal("19.90"), false, false, null);
+        AiPriceEstimate estimate = new AiPriceEstimate(new BigDecimal("15.00"), ConfidenceLevel.MEDIUM, "Édition recherchée");
+
+        MarketPrice price = calculator.computePerVolume(edition, List.of(), estimate);
+
+        assertThat(price.basis()).isEqualTo(PriceBasis.AI_ESTIMATED);
+        assertThat(price.observationCount()).isZero();
+        assertThat(price.observedMedian()).isNull(); // garde-fou : jamais confondu avec une observation réelle
+        assertThat(price.aiEstimatedPrice()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(price.theoreticalEstimate()).isEqualByComparingTo(new BigDecimal("19.90")); // conservé à titre indicatif
+        assertThat(price.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
+        assertThat(price.bestEstimate()).isEqualByComparingTo(new BigDecimal("15.00"));
+    }
+
+    @Test
+    void a_real_observation_always_wins_over_an_ai_estimate() {
+        MarketPriceObservation obs = observation(VolumeRange.single(1), "12.00");
+        AiPriceEstimate estimate = new AiPriceEstimate(new BigDecimal("15.00"), ConfidenceLevel.MEDIUM, null);
+
+        MarketPrice price = calculator.computePerVolume(null, List.of(obs), estimate);
+
+        assertThat(price.basis()).isEqualTo(PriceBasis.OBSERVED_MARKET);
+        assertThat(price.observedMedian()).isEqualByComparingTo(new BigDecimal("12.00"));
+        assertThat(price.aiEstimatedPrice()).isNull();
+    }
+
+    @Test
     void an_unscoped_observation_is_normalized_using_the_edition_total_volume_count() {
         MangaEdition edition = MangaEdition.create("Sanctuary", "Perfect Edition", EditionTier.PERFECT, "Glénat", 6,
                 null, false, false, null);
