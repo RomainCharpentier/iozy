@@ -17,6 +17,13 @@ interface ScanEntry {
   title?: string
   volumeNumber?: number
   edition?: string
+  // Une Ownership active référence déjà ce même Variant (voir QuickAddResponse
+  // côté backend) - ne bloque jamais l'ajout (un 2e exemplaire scanné reste
+  // légitime, ex: un doublon accidentel), sert seulement à avertir l'utilisateur
+  // au lieu de laisser croire à un tome tout neuf pour la collection (même
+  // signal que formatAddResultMessage dans QuickAddPage.tsx, resté silencieux
+  // ici jusqu'ici : le résultat de quickAdd() n'était même pas lu).
+  alreadyOwned?: boolean
 }
 
 /** Best-effort, jamais autoritaire : le lookup par code-barres (voir
@@ -72,7 +79,7 @@ export function ScanPage() {
         ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
         : candidate.attributes
 
-      await quickAdd({
+      const result = await quickAdd({
         entityTypeId: mangaType.id,
         title: candidate.title,
         condition,
@@ -81,7 +88,10 @@ export function ScanPage() {
         edition,
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-      setEntries((prev) => [{ code, status: 'added', title: candidate!.title, volumeNumber, edition }, ...prev])
+      setEntries((prev) => [
+        { code, status: 'added', title: candidate!.title, volumeNumber, edition, alreadyOwned: result.matchedExistingVariant },
+        ...prev,
+      ])
     } finally {
       setProcessing(false)
     }
@@ -117,7 +127,9 @@ export function ScanPage() {
         <ul className="flex flex-col gap-1.5">
           {entries.map((entry, index) => (
             <li key={index} className="flex items-center gap-2 rounded-lg bg-surface p-2.5 text-sm">
-              {entry.status === 'added' && <CheckCircle2 size={16} className="shrink-0 text-accent" />}
+              {entry.status === 'added' && (
+                <CheckCircle2 size={16} className={`shrink-0 ${entry.alreadyOwned ? 'text-textDim' : 'text-accent'}`} />
+              )}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
               <span className="min-w-0 flex-1 truncate text-textPrimary">
@@ -129,6 +141,14 @@ export function ScanPage() {
                 <span className="shrink-0 text-xs text-textDim">
                   Tome {entry.volumeNumber}
                   {entry.edition && ` · ${entry.edition}`}
+                </span>
+              )}
+              {entry.alreadyOwned && (
+                <span
+                  className="shrink-0 text-xs text-textDim"
+                  title="Une Ownership active référence déjà ce tome - exemplaire ajouté quand même"
+                >
+                  · déjà possédé
                 </span>
               )}
             </li>
