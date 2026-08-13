@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Camera, Loader2, Plus, RefreshCw, ScanBarcode, Search, X } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
-import { quickAdd } from '../../api/entities'
+import { quickAdd, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
@@ -181,6 +181,21 @@ export function QuickAddPage() {
     queryFn: ({ signal }) => searchMetadata(entityTypeId!, debouncedTitle, signal),
     enabled: searchEnabled,
   })
+
+  // Recherche LOCALE en parallèle (audit "parcours recherche" : la recherche
+  // externe ci-dessus exclut délibérément les titres déjà possédés de ses
+  // suggestions, voir MetadataSearchService.search côté backend - sans ce
+  // deuxième signal, chercher un titre déjà possédé ne montrait que des
+  // résultats externes sans rapport, ou "Aucun résultat", comme si l'app ne
+  // le connaissait pas du tout). Coûte rien (requête SQL sur la collection,
+  // même requête que RelationshipsSection) - pas besoin de son propre debounce
+  // distinct, searchEnabled/debouncedTitle suffisent.
+  const localMatchQuery = useQuery({
+    queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId }),
+    queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId }),
+    enabled: searchEnabled,
+  })
+  const localMatches = localMatchQuery.data ?? []
 
   // Résout un titre français pour chaque suggestion Jikan/MyAnimeList
   // affichée (pas seulement celle qu'on finira par choisir - voir
@@ -564,6 +579,29 @@ export function QuickAddPage() {
             className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             autoComplete="off"
           />
+
+          {localMatches.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-xl bg-accent/10 px-3 py-2.5">
+              <p className="text-xs font-medium text-accent">Déjà dans ta collection</p>
+              <ul className="flex flex-col gap-1">
+                {localMatches.map((entity) => (
+                  <li key={entity.id}>
+                    <Link
+                      to={`/entity/${entity.id}`}
+                      className="text-sm text-textPrimary underline-offset-2 hover:underline"
+                    >
+                      {entity.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {selectedType?.code === 'MANGA' && (
+                <p className="text-xs text-textDim">
+                  Pour ajouter un tome à une série déjà possédée, ouvre sa fiche plutôt que de continuer la recherche ici.
+                </p>
+              )}
+            </div>
+          )}
 
           {showSearching && (
             <p className="flex items-center gap-1.5 text-xs text-textDim">
