@@ -39,6 +39,7 @@ public class PurchaseAnalysisService {
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final OwnershipRepository ownershipRepository;
+    private final AiEditionAdvisor aiEditionAdvisor;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -49,7 +50,8 @@ public class PurchaseAnalysisService {
                                     CollectorPreferencesRepository collectorPreferencesRepository,
                                     EntityRepository entityRepository,
                                     EntityTypeRepository entityTypeRepository,
-                                    OwnershipRepository ownershipRepository) {
+                                    OwnershipRepository ownershipRepository,
+                                    AiEditionAdvisor aiEditionAdvisor) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -57,6 +59,7 @@ public class PurchaseAnalysisService {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
+        this.aiEditionAdvisor = aiEditionAdvisor;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
 
@@ -124,6 +127,17 @@ public class PurchaseAnalysisService {
 
     public List<MangaEdition> findEditionsForSeries(String seriesTitle) {
         return mangaEditionRepository.findBySeriesTitle(seriesTitle);
+    }
+
+    /**
+     * "Assistance IA" (Phase 2, project memory) - a best-effort draft for an
+     * edition unknown to the system, to pre-fill the manual-entry form
+     * instead of leaving it blank. Deliberately read-only: never calls
+     * {@link MangaEditionRepository#save}, the user must still submit
+     * {@link #createEdition} themselves after reviewing it.
+     */
+    public Optional<EditionSuggestion> suggestEditionReferenceData(String seriesTitle, String editionName) {
+        return aiEditionAdvisor.suggestReferenceData(seriesTitle, editionName);
     }
 
     /**

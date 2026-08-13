@@ -5,6 +5,7 @@ import type {
   CollectionStatusDto,
   CollectorPreferencesDto,
   CreateMangaEditionRequest,
+  EditionSuggestionDto,
   MangaEditionDto,
   MarketPriceObservationDto,
   NearCompleteSuggestionDto,
@@ -35,6 +36,13 @@ export function findEdition(seriesTitle: string, editionName: string): Promise<M
 
 export function searchEditionsForSeries(seriesTitle: string): Promise<MangaEditionDto[]> {
   return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ seriesTitle })}`)
+}
+
+/** Phase 2 (assistance IA) - undefined (204) si aucun fournisseur IA n'est
+ * configuré ou n'a rien pu proposer, jamais une erreur. Purement une
+ * suggestion à faire relire : n'enregistre rien, voir EditionReferenceLookup. */
+export function suggestEditionReferenceData(seriesTitle: string, editionName: string): Promise<EditionSuggestionDto | undefined> {
+  return get<EditionSuggestionDto | undefined>(`/purchase-analysis/editions/ai-suggestion${buildQuery({ seriesTitle, editionName })}`)
 }
 
 /** "Coût pour compléter une série" (Ma collection/fiche d'une série) - même

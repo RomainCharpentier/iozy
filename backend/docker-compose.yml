@@ -45,6 +45,9 @@ services:
       # secours (2e projet Google Cloud, quota indépendant) essayée(s) dès
       # que la clé principale répond 429.
       GOOGLE_BOOKS_BACKUP_API_KEYS: ${GOOGLE_BOOKS_BACKUP_API_KEYS:-}
+      # Optionnel - voir .env.example. Sans clé, l'assistance IA de
+      # l'analyse d'achat reste absente (adaptateur auto-désactivé).
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "8080:8080"
     volumes:

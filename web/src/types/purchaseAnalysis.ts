@@ -302,6 +302,21 @@ export interface PurchaseAnalysisSummaryDto {
   seriesTitles: string[]
 }
 
+/** Phase 2 (assistance IA) - brouillon d'une édition inconnue à faire
+ * relire, jamais enregistré automatiquement (voir AiEditionAdvisor côté
+ * backend). Absente (204) quand aucun fournisseur IA n'est configuré. */
+export interface EditionSuggestionDto {
+  tier: EditionTier | null
+  publisher: string | null
+  totalVolumes: number | null
+  retailPriceNewPerVolume: number | null
+  outOfPrint: boolean | null
+  betterEditionAnnounced: boolean | null
+  betterEditionNote: string | null
+  confidence: ConfidenceLevel
+  rationale: string | null
+}
+
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
  * édition nommée est connue mais incomplète (voir
  * PurchaseAnalysisService.findNearCompleteSuggestions côté backend). */

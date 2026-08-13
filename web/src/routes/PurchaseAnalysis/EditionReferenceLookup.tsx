@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CircleCheck, CircleAlert, Loader2 } from 'lucide-react'
+import { CircleCheck, CircleAlert, Loader2, Sparkles } from 'lucide-react'
 import { ApiError } from '../../api/client'
-import { createEdition, findEdition } from '../../api/purchaseAnalysis'
+import { createEdition, findEdition, suggestEditionReferenceData } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EDITION_TIERS, EDITION_TIER_LABELS, type EditionTier, type MangaEditionDto } from '../../types/purchaseAnalysis'
+
+const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as const
 
 /**
  * Résout une édition connue par (série, nom d'édition) ; si elle n'existe
@@ -61,6 +63,23 @@ export function EditionReferenceLookup({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editionQuery.isSuccess, editionQuery.data])
+
+  // Phase 2 (assistance IA) - un brouillon à relire, jamais enregistré tout seul :
+  // ne fait que pré-remplir les champs ci-dessous, "Enregistrer cette édition"
+  // reste l'unique action qui persiste quoi que ce soit.
+  const suggestMutation = useMutation({
+    mutationFn: () => suggestEditionReferenceData(trimmedSeries, trimmedEdition),
+    onSuccess: (suggestion) => {
+      if (!suggestion) return
+      if (suggestion.tier) setTier(suggestion.tier)
+      if (suggestion.publisher) setPublisher(suggestion.publisher)
+      if (suggestion.totalVolumes !== null) setTotalVolumes(String(suggestion.totalVolumes))
+      if (suggestion.retailPriceNewPerVolume !== null) setRetailPrice(String(suggestion.retailPriceNewPerVolume))
+      if (suggestion.outOfPrint !== null) setOutOfPrint(suggestion.outOfPrint)
+      if (suggestion.betterEditionAnnounced !== null) setBetterEditionAnnounced(suggestion.betterEditionAnnounced)
+      if (suggestion.betterEditionNote) setBetterEditionNote(suggestion.betterEditionNote)
+    },
+  })
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -121,6 +140,29 @@ export function EditionReferenceLookup({
 
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-surface2 p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => suggestMutation.mutate()}
+          disabled={suggestMutation.isPending}
+          className="flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-xs font-medium text-accent disabled:opacity-50"
+        >
+          <Sparkles size={13} />
+          {suggestMutation.isPending ? "Interrogation de l'IA..." : "Pré-remplir avec l'IA"}
+        </button>
+      </div>
+      {suggestMutation.isSuccess && suggestMutation.data && (
+        <p className="rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs text-textDim">
+          <span className="font-medium text-accent">Estimation IA — non vérifiée</span>
+          {` (confiance ${CONFIDENCE_LABELS[suggestMutation.data.confidence]})`}
+          {suggestMutation.data.rationale && ` · ${suggestMutation.data.rationale}`}
+          {' '}Vérifie et corrige les champs ci-dessous avant d'enregistrer.
+        </p>
+      )}
+      {suggestMutation.isSuccess && !suggestMutation.data && (
+        <p className="text-xs text-textDim">Aucune suggestion IA disponible pour cette édition.</p>
+      )}
+      {suggestMutation.isError && <p className="text-xs text-textDim">IA indisponible pour le moment.</p>}
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-textDim">Rang de l'édition</span>
         <div className="flex flex-wrap gap-1.5">
