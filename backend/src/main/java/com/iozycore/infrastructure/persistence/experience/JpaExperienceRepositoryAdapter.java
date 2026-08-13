@@ -53,6 +53,7 @@ public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
         return new ExperienceJpaEntity(
                 experience.id(),
                 experience.entityId(),
+                experience.variantId().orElse(null),
                 experience.ownerId(),
                 experience.experienceType(),
                 experience.occurredAt(),
@@ -65,6 +66,7 @@ public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
         return Experience.reconstitute(
                 jpaEntity.getId(),
                 jpaEntity.getEntityId(),
+                jpaEntity.getVariantId(),
                 jpaEntity.getOwnerId(),
                 jpaEntity.getExperienceType(),
                 jpaEntity.getOccurredAt(),

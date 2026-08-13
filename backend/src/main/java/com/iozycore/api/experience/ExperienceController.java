@@ -52,8 +52,13 @@ public class ExperienceController {
                             .formatted(request.experienceType(), entityType.code()));
         }
 
+        if (request.variantId() != null && entity.variants().stream().noneMatch(v -> v.id().equals(request.variantId()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Variant introuvable sur cette Entity : " + request.variantId());
+        }
+
         Experience experience = Experience.record_(
-                request.entityId(), request.experienceType(), request.occurredAt(),
+                request.entityId(), request.variantId(), request.experienceType(), request.occurredAt(),
                 request.rating(), request.comment());
 
         return ExperienceResponse.from(experienceRepository.save(experience));

@@ -33,7 +33,7 @@ class DiscoveryServiceTest {
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         deathNote.setAttribute("mangaka", "Ohba, Tsugumi");
         entityRepository.save(deathNote);
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.now(), 9, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.now(), 9, null));
 
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of(
                 new MetadataCandidate("JIKAN", "1", "Death Note", null, Map.of()), // déjà possédé - doit être exclu

@@ -78,7 +78,7 @@ public class ExportService {
                 .toList();
 
         List<ExportDocument.ExperienceExport> experienceExports = experienceRepository.findAll().stream()
-                .map(experience -> toExperienceExport(experience, entitiesById))
+                .map(experience -> toExperienceExport(experience, entitiesById, variantLabelsById))
                 .toList();
 
         List<ExportDocument.WishlistEntryExport> wishlistExports = wishlistEntryRepository.findAll().stream()
@@ -123,11 +123,15 @@ public class ExportService {
                 ownership.purchasePrice().orElse(null));
     }
 
-    private static ExportDocument.ExperienceExport toExperienceExport(Experience experience, Map<UUID, Entity> entitiesById) {
+    private static ExportDocument.ExperienceExport toExperienceExport(Experience experience, Map<UUID, Entity> entitiesById,
+                                                                        Map<UUID, String> variantLabelsById) {
         Entity entity = entitiesById.get(experience.entityId());
+        UUID variantId = experience.variantId().orElse(null);
         return new ExportDocument.ExperienceExport(experience.id(), experience.entityId(),
-                entity != null ? entity.title() : null, experience.experienceType(), experience.occurredAt(),
-                experience.rating().orElse(null), experience.comment());
+                entity != null ? entity.title() : null, variantId,
+                variantId != null ? variantLabelsById.get(variantId) : null,
+                experience.experienceType(), experience.occurredAt(), experience.rating().orElse(null),
+                experience.comment());
     }
 
     private static ExportDocument.WishlistEntryExport toWishlistExport(WishlistEntry entry, Map<UUID, Entity> entitiesById) {

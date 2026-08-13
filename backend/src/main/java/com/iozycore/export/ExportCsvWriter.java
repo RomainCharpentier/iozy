@@ -53,10 +53,10 @@ public class ExportCsvWriter {
                         str(o.note()), str(o.purchasePrice()))));
 
         files.put("experiences.csv", writeCsv(
-                List.of("id", "entityId", "entityTitle", "experienceType", "occurredAt", "rating", "comment"),
+                List.of("id", "entityId", "entityTitle", "variantId", "variantLabel", "experienceType", "occurredAt", "rating", "comment"),
                 document.experiences(),
-                x -> List.of(str(x.id()), str(x.entityId()), str(x.entityTitle()), str(x.experienceType()),
-                        str(x.occurredAt()), str(x.rating()), str(x.comment()))));
+                x -> List.of(str(x.id()), str(x.entityId()), str(x.entityTitle()), str(x.variantId()), str(x.variantLabel()),
+                        str(x.experienceType()), str(x.occurredAt()), str(x.rating()), str(x.comment()))));
 
         files.put("wishlist.csv", writeCsv(
                 List.of("id", "entityId", "entityTitle", "addedAt"),

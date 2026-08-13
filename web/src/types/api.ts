@@ -65,6 +65,9 @@ export interface OwnershipResponse {
 // --- Experience ---
 export interface RecordExperienceRequest {
   entityId: UUID
+  // Facultatif : quel tome précis cette expérience concerne (voir Experience
+  // côté backend) - absent = la série entière, ou un type sans notion de tome.
+  variantId?: UUID
   experienceType: string
   occurredAt: LocalDateString
   rating?: number
@@ -74,6 +77,7 @@ export interface RecordExperienceRequest {
 export interface ExperienceResponse {
   id: UUID
   entityId: UUID
+  variantId: UUID | null
   experienceType: string
   occurredAt: LocalDateString
   rating: number | null
