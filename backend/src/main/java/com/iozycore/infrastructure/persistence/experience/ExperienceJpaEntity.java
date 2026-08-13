@@ -17,6 +17,9 @@ public class ExperienceJpaEntity {
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
+    @Column(name = "variant_id")
+    private UUID variantId;
+
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
 
@@ -39,10 +42,11 @@ public class ExperienceJpaEntity {
     protected ExperienceJpaEntity() {
     }
 
-    public ExperienceJpaEntity(UUID id, UUID entityId, UUID ownerId, String experienceType, LocalDate occurredAt,
-                                Integer rating, String comment) {
+    public ExperienceJpaEntity(UUID id, UUID entityId, UUID variantId, UUID ownerId, String experienceType,
+                                LocalDate occurredAt, Integer rating, String comment) {
         this.id = id;
         this.entityId = entityId;
+        this.variantId = variantId;
         this.ownerId = ownerId;
         this.experienceType = experienceType;
         this.occurredAt = occurredAt;
@@ -52,6 +56,7 @@ public class ExperienceJpaEntity {
 
     public UUID getId() { return id; }
     public UUID getEntityId() { return entityId; }
+    public UUID getVariantId() { return variantId; }
     public UUID getOwnerId() { return ownerId; }
     public String getExperienceType() { return experienceType; }
     public LocalDate getOccurredAt() { return occurredAt; }

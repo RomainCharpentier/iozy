@@ -38,8 +38,8 @@ public record ExportDocument(
                                    BigDecimal purchasePrice) {
     }
 
-    public record ExperienceExport(UUID id, UUID entityId, String entityTitle, String experienceType,
-                                    LocalDate occurredAt, Integer rating, String comment) {
+    public record ExperienceExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,
+                                    String experienceType, LocalDate occurredAt, Integer rating, String comment) {
     }
 
     public record WishlistEntryExport(UUID id, UUID entityId, String entityTitle, LocalDate addedAt) {

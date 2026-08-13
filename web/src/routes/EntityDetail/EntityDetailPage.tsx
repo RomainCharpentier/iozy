@@ -123,6 +123,7 @@ export function EntityDetailPage() {
         entityId={entityId}
         experiences={experiences}
         allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
+        variants={entity.variants}
       />
 
       <RelationshipsSection

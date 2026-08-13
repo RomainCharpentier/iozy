@@ -52,8 +52,8 @@ class StatsServiceTest {
         soldOwnership.markSold();
         ownershipRepository.save(soldOwnership);
 
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.now(), 9, null));
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.now(), 7, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.now(), 9, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.now(), 7, null));
 
         wishlistEntryRepository.save(WishlistEntry.add(UUID.randomUUID(), LocalDate.now()));
 
@@ -145,8 +145,8 @@ class StatsServiceTest {
         ownershipRepository.save(Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW,
                 LocalDate.of(2026, 5, 1), null));
 
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.of(2026, 2, 10), 9, null));
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.of(2025, 1, 1), 5, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.of(2026, 2, 10), 9, null));
+        experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.of(2025, 1, 1), 5, null));
 
         StatsService statsService = new StatsService(
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,

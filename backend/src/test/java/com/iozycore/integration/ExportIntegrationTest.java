@@ -83,7 +83,8 @@ class ExportIntegrationTest {
         ownership.updatePurchasePrice(new BigDecimal("6.90"));
         ownershipRepository.save(ownership);
 
-        experienceRepository.save(Experience.record_(deathNote.id(), "READ", LocalDate.now(), 9, "Excellent"));
+        Experience experience = experienceRepository.save(
+                Experience.record_(deathNote.id(), tome1.id(), "READ", LocalDate.now(), 9, "Excellent"));
         wishlistEntryRepository.save(WishlistEntry.add(bakuman.id(), LocalDate.now()));
         relationshipRepository.save(new Relationship(UUID.randomUUID(), deathNote.id(), bakuman.id(), "SAME_AUTHOR"));
 
@@ -104,7 +105,12 @@ class ExportIntegrationTest {
         assertThat(document.experiences()).anySatisfy(x -> {
             assertThat(x.entityTitle()).isEqualTo(deathNote.title());
             assertThat(x.rating()).isEqualTo(9);
+            assertThat(x.variantId()).isEqualTo(tome1.id());
+            assertThat(x.variantLabel()).isEqualTo("Tome 1");
         });
+
+        Experience reloaded = experienceRepository.findById(experience.id()).orElseThrow();
+        assertThat(reloaded.variantId()).contains(tome1.id());
         assertThat(document.wishlist()).anySatisfy(w -> assertThat(w.entityTitle()).isEqualTo(bakuman.title()));
         assertThat(document.relationships()).anySatisfy(r -> {
             assertThat(r.sourceEntityTitle()).isEqualTo(deathNote.title());
