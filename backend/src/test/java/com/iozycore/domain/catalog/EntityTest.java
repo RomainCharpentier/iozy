@@ -81,6 +81,49 @@ class EntityTest {
     }
 
     @Test
+    void a_new_variant_has_no_manga_edition_link_by_default() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+
+        assertEquals(null, variant.mangaEditionId());
+    }
+
+    @Test
+    void linking_a_variant_to_a_manga_edition_sets_it_without_touching_attributes() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Black Edition"));
+        UUID mangaEditionId = UUID.randomUUID();
+
+        entity.linkVariantToEdition(variant.id(), mangaEditionId);
+
+        Variant updated = entity.variants().get(0);
+        assertEquals(mangaEditionId, updated.mangaEditionId());
+        assertEquals(1, updated.attributes().get("volumeNumber"));
+        assertEquals("Black Edition", updated.attributes().get("edition"));
+    }
+
+    @Test
+    void linking_an_unknown_variant_to_a_manga_edition_fails_loudly() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> entity.linkVariantToEdition(UUID.randomUUID(), UUID.randomUUID()));
+    }
+
+    @Test
+    void merging_attributes_preserves_an_existing_manga_edition_link() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        UUID mangaEditionId = UUID.randomUUID();
+        entity.linkVariantToEdition(variant.id(), mangaEditionId);
+
+        entity.mergeVariantAttributes(variant.id(), Map.of("coverImageUrl", "https://example.com/tome1.jpg"));
+
+        assertEquals(mangaEditionId, entity.variants().get(0).mangaEditionId());
+    }
+
+    @Test
     void reconstituted_entity_does_not_raise_new_events() {
         UUID id = UUID.randomUUID();
         Entity entity = Entity.reconstitute(id, EntityTypeFixtures.MANGA.id(), "Berserk",

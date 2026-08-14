@@ -39,6 +39,8 @@ export interface VariantDto {
   id: UUID
   label: string
   attributes: Record<string, unknown>
+  /** Édition catalogue liée à ce tome, quand elle est connue (modèle Série -> Édition -> Tome). */
+  mangaEditionId: UUID | null
 }
 
 export interface EntityResponse {

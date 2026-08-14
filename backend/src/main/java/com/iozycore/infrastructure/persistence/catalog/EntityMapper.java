@@ -19,7 +19,7 @@ public final class EntityMapper {
 
     public static com.iozycore.domain.catalog.Entity toDomain(EntityJpaEntity jpaEntity, List<VariantJpaEntity> jpaVariants) {
         List<Variant> variants = jpaVariants.stream()
-                .map(v -> new Variant(v.getId(), v.getLabel(), v.getAttributes()))
+                .map(v -> new Variant(v.getId(), v.getLabel(), v.getAttributes(), v.getMangaEditionId()))
                 .collect(Collectors.toList());
 
         return com.iozycore.domain.catalog.Entity.reconstitute(
@@ -46,7 +46,7 @@ public final class EntityMapper {
 
     public static List<VariantJpaEntity> toJpaVariants(com.iozycore.domain.catalog.Entity domainEntity) {
         return domainEntity.variants().stream()
-                .map(v -> new VariantJpaEntity(v.id(), domainEntity.id(), v.label(), v.attributes()))
+                .map(v -> new VariantJpaEntity(v.id(), domainEntity.id(), v.label(), v.attributes(), v.mangaEditionId()))
                 .collect(Collectors.toList());
     }
 }
