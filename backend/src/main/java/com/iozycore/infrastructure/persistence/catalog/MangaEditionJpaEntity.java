@@ -1,4 +1,4 @@
-package com.iozycore.infrastructure.persistence.purchaseanalysis;
+package com.iozycore.infrastructure.persistence.catalog;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,13 +9,16 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/** See V4__purchase_analysis.sql. */
+/** See V4__purchase_analysis.sql (table) and V10__manga_edition_entity_id.sql (entity_id column). */
 @Entity
 @Table(name = "manga_edition")
 public class MangaEditionJpaEntity {
 
     @Id
     private UUID id;
+
+    @Column(name = "entity_id")
+    private UUID entityId;
 
     @Column(name = "series_title", nullable = false)
     private String seriesTitle;
@@ -56,11 +59,12 @@ public class MangaEditionJpaEntity {
         // required by JPA
     }
 
-    public MangaEditionJpaEntity(UUID id, String seriesTitle, String editionName, String editionTier,
+    public MangaEditionJpaEntity(UUID id, UUID entityId, String seriesTitle, String editionName, String editionTier,
                                   String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
                                   boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote,
                                   String languageCode, Instant createdAt, Instant updatedAt) {
         this.id = id;
+        this.entityId = entityId;
         this.seriesTitle = seriesTitle;
         this.editionName = editionName;
         this.editionTier = editionTier;
@@ -76,6 +80,7 @@ public class MangaEditionJpaEntity {
     }
 
     public UUID getId() { return id; }
+    public UUID getEntityId() { return entityId; }
     public String getSeriesTitle() { return seriesTitle; }
     public String getEditionName() { return editionName; }
     public String getEditionTier() { return editionTier; }

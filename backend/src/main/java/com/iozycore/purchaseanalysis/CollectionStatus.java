@@ -1,6 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.iozycore.domain.catalog.MangaEdition;
 
 import java.math.BigDecimal;
 import java.util.List;

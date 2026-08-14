@@ -1,7 +1,7 @@
-package com.iozycore.infrastructure.persistence.purchaseanalysis;
+package com.iozycore.infrastructure.persistence.catalog;
 
-import com.iozycore.purchaseanalysis.MangaEdition;
-import com.iozycore.purchaseanalysis.MangaEditionRepository;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +38,13 @@ public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository 
     @Override
     public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
         return jpaRepository.findBySeriesTitleIgnoreCase(seriesTitle).stream()
+                .map(MangaEditionMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<MangaEdition> findByEntityId(UUID entityId) {
+        return jpaRepository.findByEntityId(entityId).stream()
                 .map(MangaEditionMapper::toDomain)
                 .toList();
     }

@@ -1,4 +1,4 @@
-package com.iozycore.infrastructure.persistence.purchaseanalysis;
+package com.iozycore.infrastructure.persistence.catalog;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface MangaEditionJpaRepository extends JpaRepository<MangaEditionJpaEntity, UUID> {
     Optional<MangaEditionJpaEntity> findBySeriesTitleIgnoreCaseAndEditionNameIgnoreCase(String seriesTitle, String editionName);
     List<MangaEditionJpaEntity> findBySeriesTitleIgnoreCase(String seriesTitle);
+    List<MangaEditionJpaEntity> findByEntityId(UUID entityId);
 }

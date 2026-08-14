@@ -1,5 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
+
 import java.util.List;
 import java.util.Map;
 

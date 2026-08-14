@@ -1,6 +1,6 @@
 package com.iozycore.infrastructure.persistence.purchaseanalysis;
 
-import com.iozycore.purchaseanalysis.EditionTier;
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.purchaseanalysis.VerdictFactor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

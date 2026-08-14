@@ -1,5 +1,8 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.domain.catalog.MangaEdition;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
