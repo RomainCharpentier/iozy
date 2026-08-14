@@ -16,7 +16,7 @@ class VerdictScorerTest {
 
     @Test
     void a_price_far_out_of_market_range_can_never_read_as_a_good_deal_regardless_of_edition_quality() {
-        CollectionStatus complete = new CollectionStatus(null, 6, 0, List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
+        CollectionStatus complete = new CollectionStatus(null, 6, 0, List.of(), List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
         VerdictScorer.Input input = new VerdictScorer.Input(
                 new BigDecimal("20"), new BigDecimal("100"), new BigDecimal("120"), new BigDecimal("83"), true,
                 Condition.MINT_SEALED, false, List.of(complete), true, false, List.of(EditionTier.PERFECT), true,
@@ -42,7 +42,7 @@ class VerdictScorerTest {
 
     @Test
     void an_excellent_scenario_across_every_factor_reaches_the_excellent_deal_threshold() {
-        CollectionStatus complete = new CollectionStatus(null, 11, 0, List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
+        CollectionStatus complete = new CollectionStatus(null, 11, 0, List.of(), List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
         VerdictScorer.Input input = new VerdictScorer.Input(
                 new BigDecimal("50"), new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("67"), true,
                 Condition.MINT_SEALED, false, List.of(complete), true, false, List.of(EditionTier.PERFECT), true,
@@ -56,7 +56,7 @@ class VerdictScorerTest {
 
     @Test
     void a_poor_scenario_across_every_factor_reaches_avoid_or_expensive() {
-        CollectionStatus incomplete = new CollectionStatus(null, 26, 20, List.of(), new BigDecimal("140"), PriceBasis.THEORETICAL_ONLY);
+        CollectionStatus incomplete = new CollectionStatus(null, 26, 20, List.of(), List.of(), new BigDecimal("140"), PriceBasis.THEORETICAL_ONLY);
         VerdictScorer.Input input = new VerdictScorer.Input(
                 new BigDecimal("200"), new BigDecimal("80"), new BigDecimal("90"), new BigDecimal("-5"), false,
                 Condition.VISIBLE_DEFECTS, false, List.of(incomplete), true, true, List.of(EditionTier.STANDARD),

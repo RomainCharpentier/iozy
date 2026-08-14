@@ -122,16 +122,29 @@ public class PurchaseAnalysisController {
     @Operation(summary = "\"Coût pour compléter une série\" (Ma collection) - completeness and estimated cost to "
             + "complete for volumes already owned, using the same engine as a listing being evaluated. The edition "
             + "being unknown to the system is not an error: the response simply reports completeness as unknown, "
-            + "never guessed.")
+            + "never guessed. volumes is optional and empty means genuinely zero owned (modèle Tome != Ownership, "
+            + "étape 4/8: a named edition can perfectly well have zero currently-owned copies, e.g. every tome of "
+            + "it was resold). cataloguedVolumes is optional too (étape 6/8) - volume numbers that already have a "
+            + "real catalogued Variant regardless of Ownership, letting the response distinguish missing-but-"
+            + "catalogued from purely virtual gaps; omitted entirely, the distinction is simply absent.")
     @GetMapping("/completeness")
     public CollectionStatus completeness(@RequestParam String seriesTitle, @RequestParam String editionName,
-                                          @RequestParam String volumes) {
-        Set<Integer> includedVolumes = Arrays.stream(volumes.split(","))
+                                          @RequestParam(required = false) String volumes,
+                                          @RequestParam(required = false) String cataloguedVolumes) {
+        Set<Integer> includedVolumes = parseVolumeNumbers(volumes);
+        Set<Integer> knownCataloguedVolumes = parseVolumeNumbers(cataloguedVolumes);
+        return service.computeCompleteness(seriesTitle, editionName, includedVolumes, knownCataloguedVolumes);
+    }
+
+    private static Set<Integer> parseVolumeNumbers(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(csv.split(","))
                 .map(String::trim)
                 .filter(v -> !v.isBlank())
                 .map(Integer::parseInt)
                 .collect(java.util.stream.Collectors.toSet());
-        return service.computeCompleteness(seriesTitle, editionName, includedVolumes);
     }
 
     @Operation(summary = "\"Suggestions d'achats\" (Mon profil) - séries déjà en collection dont une édition "

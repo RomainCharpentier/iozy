@@ -89,4 +89,29 @@ class CompletenessCalculatorTest {
         assertThat(status.isComplete()).isTrue();
         assertThat(status.estimatedCostToComplete()).isEqualByComparingTo(BigDecimal.ZERO);
     }
+
+    @Test
+    void the_three_argument_overload_never_reports_a_catalogued_vs_virtual_distinction() {
+        // Utilisé par PurchaseAnalysisEngine pour évaluer une annonce tierce - le catalogue
+        // de l'utilisateur n'a aucun sens dans ce contexte, voir javadoc de l'overload.
+        MangaEdition edition = MangaEdition.create("My Home Hero", "Standard", EditionTier.STANDARD, "Kodansha",
+                26, new BigDecimal("6.90"), false, false, null);
+
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3), edition, null);
+
+        assertThat(status.cataloguedMissingVolumeNumbers()).isEmpty();
+    }
+
+    @Test
+    void distinguishes_catalogued_but_unowned_missing_volumes_from_purely_virtual_ones() {
+        // Étape 6/8 (modèle Tome != Ownership) : 4 possédés (1-4), tome 5 catalogué mais
+        // pas possédé (ex: revendu), tomes 6 à 10 purement virtuels (jamais catalogués).
+        MangaEdition edition = MangaEdition.create("Parasyte", "Standard", EditionTier.STANDARD, "Tonkam",
+                10, new BigDecimal("7.50"), false, false, null);
+
+        CollectionStatus status = calculator.compute(Set.of(1, 2, 3, 4), Set.of(1, 2, 3, 4, 5), edition, null);
+
+        assertThat(status.missingVolumeNumbers()).containsExactly(5, 6, 7, 8, 9, 10);
+        assertThat(status.cataloguedMissingVolumeNumbers()).containsExactly(5);
+    }
 }

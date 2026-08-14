@@ -123,7 +123,12 @@ export function EntityDetailPage() {
           mélangées (voir SeriesCompletenessSection) - n'a de sens que pour
           une série composée de tomes numérotés. */}
       {entityType?.code === 'MANGA' && (
-        <SeriesCompletenessSection entityId={entityId} entityTitle={entity.title} variants={entity.variants} />
+        <SeriesCompletenessSection
+          entityId={entityId}
+          entityTitle={entity.title}
+          variants={entity.variants}
+          ownerships={ownerships}
+        />
       )}
 
       {/* Réservé au Manga (volumeNumber/edition n'ont de sens que pour un
