@@ -138,6 +138,8 @@ export interface RecordMarketObservationRequest {
 
 export interface MangaEditionDto {
   id: string
+  /** Lien vers la Série catalogue (Entity) quand elle est connue - nullable, jamais deviné (modèle Série -> Édition -> Tome). */
+  entityId: string | null
   seriesTitle: string
   editionName: string
   tier: EditionTier

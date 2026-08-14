@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.purchaseanalysis.AiEditionAdvisor;
 import com.iozycore.purchaseanalysis.ConfidenceLevel;
 import com.iozycore.purchaseanalysis.EditionSuggestion;
-import com.iozycore.purchaseanalysis.EditionTier;
+import com.iozycore.domain.catalog.EditionTier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

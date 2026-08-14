@@ -1,5 +1,8 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
+
 import java.util.Optional;
 
 /**

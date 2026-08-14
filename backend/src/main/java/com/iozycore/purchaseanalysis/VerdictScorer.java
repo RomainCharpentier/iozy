@@ -1,5 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.EnumMap;

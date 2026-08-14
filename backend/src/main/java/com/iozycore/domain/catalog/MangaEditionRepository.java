@@ -1,4 +1,4 @@
-package com.iozycore.purchaseanalysis;
+package com.iozycore.domain.catalog;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +16,8 @@ public interface MangaEditionRepository {
 
     /** All known editions of a series (case-insensitive) - powers "a Perfect edition exists for this work" warnings. */
     List<MangaEdition> findBySeriesTitle(String seriesTitle);
+
+    /** All known editions structurally linked to a catalog Série (see {@link MangaEdition#entityId()}) - unlike
+     * {@link #findBySeriesTitle}, never a text-matching fallback: only editions actually rattachées. */
+    List<MangaEdition> findByEntityId(UUID entityId);
 }

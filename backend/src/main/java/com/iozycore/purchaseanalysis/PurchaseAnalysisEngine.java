@@ -1,5 +1,8 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.domain.catalog.MangaEdition;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;

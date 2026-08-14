@@ -1,9 +1,12 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -88,8 +91,12 @@ public class PurchaseAnalysisService {
                     itemCommand.itemConditionOverride());
             listingItems.add(item);
 
-            Optional<MangaEdition> matchedEdition = mangaEditionRepository.findBySeriesAndEdition(
+            Optional<MangaEdition> resolvedEdition = mangaEditionRepository.findBySeriesAndEdition(
                     series.title(), itemCommand.editionName());
+            if (resolvedEdition.isPresent() && series.knownEntityId() != null) {
+                resolvedEdition = Optional.of(linkToKnownEntityIfNeeded(resolvedEdition.get(), series.knownEntityId()));
+            }
+            final Optional<MangaEdition> matchedEdition = resolvedEdition;
             List<MangaEdition> siblingEditions = mangaEditionRepository.findBySeriesTitle(series.title()).stream()
                     .filter(edition -> matchedEdition.isEmpty() || !edition.id().equals(matchedEdition.get().id()))
                     .toList();
@@ -270,9 +277,27 @@ public class PurchaseAnalysisService {
     public MangaEdition createEdition(String seriesTitle, String editionName, EditionTier tier, String publisher,
                                        Integer totalVolumes, BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                        boolean betterEditionAnnounced, String betterEditionNote) {
-        MangaEdition edition = MangaEdition.create(seriesTitle, editionName, tier, publisher, totalVolumes,
-                retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote);
+        // Modèle catalogue cible (Série -> Édition -> Tome) : si cette série est déjà une Entity
+        // connue, lie l'édition dès sa création plutôt que d'attendre une prochaine analyse.
+        UUID knownEntityId = seriesMatcher.match(seriesTitle).knownEntityId();
+        MangaEdition edition = MangaEdition.create(knownEntityId, seriesTitle, editionName, tier, publisher,
+                totalVolumes, retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote);
         return mangaEditionRepository.save(edition);
+    }
+
+    /**
+     * Le matching texte ({@link SeriesMatcher}, comparaison de titres) reste le mécanisme de
+     * résolution à l'usage, mais la relation persistante cible est bien {@code manga_edition.entity_id}
+     * une fois connue - dès qu'une édition déjà enregistrée est utilisée aux côtés d'une Entity
+     * elle-même déjà résolue, le lien est enregistré une bonne fois pour toutes plutôt que
+     * rematché à chaque appel. Jamais l'inverse : n'invente/ne force jamais un entityId sans un
+     * match déjà établi ailleurs (ici, par {@link SeriesMatcher}).
+     */
+    private MangaEdition linkToKnownEntityIfNeeded(MangaEdition edition, UUID knownEntityId) {
+        if (edition.entityId() != null || knownEntityId == null) {
+            return edition;
+        }
+        return mangaEditionRepository.save(edition.withEntityId(knownEntityId));
     }
 
     public MangaEdition updateEdition(UUID id, EditionTier tier, String publisher, Integer totalVolumes,

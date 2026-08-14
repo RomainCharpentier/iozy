@@ -2,7 +2,7 @@ package com.iozycore.purchaseanalysis.gemini;
 
 import com.iozycore.purchaseanalysis.ConfidenceLevel;
 import com.iozycore.purchaseanalysis.EditionSuggestion;
-import com.iozycore.purchaseanalysis.EditionTier;
+import com.iozycore.domain.catalog.EditionTier;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

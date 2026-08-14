@@ -1,5 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.MangaEdition;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
