@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
@@ -32,10 +32,15 @@ export function AddVolumeSection({
   entityId,
   entityTypeId,
   title,
+  prefill,
 }: {
   entityId: string
   entityTypeId: string
   title: string
+  // Déclenché par un clic sur un tome manquant dans la grille (voir
+  // TomesGridSection) - ouvre le formulaire directement pré-rempli plutôt que
+  // de faire retaper un numéro et un nom d'édition déjà connus.
+  prefill?: { volumeNumber: number; edition: string } | null
 }) {
   const queryClient = useQueryClient()
   const [expanded, setExpanded] = useState(false)
@@ -44,6 +49,14 @@ export function AddVolumeSection({
   const [edition, setEdition] = useState('')
   const [purchasePrice, setPurchasePrice] = useState('')
   const [manualVolumes, setManualVolumes] = useState<ManualVolume[]>([])
+
+  useEffect(() => {
+    if (!prefill) return
+    setVolumeNumber(String(prefill.volumeNumber))
+    setEdition(prefill.edition)
+    setExpanded(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill?.volumeNumber, prefill?.edition])
 
   const totalVolumesToAdd = manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
 

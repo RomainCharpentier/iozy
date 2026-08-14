@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
@@ -12,7 +13,7 @@ import { gradientFor } from '../../theme/gradient'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
-import { SeriesCompletenessSection } from './SeriesCompletenessSection'
+import { TomesGridSection } from './TomesGridSection'
 import { AddVolumeSection } from './AddVolumeSection'
 import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
@@ -21,13 +22,19 @@ import { DeleteEntitySection } from './DeleteEntitySection'
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
+  const navigate = useNavigate()
   // Présent quand on arrive en cliquant une tuile de tome précise dans "Ma
-  // collection" (vue non groupée, voir ShelfPage.tsx) - permet à
-  // OwnershipsSection de mettre ce tome en évidence au lieu d'atterrir sur
-  // la fiche de la série entière sans indication de laquelle des
-  // possessions on vient de cliquer.
+  // collection" (vue non groupée, voir ShelfPage.tsx), ou en cliquant un
+  // tome possédé dans la grille ci-dessous (voir onSelectOwnedVariant) -
+  // permet à OwnershipsSection de mettre ce tome en évidence au lieu
+  // d'atterrir sur la fiche entière sans indication de laquelle des
+  // possessions on vient de désigner.
   const [searchParams] = useSearchParams()
   const highlightedVariantId = searchParams.get('variant')
+  // Déclenché par un clic sur un tome MANQUANT dans la grille - ouvre
+  // AddVolumeSection déjà pré-rempli plutôt que de faire retaper un numéro
+  // et une édition déjà connus (voir TomesGridSection/AddVolumeSection).
+  const [addVolumePrefill, setAddVolumePrefill] = useState<{ volumeNumber: number; edition: string } | null>(null)
 
   // 5 requêtes indépendantes déclenchées en parallèle (React Query émet
   // chaque useQuery dès le rendu, pas de chaînage séquentiel) - même
@@ -63,8 +70,10 @@ export function EntityDetailPage() {
   const entityType = entityTypesQuery.data?.find((t) => t.id === entity.entityTypeId)
   const ownerships = ownershipsQuery.data ?? []
   const experiences = experiencesQuery.data ?? []
+  const isManga = entityType?.code === 'MANGA'
 
   const coverImageUrl = coverImageUrlFrom(entity.attributes)
+  const author = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : null
   const activeOwnership = ownerships.find((o) => o.status === 'OWNED')
   const bestExperience = experiences.reduce<(typeof experiences)[number] | null>((best, exp) => {
     if (exp.rating === null) return best
@@ -91,6 +100,7 @@ export function EntityDetailPage() {
           </span>
         )}
         <h1 className="relative font-display text-2xl font-bold text-textPrimary">{entity.title}</h1>
+        {author && <p className="relative text-sm text-textPrimary/80">{author}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -106,8 +116,28 @@ export function EntityDetailPage() {
         )}
       </div>
 
-      {tagsQuery.data && (
-        <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data} />
+      {/* Priorité visuelle : la grille des tomes (possédé/manquant) juste
+          après l'en-tête, avant tout le reste - voir l'audit UX "la
+          consultation doit d'abord répondre à ce que je possède/ce qu'il me
+          manque". Réservée au Manga : volumeNumber/édition n'ont de sens que
+          pour un tome (voir QuickAddService côté backend). */}
+      {isManga && (
+        <TomesGridSection
+          entityTitle={entity.title}
+          variants={entity.variants}
+          ownerships={ownerships}
+          onSelectOwnedVariant={(variantId) => navigate(`/entity/${entityId}?variant=${variantId}`, { replace: true })}
+          onSelectMissingVolume={(volumeNumber, edition) => setAddVolumePrefill({ volumeNumber, edition })}
+        />
+      )}
+
+      {isManga && (
+        <AddVolumeSection
+          entityId={entityId}
+          entityTypeId={entity.entityTypeId}
+          title={entity.title}
+          prefill={addVolumePrefill}
+        />
       )}
 
       <OwnershipsSection
@@ -119,24 +149,8 @@ export function EntityDetailPage() {
         highlightedVariantId={highlightedVariantId}
       />
 
-      {/* Réservé au Manga : complétude par édition + détection d'éditions
-          mélangées (voir SeriesCompletenessSection) - n'a de sens que pour
-          une série composée de tomes numérotés. */}
-      {entityType?.code === 'MANGA' && (
-        <SeriesCompletenessSection
-          entityId={entityId}
-          entityTitle={entity.title}
-          variants={entity.variants}
-          ownerships={ownerships}
-        />
-      )}
-
-      {/* Réservé au Manga (volumeNumber/edition n'ont de sens que pour un
-          tome, voir QuickAddService côté backend) - complète une édition déjà
-          en collection sans repasser par tout le parcours Ajout rapide (voir
-          AddVolumeSection). */}
-      {entityType?.code === 'MANGA' && (
-        <AddVolumeSection entityId={entityId} entityTypeId={entity.entityTypeId} title={entity.title} />
+      {tagsQuery.data && (
+        <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data} />
       )}
 
       <ExperiencesSection
