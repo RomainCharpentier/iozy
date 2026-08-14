@@ -1,8 +1,12 @@
 package com.iozycore.application;
 
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -38,7 +42,8 @@ class QuickAddServiceTest {
     void re_adding_the_exact_same_title_reuses_the_existing_entity_instead_of_duplicating_it() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
-        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository, event -> {
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
+                new InMemoryMangaEditionRepository(), event -> {
         });
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
@@ -69,7 +74,8 @@ class QuickAddServiceTest {
     @Test
     void prefilled_attributes_never_overwrite_attributes_already_set_on_a_matched_entity() {
         InMemoryEntityRepository repo = new InMemoryEntityRepository();
-        QuickAddService service = new QuickAddService(repo, new InMemoryOwnershipRepository(), event -> {
+        QuickAddService service = new QuickAddService(repo, new InMemoryOwnershipRepository(),
+                new InMemoryMangaEditionRepository(), event -> {
         });
 
         service.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
@@ -86,7 +92,8 @@ class QuickAddServiceTest {
     void adding_two_different_volume_numbers_of_the_same_series_creates_two_variants_on_one_entity() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
-        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository, event -> {
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
+                new InMemoryMangaEditionRepository(), event -> {
         });
 
         QuickAddService.QuickAddResult tome1 = service.addNewEntityWithOwnership(
@@ -108,7 +115,8 @@ class QuickAddServiceTest {
     void re_adding_the_same_volume_number_reuses_the_variant_and_flags_it_as_already_owned() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
-        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository, event -> {
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
+                new InMemoryMangaEditionRepository(), event -> {
         });
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
@@ -126,7 +134,9 @@ class QuickAddServiceTest {
     @Test
     void same_volume_number_with_a_different_edition_is_a_distinct_variant() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
+        InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
+        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                mangaEditionRepository, event -> {
         });
 
         QuickAddService.QuickAddResult pika = service.addNewEntityWithOwnership(
@@ -137,6 +147,77 @@ class QuickAddServiceTest {
         assertThat(pika.variantId()).isNotEqualTo(perfectEdition.variantId());
         Entity entity = entityRepository.findById(pika.entityId()).orElseThrow();
         assertThat(entity.variants()).hasSize(2);
+
+        // Chaque édition distincte est aussi reliée à sa propre Édition catalogue -
+        // pas de doublon, mais pas non plus un seul et même mangaEditionId pour les deux.
+        UUID pikaEditionId = variantById(entity, pika.variantId()).mangaEditionId();
+        UUID perfectEditionId = variantById(entity, perfectEdition.variantId()).mangaEditionId();
+        assertThat(pikaEditionId).isNotNull();
+        assertThat(perfectEditionId).isNotNull();
+        assertThat(pikaEditionId).isNotEqualTo(perfectEditionId);
+        assertThat(mangaEditionRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void adding_the_same_edition_twice_reuses_the_same_manga_edition_never_a_duplicate() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
+        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                mangaEditionRepository, event -> {
+        });
+
+        QuickAddService.QuickAddResult tome1 = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
+        QuickAddService.QuickAddResult tome2 = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 2, "Perfect Edition");
+
+        Entity entity = entityRepository.findById(tome1.entityId()).orElseThrow();
+        UUID edition1 = variantById(entity, tome1.variantId()).mangaEditionId();
+        UUID edition2 = variantById(entity, tome2.variantId()).mangaEditionId();
+        assertThat(edition1).isEqualTo(edition2); // même édition, pas un doublon par tome
+        assertThat(mangaEditionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void no_edition_means_no_manga_edition_is_created_or_linked() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
+        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                mangaEditionRepository, event -> {
+        });
+
+        QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 5, null);
+
+        Entity entity = entityRepository.findById(result.entityId()).orElseThrow();
+        assertThat(variantById(entity, result.variantId()).mangaEditionId()).isNull();
+        assertThat(mangaEditionRepository.count()).isZero();
+    }
+
+    @Test
+    void an_existing_manga_edition_not_yet_linked_to_this_series_gets_linked_opportunistically() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
+        // Simule une Édition déjà connue via l'Analyse d'achat, avant que "Death Note"
+        // soit dans la collection (entityId encore null à ce stade).
+        MangaEdition preExisting = mangaEditionRepository.save(MangaEdition.create(
+                "Death Note", "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
+        QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                mangaEditionRepository, event -> {
+        });
+
+        QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
+
+        Entity entity = entityRepository.findById(result.entityId()).orElseThrow();
+        assertThat(variantById(entity, result.variantId()).mangaEditionId()).isEqualTo(preExisting.id());
+        assertThat(mangaEditionRepository.count()).isEqualTo(1); // réutilisée, pas dupliquée
+        assertThat(mangaEditionRepository.findById(preExisting.id()).orElseThrow().entityId())
+                .isEqualTo(result.entityId()); // reliée après coup, jamais devinée avant
+    }
+
+    private static Variant variantById(Entity entity, UUID variantId) {
+        return entity.variants().stream().filter(v -> v.id().equals(variantId)).findFirst().orElseThrow();
     }
 
     @Test
@@ -151,7 +232,8 @@ class QuickAddServiceTest {
     }
 
     private QuickAddService newService() {
-        return new QuickAddService(new InMemoryEntityRepository(), new InMemoryOwnershipRepository(), event -> {
+        return new QuickAddService(new InMemoryEntityRepository(), new InMemoryOwnershipRepository(),
+                new InMemoryMangaEditionRepository(), event -> {
         });
     }
 
@@ -206,6 +288,47 @@ class QuickAddServiceTest {
         @Override
         public void deleteById(UUID id) {
             store.remove(id);
+        }
+
+        int count() {
+            return store.size();
+        }
+    }
+
+    /** Faux repository en mémoire pour MangaEdition, même patron que InMemoryEntityRepository ci-dessus. */
+    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
+        private final Map<UUID, MangaEdition> store = new HashMap<>();
+
+        @Override
+        public MangaEdition save(MangaEdition edition) {
+            store.put(edition.id(), edition);
+            return edition;
+        }
+
+        @Override
+        public Optional<MangaEdition> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        @Override
+        public List<MangaEdition> findByEntityId(UUID entityId) {
+            return store.values().stream()
+                    .filter(e -> entityId.equals(e.entityId()))
+                    .collect(java.util.stream.Collectors.toList());
         }
 
         int count() {
