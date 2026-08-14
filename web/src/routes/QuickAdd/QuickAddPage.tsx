@@ -700,6 +700,14 @@ export function QuickAddPage() {
             })()}
         </div>
 
+        {/* Tant qu'aucune correspondance n'est choisie (type avec fournisseur
+            de métadonnées - voir requiresMatch), le formulaire ne peut de
+            toute façon pas être validé (voir blockedByMissingMatch) :
+            montrer État/Prix/sélection de tomes avant ce choix n'aiderait
+            pas, juste du bruit pendant qu'on tape encore le titre - voir
+            l'audit "quantité minimale d'interface nécessaire". */}
+        {(hasVerifiedMatch || !requiresMatch) && (
+          <>
         <div className="flex flex-col gap-1.5">
           <span className="text-sm text-textDim">État</span>
           <div className="flex gap-2">
@@ -891,6 +899,8 @@ export function QuickAddPage() {
               </ul>
             )}
           </div>
+        )}
+          </>
         )}
 
         {selectedType?.code === 'MANGA' && entityTypeId && (
