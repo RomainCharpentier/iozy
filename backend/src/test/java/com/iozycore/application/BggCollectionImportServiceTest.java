@@ -209,6 +209,11 @@ class BggCollectionImportServiceTest {
                     .filter(e -> entityId.equals(e.entityId()))
                     .collect(java.util.stream.Collectors.toList());
         }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
     }
 
     private static class InMemoryOwnershipRepository implements OwnershipRepository {

@@ -1,5 +1,6 @@
 package com.iozycore.integration;
 
+import com.iozycore.application.EntityDeletionService;
 import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
@@ -13,7 +14,11 @@ import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
+import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.purchaseanalysis.MarketPriceObservation;
+import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,6 +84,12 @@ class EntityPersistenceIntegrationTest {
 
     @Autowired
     private VariantDeletionService variantDeletionService;
+
+    @Autowired
+    private MarketPriceObservationRepository marketPriceObservationRepository;
+
+    @Autowired
+    private EntityDeletionService entityDeletionService;
 
     @Test
     void an_entity_can_be_saved_reloaded_with_its_variant_and_tag() {
@@ -175,16 +186,18 @@ class EntityPersistenceIntegrationTest {
     }
 
     @Test
-    void an_unreferenced_variant_can_be_deleted_and_the_entity_itself_survives() {
+    void an_unreferenced_variant_can_be_deleted_and_a_sibling_variant_keeps_the_entity_alive() {
+        // Un second tome garde la Série non-vide, pour isoler ce test de la cascade
+        // "0 tome -> suppression de la Série" (voir deleting_the_last_tome_of_a_series_... plus bas).
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
         entityRepository.save(entity);
 
         variantDeletionService.delete(entity.id(), variant.id());
 
         Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
-        assertThat(reloaded.variants()).isEmpty(); // le Tome a disparu...
-        assertThat(entityRepository.findById(entity.id())).isPresent(); // ...mais la Série reste (pas de cascade ici)
+        assertThat(reloaded.variants()).extracting(Variant::label).containsExactly("Tome 2");
     }
 
     @Test
@@ -202,6 +215,54 @@ class EntityPersistenceIntegrationTest {
 
         Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
         assertThat(reloaded.variants()).hasSize(1); // toujours là
+    }
+
+    @Test
+    void deleting_the_last_tome_of_an_edition_cascades_all_the_way_to_the_series_for_real() {
+        // Round-trip réel bout en bout (étape 5) : Édition ET Série effectivement absentes
+        // de la base ensuite, pas seulement du domaine en mémoire.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity); // la Série doit exister avant qu'une Édition puisse la référencer (FK)
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), entity.title(),
+                "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
+        entity.linkVariantToEdition(variant.id(), edition.id());
+        entityRepository.save(entity);
+
+        variantDeletionService.delete(entity.id(), variant.id());
+
+        assertThat(mangaEditionRepository.findById(edition.id())).isEmpty();
+        assertThat(entityRepository.findById(entity.id())).isEmpty();
+    }
+
+    @Test
+    void a_manga_edition_with_a_real_market_observation_survives_losing_its_last_tome() {
+        // Preuve par la contrainte FK réelle (market_price_observation.manga_edition_id) :
+        // sans le rattrapage de DataIntegrityViolationException dans VariantDeletionService,
+        // cet appel lèverait une erreur SQL brute plutôt que de simplement conserver
+        // l'Édition comme donnée de référence.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Sanctuary " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity); // la Série doit exister avant qu'une Édition puisse la référencer (FK)
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), entity.title(),
+                "Perfect Edition", EditionTier.PERFECT, "Glénat", 6, null, false, false, null));
+        entity.linkVariantToEdition(variant.id(), edition.id());
+        entityRepository.save(entity);
+        marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), null,
+                new BigDecimal("150"), ListingPlatform.VINTED, null, LocalDate.now(), "Lot Vinted"));
+
+        variantDeletionService.delete(entity.id(), variant.id()); // ne lève rien
+
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // conservée
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants()).isEmpty(); // le Tome, lui, a bien disparu
+
+        // La Série reste aussi (le cascade s'est arrêté), et une tentative de suppression
+        // directe de la Série est bloquée avec un message clair - jamais l'erreur SQL brute
+        // que la contrainte FK manga_edition.entity_id lèverait sans la garde étendue à l'étape 5.
+        assertThatThrownBy(() -> entityDeletionService.delete(entity.id()))
+                .isInstanceOf(EntityDeletionNotAllowedException.class)
+                .hasMessageContaining("1 édition");
     }
 
     @Test
