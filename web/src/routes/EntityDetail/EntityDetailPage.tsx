@@ -16,6 +16,7 @@ import { SeriesCompletenessSection } from './SeriesCompletenessSection'
 import { AddVolumeSection } from './AddVolumeSection'
 import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
+import { DeleteEntitySection } from './DeleteEntitySection'
 
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -145,6 +146,8 @@ export function EntityDetailPage() {
         relationshipsFrom={relFromQuery.data ?? []}
         relationshipsTo={relToQuery.data ?? []}
       />
+
+      <DeleteEntitySection entityId={entityId} entityTitle={entity.title} />
     </div>
   )
 }
