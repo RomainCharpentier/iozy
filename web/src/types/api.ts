@@ -195,7 +195,7 @@ export interface DiscoveryCandidateDto {
 
 // --- Metadata ---
 export interface MetadataCandidateDto {
-  source: 'JIKAN' | 'BGG' | 'IGDB' | 'OPEN_LIBRARY' | 'GOOGLE_BOOKS'
+  source: 'JIKAN' | 'MYANIMELIST' | 'BGG' | 'IGDB' | 'OPEN_LIBRARY' | 'GOOGLE_BOOKS'
   externalId: string
   title: string
   imageUrl: string | null
