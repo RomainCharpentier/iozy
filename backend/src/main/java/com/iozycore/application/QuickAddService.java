@@ -151,6 +151,15 @@ public class QuickAddService {
             prefilledAttributes.forEach(entity::setAttribute);
         }
 
+        // Sauvegarde immédiate, avant toute résolution d'Édition : une Entity toute
+        // neuve n'existe pas encore en base à ce stade, et resolveOrCreateMangaEdition
+        // (ci-dessous) peut créer un MangaEdition référençant entity.id() via la
+        // contrainte FK manga_edition.entity_id (étape 1) - sans cette sauvegarde
+        // anticipée, cette insertion échouerait pour toute toute nouvelle série ajoutée
+        // avec une édition renseignée. Une Entity déjà existante (matchedExisting) est
+        // simplement ré-écrite à l'identique ici, sans effet de bord.
+        entityRepository.save(entity);
+
         UUID variantId = null;
         boolean matchedExistingVariant = false;
         if (volumeNumber != null) {
