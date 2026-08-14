@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { getEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
@@ -20,6 +20,13 @@ import { RelationshipsSection } from './RelationshipsSection'
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
+  // Présent quand on arrive en cliquant une tuile de tome précise dans "Ma
+  // collection" (vue non groupée, voir ShelfPage.tsx) - permet à
+  // OwnershipsSection de mettre ce tome en évidence au lieu d'atterrir sur
+  // la fiche de la série entière sans indication de laquelle des
+  // possessions on vient de cliquer.
+  const [searchParams] = useSearchParams()
+  const highlightedVariantId = searchParams.get('variant')
 
   // 5 requêtes indépendantes déclenchées en parallèle (React Query émet
   // chaque useQuery dès le rendu, pas de chaînage séquentiel) - même
@@ -102,7 +109,14 @@ export function EntityDetailPage() {
         <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data} />
       )}
 
-      <OwnershipsSection entityId={entityId} ownerships={ownerships} variants={entity.variants} />
+      <OwnershipsSection
+        entityId={entityId}
+        entityTypeId={entity.entityTypeId}
+        entityTitle={entity.title}
+        ownerships={ownerships}
+        variants={entity.variants}
+        highlightedVariantId={highlightedVariantId}
+      />
 
       {/* Réservé au Manga : complétude par édition + détection d'éditions
           mélangées (voir SeriesCompletenessSection) - n'a de sens que pour

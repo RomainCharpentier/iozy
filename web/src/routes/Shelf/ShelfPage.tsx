@@ -28,6 +28,11 @@ interface Tile {
   imageUrl: string | null
   gradientKey?: string
   entityId: string
+  // Absent pour une Entity sans Variant (jeu vidéo/société, ou manga ajouté
+  // sans préciser de tome) - sert à amener la fiche directement sur CE tome
+  // (voir onClick ci-dessous et EntityDetailPage) plutôt que sur la série
+  // entière sans indication de laquelle des possessions on vient de cliquer.
+  variantId?: string
 }
 
 /** "Tome 12" si un numéro de tome est exploitable (voir QuickAddService côté
@@ -66,6 +71,7 @@ function flattenToTomes(entities: EntityResponse[]): Tile[] {
         imageUrl: coverImageUrlFrom(variant.attributes),
         gradientKey: `${entity.title} ${subtitle}`,
         entityId: entity.id,
+        variantId: variant.id,
       })
     }
   }
@@ -348,7 +354,9 @@ export function ShelfPage() {
             subtitle={tile.subtitle}
             imageUrl={tile.imageUrl}
             gradientKey={tile.gradientKey}
-            onClick={() => navigate(`/entity/${tile.entityId}`)}
+            onClick={() =>
+              navigate(tile.variantId ? `/entity/${tile.entityId}?variant=${tile.variantId}` : `/entity/${tile.entityId}`)
+            }
           />
         ))}
       </div>
