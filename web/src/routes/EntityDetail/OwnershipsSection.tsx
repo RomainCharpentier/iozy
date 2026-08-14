@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { markSold, updatePurchasePrice } from '../../api/ownerships'
 import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
+import { mergeVariantAttributes } from '../../api/entities'
+import { searchVolumes } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { findBestCoverMatch } from '../Shelf/backfillCovers'
 import { CONDITION_LABELS, OWNERSHIP_STATUS_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
@@ -32,18 +35,81 @@ function today(): string {
 
 export function OwnershipsSection({
   entityId,
+  entityTypeId,
+  entityTitle,
   ownerships,
   variants,
+  highlightedVariantId,
 }: {
   entityId: string
+  entityTypeId: string
+  entityTitle: string
   ownerships: OwnershipResponse[]
   variants: VariantDto[]
+  // Présent quand on arrive depuis une tuile de tome précise dans "Ma
+  // collection" (voir EntityDetailPage/ShelfPage) - fait défiler jusqu'à
+  // cette ligne et la met brièvement en évidence, plutôt que de laisser
+  // l'utilisateur chercher lui-même laquelle des possessions correspond au
+  // tome sur lequel il vient de cliquer.
+  highlightedVariantId?: string | null
 }) {
   const queryClient = useQueryClient()
   const [lendFormOwnershipId, setLendFormOwnershipId] = useState<string | null>(null)
   const [borrowerName, setBorrowerName] = useState('')
   const [priceFormOwnershipId, setPriceFormOwnershipId] = useState<string | null>(null)
   const [priceInput, setPriceInput] = useState('')
+  // "Modifier/recharger la jaquette" (voir demande "quand je clique sur un
+  // tome... aucun moyen de recharger l'image ou de la modifier") - un seul
+  // Variant édité à la fois, comme les autres formulaires inline de cette
+  // section (prêt, prix).
+  const [coverEditVariantId, setCoverEditVariantId] = useState<string | null>(null)
+  const [coverUrlInput, setCoverUrlInput] = useState('')
+  const highlightedRowRef = useRef<HTMLLIElement | null>(null)
+
+  useEffect(() => {
+    if (highlightedVariantId && highlightedRowRef.current) {
+      highlightedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    // Un seul défilement au chargement de la fiche - un changement ultérieur
+    // de highlightedVariantId ne vient que d'une navigation complète (nouvel
+    // id dans l'URL), déjà couvert par un nouveau montage de la page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const coverUrlMutation = useMutation({
+    mutationFn: ({ variantId, coverImageUrl }: { variantId: string; coverImageUrl: string }) =>
+      mergeVariantAttributes(entityId, variantId, { coverImageUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      setCoverEditVariantId(null)
+      setCoverUrlInput('')
+    },
+  })
+
+  // Retente une recherche Google Books pour CE tome précis uniquement (voir
+  // backfillCovers.ts, même logique que "Retrouver les jaquettes
+  // manquantes" côté Ma collection, mais ciblée sur un seul Variant plutôt
+  // que tous ceux d'un coup) - forceRefresh direct : l'utilisateur vient de
+  // cliquer explicitement pour réessayer, pas la peine de repasser d'abord
+  // par le cache qui a justement pu déjà échouer (voir ShelfPage.tsx).
+  const searchCoverMutation = useMutation({
+    mutationFn: async (variant: VariantDto) => {
+      const author = undefined // pas connu à ce niveau (attribut de l'Entity, pas du Variant) - recherche sans filtre auteur, comme un Variant sans candidat visuel à l'ajout.
+      const response = await searchVolumes(entityTypeId, entityTitle, { author, forceRefresh: true })
+      if (response.quotaExceeded) {
+        throw new Error('Quota Google Books dépassé - réessaie plus tard.')
+      }
+      const match = findBestCoverMatch(response.volumes, variant)
+      if (!match?.imageUrl) {
+        throw new Error('Aucune jaquette trouvée pour ce tome sur Google Books.')
+      }
+      await mergeVariantAttributes(entityId, variant.id, { coverImageUrl: match.imageUrl })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      setCoverEditVariantId(null)
+    },
+  })
 
   const sellMutation = useMutation({
     mutationFn: markSold,
@@ -98,10 +164,19 @@ export function OwnershipsSection({
           // ajouté manuellement ou avant l'introduction de cette fonctionnalité.
           const variantCoverUrl = variant ? coverImageUrlFrom(variant.attributes) : null
           const activeLoan = activeLoanByOwnershipId.get(ownership.id)
+          const isHighlighted = !!variant && variant.id === highlightedVariantId
           return (
-            <li key={ownership.id} className="flex items-center gap-3 rounded-xl bg-surface p-3">
-              {variantCoverUrl && (
+            <li
+              key={ownership.id}
+              ref={isHighlighted ? highlightedRowRef : undefined}
+              className={`flex items-center gap-3 rounded-xl bg-surface p-3 ${
+                isHighlighted ? 'ring-2 ring-accent' : ''
+              }`}
+            >
+              {variantCoverUrl ? (
                 <img src={variantCoverUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
+              ) : (
+                variant && <span className="h-16 w-11 shrink-0 rounded bg-surface2" />
               )}
               <div className="flex flex-1 flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-3">
@@ -127,6 +202,18 @@ export function OwnershipsSection({
                         {ownership.purchasePrice !== null
                           ? `Prix d'achat : ${ownership.purchasePrice.toFixed(2)} €`
                           : "Ajouter le prix d'achat"}
+                      </button>
+                    )}
+                    {variant && coverEditVariantId !== variant.id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverEditVariantId(variant.id)
+                          setCoverUrlInput(variantCoverUrl ?? '')
+                        }}
+                        className="text-textDim underline-offset-2 hover:underline"
+                      >
+                        {variantCoverUrl ? 'Modifier la jaquette' : 'Ajouter une jaquette'}
                       </button>
                     )}
                     {ownership.note && <p className="text-textDim">{ownership.note}</p>}
@@ -246,6 +333,49 @@ export function OwnershipsSection({
                     >
                       Annuler
                     </button>
+                  </div>
+                )}
+
+                {variant && coverEditVariantId === variant.id && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={coverUrlInput}
+                        onChange={(e) => setCoverUrlInput(e.target.value)}
+                        placeholder="URL de l'image (ex: https://...)"
+                        autoFocus
+                        className="min-w-0 flex-1 rounded-lg bg-surface2 px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => coverUrlMutation.mutate({ variantId: variant.id, coverImageUrl: coverUrlInput.trim() })}
+                        disabled={!coverUrlInput.trim() || coverUrlMutation.isPending}
+                        className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+                      >
+                        Enregistrer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverEditVariantId(null)
+                          setCoverUrlInput('')
+                        }}
+                        className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => searchCoverMutation.mutate(variant)}
+                      disabled={searchCoverMutation.isPending}
+                      className="w-fit text-xs text-accent underline disabled:opacity-50"
+                    >
+                      {searchCoverMutation.isPending ? 'Recherche...' : 'Rechercher automatiquement sur Google Books'}
+                    </button>
+                    {searchCoverMutation.isError && (
+                      <p className="text-xs text-textDim">{searchCoverMutation.error.message}</p>
+                    )}
                   </div>
                 )}
               </div>
