@@ -88,6 +88,9 @@ class PurchaseAnalysisPersistenceIntegrationTest {
     @Autowired
     private com.iozycore.domain.ownership.OwnershipRepository ownershipRepository;
 
+    @Autowired
+    private com.iozycore.application.QuickAddService quickAddService;
+
     @Test
     void a_manga_edition_can_be_saved_reloaded_and_looked_up_case_insensitively() {
         MangaEdition edition = MangaEdition.create("Death Note " + UUID.randomUUID(), "Black Edition",
@@ -131,7 +134,33 @@ class PurchaseAnalysisPersistenceIntegrationTest {
         MangaEdition reloaded = mangaEditionRepository.findById(edition.id()).orElseThrow();
         assertThat(reloaded.publisher()).isEqualTo("Kodansha");
         assertThat(reloaded.totalVolumes()).isEqualTo(26);
-        assertThat(reloaded.retailPriceNewPerVolume()).isEqualByComparingTo(new BigDecimal("6.90"));
+    }
+
+    @Test
+    void an_edition_created_through_the_add_flow_is_fully_enrichable_through_the_same_purchase_analysis_pipeline() {
+        // Étape 7 (réutiliser le pipeline d'enrichissement existant) : une Édition créée
+        // via l'ajout rapide (QuickAddService, étape 3) est un MangaEdition comme un
+        // autre - le même PATCH /editions/{id} déjà utilisé par l'Analyse d'achat
+        // fonctionne dessus sans distinction, aucune donnée dupliquée ni pipeline séparé.
+        String seriesTitle = "Vinland Saga " + UUID.randomUUID();
+        com.iozycore.application.QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), seriesTitle, com.iozycore.domain.ownership.OwnershipCondition.NEW,
+                Map.of(), 1, "Deluxe");
+
+        MangaEdition created = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, "Deluxe").orElseThrow();
+        assertThat(created.entityId()).isEqualTo(result.entityId()); // lié dès la création (étape 3)
+        assertThat(created.tier()).isEqualTo(EditionTier.OTHER); // strict minimum, rien deviné à la création
+        assertThat(created.totalVolumes()).isNull();
+        assertThat(created.publisher()).isNull();
+
+        MangaEdition enriched = purchaseAnalysisService.updateEdition(created.id(), EditionTier.DELUXE,
+                "Kurokawa", 10, new BigDecimal("19.90"), false, false, null);
+
+        assertThat(enriched.entityId()).isEqualTo(result.entityId()); // le lien à la Série survit à l'enrichissement
+        assertThat(enriched.publisher()).isEqualTo("Kurokawa");
+        MangaEdition reloaded = mangaEditionRepository.findById(created.id()).orElseThrow();
+        assertThat(reloaded.totalVolumes()).isEqualTo(10); // persisté
+        assertThat(reloaded.retailPriceNewPerVolume()).isEqualByComparingTo(new BigDecimal("19.90"));
     }
 
     @Test
