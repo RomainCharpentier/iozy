@@ -1,5 +1,6 @@
 import { useState, type DragEvent } from 'react'
-import { GripVertical } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, GripVertical, Wrench } from 'lucide-react'
 import {
   TITLE_LANGUAGE_LABELS,
   getTitleComposition,
@@ -113,29 +114,24 @@ export function SettingsPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Export de la collection</h2>
-        <p className="text-sm text-textDim">
-          Toute ta collection (entités, tomes, possessions, expériences, wishlist, relations, tags) dans un format
-          ouvert, lisible sans cette app - pour garantir l'absence d'enfermement, même auto-hébergé.
-        </p>
-        <div className="mt-2 flex gap-2">
-          <a
-            href="/api/export/json"
-            download
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
-          >
-            Télécharger en JSON
-          </a>
-          <a
-            href="/api/export/csv"
-            download
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
-          >
-            Télécharger en CSV (.zip)
-          </a>
-        </div>
-      </section>
+      {/* Types de collection/Import BGG/Export brut : configuration technique
+          touchée une fois puis oubliée, pas un réglage de confort d'usage
+          comme la langue des titres ci-dessus - regroupée à part (voir
+          AdministrationPage) plutôt que noyée ici (voir "réduction réelle de
+          la charge cognitive"). */}
+      <Link
+        to="/administration"
+        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+          <Wrench size={18} />
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium text-textPrimary">Administration avancée</span>
+          <span className="block text-xs text-textDim">Types de collection, import BGG, export brut des données</span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-textDim" />
+      </Link>
     </div>
   )
 }

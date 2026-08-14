@@ -10,9 +10,9 @@ import { iconFor } from '../../theme/icon'
 
 /** Éditeur de types dynamique : liste des catégories de la collection (les
  * 3 types MVP historiques + tout type créé par l'utilisateur). Accessible
- * depuis le bouton "Gérer les types" de ShelfPage - pas de 6e onglet dans
- * la TabBar, cohérent avec le choix fait côté iOS (point d'entrée depuis
- * l'écran Étagères, pas la barre de nav principale). */
+ * depuis Paramètres > Administration avancée (voir AdministrationPage) -
+ * pas de 6e onglet dans la TabBar, configuration technique touchée une fois
+ * puis oubliée, pas un outil consulté à chaque session. */
 export function EntityTypesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
