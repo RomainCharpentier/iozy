@@ -3,6 +3,7 @@ package com.iozycore.api;
 import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.domain.shared.EntityTypeDeletionNotAllowedException;
 import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
+import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +26,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(OwnershipDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleOwnershipDeletionNotAllowed(OwnershipDeletionNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(VariantDeletionNotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleVariantDeletionNotAllowed(VariantDeletionNotAllowedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
     }
 

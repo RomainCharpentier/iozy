@@ -112,6 +112,25 @@ class EntityTest {
     }
 
     @Test
+    void removing_a_variant_deletes_it_without_touching_other_variants() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome1 = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        Variant tome2 = entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
+
+        entity.removeVariant(tome1.id());
+
+        assertEquals(1, entity.variants().size());
+        assertEquals(tome2.id(), entity.variants().get(0).id());
+    }
+
+    @Test
+    void removing_an_unknown_variant_fails_loudly() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+
+        assertThrows(IllegalArgumentException.class, () -> entity.removeVariant(UUID.randomUUID()));
+    }
+
+    @Test
     void merging_attributes_preserves_an_existing_manga_edition_link() {
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));

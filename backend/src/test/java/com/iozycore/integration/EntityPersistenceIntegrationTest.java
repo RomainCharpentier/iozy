@@ -1,5 +1,6 @@
 package com.iozycore.integration;
 
+import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
@@ -12,6 +13,7 @@ import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Valide que le module de persistance (Flyway + JPA) fonctionne réellement
@@ -73,6 +76,9 @@ class EntityPersistenceIntegrationTest {
 
     @Autowired
     private MangaEditionRepository mangaEditionRepository;
+
+    @Autowired
+    private VariantDeletionService variantDeletionService;
 
     @Test
     void an_entity_can_be_saved_reloaded_with_its_variant_and_tag() {
@@ -166,6 +172,36 @@ class EntityPersistenceIntegrationTest {
 
         Entity afterLink = entityRepository.findById(entity.id()).orElseThrow();
         assertThat(afterLink.variants().get(0).mangaEditionId()).isEqualTo(edition.id());
+    }
+
+    @Test
+    void an_unreferenced_variant_can_be_deleted_and_the_entity_itself_survives() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity);
+
+        variantDeletionService.delete(entity.id(), variant.id());
+
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants()).isEmpty(); // le Tome a disparu...
+        assertThat(entityRepository.findById(entity.id())).isPresent(); // ...mais la Série reste (pas de cascade ici)
+    }
+
+    @Test
+    void a_variant_referenced_by_a_real_ownership_row_cannot_be_deleted() {
+        // Round-trip réel : sans la garde applicative, la contrainte FK
+        // ownership.variant_id (V1__init_schema.sql, sans ON DELETE) rejetterait
+        // la suppression avec une erreur SQL brute plutôt qu'un message clair.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity);
+        ownershipRepository.save(Ownership.acquire(entity.id(), variant.id(), OwnershipCondition.NEW, LocalDate.now(), null));
+
+        assertThatThrownBy(() -> variantDeletionService.delete(entity.id(), variant.id()))
+                .isInstanceOf(VariantDeletionNotAllowedException.class);
+
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants()).hasSize(1); // toujours là
     }
 
     @Test

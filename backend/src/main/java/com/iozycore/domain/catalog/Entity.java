@@ -130,6 +130,22 @@ public class Entity {
         variants.set(index, new Variant(existing.id(), existing.label(), existing.attributes(), mangaEditionId));
     }
 
+    /**
+     * Retire un Tome du catalogue - action utilisateur explicite (voir "Supprimer ce
+     * tome"), jamais automatique sur passage à zéro Ownership (modèle cible Série ->
+     * Édition -> Tome : un Tome catalogué existe indépendamment de sa possession, voir
+     * Variant). La garde contre les Ownership/Experience qui le référencent encore vit
+     * en couche application (VariantDeletionService), pas ici - même raison que pour
+     * {@link #mergeVariantAttributes} : Entity ne connaît pas les repositories des
+     * autres agrégats.
+     */
+    public void removeVariant(UUID variantId) {
+        boolean removed = variants.removeIf(v -> v.id().equals(variantId));
+        if (!removed) {
+            throw new IllegalArgumentException("Variant introuvable : " + variantId);
+        }
+    }
+
     public void addTag(UUID tagId) {
         tagIds.add(tagId);
     }
