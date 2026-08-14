@@ -11,13 +11,10 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
 import { coverImageUrlFrom } from '../../lib/coverImage'
-import { TagsSection } from './TagsSection'
 import { OwnershipsSection } from './OwnershipsSection'
 import { TomesGridSection } from './TomesGridSection'
 import { AddVolumeSection } from './AddVolumeSection'
-import { ExperiencesSection } from './ExperiencesSection'
-import { RelationshipsSection } from './RelationshipsSection'
-import { DeleteEntitySection } from './DeleteEntitySection'
+import { MoreOptionsSection } from './MoreOptionsSection'
 
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -103,18 +100,27 @@ export function EntityDetailPage() {
         {author && <p className="relative text-sm text-textPrimary/80">{author}</p>}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {activeOwnership && (
-          <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentText">
-            Possédé
-          </span>
-        )}
-        {bestExperience && (
-          <span className="rounded-full bg-surface px-3 py-1 text-sm font-medium text-textDim">
-            {bestExperience.experienceType} · {bestExperience.rating}/10
-          </span>
-        )}
-      </div>
+      {/* Pastilles Possédé/expérience : réservées aux types SANS grille de
+          tomes (jeu vidéo, jeu de société), où elles restent le seul repère
+          "est-ce que je l'ai déjà ?". Pour un manga, la ligne de progression
+          de TomesGridSection ("X / Y tomes possédés") dit déjà ça, plus
+          précisément (par édition) - garder la pastille en plus aurait
+          recréé exactement la redondance signalée par l'audit UX (Possédé /
+          Tomes / 0 possédé qui répétaient la même chose trois fois). */}
+      {!isManga && (
+        <div className="flex flex-wrap gap-2">
+          {activeOwnership && (
+            <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentText">
+              Possédé
+            </span>
+          )}
+          {bestExperience && (
+            <span className="rounded-full bg-surface px-3 py-1 text-sm font-medium text-textDim">
+              {bestExperience.experienceType} · {bestExperience.rating}/10
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Priorité visuelle : la grille des tomes (possédé/manquant) juste
           après l'en-tête, avant tout le reste - voir l'audit UX "la
@@ -149,24 +155,22 @@ export function EntityDetailPage() {
         highlightedVariantId={highlightedVariantId}
       />
 
-      {tagsQuery.data && (
-        <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data} />
-      )}
-
-      <ExperiencesSection
+      {/* Tags/Expériences/Relations/Suppression : rien de tout ça ne répond
+          aux 6 questions centrales de cette fiche (quelle série, quelle
+          édition, combien de tomes, combien possédés, lesquels manquent,
+          comment en ajouter un) - voir MoreOptionsSection. Repliées derrière
+          un seul clic plutôt que d'occuper une place permanente. */}
+      <MoreOptionsSection
         entityId={entityId}
+        entityTitle={entity.title}
+        attachedTagIds={entity.tagIds}
+        allTags={tagsQuery.data ?? []}
         experiences={experiences}
         allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
         variants={entity.variants}
-      />
-
-      <RelationshipsSection
-        entityId={entityId}
         relationshipsFrom={relFromQuery.data ?? []}
         relationshipsTo={relToQuery.data ?? []}
       />
-
-      <DeleteEntitySection entityId={entityId} entityTitle={entity.title} />
     </div>
   )
 }

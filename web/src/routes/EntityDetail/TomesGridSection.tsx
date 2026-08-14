@@ -4,7 +4,7 @@ import { Check, Plus } from 'lucide-react'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
-import { groupVariantsByEdition, ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
+import { groupVariantsByEdition, ownedVolumeNumbers, resolveEditionView, type EditionGroup } from '../../lib/editionGroups'
 import { Chip } from '../../components/Chip'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
@@ -22,10 +22,14 @@ interface TomeTile {
  * devinée sans un total sur lequel s'appuyer. */
 function buildTiles(group: EditionGroup, variants: VariantDto[], owned: number[], totalVolumes: number | null, cataloguedMissing: number[]): TomeTile[] {
   const variantsByNumber = new Map<number, VariantDto>()
+  // group.sourceEditions plutôt que group.edition seul : un groupe fusionné
+  // (voir resolveEditionView) doit retrouver le Variant d'un tome sans
+  // édition précisée aussi bien que celui de l'édition nommée.
+  const sourceSet = new Set(group.sourceEditions)
   for (const variant of variants) {
     const num = variant.attributes.volumeNumber
     const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
-    if (typeof num === 'number' && edition === group.edition) variantsByNumber.set(num, variant)
+    if (typeof num === 'number' && sourceSet.has(edition)) variantsByNumber.set(num, variant)
   }
   const ownedSet = new Set(owned)
 
@@ -58,7 +62,7 @@ function TomeTileView({ tile, onClick }: { tile: TomeTile; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
-      aria-label={owned ? `Tome ${tile.volumeNumber}, possédé` : `Tome ${tile.volumeNumber}, manquant - ajouter`}
+      aria-label={owned ? `Tome ${tile.volumeNumber}, possédé` : `Tome ${tile.volumeNumber}, manquant - ajouter à ma collection`}
       className={`relative flex aspect-[2/3] flex-col items-center justify-center overflow-hidden rounded-lg text-left ${owned ? 'bg-surface2' : 'bg-surface2/50'}`}
     >
       {coverUrl ? (
@@ -89,13 +93,16 @@ function TomeTileView({ tile, onClick }: { tile: TomeTile; onClick: () => void }
 }
 
 /**
- * Grille visuelle des tomes d'une édition - remplace SeriesCompletenessSection
- * (statistiques texte) par une vue directement inspirée de Manga Collec : le
- * possédé/manquant se voit tome par tome, jamais caché dans un compteur
- * ("5 manquants" ne dit pas LESQUELS). Le niveau Édition se réplie
- * automatiquement quand une seule édition est pertinente (voir groups.length
- * ci-dessous) - le backend garde Série -> Édition -> Tome quoi qu'il arrive,
- * seule la présentation change.
+ * Cœur de la fiche série manga (voir audit UX "fiche série trop technique") :
+ * une seule ligne de progression ("X / Y tomes possédés", remplace le trio
+ * redondant pastille Possédé / titre "Tomes" / compteur séparé), l'édition
+ * concernée juste en dessous - discrète s'il n'y en a qu'une pertinente (voir
+ * resolveEditionView), un vrai sélecteur seulement s'il faut vraiment choisir
+ * entre plusieurs (voir hasMixedEditions côté editionGroups.ts) - puis la
+ * grille de tomes elle-même, qui occupe le plus de place. Remplace l'ancien
+ * SeriesCompletenessSection (statistiques texte) par une vue directement
+ * inspirée de Manga Collec : le possédé/manquant se voit tome par tome,
+ * jamais caché dans un compteur ("5 manquants" ne dit pas LESQUELS).
  */
 export function TomesGridSection({
   entityTitle,
@@ -111,12 +118,13 @@ export function TomesGridSection({
   onSelectOwnedVariant: (variantId: string) => void
 }) {
   const groups = groupVariantsByEdition(variants)
+  const displayGroups = resolveEditionView(groups)
   const [activeEdition, setActiveEdition] = useState<string | null>(null)
 
-  if (groups.length === 0) return null
+  if (displayGroups.length === 0) return null
 
-  const activeGroup = groups.find((g) => g.edition === activeEdition) ?? groups[0]
-  const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.edition)
+  const activeGroup = displayGroups.find((g) => g.edition === activeEdition) ?? displayGroups[0]
+  const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions)
 
   const completenessQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, activeGroup.edition, owned),
@@ -130,33 +138,41 @@ export function TomesGridSection({
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Tomes</h2>
-        <p className="text-sm text-textDim">
-          {totalVolumes !== null
-            ? `${owned.length}/${totalVolumes}`
-            : `${owned.length} possédé${owned.length > 1 ? 's' : ''}`}
-        </p>
-      </div>
+      {/* Une seule ligne répond à "combien j'en ai sur combien" - avant,
+          cette même information était éclatée entre une pastille "Possédé"
+          globale, un titre de section "Tomes" et un compteur "0 possédé"
+          séparé (voir audit "informations redondantes"). */}
+      <p className="font-display text-2xl font-bold text-textPrimary">
+        {totalVolumes !== null
+          ? `${owned.length} / ${totalVolumes} tomes possédés`
+          : `${owned.length} tome${owned.length > 1 ? 's' : ''} possédé${owned.length > 1 ? 's' : ''}`}
+      </p>
 
-      {/* Niveau Édition replié à une seule tuile discrète quand il n'y en a
-          qu'une pertinente ; un vrai sélecteur seulement s'il y a un choix réel. */}
-      {groups.length > 1 ? (
+      {/* Édition : une ligne discrète pour le cas courant - une seule édition
+          pertinente, déjà fusionnée avec les tomes sans édition précisée
+          (voir resolveEditionView) plutôt que de les afficher comme un champ
+          technique séparé. Un vrai sélecteur seulement s'il existe un choix
+          réel entre plusieurs éditions nommées. Aucune ligne du tout si
+          aucune édition n'est connue - pas la peine de l'écrire en creux. */}
+      {displayGroups.length > 1 ? (
         <div className="flex flex-wrap gap-2">
-          {groups.map((g) => (
+          {displayGroups.map((g) => (
             <Chip
-              key={g.edition || '(sans édition)'}
-              label={g.edition || 'Sans édition précisée'}
+              key={g.edition || '(non précisée)'}
+              label={g.edition || 'Non précisée'}
               isActive={g.edition === activeGroup.edition}
               onClick={() => setActiveEdition(g.edition)}
             />
           ))}
         </div>
       ) : (
-        activeGroup.edition !== '' && <p className="text-xs text-textDim">{activeGroup.edition}</p>
+        activeGroup.edition !== '' && <p className="text-sm text-textDim">{activeGroup.edition}</p>
       )}
 
-      <div className="grid grid-cols-5 gap-2">
+      {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
+          nombre fixe - sur desktop, 5 colonnes fixes auraient étiré chaque
+          jaquette à une taille disproportionnée. */}
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
         {tiles.map((tile) => (
           <TomeTileView
             key={tile.volumeNumber}
