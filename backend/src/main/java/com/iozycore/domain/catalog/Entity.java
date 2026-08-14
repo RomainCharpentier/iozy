@@ -68,7 +68,7 @@ public class Entity {
     }
 
     public Variant addVariant(String label, Map<String, Object> variantAttributes) {
-        Variant variant = new Variant(UUID.randomUUID(), label, variantAttributes);
+        Variant variant = new Variant(UUID.randomUUID(), label, variantAttributes, null);
         variants.add(variant);
         return variant;
     }
@@ -105,7 +105,29 @@ public class Entity {
         Variant existing = variants.get(index);
         Map<String, Object> merged = new HashMap<>(existing.attributes());
         merged.putAll(additionalAttributes);
-        variants.set(index, new Variant(existing.id(), existing.label(), merged));
+        variants.set(index, new Variant(existing.id(), existing.label(), merged, existing.mangaEditionId()));
+    }
+
+    /**
+     * Relie un Tome déjà existant à son Édition catalogue ({@link MangaEdition}) - modèle
+     * cible Série -> Édition -> Tome. Même patron de recherche que
+     * {@link #mergeVariantAttributes(UUID, Map)}. Ne retire jamais un lien existant (pas de
+     * besoin identifié pour l'instant) - un appelant qui résout un lien plus précis peut
+     * simplement rappeler cette méthode avec le nouvel id.
+     */
+    public void linkVariantToEdition(UUID variantId, UUID mangaEditionId) {
+        int index = -1;
+        for (int i = 0; i < variants.size(); i++) {
+            if (variants.get(i).id().equals(variantId)) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            throw new IllegalArgumentException("Variant introuvable : " + variantId);
+        }
+        Variant existing = variants.get(index);
+        variants.set(index, new Variant(existing.id(), existing.label(), existing.attributes(), mangaEditionId));
     }
 
     public void addTag(UUID tagId) {

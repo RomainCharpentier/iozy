@@ -1,8 +1,11 @@
 package com.iozycore.integration;
 
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.catalog.Variant;
@@ -67,6 +70,9 @@ class EntityPersistenceIntegrationTest {
 
     @Autowired
     private TagRepository tagRepository;
+
+    @Autowired
+    private MangaEditionRepository mangaEditionRepository;
 
     @Test
     void an_entity_can_be_saved_reloaded_with_its_variant_and_tag() {
@@ -142,6 +148,24 @@ class EntityPersistenceIntegrationTest {
         assertThat(updatedVariant.attributes()).containsEntry("coverImageUrl", "https://example.com/tome1.jpg");
         assertThat(updatedVariant.attributes()).containsEntry("volumeNumber", 1); // conservé, pas écrasé
         assertThat(updatedVariant.attributes()).containsEntry("edition", "Black Edition");
+    }
+
+    @Test
+    void a_variant_linked_to_a_manga_edition_persists_the_link_after_reload() {
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Death Note " + UUID.randomUUID(),
+                "Black Edition", EditionTier.DELUXE, "Kana", 6, new BigDecimal("14.90"), false, false, null));
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note " + UUID.randomUUID());
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Black Edition"));
+        entityRepository.save(entity);
+
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants().get(0).mangaEditionId()).isNull(); // pas encore lié
+
+        reloaded.linkVariantToEdition(variant.id(), edition.id());
+        entityRepository.save(reloaded);
+
+        Entity afterLink = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(afterLink.variants().get(0).mangaEditionId()).isEqualTo(edition.id());
     }
 
     @Test

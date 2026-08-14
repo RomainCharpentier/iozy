@@ -33,9 +33,9 @@ public final class EntityDtos {
         }
     }
 
-    public record VariantResponse(UUID id, String label, Map<String, Object> attributes) {
+    public record VariantResponse(UUID id, String label, Map<String, Object> attributes, UUID mangaEditionId) {
         public static VariantResponse from(Variant variant) {
-            return new VariantResponse(variant.id(), variant.label(), variant.attributes());
+            return new VariantResponse(variant.id(), variant.label(), variant.attributes(), variant.mangaEditionId());
         }
     }
 

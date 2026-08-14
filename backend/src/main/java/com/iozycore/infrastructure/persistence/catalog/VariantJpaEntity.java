@@ -24,19 +24,24 @@ public class VariantJpaEntity {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> attributes;
 
+    @Column(name = "manga_edition_id")
+    private UUID mangaEditionId;
+
     protected VariantJpaEntity() {
         // requis par JPA
     }
 
-    public VariantJpaEntity(UUID id, UUID entityId, String label, Map<String, Object> attributes) {
+    public VariantJpaEntity(UUID id, UUID entityId, String label, Map<String, Object> attributes, UUID mangaEditionId) {
         this.id = id;
         this.entityId = entityId;
         this.label = label;
         this.attributes = attributes;
+        this.mangaEditionId = mangaEditionId;
     }
 
     public UUID getId() { return id; }
     public UUID getEntityId() { return entityId; }
     public String getLabel() { return label; }
     public Map<String, Object> getAttributes() { return attributes; }
+    public UUID getMangaEditionId() { return mangaEditionId; }
 }
