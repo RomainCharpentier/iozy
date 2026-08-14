@@ -184,9 +184,20 @@ public class PurchaseAnalysisService {
      * "edition" absent/vide) n'a rien à rattacher dans manga_edition et est
      * donc silencieusement ignorée ici, comme pour la détection d'éditions
      * mélangées côté web (voir groupVariantsByEdition côté web/editionGroups.ts).
+     * <p>
+     * {@code ownedCount}/{@code missingVolumeNumbers} mesurent la possession réelle
+     * (Ownership active), jamais la simple existence catalogue d'un Variant (étape 6,
+     * modèle Tome ≠ Ownership) - un tome revendu ou dont l'Ownership a été supprimée
+     * (voir OwnershipDeletionService) redevient "manquant" ici même si son Variant
+     * catalogué existe toujours. {@code cataloguedMissingVolumeNumbers} distingue,
+     * parmi les tomes manquants, ceux qui sont déjà catalogués (un Variant existe,
+     * juste sans Ownership - potentiellement enrichissable via merge-attributes sans
+     * jamais créer de doublon) de ceux purement virtuels (aucun Variant, seulement un
+     * numéro déduit de totalVolumes).
      */
     public record NearCompleteSuggestion(UUID entityId, String seriesTitle, String editionName, int ownedCount,
                                           int totalVolumes, int missingCount, List<Integer> missingVolumeNumbers,
+                                          List<Integer> cataloguedMissingVolumeNumbers,
                                           BigDecimal estimatedCostToComplete, PriceBasis costToCompleteBasis) {
     }
 
@@ -199,12 +210,21 @@ public class PurchaseAnalysisService {
 
         List<NearCompleteSuggestion> suggestions = new ArrayList<>();
         for (Entity entity : mangaEntities) {
+            // groupVolumesByEdition sert uniquement à découvrir quelles éditions existent
+            // (à partir des Variant catalogués, quelle que soit leur Ownership) - jamais
+            // à mesurer la possession elle-même, voir findOwnedVolumeNumbers ci-dessous.
             for (Map.Entry<String, Set<Integer>> group : groupVolumesByEdition(entity).entrySet()) {
-                CollectionStatus status = computeCompleteness(entity.title(), group.getKey(), group.getValue());
+                String editionName = group.getKey();
+                Set<Integer> cataloguedVolumes = group.getValue();
+                Set<Integer> ownedVolumes = findOwnedVolumeNumbers(entity.id(), editionName);
+                CollectionStatus status = computeCompleteness(entity.title(), editionName, ownedVolumes);
                 if (status.isKnown() && !status.isComplete()) {
-                    suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), group.getKey(),
-                            group.getValue().size(), status.totalVolumes(), status.missingCount(),
-                            status.missingVolumeNumbers(), status.estimatedCostToComplete(),
+                    List<Integer> cataloguedMissing = status.missingVolumeNumbers().stream()
+                            .filter(cataloguedVolumes::contains)
+                            .toList();
+                    suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), editionName,
+                            ownedVolumes.size(), status.totalVolumes(), status.missingCount(),
+                            status.missingVolumeNumbers(), cataloguedMissing, status.estimatedCostToComplete(),
                             status.costToCompleteBasis()));
                 }
             }

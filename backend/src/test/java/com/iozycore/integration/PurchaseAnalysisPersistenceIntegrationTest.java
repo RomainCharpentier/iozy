@@ -3,6 +3,9 @@ package com.iozycore.integration;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.Variant;
+import com.iozycore.domain.ownership.Ownership;
+import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
@@ -231,10 +234,12 @@ class PurchaseAnalysisPersistenceIntegrationTest {
 
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
         for (int volume = 1; volume <= 24; volume++) {
-            entity.addVariant("Tome " + volume,
-                    Map.of("volumeNumber", volume, "edition", "Standard"));
+            entity.addVariant("Tome " + volume, Map.of("volumeNumber", volume, "edition", "Standard"));
         }
-        entityRepository.save(entity);
+        entityRepository.save(entity); // la Série (et ses Variant) doivent exister avant qu'une Ownership les référence (FK)
+        for (Variant variant : entity.variants()) {
+            ownershipRepository.save(Ownership.acquire(entity.id(), variant.id(), OwnershipCondition.NEW, LocalDate.now(), null));
+        }
 
         List<NearCompleteSuggestion> suggestions = purchaseAnalysisService.findNearCompleteSuggestions();
 
@@ -256,6 +261,34 @@ class PurchaseAnalysisPersistenceIntegrationTest {
         List<NearCompleteSuggestion> suggestions = purchaseAnalysisService.findNearCompleteSuggestions();
 
         assertThat(suggestions).noneMatch(s -> s.entityId().equals(entity.id()));
+    }
+
+    @Test
+    void near_complete_suggestions_never_counts_a_catalogued_but_unowned_tome_as_owned() {
+        // Étape 6 (modèle Tome != Ownership) : un Variant catalogué sans Ownership active
+        // (ex: exemplaire revendu puis son Ownership supprimée, voir OwnershipDeletionService)
+        // ne doit jamais gonfler ownedCount ni disparaître silencieusement de missingVolumeNumbers -
+        // et doit être reconnaissable comme "déjà catalogué" plutôt que purement virtuel.
+        String seriesTitle = "Parasyte " + UUID.randomUUID();
+        mangaEditionRepository.save(MangaEdition.create(seriesTitle, "Standard", EditionTier.STANDARD, "Tonkam",
+                10, new BigDecimal("7.50"), false, false, null));
+
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
+        Variant owned1 = entity.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Standard"));
+        Variant owned2 = entity.addVariant("Tome 2", Map.of("volumeNumber", 2, "edition", "Standard"));
+        entity.addVariant("Tome 3", Map.of("volumeNumber", 3, "edition", "Standard")); // catalogué, jamais possédé
+        entityRepository.save(entity);
+        ownershipRepository.save(Ownership.acquire(entity.id(), owned1.id(), OwnershipCondition.NEW, LocalDate.now(), null));
+        ownershipRepository.save(Ownership.acquire(entity.id(), owned2.id(), OwnershipCondition.NEW, LocalDate.now(), null));
+        // Tomes 4-10 : purement virtuels, aucun Variant catalogué du tout.
+
+        NearCompleteSuggestion suggestion = purchaseAnalysisService.findNearCompleteSuggestions().stream()
+                .filter(s -> s.entityId().equals(entity.id())).findFirst().orElseThrow();
+
+        assertThat(suggestion.ownedCount()).isEqualTo(2); // pas 3
+        assertThat(suggestion.missingCount()).isEqualTo(8); // tomes 3 à 10
+        assertThat(suggestion.cataloguedMissingVolumeNumbers()).containsExactly(3); // catalogué, juste pas possédé
+        assertThat(suggestion.missingVolumeNumbers()).contains(3, 4, 10); // virtuels ET catalogué, tous "manquants"
     }
 
     @Test

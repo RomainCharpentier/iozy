@@ -332,6 +332,9 @@ export interface NearCompleteSuggestionDto {
   totalVolumes: number
   missingCount: number
   missingVolumeNumbers: number[]
+  /** Parmi missingVolumeNumbers, les tomes déjà catalogués (un Variant existe, juste sans
+   * Ownership) plutôt que purement virtuels (aucun Variant, modèle Tome != Ownership). */
+  cataloguedMissingVolumeNumbers: number[]
   estimatedCostToComplete: number | null
   costToCompleteBasis: PriceBasis | null
 }
