@@ -17,4 +17,7 @@ public interface OwnershipRepository {
     List<Ownership> findAll();
 
     boolean existsByEntityId(UUID entityId);
+
+    /** Utilisé par la règle de suppression d'une Ownership (voir OwnershipDeletionService). */
+    void deleteById(UUID id);
 }

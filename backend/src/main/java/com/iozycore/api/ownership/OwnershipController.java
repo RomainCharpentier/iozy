@@ -3,11 +3,13 @@ package com.iozycore.api.ownership;
 import com.iozycore.api.dto.OwnershipDtos.OwnershipResponse;
 import com.iozycore.api.dto.OwnershipDtos.UpdateNoteRequest;
 import com.iozycore.api.dto.OwnershipDtos.UpdatePurchasePriceRequest;
+import com.iozycore.application.OwnershipDeletionService;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,9 +23,11 @@ import java.util.stream.Collectors;
 public class OwnershipController {
 
     private final OwnershipRepository ownershipRepository;
+    private final OwnershipDeletionService ownershipDeletionService;
 
-    public OwnershipController(OwnershipRepository ownershipRepository) {
+    public OwnershipController(OwnershipRepository ownershipRepository, OwnershipDeletionService ownershipDeletionService) {
         this.ownershipRepository = ownershipRepository;
+        this.ownershipDeletionService = ownershipDeletionService;
     }
 
     @Operation(summary = "Lister les Ownership d'une Entity")
@@ -64,6 +68,15 @@ public class OwnershipController {
         Ownership ownership = findOrThrow(id);
         ownership.updatePurchasePrice(request.purchasePrice());
         return OwnershipResponse.from(ownershipRepository.save(ownership));
+    }
+
+    @Operation(summary = "Supprimer définitivement un exemplaire (bloqué si un prêt le référence encore) - "
+            + "contrairement à \"marquer vendu/perdu\" (changement de statut réversible), cette action est "
+            + "irréversible")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        ownershipDeletionService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     private Ownership findOrThrow(UUID id) {
