@@ -1,7 +1,10 @@
 package com.iozycore.application;
 
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
@@ -36,19 +39,28 @@ import java.util.UUID;
  * l'Ownership créée y est rattachée via variantId - c'est ce qui permet de
  * distinguer "je possède le tome 3" de "je possède le tome 7" au lieu
  * d'empiler des Ownership anonymes indiscernables sous la même fiche.
+ * <p>
+ * Modèle catalogue cible Série -> Édition -> Tome (étape 3) : quand une
+ * édition est renseignée, ce Variant est aussi relié à l'Édition catalogue
+ * ({@link MangaEdition}) correspondante - identifiée-ou-créée avec la même
+ * logique de déduplication que la Série/le Tome (voir
+ * {@link #resolveOrCreateMangaEdition}), jamais un doublon d'Édition.
  */
 @Service
 public class QuickAddService {
 
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
+    private final MangaEditionRepository mangaEditionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public QuickAddService(EntityRepository entityRepository,
                             OwnershipRepository ownershipRepository,
+                            MangaEditionRepository mangaEditionRepository,
                             ApplicationEventPublisher eventPublisher) {
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
+        this.mangaEditionRepository = mangaEditionRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -153,6 +165,17 @@ public class QuickAddService {
             matchedExistingVariant = existingVariant.isPresent() && ownershipRepository.findByEntityId(entity.id()).stream()
                     .anyMatch(ownership -> ownership.isActive()
                             && ownership.variantId().map(finalVariantId::equals).orElse(false));
+
+            // Modèle catalogue cible (Série -> Édition -> Tome, étape 3) : quand une
+            // édition est renseignée, résout-ou-crée l'Édition catalogue correspondante
+            // et relie ce Tome dessus - même patron identifier-ou-créer que pour la
+            // Série/le Tome eux-mêmes ci-dessus, jamais de doublon d'Édition (unicité
+            // seriesTitle+editionName). Aucune tentative d'enrichissement externe ici
+            // (Jikan/Google Books/IA) - seulement le matching déjà en place, voir étape 7.
+            if (edition != null && !edition.isBlank()) {
+                UUID mangaEditionId = resolveOrCreateMangaEdition(entity, edition.trim());
+                entity.linkVariantToEdition(variantId, mangaEditionId);
+            }
         }
 
         Ownership ownership = Ownership.acquire(entity.id(), variantId, condition, LocalDate.now(), null);
@@ -167,6 +190,29 @@ public class QuickAddService {
         ownership.pullDomainEvents().forEach(eventPublisher::publishEvent);
 
         return new QuickAddResult(entity.id(), matchedExisting, variantId, matchedExistingVariant);
+    }
+
+    /**
+     * Identifier-ou-créer pour l'Édition catalogue, symétrique de la déduplication
+     * Série/Tome ci-dessus. Une édition trouvée mais pas encore reliée à cette Entity
+     * (ex: créée depuis l'Analyse d'achat avant que cette série soit en collection) se
+     * voit relier son entityId ici même, opportunistement - jamais l'inverse : on ne
+     * force jamais un entityId sur une édition qui en a déjà un différent. Une édition
+     * réellement nouvelle est créée avec le strict minimum connu (nom + tier OTHER, tout
+     * le reste null) - à enrichir plus tard, jamais deviné à la création.
+     */
+    private UUID resolveOrCreateMangaEdition(Entity entity, String editionName) {
+        Optional<MangaEdition> existing = mangaEditionRepository.findBySeriesAndEdition(entity.title(), editionName);
+        if (existing.isPresent()) {
+            MangaEdition mangaEdition = existing.get();
+            if (mangaEdition.entityId() == null) {
+                mangaEdition = mangaEditionRepository.save(mangaEdition.withEntityId(entity.id()));
+            }
+            return mangaEdition.id();
+        }
+        MangaEdition created = MangaEdition.create(entity.id(), entity.title(), editionName, EditionTier.OTHER,
+                null, null, null, false, false, null);
+        return mangaEditionRepository.save(created).id();
     }
 
     private String variantLabel(int volumeNumber, String edition) {

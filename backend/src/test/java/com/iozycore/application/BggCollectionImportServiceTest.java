@@ -5,6 +5,8 @@ import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.bgg.BggCollectionFetcher;
@@ -34,7 +36,8 @@ class BggCollectionImportServiceTest {
                 new BggCollectionItem("822", "Carcassonne", "2000")
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
+        QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                new InMemoryMangaEditionRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -54,7 +57,8 @@ class BggCollectionImportServiceTest {
                 new BggCollectionItem("13", "Catan", "1995")
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-        QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(), event -> {
+        QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                new InMemoryMangaEditionRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -166,6 +170,44 @@ class BggCollectionImportServiceTest {
         @Override
         public void deleteById(UUID id) {
             store.remove(id);
+        }
+    }
+
+    /** Faux repository en mémoire pour MangaEdition - jamais réellement exercé ici (les jeux de
+     * société n'ont ni volumeNumber ni edition), requis seulement pour construire QuickAddService. */
+    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
+        private final Map<UUID, MangaEdition> store = new HashMap<>();
+
+        @Override
+        public MangaEdition save(MangaEdition edition) {
+            store.put(edition.id(), edition);
+            return edition;
+        }
+
+        @Override
+        public Optional<MangaEdition> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        @Override
+        public List<MangaEdition> findByEntityId(UUID entityId) {
+            return store.values().stream()
+                    .filter(e -> entityId.equals(e.entityId()))
+                    .collect(java.util.stream.Collectors.toList());
         }
     }
 
