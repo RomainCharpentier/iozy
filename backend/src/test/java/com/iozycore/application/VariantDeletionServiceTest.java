@@ -1,8 +1,11 @@
 package com.iozycore.application;
 
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
@@ -10,8 +13,11 @@ import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
+import com.iozycore.purchaseanalysis.MarketPriceObservation;
+import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,18 +38,27 @@ class VariantDeletionServiceTest {
     private final InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
     private final InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
     private final InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
-    private final VariantDeletionService service =
-            new VariantDeletionService(entityRepository, ownershipRepository, experienceRepository);
+    private final InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
+    private final InMemoryMarketPriceObservationRepository marketPriceObservationRepository =
+            new InMemoryMarketPriceObservationRepository();
+    private final EntityDeletionService entityDeletionService =
+            new EntityDeletionService(entityRepository, ownershipRepository, experienceRepository, mangaEditionRepository);
+    private final VariantDeletionService service = new VariantDeletionService(entityRepository, ownershipRepository,
+            experienceRepository, mangaEditionRepository, marketPriceObservationRepository, entityDeletionService);
 
     @Test
     void a_variant_with_no_ownership_and_no_experience_is_deleted() {
+        // Un second tome garde la Série non-vide, pour isoler ce test de la cascade
+        // "0 tome -> suppression de la Série" (voir les tests dédiés plus bas).
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
         entityRepository.save(entity);
 
         service.delete(entity.id(), variant.id());
 
-        assertThat(entityRepository.findById(entity.id()).orElseThrow().variants()).isEmpty();
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow();
+        assertThat(reloaded.variants()).extracting(Variant::label).containsExactly("Tome 2");
     }
 
     @Test
@@ -107,6 +122,93 @@ class VariantDeletionServiceTest {
     void deleting_a_variant_of_an_unknown_entity_fails_loudly() {
         assertThatThrownBy(() -> service.delete(UUID.randomUUID(), UUID.randomUUID()))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void an_edition_with_a_recorded_market_observation_survives_losing_its_last_tome() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Sanctuary");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), "Sanctuary",
+                "Perfect Edition", EditionTier.PERFECT, "Glénat", 6, null, false, false, null));
+        entity.linkVariantToEdition(variant.id(), edition.id());
+        entityRepository.save(entity);
+        marketPriceObservationRepository.save(MarketPriceObservation.record_(
+                edition.id(), null, new BigDecimal("150"), null, null, LocalDate.now(), null));
+
+        service.delete(entity.id(), variant.id()); // ne lève rien, le cascade s'arrête juste là
+
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // conservée
+    }
+
+    @Test
+    void deleting_the_last_tome_of_an_edition_cascades_to_delete_the_edition_too() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), "Death Note",
+                "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
+        entity.linkVariantToEdition(variant.id(), edition.id());
+        entityRepository.save(entity);
+
+        service.delete(entity.id(), variant.id());
+
+        assertThat(mangaEditionRepository.findById(edition.id())).isEmpty();
+    }
+
+    @Test
+    void deleting_a_tome_keeps_its_edition_alive_while_a_sibling_tome_still_uses_it() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome1 = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        Variant tome2 = entity.addVariant("Tome 2", Map.of("volumeNumber", 2));
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(entity.id(), "Death Note",
+                "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
+        entity.linkVariantToEdition(tome1.id(), edition.id());
+        entity.linkVariantToEdition(tome2.id(), edition.id());
+        entityRepository.save(entity);
+
+        service.delete(entity.id(), tome1.id());
+
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent(); // tome2 l'utilise encore
+    }
+
+    @Test
+    void deleting_the_last_tome_of_a_series_cascades_to_delete_the_series_too() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity);
+
+        service.delete(entity.id(), variant.id());
+
+        assertThat(entityRepository.findById(entity.id())).isEmpty(); // plus aucun tome -> plus de série
+    }
+
+    @Test
+    void deleting_the_last_tome_without_any_edition_still_cascades_the_series() {
+        // La règle est bien "0 tome" et non "0 édition" - un Tome sans édition renseignée
+        // (voir QuickAddService, edition optionnel) compte tout autant comme un vrai Tome
+        // catalogué tant qu'il existe encore.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1)); // pas d'édition
+        entityRepository.save(entity);
+
+        service.delete(entity.id(), variant.id());
+
+        assertThat(entityRepository.findById(entity.id())).isEmpty();
+    }
+
+    @Test
+    void a_series_kept_alive_by_a_generic_ownership_survives_losing_its_last_tome() {
+        // Ownership sans Variant précis (ex: "One Piece" ajouté sans choisir de tome) -
+        // le cascade "0 tome -> suppression de la Série" ne doit jamais l'ignorer
+        // silencieusement : EntityDeletionService bloque, la Série survit.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "One Piece");
+        Variant variant = entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entityRepository.save(entity);
+        ownershipRepository.save(Ownership.acquire(entity.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+
+        service.delete(entity.id(), variant.id());
+
+        Entity reloaded = entityRepository.findById(entity.id()).orElseThrow(); // toujours là
+        assertThat(reloaded.variants()).isEmpty(); // le tome, lui, a bien disparu
     }
 
     private static class InMemoryEntityRepository implements EntityRepository {
@@ -213,6 +315,61 @@ class VariantDeletionServiceTest {
         @Override
         public boolean existsByEntityId(UUID entityId) {
             return !findByEntityId(entityId).isEmpty();
+        }
+    }
+
+    /** Faux repository en mémoire pour MangaEdition, même patron que les autres ci-dessus. */
+    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
+        private final Map<UUID, MangaEdition> store = new HashMap<>();
+
+        @Override
+        public MangaEdition save(MangaEdition edition) {
+            store.put(edition.id(), edition);
+            return edition;
+        }
+
+        @Override
+        public Optional<MangaEdition> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
+            return store.values().stream().filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)).toList();
+        }
+
+        @Override
+        public List<MangaEdition> findByEntityId(UUID entityId) {
+            return store.values().stream().filter(e -> entityId.equals(e.entityId())).toList();
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+    }
+
+    /** Faux repository en mémoire pour MarketPriceObservation - juste assez pour vérifier
+     * que le cascade Édition (étape 5) épargne une Édition qui porte des données réelles. */
+    private static class InMemoryMarketPriceObservationRepository implements MarketPriceObservationRepository {
+        private final List<MarketPriceObservation> store = new ArrayList<>();
+
+        @Override
+        public MarketPriceObservation save(MarketPriceObservation observation) {
+            store.add(observation);
+            return observation;
+        }
+
+        @Override
+        public List<MarketPriceObservation> findByEditionId(UUID mangaEditionId) {
+            return store.stream().filter(o -> o.mangaEditionId().equals(mangaEditionId)).toList();
         }
     }
 }

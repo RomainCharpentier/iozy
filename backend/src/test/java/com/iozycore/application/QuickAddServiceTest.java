@@ -331,6 +331,11 @@ class QuickAddServiceTest {
                     .collect(java.util.stream.Collectors.toList());
         }
 
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+
         int count() {
             return store.size();
         }

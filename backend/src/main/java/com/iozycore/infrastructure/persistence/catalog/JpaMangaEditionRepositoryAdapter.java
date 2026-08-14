@@ -48,4 +48,9 @@ public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository 
                 .map(MangaEditionMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
 }

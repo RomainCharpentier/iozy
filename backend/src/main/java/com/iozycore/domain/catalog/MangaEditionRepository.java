@@ -20,4 +20,14 @@ public interface MangaEditionRepository {
     /** All known editions structurally linked to a catalog Série (see {@link MangaEdition#entityId()}) - unlike
      * {@link #findBySeriesTitle}, never a text-matching fallback: only editions actually rattachées. */
     List<MangaEdition> findByEntityId(UUID entityId);
+
+    /**
+     * Étape 5 (modèle Série -> Édition -> Tome) : supprime une Édition devenue vide de
+     * tout Tome catalogué. L'appelant est responsable de s'être déjà assuré qu'aucun
+     * Variant ne la référence plus - si une donnée de marché (MarketPriceObservation)
+     * la référence encore, la contrainte FK {@code market_price_observation.manga_edition_id}
+     * rejette la suppression (voir VariantDeletionService, qui traite ce cas comme "ne pas
+     * encore cascader" plutôt que comme une erreur).
+     */
+    void deleteById(UUID id);
 }
