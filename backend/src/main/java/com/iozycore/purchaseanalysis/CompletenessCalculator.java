@@ -24,10 +24,27 @@ public class CompletenessCalculator {
      * @param perVolumeMarketPrice the per-volume {@link MarketPrice} for this edition (see
      *                          {@link PurchaseAnalysisEngine}) - used to price the missing volumes,
      *                          preferring a real observation over the edition's retail price
+     *
+     * <p>Doesn't distinguish catalogued-but-unowned from purely virtual missing volumes (see
+     * {@link CollectionStatus#cataloguedMissingVolumeNumbers()}) - meaningless for
+     * {@link PurchaseAnalysisEngine}'s use (evaluating a third-party listing, no catalog concept
+     * applies there). Own-collection callers should use
+     * {@link #compute(Set, Set, MangaEdition, MarketPrice)} instead.
      */
     public CollectionStatus compute(Set<Integer> includedVolumes, MangaEdition edition, MarketPrice perVolumeMarketPrice) {
+        return compute(includedVolumes, Set.of(), edition, perVolumeMarketPrice);
+    }
+
+    /**
+     * @param cataloguedVolumes étape 6/8 (modèle Tome != Ownership) - volume numbers that have a real
+     *                          catalogued Variant (regardless of Ownership), used only to classify each
+     *                          missing volume as catalogued-but-unowned vs purely virtual - never to
+     *                          change {@code missingCount}/{@code missingVolumeNumbers} themselves
+     */
+    public CollectionStatus compute(Set<Integer> includedVolumes, Set<Integer> cataloguedVolumes, MangaEdition edition,
+                                     MarketPrice perVolumeMarketPrice) {
         if (edition == null || edition.totalVolumes() == null) {
-            return new CollectionStatus(edition, null, null, List.of(), null, null);
+            return new CollectionStatus(edition, null, null, List.of(), List.of(), null, null);
         }
 
         int totalVolumes = edition.totalVolumes();
@@ -38,11 +55,12 @@ public class CompletenessCalculator {
             }
         }
         List<Integer> missingVolumeNumbers = List.copyOf(missing);
+        List<Integer> cataloguedMissing = missingVolumeNumbers.stream().filter(cataloguedVolumes::contains).toList();
         int missingCount = missingVolumeNumbers.size();
 
         if (missingCount == 0) {
             // Nothing left to price - complete regardless of whether any price data exists.
-            return new CollectionStatus(edition, totalVolumes, 0, missingVolumeNumbers, BigDecimal.ZERO, null);
+            return new CollectionStatus(edition, totalVolumes, 0, missingVolumeNumbers, cataloguedMissing, BigDecimal.ZERO, null);
         }
 
         BigDecimal perVolumePrice = null;
@@ -64,7 +82,7 @@ public class CompletenessCalculator {
                 ? perVolumePrice.multiply(BigDecimal.valueOf(missingCount))
                 : null;
 
-        return new CollectionStatus(edition, totalVolumes, missingCount, missingVolumeNumbers,
+        return new CollectionStatus(edition, totalVolumes, missingCount, missingVolumeNumbers, cataloguedMissing,
                 costToComplete, costToComplete != null ? basis : null);
     }
 }

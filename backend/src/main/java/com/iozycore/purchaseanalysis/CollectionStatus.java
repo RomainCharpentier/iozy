@@ -15,6 +15,12 @@ import java.util.List;
  *                                   cannot be computed in that case, see {@link #missingCount()}
  * @param missingCount               null when {@code totalVolumes} is unknown; 0 means the listing
  *                                   completes the edition entirely
+ * @param cataloguedMissingVolumeNumbers étape 6/8 (modèle Tome != Ownership) - parmi
+ *                                   {@code missingVolumeNumbers}, ceux qui ont déjà un Variant catalogué
+ *                                   (juste sans Ownership active) plutôt que purement virtuels (aucun
+ *                                   Variant, seulement un numéro déduit de {@code totalVolumes}). Toujours
+ *                                   vide pour un appelant qui ne fournit pas cette distinction (voir
+ *                                   {@link CompletenessCalculator#compute(java.util.Set, MangaEdition, MarketPrice)}).
  * @param estimatedCostToComplete    null when it cannot be computed (unknown total, or no price data at all) -
  *                                   {@link BigDecimal#ZERO} when the listing already completes the edition,
  *                                   regardless of whether any price data exists (nothing left to price)
@@ -22,10 +28,11 @@ import java.util.List;
  *                                   because the edition is already complete (no price was actually used)
  */
 public record CollectionStatus(MangaEdition edition, Integer totalVolumes, Integer missingCount,
-                                List<Integer> missingVolumeNumbers, BigDecimal estimatedCostToComplete,
-                                PriceBasis costToCompleteBasis) {
+                                List<Integer> missingVolumeNumbers, List<Integer> cataloguedMissingVolumeNumbers,
+                                BigDecimal estimatedCostToComplete, PriceBasis costToCompleteBasis) {
     public CollectionStatus {
         missingVolumeNumbers = missingVolumeNumbers == null ? List.of() : List.copyOf(missingVolumeNumbers);
+        cataloguedMissingVolumeNumbers = cataloguedMissingVolumeNumbers == null ? List.of() : List.copyOf(cataloguedMissingVolumeNumbers);
     }
 
     // @JsonIgnore on both: these are derived helpers, not real fields - without

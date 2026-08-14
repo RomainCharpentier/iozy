@@ -4,21 +4,26 @@ import { TriangleAlert, Sparkles } from 'lucide-react'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { createEditionUpgradeWish, deleteEditionUpgradeWish, listEditionUpgradeWishesForEntity } from '../../api/editionUpgrade'
 import { queryKeys } from '../../lib/queryKeys'
-import { groupVariantsByEdition, hasMixedEditions, type EditionGroup } from '../../lib/editionGroups'
-import type { VariantDto } from '../../types/api'
+import { groupVariantsByEdition, hasMixedEditions, ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
+import type { OwnershipResponse, VariantDto } from '../../types/api'
 import type { EditionUpgradeWishDto } from '../../types/editionUpgrade'
 
-/** "17/26 tomes · 9 manquants · ~62,10 € pour compléter (théorique)" - une
- * ligne par édition détectée parmi les tomes possédés (voir
- * groupVariantsByEdition). Réutilise le même moteur de complétude que
+/** "17/26 tomes · 9 manquants (2 déjà catalogués) · ~62,10 € pour compléter
+ * (théorique)" - une ligne par édition détectée parmi les tomes possédés
+ * (voir groupVariantsByEdition). Réutilise le même moteur de complétude que
  * l'Analyse d'achat (GET /purchase-analysis/completeness), jamais un calcul
- * dupliqué côté client. Porte aussi le toggle "je possède déjà cette
- * édition, mais je recherche mieux" (voir EditionUpgradeWish côté backend) -
- * n'a de sens que pour une édition nommée, jamais pour le groupe "".
+ * dupliqué côté client - mais avec les VRAIS numéros possédés (Ownership
+ * active, voir ownedVolumeNumbers), jamais la simple présence catalogue
+ * d'un Variant (modèle Tome != Ownership, étape 8). Porte aussi le toggle
+ * "je possède déjà cette édition, mais je recherche mieux" (voir
+ * EditionUpgradeWish côté backend) - n'a de sens que pour une édition
+ * nommée, jamais pour le groupe "".
  */
 function EditionCompletenessRow({
   entityTitle,
   group,
+  owned,
+  collapsed,
   wish,
   onAddWish,
   onRemoveWish,
@@ -26,12 +31,13 @@ function EditionCompletenessRow({
 }: {
   entityTitle: string
   group: EditionGroup
+  owned: number[]
+  collapsed: boolean
   wish: EditionUpgradeWishDto | undefined
   onAddWish: (desiredEditionName: string, note: string) => void
   onRemoveWish: () => void
   isSavingWish: boolean
 }) {
-  const owned = group.volumeNumbers.length
   const label = group.edition || 'Édition non précisée'
   const known = group.edition !== ''
   const [showUpgradeForm, setShowUpgradeForm] = useState(false)
@@ -39,30 +45,42 @@ function EditionCompletenessRow({
   const [note, setNote] = useState('')
 
   const completenessQuery = useQuery({
-    queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, group.edition, group.volumeNumbers),
-    queryFn: () => getCompleteness(entityTitle, group.edition, group.volumeNumbers),
+    queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, group.edition, owned),
+    queryFn: () => getCompleteness(entityTitle, group.edition, owned, group.volumeNumbers),
     enabled: known,
   })
 
   return (
-    <div className="rounded-xl bg-surface p-3">
-      <p className="text-sm font-medium text-textPrimary">{label}</p>
-      {!known && <p className="text-xs text-textDim">{owned} tome{owned > 1 ? 's' : ''}</p>}
+    <div className={collapsed ? 'flex flex-col gap-1.5' : 'rounded-xl bg-surface p-3'}>
+      {!collapsed && <p className="text-sm font-medium text-textPrimary">{label}</p>}
+      {!known && (
+        <p className="text-xs text-textDim">{owned.length} tome{owned.length > 1 ? 's' : ''} possédé{owned.length > 1 ? 's' : ''}</p>
+      )}
       {known && completenessQuery.isLoading && <p className="text-xs text-textDim">Vérification...</p>}
       {known && completenessQuery.data && completenessQuery.data.totalVolumes === null && (
-        <p className="text-xs text-textDim">{owned} tome{owned > 1 ? 's' : ''} · Total inconnu</p>
+        <p className="text-xs text-textDim">{owned.length} tome{owned.length > 1 ? 's' : ''} possédé{owned.length > 1 ? 's' : ''} · Total inconnu</p>
       )}
       {known && completenessQuery.data && completenessQuery.data.totalVolumes !== null && (
         <p className="text-xs text-textDim">
-          {owned}/{completenessQuery.data.totalVolumes} tomes
+          <span className="font-medium text-accent">
+            {owned.length} possédé{owned.length > 1 ? 's' : ''}
+          </span>
+          {' '}/ {completenessQuery.data.totalVolumes} tomes
           {completenessQuery.data.missingCount! > 0 && (
             <>
-              {' '}
-              · {completenessQuery.data.missingCount} manquant{completenessQuery.data.missingCount! > 1 ? 's' : ''}
+              {' · '}
+              <span className="font-medium text-danger">
+                {completenessQuery.data.missingCount} manquant{completenessQuery.data.missingCount! > 1 ? 's' : ''}
+              </span>
+              {completenessQuery.data.cataloguedMissingVolumeNumbers.length > 0 && (
+                <>
+                  {' '}(dont {completenessQuery.data.cataloguedMissingVolumeNumbers.length} déjà catalogué
+                  {completenessQuery.data.cataloguedMissingVolumeNumbers.length > 1 ? 's' : ''} sans exemplaire)
+                </>
+              )}
               {completenessQuery.data.estimatedCostToComplete !== null && (
                 <>
-                  {' '}
-                  · ~{completenessQuery.data.estimatedCostToComplete.toFixed(2)} € pour compléter
+                  {' '}· ~{completenessQuery.data.estimatedCostToComplete.toFixed(2)} € pour compléter
                   {completenessQuery.data.costToCompleteBasis === 'THEORETICAL_ONLY' ? ' (théorique)' : ' (marché)'}
                 </>
               )}
@@ -72,7 +90,7 @@ function EditionCompletenessRow({
       )}
 
       {known && (
-        <div className="mt-2">
+        <div className="mt-1">
           {wish ? (
             <div className="flex items-center justify-between gap-2 rounded-lg bg-violet/10 px-2.5 py-1.5 text-xs text-violet">
               <span className="flex items-center gap-1.5">
@@ -145,10 +163,12 @@ export function SeriesCompletenessSection({
   entityId,
   entityTitle,
   variants,
+  ownerships,
 }: {
   entityId: string
   entityTitle: string
   variants: VariantDto[]
+  ownerships: OwnershipResponse[]
 }) {
   const queryClient = useQueryClient()
   const groups = groupVariantsByEdition(variants)
@@ -171,10 +191,14 @@ export function SeriesCompletenessSection({
   if (groups.length === 0) return null
 
   const mixed = hasMixedEditions(groups)
+  // Une seule édition détectée : le niveau "Édition" n'apporte rien à l'affichage
+  // (simplifie l'UI, jamais le modèle - la hiérarchie Série -> Édition -> Tome
+  // reste la même côté backend, voir modèle catalogue cible étapes 1-7).
+  const collapsed = groups.length === 1
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-semibold text-textPrimary">Éditions</h2>
+      {!collapsed && <h2 className="font-display text-lg font-semibold text-textPrimary">Éditions</h2>}
       {mixed && (
         <div className="flex items-start gap-2 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning">
           <TriangleAlert size={16} className="mt-0.5 shrink-0" />
@@ -184,12 +208,15 @@ export function SeriesCompletenessSection({
         </div>
       )}
       {groups.map((group) => {
+        const owned = ownedVolumeNumbers(variants, ownerships, group.edition)
         const wish = wishesQuery.data?.find((w) => w.currentEditionName === group.edition)
         return (
           <EditionCompletenessRow
             key={group.edition || '(sans édition)'}
             entityTitle={entityTitle}
             group={group}
+            owned={owned}
+            collapsed={collapsed}
             wish={wish}
             isSavingWish={createWishMutation.isPending || deleteWishMutation.isPending}
             onAddWish={(desiredEditionName, note) =>

@@ -168,12 +168,24 @@ public class PurchaseAnalysisService {
      * means the returned {@link CollectionStatus} is unknown, never guessed.
      */
     public CollectionStatus computeCompleteness(String seriesTitle, String editionName, Set<Integer> includedVolumes) {
+        return computeCompleteness(seriesTitle, editionName, includedVolumes, Set.of());
+    }
+
+    /**
+     * @param cataloguedVolumes étape 6/8 (modèle Tome != Ownership) - volume numbers that have a real
+     *                          catalogued Variant regardless of Ownership, so the response can
+     *                          distinguish "missing but already catalogued" from "missing and purely
+     *                          virtual" (see {@link CollectionStatus#cataloguedMissingVolumeNumbers()}) -
+     *                          empty when the caller doesn't have/need that distinction.
+     */
+    public CollectionStatus computeCompleteness(String seriesTitle, String editionName, Set<Integer> includedVolumes,
+                                                 Set<Integer> cataloguedVolumes) {
         Optional<MangaEdition> edition = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
         List<MarketPriceObservation> observations = edition
                 .map(e -> marketPriceObservationRepository.findByEditionId(e.id()))
                 .orElseGet(List::of);
         MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition.orElse(null), observations);
-        return completenessCalculator.compute(includedVolumes, edition.orElse(null), perVolumeMarketPrice);
+        return completenessCalculator.compute(includedVolumes, cataloguedVolumes, edition.orElse(null), perVolumeMarketPrice);
     }
 
     /**
@@ -217,15 +229,12 @@ public class PurchaseAnalysisService {
                 String editionName = group.getKey();
                 Set<Integer> cataloguedVolumes = group.getValue();
                 Set<Integer> ownedVolumes = findOwnedVolumeNumbers(entity.id(), editionName);
-                CollectionStatus status = computeCompleteness(entity.title(), editionName, ownedVolumes);
+                CollectionStatus status = computeCompleteness(entity.title(), editionName, ownedVolumes, cataloguedVolumes);
                 if (status.isKnown() && !status.isComplete()) {
-                    List<Integer> cataloguedMissing = status.missingVolumeNumbers().stream()
-                            .filter(cataloguedVolumes::contains)
-                            .toList();
                     suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), editionName,
                             ownedVolumes.size(), status.totalVolumes(), status.missingCount(),
-                            status.missingVolumeNumbers(), cataloguedMissing, status.estimatedCostToComplete(),
-                            status.costToCompleteBasis()));
+                            status.missingVolumeNumbers(), status.cataloguedMissingVolumeNumbers(),
+                            status.estimatedCostToComplete(), status.costToCompleteBasis()));
                 }
             }
         }

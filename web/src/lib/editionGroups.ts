@@ -1,4 +1,4 @@
-import type { VariantDto } from '../types/api'
+import type { OwnershipResponse, VariantDto } from '../types/api'
 
 export interface EditionGroup {
   /** "" = tomes sans édition précisée (jamais compté comme une édition distincte, voir groupVariantsByEdition). */
@@ -30,4 +30,29 @@ export function groupVariantsByEdition(variants: VariantDto[]): EditionGroup[] {
  * pour ne pas signaler à tort un mélange sur une simple absence de saisie. */
 export function hasMixedEditions(groups: EditionGroup[]): boolean {
   return groups.filter((g) => g.edition !== '').length >= 2
+}
+
+/**
+ * Étape 8 (modèle Tome != Ownership) : sous-ensemble RÉELLEMENT possédé (Ownership
+ * active) des tomes catalogués d'une édition - un Variant catalogué sans Ownership
+ * active (ex: exemplaire revendu, voir OwnershipDeletionService côté backend) n'est
+ * jamais compté comme possédé ici, contrairement à group.volumeNumbers ci-dessus qui
+ * ne mesure que le catalogue. Toujours utiliser CETTE fonction, jamais
+ * group.volumeNumbers, pour tout ce qui affiche "possédé" ou alimente le moteur de
+ * complétude (GET /purchase-analysis/completeness).
+ */
+export function ownedVolumeNumbers(variants: VariantDto[], ownerships: OwnershipResponse[], edition: string): number[] {
+  const variantsById = new Map(variants.map((v) => [v.id, v]))
+  const owned = new Set<number>()
+  for (const ownership of ownerships) {
+    if (ownership.status !== 'OWNED') continue
+    if (!ownership.variantId) continue
+    const variant = variantsById.get(ownership.variantId)
+    if (!variant) continue
+    const variantEdition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
+    if (variantEdition !== edition) continue
+    const volumeNumber = variant.attributes.volumeNumber
+    if (typeof volumeNumber === 'number') owned.add(volumeNumber)
+  }
+  return Array.from(owned).sort((a, b) => a - b)
 }

@@ -216,6 +216,10 @@ export interface CollectionStatusDto {
   totalVolumes: number | null
   missingCount: number | null
   missingVolumeNumbers: number[]
+  /** Parmi missingVolumeNumbers, les tomes déjà catalogués (un Variant existe, juste sans
+   * Ownership) plutôt que purement virtuels (aucun Variant, modèle Tome != Ownership) - vide
+   * si l'appelant n'a pas fourni cataloguedVolumes à GET /purchase-analysis/completeness. */
+  cataloguedMissingVolumeNumbers: number[]
   estimatedCostToComplete: number | null
   costToCompleteBasis: PriceBasis | null
 }
