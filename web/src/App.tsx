@@ -12,6 +12,7 @@ import { SettingsPage } from './routes/Settings/SettingsPage'
 import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysisPage'
 import { ProfilePage } from './routes/Profile/ProfilePage'
 import { ImportBggPage } from './routes/Profile/ImportBggPage'
+import { AdministrationPage } from './routes/Profile/AdministrationPage'
 import { LoansPage } from './routes/Loans/LoansPage'
 import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
 import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/import-bgg" element={<ImportBggPage />} />
+              <Route path="/administration" element={<AdministrationPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
               <Route path="/suggestions" element={<SuggestionsPage />} />

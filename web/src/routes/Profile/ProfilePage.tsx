@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, BarChart3, Tags, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight, Upload } from 'lucide-react'
+import { Star, BarChart3, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight } from 'lucide-react'
 
 interface ProfileLink {
   to: string
@@ -14,6 +14,9 @@ interface ProfileLink {
 // son propre onglet (voir "trop de menus/sous-menus"). "Évaluer un achat"
 // vivait avant dans un bouton flottant dédié - pas intuitif (un FAB signale
 // "créer du nouveau", pas "analyser une annonce"), déplacé ici à la place.
+// Uniquement des outils tournés vers LA COLLECTION elle-même (voir l'audit
+// UX) - la configuration technique (types de fiches, import BGG, export
+// brut) vit à part sous Paramètres > Administration avancée, jamais ici.
 const LINKS: ProfileLink[] = [
   { to: '/wishlist', label: 'Wishlist', description: 'Ce que tu veux ajouter à ta collection', icon: Star },
   { to: '/purchase-analysis', label: 'Évaluer un achat', description: "Analyser une annonce d'occasion avant de l'acheter", icon: Scale },
@@ -22,8 +25,6 @@ const LINKS: ProfileLink[] = [
   { to: '/loans', label: 'Prêts en cours', description: 'À qui un manga ou un jeu a été prêté', icon: HandHeart },
   { to: '/stats', label: 'Statistiques', description: 'Vue d\'ensemble de ta collection', icon: BarChart3 },
   { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
-  { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...)', icon: Tags },
-  { to: '/import-bgg', label: 'Importer depuis BGG', description: 'Récupérer tes jeux de société depuis BoardGameGeek', icon: Upload },
 ]
 
 export function ProfilePage() {
