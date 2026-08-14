@@ -1,8 +1,15 @@
-import { get, post, patch, buildQuery } from './client'
+import { get, post, patch, del, buildQuery } from './client'
 import type { OwnershipResponse } from '../types/api'
 
 export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>(`/ownerships${buildQuery({ entityId })}`)
+}
+
+/** Suppression définitive (contrairement à markSold/markLost, des changements de
+ * statut réversibles) - bloquée côté backend si un prêt référence encore cet
+ * exemplaire (voir OwnershipDeletionService), même celui-ci déjà rendu. */
+export function deleteOwnership(id: string): Promise<void> {
+  return del<void>(`/ownerships/${id}`)
 }
 
 export function markSold(id: string): Promise<OwnershipResponse> {

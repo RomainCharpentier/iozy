@@ -52,6 +52,11 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
     private static OwnershipJpaEntity toJpa(Ownership ownership) {
         return new OwnershipJpaEntity(
                 ownership.id(),

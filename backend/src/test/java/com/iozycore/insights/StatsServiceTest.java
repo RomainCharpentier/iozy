@@ -340,6 +340,11 @@ class StatsServiceTest {
         public List<Ownership> findAll() {
             return new ArrayList<>(store.values());
         }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
     }
 
     private static class InMemoryExperienceRepository implements ExperienceRepository {

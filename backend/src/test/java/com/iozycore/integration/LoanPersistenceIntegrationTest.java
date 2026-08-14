@@ -1,5 +1,6 @@
 package com.iozycore.integration;
 
+import com.iozycore.application.OwnershipDeletionService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
@@ -8,6 +9,7 @@ import com.iozycore.domain.loan.LoanRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Validates the Loan persistence module (Flyway V5 + JPA) against a real PostgreSQL - mirrors EntityPersistenceIntegrationTest. */
 @Testcontainers
@@ -50,6 +53,9 @@ class LoanPersistenceIntegrationTest {
 
     @Autowired
     private EntityRepository entityRepository;
+
+    @Autowired
+    private OwnershipDeletionService ownershipDeletionService;
 
     private UUID createOwnedEntityOwnership() {
         Entity entity = entityRepository.save(Entity.create(EntityTypeFixtures.MANGA.id(), "Vagabond " + UUID.randomUUID()));
@@ -87,5 +93,30 @@ class LoanPersistenceIntegrationTest {
         assertThat(loanRepository.findAllActive()).extracting(Loan::id)
                 .contains(active.id())
                 .doesNotContain(returned.id());
+    }
+
+    @Test
+    void an_ownership_with_no_loan_at_all_can_be_deleted() {
+        UUID ownershipId = createOwnedEntityOwnership();
+
+        ownershipDeletionService.delete(ownershipId);
+
+        assertThat(ownershipRepository.findById(ownershipId)).isEmpty();
+    }
+
+    @Test
+    void an_ownership_still_referenced_by_a_loan_cannot_be_deleted_even_once_returned() {
+        // "même déjà rendu" (voir EntityDeletionNotAllowedException et sa javadoc) : un Loan rendu reste
+        // un historique réel, jamais un simple état transitoire à ignorer une fois de retour.
+        UUID ownershipId = createOwnedEntityOwnership();
+        Loan loan = loanRepository.save(Loan.lend(ownershipId, "Alex", LocalDate.now(), null));
+        loan.markReturned(LocalDate.now());
+        loanRepository.save(loan);
+
+        assertThatThrownBy(() -> ownershipDeletionService.delete(ownershipId))
+                .isInstanceOf(OwnershipDeletionNotAllowedException.class)
+                .hasMessageContaining("1 prêt");
+
+        assertThat(ownershipRepository.findById(ownershipId)).isPresent();
     }
 }

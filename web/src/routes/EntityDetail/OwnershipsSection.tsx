@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { markSold, updatePurchasePrice } from '../../api/ownerships'
+import { Trash2 } from 'lucide-react'
+import { deleteOwnership, markSold, updatePurchasePrice } from '../../api/ownerships'
 import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
 import { mergeVariantAttributes } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { findBestCoverMatch } from '../Shelf/backfillCovers'
+import { ErrorBanner } from '../../components/ErrorBanner'
 import { CONDITION_LABELS, OWNERSHIP_STATUS_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
@@ -64,6 +66,11 @@ export function OwnershipsSection({
   // section (prêt, prix).
   const [coverEditVariantId, setCoverEditVariantId] = useState<string | null>(null)
   const [coverUrlInput, setCoverUrlInput] = useState('')
+  // "Supprimer cet exemplaire" - contrairement à Marquer vendu/perdu (statuts
+  // réversibles), une suppression définitive : jamais un simple clic, voir
+  // deleteMutation. Un seul exemplaire en confirmation à la fois, comme les
+  // autres formulaires inline de cette section.
+  const [deleteConfirmOwnershipId, setDeleteConfirmOwnershipId] = useState<string | null>(null)
   const highlightedRowRef = useRef<HTMLLIElement | null>(null)
 
   useEffect(() => {
@@ -123,6 +130,17 @@ export function OwnershipsSection({
       queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
       setPriceFormOwnershipId(null)
       setPriceInput('')
+    },
+  })
+
+  // Bloquée côté backend (409) si un prêt référence encore cet exemplaire,
+  // même déjà rendu (voir OwnershipDeletionService) - le message d'erreur
+  // renvoyé explique déjà pourquoi, affiché tel quel plutôt que réinterprété.
+  const deleteMutation = useMutation({
+    mutationFn: deleteOwnership,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
+      setDeleteConfirmOwnershipId(null)
     },
   })
 
@@ -221,6 +239,16 @@ export function OwnershipsSection({
                       <p className="text-warning">
                         Prêté à {activeLoan.borrowerName} depuis le {activeLoan.lentAt}
                       </p>
+                    )}
+                    {deleteConfirmOwnershipId !== ownership.id && (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmOwnershipId(ownership.id)}
+                        className="flex items-center gap-1 text-danger underline-offset-2 hover:underline"
+                      >
+                        <Trash2 size={11} />
+                        Supprimer cet exemplaire
+                      </button>
                     )}
                   </div>
                   {ownership.status === 'OWNED' && (
@@ -375,6 +403,35 @@ export function OwnershipsSection({
                     </button>
                     {searchCoverMutation.isError && (
                       <p className="text-xs text-textDim">{searchCoverMutation.error.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {deleteConfirmOwnershipId === ownership.id && (
+                  <div className="flex flex-col gap-1.5 rounded-lg bg-danger/10 p-2">
+                    <p className="text-xs text-danger">
+                      Supprimer définitivement {variant ? `« ${variant.label} »` : 'cet exemplaire'} ? Cette action
+                      est irréversible.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => deleteMutation.mutate(ownership.id)}
+                        disabled={deleteMutation.isPending}
+                        className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-textPrimary disabled:opacity-50"
+                      >
+                        {deleteMutation.isPending ? 'Suppression...' : 'Confirmer la suppression'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmOwnershipId(null)}
+                        className="rounded-lg px-3 py-1.5 text-xs text-textDim"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                    {deleteMutation.isError && deleteMutation.variables === ownership.id && (
+                      <ErrorBanner message={deleteMutation.error.message} />
                     )}
                   </div>
                 )}
