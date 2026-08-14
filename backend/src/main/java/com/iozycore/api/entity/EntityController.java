@@ -6,6 +6,7 @@ import com.iozycore.api.dto.EntityDtos.QuickAddResponse;
 import com.iozycore.application.EntityDeletionService;
 import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
+import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
@@ -30,15 +31,18 @@ public class EntityController {
     private final EntityTypeRepository entityTypeRepository;
     private final QuickAddService quickAddService;
     private final EntityDeletionService entityDeletionService;
+    private final VariantDeletionService variantDeletionService;
 
     public EntityController(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
                              QuickAddService quickAddService,
-                             EntityDeletionService entityDeletionService) {
+                             EntityDeletionService entityDeletionService,
+                             VariantDeletionService variantDeletionService) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.quickAddService = quickAddService;
         this.entityDeletionService = entityDeletionService;
+        this.variantDeletionService = variantDeletionService;
     }
 
     @Operation(summary = "Ajout rapide (parcours 1) : crée une Entity et son Ownership initiale, "
@@ -107,5 +111,17 @@ public class EntityController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
         return EntityResponse.from(entityRepository.save(entity));
+    }
+
+    @Operation(summary = "Supprimer un Tome (bloqué si des Ownership/Experience le référencent encore) - "
+            + "n'affecte jamais la Série ni les autres tomes (modèle Série -> Édition -> Tome)")
+    @DeleteMapping("/{entityId}/variants/{variantId}")
+    public ResponseEntity<Void> deleteVariant(@PathVariable UUID entityId, @PathVariable UUID variantId) {
+        try {
+            variantDeletionService.delete(entityId, variantId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+        return ResponseEntity.noContent().build();
     }
 }
