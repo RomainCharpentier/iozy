@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Trash2, X } from 'lucide-react'
 import { deleteOwnership, markSold, updatePurchasePrice } from '../../api/ownerships'
 import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
 import { mergeVariantAttributes } from '../../api/entities'
@@ -56,6 +57,7 @@ export function OwnershipsSection({
   highlightedVariantId?: string | null
 }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [lendFormOwnershipId, setLendFormOwnershipId] = useState<string | null>(null)
   const [borrowerName, setBorrowerName] = useState('')
   const [priceFormOwnershipId, setPriceFormOwnershipId] = useState<string | null>(null)
@@ -169,11 +171,37 @@ export function OwnershipsSection({
   if (ownerships.length === 0) return null
 
   const variantsById = new Map(variants.map((v) => [v.id, v]))
-  const sortedOwnerships = sortByVolumeNumber(ownerships, variantsById)
+
+  // Modèle grille (voir TomesGridSection) : quand la série a des tomes, cette
+  // section ne montre plus TOUTES les possessions à la fois (une énorme fiche
+  // technique) mais seulement celle du tome sélectionné dans la grille -
+  // celle-ci sert déjà de vue d'ensemble, pas besoin de la dupliquer ici.
+  // Sans notion de tome (jeu vidéo, jeu de société), rien à sélectionner :
+  // la liste complète reste affichée telle quelle, un seul exemplaire la
+  // plupart du temps de toute façon.
+  const focusedOnOneTome = variants.length > 0
+  if (focusedOnOneTome && !highlightedVariantId) return null
+  const visibleOwnerships = focusedOnOneTome
+    ? ownerships.filter((o) => o.variantId === highlightedVariantId)
+    : ownerships
+  if (visibleOwnerships.length === 0) return null
+  const sortedOwnerships = sortByVolumeNumber(visibleOwnerships, variantsById)
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-semibold text-textPrimary">Possessions</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold text-textPrimary">Possessions</h2>
+        {focusedOnOneTome && (
+          <button
+            type="button"
+            onClick={() => navigate(`/entity/${entityId}`, { replace: true })}
+            aria-label="Fermer"
+            className="text-textDim hover:text-textPrimary"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
       <ul className="flex flex-col gap-2">
         {sortedOwnerships.map((ownership) => {
           const variant = ownership.variantId ? variantsById.get(ownership.variantId) : undefined
