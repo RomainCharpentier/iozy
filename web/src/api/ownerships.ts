@@ -5,6 +5,13 @@ export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>(`/ownerships${buildQuery({ entityId })}`)
 }
 
+/** Toutes les Ownership, tous types confondus - pour calculer une progression
+ * réelle (possédé, pas juste catalogué) par série sans une requête par série
+ * (voir Ma collection). */
+export function listAllOwnerships(): Promise<OwnershipResponse[]> {
+  return get<OwnershipResponse[]>('/ownerships')
+}
+
 /** Suppression définitive (contrairement à markSold/markLost, des changements de
  * statut réversibles) - bloquée côté backend si un prêt référence encore cet
  * exemplaire (voir OwnershipDeletionService), même celui-ci déjà rendu. */

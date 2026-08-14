@@ -9,6 +9,9 @@ export const queryKeys = {
     detail: (id: string) => ['entities', id] as const,
   },
   ownerships: (entityId: string) => ['ownerships', entityId] as const,
+  /** Toutes les Ownership (voir listAllOwnerships) - clé distincte de
+   * ownerships(entityId) ci-dessus pour ne jamais collisionner en cache. */
+  allOwnerships: ['ownerships', 'all'] as const,
   experiences: (entityId: string) => ['experiences', entityId] as const,
   tags: {
     all: ['tags'] as const,

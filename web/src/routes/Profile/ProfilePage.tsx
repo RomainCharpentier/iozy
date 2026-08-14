@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, BarChart3, Tags, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight } from 'lucide-react'
+import { Star, BarChart3, Tags, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight, Upload } from 'lucide-react'
 
 interface ProfileLink {
   to: string
@@ -23,6 +23,7 @@ const LINKS: ProfileLink[] = [
   { to: '/stats', label: 'Statistiques', description: 'Vue d\'ensemble de ta collection', icon: BarChart3 },
   { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
   { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...)', icon: Tags },
+  { to: '/import-bgg', label: 'Importer depuis BGG', description: 'Récupérer tes jeux de société depuis BoardGameGeek', icon: Upload },
 ]
 
 export function ProfilePage() {

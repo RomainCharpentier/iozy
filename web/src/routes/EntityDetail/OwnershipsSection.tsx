@@ -77,11 +77,11 @@ export function OwnershipsSection({
     if (highlightedVariantId && highlightedRowRef.current) {
       highlightedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
-    // Un seul défilement au chargement de la fiche - un changement ultérieur
-    // de highlightedVariantId ne vient que d'une navigation complète (nouvel
-    // id dans l'URL), déjà couvert par un nouveau montage de la page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    // Réagit à CHAQUE changement de highlightedVariantId, pas seulement au
+    // montage : un clic sur un tome possédé dans la grille (voir
+    // TomesGridSection/EntityDetailPage.onSelectOwnedVariant) met à jour
+    // l'URL sans remonter la page, le défilement doit donc se redéclencher.
+  }, [highlightedVariantId])
 
   const coverUrlMutation = useMutation({
     mutationFn: ({ variantId, coverImageUrl }: { variantId: string; coverImageUrl: string }) =>

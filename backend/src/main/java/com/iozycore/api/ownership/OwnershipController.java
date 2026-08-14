@@ -30,10 +30,15 @@ public class OwnershipController {
         this.ownershipDeletionService = ownershipDeletionService;
     }
 
-    @Operation(summary = "Lister les Ownership d'une Entity")
+    @Operation(summary = "Lister les Ownership - filtrées sur une Entity si entityId est fourni, toutes sinon "
+            + "(ex: calcul de progression par série sur Ma collection, qui a besoin de la possession réelle de "
+            + "chaque série affichée en une seule fois plutôt que d'une requête par série)")
     @GetMapping
-    public List<OwnershipResponse> byEntity(@RequestParam UUID entityId) {
-        return ownershipRepository.findByEntityId(entityId).stream()
+    public List<OwnershipResponse> list(@RequestParam(required = false) UUID entityId) {
+        List<Ownership> ownerships = entityId != null
+                ? ownershipRepository.findByEntityId(entityId)
+                : ownershipRepository.findAll();
+        return ownerships.stream()
                 .map(OwnershipResponse::from)
                 .collect(Collectors.toList());
     }
