@@ -92,20 +92,30 @@ export function EditionCorrectionSection({
   })
 
   if (!expanded) {
+    // Icône seule (plus de libellé "Modifier l'édition" sur sa propre ligne) -
+    // pensée pour s'accrocher directement à la ligne compacte "Black Édition
+    // · 6 tomes" composée par le parent (voir TomesGridSection), même esprit
+    // que la correction de couverture/titre de la fiche (icône crayon
+    // directement associée à l'info qu'elle corrige, jamais une ligne à part
+    // qui ressemble à une interface de gestion).
     return (
       <button
         type="button"
         onClick={openForm}
-        className="flex w-fit items-center gap-1 text-xs text-textDim hover:text-textPrimary"
+        aria-label="Modifier l'édition"
+        title="Modifier l'édition"
+        className="shrink-0 text-textDim hover:text-textPrimary"
       >
-        <Pencil size={11} />
-        Modifier l'édition
+        <Pencil size={13} />
       </button>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-surface2 p-2.5">
+    // w-full + le parent en flex-wrap (voir TomesGridSection) : le formulaire
+    // déplié occupe toute la largeur sur sa propre ligne plutôt que de rester
+    // coincé dans la même ligne flex que le libellé compact de l'édition.
+    <div className="mt-1 flex w-full flex-col gap-2 rounded-lg bg-surface2 p-2.5">
       <div className="flex gap-2">
         <input
           type="number"

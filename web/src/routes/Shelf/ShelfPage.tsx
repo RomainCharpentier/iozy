@@ -260,23 +260,40 @@ export function ShelfPage() {
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   }
 
-  // Généralisé en un compte par type plutôt que le bucket fixe "Mangas/Jeux"
-  // d'origine - un type sans aucune Entity possédée n'apparaît pas.
-  //
-  // Compte le nombre de TUILES (flattenToTomes/groupBySeries, jamais
-  // entities.length brut) pour rester exactement cohérent avec ce que la
-  // grille affiche selon le mode courant.
-  const countsByType = useMemo(
+  // Compte par type pour les chips de filtre ("Manga 4", voir la maquette) -
+  // délibérément stable face au bascule Par série/Par tome (grouped) : le
+  // nombre de séries possédées ne doit pas changer visuellement selon le
+  // mode d'affichage de la grille, ce serait déroutant sur un simple
+  // compteur. Contrairement à l'ancien countsByType, jamais filtré à
+  // count > 0 - un type sans rien possédé reste visible avec "0" (voir la
+  // maquette "[Jeu vidéo 0] [Jeu de société 0]").
+  const countsByTypeId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const type of entityTypes) {
+      map.set(type.id, entities.filter((e) => e.entityTypeId === type.id).length)
+    }
+    return map
+  }, [entities, entityTypes])
+
+  // Les deux seules statistiques "réellement intéressantes" au sens de la
+  // maquette qui ne dupliquent pas une info déjà portée par les chips de
+  // filtre ci-dessus (voir "ajoute une carte Total" jugé redondant) - toutes
+  // deux dérivées de données déjà chargées ici, aucun nouveau calcul côté
+  // backend (voir "ne crée pas de nouvelles fonctionnalités statistiques").
+  const completeSeriesCount = useMemo(
     () =>
-      entityTypes
-        .map((type) => {
-          const entitiesOfType = entities.filter((e) => e.entityTypeId === type.id)
-          const count = grouped ? entitiesOfType.length : flattenToTomes(entitiesOfType, owned, entityTypeLabel).length
-          return { type, count }
-        })
-        .filter((entry) => entry.count > 0),
-    [entities, entityTypes, grouped, owned, entityTypesById],
+      entities.filter((e) => {
+        if (e.variants.length === 0) return false
+        const total = totalVolumesFrom(e.attributes)
+        if (total === null) return false
+        return e.variants.filter((v) => owned.has(v.id)).length >= total
+      }).length,
+    [entities, owned],
   )
+  const addedThisMonthCount = useMemo(() => {
+    const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+    return ownerships.filter((o) => o.status === 'OWNED' && o.acquiredAt.startsWith(currentMonth)).length
+  }, [ownerships])
 
   const visibleEntities = selectedTypeId
     ? entities.filter((e) => e.entityTypeId === selectedTypeId)
@@ -289,37 +306,56 @@ export function ShelfPage() {
         : flattenToTomes(visibleEntities, owned, entityTypeLabel),
     [grouped, visibleEntities, owned, entityTypesById],
   )
-  const totalCount = grouped ? entities.length : flattenToTomes(entities, owned, entityTypeLabel).length
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Ma collection</h1>
-
-      <div className="flex gap-3 overflow-x-auto">
-        <StatCard value={String(totalCount)} label="Total" />
-        {countsByType.map((entry) => (
-          <StatCard key={entry.type.id} value={String(entry.count)} label={entry.type.label} />
-        ))}
+      {/* Ligne 1 : filtres de type à gauche (avec leur propre compte, ex.
+          "Manga 4" - voir TypeFilterChips) et les seules statistiques
+          réellement utiles à droite. Pas de carte "Total"/par-type séparée :
+          strictement redondante avec le compte déjà porté par les chips
+          (voir la maquette validée - "évite les informations redondantes"). */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-textPrimary">Ma collection</h1>
+          <div className="mt-2">
+            <TypeFilterChips
+              entityTypes={entityTypes}
+              selectedTypeId={selectedTypeId}
+              onChange={setSelectedTypeId}
+              totalCount={entities.length}
+              countsByTypeId={countsByTypeId}
+            />
+          </div>
+        </div>
+        {(completeSeriesCount > 0 || addedThisMonthCount > 0) && (
+          <div className="flex gap-3">
+            {completeSeriesCount > 0 && <StatCard value={String(completeSeriesCount)} label="Séries complètes" />}
+            {addedThisMonthCount > 0 && <StatCard value={String(addedThisMonthCount)} label="Ajouts ce mois" />}
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <TypeFilterChips entityTypes={entityTypes} selectedTypeId={selectedTypeId} onChange={setSelectedTypeId} />
-        <div className="flex items-center gap-1.5">
-          <Chip label="Détail par tome" isActive={!grouped} onClick={() => setGrouped((v) => !v)} />
-          {!grouped && entitiesMissingCovers.length > 0 && (
-            <button
-              type="button"
-              onClick={backfillMissingCovers}
-              disabled={backfill?.running}
-              title="Retrouver les jaquettes manquantes"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-textDim hover:text-textPrimary disabled:opacity-50"
-            >
-              {backfill?.running ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
-            </button>
-          )}
-        </div>
+      {/* Ligne 2 : contrôles d'affichage - uniquement les modes réellement
+          disponibles (voir "seulement pour les fonctionnalités réellement
+          disponibles"). Par série/Par tome est un vrai mode de visualisation
+          de la même grille (voir grouped) : deux chips nommés plutôt qu'un
+          bouton "Détail par tome" isolé sans contexte à droite de l'écran. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Chip label="Par série" isActive={grouped} onClick={() => setGrouped(true)} />
+        <Chip label="Par tome" isActive={!grouped} onClick={() => setGrouped(false)} />
+        {!grouped && entitiesMissingCovers.length > 0 && (
+          <button
+            type="button"
+            onClick={backfillMissingCovers}
+            disabled={backfill?.running}
+            title="Retrouver les jaquettes manquantes"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-textDim hover:text-textPrimary disabled:opacity-50"
+          >
+            {backfill?.running ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />}
+          </button>
+        )}
       </div>
 
       {backfill && !backfill.running && (
@@ -343,13 +379,13 @@ export function ShelfPage() {
         </p>
       )}
 
-      {/* Même logique que la grille de tomes de la fiche Série : le nombre de
-          colonnes s'adapte à la largeur disponible plutôt qu'un nombre fixe.
-          Plafonné à 5 (pas 6) même sur grand écran : la jaquette est
-          l'information de premier ordre ici (audit UX "jaquettes trop
-          petites") - mieux vaut parcourir confortablement que maximiser le
-          nombre de tuiles visibles à la fois. */}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
+      {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
+          nombre fixe - 4 à 6 colonnes selon la largeur réelle (voir la
+          maquette validée), jamais un nombre qui reste figé pendant que le
+          container s'élargit (voir AppShell.isWideScreen) : à 1920px, une
+          jaquette doit rester nettement plus grande qu'à 1024px, pas
+          identique avec juste plus d'espace vide autour. */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6">
         {tiles.map((tile) => (
           <CoverTile
             key={tile.key}
