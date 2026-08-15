@@ -13,7 +13,9 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
+import { groupVariantsByEdition, resolveEditionView } from '../../lib/editionGroups'
 import { OwnershipsSection } from './OwnershipsSection'
+import { EditionProgressSection } from './EditionProgressSection'
 import { TomesGridSection } from './TomesGridSection'
 import { AddVolumeSection } from './AddVolumeSection'
 import { MoreOptionsSection } from './MoreOptionsSection'
@@ -63,6 +65,14 @@ export function EntityDetailPage() {
   // AddVolumeSection déjà pré-rempli plutôt que de faire retaper un numéro
   // et une édition déjà connus (voir TomesGridSection/AddVolumeSection).
   const [addVolumePrefill, setAddVolumePrefill] = useState<{ volumeNumber: number; edition: string } | null>(null)
+  // Édition sélectionnée dans le bloc Identité (voir EditionProgressSection) -
+  // portée ici plutôt que dans un des deux composants qui l'utilisent : le
+  // hero (progression/édition) et la grille de tomes doivent réagir au même
+  // changement d'édition active (voir la maquette validée - regroupés dans
+  // un même bloc Identité). Déclaré avant les retours anticipés ci-dessous
+  // (règle des Hooks), même si sa valeur ne prend son sens qu'une fois
+  // `entity` chargée.
+  const [activeEdition, setActiveEdition] = useState<string | null>(null)
 
   // 5 requêtes indépendantes déclenchées en parallèle (React Query émet
   // chaque useQuery dès le rendu, pas de chaînage séquentiel) - même
@@ -100,6 +110,12 @@ export function EntityDetailPage() {
   const experiences = experiencesQuery.data ?? []
   const isManga = entityType?.code === 'MANGA'
 
+  // Édition active partagée entre EditionProgressSection (dans le hero) et
+  // TomesGridSection (la grille, hors du hero) - voir activeEdition ci-dessus.
+  // Calcul pur, jamais un Hook : peut vivre après les retours anticipés.
+  const editionGroups = isManga ? resolveEditionView(groupVariantsByEdition(entity.variants)) : []
+  const activeEditionGroup = editionGroups.find((g) => g.edition === activeEdition) ?? editionGroups[0]
+
   const coverImageUrl = coverImageUrlFrom(entity.attributes)
   // mangaka (Manga) ou studio (Jeu vidéo) - voir creatorInfo.ts. Rien pour
   // Jeu de société tant qu'aucune source ne fournit réellement cette donnée.
@@ -113,17 +129,23 @@ export function EntityDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Identité : vraie jaquette dimensionnée (pas un fond d'écran rogné
-          derrière un dégradé) à côté du titre/auteur, comme sur la fiche Série
-          d'une bibliothèque numérique (voir la maquette validée) - remplace
-          l'ancienne bannière horizontale h-40 décorative, qui ne permettait pas
-          de reconnaître la jaquette (recadrée en fond, jamais montrée entière).
-          Même composition côte-à-côte du mobile au desktop, seule la taille de
-          la jaquette grandit avec la largeur disponible (voir la maquette
-          mobile "[Couverture] [Titre/auteur]" - déjà côte-à-côte, pas empilé). */}
-      <div className="flex gap-4 sm:gap-6">
+      {/* MangaHero : cover + identité + progression + édition regroupés dans
+          UN SEUL bloc (voir la maquette validée) - la progression et
+          l'édition ne sont plus des sections pleine largeur séparées, elles
+          vivent dans la colonne de contenu à droite de la jaquette, plafonnée
+          à 560px (voir hero-content) pour ne jamais s'étirer sur toute la
+          largeur du container élargi de la page (une barre de progression à
+          1500px de large serait absurde). Grille desktop à 2 colonnes fixes
+          (200px jaquette + jusqu'à 520px de contenu) à partir de 768px ; en
+          dessous, une ligne flex plus modeste - même composition côte-à-côte
+          du mobile au desktop (voir la maquette mobile "[Couverture]
+          [Titre/auteur]", déjà côte-à-côte, jamais empilé), seule la taille
+          de la jaquette grandit. Remplace l'ancienne bannière horizontale
+          h-40 décorative, qui ne permettait pas de reconnaître la jaquette
+          (recadrée en fond, jamais montrée entière). */}
+      <div className="flex items-start gap-4 sm:gap-6 md:grid md:grid-cols-[200px_minmax(0,520px)] md:gap-8">
         <div
-          className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36 md:w-44 lg:w-52"
+          className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36 md:w-[200px]"
           style={coverImageUrl ? undefined : { background: gradientFor(entity.title) }}
         >
           {coverImageUrl && <img src={coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
@@ -139,31 +161,65 @@ export function EntityDetailPage() {
             <Pencil size={13} />
           </button>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <h1 className="font-display text-2xl font-bold text-textPrimary sm:text-3xl">{entity.title}</h1>
-            <button
-              type="button"
-              onClick={() => {
-                setTitleInput(entity.title)
-                setEditingTitle(true)
-              }}
-              aria-label="Modifier le nom de la série"
-              className="shrink-0 text-textDim hover:text-textPrimary"
-            >
-              <Pencil size={13} />
-            </button>
+        {/* hero-content : max-width 560px (voir ci-dessus) - important, pas
+            1fr/flex-1 sans plafond jusqu'à la largeur du container large. */}
+        <div className="flex min-w-0 flex-col gap-3 md:max-w-[560px]">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-display text-2xl font-bold text-textPrimary sm:text-3xl">{entity.title}</h1>
+              <button
+                type="button"
+                onClick={() => {
+                  setTitleInput(entity.title)
+                  setEditingTitle(true)
+                }}
+                aria-label="Modifier le nom de la série"
+                className="shrink-0 text-textDim hover:text-textPrimary"
+              >
+                <Pencil size={13} />
+              </button>
+            </div>
+            {author && <p className="text-sm text-textDim sm:text-base">{author}</p>}
+            {/* Type en petite pastille discrète : aide à reconnaître le type
+                immédiatement (même principe que les tuiles de Ma Collection),
+                sans répéter l'éditeur ici - déjà porté par la ligne Édition et
+                "À propos" plus bas (voir EditionProgressSection/
+                TomesGridSection), pas la peine de le montrer deux fois. */}
+            {entityType && (
+              <span className="w-fit rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-textDim">
+                {entityType.label}
+              </span>
+            )}
           </div>
-          {author && <p className="text-sm text-textDim sm:text-base">{author}</p>}
-          {/* Type en petite pastille discrète : aide à reconnaître le type
-              immédiatement (même principe que les tuiles de Ma Collection),
-              sans répéter l'éditeur ici - déjà porté par la ligne Édition et
-              "À propos" juste en dessous (voir TomesGridSection), pas la peine
-              de le montrer deux fois. */}
-          {entityType && (
-            <span className="w-fit rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-textDim">
-              {entityType.label}
-            </span>
+
+          {/* Progression + édition (Manga) - voir EditionProgressSection.
+              Pastilles Possédé/expérience (jeu vidéo, jeu de société) sinon :
+              même emplacement conceptuel ("état personnel" du bloc Identité),
+              pas de grille de tomes pour ces types donc pas de progression à
+              afficher à la place. */}
+          {isManga && activeEditionGroup ? (
+            <EditionProgressSection
+              entityId={entityId}
+              entityTitle={entity.title}
+              variants={entity.variants}
+              ownerships={ownerships}
+              displayGroups={editionGroups}
+              activeGroup={activeEditionGroup}
+              onSelectEdition={setActiveEdition}
+            />
+          ) : (
+            !isManga && (
+              <div className="flex flex-wrap gap-2">
+                {activeOwnership && (
+                  <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentText">Possédé</span>
+                )}
+                {bestExperience && (
+                  <span className="rounded-full bg-surface px-3 py-1 text-sm font-medium text-textDim">
+                    {bestExperience.experienceType} · {bestExperience.rating}/10
+                  </span>
+                )}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -224,43 +280,27 @@ export function EntityDetailPage() {
       )}
       {editingCover && coverMutation.isError && <ErrorBanner message={coverMutation.error.message} />}
 
-      {/* Pastilles Possédé/expérience : réservées aux types SANS grille de
-          tomes (jeu vidéo, jeu de société), où elles restent le seul repère
-          "est-ce que je l'ai déjà ?". Pour un manga, la ligne de progression
-          de TomesGridSection ("X / Y tomes possédés") dit déjà ça, plus
-          précisément (par édition) - garder la pastille en plus aurait
-          recréé exactement la redondance signalée par l'audit UX (Possédé /
-          Tomes / 0 possédé qui répétaient la même chose trois fois). */}
-      {!isManga && (
-        <div className="flex flex-wrap gap-2">
-          {activeOwnership && (
-            <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentText">
-              Possédé
-            </span>
-          )}
-          {bestExperience && (
-            <span className="rounded-full bg-surface px-3 py-1 text-sm font-medium text-textDim">
-              {bestExperience.experienceType} · {bestExperience.rating}/10
-            </span>
-          )}
+      {/* "Mes tomes" - hors du bloc Identité, séparée visuellement (voir la
+          maquette validée : margin-top généreux). Réservée au Manga :
+          volumeNumber/édition n'ont de sens que pour un tome (voir
+          QuickAddService côté backend). */}
+      {isManga && activeEditionGroup && (
+        // mt-6 en plus du gap-6 déjà porté par le conteneur racine (voir plus
+        // bas) = 48px au total entre le hero et "Mes tomes" (cible 40-48px,
+        // voir la maquette validée) - une vraie séparation visuelle, pas la
+        // même respiration que le reste de la page.
+        <div className="mt-6">
+          <TomesGridSection
+            entityId={entityId}
+            entityTitle={entity.title}
+            entityAttributes={entity.attributes}
+            variants={entity.variants}
+            ownerships={ownerships}
+            activeGroup={activeEditionGroup}
+            onSelectOwnedVariant={(variantId) => navigate(`/entity/${entityId}?variant=${variantId}`, { replace: true })}
+            onSelectMissingVolume={(volumeNumber, edition) => setAddVolumePrefill({ volumeNumber, edition })}
+          />
         </div>
-      )}
-
-      {/* Priorité visuelle : la grille des tomes (possédé/manquant) juste
-          après l'en-tête, avant tout le reste - voir l'audit UX "la
-          consultation doit d'abord répondre à ce que je possède/ce qu'il me
-          manque". Réservée au Manga : volumeNumber/édition n'ont de sens que
-          pour un tome (voir QuickAddService côté backend). */}
-      {isManga && (
-        <TomesGridSection
-          entityId={entityId}
-          entityTitle={entity.title}
-          entityAttributes={entity.attributes}
-          variants={entity.variants}
-          ownerships={ownerships}
-          onSelectOwnedVariant={(variantId) => navigate(`/entity/${entityId}?variant=${variantId}`, { replace: true })}
-          onSelectMissingVolume={(volumeNumber, edition) => setAddVolumePrefill({ volumeNumber, edition })}
-        />
       )}
 
       {isManga && (
