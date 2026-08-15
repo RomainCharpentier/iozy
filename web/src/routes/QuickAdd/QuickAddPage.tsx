@@ -385,10 +385,15 @@ export function QuickAddPage() {
     setAttributesSourceTitle(resolvedTitle)
     // Pré-remplit l'édition depuis l'éditeur renvoyé par le candidat (ex:
     // Google Books/Open Library sur un scan ISBN renvoient l'édition exacte
-    // scannée) - laissé vide pour Jikan/MyAnimeList/BGG/IGDB qui ne connaissent
-    // pas d'éditeur français. Simple pré-remplissage, jamais écrasé après coup :
-    // rien n'empêche l'utilisateur de le corriger.
-    if (typeof candidate.attributes.publisher === 'string') {
+    // scannée) - laissé vide pour Jikan/MyAnimeList qui ne connaissent pas
+    // d'éditeur français : leur "publisher" (voir JikanMetadataProvider) est
+    // en réalité la revue de sérialisation JAPONAISE (ex: "Weekly Shōnen
+    // Jump"), pas un éditeur français - même clé d'attribut, sens différent
+    // selon la source (bug trouvé lors de l'audit du parcours manga : le
+    // commentaire d'origine décrivait déjà cette exclusion sans jamais
+    // l'avoir réellement implémentée). Simple pré-remplissage, jamais écrasé
+    // après coup : rien n'empêche l'utilisateur de le corriger.
+    if (candidate.source !== 'JIKAN' && typeof candidate.attributes.publisher === 'string') {
       setEdition(candidate.attributes.publisher)
     }
     setShowManualVolumeFields(false)
@@ -786,7 +791,17 @@ export function QuickAddPage() {
         {selectedType?.code === 'MANGA' && volumeCandidates.length > 0 && !showManualVolumeFields && (
           <button
             type="button"
-            onClick={() => setShowManualVolumeFields(true)}
+            onClick={() => {
+              // L'édition manquante ici est presque toujours celle qu'on
+              // vient de parcourir dans la grille au-dessus (voir audit UX
+              // "IozyCore demande une info qu'il pourrait déduire") - pas la
+              // peine de la retaper si elle n'a pas déjà été saisie
+              // autrement (ex: publisher du candidat choisi, voir pickCandidate).
+              if (!edition.trim() && volumeCandidates[0]) {
+                setEdition(volumeCandidates[0].edition)
+              }
+              setShowManualVolumeFields(true)
+            }}
             className="w-fit text-xs text-accent underline"
           >
             + Tome introuvable ci-dessus ? Ajouter manuellement
