@@ -641,14 +641,18 @@ export function QuickAddPage() {
                         distinguer visuellement des titres identiques/proches
                         (ex: un manga et son adaptation en film) en un coup
                         d'œil, avant même de lire le sous-titre. */}
+                    {/* Taille alignée sur OwnershipsSection (mêmes classes) :
+                        assez grande pour vraiment reconnaître la jaquette
+                        parmi plusieurs résultats proches, pas juste deviner sa
+                        couleur dominante (audit UX "jaquettes trop petites"). */}
                     {candidate.imageUrl ? (
                       <img
                         src={candidate.imageUrl}
                         alt=""
-                        className="h-12 w-9 shrink-0 rounded object-cover"
+                        className="h-16 w-11 shrink-0 rounded object-cover"
                       />
                     ) : (
-                      <span className="h-12 w-9 shrink-0 rounded bg-surface2" />
+                      <span className="h-16 w-11 shrink-0 rounded bg-surface2" />
                     )}
                     {/* divs plutôt que des span empilés en flex : un span reste
                         "inline" au sens du copier-coller (le texte des deux
@@ -680,9 +684,9 @@ export function QuickAddPage() {
           {hasVerifiedMatch && (
             <div className="flex items-center gap-2.5 rounded-xl bg-surface p-2">
               {pickedCoverUrl ? (
-                <img src={pickedCoverUrl} alt="" className="h-12 w-9 shrink-0 rounded object-cover" />
+                <img src={pickedCoverUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
               ) : (
-                <span className="h-12 w-9 shrink-0 rounded bg-surface2" />
+                <span className="h-16 w-11 shrink-0 rounded bg-surface2" />
               )}
               <div className="flex min-w-0 flex-col">
                 <p className="truncate text-sm font-medium text-textPrimary">{title}</p>

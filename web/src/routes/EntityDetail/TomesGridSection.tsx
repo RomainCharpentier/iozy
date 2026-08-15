@@ -217,9 +217,12 @@ export function TomesGridSection({
       )}
 
       {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
-          nombre fixe - sur desktop, 5 colonnes fixes auraient étiré chaque
-          jaquette à une taille disproportionnée. */}
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
+          nombre fixe. Densité réduite (10 colonnes à l'origine) : à cette
+          taille les jaquettes étaient illisibles - on ne distinguait plus un
+          tome du suivant (audit UX "jaquettes trop petites"). Reste un cran
+          plus dense que Ma Collection (moins de texte par tuile, une série
+          peut compter de nombreux tomes) mais loin de l'ancien extrême. */}
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
         {tiles.map((tile) => (
           <TomeTileView
             key={tile.volumeNumber}

@@ -321,9 +321,12 @@ export function ShelfPage() {
       )}
 
       {/* Même logique que la grille de tomes de la fiche Série : le nombre de
-          colonnes s'adapte à la largeur disponible plutôt qu'un nombre fixe,
-          qui aurait étiré chaque jaquette en grand sur desktop. */}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          colonnes s'adapte à la largeur disponible plutôt qu'un nombre fixe.
+          Plafonné à 5 (pas 6) même sur grand écran : la jaquette est
+          l'information de premier ordre ici (audit UX "jaquettes trop
+          petites") - mieux vaut parcourir confortablement que maximiser le
+          nombre de tuiles visibles à la fois. */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
         {tiles.map((tile) => (
           <CoverTile
             key={tile.key}
