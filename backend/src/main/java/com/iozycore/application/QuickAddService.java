@@ -203,14 +203,25 @@ public class QuickAddService {
 
     /**
      * Identifier-ou-créer pour l'Édition catalogue, symétrique de la déduplication
-     * Série/Tome ci-dessus. Une édition trouvée mais pas encore reliée à cette Entity
-     * (ex: créée depuis l'Analyse d'achat avant que cette série soit en collection) se
-     * voit relier son entityId ici même, opportunistement - jamais l'inverse : on ne
-     * force jamais un entityId sur une édition qui en a déjà un différent. Une édition
-     * réellement nouvelle est créée avec le strict minimum connu (nom + tier OTHER, tout
-     * le reste null) - à enrichir plus tard, jamais deviné à la création.
+     * Série/Tome ci-dessus. Cherche par entityId D'ABORD (voir migration "Série ->
+     * Édition par ID", historique de la conversation) - entity.id() est connu avec
+     * certitude ici, jamais besoin de repasser par une correspondance de titre pour UNE
+     * Entity qu'on a déjà en main. Le repli par titre ne sert plus que pour une édition
+     * pas encore reliée (ex: créée depuis l'Analyse d'achat avant que cette série soit
+     * en collection) - reliée ici même, opportunistement, dès qu'elle est retrouvée
+     * ainsi : jamais l'inverse, on ne force jamais un entityId sur une édition qui en a
+     * déjà un différent. Sans ce repli par ID en premier, un renommage de Série aurait
+     * rendu une édition déjà reliée introuvable par entity.title() (désormais différent
+     * de l'ancien MangaEdition.seriesTitle, jamais mis à jour en cascade) et en aurait
+     * créé un doublon vide à chaque nouvel ajout. Une édition réellement nouvelle est
+     * créée avec le strict minimum connu (nom + tier OTHER, tout le reste null) - à
+     * enrichir plus tard, jamais deviné à la création.
      */
     private UUID resolveOrCreateMangaEdition(Entity entity, String editionName) {
+        Optional<MangaEdition> byId = mangaEditionRepository.findByEntityIdAndEditionName(entity.id(), editionName);
+        if (byId.isPresent()) {
+            return byId.get().id();
+        }
         Optional<MangaEdition> existing = mangaEditionRepository.findBySeriesAndEdition(entity.title(), editionName);
         if (existing.isPresent()) {
             MangaEdition mangaEdition = existing.get();

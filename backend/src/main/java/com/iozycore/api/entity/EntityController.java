@@ -108,6 +108,25 @@ public class EntityController {
         return EntityResponse.from(entityRepository.save(entity));
     }
 
+    public record RenameEntityRequest(String title) {
+    }
+
+    @Operation(summary = "Renommer la Série (correction manuelle, voir action \"Modifier\" de la fiche Série) - "
+            + "ne touche jamais les MangaEdition/Variant déjà rattachés : leur lien avec cette Série passe par "
+            + "entityId (voir migration \"Série -> Édition par ID\"), jamais par une égalité de titre, donc "
+            + "immunisé contre ce renommage.")
+    @PatchMapping("/{entityId}/rename")
+    public EntityResponse rename(@PathVariable UUID entityId, @RequestBody RenameEntityRequest request) {
+        Entity entity = entityRepository.findById(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
+        try {
+            entity.rename(request.title());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+        return EntityResponse.from(entityRepository.save(entity));
+    }
+
     @Operation(summary = "Compléter les attributs d'un Variant existant sans écraser ceux déjà renseignés "
             + "(ex: jaquette du tome retrouvée après coup, voir \"Retrouver les jaquettes manquantes\" sur Ma collection)")
     @PatchMapping("/{entityId}/variants/{variantId}")

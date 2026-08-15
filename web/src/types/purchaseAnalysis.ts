@@ -102,6 +102,10 @@ export interface AnalyzeListingRequest {
 }
 
 export interface CreateMangaEditionRequest {
+  /** Voir migration "Série -> Édition par ID" - à fournir dès que l'appelant connaît
+   * la Série avec certitude (ex: fiche Série), lié directement plutôt que retrouvé
+   * par correspondance de titre. */
+  entityId?: string
   seriesTitle: string
   editionName: string
   editionTier: EditionTier

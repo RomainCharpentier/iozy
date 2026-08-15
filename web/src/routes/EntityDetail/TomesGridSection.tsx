@@ -106,12 +106,17 @@ function TomeTileView({ tile, onClick }: { tile: TomeTile; onClick: () => void }
  * jamais caché dans un compteur ("5 manquants" ne dit pas LESQUELS).
  */
 export function TomesGridSection({
+  entityId,
   entityTitle,
   variants,
   ownerships,
   onSelectMissingVolume,
   onSelectOwnedVariant,
 }: {
+  // Voir migration "Série -> Édition par ID" - préféré à entityTitle pour
+  // toute relation persistante avec MangaEdition, immunisé contre un
+  // renommage de la Série (entityTitle, lui, change après un renommage).
+  entityId: string
   entityTitle: string
   variants: VariantDto[]
   ownerships: OwnershipResponse[]
@@ -129,7 +134,7 @@ export function TomesGridSection({
 
   const completenessQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, activeGroup.edition, owned),
-    queryFn: () => getCompleteness(entityTitle, activeGroup.edition, owned, activeGroup.volumeNumbers),
+    queryFn: () => getCompleteness(entityTitle, activeGroup.edition, owned, activeGroup.volumeNumbers, entityId),
     enabled: activeGroup.edition !== '',
   })
 
@@ -141,7 +146,7 @@ export function TomesGridSection({
   // principal de la page.
   const editionInfoQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.edition(entityTitle, activeGroup.edition),
-    queryFn: () => findEdition(entityTitle, activeGroup.edition),
+    queryFn: () => findEdition(entityTitle, activeGroup.edition, entityId),
     enabled: activeGroup.edition !== '',
     retry: false,
   })
@@ -208,7 +213,7 @@ export function TomesGridSection({
           (voir audit UX "correction manuelle"), jamais affichée sans
           édition nommée (rien à quoi rattacher la correction). */}
       {activeGroup.edition !== '' && (
-        <EditionCorrectionSection entityTitle={entityTitle} editionName={activeGroup.edition} editionInfo={editionInfo} />
+        <EditionCorrectionSection entityId={entityId} entityTitle={entityTitle} editionName={activeGroup.edition} editionInfo={editionInfo} />
       )}
 
       {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un

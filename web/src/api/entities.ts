@@ -35,6 +35,14 @@ export function mergeEntityAttributes(entityId: string, attributes: Record<strin
   return patch<EntityResponse>(`/entities/${entityId}`, attributes)
 }
 
+/** Renomme la Série (correction manuelle, voir action "Modifier" de la fiche
+ * Série) - ne casse jamais les Éditions/Tomes déjà rattachés (voir migration
+ * "Série -> Édition par ID" : leur lien passe par entityId, jamais par une
+ * égalité de titre). */
+export function renameEntity(entityId: string, title: string): Promise<EntityResponse> {
+  return patch<EntityResponse>(`/entities/${entityId}/rename`, { title })
+}
+
 /** Complète les attributs d'un Variant existant sans écraser ceux déjà
  * renseignés (ex: jaquette du tome retrouvée après coup, voir "Retrouver
  * les jaquettes manquantes" sur Ma collection). */

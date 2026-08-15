@@ -29,13 +29,23 @@ export function getAnalysisById(id: string): Promise<PurchaseAnalysisDto> {
 
 /** 404 si l'édition n'est pas encore connue - déclenche le formulaire de
  * saisie inline côté client (voir EditionReferenceLookup), ce n'est pas une
- * vraie erreur. */
-export function findEdition(seriesTitle: string, editionName: string): Promise<MangaEditionDto> {
-  return get<MangaEditionDto>(`/purchase-analysis/editions${buildQuery({ seriesTitle, editionName })}`)
+ * vraie erreur.
+ * <p>
+ * `entityId` (voir migration "Série -> Édition par ID") : à fournir dès que
+ * l'appelant connaît la Série avec certitude (ex: fiche Série) - la
+ * recherche passe alors par l'ID en priorité côté backend, immunisée contre
+ * un renommage de la Série survenu depuis. Omis (ex: Évaluer un achat sur
+ * une série pas nécessairement en collection), le repli par titre historique
+ * reste inchangé. */
+export function findEdition(seriesTitle: string, editionName: string, entityId?: string): Promise<MangaEditionDto> {
+  return get<MangaEditionDto>(`/purchase-analysis/editions${buildQuery({ entityId, seriesTitle, editionName })}`)
 }
 
-export function searchEditionsForSeries(seriesTitle: string): Promise<MangaEditionDto[]> {
-  return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ seriesTitle })}`)
+/** `entityId` (voir findEdition) : fourni, ne renvoie QUE les éditions réellement
+ * rattachées à cette Série (jamais de repli texte) plutôt que tout ce qui
+ * correspond au titre. */
+export function searchEditionsForSeries(seriesTitle: string, entityId?: string): Promise<MangaEditionDto[]> {
+  return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ entityId, seriesTitle })}`)
 }
 
 /** Phase 2 (assistance IA) - undefined (204) si aucun fournisseur IA n'est
@@ -52,14 +62,17 @@ export function suggestEditionReferenceData(seriesTitle: string, editionName: st
  * (étape 8) : numéros de tome ayant un Variant catalogué, quelle que soit leur
  * Ownership - optionnel, permet à la réponse de distinguer "manquant mais déjà
  * catalogué" de "manquant et purement virtuel" (voir cataloguedMissingVolumeNumbers). */
+/** `entityId` (voir findEdition) : préféré dès qu'il est connu de l'appelant. */
 export function getCompleteness(
   seriesTitle: string,
   editionName: string,
   volumes: number[],
   cataloguedVolumes?: number[],
+  entityId?: string,
 ): Promise<CollectionStatusDto> {
   return get<CollectionStatusDto>(
     `/purchase-analysis/completeness${buildQuery({
+      entityId,
       seriesTitle,
       editionName,
       volumes: volumes.join(','),

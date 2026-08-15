@@ -21,6 +21,12 @@ public interface MangaEditionRepository {
      * {@link #findBySeriesTitle}, never a text-matching fallback: only editions actually rattachées. */
     List<MangaEdition> findByEntityId(UUID entityId);
 
+    /** One specific edition of a structurally-linked Série, by ID rather than by title (case-insensitive on
+     * editionName) - the preferred lookup once a Série's {@code entityId} is known: unlike
+     * {@link #findBySeriesAndEdition}, immune to the Série having been renamed since this edition was linked
+     * (see {@code Entity.rename}). Never a text-matching fallback, same spirit as {@link #findByEntityId}. */
+    Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName);
+
     /**
      * Étape 5 (modèle Série -> Édition -> Tome) : supprime une Édition devenue vide de
      * tout Tome catalogué. L'appelant est responsable de s'être déjà assuré qu'aucun

@@ -91,13 +91,9 @@ public class PurchaseAnalysisService {
                     itemCommand.itemConditionOverride());
             listingItems.add(item);
 
-            Optional<MangaEdition> resolvedEdition = mangaEditionRepository.findBySeriesAndEdition(
-                    series.title(), itemCommand.editionName());
-            if (resolvedEdition.isPresent() && series.knownEntityId() != null) {
-                resolvedEdition = Optional.of(linkToKnownEntityIfNeeded(resolvedEdition.get(), series.knownEntityId()));
-            }
-            final Optional<MangaEdition> matchedEdition = resolvedEdition;
-            List<MangaEdition> siblingEditions = mangaEditionRepository.findBySeriesTitle(series.title()).stream()
+            final Optional<MangaEdition> matchedEdition =
+                    findEdition(series.knownEntityId(), series.title(), itemCommand.editionName());
+            List<MangaEdition> siblingEditions = findEditionsForSeries(series.knownEntityId(), series.title()).stream()
                     .filter(edition -> matchedEdition.isEmpty() || !edition.id().equals(matchedEdition.get().id()))
                     .toList();
             List<MarketPriceObservation> observations = matchedEdition
@@ -140,11 +136,37 @@ public class PurchaseAnalysisService {
         return purchaseAnalysisRepository.findById(id);
     }
 
-    public Optional<MangaEdition> findEdition(String seriesTitle, String editionName) {
-        return mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
+    /**
+     * {@code entityId} (voir migration "Série -> Édition par ID", historique de la conversation) est
+     * désormais la source de vérité une fois connue : recherche par ID d'abord, jamais reconsultée via
+     * {@code seriesTitle} pour une édition déjà rattachée - immunisé contre un renommage de Série
+     * survenu depuis (voir {@code Entity.rename}, {@code seriesTitle} sur {@link MangaEdition} n'est
+     * alors qu'une donnée figée à sa création, jamais mise à jour en cascade).
+     * <p>
+     * Le repli texte ({@code seriesTitle}) ne sert plus que pour les deux cas où l'ID ne suffit pas :
+     * {@code entityId} inconnu de l'appelant (ex: Analyse d'achat sur une série pas encore en
+     * collection), ou édition trouvée par titre mais pas encore rattachée (ancien enregistrement) -
+     * dans ce dernier cas, rattachée ici même, best-effort, avant d'être renvoyée (voir
+     * {@link #linkToKnownEntityIfNeeded}) : le prochain appel passera directement par l'ID.
+     */
+    public Optional<MangaEdition> findEdition(UUID entityId, String seriesTitle, String editionName) {
+        if (entityId != null) {
+            Optional<MangaEdition> byId = mangaEditionRepository.findByEntityIdAndEditionName(entityId, editionName);
+            if (byId.isPresent()) {
+                return byId;
+            }
+        }
+        Optional<MangaEdition> byTitle = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
+        return byTitle.map(edition -> linkToKnownEntityIfNeeded(edition, entityId));
     }
 
-    public List<MangaEdition> findEditionsForSeries(String seriesTitle) {
+    /** Même principe que {@link #findEdition} : par ID quand connu (jamais de repli texte dans ce cas,
+     * contrairement à {@link #findEdition} - une liste "toutes les éditions rattachées" n'a pas de
+     * raison de se compléter avec un résultat de correspondance textuelle une fois l'ID disponible). */
+    public List<MangaEdition> findEditionsForSeries(UUID entityId, String seriesTitle) {
+        if (entityId != null) {
+            return mangaEditionRepository.findByEntityId(entityId);
+        }
         return mangaEditionRepository.findBySeriesTitle(seriesTitle);
     }
 
@@ -167,8 +189,8 @@ public class PurchaseAnalysisService {
      * Variant's "edition" attribute) - unknown to the system yet simply
      * means the returned {@link CollectionStatus} is unknown, never guessed.
      */
-    public CollectionStatus computeCompleteness(String seriesTitle, String editionName, Set<Integer> includedVolumes) {
-        return computeCompleteness(seriesTitle, editionName, includedVolumes, Set.of());
+    public CollectionStatus computeCompleteness(UUID entityId, String seriesTitle, String editionName, Set<Integer> includedVolumes) {
+        return computeCompleteness(entityId, seriesTitle, editionName, includedVolumes, Set.of());
     }
 
     /**
@@ -178,9 +200,9 @@ public class PurchaseAnalysisService {
      *                          virtual" (see {@link CollectionStatus#cataloguedMissingVolumeNumbers()}) -
      *                          empty when the caller doesn't have/need that distinction.
      */
-    public CollectionStatus computeCompleteness(String seriesTitle, String editionName, Set<Integer> includedVolumes,
+    public CollectionStatus computeCompleteness(UUID entityId, String seriesTitle, String editionName, Set<Integer> includedVolumes,
                                                  Set<Integer> cataloguedVolumes) {
-        Optional<MangaEdition> edition = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
+        Optional<MangaEdition> edition = findEdition(entityId, seriesTitle, editionName);
         List<MarketPriceObservation> observations = edition
                 .map(e -> marketPriceObservationRepository.findByEditionId(e.id()))
                 .orElseGet(List::of);
@@ -229,7 +251,7 @@ public class PurchaseAnalysisService {
                 String editionName = group.getKey();
                 Set<Integer> cataloguedVolumes = group.getValue();
                 Set<Integer> ownedVolumes = findOwnedVolumeNumbers(entity.id(), editionName);
-                CollectionStatus status = computeCompleteness(entity.title(), editionName, ownedVolumes, cataloguedVolumes);
+                CollectionStatus status = computeCompleteness(entity.id(), entity.title(), editionName, ownedVolumes, cataloguedVolumes);
                 if (status.isKnown() && !status.isComplete()) {
                     suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), editionName,
                             ownedVolumes.size(), status.totalVolumes(), status.missingCount(),
@@ -303,13 +325,19 @@ public class PurchaseAnalysisService {
         return byEdition;
     }
 
-    public MangaEdition createEdition(String seriesTitle, String editionName, EditionTier tier, String publisher,
+    /**
+     * @param entityId l'appelant peut fournir directement l'ID de la Série (ex: fiche Série, qui la
+     *                 connaît déjà avec certitude) - utilisé tel quel, sans passer par SeriesMatcher.
+     *                 {@code null} (ex: Analyse d'achat sur une série pas nécessairement en collection)
+     *                 retombe sur le matching texte best-effort existant.
+     */
+    public MangaEdition createEdition(UUID entityId, String seriesTitle, String editionName, EditionTier tier, String publisher,
                                        Integer totalVolumes, BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                        boolean betterEditionAnnounced, String betterEditionNote) {
         // Modèle catalogue cible (Série -> Édition -> Tome) : si cette série est déjà une Entity
         // connue, lie l'édition dès sa création plutôt que d'attendre une prochaine analyse.
-        UUID knownEntityId = seriesMatcher.match(seriesTitle).knownEntityId();
-        MangaEdition edition = MangaEdition.create(knownEntityId, seriesTitle, editionName, tier, publisher,
+        UUID linkedEntityId = entityId != null ? entityId : seriesMatcher.match(seriesTitle).knownEntityId();
+        MangaEdition edition = MangaEdition.create(linkedEntityId, seriesTitle, editionName, tier, publisher,
                 totalVolumes, retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote);
         return mangaEditionRepository.save(edition);
     }

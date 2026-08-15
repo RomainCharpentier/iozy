@@ -23,10 +23,15 @@ import type { MangaEditionDto } from '../../types/purchaseAnalysis'
  * l'endroit où cette info manque concrètement.
  */
 export function EditionCorrectionSection({
+  entityId,
   entityTitle,
   editionName,
   editionInfo,
 }: {
+  // Voir migration "Série -> Édition par ID" - transmis à createEdition pour
+  // lier directement la nouvelle édition, sans dépendre d'une correspondance
+  // de titre qu'un renommage rendrait caduque.
+  entityId: string
   entityTitle: string
   editionName: string
   editionInfo: MangaEditionDto | null
@@ -65,6 +70,7 @@ export function EditionCorrectionSection({
             betterEditionNote: trimmedNote,
           })
         : createEdition({
+            entityId,
             seriesTitle: entityTitle,
             editionName,
             editionTier: 'STANDARD',
