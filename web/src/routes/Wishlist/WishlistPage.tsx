@@ -24,7 +24,7 @@ function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
   if (!entityQuery.data) return null
 
   return (
-    <li className="w-28 shrink-0">
+    <li>
       <CoverTile
         title={entityQuery.data.title}
         imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
@@ -54,7 +54,13 @@ export function WishlistPage() {
         </p>
       )}
 
-      <ul className="grid grid-cols-3 gap-3">
+      {/* Même densité que Ma Collection (même composant CoverTile, même
+          logique de lisibilité - audit UX "jaquettes trop petites") : plus de
+          colonnes fixes ni de largeur figée sur chaque <li> (l'ancien `w-28
+          shrink-0` était un reliquat d'une mise en page flex antérieure à ce
+          grid - il empêchait CoverTile de remplir sa colonne et laissait un
+          espace mort à droite de chaque tuile). */}
+      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
         {sorted.map((entry) => (
           <WishlistRow key={entry.id} entry={entry} />
         ))}
