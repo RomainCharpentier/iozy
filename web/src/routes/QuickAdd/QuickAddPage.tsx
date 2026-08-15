@@ -12,7 +12,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import { VolumeSelectionGrid, volumeKey } from './VolumeSelectionGrid'
-import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
+import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { candidateDisplayTitle, isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
 import type { MetadataCandidateDto, VolumeCandidateDto } from '../../types/api'
 
@@ -108,11 +108,9 @@ export function QuickAddPage() {
   const [isSearchingVolumes, setIsSearchingVolumes] = useState(false)
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
-  // Repliés par défaut - détail secondaire (attributs pré-remplis) et méthode
-  // d'ajout alternative (code-barres), pas le chemin principal "taper un
-  // titre" - voir "améliore l'UX" : trop de blocs dépliés d'office noyaient
-  // l'écran par défaut.
-  const [showAttributesDetail, setShowAttributesDetail] = useState(false)
+  // Repliée par défaut - méthode d'ajout alternative (code-barres), pas le
+  // chemin principal "taper un titre" - voir "améliore l'UX" : trop de blocs
+  // dépliés d'office noyaient l'écran par défaut.
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const volumeSearchAbortRef = useRef<AbortController | null>(null)
   // Débounce du déclenchement AUTOMATIQUE de la recherche de tomes après
@@ -520,7 +518,6 @@ export function QuickAddPage() {
     setSelectedVolumeKeys(new Set())
     setShowManualVolumeFields(false)
     setLastVolumeSearchParams(null)
-    setShowAttributesDetail(false)
     setShowBarcodeLookup(false)
   }
 
@@ -542,6 +539,14 @@ export function QuickAddPage() {
   const requiresMatch = !!selectedType?.hasMetadataProvider
   const hasVerifiedMatch = attributesSourceTitle !== null && attributesSourceTitle === title
   const blockedByMissingMatch = requiresMatch && title.trim().length > 0 && !hasVerifiedMatch
+  // Jaquette/auteur du candidat choisi (voir pickCandidate) - remplace
+  // l'ancien "Voir les attributs pré-remplis" (liste brute clé : valeur,
+  // vocabulaire interne comme malId/titleRomaji) par une confirmation
+  // visuelle de CE qu'on est en train d'ajouter, même esprit que la fiche
+  // Série (voir "améliore l'UX" - une jaquette+un titre se lisent d'un coup
+  // d'œil, une liste de champs techniques ne rassure personne).
+  const pickedCoverUrl = hasVerifiedMatch && attributes ? coverImageUrlFrom(attributes) : null
+  const pickedAuthor = hasVerifiedMatch && typeof attributes?.mangaka === 'string' ? attributes.mangaka : null
   // Reflète exactement ce que addMutation va soumettre (voir son calcul de
   // `items`) - couvertures cochées + file de tomes manuels + saisie manuelle
   // EN COURS si non vide, pour que le libellé du bouton ("Ajouter N tomes")
@@ -662,42 +667,24 @@ export function QuickAddPage() {
             </ul>
           )}
 
-          {attributes &&
-            attributesSourceTitle === title &&
-            Object.keys(attributes).filter((key) => key !== COVER_IMAGE_ATTRIBUTE_KEY).length > 0 &&
-            (() => {
-              const entries = Object.entries(attributes).filter(([key]) => key !== COVER_IMAGE_ATTRIBUTE_KEY)
-              // Repliée par défaut - juste une confirmation discrète que des
-              // attributs ont bien été récupérés, pas un détail qu'on a besoin
-              // de lire à chaque recherche (voir "améliore l'UX" - trop
-              // d'information dépliée d'office noie l'écran).
-              return showAttributesDetail ? (
-                <div className="rounded-xl bg-surface p-3 text-sm text-textDim">
-                  <button
-                    type="button"
-                    onClick={() => setShowAttributesDetail(false)}
-                    className="mb-1 font-medium text-textPrimary underline-offset-2 hover:underline"
-                  >
-                    Attributs pré-remplis
-                  </button>
-                  <ul className="flex flex-col gap-0.5">
-                    {entries.map(([key, value]) => (
-                      <li key={key}>
-                        {key} : {String(value)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+          {/* Confirmation visuelle de la sélection - jaquette réelle si connue,
+              titre déjà visible ci-dessus dans le champ, auteur si le type en
+              a un (Manga uniquement pour l'instant, voir mangaka). Remplace
+              le champ "Titre" tout seul par une identité reconnaissable,
+              même esprit que l'en-tête de la fiche Série. */}
+          {hasVerifiedMatch && (
+            <div className="flex items-center gap-2.5 rounded-xl bg-surface p-2">
+              {pickedCoverUrl ? (
+                <img src={pickedCoverUrl} alt="" className="h-12 w-9 shrink-0 rounded object-cover" />
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowAttributesDetail(true)}
-                  className="w-fit text-xs text-textDim underline"
-                >
-                  Voir les attributs pré-remplis ({entries.length})
-                </button>
-              )
-            })()}
+                <span className="h-12 w-9 shrink-0 rounded bg-surface2" />
+              )}
+              <div className="flex min-w-0 flex-col">
+                <p className="truncate text-sm font-medium text-textPrimary">{title}</p>
+                {pickedAuthor && <p className="truncate text-xs text-textDim">{pickedAuthor}</p>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tant qu'aucune correspondance n'est choisie (type avec fournisseur
