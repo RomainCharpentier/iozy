@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { listWishlist } from '../../api/wishlist'
+import { X } from 'lucide-react'
+import { listWishlist, removeFromWishlist } from '../../api/wishlist'
 import { getEntity } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -16,20 +17,56 @@ import type { WishlistEntryResponse } from '../../types/api'
  * réseau supplémentaire dans ce cas. */
 function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const entityQuery = useQuery({
     queryKey: queryKeys.entities.detail(entry.entityId),
     queryFn: () => getEntity(entry.entityId),
   })
 
+  const removeMutation = useMutation({
+    mutationFn: () => removeFromWishlist(entry.id),
+    onSuccess: () => {
+      // Retire directement cette entrée du cache plutôt que d'invalider la
+      // liste entière : la tuile disparaît immédiatement, sans aller-retour
+      // réseau supplémentaire ni recharger toute la page.
+      queryClient.setQueryData<WishlistEntryResponse[]>(queryKeys.wishlist.all, (current) =>
+        (current ?? []).filter((e) => e.id !== entry.id),
+      )
+    },
+  })
+
   if (!entityQuery.data) return null
 
   return (
-    <li>
+    <li className="relative">
       <CoverTile
         title={entityQuery.data.title}
         imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
         onClick={() => navigate(`/entity/${entry.entityId}`)}
       />
+      {/* Action secondaire et discrète, jamais un gros bouton permanent :
+          une icône seule dans un coin libre de CoverTile (showBadge n'est pas
+          utilisé ici). Retire directement au clic, sans confirmation ni menu
+          intermédiaire - une wishlist reste une liste d'envies à faible
+          enjeu, ré-ajouter ne coûte qu'un clic depuis Recherche, contrairement
+          à "Supprimer cette fiche" qui, elle, est irréversible (voir
+          DeleteEntitySection). stopPropagation : évite de déclencher aussi le
+          clic de CoverTile (navigation vers la fiche) en dessous. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          removeMutation.mutate()
+        }}
+        disabled={removeMutation.isPending}
+        aria-label={`Retirer ${entityQuery.data.title} de la wishlist`}
+        title={removeMutation.isError ? 'Échec du retrait, réessaie' : 'Retirer de la wishlist'}
+        className={`absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full text-textPrimary transition disabled:opacity-50 ${
+          removeMutation.isError ? 'bg-danger/80' : 'bg-black/70 hover:bg-black/85'
+        }`}
+      >
+        <X size={13} strokeWidth={2.5} />
+      </button>
     </li>
   )
 }
