@@ -10,10 +10,17 @@ interface CoverTileProps {
    * le repli, jamais une image cassée. */
   imageUrl?: string | null
   showBadge?: boolean
-  /** Ligne secondaire sous le titre (ex: "17/26 tomes · En cours" en vue
-   * groupée par série sur Ma collection) - absente par défaut, n'affecte
-   * pas les autres usages de ce composant (Wishlist, Relations). */
+  /** Ligne secondaire sous le titre (ex: "17/26 tomes" en vue groupée par
+   * série sur Ma collection, "Possédé" pour un type sans notion de tome) -
+   * absente par défaut, n'affecte pas les autres usages de ce composant
+   * (Wishlist, Relations). */
   subtitle?: string
+  /** Petit badge de type ("Manga", "Jeu vidéo"...) sous le sous-titre - un
+   * élément distinct de `subtitle`, jamais un repli l'un pour l'autre (voir
+   * la refonte layout demandée : une tuile doit rester reconnaissable par
+   * objet/type/état, 3 informations séparées, pas 2 qui se partagent une
+   * seule ligne). Absent si le type n'est pas connu à cet endroit. */
+  typeLabel?: string
   /** ex: "aspect-[2/3]" (défaut) ou "aspect-square" pour les listes horizontales. */
   aspectClassName?: string
   /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
@@ -30,13 +37,22 @@ interface CoverTileProps {
  * Jaquette réelle quand une source externe en a fourni une (Jikan / Google
  * Books via scan ISBN / Open Library), avec le dégradé déterministe (calculé
  * depuis le titre) comme repli - saisie libre, échec de recherche, ou simple
- * échec de chargement de l'image. Miroir de CoverTile.swift.
+ * échec de chargement de l'image.
+ * <p>
+ * Cadre image et métadonnées SÉPARÉS (voir la refonte layout demandée) :
+ * plus de titre/sous-titre en overlay sur la jaquette (lisible seulement
+ * grâce à un dégradé sombre par-dessus l'image, qui l'assombrissait pour
+ * rien) - le texte vit maintenant sous l'image, en texte normal. Seule
+ * exception : le petit badge "possédé" (`showBadge`), qui reste par nature
+ * une info attachée à la jaquette elle-même. Miroir de CoverTile.swift
+ * (à réconcilier séparément si besoin, hors périmètre ici).
  */
 export function CoverTile({
   title,
   imageUrl,
   showBadge = false,
   subtitle,
+  typeLabel,
   aspectClassName = 'aspect-[2/3]',
   gradientKey,
   onClick,
@@ -45,33 +61,36 @@ export function CoverTile({
   const showImage = !!imageUrl && !imageFailed
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative w-full overflow-hidden rounded-2xl text-left ${aspectClassName} ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-      style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
-    >
-      {showImage && (
-        <img
-          src={imageUrl}
-          alt=""
-          onError={() => setImageFailed(true)}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      )}
+    <button type="button" onClick={onClick} className={`flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}>
       <div
-        className="absolute inset-x-0 bottom-0 h-2/3"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}
-      />
-      {showBadge && (
-        <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-text">
-          <Check size={14} strokeWidth={3} />
-        </span>
-      )}
-      <span className="absolute bottom-2 left-2 right-2 flex flex-col gap-0.5">
-        <span className="line-clamp-2 font-display text-sm font-medium text-textPrimary">{title}</span>
-        {subtitle && <span className="text-xs text-textDim">{subtitle}</span>}
-      </span>
+        className={`relative w-full overflow-hidden rounded-2xl ${aspectClassName}`}
+        style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
+      >
+        {showImage && (
+          <img
+            src={imageUrl}
+            alt=""
+            onError={() => setImageFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {showBadge && (
+          <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-text">
+            <Check size={14} strokeWidth={3} />
+          </span>
+        )}
+      </div>
+      {/* Espacement littéral demandé : cadre -> 8px -> titre -> 4px ->
+          sous-titre -> 6px -> badge de type. */}
+      <div className="mt-2 flex min-w-0 flex-col">
+        <span className="line-clamp-2 text-sm font-semibold text-textPrimary">{title}</span>
+        {subtitle && <span className="mt-1 line-clamp-1 text-xs text-textDim">{subtitle}</span>}
+        {typeLabel && (
+          <span className="mt-1.5 w-fit rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-textDim">
+            {typeLabel}
+          </span>
+        )}
+      </div>
     </button>
   )
 }
