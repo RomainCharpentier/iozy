@@ -17,6 +17,29 @@ export interface TomeTile {
   variant?: VariantDto
 }
 
+// Aperçu pour les séries longues (voir Naruto, 72 tomes) : au lieu de
+// rendre les N tuiles d'un coup, n'en montre qu'un aperçu compact par
+// défaut (environ 1 ligne desktop large / 1-2 lignes mobile - 8 tuiles
+// tombe pile sur 1 ligne à xl:grid-cols-8 tout en restant 2 lignes à
+// grid-cols-4 mobile). Pas de seuil pile sur PREVIEW_TILE_COUNT : en
+// dessous de LONG_SERIES_THRESHOLD, "Voir tout (N)" ne masquerait qu'une
+// poignée de tuiles - pas utile pour l'utilisateur, voir "no backend
+// pagination" (pur découpage de la liste déjà en mémoire, rien de plus).
+const PREVIEW_TILE_COUNT = 8
+const LONG_SERIES_THRESHOLD = 12
+
+/** Aperçu = les PREVIEW_TILE_COUNT premiers tomes + tout tome possédé situé
+ * plus loin, dédupliqué (voir "le possédé ne doit jamais disparaître dans
+ * un aperçu" - un tome possédé au-delà de l'aperçu par défaut, ex. le tome
+ * 45 sur 72, doit rester visible sans avoir à cliquer "Voir tout"). */
+function buildPreviewTiles(tiles: TomeTile[]): TomeTile[] {
+  if (tiles.length <= LONG_SERIES_THRESHOLD) return tiles
+  const firstTiles = tiles.slice(0, PREVIEW_TILE_COUNT)
+  const seen = new Set(firstTiles.map((t) => t.volumeNumber))
+  const extraOwned = tiles.filter((t) => t.status === 'owned' && !seen.has(t.volumeNumber))
+  return [...firstTiles, ...extraOwned].sort((a, b) => a.volumeNumber - b.volumeNumber)
+}
+
 /** Construit la grille visuelle d'une édition : un possédé (Ownership active)
  * n'est jamais confondu avec un simplement catalogué (modèle Tome !=
  * Ownership) ni avec un purement virtuel (numéro déduit de totalVolumes,
@@ -143,14 +166,18 @@ export function TomesGridSection({
   activeGroup: EditionGroup
 }) {
   const [activeVolumeNumber, setActiveVolumeNumber] = useState<number | null>(null)
+  const [showAllTomes, setShowAllTomes] = useState(false)
 
   // Édition changée pendant qu'un panneau est ouvert : ferme plutôt que de
   // risquer un tome sélectionné qui n'appartient plus à l'édition affichée
   // (voir "préférence simplicité : edition change -> close panel"). Entity
   // changée (navigation vers une autre fiche sans démonter ce composant,
   // React Router peut réutiliser l'instance) : même chose, défensif.
+  // L'aperçu se réduit aussi : rester "ouvert" sur l'édition précédente
+  // n'aurait pas de sens une fois les tomes affichés différents.
   useEffect(() => {
     setActiveVolumeNumber(null)
+    setShowAllTomes(false)
   }, [activeGroup.edition, entityId])
 
   const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions)
@@ -175,6 +202,8 @@ export function TomesGridSection({
   const cataloguedMissing = completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []
   const tiles = buildTiles(activeGroup, variants, owned, totalVolumes, cataloguedMissing)
   const activeTile = tiles.find((t) => t.volumeNumber === activeVolumeNumber) ?? null
+  const isLongSeries = tiles.length > LONG_SERIES_THRESHOLD
+  const visibleTiles = showAllTomes ? tiles : buildPreviewTiles(tiles)
   const ongoing = isSeriesOngoing(entityAttributes)
   // "À propos" : uniquement des données réellement connues (jamais de valeur
   // devinée/technique) - voir la maquette validée, qui liste explicitement
@@ -197,7 +226,7 @@ export function TomesGridSection({
             (10 colonnes fixes). */}
         <h2 className="font-display text-lg font-semibold text-textPrimary">Mes tomes</h2>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
-          {tiles.map((tile) =>
+          {visibleTiles.map((tile) =>
             tile.status === 'virtualMissing' ? (
               <VirtualVolumeCard
                 key={tile.volumeNumber}
@@ -215,6 +244,18 @@ export function TomesGridSection({
             ),
           )}
         </div>
+        {/* Aperçu pour série longue (voir buildPreviewTiles) - jamais de
+            pagination backend, juste le même tableau `tiles` déjà en
+            mémoire, tronqué ou non. */}
+        {isLongSeries && (
+          <button
+            type="button"
+            onClick={() => setShowAllTomes((v) => !v)}
+            className="w-fit text-sm text-accent underline"
+          >
+            {showAllTomes ? 'Réduire' : `Voir tout (${tiles.length})`}
+          </button>
+        )}
         {/* Parcours manuel (voir AddVolumeSection) - reste sous Mes tomes,
             styling secondaire : ne devrait plus être nécessaire pour un tome
             déjà visible dans la grille ci-dessus (voir le parcours
