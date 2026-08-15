@@ -3,19 +3,35 @@ import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { listWishlist, removeFromWishlist } from '../../api/wishlist'
 import { getEntity } from '../../api/entities'
+import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CoverTile } from '../../components/CoverTile'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { totalVolumesFrom } from '../../lib/seriesInfo'
 import { WishlistShareSection } from './WishlistShareSection'
-import type { WishlistEntryResponse } from '../../types/api'
+import type { EntityTypeDto, WishlistEntryResponse } from '../../types/api'
+
+/** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total),
+ * sinon le libellé du type (jeu vidéo, jeu de société...) - jamais vide :
+ * une tuile doit rester reconnaissable par son type même sans jaquette
+ * propre à l'objet (voir "vision UX" fournie par l'utilisateur, mêmes
+ * raisons que ShelfPage.entityTypeLabel). Un total de tomes dit plus qu'un
+ * simple "Manga" ici : la wishlist n'a pas de progression à afficher
+ * (rien n'est encore possédé), la taille de la série est l'info la plus
+ * utile à la place. */
+function wishlistTileSubtitle(attributes: Record<string, unknown>, entityType: EntityTypeDto | undefined): string | undefined {
+  const total = totalVolumesFrom(attributes)
+  if (total !== null) return `${total} tome${total > 1 ? 's' : ''}`
+  return entityType?.label
+}
 
 /** Jointure client-side vers le titre de l'entité - pas de dénormalisation
  * côté backend (WishlistEntryResponse reste {id, entityId, addedAt}, cohérent
  * avec les autres DTOs de liste du projet, aucun ne dénormalise). Souvent
  * déjà en cache TanStack Query depuis Shelf/Search, donc pas de requête
  * réseau supplémentaire dans ce cas. */
-function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
+function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse; entityTypesById: Map<string, EntityTypeDto> }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const entityQuery = useQuery({
@@ -41,6 +57,7 @@ function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
     <li className="relative">
       <CoverTile
         title={entityQuery.data.title}
+        subtitle={wishlistTileSubtitle(entityQuery.data.attributes, entityTypesById.get(entityQuery.data.entityTypeId))}
         imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
         onClick={() => navigate(`/entity/${entry.entityId}`)}
       />
@@ -73,6 +90,8 @@ function WishlistRow({ entry }: { entry: WishlistEntryResponse }) {
 
 export function WishlistPage() {
   const wishlistQuery = useQuery({ queryKey: queryKeys.wishlist.all, queryFn: listWishlist })
+  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
+  const entityTypesById = new Map((entityTypesQuery.data ?? []).map((t) => [t.id, t]))
 
   const sorted = [...(wishlistQuery.data ?? [])].sort((a, b) => b.addedAt.localeCompare(a.addedAt))
 
@@ -99,7 +118,7 @@ export function WishlistPage() {
           espace mort à droite de chaque tuile). */}
       <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5">
         {sorted.map((entry) => (
-          <WishlistRow key={entry.id} entry={entry} />
+          <WishlistRow key={entry.id} entry={entry} entityTypesById={entityTypesById} />
         ))}
       </ul>
     </div>

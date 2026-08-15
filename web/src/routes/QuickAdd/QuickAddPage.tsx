@@ -13,6 +13,7 @@ import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entity
 import { BarcodeLookupField } from './BarcodeLookupField'
 import { VolumeSelectionGrid, volumeKey } from './VolumeSelectionGrid'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
+import { creatorFrom } from '../../lib/creatorInfo'
 import { candidateDisplayTitle, isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
 import type { MetadataCandidateDto, VolumeCandidateDto } from '../../types/api'
 
@@ -551,7 +552,9 @@ export function QuickAddPage() {
   // Série (voir "améliore l'UX" - une jaquette+un titre se lisent d'un coup
   // d'œil, une liste de champs techniques ne rassure personne).
   const pickedCoverUrl = hasVerifiedMatch && attributes ? coverImageUrlFrom(attributes) : null
-  const pickedAuthor = hasVerifiedMatch && typeof attributes?.mangaka === 'string' ? attributes.mangaka : null
+  // mangaka (Manga) ou studio (Jeu vidéo, voir IgdbMetadataProvider côté
+  // backend) - voir creatorInfo.ts, même généralisation que EntityDetailPage.
+  const pickedAuthor = hasVerifiedMatch ? creatorFrom(attributes) : null
   // Reflète exactement ce que addMutation va soumettre (voir son calcul de
   // `items`) - couvertures cochées + file de tomes manuels + saisie manuelle
   // EN COURS si non vide, pour que le libellé du bouton ("Ajouter N tomes")
@@ -677,8 +680,9 @@ export function QuickAddPage() {
           )}
 
           {/* Confirmation visuelle de la sélection - jaquette réelle si connue,
-              titre déjà visible ci-dessus dans le champ, auteur si le type en
-              a un (Manga uniquement pour l'instant, voir mangaka). Remplace
+              titre déjà visible ci-dessus dans le champ, créateur si le type
+              en a un (mangaka/studio - voir creatorFrom, rien pour Jeu de
+              société tant qu'aucune source ne le fournit). Remplace
               le champ "Titre" tout seul par une identité reconnaissable,
               même esprit que l'en-tête de la fiche Série. */}
           {hasVerifiedMatch && (
