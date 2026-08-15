@@ -28,9 +28,15 @@ const TABS: TabDef[] = [
   { to: '/settings', label: 'Paramètres', icon: Settings },
 ]
 
+// md:hidden : bascule vers DesktopHeader à partir de 768px (voir
+// AppShell.NAV_BREAKPOINT) - une barre d'onglets texte+icône empilés en bas
+// d'écran est un pattern mobile, jamais un pattern desktop. Se cache elle-même
+// via CSS plutôt que de dépendre d'un parent conditionnel : garantit qu'elle
+// et DesktopHeader ne sont jamais visibles toutes les deux à la fois, quel
+// que soit l'ordre d'hydratation.
 export function TabBar() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-surface2 bg-surface">
+    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-surface2 bg-surface md:hidden">
       <ul className="mx-auto flex max-w-2xl justify-around">
         {TABS.map(({ to, label, icon: Icon, end }) => (
           <li key={to} className="flex-1">
