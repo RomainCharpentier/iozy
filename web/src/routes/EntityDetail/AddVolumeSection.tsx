@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
@@ -13,12 +13,15 @@ interface ManualVolume {
 }
 
 /**
- * Complète une édition déjà en collection avec un ou plusieurs tomes
- * manquants (ex: les tomes 4 et 5 d'une "Black Edition" jamais retrouvés par
- * la recherche automatique côté BnF/Google Books - trou de données source,
- * pas un bug, voir historique de la conversation sur "Death Note") - jusqu'ici
- * le seul moyen d'ajouter un tome à une série déjà possédée était de repasser
- * par Ajout rapide et de retaper le titre en entier.
+ * Parcours MANUEL (voir VolumeInteractionPanel/AddOwnershipForm pour le
+ * parcours CONTEXTUEL, déclenché depuis un clic sur une tuile déjà visible -
+ * les deux sont volontairement distincts, voir "deux modes d'ajout") : pour
+ * un tome qui n'apparaît pas encore dans la grille (numéro/édition hors de
+ * ce qui est déjà connu). Complète une édition déjà en collection avec un ou
+ * plusieurs tomes manquants (ex: les tomes 4 et 5 d'une "Black Edition"
+ * jamais retrouvés par la recherche automatique côté BnF/Google Books - trou
+ * de données source, pas un bug, voir historique de la conversation sur
+ * "Death Note").
  * <p>
  * `quickAdd` matche déjà une Entity existante par (entityTypeId, title) côté
  * backend (voir QuickAddService) - il suffit de réutiliser le titre exact de
@@ -26,21 +29,19 @@ interface ManualVolume {
  * <p>
  * Même mécanique de file d'attente que QuickAddPage.tsx (voir
  * queueManualVolume) - permet d'enchaîner plusieurs tomes avant de valider
- * une seule fois, l'édition restant pré-remplie d'un tome au suivant.
+ * une seule fois, l'édition restant pré-remplie d'un tome au suivant. Reste
+ * volontairement plus complet que AddOwnershipForm (numéro ET édition à
+ * saisir, plusieurs tomes à la fois) : le parcours manuel n'a par définition
+ * aucun contexte déjà connu à réutiliser.
  */
 export function AddVolumeSection({
   entityId,
   entityTypeId,
   title,
-  prefill,
 }: {
   entityId: string
   entityTypeId: string
   title: string
-  // Déclenché par un clic sur un tome manquant dans la grille (voir
-  // TomesGridSection) - ouvre le formulaire directement pré-rempli plutôt que
-  // de faire retaper un numéro et un nom d'édition déjà connus.
-  prefill?: { volumeNumber: number; edition: string } | null
 }) {
   const queryClient = useQueryClient()
   const [expanded, setExpanded] = useState(false)
@@ -49,14 +50,6 @@ export function AddVolumeSection({
   const [edition, setEdition] = useState('')
   const [purchasePrice, setPurchasePrice] = useState('')
   const [manualVolumes, setManualVolumes] = useState<ManualVolume[]>([])
-
-  useEffect(() => {
-    if (!prefill) return
-    setVolumeNumber(String(prefill.volumeNumber))
-    setEdition(prefill.edition)
-    setExpanded(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefill?.volumeNumber, prefill?.edition])
 
   const totalVolumesToAdd = manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
 

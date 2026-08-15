@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Pencil } from 'lucide-react'
 import { getEntity, mergeEntityAttributes, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
@@ -14,22 +14,19 @@ import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
 import { groupVariantsByEdition, resolveEditionView } from '../../lib/editionGroups'
-import { OwnershipsSection } from './OwnershipsSection'
 import { EditionProgressSection } from './EditionProgressSection'
 import { TomesGridSection } from './TomesGridSection'
-import { AddVolumeSection } from './AddVolumeSection'
 import { MoreOptionsSection } from './MoreOptionsSection'
 
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   // Correction manuelle de la couverture de SÉRIE (audit UX "correction
-  // manuelle") - jusqu'ici seul le Tome avait une jaquette rattrapable après
-  // coup (voir OwnershipsSection), jamais la Série elle-même. Action
-  // secondaire (icône crayon discrète sur la bannière), pas un champ de
-  // formulaire permanent.
+  // manuelle") - le Tome a sa propre correction équivalente dans
+  // VolumeInteractionPanel (voir VariantCoverEditor), jamais la Série
+  // elle-même jusqu'ici. Action secondaire (icône crayon discrète sur la
+  // bannière), pas un champ de formulaire permanent.
   const [editingCover, setEditingCover] = useState(false)
   const [coverUrlInput, setCoverUrlInput] = useState('')
   const coverMutation = useMutation({
@@ -53,18 +50,6 @@ export function EntityDetailPage() {
       setEditingTitle(false)
     },
   })
-  // Présent quand on arrive en cliquant une tuile de tome précise dans "Ma
-  // collection" (vue non groupée, voir ShelfPage.tsx), ou en cliquant un
-  // tome possédé dans la grille ci-dessous (voir onSelectOwnedVariant) -
-  // permet à OwnershipsSection de mettre ce tome en évidence au lieu
-  // d'atterrir sur la fiche entière sans indication de laquelle des
-  // possessions on vient de désigner.
-  const [searchParams] = useSearchParams()
-  const highlightedVariantId = searchParams.get('variant')
-  // Déclenché par un clic sur un tome MANQUANT dans la grille - ouvre
-  // AddVolumeSection déjà pré-rempli plutôt que de faire retaper un numéro
-  // et une édition déjà connus (voir TomesGridSection/AddVolumeSection).
-  const [addVolumePrefill, setAddVolumePrefill] = useState<{ volumeNumber: number; edition: string } | null>(null)
   // Édition sélectionnée dans le bloc Identité (voir EditionProgressSection) -
   // portée ici plutôt que dans un des deux composants qui l'utilisent : le
   // hero (progression/édition) et la grille de tomes doivent réagir au même
@@ -292,34 +277,15 @@ export function EntityDetailPage() {
         <div className="mt-6">
           <TomesGridSection
             entityId={entityId}
+            entityTypeId={entity.entityTypeId}
             entityTitle={entity.title}
             entityAttributes={entity.attributes}
             variants={entity.variants}
             ownerships={ownerships}
             activeGroup={activeEditionGroup}
-            onSelectOwnedVariant={(variantId) => navigate(`/entity/${entityId}?variant=${variantId}`, { replace: true })}
-            onSelectMissingVolume={(volumeNumber, edition) => setAddVolumePrefill({ volumeNumber, edition })}
           />
         </div>
       )}
-
-      {isManga && (
-        <AddVolumeSection
-          entityId={entityId}
-          entityTypeId={entity.entityTypeId}
-          title={entity.title}
-          prefill={addVolumePrefill}
-        />
-      )}
-
-      <OwnershipsSection
-        entityId={entityId}
-        entityTypeId={entity.entityTypeId}
-        entityTitle={entity.title}
-        ownerships={ownerships}
-        variants={entity.variants}
-        highlightedVariantId={highlightedVariantId}
-      />
 
       {/* Tags/Expériences/Relations/Suppression : rien de tout ça ne répond
           aux 6 questions centrales de cette fiche (quelle série, quelle

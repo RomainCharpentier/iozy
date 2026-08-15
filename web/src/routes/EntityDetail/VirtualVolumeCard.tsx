@@ -13,13 +13,23 @@ import { Plus } from 'lucide-react'
  * le virtuel a ses propres interactions (hover/focus visibles, jamais de
  * jaquette réelle à charger) qui n'ont pas de sens pour un tome catalogué.
  */
-export function VirtualVolumeCard({ volumeNumber, onClick }: { volumeNumber: number; onClick: () => void }) {
+export function VirtualVolumeCard({
+  volumeNumber,
+  isActive,
+  onClick,
+}: {
+  volumeNumber: number
+  isActive: boolean
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={`Ajouter le tome ${volumeNumber}`}
-      className="group relative flex aspect-[2/3] flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed border-surface2 bg-surface2/30 px-1 text-center transition-colors hover:border-accent hover:bg-surface2/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className={`group relative flex aspect-[2/3] flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed bg-surface2/30 px-1 text-center transition-colors hover:border-accent hover:bg-surface2/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+        isActive ? 'border-accent' : 'border-surface2'
+      }`}
     >
       <span className="text-[11px] font-semibold uppercase tracking-wide text-textDim group-hover:text-textPrimary">
         Tome {volumeNumber}
