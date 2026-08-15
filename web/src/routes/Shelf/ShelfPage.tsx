@@ -27,6 +27,10 @@ interface Tile {
   key: string
   title: string
   subtitle?: string
+  // Badge de type ("Manga", "Jeu vidéo"...) - toujours renseigné quand le
+  // type est connu, distinct du sous-titre (voir CoverTile.typeLabel et la
+  // refonte layout demandée : objet/type/état sont 3 informations séparées).
+  typeLabel?: string
   imageUrl: string | null
   gradientKey?: string
   entityId: string
@@ -82,11 +86,16 @@ function variantSubtitle(variant: VariantDto): string {
 function flattenToTomes(entities: EntityResponse[], owned: Set<string>, entityTypeLabel: (entity: EntityResponse) => string | undefined): Tile[] {
   const tiles: Tile[] = []
   for (const entity of entities) {
+    const typeLabel = entityTypeLabel(entity)
     if (entity.variants.length === 0) {
+      // "Possédé" (statut) plutôt que le type en sous-titre : le type a
+      // maintenant son propre badge dédié (voir typeLabel ci-dessous), le
+      // sous-titre ne doit plus faire les deux à la fois.
       tiles.push({
         key: entity.id,
         title: entity.title,
-        subtitle: entityTypeLabel(entity),
+        subtitle: 'Possédé',
+        typeLabel,
         imageUrl: coverImageUrlFrom(entity.attributes),
         entityId: entity.id,
       })
@@ -99,6 +108,7 @@ function flattenToTomes(entities: EntityResponse[], owned: Set<string>, entityTy
         key: variant.id,
         title: entity.title,
         subtitle,
+        typeLabel,
         imageUrl: coverImageUrlFrom(variant.attributes),
         gradientKey: `${entity.title} ${subtitle}`,
         entityId: entity.id,
@@ -146,7 +156,10 @@ function groupBySeries(entities: EntityResponse[], owned: Set<string>, entityTyp
   return entities.map((entity) => ({
     key: entity.id,
     title: entity.title,
-    subtitle: entity.variants.length > 0 ? seriesSubtitle(entity, owned) : entityTypeLabel(entity),
+    // "Possédé" (statut) plutôt que le type en repli : voir flattenToTomes,
+    // même raison - le type vit désormais dans typeLabel, pas ici.
+    subtitle: entity.variants.length > 0 ? seriesSubtitle(entity, owned) : 'Possédé',
+    typeLabel: entityTypeLabel(entity),
     imageUrl: coverImageUrlFrom(entity.attributes),
     entityId: entity.id,
   }))
@@ -295,6 +308,16 @@ export function ShelfPage() {
     return ownerships.filter((o) => o.status === 'OWNED' && o.acquiredAt.startsWith(currentMonth)).length
   }, [ownerships])
 
+  // >= 2 stats utiles : petit groupe de cartes. Exactement 1 : forme
+  // compacte inline plutôt qu'une carte isolée à droite sans les autres pour
+  // lui tenir compagnie (voir la refonte layout demandée - c'était
+  // précisément le rendu "8 / Ajouts ce mois" isolé signalé comme problème).
+  // 0 : rien, jamais de carte vide pour remplir l'espace.
+  const usefulStats = [
+    completeSeriesCount > 0 ? { label: 'Séries complètes', value: completeSeriesCount } : null,
+    addedThisMonthCount > 0 ? { label: 'Ajouts ce mois', value: addedThisMonthCount } : null,
+  ].filter((s): s is { label: string; value: number } => s !== null)
+
   const visibleEntities = selectedTypeId
     ? entities.filter((e) => e.entityTypeId === selectedTypeId)
     : entities
@@ -310,16 +333,15 @@ export function ShelfPage() {
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Ligne 1 : filtres de type à gauche (avec leur propre compte, ex.
-          "Manga 4" - voir TypeFilterChips) et les seules statistiques
-          réellement utiles à droite. Pas de carte "Total"/par-type séparée :
-          strictement redondante avec le compte déjà porté par les chips
-          (voir la maquette validée - "évite les informations redondantes"). */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      {/* ShelfHeader : titre+filtres à gauche, stats à droite - flex row
+          desktop, empilé mobile (voir la refonte layout demandée). Pas de
+          carte "Total"/par-type séparée : strictement redondante avec le
+          compte déjà porté par les chips (ex. "Manga 4"). */}
+      <div className="flex flex-col items-start justify-between gap-3 md:flex-row">
         <div>
           <h1 className="font-display text-2xl font-bold text-textPrimary">Ma collection</h1>
-          <div className="mt-2">
+          <div className="mt-3">
             <TypeFilterChips
               entityTypes={entityTypes}
               selectedTypeId={selectedTypeId}
@@ -329,22 +351,30 @@ export function ShelfPage() {
             />
           </div>
         </div>
-        {(completeSeriesCount > 0 || addedThisMonthCount > 0) && (
+        {usefulStats.length >= 2 && (
           <div className="flex gap-3">
-            {completeSeriesCount > 0 && <StatCard value={String(completeSeriesCount)} label="Séries complètes" />}
-            {addedThisMonthCount > 0 && <StatCard value={String(addedThisMonthCount)} label="Ajouts ce mois" />}
+            {usefulStats.map((s) => (
+              <StatCard key={s.label} value={String(s.value)} label={s.label} />
+            ))}
           </div>
+        )}
+        {usefulStats.length === 1 && (
+          <p className="text-sm text-textDim">
+            {usefulStats[0].label} : <span className="font-medium text-textPrimary">{usefulStats[0].value}</span>
+          </p>
         )}
       </div>
 
-      {/* Ligne 2 : contrôles d'affichage - uniquement les modes réellement
-          disponibles (voir "seulement pour les fonctionnalités réellement
-          disponibles"). Par série/Par tome est un vrai mode de visualisation
-          de la même grille (voir grouped) : deux chips nommés plutôt qu'un
-          bouton "Détail par tome" isolé sans contexte à droite de l'écran. */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Chip label="Par série" isActive={grouped} onClick={() => setGrouped(true)} />
-        <Chip label="Par tome" isActive={!grouped} onClick={() => setGrouped(false)} />
+      {/* ShelfToolbar : une seule ligne logique - uniquement les modes
+          réellement disponibles (voir "seulement pour les fonctionnalités
+          réellement disponibles"). Par série/Par tome est un vrai mode de
+          visualisation de la même grille (voir grouped) : deux chips groupées
+          plutôt qu'un bouton "Détail par tome" isolé sans contexte. */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Chip label="Par série" isActive={grouped} onClick={() => setGrouped(true)} />
+          <Chip label="Par tome" isActive={!grouped} onClick={() => setGrouped(false)} />
+        </div>
         {!grouped && entitiesMissingCovers.length > 0 && (
           <button
             type="button"
@@ -359,7 +389,7 @@ export function ShelfPage() {
       </div>
 
       {backfill && !backfill.running && (
-        <p className="text-xs text-textDim">
+        <p className="mt-3 text-xs text-textDim">
           {backfill.found > 0
             ? `${backfill.found} jaquette${backfill.found > 1 ? 's' : ''} retrouvée${backfill.found > 1 ? 's' : ''}.`
             : 'Aucune jaquette retrouvée cette fois.'}
@@ -371,26 +401,27 @@ export function ShelfPage() {
       {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
       {ownershipsQuery.isError && <ErrorBanner message={ownershipsQuery.error.message} />}
 
-      {isLoading && <p className="text-textDim">Chargement...</p>}
+      {isLoading && <p className="mt-4 text-textDim">Chargement...</p>}
 
       {!isLoading && entitiesQuery.isSuccess && visibleEntities.length === 0 && (
-        <p className="text-textDim">
+        <p className="mt-4 text-textDim">
           Rien ici pour l'instant - utilise l'onglet "Rechercher" pour commencer ta collection.
         </p>
       )}
 
-      {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
-          nombre fixe - 4 à 6 colonnes selon la largeur réelle (voir la
-          maquette validée), jamais un nombre qui reste figé pendant que le
-          container s'élargit (voir AppShell.isWideScreen) : à 1920px, une
-          jaquette doit rester nettement plus grande qu'à 1024px, pas
-          identique avec juste plus d'espace vide autour. */}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6">
+      {/* CollectionGrid : le nombre de colonnes s'adapte à la largeur
+          disponible plutôt qu'un nombre fixe qui resterait figé pendant que
+          le container s'élargit (voir AppShell) - cible 3/4/5/6 colonnes à
+          375/768/1280/1920px (voir la maquette validée), jamais un nombre
+          qui maximiserait le compte au détriment de la taille réelle des
+          jaquettes. */}
+      <div className="mt-4 grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
         {tiles.map((tile) => (
           <CoverTile
             key={tile.key}
             title={tile.title}
             subtitle={tile.subtitle}
+            typeLabel={tile.typeLabel}
             imageUrl={tile.imageUrl}
             gradientKey={tile.gradientKey}
             onClick={() =>

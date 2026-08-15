@@ -12,18 +12,13 @@ import { totalVolumesFrom } from '../../lib/seriesInfo'
 import { WishlistShareSection } from './WishlistShareSection'
 import type { EntityTypeDto, WishlistEntryResponse } from '../../types/api'
 
-/** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total),
- * sinon le libellé du type (jeu vidéo, jeu de société...) - jamais vide :
- * une tuile doit rester reconnaissable par son type même sans jaquette
- * propre à l'objet (voir "vision UX" fournie par l'utilisateur, mêmes
- * raisons que ShelfPage.entityTypeLabel). Un total de tomes dit plus qu'un
- * simple "Manga" ici : la wishlist n'a pas de progression à afficher
- * (rien n'est encore possédé), la taille de la série est l'info la plus
- * utile à la place. */
-function wishlistTileSubtitle(attributes: Record<string, unknown>, entityType: EntityTypeDto | undefined): string | undefined {
+/** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total) -
+ * jamais "Possédé" ici, contrairement à ShelfPage : un souhait de wishlist
+ * n'est par définition pas possédé. Le type vit dans son propre badge (voir
+ * CoverTile.typeLabel), cette fonction ne gère plus que le sous-titre. */
+function wishlistTileSubtitle(attributes: Record<string, unknown>): string | undefined {
   const total = totalVolumesFrom(attributes)
-  if (total !== null) return `${total} tome${total > 1 ? 's' : ''}`
-  return entityType?.label
+  return total !== null ? `${total} tome${total > 1 ? 's' : ''}` : undefined
 }
 
 /** Jointure client-side vers le titre de l'entité - pas de dénormalisation
@@ -57,7 +52,8 @@ function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse;
     <li className="relative">
       <CoverTile
         title={entityQuery.data.title}
-        subtitle={wishlistTileSubtitle(entityQuery.data.attributes, entityTypesById.get(entityQuery.data.entityTypeId))}
+        subtitle={wishlistTileSubtitle(entityQuery.data.attributes)}
+        typeLabel={entityTypesById.get(entityQuery.data.entityTypeId)?.label}
         imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
         onClick={() => navigate(`/entity/${entry.entityId}`)}
       />
