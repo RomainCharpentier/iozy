@@ -67,6 +67,21 @@ public class Entity {
         attributes.put(key, value);
     }
 
+    /**
+     * Complète/corrige les attributs de la Série elle-même sans écraser ceux
+     * non concernés - même sémantique que {@link #mergeVariantAttributes} au
+     * niveau Tome (audit UX "correction manuelle" : jusqu'ici, seul le Tome
+     * avait une jaquette rattrapable après coup, jamais la Série). {@code
+     * additionalAttributes} gagne sur les clés déjà présentes - utilisé
+     * volontairement pour remplacer une jaquette absente/fausse par la bonne,
+     * jamais l'inverse (un appelant ne doit fournir que des données fraîches
+     * qu'il veut voir persistées, jamais une valeur vide pour "effacer" un
+     * attribut existant).
+     */
+    public void mergeAttributes(Map<String, Object> additionalAttributes) {
+        attributes.putAll(additionalAttributes);
+    }
+
     public Variant addVariant(String label, Map<String, Object> variantAttributes) {
         Variant variant = new Variant(UUID.randomUUID(), label, variantAttributes, null);
         variants.add(variant);

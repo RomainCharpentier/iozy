@@ -27,6 +27,14 @@ export function deleteEntity(id: string): Promise<void> {
   return del<void>(`/entities/${id}`)
 }
 
+/** Complète/corrige les attributs de la Série elle-même sans écraser ceux
+ * déjà renseignés (ex: jaquette de la série absente ou fausse, voir action
+ * "Modifier" de la fiche Série) - même patron que mergeVariantAttributes,
+ * au niveau Entity plutôt qu'un Variant imbriqué. */
+export function mergeEntityAttributes(entityId: string, attributes: Record<string, unknown>): Promise<EntityResponse> {
+  return patch<EntityResponse>(`/entities/${entityId}`, attributes)
+}
+
 /** Complète les attributs d'un Variant existant sans écraser ceux déjà
  * renseignés (ex: jaquette du tome retrouvée après coup, voir "Retrouver
  * les jaquettes manquantes" sur Ma collection). */
