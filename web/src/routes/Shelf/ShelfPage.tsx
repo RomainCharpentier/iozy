@@ -75,12 +75,21 @@ function variantSubtitle(variant: VariantDto): string {
  * que chaque tome garde une couleur distincte plutôt que le même dégradé
  * répété. Une Entity sans Variant possédée (jeu vidéo, jeu de société, ou
  * manga ajouté sans préciser de tome) garde une tuile unique avec la
- * jaquette de l'Entity. */
-function flattenToTomes(entities: EntityResponse[], owned: Set<string>): Tile[] {
+ * jaquette de l'Entity - son sous-titre retombe sur le type (voir
+ * entityTypeLabel) pour rester reconnaissable dans une grille qui mélange
+ * plusieurs types (voir "vision UX" : une tuile doit permettre de reconnaître
+ * l'objet, SON TYPE, et son état). */
+function flattenToTomes(entities: EntityResponse[], owned: Set<string>, entityTypeLabel: (entity: EntityResponse) => string | undefined): Tile[] {
   const tiles: Tile[] = []
   for (const entity of entities) {
     if (entity.variants.length === 0) {
-      tiles.push({ key: entity.id, title: entity.title, imageUrl: coverImageUrlFrom(entity.attributes), entityId: entity.id })
+      tiles.push({
+        key: entity.id,
+        title: entity.title,
+        subtitle: entityTypeLabel(entity),
+        imageUrl: coverImageUrlFrom(entity.attributes),
+        entityId: entity.id,
+      })
       continue
     }
     for (const variant of entity.variants) {
@@ -129,12 +138,15 @@ function seriesSubtitle(entity: EntityResponse, owned: Set<string>): string {
 }
 
 /** Une tuile par série possédée (jaquette de la série), avec la progression
- * réellement possédée en sous-titre - voir seriesSubtitle. */
-function groupBySeries(entities: EntityResponse[], owned: Set<string>): Tile[] {
+ * réellement possédée en sous-titre - voir seriesSubtitle. Sans notion de
+ * tome (jeu vidéo, jeu de société), rien à faire progresser : le sous-titre
+ * retombe sur le type plutôt que de rester vide, même raison que
+ * flattenToTomes ci-dessus. */
+function groupBySeries(entities: EntityResponse[], owned: Set<string>, entityTypeLabel: (entity: EntityResponse) => string | undefined): Tile[] {
   return entities.map((entity) => ({
     key: entity.id,
     title: entity.title,
-    subtitle: entity.variants.length > 0 ? seriesSubtitle(entity, owned) : undefined,
+    subtitle: entity.variants.length > 0 ? seriesSubtitle(entity, owned) : entityTypeLabel(entity),
     imageUrl: coverImageUrlFrom(entity.attributes),
     entityId: entity.id,
   }))
@@ -167,6 +179,14 @@ export function ShelfPage() {
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
   const ownerships = ownershipsQuery.data ?? EMPTY_OWNERSHIPS
   const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
+
+  // Sous-titre de repli quand rien de plus spécifique ne s'applique (jeu
+  // vidéo, jeu de société - voir groupBySeries/flattenToTomes) : le type
+  // reste la seule info qui distingue vraiment ces tuiles entre elles dans
+  // la vue "Tout" qui mélange les types (voir "vision UX" fournie par
+  // l'utilisateur - une tuile doit rester reconnaissable par objet/type/état).
+  const entityTypesById = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
+  const entityTypeLabel = (entity: EntityResponse) => entityTypesById.get(entity.entityTypeId)?.label
 
   // "Ma collection" montre ce qui est réellement possédé - une série
   // entièrement cataloguée mais dont plus aucun exemplaire n'est possédé
@@ -251,11 +271,11 @@ export function ShelfPage() {
       entityTypes
         .map((type) => {
           const entitiesOfType = entities.filter((e) => e.entityTypeId === type.id)
-          const count = grouped ? entitiesOfType.length : flattenToTomes(entitiesOfType, owned).length
+          const count = grouped ? entitiesOfType.length : flattenToTomes(entitiesOfType, owned, entityTypeLabel).length
           return { type, count }
         })
         .filter((entry) => entry.count > 0),
-    [entities, entityTypes, grouped, owned],
+    [entities, entityTypes, grouped, owned, entityTypesById],
   )
 
   const visibleEntities = selectedTypeId
@@ -263,10 +283,13 @@ export function ShelfPage() {
     : entities
 
   const tiles = useMemo(
-    () => (grouped ? groupBySeries(visibleEntities, owned) : flattenToTomes(visibleEntities, owned)),
-    [grouped, visibleEntities, owned],
+    () =>
+      grouped
+        ? groupBySeries(visibleEntities, owned, entityTypeLabel)
+        : flattenToTomes(visibleEntities, owned, entityTypeLabel),
+    [grouped, visibleEntities, owned, entityTypesById],
   )
-  const totalCount = grouped ? entities.length : flattenToTomes(entities, owned).length
+  const totalCount = grouped ? entities.length : flattenToTomes(entities, owned, entityTypeLabel).length
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
 

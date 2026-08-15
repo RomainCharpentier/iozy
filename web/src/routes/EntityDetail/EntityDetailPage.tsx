@@ -12,6 +12,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
+import { creatorFrom } from '../../lib/creatorInfo'
 import { OwnershipsSection } from './OwnershipsSection'
 import { TomesGridSection } from './TomesGridSection'
 import { AddVolumeSection } from './AddVolumeSection'
@@ -100,7 +101,9 @@ export function EntityDetailPage() {
   const isManga = entityType?.code === 'MANGA'
 
   const coverImageUrl = coverImageUrlFrom(entity.attributes)
-  const author = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : null
+  // mangaka (Manga) ou studio (Jeu vidéo) - voir creatorInfo.ts. Rien pour
+  // Jeu de société tant qu'aucune source ne fournit réellement cette donnée.
+  const author = creatorFrom(entity.attributes)
   const activeOwnership = ownerships.find((o) => o.status === 'OWNED')
   const bestExperience = experiences.reduce<(typeof experiences)[number] | null>((best, exp) => {
     if (exp.rating === null) return best
