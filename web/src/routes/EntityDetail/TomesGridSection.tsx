@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Check, Plus } from 'lucide-react'
-import { getCompleteness } from '../../api/purchaseAnalysis'
+import { AlertTriangle, Check, Plus } from 'lucide-react'
+import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { groupVariantsByEdition, ownedVolumeNumbers, resolveEditionView, type EditionGroup } from '../../lib/editionGroups'
@@ -132,6 +132,20 @@ export function TomesGridSection({
     enabled: activeGroup.edition !== '',
   })
 
+  // Même fiche MangaEdition que "Évaluer un achat" (voir EditionReferenceLookup) -
+  // une édition renseignée une fois (épuisée, nouvelle édition annoncée...) le
+  // reste partout, jamais ressaisie. 404 = pas encore renseignée, un état
+  // normal ici (info facultative en plus, pas un échec) - jamais affiché comme
+  // une erreur, contrairement à completenessQuery qui porte le compteur
+  // principal de la page.
+  const editionInfoQuery = useQuery({
+    queryKey: queryKeys.purchaseAnalysis.edition(entityTitle, activeGroup.edition),
+    queryFn: () => findEdition(entityTitle, activeGroup.edition),
+    enabled: activeGroup.edition !== '',
+    retry: false,
+  })
+  const editionInfo = editionInfoQuery.isSuccess ? editionInfoQuery.data : null
+
   const totalVolumes = completenessQuery.data?.totalVolumes ?? null
   const cataloguedMissing = completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []
   const tiles = buildTiles(activeGroup, variants, owned, totalVolumes, cataloguedMissing)
@@ -167,6 +181,25 @@ export function TomesGridSection({
         </div>
       ) : (
         activeGroup.edition !== '' && <p className="text-sm text-textDim">{activeGroup.edition}</p>
+      )}
+
+      {/* Avertissements propres à CETTE édition (même donnée que "Évaluer un
+          achat", voir editionInfoQuery ci-dessus) - jamais affichés quand ils
+          ne s'appliquent pas ("pas épuisée" ne mérite pas une ligne, seul un
+          fait notable en mérite une). Change avec l'édition active : une
+          Perfect Edition annoncée ne concerne que l'édition standard, pas
+          elle-même. */}
+      {editionInfo?.outOfPrint && (
+        <p className="flex items-center gap-1.5 text-xs text-warning">
+          <AlertTriangle size={12} className="shrink-0" />
+          Cette édition est épuisée
+        </p>
+      )}
+      {editionInfo?.betterEditionAnnounced && (
+        <p className="flex items-center gap-1.5 text-xs text-warning">
+          <AlertTriangle size={12} className="shrink-0" />
+          Nouvelle édition annoncée{editionInfo.betterEditionNote ? ` · ${editionInfo.betterEditionNote}` : ''}
+        </p>
       )}
 
       {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
