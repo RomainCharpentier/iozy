@@ -263,6 +263,7 @@ Navigation par onglets : Étagères / Recherche / Wishlist / Statistiques. Fiche
 
 - Ouverture possible en lecture seule à des proches (facilitée par la séparation Ownership/Experience, sans refonte).
 - Export complet des données (JSON/CSV) pour garantir l'absence d'enfermement, même auto-hébergé.
+- **Import Manga Collec** : évalué (voir historique) — ni API publique documentée, ni export utilisateur, ni données de possession réelles dans la page de collection publique (seulement des compteurs agrégés et des listes de suivi/lecture, pas la liste tome par tome). Construire l'import obligerait à reverse-engineer leur API privée (`api.mangacollec.com`), fragile et de statut CGU incertain — écarté pour l'instant. **À reconsidérer uniquement si une source officielle ou suffisamment stable devient disponible** (API publique, export officiel, format utilisateur exploitable). Pas prioritaire.
 
 ---
 
