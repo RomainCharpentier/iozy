@@ -52,6 +52,14 @@ public class WishlistController {
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "Retirer une entrée de la wishlist - cible uniquement WishlistEntry, "
+            + "jamais la Série/Édition/Tome ni une Ownership. Idempotent : un id déjà retiré ne renvoie pas d'erreur.")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void remove(@PathVariable UUID id) {
+        wishlistEntryRepository.deleteById(id);
+    }
+
     @Operation(summary = "Parcours 3 : vérifier en un appel si une Entity est possédée, en wishlist, ou inconnue")
     @GetMapping("/lookup")
     public LookupResponse lookup(@RequestParam UUID entityId) {

@@ -47,6 +47,10 @@ class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
 
     @Override
     public void deleteById(UUID id) {
-        jpaRepository.deleteById(id);
+        // existsById d'abord : JpaRepository#deleteById lève EmptyResultDataAccessException si la ligne
+        // n'existe déjà plus, ce qui casserait le contrat idempotent du port (voir WishlistEntryRepository).
+        if (jpaRepository.existsById(id)) {
+            jpaRepository.deleteById(id);
+        }
     }
 }
