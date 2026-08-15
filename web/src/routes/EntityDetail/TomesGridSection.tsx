@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Check, Plus } from 'lucide-react'
 import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
@@ -6,9 +7,11 @@ import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
+import { VolumeInteractionPanel } from './VolumeInteractionPanel'
+import { AddVolumeSection } from './AddVolumeSection'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
-interface TomeTile {
+export interface TomeTile {
   volumeNumber: number
   status: 'owned' | 'cataloguedMissing' | 'virtualMissing'
   variant?: VariantDto
@@ -55,15 +58,20 @@ function buildTiles(group: EditionGroup, variants: VariantDto[], owned: number[]
   return tiles
 }
 
-function TomeTileView({ tile, onClick }: { tile: TomeTile; onClick: () => void }) {
+function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: boolean; onClick: () => void }) {
   const coverUrl = tile.variant ? coverImageUrlFrom(tile.variant.attributes) : null
   const owned = tile.status === 'owned'
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={owned ? `Tome ${tile.volumeNumber}, possédé` : `Tome ${tile.volumeNumber}, manquant - ajouter à ma collection`}
-      className={`relative flex aspect-[2/3] flex-col items-center justify-center overflow-hidden rounded-lg text-left ${owned ? 'bg-surface2' : 'bg-surface2/50'}`}
+      aria-label={owned ? `Voir le tome ${tile.volumeNumber}` : `Ajouter le tome ${tile.volumeNumber}`}
+      // Sélection = tuile ↔ panneau ouvert (voir VolumeInteractionPanel) :
+      // anneau accent discret, jamais un gros effet - juste de quoi
+      // reconnaître quelle carte a ouvert le panneau actuellement affiché.
+      className={`relative flex aspect-[2/3] flex-col items-center justify-center overflow-hidden rounded-lg text-left transition ${
+        owned ? 'bg-surface2' : 'bg-surface2/50'
+      } ${isActive ? 'ring-2 ring-accent' : ''}`}
     >
       {coverUrl ? (
         // Catalogué mais manquant : vraie jaquette, atténuée modérément - reste
@@ -97,21 +105,31 @@ function TomeTileView({ tile, onClick }: { tile: TomeTile; onClick: () => void }
  * texte) par une vue directement inspirée de Manga Collec : le possédé/
  * manquant se voit tome par tome, jamais caché dans un compteur ("5
  * manquants" ne dit pas LESQUELS).
+ * <p>
+ * Interaction Tome : UNE seule source de vérité (`activeVolumeNumber`),
+ * jamais plusieurs états indépendants (voir l'ancien showAddVolume/
+ * selectedVolumeForAdd/highlightedVariantId - remplacés). Le tome
+ * sélectionné est recalculé (`activeTile`) à CHAQUE rendu à partir des
+ * tuiles fraîchement construites, jamais stocké séparément : après un ajout
+ * réussi, la tuile passe seule de "manquant" à "possédé" sans code de
+ * transition dédié, voir VolumeInteractionPanel.
  */
 export function TomesGridSection({
   entityId,
+  entityTypeId,
   entityTitle,
   entityAttributes,
   variants,
   ownerships,
   activeGroup,
-  onSelectMissingVolume,
-  onSelectOwnedVariant,
 }: {
   // Voir migration "Série -> Édition par ID" - préféré à entityTitle pour
   // toute relation persistante avec MangaEdition, immunisé contre un
   // renommage de la Série (entityTitle, lui, change après un renommage).
   entityId: string
+  // Pour AddOwnershipForm/VariantCoverEditor (voir VolumeInteractionPanel) -
+  // quickAdd/searchVolumes en ont besoin comme partout ailleurs dans l'app.
+  entityTypeId: string
   entityTitle: string
   // Uniquement pour "Statut" dans "À propos" (voir isSeriesOngoing) - le
   // reste de cette section lit déjà ses propres données (editionInfo/
@@ -123,9 +141,18 @@ export function TomesGridSection({
   // EditionProgressSection - les deux doivent réagir au même changement
   // d'édition sélectionnée, voir EntityDetailPage.activeGroup.
   activeGroup: EditionGroup
-  onSelectMissingVolume: (volumeNumber: number, edition: string) => void
-  onSelectOwnedVariant: (variantId: string) => void
 }) {
+  const [activeVolumeNumber, setActiveVolumeNumber] = useState<number | null>(null)
+
+  // Édition changée pendant qu'un panneau est ouvert : ferme plutôt que de
+  // risquer un tome sélectionné qui n'appartient plus à l'édition affichée
+  // (voir "préférence simplicité : edition change -> close panel"). Entity
+  // changée (navigation vers une autre fiche sans démonter ce composant,
+  // React Router peut réutiliser l'instance) : même chose, défensif.
+  useEffect(() => {
+    setActiveVolumeNumber(null)
+  }, [activeGroup.edition, entityId])
+
   const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions)
 
   // Mêmes clés de cache que EditionProgressSection (voir ce composant) -
@@ -147,6 +174,7 @@ export function TomesGridSection({
   const totalVolumes = completenessQuery.data?.totalVolumes ?? null
   const cataloguedMissing = completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []
   const tiles = buildTiles(activeGroup, variants, owned, totalVolumes, cataloguedMissing)
+  const activeTile = tiles.find((t) => t.volumeNumber === activeVolumeNumber) ?? null
   const ongoing = isSeriesOngoing(entityAttributes)
   // "À propos" : uniquement des données réellement connues (jamais de valeur
   // devinée/technique) - voir la maquette validée, qui liste explicitement
@@ -174,21 +202,25 @@ export function TomesGridSection({
               <VirtualVolumeCard
                 key={tile.volumeNumber}
                 volumeNumber={tile.volumeNumber}
-                onClick={() => onSelectMissingVolume(tile.volumeNumber, activeGroup.edition)}
+                isActive={tile.volumeNumber === activeVolumeNumber}
+                onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
               />
             ) : (
               <TomeTileView
                 key={tile.volumeNumber}
                 tile={tile}
-                onClick={() =>
-                  tile.status === 'owned' && tile.variant
-                    ? onSelectOwnedVariant(tile.variant.id)
-                    : onSelectMissingVolume(tile.volumeNumber, activeGroup.edition)
-                }
+                isActive={tile.volumeNumber === activeVolumeNumber}
+                onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
               />
             ),
           )}
         </div>
+        {/* Parcours manuel (voir AddVolumeSection) - reste sous Mes tomes,
+            styling secondaire : ne devrait plus être nécessaire pour un tome
+            déjà visible dans la grille ci-dessus (voir le parcours
+            contextuel, VolumeInteractionPanel), seulement pour un numéro/une
+            édition hors de ce qui est déjà catalogué. */}
+        <AddVolumeSection entityId={entityId} entityTypeId={entityTypeId} title={entityTitle} />
       </section>
 
       {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la
@@ -212,6 +244,19 @@ export function TomesGridSection({
           </div>
         </section>
       )}
+
+      {/* Surface contextuelle unique (voir la refonte demandée) - remplace
+          l'ancien rendu de AddVolumeSection/OwnershipsSection plus bas dans
+          la page au clic d'un tome. Un seul panneau, jamais deux visibles. */}
+      <VolumeInteractionPanel
+        activeTile={activeTile}
+        onClose={() => setActiveVolumeNumber(null)}
+        entityId={entityId}
+        entityTypeId={entityTypeId}
+        entityTitle={entityTitle}
+        editionName={activeGroup.edition}
+        ownerships={ownerships}
+      />
     </div>
   )
 }
