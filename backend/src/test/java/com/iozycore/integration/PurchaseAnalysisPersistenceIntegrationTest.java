@@ -227,7 +227,7 @@ class PurchaseAnalysisPersistenceIntegrationTest {
                 "Standard", EditionTier.STANDARD, "Kodansha", 26, new BigDecimal("6.90"), false, false, null));
 
         CollectionStatus status = purchaseAnalysisService.computeCompleteness(
-                edition.seriesTitle(), edition.editionName(), Set.of(1, 2, 3, 4, 5));
+                null, edition.seriesTitle(), edition.editionName(), Set.of(1, 2, 3, 4, 5));
 
         assertThat(status.isKnown()).isTrue();
         assertThat(status.missingCount()).isEqualTo(21);
@@ -238,7 +238,7 @@ class PurchaseAnalysisPersistenceIntegrationTest {
     @Test
     void completeness_is_unknown_rather_than_guessed_for_an_edition_never_entered() {
         CollectionStatus status = purchaseAnalysisService.computeCompleteness(
-                "Some Series Never Analyzed " + UUID.randomUUID(), "Standard", Set.of(1, 2));
+                null, "Some Series Never Analyzed " + UUID.randomUUID(), "Standard", Set.of(1, 2));
 
         assertThat(status.isKnown()).isFalse();
         assertThat(status.estimatedCostToComplete()).isNull();
@@ -345,5 +345,92 @@ class PurchaseAnalysisPersistenceIntegrationTest {
         com.iozycore.purchaseanalysis.DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
         assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
+    }
+
+    // --- Migration "Série -> Édition par ID" (historique de la conversation) ---
+    // Le titre ne doit plus jamais être la relation persistante entre une Série et
+    // ses Éditions : un renommage doit pouvoir modifier UNIQUEMENT Entity.title
+    // sans casser ni dupliquer quoi que ce soit côté MangaEdition/Variant.
+
+    @Test
+    void renaming_a_series_does_not_orphan_or_duplicate_its_editions_or_tomes() {
+        UUID mangaTypeId = EntityTypeFixtures.MANGA.id();
+        String originalTitle = "Naruto " + UUID.randomUUID();
+
+        // Série avec PLUSIEURS Éditions (scénario 1) : tome 1 de "Kana", tome 1 de
+        // "Perfect Edition" - deux MangaEdition distinctes, toutes deux reliées par
+        // entityId (voir resolveOrCreateMangaEdition, jamais un doublon).
+        var kanaTome1 = quickAddService.addNewEntityWithOwnership(mangaTypeId, originalTitle,
+                OwnershipCondition.NEW, Map.of(), 1, "Kana");
+        quickAddService.addNewEntityWithOwnership(mangaTypeId, originalTitle,
+                OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
+        UUID entityId = kanaTome1.entityId();
+
+        List<MangaEdition> editionsBeforeRename = mangaEditionRepository.findByEntityId(entityId);
+        assertThat(editionsBeforeRename).hasSize(2);
+        UUID kanaEditionId = editionsBeforeRename.stream()
+                .filter(e -> e.editionName().equalsIgnoreCase("Kana")).findFirst().orElseThrow().id();
+
+        // Renommage (scénario 2) : UNIQUEMENT Entity.title, rien côté MangaEdition.
+        String newTitle = "L'Histoire de Naruto " + UUID.randomUUID();
+        Entity entity = entityRepository.findById(entityId).orElseThrow();
+        entity.rename(newTitle);
+        entityRepository.save(entity);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Un 2e ajout après renommage (avec le NOUVEAU titre, comme le ferait un
+        // utilisateur réel) doit rattacher le nouveau tome à l'édition "Kana" déjà
+        // connue plutôt que d'en créer une seconde (scénario 5 : aucune duplication).
+        quickAddService.addNewEntityWithOwnership(mangaTypeId, newTitle,
+                OwnershipCondition.NEW, Map.of(), 2, "Kana");
+
+        // Les Éditions restent rattachées (scénario 3), toujours exactement 2 - pas 3.
+        List<MangaEdition> editionsAfterRename = mangaEditionRepository.findByEntityId(entityId);
+        assertThat(editionsAfterRename).hasSize(2);
+        MangaEdition kanaAfterRename = editionsAfterRename.stream()
+                .filter(e -> e.editionName().equalsIgnoreCase("Kana")).findFirst().orElseThrow();
+        assertThat(kanaAfterRename.id()).isEqualTo(kanaEditionId); // même ligne, pas une nouvelle
+
+        // Les Tomes restent rattachés aux mêmes Éditions (scénario 4) : tome 1 ET
+        // tome 2 pointent tous les deux vers CETTE MÊME MangaEdition "Kana".
+        Entity reloaded = entityRepository.findById(entityId).orElseThrow();
+        assertThat(reloaded.title()).isEqualTo(newTitle);
+        Variant tome1 = reloaded.findVariantByLabel("Tome 1 — Kana").orElseThrow();
+        Variant tome2 = reloaded.findVariantByLabel("Tome 2 — Kana").orElseThrow();
+        assertThat(tome1.mangaEditionId()).isEqualTo(kanaEditionId);
+        assertThat(tome2.mangaEditionId()).isEqualTo(kanaEditionId);
+    }
+
+    @Test
+    void consultation_and_completeness_keep_working_after_a_series_is_renamed() {
+        UUID mangaTypeId = EntityTypeFixtures.MANGA.id();
+        String originalTitle = "Vinland Saga " + UUID.randomUUID();
+
+        var result = quickAddService.addNewEntityWithOwnership(mangaTypeId, originalTitle,
+                OwnershipCondition.NEW, Map.of(), 1, "Kurokawa");
+        UUID entityId = result.entityId();
+        MangaEdition edition = mangaEditionRepository.findByEntityIdAndEditionName(entityId, "Kurokawa").orElseThrow();
+        mangaEditionRepository.save(edition.withUpdatedReferenceData(EditionTier.STANDARD, "Kurokawa", 27,
+                new BigDecimal("7.90"), false, false, null));
+
+        String newTitle = "Vinland Saga (renommé) " + UUID.randomUUID();
+        Entity entity = entityRepository.findById(entityId).orElseThrow();
+        entity.rename(newTitle);
+        entityRepository.save(entity);
+        entityManager.flush();
+        entityManager.clear();
+
+        // La consultation (recherche d'édition par ID) continue de fonctionner (scénario 6).
+        Optional<MangaEdition> found = purchaseAnalysisService.findEdition(entityId, newTitle, "Kurokawa");
+        assertThat(found).isPresent();
+        assertThat(found.get().id()).isEqualTo(edition.id());
+
+        // La complétude aussi (scénario 6) - toujours calculable après renommage,
+        // avec le nombre de tomes connu conservé (27, jamais réinitialisé).
+        CollectionStatus status = purchaseAnalysisService.computeCompleteness(entityId, newTitle, "Kurokawa", Set.of(1));
+        assertThat(status.isKnown()).isTrue();
+        assertThat(status.totalVolumes()).isEqualTo(27);
+        assertThat(status.missingCount()).isEqualTo(26);
     }
 }

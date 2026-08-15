@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Pencil } from 'lucide-react'
-import { getEntity, mergeEntityAttributes } from '../../api/entities'
+import { getEntity, mergeEntityAttributes, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
@@ -34,6 +34,20 @@ export function EntityDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       setEditingCover(false)
+    },
+  })
+  // Correction manuelle du NOM de série (voir migration "Série -> Édition
+  // par ID", historique de la conversation) : ne casse plus les
+  // Éditions/Tomes déjà rattachés, leur lien passe désormais par entityId,
+  // jamais par une égalité de titre - même action secondaire discrète que
+  // la couverture ci-dessus.
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleInput, setTitleInput] = useState('')
+  const renameMutation = useMutation({
+    mutationFn: (title: string) => renameEntity(entityId, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      setEditingTitle(false)
     },
   })
   // Présent quand on arrive en cliquant une tuile de tome précise dans "Ma
@@ -123,9 +137,50 @@ export function EntityDetailPage() {
         >
           <Pencil size={13} />
         </button>
-        <h1 className="relative font-display text-2xl font-bold text-textPrimary">{entity.title}</h1>
+        <div className="relative flex items-center gap-1.5">
+          <h1 className="font-display text-2xl font-bold text-textPrimary">{entity.title}</h1>
+          <button
+            type="button"
+            onClick={() => {
+              setTitleInput(entity.title)
+              setEditingTitle(true)
+            }}
+            aria-label="Modifier le nom de la série"
+            className="shrink-0 text-textPrimary/70 hover:text-textPrimary"
+          >
+            <Pencil size={13} />
+          </button>
+        </div>
         {author && <p className="relative text-sm text-textPrimary/80">{author}</p>}
       </div>
+
+      {editingTitle && (
+        <div className="flex items-center gap-2">
+          <input
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            placeholder="Nom de la série"
+            autoFocus
+            className="min-w-0 flex-1 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          />
+          <button
+            type="button"
+            onClick={() => titleInput.trim() && renameMutation.mutate(titleInput.trim())}
+            disabled={!titleInput.trim() || renameMutation.isPending}
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accentText disabled:opacity-50"
+          >
+            Enregistrer
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingTitle(false)}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-textDim"
+          >
+            Annuler
+          </button>
+        </div>
+      )}
+      {editingTitle && renameMutation.isError && <ErrorBanner message={renameMutation.error.message} />}
 
       {editingCover && (
         <div className="flex items-center gap-2">
@@ -184,6 +239,7 @@ export function EntityDetailPage() {
           pour un tome (voir QuickAddService côté backend). */}
       {isManga && (
         <TomesGridSection
+          entityId={entityId}
           entityTitle={entity.title}
           variants={entity.variants}
           ownerships={ownerships}

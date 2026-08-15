@@ -105,18 +105,25 @@ public class PurchaseAnalysisController {
     }
 
     @Operation(summary = "Look up a known manga edition by series + edition name - 404 triggers the client's "
-            + "inline \"fill in reference data\" prompt")
+            + "inline \"fill in reference data\" prompt. entityId (optional) is the preferred lookup once the "
+            + "Série is a known catalog Entity - looked up by ID first, immune to the Série having been renamed "
+            + "since this edition was linked; seriesTitle remains required as the best-effort fallback for a "
+            + "listing not yet matched to a catalog Entity, or an edition not yet linked by ID (linked here, "
+            + "opportunistically, the first time it's found this way).")
     @GetMapping("/editions")
-    public MangaEdition getEdition(@RequestParam String seriesTitle, @RequestParam String editionName) {
-        return service.findEdition(seriesTitle, editionName)
+    public MangaEdition getEdition(@RequestParam(required = false) UUID entityId, @RequestParam String seriesTitle,
+                                    @RequestParam String editionName) {
+        return service.findEdition(entityId, seriesTitle, editionName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No known edition \"" + editionName + "\" for series \"" + seriesTitle + "\""));
     }
 
-    @Operation(summary = "All known editions of a series - powers \"a Perfect edition exists for this work\" warnings")
+    @Operation(summary = "All known editions of a series - powers \"a Perfect edition exists for this work\" "
+            + "warnings. entityId (optional), when given, is used exclusively (no text-matching fallback): only "
+            + "editions actually linked to this Série.")
     @GetMapping("/editions/search")
-    public List<MangaEdition> searchEditions(@RequestParam String seriesTitle) {
-        return service.findEditionsForSeries(seriesTitle);
+    public List<MangaEdition> searchEditions(@RequestParam(required = false) UUID entityId, @RequestParam String seriesTitle) {
+        return service.findEditionsForSeries(entityId, seriesTitle);
     }
 
     @Operation(summary = "\"Coût pour compléter une série\" (Ma collection) - completeness and estimated cost to "
@@ -128,12 +135,13 @@ public class PurchaseAnalysisController {
             + "real catalogued Variant regardless of Ownership, letting the response distinguish missing-but-"
             + "catalogued from purely virtual gaps; omitted entirely, the distinction is simply absent.")
     @GetMapping("/completeness")
-    public CollectionStatus completeness(@RequestParam String seriesTitle, @RequestParam String editionName,
+    public CollectionStatus completeness(@RequestParam(required = false) UUID entityId,
+                                          @RequestParam String seriesTitle, @RequestParam String editionName,
                                           @RequestParam(required = false) String volumes,
                                           @RequestParam(required = false) String cataloguedVolumes) {
         Set<Integer> includedVolumes = parseVolumeNumbers(volumes);
         Set<Integer> knownCataloguedVolumes = parseVolumeNumbers(cataloguedVolumes);
-        return service.computeCompleteness(seriesTitle, editionName, includedVolumes, knownCataloguedVolumes);
+        return service.computeCompleteness(entityId, seriesTitle, editionName, includedVolumes, knownCataloguedVolumes);
     }
 
     private static Set<Integer> parseVolumeNumbers(String csv) {
@@ -164,17 +172,20 @@ public class PurchaseAnalysisController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
-    public record CreateMangaEditionRequest(String seriesTitle, String editionName, String editionTier,
+    public record CreateMangaEditionRequest(UUID entityId, String seriesTitle, String editionName, String editionTier,
                                              String publisher, Integer totalVolumes,
                                              BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                              boolean betterEditionAnnounced, String betterEditionNote) {
     }
 
-    @Operation(summary = "Record reference data for a manga edition unknown to the system yet (progressive manual entry)")
+    @Operation(summary = "Record reference data for a manga edition unknown to the system yet (progressive manual "
+            + "entry). entityId (optional) links it directly when the caller already knows the Série with "
+            + "certainty (e.g. fiche Série); omitted, falls back to best-effort text matching (e.g. Analyse "
+            + "d'achat on a series not necessarily owned yet).")
     @PostMapping("/editions")
     @ResponseStatus(HttpStatus.CREATED)
     public MangaEdition createEdition(@RequestBody CreateMangaEditionRequest request) {
-        return service.createEdition(request.seriesTitle(), request.editionName(),
+        return service.createEdition(request.entityId(), request.seriesTitle(), request.editionName(),
                 parseEnum(EditionTier.class, request.editionTier(), "editionTier"), request.publisher(),
                 request.totalVolumes(), request.retailPriceNewPerVolume(), request.outOfPrint(),
                 request.betterEditionAnnounced(), request.betterEditionNote());

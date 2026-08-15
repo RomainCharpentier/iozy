@@ -211,6 +211,13 @@ class BggCollectionImportServiceTest {
         }
 
         @Override
+        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
+            return store.values().stream()
+                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
         public void deleteById(UUID id) {
             store.remove(id);
         }

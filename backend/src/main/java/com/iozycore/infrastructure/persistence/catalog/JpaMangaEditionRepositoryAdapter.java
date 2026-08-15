@@ -50,6 +50,12 @@ public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository 
     }
 
     @Override
+    public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
+        return jpaRepository.findByEntityIdAndEditionNameIgnoreCase(entityId, editionName)
+                .map(MangaEditionMapper::toDomain);
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }

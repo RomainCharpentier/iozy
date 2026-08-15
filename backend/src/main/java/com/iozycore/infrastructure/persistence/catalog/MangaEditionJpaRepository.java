@@ -10,4 +10,5 @@ public interface MangaEditionJpaRepository extends JpaRepository<MangaEditionJpa
     Optional<MangaEditionJpaEntity> findBySeriesTitleIgnoreCaseAndEditionNameIgnoreCase(String seriesTitle, String editionName);
     List<MangaEditionJpaEntity> findBySeriesTitleIgnoreCase(String seriesTitle);
     List<MangaEditionJpaEntity> findByEntityId(UUID entityId);
+    Optional<MangaEditionJpaEntity> findByEntityIdAndEditionNameIgnoreCase(UUID entityId, String editionName);
 }
