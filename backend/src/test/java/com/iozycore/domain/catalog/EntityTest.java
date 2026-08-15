@@ -73,6 +73,30 @@ class EntityTest {
     }
 
     @Test
+    void merging_entity_attributes_adds_new_keys_without_touching_others() {
+        // Correction manuelle de la Série elle-même (audit UX "correction
+        // manuelle") - même sémantique que mergeVariantAttributes, appliquée
+        // à l'Entity plutôt qu'à un Variant imbriqué.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entity.setAttribute("mangaka", "Tsugumi Ohba");
+
+        entity.mergeAttributes(Map.of("coverImageUrl", "https://example.com/series.jpg"));
+
+        assertEquals("Tsugumi Ohba", entity.attributes().get("mangaka"));
+        assertEquals("https://example.com/series.jpg", entity.attributes().get("coverImageUrl"));
+    }
+
+    @Test
+    void merging_entity_attributes_on_an_existing_key_overwrites_it() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entity.setAttribute("coverImageUrl", "https://example.com/old.jpg");
+
+        entity.mergeAttributes(Map.of("coverImageUrl", "https://example.com/new.jpg"));
+
+        assertEquals("https://example.com/new.jpg", entity.attributes().get("coverImageUrl"));
+    }
+
+    @Test
     void merging_attributes_on_an_unknown_variant_fails_loudly() {
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
 

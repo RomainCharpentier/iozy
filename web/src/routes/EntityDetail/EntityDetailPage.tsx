@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { getEntity } from '../../api/entities'
+import { Pencil } from 'lucide-react'
+import { getEntity, mergeEntityAttributes } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
@@ -10,7 +11,7 @@ import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
-import { coverImageUrlFrom } from '../../lib/coverImage'
+import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { OwnershipsSection } from './OwnershipsSection'
 import { TomesGridSection } from './TomesGridSection'
 import { AddVolumeSection } from './AddVolumeSection'
@@ -20,6 +21,21 @@ export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  // Correction manuelle de la couverture de SÉRIE (audit UX "correction
+  // manuelle") - jusqu'ici seul le Tome avait une jaquette rattrapable après
+  // coup (voir OwnershipsSection), jamais la Série elle-même. Action
+  // secondaire (icône crayon discrète sur la bannière), pas un champ de
+  // formulaire permanent.
+  const [editingCover, setEditingCover] = useState(false)
+  const [coverUrlInput, setCoverUrlInput] = useState('')
+  const coverMutation = useMutation({
+    mutationFn: (coverImageUrl: string) => mergeEntityAttributes(entityId, { [COVER_IMAGE_ATTRIBUTE_KEY]: coverImageUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      setEditingCover(false)
+    },
+  })
   // Présent quand on arrive en cliquant une tuile de tome précise dans "Ma
   // collection" (vue non groupée, voir ShelfPage.tsx), ou en cliquant un
   // tome possédé dans la grille ci-dessous (voir onSelectOwnedVariant) -
@@ -96,9 +112,48 @@ export function EntityDetailPage() {
             {entityType.label}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => {
+            setCoverUrlInput(coverImageUrl ?? '')
+            setEditingCover(true)
+          }}
+          aria-label="Modifier la couverture de la série"
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-textPrimary hover:bg-black/60"
+        >
+          <Pencil size={13} />
+        </button>
         <h1 className="relative font-display text-2xl font-bold text-textPrimary">{entity.title}</h1>
         {author && <p className="relative text-sm text-textPrimary/80">{author}</p>}
       </div>
+
+      {editingCover && (
+        <div className="flex items-center gap-2">
+          <input
+            value={coverUrlInput}
+            onChange={(e) => setCoverUrlInput(e.target.value)}
+            placeholder="URL de l'image (ex: https://...)"
+            autoFocus
+            className="min-w-0 flex-1 rounded-lg bg-surface2 px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          />
+          <button
+            type="button"
+            onClick={() => coverUrlInput.trim() && coverMutation.mutate(coverUrlInput.trim())}
+            disabled={!coverUrlInput.trim() || coverMutation.isPending}
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+          >
+            Enregistrer
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingCover(false)}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
+          >
+            Annuler
+          </button>
+        </div>
+      )}
+      {editingCover && coverMutation.isError && <ErrorBanner message={coverMutation.error.message} />}
 
       {/* Pastilles Possédé/expérience : réservées aux types SANS grille de
           tomes (jeu vidéo, jeu de société), où elles restent le seul repère

@@ -98,6 +98,16 @@ public class EntityController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Compléter/corriger les attributs de la Série elle-même sans écraser ceux déjà "
+            + "renseignés (ex: jaquette de la série absente ou fausse, voir action \"Modifier\" de la fiche Série)")
+    @PatchMapping("/{entityId}")
+    public EntityResponse mergeAttributes(@PathVariable UUID entityId, @RequestBody Map<String, Object> attributes) {
+        Entity entity = entityRepository.findById(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
+        entity.mergeAttributes(attributes);
+        return EntityResponse.from(entityRepository.save(entity));
+    }
+
     @Operation(summary = "Compléter les attributs d'un Variant existant sans écraser ceux déjà renseignés "
             + "(ex: jaquette du tome retrouvée après coup, voir \"Retrouver les jaquettes manquantes\" sur Ma collection)")
     @PatchMapping("/{entityId}/variants/{variantId}")

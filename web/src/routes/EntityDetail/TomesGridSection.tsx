@@ -6,6 +6,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { groupVariantsByEdition, ownedVolumeNumbers, resolveEditionView, type EditionGroup } from '../../lib/editionGroups'
 import { Chip } from '../../components/Chip'
+import { EditionCorrectionSection } from './EditionCorrectionSection'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
 interface TomeTile {
@@ -200,6 +201,14 @@ export function TomesGridSection({
           <AlertTriangle size={12} className="shrink-0" />
           Nouvelle édition annoncée{editionInfo.betterEditionNote ? ` · ${editionInfo.betterEditionNote}` : ''}
         </p>
+      )}
+
+      {/* L'automatisation ne trouve pas toujours le bon nombre de tomes/
+          éditeur - action secondaire pour corriger/compléter à la main
+          (voir audit UX "correction manuelle"), jamais affichée sans
+          édition nommée (rien à quoi rattacher la correction). */}
+      {activeGroup.edition !== '' && (
+        <EditionCorrectionSection entityTitle={entityTitle} editionName={activeGroup.edition} editionInfo={editionInfo} />
       )}
 
       {/* Le nombre de colonnes s'adapte à la largeur disponible plutôt qu'un
