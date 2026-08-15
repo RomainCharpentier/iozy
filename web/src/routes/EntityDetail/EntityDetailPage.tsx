@@ -113,48 +113,59 @@ export function EntityDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        className="relative flex h-40 flex-col justify-end overflow-hidden rounded-2xl p-4"
-        style={coverImageUrl ? undefined : { background: gradientFor(entity.title) }}
-      >
-        {coverImageUrl && (
-          <img src={coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        )}
+      {/* Identité : vraie jaquette dimensionnée (pas un fond d'écran rogné
+          derrière un dégradé) à côté du titre/auteur, comme sur la fiche Série
+          d'une bibliothèque numérique (voir la maquette validée) - remplace
+          l'ancienne bannière horizontale h-40 décorative, qui ne permettait pas
+          de reconnaître la jaquette (recadrée en fond, jamais montrée entière).
+          Même composition côte-à-côte du mobile au desktop, seule la taille de
+          la jaquette grandit avec la largeur disponible (voir la maquette
+          mobile "[Couverture] [Titre/auteur]" - déjà côte-à-côte, pas empilé). */}
+      <div className="flex gap-4 sm:gap-6">
         <div
-          className="absolute inset-x-0 bottom-0 h-2/3"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}
-        />
-        {entityType && (
-          <span className="relative mb-1 w-fit rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-textPrimary">
-            {entityType.label}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setCoverUrlInput(coverImageUrl ?? '')
-            setEditingCover(true)
-          }}
-          aria-label="Modifier la couverture de la série"
-          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-textPrimary hover:bg-black/60"
+          className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36 md:w-44 lg:w-52"
+          style={coverImageUrl ? undefined : { background: gradientFor(entity.title) }}
         >
-          <Pencil size={13} />
-        </button>
-        <div className="relative flex items-center gap-1.5">
-          <h1 className="font-display text-2xl font-bold text-textPrimary">{entity.title}</h1>
+          {coverImageUrl && <img src={coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
           <button
             type="button"
             onClick={() => {
-              setTitleInput(entity.title)
-              setEditingTitle(true)
+              setCoverUrlInput(coverImageUrl ?? '')
+              setEditingCover(true)
             }}
-            aria-label="Modifier le nom de la série"
-            className="shrink-0 text-textPrimary/70 hover:text-textPrimary"
+            aria-label="Modifier la couverture de la série"
+            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-textPrimary hover:bg-black/70"
           >
             <Pencil size={13} />
           </button>
         </div>
-        {author && <p className="relative text-sm text-textPrimary/80">{author}</p>}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-display text-2xl font-bold text-textPrimary sm:text-3xl">{entity.title}</h1>
+            <button
+              type="button"
+              onClick={() => {
+                setTitleInput(entity.title)
+                setEditingTitle(true)
+              }}
+              aria-label="Modifier le nom de la série"
+              className="shrink-0 text-textDim hover:text-textPrimary"
+            >
+              <Pencil size={13} />
+            </button>
+          </div>
+          {author && <p className="text-sm text-textDim sm:text-base">{author}</p>}
+          {/* Type en petite pastille discrète : aide à reconnaître le type
+              immédiatement (même principe que les tuiles de Ma Collection),
+              sans répéter l'éditeur ici - déjà porté par la ligne Édition et
+              "À propos" juste en dessous (voir TomesGridSection), pas la peine
+              de le montrer deux fois. */}
+          {entityType && (
+            <span className="w-fit rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-textDim">
+              {entityType.label}
+            </span>
+          )}
+        </div>
       </div>
 
       {editingTitle && (
@@ -244,6 +255,7 @@ export function EntityDetailPage() {
         <TomesGridSection
           entityId={entityId}
           entityTitle={entity.title}
+          entityAttributes={entity.attributes}
           variants={entity.variants}
           ownerships={ownerships}
           onSelectOwnedVariant={(variantId) => navigate(`/entity/${entityId}?variant=${variantId}`, { replace: true })}
