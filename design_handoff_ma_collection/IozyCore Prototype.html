@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body{margin:0;background:#0A0A0C;font-family:'Inter',sans-serif;color:#F5F4F2;-webkit-font-smoothing:antialiased}
+  a{color:#B8FF3C}
+  ::selection{background:#B8FF3C;color:#0E1500}
+</style>
+</helmet>
+
+<div style="max-width:1280px;margin:0 auto;padding:40px 32px 100px;display:flex;flex-direction:column;gap:24px">
+
+  <!-- Prototype control bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 18px;background:#1D1D21;border-radius:14px">
+    <div>
+      <div style="font:600 11px/1 ui-monospace,monospace;color:#8C8B92;text-transform:uppercase;letter-spacing:.06em">Interactive prototype</div>
+      <div style="font:700 15px 'Space Grotesk',sans-serif;color:#F5F4F2;margin-top:4px">Ma Collection → Fiche Manga</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <span onClick="{{ setDesktop }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;background:{{ desktopBg }};color:{{ desktopColor }}">🖥 Desktop</span>
+      <span onClick="{{ setMobile }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;background:{{ mobileBg }};color:{{ mobileColor }}">📱 Mobile</span>
+    </div>
+  </div>
+  <p style="margin:0;font-size:12px;color:#8C8B92">Try it: click a category's "Voir tout" for the full grid, click Death Note/Naruto/a game to open its fiche, click a tome to open the panel, fill état + prix and hit Ajouter.</p>
+
+  <!-- ===================== DEVICE FRAME ===================== -->
+  <div style="width:{{ frameWidth }};max-width:100%;margin:0 auto;background:#131316;border-radius:{{ frameRadius }};overflow:hidden;border:1px solid #1D1D21;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.45)">
+
+    <!-- Desktop header -->
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+      <div style="height:64px;background:#1D1D21;border-bottom:1px solid #26262B;display:flex;align-items:center;gap:32px;padding:0 32px">
+        <span onClick="{{ goCollection }}" style="cursor:pointer;font:700 18px 'Space Grotesk',sans-serif;color:#F5F4F2">IozyCore</span>
+        <div style="display:flex;height:100%;align-items:center;gap:24px">
+          <span onClick="{{ goCollection }}" style="cursor:pointer;height:100%;display:flex;align-items:center;border-bottom:2px solid {{ navCollectionBorder }};color:{{ navCollectionColor }};font-size:14px;font-weight:500">Ma collection</span>
+          <span onClick="{{ goSearch }}" style="cursor:pointer;height:100%;display:flex;align-items:center;border-bottom:2px solid {{ navSearchBorder }};color:{{ navSearchColor }};font-size:14px;font-weight:500">Rechercher</span>
+          <span onClick="{{ goWishlist }}" style="cursor:pointer;height:100%;display:flex;align-items:center;border-bottom:2px solid {{ navWishlistBorder }};color:{{ navWishlistColor }};font-size:14px;font-weight:500">Wishlist</span>
+        </div>
+        <div style="margin-left:auto;display:flex;height:100%;align-items:center;gap:24px">
+          <span onClick="{{ goProfile }}" style="cursor:pointer;height:100%;display:flex;align-items:center;gap:8px;border-bottom:2px solid {{ navProfileBorder }};color:{{ navProfileColor }};font-size:14px;font-weight:500">
+            <span style="width:26px;height:26px;border-radius:999px;background:linear-gradient(135deg,#B8FF3C,#4B6B10);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0E1500">IO</span>
+            Mon profil
+          </span>
+          <span onClick="{{ goSettings }}" style="cursor:pointer;height:100%;display:flex;align-items:center;border-bottom:2px solid {{ navSettingsBorder }};color:{{ navSettingsColor }};font-size:14px;font-weight:500">Paramètres</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: COLLECTION ============ -->
+    <sc-if value="{{ isCollectionScreen }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:{{ screenPadding }}">
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2">Ma collection</h1>
+        <p style="margin:6px 0 0;font-size:13px;color:#8C8B92">Ta bibliothèque, organisée par univers.</p>
+
+        <div style="display:flex;flex-direction:column;gap:30px;margin-top:24px">
+          <sc-for list="{{ sections }}" as="section" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:12px;padding-left:14px;border-left:3px solid {{ section.color }}">
+              <div onClick="{{ section.onOpen }}" style="cursor:pointer;display:flex;align-items:center;gap:8px">
+                <span style="width:7px;height:7px;border-radius:999px;background:{{ section.color }}"></span>
+                <h3 style="font:600 13px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2;text-transform:uppercase;letter-spacing:.04em">{{ section.label }} ({{ section.count }})</h3>
+                <div style="flex:1;height:1px;background:#1D1D21"></div>
+                <span style="font-size:12px;color:#8C8B92">Voir tout ›</span>
+              </div>
+              <div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:6px">
+                <sc-for list="{{ section.tiles }}" as="tile" hint-placeholder-count="4">
+                  <div onClick="{{ tile.onClick }}" style="flex:0 0 140px;display:flex;flex-direction:column;gap:8px;cursor:{{ tile.cursor }}">
+                    <div style="position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:{{ tile.gradient }}">
+                      <sc-if value="{{ tile.complete }}" hint-placeholder-val="{{ false }}">
+                        <span style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:999px;background:#B8FF3C;color:#0E1500;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1">✓</span>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ tile.showProgress }}" hint-placeholder-val="{{ false }}">
+                      <div style="height:3px;width:100%;background:#26262B;border-radius:999px;overflow:hidden;margin-top:-2px">
+                        <div style="height:100%;width:{{ tile.pct }}%;background:{{ tile.typeColor }};border-radius:999px"></div>
+                      </div>
+                    </sc-if>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <span style="font-size:14px;font-weight:600;color:#F5F4F2;line-height:1.3">{{ tile.title }}</span>
+                      <span style="font-size:12px;color:#8C8B92">{{ tile.subtitle }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: CATEGORY ============ -->
+    <sc-if value="{{ isCategoryScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }}">
+        <span onClick="{{ goCollection }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:#8C8B92;font-size:13px;margin-bottom:16px">‹ Retour à ma collection</span>
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0 0 20px;color:{{ categoryColor }}">{{ categoryLabel }}</h1>
+        <div style="display:grid;grid-template-columns:{{ categoryGridCols }};gap:{{ gridGap }}">
+          <sc-for list="{{ categoryTiles }}" as="tile" hint-placeholder-count="6">
+            <div onClick="{{ tile.onClick }}" style="display:flex;flex-direction:column;gap:8px;cursor:{{ tile.cursor }}">
+              <div style="position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:{{ tile.gradient }}">
+                <sc-if value="{{ tile.complete }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:999px;background:#B8FF3C;color:#0E1500;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1">✓</span>
+                </sc-if>
+              </div>
+              <sc-if value="{{ tile.showProgress }}" hint-placeholder-val="{{ false }}">
+                <div style="height:3px;width:100%;background:#26262B;border-radius:999px;overflow:hidden;margin-top:-2px">
+                  <div style="height:100%;width:{{ tile.pct }}%;background:{{ tile.typeColor }};border-radius:999px"></div>
+                </div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:14px;font-weight:600;color:#F5F4F2;line-height:1.3">{{ tile.title }}</span>
+                <span style="font-size:12px;color:#8C8B92">{{ tile.subtitle }}</span>
+                </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: DETAIL (FICHE MANGA) ============ -->
+    <sc-if value="{{ isDetailScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }}">
+        <span onClick="{{ goCollection }}" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:#8C8B92;font-size:13px;margin-bottom:16px">‹ Ma collection</span>
+
+        <div style="display:{{ heroDisplay }};grid-template-columns:{{ heroCols }};gap:{{ heroGap }};align-items:flex-start">
+          <div style="position:relative;aspect-ratio:2/3;width:{{ coverWidth }};flex-shrink:0;border-radius:16px;overflow:hidden;background:{{ entityGradient }}">
+            <image-slot id="hero-{{ entityIdForSlot }}" shape="rect" placeholder="Jaquette" style="position:absolute;inset:0"></image-slot>
+            <span style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:999px;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#F5F4F2;font-size:11px;z-index:1">✎</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;max-width:560px;min-width:0">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h1 style="font:700 26px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2">{{ entityTitle }}</h1>
+              <p style="margin:0;font-size:14px;color:#8C8B92">{{ entityAuthor }}</p>
+              <span style="width:fit-content;background:{{ entityTypeBg }};color:{{ entityTypeColor }};border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600">{{ entityTypeLabel }}</span>
+            </div>
+
+            <sc-if value="{{ isManga }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline">
+                  <p style="font:700 22px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2">{{ progressLabel }}</p>
+                  <span style="font-size:14px;font-weight:500;color:#8C8B92">{{ progressPctLabel }}</span>
+                </div>
+                <div style="margin-top:8px;height:8px;width:100%;background:#26262B;border-radius:999px;overflow:hidden">
+                  <div style="height:100%;width:{{ progressPct }}%;background:#B8FF3C;border-radius:999px"></div>
+                </div>
+              </div>
+
+              <sc-if value="{{ hasMultipleEditions }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ editionChips }}" as="ed" hint-placeholder-count="2">
+                    <div onClick="{{ ed.onClick }}" style="cursor:pointer;background:{{ ed.bg }};border-radius:12px;padding:8px 14px;display:flex;flex-direction:column;gap:2px;min-width:120px">
+                      <span style="font-size:13px;font-weight:600;color:{{ ed.color }}">{{ ed.label }}</span>
+                      <span style="font-size:12px;color:{{ ed.subColor }}">{{ ed.countLabel }} tomes</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ showSingleEditionLine }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:14px;color:#8C8B92">{{ editionLine }}</span>
+                </div>
+              </sc-if>
+            </sc-if>
+
+            <sc-if value="{{ isGame }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px;color:#8C8B92">{{ gameInfoLine }}</span>
+            </sc-if>
+
+            <sc-if value="{{ isBoardgame }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px;color:#8C8B92">{{ playersLine }}</span>
+            </sc-if>
+          </div>
+        </div>
+
+        <sc-if value="{{ isManga }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:40px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <h2 style="font:600 17px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2">Mes tomes</h2>
+              <sc-if value="{{ isLongSeries }}" hint-placeholder-val="{{ false }}">
+                <span onClick="{{ toggleShowAll }}" style="cursor:pointer;font-size:13px;color:#B8FF3C;text-decoration:underline">{{ toggleShowAllLabel }}</span>
+              </sc-if>
+            </div>
+            <div style="display:grid;grid-template-columns:{{ tomeGridCols }};gap:8px">
+              <sc-for list="{{ tomeTiles }}" as="t" hint-placeholder-count="6">
+                <div onClick="{{ t.onClick }}" style="position:relative;aspect-ratio:2/3;border-radius:8px;overflow:hidden;cursor:pointer;background:{{ t.bg }};border:{{ t.border }};box-shadow:{{ t.ring }}">
+                  <sc-if value="{{ t.showCover }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;inset:0;background:{{ t.gradient }};opacity:{{ t.coverOpacity }}"></div>
+                  </sc-if>
+                  <sc-if value="{{ t.owned }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:999px;background:#B8FF3C;color:#0E1500;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">✓</span>
+                  </sc-if>
+                  <sc-if value="{{ t.showBottomBar }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#F5F4F2;font-size:10px;text-align:center;padding:2px 0">+ {{ t.number }}</span>
+                  </sc-if>
+                  <sc-if value="{{ t.showVirtualLabel }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+                      <span style="font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#8C8B92">Tome {{ t.number }}</span>
+                      <span style="font-size:9px;color:#8C8B92">Manquant</span>
+                      <span style="color:#8C8B92;font-size:11px">+</span>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="margin-top:28px;border-top:1px solid #1D1D21;padding-top:16px;display:flex;flex-direction:column;gap:10px">
+          <h2 style="font:600 17px 'Space Grotesk',sans-serif;margin:0;color:#F5F4F2">À propos</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,max-content));gap:12px 36px">
+            <sc-for list="{{ aboutRows }}" as="row" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#8C8B92">{{ row.label }}</span><span style="font-size:14px;color:#F5F4F2">{{ row.value }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;align-items:center;gap:6px;color:#8C8B92;font-size:13px">⋯ Plus d'options ›</div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: RECHERCHER ============ -->
+    <sc-if value="{{ isSearchScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }}">
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0 0 16px;color:#F5F4F2">Rechercher</h1>
+        <input value="{{ searchInput }}" onChange="{{ setSearchQuery }}" placeholder="Titre, auteur..." style="width:100%;box-sizing:border-box;background:#1D1D21;border:none;border-radius:10px;padding:12px 14px;font-size:14px;color:#F5F4F2" />
+        <p style="margin:8px 0 0;font-size:12px;color:#8C8B92">Cherche parmi Jikan, MyAnimeList, IGDB, BoardGameGeek et Google Books.</p>
+
+        <sc-if value="{{ searchHasNoQuery }}" hint-placeholder-val="{{ true }}">
+          <p style="margin-top:32px;font-size:13px;color:#8C8B92">Tape un titre pour lancer la recherche.</p>
+        </sc-if>
+
+        <sc-if value="{{ searching }}" hint-placeholder-val="{{ false }}">
+          <p style="margin-top:32px;display:flex;align-items:center;gap:8px;font-size:13px;color:#8C8B92">
+            <span style="width:14px;height:14px;border-radius:999px;border:2px solid #26262B;border-top-color:#B8FF3C;animation:spin 0.7s linear infinite;display:inline-block"></span>
+            Recherche en cours...
+          </p>
+        </sc-if>
+
+        <sc-if value="{{ searchNoResults }}" hint-placeholder-val="{{ false }}">
+          <p style="margin-top:32px;font-size:13px;color:#8C8B92">Aucun résultat pour cette recherche.</p>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;max-width:560px">
+          <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;background:#1D1D21;border-radius:12px;padding:10px 12px">
+              <div style="width:44px;height:66px;border-radius:8px;flex-shrink:0;background:{{ r.gradient }}"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:14px;font-weight:600;color:#F5F4F2">{{ r.title }}</span>
+                <span style="font-size:12px;color:#8C8B92">{{ r.author }} · via {{ r.source }}</span>
+                <span style="width:fit-content;background:{{ r.typeBg }};color:{{ r.typeColor }};border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600">{{ r.typeLabel }}</span>
+              </div>
+              <sc-if value="{{ r.owned }}" hint-placeholder-val="{{ false }}">
+                <span style="flex-shrink:0;font-size:12px;color:#8C8B92">Déjà possédé</span>
+              </sc-if>
+              <sc-if value="{{ r.added }}" hint-placeholder-val="{{ false }}">
+                <span style="flex-shrink:0;font-size:12px;color:#B8FF3C;font-weight:600">Ajouté ✓</span>
+              </sc-if>
+              <sc-if value="{{ r.showAddBtn }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ r.onAdd }}" style="flex-shrink:0;cursor:pointer;background:#26262B;color:#8C8B92;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600">Ajouter</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: WISHLIST ============ -->
+    <sc-if value="{{ isWishlistScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }}">
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0 0 6px;color:#F5F4F2">Wishlist</h1>
+        <p style="margin:0 0 20px;font-size:13px;color:#8C8B92">Ce que tu veux ajouter à ta collection — pour l'ajouter, passe par Rechercher.</p>
+        <div style="display:grid;grid-template-columns:{{ wishlistGridCols }};gap:{{ gridGap }}">
+          <sc-for list="{{ wishlistTiles }}" as="w" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:{{ w.gradient }}">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:14px;font-weight:600;color:#F5F4F2;line-height:1.3">{{ w.title }}</span>
+                <span style="width:fit-content;background:{{ w.typeBg }};color:{{ w.typeColor }};border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600">{{ w.typeLabel }}</span>
+              </div>
+              <div onClick="{{ w.onRemove }}" style="cursor:pointer;text-align:center;background:#26262B;color:#8C8B92;border-radius:8px;padding:8px;font-size:12px;font-weight:600">Retirer de la wishlist</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: PROFIL ============ -->
+    <sc-if value="{{ isProfileScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }}">
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0 0 20px;color:#F5F4F2">Mon profil</h1>
+        <div style="display:grid;grid-template-columns:{{ profileGridCols }};gap:16px">
+          <sc-for list="{{ profileLinks }}" as="link" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:16px;background:#1D1D21;border-radius:16px;padding:20px">
+              <span style="flex-shrink:0;width:52px;height:52px;border-radius:14px;background:rgba(184,255,60,.14);color:#B8FF3C;display:flex;align-items:center;justify-content:center;font-size:24px">{{ link.icon }}</span>
+              <span style="flex:1">
+                <span style="display:block;font-size:16px;font-weight:600;color:#F5F4F2">{{ link.label }}</span>
+                <span style="display:block;font-size:13px;color:#8C8B92;margin-top:4px">{{ link.desc }}</span>
+              </span>
+              <span style="color:#8C8B92;font-size:18px">›</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ SCREEN: PARAMÈTRES ============ -->
+    <sc-if value="{{ isSettingsScreen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ screenPadding }};max-width:520px">
+        <h1 style="font:700 24px 'Space Grotesk',sans-serif;margin:0 0 20px;color:#F5F4F2">Paramètres</h1>
+        <div style="display:flex;align-items:center;gap:12px;background:#1D1D21;border-radius:12px;padding:12px">
+          <span style="flex:1">
+            <span style="display:block;font-size:14px;font-weight:600;color:#F5F4F2">Administration avancée</span>
+            <span style="display:block;font-size:12px;color:#8C8B92;margin-top:2px">Types de collection, import BGG, export brut des données</span>
+          </span>
+          <span style="color:#8C8B92;font-size:14px">›</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Mobile tab bar -->
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="height:60px;background:#1D1D21;border-top:1px solid #26262B;display:flex;align-items:stretch">
+        <div onClick="{{ goCollection }}" style="cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ navCollectionColor }};font-size:10px;font-weight:500">▦<span>Ma collection</span></div>
+        <div onClick="{{ goSearch }}" style="cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ navSearchColor }};font-size:10px;font-weight:500">⌕<span>Rechercher</span></div>
+        <div onClick="{{ goWishlist }}" style="cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ navWishlistColor }};font-size:10px;font-weight:500">☆<span>Wishlist</span></div>
+        <div onClick="{{ goProfile }}" style="cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ navProfileColor }};font-size:10px;font-weight:500">
+          <span style="width:20px;height:20px;border-radius:999px;background:linear-gradient(135deg,#B8FF3C,#4B6B10);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0E1500">IO</span>
+          <span>Profil</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ VOLUME PANEL (drawer desktop / bottom sheet mobile) ============ -->
+    <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+
+      <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closePanel }}" style="position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:40"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;z-index:50;max-height:78%;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;background:#1D1D21;box-shadow:0 -12px 30px rgba(0,0,0,.4)">
+          <div style="width:36px;height:4px;border-radius:99px;background:#26262B;margin:12px auto 0"></div>
+          <div style="display:flex;gap:12px;border-bottom:1px solid #26262B;padding:16px">
+            <div style="width:56px;height:84px;border-radius:8px;flex-shrink:0;background:{{ panelGradient }}"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;padding-top:2px">
+              <span style="font:700 16px 'Space Grotesk',sans-serif;color:#F5F4F2">Tome {{ panelTomeNumber }}</span>
+              <span style="font-size:12px;color:#8C8B92">{{ editionLabel }}</span>
+              <span style="width:fit-content;margin-top:3px;background:{{ panelStatusBg }};color:{{ panelStatusColor }};border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600">{{ panelStatusLabel }}</span>
+            </div>
+            <span onClick="{{ closePanel }}" style="cursor:pointer;color:#8C8B92;font-size:16px">×</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto">
+            <sc-if value="{{ panelOwned }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:13px;color:#F5F4F2;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">État</span><span>Neuf</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">Acquis le</span><span>16/08/2026</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">Prix payé</span><span>6,90 €</span></div>
+              </div>
+              <div style="margin-top:2px;font-size:11px;color:#8C8B92">··· Modifier ma copie · Marquer vendu · Prêter · Supprimer cet exemplaire</div>
+            </sc-if>
+            <sc-if value="{{ panelMissing }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <p style="margin:0;font-size:13px;font-weight:600;color:#F5F4F2">Ajouter à ma collection</p>
+                <div>
+                  <label style="font-size:12px;color:#8C8B92">État</label>
+                  <div style="display:flex;gap:6px;margin-top:6px">
+                    <span onClick="{{ setConditionNeuf }}" style="cursor:pointer;background:{{ condNeufBg }};color:{{ condNeufColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Neuf</span>
+                    <span onClick="{{ setConditionOccasion }}" style="cursor:pointer;background:{{ condOccBg }};color:{{ condOccColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Occasion</span>
+                    <span onClick="{{ setConditionAbime }}" style="cursor:pointer;background:{{ condAbiBg }};color:{{ condAbiColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Abîmé</span>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#8C8B92">Prix d'achat (optionnel)</label>
+                  <input value="{{ price }}" onChange="{{ setPrice }}" placeholder="€" style="margin-top:6px;width:100%;box-sizing:border-box;background:#26262B;border:none;border-radius:8px;padding:8px 10px;font-size:13px;color:#F5F4F2" />
+                </div>
+                <span onClick="{{ confirmAdd }}" style="cursor:pointer;margin-top:6px;background:#B8FF3C;color:#0E1500;text-align:center;border-radius:8px;padding:10px;font-size:13px;font-weight:600">Ajouter</span>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;right:0;top:56px;bottom:0;width:min(400px,90%);z-index:50;display:flex;flex-direction:column;overflow:hidden;background:#1D1D21;border-left:1px solid #26262B">
+          <div style="display:flex;gap:12px;border-bottom:1px solid #26262B;padding:16px">
+            <div style="width:56px;height:84px;border-radius:8px;flex-shrink:0;background:{{ panelGradient }}"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;padding-top:2px">
+              <span style="font:700 16px 'Space Grotesk',sans-serif;color:#F5F4F2">Tome {{ panelTomeNumber }}</span>
+              <span style="font-size:12px;color:#8C8B92">{{ editionLabel }}</span>
+              <span style="width:fit-content;margin-top:3px;background:{{ panelStatusBg }};color:{{ panelStatusColor }};border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600">{{ panelStatusLabel }}</span>
+            </div>
+            <span onClick="{{ closePanel }}" style="cursor:pointer;color:#8C8B92;font-size:16px">×</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto">
+            <sc-if value="{{ panelOwned }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:13px;color:#F5F4F2;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">État</span><span>Neuf</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">Acquis le</span><span>16/08/2026</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8C8B92">Prix payé</span><span>6,90 €</span></div>
+              </div>
+              <div style="margin-top:2px;font-size:11px;color:#8C8B92">··· Modifier ma copie · Marquer vendu · Prêter · Supprimer cet exemplaire</div>
+            </sc-if>
+            <sc-if value="{{ panelMissing }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <p style="margin:0;font-size:13px;font-weight:600;color:#F5F4F2">Ajouter à ma collection</p>
+                <div>
+                  <label style="font-size:12px;color:#8C8B92">État</label>
+                  <div style="display:flex;gap:6px;margin-top:6px">
+                    <span onClick="{{ setConditionNeuf }}" style="cursor:pointer;background:{{ condNeufBg }};color:{{ condNeufColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Neuf</span>
+                    <span onClick="{{ setConditionOccasion }}" style="cursor:pointer;background:{{ condOccBg }};color:{{ condOccColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Occasion</span>
+                    <span onClick="{{ setConditionAbime }}" style="cursor:pointer;background:{{ condAbiBg }};color:{{ condAbiColor }};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500">Abîmé</span>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#8C8B92">Prix d'achat (optionnel)</label>
+                  <input value="{{ price }}" onChange="{{ setPrice }}" placeholder="€" style="margin-top:6px;width:100%;box-sizing:border-box;background:#26262B;border:none;border-radius:8px;padding:8px 10px;font-size:13px;color:#F5F4F2" />
+                </div>
+                <span onClick="{{ confirmAdd }}" style="cursor:pointer;margin-top:6px;background:#B8FF3C;color:#0E1500;text-align:center;border-radius:8px;padding:10px;font-size:13px;font-weight:600">Ajouter</span>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ENTITIES = {
+  deathnote: {
+    kind: 'manga', title: 'Death Note', author: 'Takeshi Obata', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#8B7FFF,#3E3480)',
+    editions: [{ id: 'std', label: 'Black Edition', total: 6, owned: [1], catalogued: [2] }],
+    publisher: 'Kana', status: 'Terminée',
+  },
+  naruto: {
+    kind: 'manga', title: 'Naruto', author: 'Masashi Kishimoto', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FF6FA5,#8B3E5C)',
+    editions: [
+      { id: 'none', label: 'Non précisée', total: 20, owned: [1, 2, 3, 4, 5, 6, 7, 8, 17], catalogued: [9, 10] },
+      { id: 'perfect', label: 'Perfect Edition', total: 12, owned: [], catalogued: [] },
+    ],
+    publisher: 'Kana', status: 'En cours',
+  },
+  eldenring: {
+    kind: 'game', title: 'Elden Ring', author: 'FromSoftware', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#B8FF3C,#4B6B10)',
+    developer: 'FromSoftware', publisher: 'Bandai Namco', year: '2022', genre: 'Action-RPG',
+  },
+  witcher: {
+    kind: 'game', title: 'The Witcher 3', author: 'CD Projekt Red', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#3CDFFF,#1B6B80)',
+    developer: 'CD Projekt Red', publisher: 'CD Projekt', year: '2015', genre: 'RPG',
+  },
+  wonders: {
+    kind: 'boardgame', title: '7 Wonders', author: 'Antoine Bauza', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#FFA43C,#8A4E10)',
+    players: '3–7 joueurs', duration: '30 min', age: '10+', publisher: 'Repos Production', category: 'Jeu de cartes', year: '2010',
+  },
+}
+
+const GRID_ITEMS = [
+  { key: 'deathnote', title: 'Death Note', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#8B7FFF,#3E3480)', detail: true },
+  { key: 'eldenring', title: 'Elden Ring', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#B8FF3C,#4B6B10)', detail: true },
+  { key: 'wonders', title: '7 Wonders', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#FFA43C,#8A4E10)', detail: true },
+  { key: 'naruto', title: 'Naruto', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FF6FA5,#8B3E5C)', detail: true },
+  { key: 'witcher', title: 'The Witcher 3', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#3CDFFF,#1B6B80)', detail: true },
+  { key: 'catan', title: 'Catan', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#8B7FFF,#3E3480)', detail: false, subtitle: 'Klaus Teuber' },
+  { key: 'onepiece', title: 'One Piece', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FF5C5C,#801F1F)', detail: false, subtitle: '38/107 tomes' },
+  { key: 'montecristo', title: 'Le Comte de Monte-Cristo', type: 'livre', typeLabel: 'Livre', gradient: 'linear-gradient(135deg,#FF6FA5,#8B3E5C)', detail: false, subtitle: 'Alexandre Dumas' },
+  { key: 'hades', title: 'Hades', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#FF6FA5,#3E3480)', detail: false, subtitle: 'Supergiant Games' },
+  { key: 'zelda', title: 'Zelda: Tears of the Kingdom', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#B8FF3C,#1B6B80)', detail: false, subtitle: 'Nintendo' },
+  { key: 'terraforming', title: 'Terraforming Mars', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#FF5C5C,#4B6B10)', detail: false, subtitle: 'Jacob Fryxelius' },
+  { key: 'azul', title: 'Azul', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#3CDFFF,#8A4E10)', detail: false, subtitle: 'Michael Kiesling' },
+  { key: 'vagabond', title: 'Vagabond', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FFA43C,#3E3480)', detail: false, subtitle: '24/37 tomes' },
+  { key: 'berserk', title: 'Berserk', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#8B3E5C,#1B6B80)', detail: false, subtitle: '41/41 tomes' },
+  { key: 'dune', title: 'Dune', type: 'livre', typeLabel: 'Livre', gradient: 'linear-gradient(135deg,#FFA43C,#8B3E5C)', detail: false, subtitle: 'Frank Herbert' },
+  { key: '1984', title: '1984', type: 'livre', typeLabel: 'Livre', gradient: 'linear-gradient(135deg,#3CDFFF,#3E3480)', detail: false, subtitle: 'George Orwell' },
+  { key: 'chainsawman', title: 'Chainsaw Man', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FF5C5C,#3E3480)', detail: false, subtitle: '11/16 tomes' },
+  { key: 'jjk', title: 'Jujutsu Kaisen', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#8B7FFF,#801F1F)', detail: false, subtitle: '23/30 tomes' },
+  { key: 'spyxfamily', title: 'Spy x Family', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#3CDFFF,#4B6B10)', detail: false, subtitle: '10/13 tomes' },
+]
+
+const TYPE_LABELS = { manga: 'Mangas', jv: 'Jeux vidéo', jds: 'Jeux de société', livre: 'Livres' }
+
+const SEARCH_CANDIDATES = [
+  { key: 'vagabond2', title: 'Vagabond', author: 'Takehiko Inoue', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#FFA43C,#3E3480)', owned: true, source: 'Jikan' },
+  { key: 'onepunch', title: 'One Punch Man', author: 'ONE', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#3CDFFF,#801F1F)', owned: false, source: 'MyAnimeList' },
+  { key: 'hollowknight', title: 'Hollow Knight', author: 'Team Cherry', type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#8B7FFF,#1B6B80)', owned: false, source: 'IGDB' },
+  { key: 'wingspan', title: 'Wingspan', author: 'Elizabeth Hargrave', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#FF6FA5,#4B6B10)', owned: false, source: 'BoardGameGeek' },
+  { key: 'sillage', title: 'Sillage', author: 'Buchet & Morvan', type: 'livre', typeLabel: 'Livre', gradient: 'linear-gradient(135deg,#3CDFFF,#3E3480)', owned: false, source: 'Google Books' },
+]
+
+const WISHLIST_ITEMS = [
+  { key: 'vinland', title: 'Vinland Saga', type: 'manga', typeLabel: 'Manga', gradient: 'linear-gradient(135deg,#8B3E5C,#3E3480)' },
+  { key: 'gloomhaven', title: 'Gloomhaven', type: 'jds', typeLabel: 'Jeu de société', gradient: 'linear-gradient(135deg,#FF5C5C,#8A4E10)' },
+  { key: 'baldursgate', title: "Baldur's Gate 3", type: 'jv', typeLabel: 'Jeu vidéo', gradient: 'linear-gradient(135deg,#B8FF3C,#3E3480)' },
+]
+
+const PROFILE_LINKS = [
+  { label: 'Wishlist', desc: 'Ce que tu veux ajouter à ta collection', icon: '☆' },
+  { label: 'Statistiques', desc: "Vue d'ensemble de ta collection", icon: '▤' },
+  { label: "Suggestions d'achats", desc: 'Séries presque complètes, triées par tomes manquants', icon: '↗' },
+  { label: 'Prêts en cours', desc: 'À qui un manga ou un jeu a été prêté', icon: '⇄' },
+]
+// Palette déjà définie dans les tokens (accent/violet/pink) + un 4e ton chaud
+// tiré des dégradés existants pour les livres — jamais une couleur inventée.
+const TYPE_COLORS = { manga: '#B8FF3C', jv: '#8B7FFF', jds: '#FF6FA5', livre: '#FFA43C' }
+function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: 'collection',
+    viewport: 'desktop',
+    entityId: 'deathnote',
+    selectedTypeId: null,
+    grouped: true,
+    activeEditionId: {},
+    activeVolume: null,
+    condition: 'Neuf',
+    price: '',
+    added: {}, // "entityId:editionId" -> Set of volume numbers added this session
+    showAllTomes: false,
+    searchInput: '',
+    searchQuery: '',
+    searching: false,
+    searchAdded: {},
+    wishlistRemoved: {},
+  }
+
+  static PREVIEW_COUNT = 8
+  static LONG_THRESHOLD = 12
+
+  buildPreviewTiles(tiles) {
+    const firstTiles = tiles.slice(0, Component.PREVIEW_COUNT)
+    const seen = new Set(firstTiles.map((t) => t.number))
+    const extraOwned = tiles.filter((t) => t.owned && !seen.has(t.number))
+    return [...firstTiles, ...extraOwned].sort((a, b) => a.number - b.number)
+  }
+
+  addedKey(entityId, editionId) { return entityId + ':' + editionId }
+
+  ownedSetFor(entityId, edition) {
+    const key = this.addedKey(entityId, edition.id)
+    const extra = this.state.added[key] || []
+    return new Set([...edition.owned, ...extra])
+  }
+
+  currentEntity() { return ENTITIES[this.state.entityId] }
+  currentEdition() {
+    const entity = this.currentEntity()
+    if (entity.kind !== 'manga') return null
+    const chosen = this.state.activeEditionId[this.state.entityId]
+    return entity.editions.find((e) => e.id === chosen) || entity.editions[0]
+  }
+
+  buildTomeTiles(entityId, edition) {
+    const owned = this.ownedSetFor(entityId, edition)
+    const cataloguedSet = new Set(edition.catalogued)
+    const tiles = []
+    for (let n = 1; n <= edition.total; n++) {
+      const isOwned = owned.has(n)
+      const isCatalogued = cataloguedSet.has(n) && !isOwned
+      const isVirtual = !isOwned && !isCatalogued
+      tiles.push({
+        number: n,
+        owned: isOwned,
+        cataloguedMissing: isCatalogued,
+        virtualMissing: isVirtual,
+        showCover: isOwned || isCatalogued,
+        gradient: this.currentEntity().gradient,
+        coverOpacity: isOwned ? 1 : 0.5,
+        bg: isVirtual ? 'rgba(38,38,43,.3)' : '#26262B',
+        border: isVirtual ? '1px dashed #26262B' : 'none',
+        ring: this.state.activeVolume === n ? '0 0 0 2px #B8FF3C' : 'none',
+        showBottomBar: isCatalogued,
+        showVirtualLabel: isVirtual,
+        onClick: () => this.setState({ activeVolume: n }),
+      })
+    }
+    return tiles
+  }
+
+  // Simule le round-trip vers les catalogues externes (Jikan/IGDB/BGG/Google
+  // Books) - un debounce + un court "Recherche..." avant les résultats,
+  // jamais un filtrage instantané sur une liste locale.
+  handleSearchInput(value) {
+    this.setState({ searchInput: value, searching: value.trim() !== '' })
+    clearTimeout(this._searchTimer)
+    this._searchTimer = setTimeout(() => this.setState({ searchQuery: value, searching: false }), 500)
+  }
+
+  toggleAdd(entityId, editionId, volumeNumber) {
+    const key = this.addedKey(entityId, editionId)
+    const current = this.state.added[key] || []
+    if (current.includes(volumeNumber)) return
+    this.setState((s) => ({ added: { ...s.added, [key]: [...current, volumeNumber] } }))
+  }
+
+  renderVals() {
+    const isDesktop = this.state.viewport === 'desktop'
+    const isMobile = !isDesktop
+    const entity = this.currentEntity()
+    const isManga = entity.kind === 'manga'
+    const isGame = entity.kind === 'game'
+    const isBoardgame = entity.kind === 'boardgame'
+    const edition = isManga ? this.currentEdition() : null
+    const owned = isManga ? this.ownedSetFor(this.state.entityId, edition) : new Set()
+    const progressPct = isManga ? Math.round((owned.size / edition.total) * 100) : 0
+
+    const typeCounts = {}
+    for (const item of GRID_ITEMS) typeCounts[item.type] = (typeCounts[item.type] || 0) + 1
+    const totalCount = GRID_ITEMS.length
+
+    function subtitleFor(item, self) {
+      if (!item.detail) return item.subtitle
+      const e = ENTITIES[item.key]
+      if (e.kind !== 'manga') return e.author || e.developer || e.publisher || ''
+      const ed = e.editions[0]
+      const key = self.addedKey(item.key, ed.id)
+      const extra = self.state.added[key] || []
+      const ownedCount = new Set([...ed.owned, ...extra]).size
+      return `${ownedCount}/${ed.total} tomes`
+    }
+
+    // Inspiré de Mangacollec : petite barre de progression + badge "complet"
+    // sur la couverture pour un repérage rapide dans un mur de mangas dense -
+    // jamais de texte par-dessus l'image (règle IozyCore), juste une barre fine.
+    function pctFromSubtitle(subtitle) {
+      const m = subtitle.match(/(\d+)\/(\d+)/)
+      if (!m) return null
+      return Math.round((Number(m[1]) / Number(m[2])) * 100)
+    }
+
+    const buildTilesForItems = (items) =>
+      items.map((item) => {
+        const subtitle = subtitleFor(item, this)
+        const pct = item.type === 'manga' ? pctFromSubtitle(subtitle) : null
+        const color = TYPE_COLORS[item.type]
+        return {
+          key: item.key, title: item.title, typeLabel: item.typeLabel, gradient: item.gradient,
+          subtitle,
+          cursor: item.detail ? 'pointer' : 'default',
+          onClick: item.detail ? () => this.setState({ screen: 'detail', entityId: item.key, activeVolume: null, showAllTomes: false }) : () => {},
+          showProgress: pct !== null, pct: pct ?? 0, complete: pct === 100,
+          typeBg: hexToRgba(color, 0.16), typeColor: color,
+        }
+      })
+
+    // Une ligne horizontale par catégorie (jamais de filtre "Par série/Par
+    // tome" ici, ni de tri implicite sur les mangas) - ouvrir la ligne mène
+    // à la vue complète de cette catégorie (screen 'category').
+    const TYPE_ORDER = ['manga', 'jv', 'jds', 'livre']
+    const sections = TYPE_ORDER.map((t) => ({
+      label: TYPE_LABELS[t], typeId: t, count: GRID_ITEMS.filter((i) => i.type === t).length,
+      tiles: buildTilesForItems(GRID_ITEMS.filter((i) => i.type === t)),
+      onOpen: () => this.setState({ screen: 'category', categoryTypeId: t }),
+      color: TYPE_COLORS[t],
+    })).filter((s) => s.tiles.length > 0)
+
+    const categoryTypeId = this.state.categoryTypeId
+    const categoryTiles = categoryTypeId ? buildTilesForItems(GRID_ITEMS.filter((i) => i.type === categoryTypeId)) : []
+    const categoryIsManga = categoryTypeId === 'manga'
+
+    // Même règle que le badge "complet" sur les tuiles (pctFromSubtitle) -
+    // couvre aussi bien les mangas suivis en détail que les entrées statiques,
+    // pour que ce chiffre ne contredise jamais un badge visible à l'écran.
+    const completeSeriesCount = GRID_ITEMS.filter((item) => item.type === 'manga' && pctFromSubtitle(subtitleFor(item, this)) === 100).length
+    const sessionAdds = Object.values(this.state.added).reduce((sum, arr) => sum + arr.length, 0)
+
+    const activeTile = isManga ? this.buildTomeTiles(this.state.entityId, edition).find((t) => t.number === this.state.activeVolume) || null : null
+
+    // Chaque édition affiche son propre décompte (à la Mangacollec) - une
+    // Perfect Edition à 0/12 et une édition standard à 9/20 ne doivent
+    // jamais se cacher derrière un simple libellé.
+    const editionChips = isManga ? entity.editions.map((ed) => {
+      const edOwned = this.ownedSetFor(this.state.entityId, ed)
+      return {
+        id: ed.id, label: ed.label, countLabel: `${edOwned.size}/${ed.total}`,
+        active: ed.id === edition.id,
+        bg: ed.id === edition.id ? '#B8FF3C' : '#1D1D21',
+        color: ed.id === edition.id ? '#0E1500' : '#F5F4F2',
+        subColor: ed.id === edition.id ? '#0E1500' : '#8C8B92',
+        onClick: () => this.setState((s) => ({ activeEditionId: { ...s.activeEditionId, [s.entityId]: ed.id }, activeVolume: null, showAllTomes: false })),
+      }
+    }) : []
+
+    const allTomeTiles = isManga ? this.buildTomeTiles(this.state.entityId, edition) : []
+    const isLongSeries = allTomeTiles.length > Component.LONG_THRESHOLD
+    const visibleTomeTiles = this.state.showAllTomes || !isLongSeries ? allTomeTiles : this.buildPreviewTiles(allTomeTiles)
+
+    const searchQueryTrimmed = this.state.searchQuery.trim()
+    const searchResults = searchQueryTrimmed === ''
+      ? []
+      : SEARCH_CANDIDATES.filter((c) => c.title.toLowerCase().includes(searchQueryTrimmed.toLowerCase())).map((c) => ({
+          ...c,
+          added: !!this.state.searchAdded[c.key],
+          typeColor: TYPE_COLORS[c.type],
+          typeBg: hexToRgba(TYPE_COLORS[c.type], 0.16),
+          showAddBtn: !c.owned && !this.state.searchAdded[c.key],
+          onAdd: () => this.setState((s) => ({ searchAdded: { ...s.searchAdded, [c.key]: true } })),
+        }))
+    const searchHasNoQuery = this.state.searchInput.trim() === ''
+    const searchNoResults = !searchHasNoQuery && !this.state.searching && searchResults.length === 0
+
+    // Wishlist = consultation/suppression uniquement - tous les ajouts à la
+    // collection passent par Rechercher (voir le brief), jamais un bouton
+    // "Ajouter" ici.
+    const wishlistTiles = WISHLIST_ITEMS.filter((w) => !this.state.wishlistRemoved[w.key]).map((w) => ({
+      ...w,
+      typeColor: TYPE_COLORS[w.type],
+      typeBg: hexToRgba(TYPE_COLORS[w.type], 0.16),
+      onRemove: () => this.setState((s) => ({ wishlistRemoved: { ...s.wishlistRemoved, [w.key]: true } })),
+    }))
+
+    return {
+      isDesktop, isMobile,
+      isSearchScreen: this.state.screen === 'search',
+      isWishlistScreen: this.state.screen === 'wishlist',
+      isProfileScreen: this.state.screen === 'profile',
+      isSettingsScreen: this.state.screen === 'settings',
+      goSearch: () => this.setState({ screen: 'search' }),
+      goWishlist: () => this.setState({ screen: 'wishlist' }),
+      goProfile: () => this.setState({ screen: 'profile' }),
+      goSettings: () => this.setState({ screen: 'settings' }),
+      navSearchColor: this.state.screen === 'search' ? '#B8FF3C' : '#8C8B92',
+      navSearchBorder: this.state.screen === 'search' ? '#B8FF3C' : 'transparent',
+      navWishlistColor: this.state.screen === 'wishlist' ? '#B8FF3C' : '#8C8B92',
+      navWishlistBorder: this.state.screen === 'wishlist' ? '#B8FF3C' : 'transparent',
+      navProfileColor: this.state.screen === 'profile' ? '#B8FF3C' : '#8C8B92',
+      navProfileBorder: this.state.screen === 'profile' ? '#B8FF3C' : 'transparent',
+      navSettingsColor: this.state.screen === 'settings' ? '#B8FF3C' : '#8C8B92',
+      navSettingsBorder: this.state.screen === 'settings' ? '#B8FF3C' : 'transparent',
+      searchInput: this.state.searchInput,
+      setSearchQuery: (e) => this.handleSearchInput(e.target.value),
+      searching: this.state.searching,
+      searchHasNoQuery, searchNoResults,
+      searchResults,
+      wishlistTiles,
+      profileLinks: PROFILE_LINKS,
+      profileGridCols: isDesktop ? 'repeat(2,1fr)' : 'repeat(1,1fr)',
+      wishlistGridCols: isDesktop ? 'repeat(5,1fr)' : 'repeat(3,1fr)',
+      desktopBg: isDesktop ? '#B8FF3C' : '#26262B', desktopColor: isDesktop ? '#0E1500' : '#8C8B92',
+      mobileBg: isMobile ? '#B8FF3C' : '#26262B', mobileColor: isMobile ? '#0E1500' : '#8C8B92',
+      setDesktop: () => this.setState({ viewport: 'desktop' }),
+      setMobile: () => this.setState({ viewport: 'mobile' }),
+      frameWidth: isDesktop ? '1160px' : '390px',
+      frameRadius: isDesktop ? '14px' : '32px',
+      screenPadding: isDesktop ? '28px 32px 40px' : '18px 16px 24px',
+      isCollectionScreen: this.state.screen === 'collection',
+      isDetailScreen: this.state.screen === 'detail',
+      isCategoryScreen: this.state.screen === 'category',
+      goCollection: () => this.setState({ screen: 'collection', activeVolume: null }),
+      categoryLabel: categoryTypeId ? TYPE_LABELS[categoryTypeId] : '',
+      categoryColor: categoryTypeId ? TYPE_COLORS[categoryTypeId] : '#B8FF3C',
+      categoryTiles,
+      categoryGridCols: categoryIsManga ? (isDesktop ? 'repeat(7,1fr)' : 'repeat(4,1fr)') : (isDesktop ? 'repeat(5,1fr)' : 'repeat(3,1fr)'),
+      navCollectionBorder: this.state.screen === 'collection' || this.state.screen === 'category' ? '#B8FF3C' : 'transparent',
+      navCollectionColor: this.state.screen === 'collection' || this.state.screen === 'category' ? '#B8FF3C' : '#8C8B92',
+
+      completeSeriesCount, addedThisMonthCount: 6 + sessionAdds,
+      gridGap: isDesktop ? '20px' : '12px',
+      sections,
+
+      entityTitle: entity.title, entityAuthor: entity.author, entityGradient: entity.gradient, entityTypeLabel: entity.typeLabel,
+      entityIdForSlot: this.state.entityId, entityTypeBg: hexToRgba(TYPE_COLORS[entity.type], 0.16), entityTypeColor: TYPE_COLORS[entity.type],
+      coverWidth: isDesktop ? '200px' : '104px',
+      heroDisplay: isDesktop ? 'grid' : 'flex', heroCols: isDesktop ? '200px minmax(0,520px)' : 'none', heroGap: isDesktop ? '32px' : '14px',
+      isManga, isGame, isBoardgame,
+      progressLabel: isManga ? `${owned.size} / ${edition.total} tomes possédés` : '', progressPctLabel: progressPct + '%', progressPct,
+      hasMultipleEditions: isManga && entity.editions.length > 1, editionChips,
+      showSingleEditionLine: isManga && entity.editions.length === 1,
+      editionLine: isManga ? `${edition.label} · ${edition.total} tomes` : '',
+      tomeGridCols: isDesktop ? 'repeat(8,1fr)' : 'repeat(4,1fr)',
+      tomeTiles: visibleTomeTiles,
+      isLongSeries, totalTomeCount: allTomeTiles.length,
+      showAllTomes: this.state.showAllTomes,
+      toggleShowAllLabel: this.state.showAllTomes ? 'Réduire' : `Voir tout (${allTomeTiles.length})`,
+      toggleShowAll: () => this.setState((s) => ({ showAllTomes: !s.showAllTomes })),
+      playersLine: isBoardgame ? `${entity.players} · ${entity.duration} · ${entity.age}` : '',
+      gameInfoLine: isGame ? `${entity.publisher} · ${entity.year}` : '',
+      aboutRows: isManga
+        ? [{ label: 'Éditeur', value: entity.publisher }, { label: 'Statut', value: entity.status }, { label: 'Tomes', value: String(edition.total) }]
+        : isGame
+        ? [{ label: 'Développeur', value: entity.developer }, { label: 'Éditeur', value: entity.publisher }, { label: 'Année', value: entity.year }, { label: 'Genre', value: entity.genre }]
+        : [{ label: 'Éditeur', value: entity.publisher }, { label: 'Catégorie', value: entity.category }, { label: 'Année', value: entity.year }],
+
+      panelOpen: !!activeTile,
+      closePanel: () => this.setState({ activeVolume: null }),
+      panelTomeNumber: activeTile ? activeTile.number : '',
+      panelOwned: activeTile ? activeTile.owned : false,
+      panelMissing: activeTile ? !activeTile.owned : false,
+      panelStatusLabel: activeTile && activeTile.owned ? 'Possédé' : 'Manquant',
+      panelStatusBg: activeTile && activeTile.owned ? '#B8FF3C' : '#26262B',
+      panelStatusColor: activeTile && activeTile.owned ? '#0E1500' : '#8C8B92',
+      panelGradient: entity.gradient,
+      editionLabel: isManga ? edition.label : '',
+      condition: this.state.condition,
+      setConditionNeuf: () => this.setState({ condition: 'Neuf' }),
+      setConditionOccasion: () => this.setState({ condition: 'Occasion' }),
+      setConditionAbime: () => this.setState({ condition: 'Abîmé' }),
+      condNeufBg: this.state.condition === 'Neuf' ? '#B8FF3C' : '#26262B', condNeufColor: this.state.condition === 'Neuf' ? '#0E1500' : '#8C8B92',
+      condOccBg: this.state.condition === 'Occasion' ? '#B8FF3C' : '#26262B', condOccColor: this.state.condition === 'Occasion' ? '#0E1500' : '#8C8B92',
+      condAbiBg: this.state.condition === 'Abîmé' ? '#B8FF3C' : '#26262B', condAbiColor: this.state.condition === 'Abîmé' ? '#0E1500' : '#8C8B92',
+      price: this.state.price,
+      setPrice: (e) => this.setState({ price: e.target.value }),
+      confirmAdd: () => {
+        if (!activeTile || !isManga) return
+        this.toggleAdd(this.state.entityId, edition.id, activeTile.number)
+        this.setState({ price: '', condition: 'Neuf' })
+      },
+    }
+  }
+}
+
+</script>
+</body>
+</html>
