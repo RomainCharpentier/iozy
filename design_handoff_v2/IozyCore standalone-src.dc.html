@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#e8e2dc">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#e8e2dc"/>
+    <rect x="330" y="210" width="150" height="225" rx="12" fill="#bf5138"/>
+    <rect x="500" y="210" width="150" height="225" rx="12" fill="#4a5a9e"/>
+    <rect x="670" y="210" width="150" height="225" rx="12" fill="#3f7a63"/>
+    <rect x="330" y="480" width="490" height="16" rx="8" fill="#c9bdb4"/>
+    <rect x="330" y="524" width="300" height="16" rx="8" fill="#c9bdb4"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/modernist-3fb223f1-2dbd-4b89-b62a-8cca76d400cd/styles.css">
+<script src="_ds/modernist-3fb223f1-2dbd-4b89-b62a-8cca76d400cd/_ds_bundle.js"></script>
+<style>
+  body{margin:0;background:#e8e2dc;font-family:'Archivo',system-ui,sans-serif;color:#211c19;-webkit-font-smoothing:antialiased}
+  a{color:#bf5138}
+  a:hover{color:#8f3a26}
+  ::selection{background:rgba(191,81,56,.18)}
+  @keyframes shimmer{0%{opacity:.5}50%{opacity:.85}100%{opacity:.5}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+
+<div style="max-width:1300px;margin:0 auto;padding:30px 24px 70px;display:flex;flex-direction:column;gap:18px">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px">
+    <div>
+      <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8c7f77">Prototype interactif</div>
+      <div style="font:700 19px 'Archivo',sans-serif;letter-spacing:-.02em;margin-top:3px;color:#211c19">IozyCore — une seule collection vivante</div>
+    </div>
+    <div style="display:flex;gap:4px;background:#dcd4cd;padding:4px;border-radius:999px">
+      <span onClick="{{ setDesktop }}" style="cursor:pointer;padding:8px 16px;border-radius:999px;font:600 13px 'Archivo',sans-serif;background:{{ dBg }};color:{{ dColor }};box-shadow:{{ dShadow }};transition:all .18s ease">Desktop</span>
+      <span onClick="{{ setMobile }}" style="cursor:pointer;padding:8px 16px;border-radius:999px;font:600 13px 'Archivo',sans-serif;background:{{ mBg }};color:{{ mColor }};box-shadow:{{ mShadow }};transition:all .18s ease">Mobile</span>
+    </div>
+  </div>
+
+  <!-- ═════ APP ═════ -->
+  <div style="width:{{ frameW }};max-width:100%;height:{{ frameH }};margin:0 auto;background:#faf8f6;border-radius:{{ frameRadius }};overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 28px 70px rgba(33,28,25,.22)">
+
+    <!-- Nav desktop -->
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:26px;padding:16px 26px;background:rgba(250,248,246,.92);backdrop-filter:blur(8px);border-bottom:1px solid rgba(33,28,25,.07)">
+        <span onClick="{{ goHome }}" style="cursor:pointer;font:700 18px 'Archivo',sans-serif;letter-spacing:-.035em;color:#211c19">IozyCore</span>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3">
+            <span onClick="{{ n.onClick }}" style="cursor:pointer;padding:9px 16px;border-radius:999px;font:600 14px 'Archivo',sans-serif;background:{{ n.bg }};color:{{ n.color }};transition:all .18s ease" style-hover="background:rgba(33,28,25,.05)">{{ n.label }}</span>
+          </sc-for>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+          <span onClick="{{ goAdd }}" style="cursor:pointer;display:flex;align-items:center;gap:7px;padding:11px 20px;border-radius:12px;background:#bf5138;color:#fff;font:600 14px 'Archivo',sans-serif;box-shadow:0 6px 16px rgba(191,81,56,.28);transition:all .18s ease" style-hover="background:#a8442d;box-shadow:0 10px 22px rgba(191,81,56,.34);transform:translateY(-1px)">＋ Ajouter</span>
+          <span onClick="{{ goProfile }}" style="cursor:pointer;width:38px;height:38px;border-radius:999px;background:linear-gradient(140deg,#c9b7a8,#a08b7a);color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Archivo',sans-serif">IO</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Nav mobile (haut) -->
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
+        <span onClick="{{ goHome }}" style="cursor:pointer;font:700 18px 'Archivo',sans-serif;letter-spacing:-.035em">IozyCore</span>
+        <span onClick="{{ goProfile }}" style="cursor:pointer;width:36px;height:36px;border-radius:999px;background:linear-gradient(140deg,#c9b7a8,#a08b7a);color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px 'Archivo',sans-serif">IO</span>
+      </div>
+    </sc-if>
+
+    <div id="appScroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden">
+
+    <!-- ═════ MA COLLECTION ═════ -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:{{ pagePad }}">
+        <h1 style="margin:0;font-size:{{ h1 }};letter-spacing:-.04em;line-height:1.04">Ma collection</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:#8c7f77">{{ homeSummary }}</p>
+
+        <sc-if value="{{ showRecentRail }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:26px">
+          <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8c7f77;margin-bottom:12px">Dernières acquisitions</div>
+          <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px">
+            <sc-for list="{{ recent }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onOpen }}" style="cursor:pointer;flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(33,28,25,.06);transition:all .2s ease" style-hover="box-shadow:0 8px 20px rgba(33,28,25,.11);transform:translateY(-2px)">
+                <div style="width:30px;height:44px;border-radius:5px;background:{{ r.grad }};flex-shrink:0"></div>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font:600 13px 'Archivo',sans-serif;white-space:nowrap">{{ r.title }}</span>
+                  <span style="font-size:11px;color:#a5978e;white-space:nowrap">{{ r.when }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:34px;margin-top:34px">
+          <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="4">
+            <div>
+              <div onClick="{{ sec.onOpen }}" style="cursor:pointer;display:flex;align-items:center;gap:11px;margin-bottom:15px">
+                <span style="width:9px;height:9px;border-radius:999px;background:{{ sec.color }};flex-shrink:0"></span>
+                <h2 style="margin:0;font-size:{{ secTitle }};letter-spacing:-.03em">{{ sec.label }}</h2>
+                <span style="font-size:13px;color:#a5978e">{{ sec.count }}</span>
+                <span style="margin-left:auto;font:600 13px 'Archivo',sans-serif;color:{{ sec.color }};white-space:nowrap">Tout voir →</span>
+              </div>
+              <div style="display:flex;gap:{{ railGap }};overflow-x:auto;padding:4px 4px 12px">
+                <sc-for list="{{ sec.tiles }}" as="t" hint-placeholder-count="5">
+                  <div onClick="{{ t.onOpen }}" style="cursor:pointer;flex:0 0 {{ tileW }};display:flex;flex-direction:column;gap:10px;transition:transform .22s ease" style-hover="transform:translateY(-5px)">
+                    <div style="position:relative;aspect-ratio:2/3;border-radius:10px;background:{{ t.grad }};box-shadow:0 2px 6px rgba(33,28,25,.1);overflow:hidden;transition:box-shadow .22s ease" style-hover="box-shadow:0 14px 30px rgba(33,28,25,.2)">
+                      <div style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(0,0,0,.28))"></div>
+                      <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 11px;display:flex;flex-direction:column;gap:5px">
+                        <span style="font:700 14px 'Archivo',sans-serif;line-height:1.15;letter-spacing:-.02em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35)">{{ t.title }}</span>
+                        <sc-if value="{{ t.showProgress }}" hint-placeholder-val="{{ false }}">
+                          <div style="height:3px;border-radius:999px;background:rgba(255,255,255,.28)">
+                            <div style="height:100%;border-radius:999px;width:{{ t.pct }}%;background:#fff;transition:width .3s ease"></div>
+                          </div>
+                        </sc-if>
+                      </div>
+                      <sc-if value="{{ t.complete }}" hint-placeholder-val="{{ false }}">
+                        <span style="position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:999px;background:rgba(250,248,246,.94);color:#211c19;display:flex;align-items:center;justify-content:center;font:700 11px 'Archivo',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)">✓</span>
+                      </sc-if>
+                    </div>
+                    <span style="font-size:12px;color:#8c7f77;padding-left:2px">{{ t.meta }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ VUE CATÉGORIE ═════ -->
+    <sc-if value="{{ isCategory }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }}">
+        <span onClick="{{ goHome }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← Ma collection</span>
+        <div style="display:flex;align-items:center;gap:11px;margin-top:14px">
+          <span style="width:11px;height:11px;border-radius:999px;background:{{ catColor }}"></span>
+          <h1 style="margin:0;font-size:{{ h1 }};letter-spacing:-.04em">{{ catLabel }}</h1>
+          <span style="font-size:14px;color:#a5978e">{{ catCount }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap">
+          <sc-for list="{{ sortChips }}" as="c" hint-placeholder-count="3">
+            <span onClick="{{ c.onClick }}" style="cursor:pointer;padding:8px 15px;border-radius:999px;font:600 13px 'Archivo',sans-serif;background:{{ c.bg }};color:{{ c.color }};box-shadow:{{ c.shadow }};transition:all .18s ease">{{ c.label }}</span>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:{{ catCols }};gap:{{ gridGap }};margin-top:26px">
+          <sc-for list="{{ catTiles }}" as="t" hint-placeholder-count="8">
+            <div onClick="{{ t.onOpen }}" style="cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:transform .22s ease" style-hover="transform:translateY(-5px)">
+              <div style="position:relative;aspect-ratio:2/3;border-radius:10px;background:{{ t.grad }};box-shadow:0 2px 6px rgba(33,28,25,.1);overflow:hidden;transition:box-shadow .22s ease" style-hover="box-shadow:0 14px 30px rgba(33,28,25,.2)">
+                <div style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(0,0,0,.28))"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 11px;display:flex;flex-direction:column;gap:5px">
+                  <span style="font:700 14px 'Archivo',sans-serif;line-height:1.15;letter-spacing:-.02em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35)">{{ t.title }}</span>
+                  <sc-if value="{{ t.showProgress }}" hint-placeholder-val="{{ false }}">
+                    <div style="height:3px;border-radius:999px;background:rgba(255,255,255,.28)">
+                      <div style="height:100%;border-radius:999px;width:{{ t.pct }}%;background:#fff"></div>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ t.complete }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:999px;background:rgba(250,248,246,.94);color:#211c19;display:flex;align-items:center;justify-content:center;font:700 11px 'Archivo',sans-serif">✓</span>
+                </sc-if>
+              </div>
+              <span style="font-size:12px;color:#8c7f77;padding-left:2px">{{ t.meta }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ FICHE ═════ -->
+    <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="background:{{ heroGrad }};padding:{{ heroPad }}">
+          <span onClick="{{ back }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← {{ backLabel }}</span>
+          <div style="display:{{ heroDisplay }};grid-template-columns:{{ heroCols }};gap:{{ heroGap }};margin-top:18px;align-items:start">
+            <div style="position:relative;width:{{ coverW }};aspect-ratio:2/3;border-radius:14px;background:{{ eGrad }};box-shadow:0 22px 48px rgba(33,28,25,.28);flex-shrink:0;overflow:hidden">
+              <div style="position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.16),rgba(0,0,0,.3))"></div>
+              <div style="position:absolute;left:0;right:0;bottom:0;padding:18px">
+                <span style="font:700 {{ coverTitle }} 'Archivo',sans-serif;line-height:1.08;letter-spacing:-.03em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.4)">{{ eTitle }}</span>
+              </div>
+            </div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:16px">
+              <div>
+                <span style="display:inline-block;padding:5px 12px;border-radius:999px;background:{{ eTint }};color:{{ eColor }};font:600 11px 'Archivo',sans-serif;letter-spacing:.1em;text-transform:uppercase">{{ eTypeLabel }}</span>
+                <h1 style="margin:12px 0 0;font-size:{{ detailTitle }};letter-spacing:-.04em;line-height:1.05;text-wrap:pretty">{{ eTitle }}</h1>
+                <p style="margin:7px 0 0;font-size:15px;color:#8c7f77">{{ eAuthor }}</p>
+              </div>
+
+              <sc-if value="{{ isManga }}" hint-placeholder-val="{{ true }}">
+                <div style="background:rgba(255,255,255,.72);backdrop-filter:blur(6px);border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(33,28,25,.06)">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                    <span style="font:700 {{ progressSize }} 'Archivo',sans-serif;letter-spacing:-.03em">{{ progressLabel }}</span>
+                    <span style="font:700 15px 'Archivo',sans-serif;color:{{ eColor }}">{{ progressPctLabel }}</span>
+                  </div>
+                  <div style="margin-top:11px;height:7px;border-radius:999px;background:rgba(33,28,25,.1)">
+                    <div style="height:100%;border-radius:999px;width:{{ progressPct }}%;background:{{ eColor }};transition:width .35s ease"></div>
+                  </div>
+                  <sc-if value="{{ nextHint }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:12px;font-size:13px;color:#8c7f77">{{ nextHintText }}</div>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ multiEditions }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-wrap:wrap;gap:8px">
+                    <sc-for list="{{ editionChips }}" as="ed" hint-placeholder-count="2">
+                      <span onClick="{{ ed.onClick }}" style="cursor:pointer;display:flex;align-items:baseline;gap:8px;padding:9px 16px;border-radius:999px;background:{{ ed.bg }};color:{{ ed.color }};box-shadow:{{ ed.shadow }};font:600 13px 'Archivo',sans-serif;transition:all .18s ease">
+                        {{ ed.label }}<span style="font-size:12px;opacity:.72">{{ ed.count }}</span>
+                      </span>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </sc-if>
+
+              <div style="display:grid;grid-template-columns:{{ factCols }};gap:14px 26px">
+                <sc-for list="{{ facts }}" as="f" hint-placeholder-count="4">
+                  <div>
+                    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#a5978e">{{ f.label }}</div>
+                    <div style="font:600 14px 'Archivo',sans-serif;margin-top:3px">{{ f.value }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ isManga }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:{{ pagePad }}">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <h3 style="margin:0;font-size:{{ h3 }};letter-spacing:-.03em">Tomes</h3>
+              <div style="display:flex;align-items:center;gap:16px">
+                <span style="font-size:12px;color:#a5978e">{{ tomeLegend }}</span>
+                <sc-if value="{{ longSeries }}" hint-placeholder-val="{{ false }}">
+                  <span onClick="{{ toggleAll }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#bf5138">{{ toggleAllLabel }}</span>
+                </sc-if>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:{{ tomeCols }};gap:8px;margin-top:16px">
+              <sc-for list="{{ tomes }}" as="t" hint-placeholder-count="12">
+                <div onClick="{{ t.onClick }}" style="cursor:pointer;position:relative;aspect-ratio:2/3;border-radius:8px;background:{{ t.bg }};border:{{ t.border }};box-shadow:{{ t.shadow }};display:flex;align-items:center;justify-content:center;transition:all .2s ease" style-hover="transform:translateY(-3px)">
+                  <span style="font:700 14px 'Archivo',sans-serif;color:{{ t.numColor }}">{{ t.number }}</span>
+                  <sc-if value="{{ t.owned }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:999px;background:{{ eColor }}"></span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ═════ RADAR ═════ -->
+    <sc-if value="{{ isRadar }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }};max-width:780px">
+        <h1 style="margin:0;font-size:{{ h1 }};letter-spacing:-.04em">Radar</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:#8c7f77">Ce qui mérite ton attention, du plus actionnable au plus lointain.</p>
+        <div style="display:flex;flex-direction:column;gap:30px;margin-top:28px">
+          <sc-for list="{{ radarGroups }}" as="g" hint-placeholder-count="3">
+            <div>
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+                <span style="width:7px;height:7px;border-radius:999px;background:{{ g.color }}"></span>
+                <span style="font:600 11px 'Archivo',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8c7f77">{{ g.label }}</span>
+                <span style="font-size:12px;color:#c0b3aa">{{ g.count }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(33,28,25,.06);transition:all .2s ease" style-hover="box-shadow:0 10px 26px rgba(33,28,25,.1)">
+                    <div style="width:44px;height:64px;border-radius:7px;background:{{ i.grad }};flex-shrink:0;box-shadow:0 2px 6px rgba(33,28,25,.14)"></div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                      <span style="font:700 15px 'Archivo',sans-serif;letter-spacing:-.02em">{{ i.title }}</span>
+                      <span style="font-size:13px;color:#8c7f77">{{ i.unit }}</span>
+                      <span style="font-size:12px;color:{{ i.color }}">{{ i.reason }}</span>
+                    </div>
+                    <sc-if value="{{ i.hasPrice }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex-shrink:0;font:700 15px 'Archivo',sans-serif">{{ i.price }}</span>
+                    </sc-if>
+                    <span onClick="{{ i.onAction }}" style="cursor:pointer;flex-shrink:0;min-height:44px;display:flex;align-items:center;padding:0 18px;border-radius:12px;background:{{ i.actionBg }};color:{{ i.actionColor }};font:600 13px 'Archivo',sans-serif;transition:all .18s ease" style-hover="transform:translateY(-1px)">{{ i.actionLabel }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ AJOUTER ═════ -->
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }};max-width:720px">
+        <sc-if value="{{ addStep1 }}" hint-placeholder-val="{{ true }}">
+          <h1 style="margin:0;font-size:{{ h1 }};letter-spacing:-.04em">Ajouter</h1>
+          <p style="margin:8px 0 0;font-size:14px;color:#8c7f77">Pour une œuvre que IozyCore ne connaît pas encore. Un tome manquant s'ajoute directement depuis sa série.</p>
+
+          <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
+            <sc-for list="{{ addTypes }}" as="ty" hint-placeholder-count="4">
+              <span onClick="{{ ty.onClick }}" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:{{ ty.bg }};color:{{ ty.color }};box-shadow:{{ ty.shadow }};font:600 13px 'Archivo',sans-serif;transition:all .18s ease">
+                <span style="width:8px;height:8px;border-radius:999px;background:{{ ty.dot }}"></span>{{ ty.label }}
+              </span>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:18px;display:flex;align-items:center;gap:12px;background:{{ searchBg }};border-radius:16px;padding:4px 18px;box-shadow:{{ searchShadow }};transition:all .2s ease">
+            <span style="color:#a5978e;font-size:16px">⌕</span>
+            <input value="{{ searchInput }}" onChange="{{ onSearch }}" placeholder="{{ searchPlaceholder }}" style="flex:1;background:transparent;border:0;outline:none;padding:14px 0;font:400 15px 'Archivo',sans-serif;color:#211c19" />
+            <sc-if value="{{ searching }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:12px;color:#a5978e;white-space:nowrap">Recherche…</span>
+            </sc-if>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#a5978e">{{ sourceLine }}</div>
+
+          <sc-if value="{{ addIdle }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:26px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+              <div style="font:700 16px 'Archivo',sans-serif;letter-spacing:-.02em">Cherche un titre, un auteur, un studio</div>
+              <div style="margin-top:6px;font-size:14px;color:#8c7f77">Par exemple « {{ example }} ». IozyCore vérifie aussi ce que tu possèdes déjà pour éviter les doublons.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ searching }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:22px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ skeletons }}" as="s" hint-placeholder-count="3">
+                <div style="display:flex;gap:14px;background:#fff;border-radius:16px;padding:14px;animation:shimmer 1.3s ease-in-out infinite">
+                  <div style="width:44px;height:64px;border-radius:7px;background:#ece5df;flex-shrink:0"></div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:9px;padding-top:8px">
+                    <div style="height:12px;border-radius:999px;width:{{ s.w1 }};background:#ece5df"></div>
+                    <div style="height:10px;border-radius:999px;width:{{ s.w2 }};background:#f2ece7"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ addEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:26px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+              <div style="font:700 16px 'Archivo',sans-serif;letter-spacing:-.02em">Rien trouvé pour « {{ searchQuery }} »</div>
+              <div style="margin-top:6px;font-size:14px;color:#8c7f77">Le titre est peut-être référencé sous son nom original, ou dans un autre univers.</div>
+              <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+                <span onClick="{{ clearSearch }}" style="cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 18px;border-radius:12px;background:rgba(33,28,25,.06);font:600 13px 'Archivo',sans-serif">Effacer</span>
+                <span style="cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 18px;border-radius:12px;background:#bf5138;color:#fff;font:600 13px 'Archivo',sans-serif">Créer la fiche à la main</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:22px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+                  <div style="width:44px;height:64px;border-radius:7px;background:{{ r.grad }};flex-shrink:0;box-shadow:0 2px 6px rgba(33,28,25,.14)"></div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                    <span style="font:700 15px 'Archivo',sans-serif;letter-spacing:-.02em">{{ r.title }}</span>
+                    <span style="font-size:13px;color:#8c7f77">{{ r.detail }}</span>
+                    <span style="font-size:11px;color:#c0b3aa">{{ r.source }}</span>
+                  </div>
+                  <sc-if value="{{ r.knownNote }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex-shrink:0;max-width:150px;font-size:12px;color:{{ r.noteColor }};text-align:right">{{ r.note }}</span>
+                  </sc-if>
+                  <span onClick="{{ r.onAction }}" style="cursor:pointer;flex-shrink:0;min-height:44px;display:flex;align-items:center;padding:0 18px;border-radius:12px;background:{{ r.actionBg }};color:{{ r.actionColor }};font:600 13px 'Archivo',sans-serif;white-space:nowrap;transition:all .18s ease" style-hover="transform:translateY(-1px)">{{ r.actionLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <!-- Étape 2 : quels tomes possèdes-tu ? -->
+        <sc-if value="{{ addStep2 }}" hint-placeholder-val="{{ false }}">
+          <span onClick="{{ backToSearch }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← Recherche</span>
+          <h1 style="margin:14px 0 0;font-size:{{ h1 }};letter-spacing:-.04em">{{ draftTitle }}</h1>
+          <p style="margin:8px 0 0;font-size:14px;color:#8c7f77">Quels tomes possèdes-tu ? Sélectionne une plage plutôt qu'un par un.</p>
+
+          <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+            <sc-for list="{{ rangeShortcuts }}" as="rs" hint-placeholder-count="3">
+              <span onClick="{{ rs.onClick }}" style="cursor:pointer;padding:9px 16px;border-radius:999px;background:rgba(33,28,25,.06);font:600 13px 'Archivo',sans-serif;transition:all .18s ease" style-hover="background:rgba(33,28,25,.11)">{{ rs.label }}</span>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ patternHint }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:16px;display:flex;align-items:center;gap:14px;background:{{ eTint }};border-radius:14px;padding:14px 16px">
+              <span style="flex:1;font-size:13px;color:#211c19">{{ patternText }}</span>
+              <span onClick="{{ acceptPattern }}" style="cursor:pointer;min-height:40px;display:flex;align-items:center;padding:0 16px;border-radius:10px;background:#bf5138;color:#fff;font:600 13px 'Archivo',sans-serif">Sélectionner</span>
+            </div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:{{ draftCols }};gap:7px;margin-top:20px">
+            <sc-for list="{{ draftTomes }}" as="d" hint-placeholder-count="12">
+              <div onClick="{{ d.onClick }}" style="cursor:pointer;aspect-ratio:1;border-radius:9px;background:{{ d.bg }};color:{{ d.color }};display:flex;align-items:center;justify-content:center;font:600 13px 'Archivo',sans-serif;box-shadow:{{ d.shadow }};transition:all .16s ease">{{ d.n }}</div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;margin-top:24px;flex-wrap:wrap">
+            <span onClick="{{ confirmDraft }}" style="cursor:pointer;min-height:48px;display:flex;align-items:center;padding:0 22px;border-radius:14px;background:#bf5138;color:#fff;font:600 15px 'Archivo',sans-serif;box-shadow:0 8px 20px rgba(191,81,56,.3)">{{ confirmDraftLabel }}</span>
+            <span style="font-size:13px;color:#8c7f77">Tu pourras compléter plus tard depuis la fiche.</span>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ═════ PROFIL ═════ -->
+    <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }}">
+        <h1 style="margin:0;font-size:{{ h1 }};letter-spacing:-.04em">Mon profil</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:#8c7f77">{{ profileSummary }}</p>
+        <div style="display:grid;grid-template-columns:{{ profileCols }};gap:16px;margin-top:26px">
+          <sc-for list="{{ profileCards }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.onClick }}" style="cursor:pointer;background:#fff;border-radius:20px;padding:24px;box-shadow:0 1px 3px rgba(33,28,25,.06);display:flex;flex-direction:column;gap:12px;min-height:160px;transition:all .22s ease" style-hover="box-shadow:0 14px 34px rgba(33,28,25,.12);transform:translateY(-3px)">
+              <span style="width:46px;height:46px;border-radius:14px;background:{{ p.tint }};color:{{ p.color }};display:flex;align-items:center;justify-content:center;font-size:20px">{{ p.glyph }}</span>
+              <span style="font:700 18px 'Archivo',sans-serif;letter-spacing:-.02em;margin-top:auto">{{ p.label }}</span>
+              <span style="font-size:13px;color:#8c7f77">{{ p.desc }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ STATISTIQUES ═════ -->
+    <sc-if value="{{ isStats }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }};max-width:780px">
+        <span onClick="{{ goProfile }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← Mon profil</span>
+        <h1 style="margin:14px 0 0;font-size:{{ h1 }};letter-spacing:-.04em">Statistiques</h1>
+        <div style="display:grid;grid-template-columns:{{ statCols }};gap:14px;margin-top:24px">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+              <div style="font:700 34px 'Archivo',sans-serif;letter-spacing:-.04em;line-height:1;color:{{ s.color }}">{{ s.value }}</div>
+              <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#a5978e;margin-top:8px">{{ s.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:30px;background:#fff;border-radius:20px;padding:22px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+          <h3 style="margin:0 0 16px;font-size:18px;letter-spacing:-.02em">Répartition</h3>
+          <div style="display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px">
+            <sc-for list="{{ distribution }}" as="d" hint-placeholder-count="4">
+              <div style="width:{{ d.pct }}%;background:{{ d.color }}"></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:16px">
+            <sc-for list="{{ distribution }}" as="d" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="width:9px;height:9px;border-radius:999px;background:{{ d.color }}"></span>
+                <span style="font-size:13px">{{ d.label }}</span>
+                <span style="font:600 13px 'Archivo',sans-serif;color:#a5978e">{{ d.count }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="margin-top:22px;background:#fff;border-radius:20px;padding:22px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+          <h3 style="margin:0 0 14px;font-size:18px;letter-spacing:-.02em">Séries en cours</h3>
+          <sc-for list="{{ seriesProgress }}" as="sp" hint-placeholder-count="4">
+            <div onClick="{{ sp.onOpen }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:10px 0">
+              <span style="flex:0 0 140px;font-size:14px">{{ sp.title }}</span>
+              <div style="flex:1;height:6px;border-radius:999px;background:rgba(33,28,25,.09)">
+                <div style="height:100%;border-radius:999px;width:{{ sp.pct }}%;background:{{ sp.color }}"></div>
+              </div>
+              <span style="flex:0 0 66px;text-align:right;font:600 12px 'Archivo',sans-serif;color:#a5978e">{{ sp.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ PRÊTS ═════ -->
+    <sc-if value="{{ isLoans }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }};max-width:660px">
+        <span onClick="{{ goProfile }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← Mon profil</span>
+        <h1 style="margin:14px 0 0;font-size:{{ h1 }};letter-spacing:-.04em">Prêts en cours</h1>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+          <sc-for list="{{ loans }}" as="l" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+              <div style="width:40px;height:58px;border-radius:7px;background:{{ l.grad }};flex-shrink:0"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 15px 'Archivo',sans-serif;letter-spacing:-.02em">{{ l.item }}</span>
+                <span style="font-size:13px;color:#8c7f77">Chez {{ l.to }} · depuis le {{ l.since }}</span>
+              </div>
+              <span onClick="{{ l.onReturn }}" style="cursor:pointer;flex-shrink:0;min-height:44px;display:flex;align-items:center;padding:0 18px;border-radius:12px;background:rgba(33,28,25,.06);font:600 13px 'Archivo',sans-serif">Rendu</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ PARAMÈTRES ═════ -->
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:{{ pagePad }};max-width:660px">
+        <span onClick="{{ goProfile }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#8c7f77">← Mon profil</span>
+        <h1 style="margin:14px 0 0;font-size:{{ h1 }};letter-spacing:-.04em">Paramètres</h1>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-top:22px;background:#fff;border-radius:20px;padding:8px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+          <sc-for list="{{ settingsRows }}" as="s" hint-placeholder-count="4">
+            <div style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;transition:background .18s ease" style-hover="background:rgba(33,28,25,.04)">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font:600 15px 'Archivo',sans-serif">{{ s.label }}</span>
+                <span style="font-size:13px;color:#8c7f77">{{ s.desc }}</span>
+              </div>
+              <span style="color:#c0b3aa;font-size:15px">›</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    </div>
+
+    <!-- Nav mobile (bas) -->
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:10px 14px 14px;background:rgba(250,248,246,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(33,28,25,.07)">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3">
+          <div onClick="{{ n.onClick }}" style="cursor:pointer;flex:1;min-height:50px;border-radius:14px;background:{{ n.bg }};color:{{ n.color }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .18s ease">
+            <span style="font-size:15px">{{ n.glyph }}</span>
+            <span style="font:600 10px 'Archivo',sans-serif;letter-spacing:.03em">{{ n.label }}</span>
+          </div>
+        </sc-for>
+        <div onClick="{{ goAdd }}" style="cursor:pointer;flex:0 0 62px;min-height:50px;border-radius:16px;background:#bf5138;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 8px 20px rgba(191,81,56,.34)">＋</div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ PANNEAU CONTEXTUEL TOME ═════ -->
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(33,28,25,.4);backdrop-filter:blur(2px);z-index:40"></div>
+      <div style="position:absolute;{{ sheetAnchor }};z-index:50;background:#faf8f6;border-radius:{{ sheetRadius }};box-shadow:0 -12px 50px rgba(33,28,25,.28);display:flex;flex-direction:column;max-height:{{ sheetMaxH }};overflow:hidden;animation:riseIn .22s ease">
+        <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+          <div style="width:40px;height:4px;border-radius:999px;background:rgba(33,28,25,.18);margin:12px auto 0"></div>
+        </sc-if>
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:20px 20px 16px">
+          <div style="width:50px;height:74px;border-radius:8px;background:{{ eGrad }};flex-shrink:0;box-shadow:0 3px 10px rgba(33,28,25,.18)"></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <span style="font-size:12px;color:#8c7f77">{{ eTitle }} · {{ sheetEdition }}</span>
+            <span style="font:700 21px 'Archivo',sans-serif;letter-spacing:-.03em">Tome {{ sheetNumber }}</span>
+            <span style="display:inline-block;width:fit-content;margin-top:3px;padding:3px 10px;border-radius:999px;background:{{ sheetStatusTint }};color:{{ sheetStatusColor }};font:600 11px 'Archivo',sans-serif">{{ sheetStatus }}</span>
+          </div>
+          <span onClick="{{ closeSheet }}" style="cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#8c7f77;flex-shrink:0" style-hover="background:rgba(33,28,25,.06)">×</span>
+        </div>
+        <div style="padding:0 20px 22px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+          <sc-for list="{{ sheetActions }}" as="a" hint-placeholder-count="4">
+            <div onClick="{{ a.onClick }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;min-height:52px;padding:0 18px;border-radius:14px;background:{{ a.bg }};color:{{ a.color }};font:600 15px 'Archivo',sans-serif;box-shadow:{{ a.shadow }};transition:all .18s ease" style-hover="transform:translateY(-1px)">
+              <span style="font-size:16px;opacity:.9">{{ a.glyph }}</span>{{ a.label }}
+            </div>
+          </sc-for>
+          <sc-if value="{{ sheetHasFacts }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:8px;background:#fff;border-radius:14px;padding:6px 16px;box-shadow:0 1px 3px rgba(33,28,25,.06)">
+              <sc-for list="{{ sheetFacts }}" as="f" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:11px 0">
+                  <span style="font-size:13px;color:#8c7f77">{{ f.label }}</span>
+                  <span style="font:600 13px 'Archivo',sans-serif">{{ f.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═════ TOAST ANNULABLE ═════ -->
+    <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:{{ toastBottom }};z-index:60;display:flex;align-items:center;gap:16px;background:#211c19;color:#faf8f6;border-radius:14px;padding:13px 16px 13px 18px;box-shadow:0 14px 36px rgba(33,28,25,.34);animation:riseIn .2s ease;max-width:92%">
+        <span style="font-size:13px">{{ toastText }}</span>
+        <span onClick="{{ undo }}" style="cursor:pointer;font:600 13px 'Archivo',sans-serif;color:#f0a58e;white-space:nowrap">Annuler</span>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1300, &quot;height&quot;: 900}, &quot;showRecentRail&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Collection&quot;}}">
+// Couleurs d'univers douces : accents et teintes, jamais de grands aplats.
+const UNIVERSE = {
+  manga: { label: 'Mangas', singular: 'Manga', color: '#bf5138', tint: 'rgba(191,81,56,.10)', source: 'Jikan / MyAnimeList' },
+  jv: { label: 'Jeux vidéo', singular: 'Jeu vidéo', color: '#4a5a9e', tint: 'rgba(74,90,158,.10)', source: 'IGDB' },
+  jds: { label: 'Jeux de société', singular: 'Jeu de société', color: '#3f7a63', tint: 'rgba(63,122,99,.10)', source: 'BoardGameGeek' },
+  livre: { label: 'Livres', singular: 'Livre', color: '#a0762f', tint: 'rgba(160,118,47,.10)', source: 'Google Books' },
+}
+const ORDER = ['manga', 'jv', 'jds', 'livre']
+const range = (n) => Array.from({ length: n }, (_, i) => i + 1)
+const G = (a, b) => 'linear-gradient(150deg,' + a + ',' + b + ')'
+
+const ENTITIES = {
+  onepiece: { kind: 'manga', type: 'manga', title: 'One Piece', author: 'Eiichiro Oda', updated: 18, grad: G('#c2492f', '#5e1f14'),
+    editions: [{ id: 'std', label: 'Édition originale', total: 107, owned: range(38), catalogued: [39, 40, 41] }],
+    facts: [['Éditeur', 'Glénat'], ['Statut', 'En cours'], ['Depuis', '1997']] },
+  naruto: { kind: 'manga', type: 'manga', title: 'Naruto', author: 'Masashi Kishimoto', updated: 15, grad: G('#d1762f', '#6b2a12'),
+    editions: [
+      { id: 'std', label: 'Édition classique', total: 72, owned: range(27), catalogued: [28, 29] },
+      { id: 'hokage', label: 'Hokage Edition', total: 27, owned: [1, 2, 3], catalogued: [4] }],
+    facts: [['Éditeur', 'Kana'], ['Statut', 'Terminée'], ['Depuis', '2000']] },
+  fma: { kind: 'manga', type: 'manga', title: 'Fullmetal Alchemist', author: 'Hiromu Arakawa', updated: 20, grad: G('#8a6a3a', '#33251a'),
+    editions: [
+      { id: 'perfect', label: 'Perfect Edition', total: 18, owned: range(8), catalogued: [9, 10] },
+      { id: 'std', label: 'Édition classique', total: 27, owned: [], catalogued: [] }],
+    facts: [['Éditeur', 'Kurokawa'], ['Statut', 'Terminée'], ['Depuis', '2001']] },
+  berserk: { kind: 'manga', type: 'manga', title: 'Berserk', author: 'Kentaro Miura', updated: 9, grad: G('#5c4a52', '#1d1518'),
+    editions: [{ id: 'std', label: 'Édition Glénat', total: 41, owned: range(41), catalogued: [] }],
+    facts: [['Éditeur', 'Glénat'], ['Statut', 'Interrompue'], ['Depuis', '1990']] },
+  deathnote: { kind: 'manga', type: 'manga', title: 'Death Note', author: 'Tsugumi Ohba', updated: 14, grad: G('#4a4658', '#16151c'),
+    editions: [
+      { id: 'black', label: 'Black Edition', total: 6, owned: range(6), catalogued: [] },
+      { id: 'std', label: 'Édition simple', total: 12, owned: [], catalogued: [] }],
+    facts: [['Éditeur', 'Kana'], ['Statut', 'Terminée'], ['Depuis', '2004']] },
+  vagabond: { kind: 'manga', type: 'manga', title: 'Vagabond', author: 'Takehiko Inoue', updated: 11, grad: G('#a08256', '#3d2f1e'),
+    editions: [{ id: 'std', label: 'Édition Tonkam', total: 37, owned: range(24), catalogued: [25] }],
+    facts: [['Éditeur', 'Tonkam'], ['Statut', 'Interrompue'], ['Depuis', '1998']] },
+  chainsawman: { kind: 'manga', type: 'manga', title: 'Chainsaw Man', author: 'Tatsuki Fujimoto', updated: 17, grad: G('#c4453c', '#4d1512'),
+    editions: [{ id: 'std', label: 'Édition Kazé', total: 16, owned: range(14), catalogued: [15, 16] }],
+    facts: [['Éditeur', 'Kazé'], ['Statut', 'En cours'], ['Depuis', '2019']] },
+  jjk: { kind: 'manga', type: 'manga', title: 'Jujutsu Kaisen', author: 'Gege Akutami', updated: 16, grad: G('#5b6a8c', '#1c2231'),
+    editions: [{ id: 'std', label: 'Édition Ki-oon', total: 30, owned: range(28), catalogued: [29, 30] }],
+    facts: [['Éditeur', 'Ki-oon'], ['Statut', 'Terminée'], ['Depuis', '2018']] },
+  spyxfamily: { kind: 'manga', type: 'manga', title: 'Spy x Family', author: 'Tatsuya Endo', updated: 12, grad: G('#3f7a72', '#152b28'),
+    editions: [{ id: 'std', label: 'Édition Kurokawa', total: 13, owned: range(12), catalogued: [13] }],
+    facts: [['Éditeur', 'Kurokawa'], ['Statut', 'En cours'], ['Depuis', '2019']] },
+  punpun: { kind: 'manga', type: 'manga', title: 'Bonne nuit Punpun', author: 'Inio Asano', updated: 6, grad: G('#8c8f96', '#2c2e33'),
+    editions: [{ id: 'std', label: 'Édition Kana', total: 13, owned: range(13), catalogued: [] }],
+    facts: [['Éditeur', 'Kana'], ['Statut', 'Terminée'], ['Depuis', '2007']] },
+
+  eldenring: { kind: 'game', type: 'jv', title: 'Elden Ring', author: 'FromSoftware', updated: 19, grad: G('#a08a4a', '#2f2717'),
+    facts: [['Éditeur', 'Bandai Namco'], ['Année', '2022'], ['Plateforme', 'PS5'], ['Genre', 'Action-RPG']] },
+  witcher: { kind: 'game', type: 'jv', title: 'The Witcher 3', author: 'CD Projekt Red', updated: 7, grad: G('#4a6b7c', '#182530'),
+    facts: [['Éditeur', 'CD Projekt'], ['Année', '2015'], ['Plateforme', 'PC'], ['Genre', 'RPG']] },
+  hades: { kind: 'game', type: 'jv', title: 'Hades', author: 'Supergiant Games', updated: 13, grad: G('#c05a4a', '#43171b'),
+    facts: [['Éditeur', 'Supergiant'], ['Année', '2020'], ['Plateforme', 'Switch'], ['Genre', 'Roguelite']] },
+  zelda: { kind: 'game', type: 'jv', title: 'Zelda — Tears of the Kingdom', author: 'Nintendo EPD', updated: 10, grad: G('#5c8a6a', '#1e2f24'),
+    facts: [['Éditeur', 'Nintendo'], ['Année', '2023'], ['Plateforme', 'Switch'], ['Genre', 'Aventure']] },
+
+  wonders: { kind: 'boardgame', type: 'jds', title: '7 Wonders', author: 'Antoine Bauza', updated: 8, grad: G('#c39a4e', '#4a3418'),
+    facts: [['Joueurs', '3 à 7'], ['Durée', '30 min'], ['Âge', '10+'], ['Éditeur', 'Repos Production'], ['Année', '2010']] },
+  catan: { kind: 'boardgame', type: 'jds', title: 'Catan', author: 'Klaus Teuber', updated: 4, grad: G('#9c7448', '#3a2a19'),
+    facts: [['Joueurs', '3 à 4'], ['Durée', '75 min'], ['Âge', '10+'], ['Éditeur', 'Kosmos'], ['Année', '1995']] },
+  azul: { kind: 'boardgame', type: 'jds', title: 'Azul', author: 'Michael Kiesling', updated: 5, grad: G('#4a7c9c', '#182c3a'),
+    facts: [['Joueurs', '2 à 4'], ['Durée', '35 min'], ['Âge', '8+'], ['Éditeur', 'Plan B Games'], ['Année', '2017']] },
+  terraforming: { kind: 'boardgame', type: 'jds', title: 'Terraforming Mars', author: 'Jacob Fryxelius', updated: 3, grad: G('#b05a3c', '#3d1c12'),
+    facts: [['Joueurs', '1 à 5'], ['Durée', '120 min'], ['Âge', '12+'], ['Éditeur', 'FryxGames'], ['Année', '2016']] },
+
+  dune: { kind: 'book', type: 'livre', title: 'Dune', author: 'Frank Herbert', updated: 2, grad: G('#c19a52', '#4a3418'),
+    facts: [['Édition', 'Pocket — Le Cycle de Dune'], ['Année', '1965'], ['Pages', '832']] },
+  orwell: { kind: 'book', type: 'livre', title: '1984', author: 'George Orwell', updated: 1, grad: G('#7c6a5c', '#2a2320'),
+    facts: [['Édition', 'Folio SF'], ['Année', '1949'], ['Pages', '438']] },
+  montecristo: { kind: 'book', type: 'livre', title: 'Le Comte de Monte-Cristo', author: 'Alexandre Dumas', updated: 0, grad: G('#8c5a4a', '#301c16'),
+    facts: [['Édition', 'Folio classique'], ['Année', '1844'], ['Pages', '1 400']] },
+}
+
+// La recherche connaît la collection : une série déjà là s'ouvre, une édition
+// absente s'ajoute à la série existante — jamais un doublon.
+const CANDIDATES = {
+  manga: [
+    { key: 'vinland', title: 'Vinland Saga', detail: 'Makoto Yukimura · 2005 · 28 tomes', total: 28 },
+    { key: 'monster', title: 'Monster', detail: 'Naoki Urasawa · 1994 · 18 tomes', total: 18 },
+    { key: 'fma', title: 'Fullmetal Alchemist', detail: 'Hiromu Arakawa · 2001 · Perfect Edition, Édition classique', existing: 'fma' },
+    { key: 'deathnote-simple', title: 'Death Note — Édition simple', detail: 'Tsugumi Ohba · 12 tomes', existingSeries: 'deathnote', missingEdition: true },
+  ],
+  jv: [
+    { key: 'hollow', title: 'Hollow Knight', detail: 'Team Cherry · 2017 · Metroidvania' },
+    { key: 'silksong', title: 'Hollow Knight: Silksong', detail: 'Team Cherry · 2025 · Metroidvania' },
+    { key: 'hades', title: 'Hades', detail: 'Supergiant Games · 2020 · Roguelite', existing: 'hades' },
+  ],
+  jds: [
+    { key: 'wingspan', title: 'Wingspan', detail: 'Elizabeth Hargrave · 2019 · 1 à 5 joueurs' },
+    { key: 'gloomhaven', title: 'Gloomhaven', detail: 'Isaac Childres · 2017 · 1 à 4 joueurs' },
+    { key: 'azul', title: 'Azul', detail: 'Michael Kiesling · 2017', existing: 'azul' },
+  ],
+  livre: [
+    { key: 'messie', title: 'Le Messie de Dune', detail: 'Frank Herbert · 1969 · 352 pages', total: 1 },
+    { key: 'sillage', title: 'Sillage', detail: 'Morvan & Buchet · 1998 · Série BD', total: 24 },
+  ],
+}
+
+// Une envie porte sur une unité précise ; si elle cible un tome, la marquer
+// possédée retire l'envie automatiquement (avec feedback annulable).
+const WISHES = [
+  { key: 'op39', title: 'One Piece', unit: 'Tome 39 — Édition originale', type: 'manga', price: '7,20 €', entity: 'onepiece', edition: 'std', tome: 39 },
+  { key: 'gloom', title: 'Gloomhaven', unit: 'Extension — Forgotten Circles', type: 'jds', price: '19,90 €' },
+  { key: 'silksong', title: 'Hollow Knight: Silksong', unit: 'Édition physique Switch', type: 'jv', price: '39,99 €' },
+]
+
+const RELEASES = [
+  { key: 'wingspanoc', title: 'Wingspan', unit: 'Extension — Océanie', type: 'jds', date: '2026-09-20', price: '24,90 €' },
+  { key: 'op108', title: 'One Piece', unit: 'Tome 108', type: 'manga', date: '2026-11-14', price: '7,20 €', entity: 'onepiece' },
+  { key: 'csm17', title: 'Chainsaw Man', unit: 'Tome 17', type: 'manga', date: '2027-01-22', price: '7,50 €', entity: 'chainsawman' },
+]
+
+const LOANS_INIT = [
+  { key: 'l1', item: 'Berserk — Tomes 1 à 3', to: 'Julien', since: '12 mars 2026', type: 'manga', entity: 'berserk' },
+  { key: 'l2', item: '7 Wonders', to: 'Camille', since: '2 août 2026', type: 'jds', entity: 'wonders' },
+]
+
+const SETTINGS_ROWS = [
+  { label: 'Univers de collection', desc: 'Activer, renommer et réordonner les univers' },
+  { label: 'Import BoardGameGeek', desc: 'Récupérer une collection existante depuis un compte BGG' },
+  { label: 'Sources de métadonnées', desc: 'Langue des titres et source par univers' },
+  { label: 'Export des données', desc: 'Télécharger toute la collection en CSV ou JSON' },
+]
+
+class Component extends DCLogic {
+  state = {
+    screen: 'home', viewport: 'desktop',
+    entityId: 'fma', from: 'home', catType: 'manga', sort: 'updated', scrollMemo: 0,
+    editionChoice: {}, added: {}, sold: {}, sheetTome: null, showAll: false,
+    addStep: 1, addType: 'manga', searchInput: '', searchQuery: '', searching: false,
+    draft: null, draftSelected: [], addedWorks: {},
+    wishRemoved: {}, wishAdded: {}, loansReturned: {},
+    toast: null,
+  }
+  static LONG = 24
+
+  u(type) { return UNIVERSE[type] }
+  key(id, ed) { return id + ':' + ed }
+  ownedSet(id, ed) {
+    const extra = this.state.added[this.key(id, ed.id)] || []
+    const gone = this.state.sold[this.key(id, ed.id)] || []
+    return new Set([...ed.owned, ...extra].filter((n) => !gone.includes(n)))
+  }
+  entity() { return ENTITIES[this.state.entityId] }
+  // Édition active = la plus avancée EN %, jamais un compte brut : une édition
+  // double a moins de tomes pour le même contenu.
+  edition(id) {
+    const e = ENTITIES[id]
+    if (!e || e.kind !== 'manga') return null
+    const chosen = this.state.editionChoice[id]
+    if (chosen) return e.editions.find((x) => x.id === chosen) || e.editions[0]
+    const pct = (ed) => this.ownedSet(id, ed).size / ed.total
+    return e.editions.reduce((b, ed) => (pct(ed) > pct(b) ? ed : b), e.editions[0])
+  }
+  progress(id) {
+    const ed = this.edition(id)
+    const owned = this.ownedSet(id, ed).size
+    return { ed, owned, total: ed.total, missing: ed.total - owned, pct: Math.round((owned / ed.total) * 100) }
+  }
+  nextMissing(id) {
+    const ed = this.edition(id)
+    const owned = this.ownedSet(id, ed)
+    for (let n = 1; n <= ed.total; n++) if (!owned.has(n)) return n
+    return null
+  }
+
+  scroller() { return document.getElementById('appScroll') }
+  open(id, from) {
+    const sc = this.scroller()
+    this.setState({ screen: 'detail', entityId: id, from, sheetTome: null, showAll: false, scrollMemo: sc ? sc.scrollTop : 0 })
+    requestAnimationFrame(() => { const s = this.scroller(); if (s) s.scrollTop = 0 })
+  }
+  // Retour : on restaure la position ET le tri, jamais un écran réinitialisé.
+  back() {
+    const to = this.state.from
+    const y = this.state.scrollMemo
+    this.setState({ screen: to, sheetTome: null })
+    requestAnimationFrame(() => { const s = this.scroller(); if (s) s.scrollTop = y })
+  }
+  toast(text, undo) {
+    clearTimeout(this._toast)
+    this.setState({ toast: { text, undo } })
+    this._toast = setTimeout(() => this.setState({ toast: null }), 6000)
+  }
+
+  // Une action → toutes les conséquences : progression, complétion, envies,
+  // radar et stats se recalculent sans que l'utilisateur y touche.
+  markOwned(id, edId, n) {
+    const k = this.key(id, edId)
+    const before = { added: this.state.added[k] || [], wishRemoved: { ...this.state.wishRemoved } }
+    const wish = WISHES.find((w) => w.entity === id && w.tome === n && !this.state.wishRemoved[w.key])
+    this.setState((s) => ({
+      added: { ...s.added, [k]: [...(s.added[k] || []), n] },
+      wishRemoved: wish ? { ...s.wishRemoved, [wish.key]: true } : s.wishRemoved,
+      sheetTome: null,
+    }))
+    this.toast(wish ? 'Tome ' + n + ' possédé — envie retirée' : 'Tome ' + n + ' marqué comme possédé', () => {
+      this.setState((s) => ({ added: { ...s.added, [k]: before.added }, wishRemoved: before.wishRemoved, toast: null }))
+    })
+  }
+  markSold(id, edId, n) {
+    const k = this.key(id, edId)
+    const before = this.state.sold[k] || []
+    this.setState((s) => ({ sold: { ...s.sold, [k]: [...before, n] }, sheetTome: null }))
+    this.toast('Tome ' + n + ' marqué comme revendu', () => this.setState((s) => ({ sold: { ...s.sold, [k]: before }, toast: null })))
+  }
+  addWish(id, edId, n) {
+    const wk = id + ':' + n
+    this.setState((s) => ({ wishAdded: { ...s.wishAdded, [wk]: { entity: id, edition: edId, tome: n } }, sheetTome: null }))
+    this.toast('Tome ' + n + ' ajouté à tes envies', () => this.setState((s) => {
+      const w = { ...s.wishAdded }; delete w[wk]; return { wishAdded: w, toast: null }
+    }))
+  }
+  onSearch(v) {
+    this.setState({ searchInput: v, searching: v.trim() !== '' })
+    clearTimeout(this._s)
+    this._s = setTimeout(() => this.setState({ searchQuery: v, searching: false }), 520)
+  }
+  toggleDraft(n) {
+    this.setState((s) => ({ draftSelected: s.draftSelected.includes(n) ? s.draftSelected.filter((x) => x !== n) : [...s.draftSelected, n].sort((a, b) => a - b) }))
+  }
+
+  renderVals() {
+    const isDesktop = this.state.viewport === 'desktop'
+    const isMobile = !isDesktop
+    const keys = Object.keys(ENTITIES)
+    const soft = (on) => (on ? '0 4px 12px rgba(33,28,25,.12)' : 'none')
+
+    const tile = (id, from) => {
+      const e = ENTITIES[id]
+      const base = { key: id, title: e.title, grad: e.grad, updated: e.updated, sortName: e.title, onOpen: () => this.open(id, from) }
+      if (e.kind === 'manga') {
+        const p = this.progress(id)
+        return { ...base, showProgress: true, pct: p.pct, complete: p.missing === 0, meta: p.owned + ' / ' + p.total + ' tomes', sortPct: p.pct }
+      }
+      const factOf = (l) => (e.facts.find((f) => f[0] === l) || [null, ''])[1]
+      const meta = { game: factOf('Plateforme') + ' · ' + factOf('Année'), boardgame: factOf('Joueurs') + ' joueurs · ' + factOf('Durée'), book: factOf('Année') + ' · ' + factOf('Pages') + ' p.' }[e.kind]
+      return { ...base, showProgress: false, pct: 0, complete: false, meta: meta || e.author, sortPct: -1 }
+    }
+    const SORT = { updated: (a, b) => b.updated - a.updated, alpha: (a, b) => a.sortName.localeCompare(b.sortName, 'fr'), progress: (a, b) => b.sortPct - a.sortPct }
+
+    const sections = ORDER.map((t) => {
+      const ids = keys.filter((k) => ENTITIES[k].type === t)
+      return { label: this.u(t).label, color: this.u(t).color, count: ids.length + (ids.length > 1 ? ' titres' : ' titre'),
+        tiles: ids.map((id) => tile(id, 'home')).sort(SORT.updated),
+        onOpen: () => { this.setState({ screen: 'category', catType: t, sort: 'updated', scrollMemo: 0 }); requestAnimationFrame(() => { const s = this.scroller(); if (s) s.scrollTop = 0 }) } }
+    })
+
+    const catIds = keys.filter((k) => ENTITIES[k].type === this.state.catType)
+    const catIsManga = this.state.catType === 'manga'
+    const sortIds = catIsManga ? ['updated', 'alpha', 'progress'] : ['updated', 'alpha']
+    const sortLabels = { updated: 'Mise à jour', alpha: 'A → Z', progress: 'Progression' }
+
+    const e = this.entity()
+    const isManga = e.kind === 'manga'
+    const uni = this.u(e.type)
+    const p = isManga ? this.progress(this.state.entityId) : null
+
+    let tomes = []
+    if (isManga) {
+      const owned = this.ownedSet(this.state.entityId, p.ed)
+      const cat = new Set(p.ed.catalogued)
+      const all = range(p.ed.total).map((n) => {
+        const isOwned = owned.has(n)
+        const isCat = cat.has(n) && !isOwned
+        return { number: n, owned: isOwned, catalogued: isCat,
+          bg: isOwned ? '#fff' : (isCat ? 'rgba(33,28,25,.05)' : 'transparent'),
+          border: isOwned ? '0' : (isCat ? '1px solid rgba(33,28,25,.10)' : '1px dashed rgba(33,28,25,.18)'),
+          shadow: isOwned ? '0 2px 6px rgba(33,28,25,.09)' : 'none',
+          numColor: isOwned ? '#211c19' : (isCat ? '#8c7f77' : '#c0b3aa'),
+          onClick: () => this.setState({ sheetTome: n }) }
+      })
+      const long = all.length > Component.LONG
+      tomes = this.state.showAll || !long ? all : all.slice(0, Component.LONG)
+    }
+    const sheetN = this.state.sheetTome
+    const sheetOwned = isManga && sheetN ? this.ownedSet(this.state.entityId, p.ed).has(sheetN) : false
+
+    const cands = CANDIDATES[this.state.addType] || []
+    const q = this.state.searchQuery.trim().toLowerCase()
+    const results = q === '' ? [] : cands.filter((c) => c.title.toLowerCase().includes(q)).map((c) => {
+      const grad = c.existing ? ENTITIES[c.existing].grad : (c.existingSeries ? ENTITIES[c.existingSeries].grad : G('#b9aca3', '#6d635b'))
+      if (c.existing) {
+        return { ...c, grad, source: 'via ' + this.u(this.state.addType).source, knownNote: true, note: 'Déjà dans ta collection', noteColor: '#8c7f77',
+          actionLabel: 'Ouvrir', actionBg: 'rgba(33,28,25,.06)', actionColor: '#211c19', onAction: () => this.open(c.existing, 'add') }
+      }
+      if (c.missingEdition) {
+        return { ...c, grad, source: 'via ' + this.u(this.state.addType).source, knownNote: true, note: 'Série déjà là, édition absente', noteColor: uni.color,
+          actionLabel: 'Ajouter cette édition', actionBg: '#bf5138', actionColor: '#fff',
+          onAction: () => { this.open(c.existingSeries, 'add'); this.toast('Édition simple ajoutée à Death Note', () => this.setState({ toast: null })) } }
+      }
+      return { ...c, grad, source: 'via ' + this.u(this.state.addType).source, knownNote: false, note: '',
+        actionLabel: 'Ajouter', actionBg: '#bf5138', actionColor: '#fff',
+        onAction: () => this.setState({ addStep: 2, draft: { title: c.title, total: c.total || 1, type: this.state.addType }, draftSelected: [] }) }
+    })
+    const idle = this.state.searchInput.trim() === ''
+
+    // Radar : un seul flux, trié par actionnabilité.
+    const wishes = WISHES.filter((w) => !this.state.wishRemoved[w.key])
+    const extraWishes = Object.entries(this.state.wishAdded).map(([k, v]) => ({
+      key: k, title: ENTITIES[v.entity].title, unit: 'Tome ' + v.tome, type: ENTITIES[v.entity].type, price: '—', entity: v.entity, edition: v.edition, tome: v.tome }))
+    const nowItems = [...wishes, ...extraWishes].map((w) => ({
+      key: w.key, title: w.title, unit: w.unit, price: w.price, hasPrice: w.price !== '—',
+      grad: w.entity ? ENTITIES[w.entity].grad : G('#b9aca3', '#6d635b'),
+      color: this.u(w.type).color, reason: 'Dans tes envies',
+      actionLabel: w.tome ? 'Je l’ai acheté' : 'Acheter', actionBg: '#bf5138', actionColor: '#fff',
+      onAction: w.tome ? () => this.markOwned(w.entity, w.edition, w.tome) : () => this.setState((s) => ({ wishRemoved: { ...s.wishRemoved, [w.key]: true } })),
+    }))
+    // Prochain tome logique : déjà paru (catalogué) mais pas encore possédé.
+    const nextTomes = keys.filter((k) => ENTITIES[k].kind === 'manga').map((k) => {
+      const pr = this.progress(k)
+      const n = this.nextMissing(k)
+      if (n === null || !pr.ed.catalogued.includes(n)) return null
+      return { key: k + n, title: ENTITIES[k].title, unit: 'Tome ' + n + ' — ' + pr.ed.label, grad: ENTITIES[k].grad,
+        color: this.u('manga').color, reason: 'Prochain tome, déjà paru', hasPrice: false, price: '',
+        actionLabel: 'Je l’ai acheté', actionBg: '#bf5138', actionColor: '#fff', onAction: () => this.markOwned(k, pr.ed.id, n) }
+    }).filter(Boolean)
+
+    const MONTHS = ['janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+    const today = new Date('2026-08-16T00:00:00')
+    const soonItems = RELEASES.filter((r) => !this.state.wishRemoved[r.key]).sort((a, b) => a.date.localeCompare(b.date)).map((r) => {
+      const d = new Date(r.date + 'T00:00:00')
+      const days = Math.round((d - today) / 86400000)
+      return { key: r.key, title: r.title, unit: r.unit, grad: r.entity ? ENTITIES[r.entity].grad : G('#b9aca3', '#6d635b'),
+        color: this.u(r.type).color, reason: (days > 45 ? 'Dans ' + Math.round(days / 30) + ' mois' : 'Dans ' + days + ' jours') + ' · ' + d.getDate() + ' ' + MONTHS[d.getMonth()],
+        hasPrice: true, price: r.price, actionLabel: 'Me prévenir', actionBg: 'rgba(33,28,25,.06)', actionColor: '#211c19',
+        onAction: () => this.toast('Tu seras prévenu à la sortie de ' + r.unit, () => this.setState({ toast: null })) }
+    })
+    const almostItems = keys.filter((k) => ENTITIES[k].kind === 'manga').map((k) => {
+      const pr = this.progress(k)
+      return { key: k, missing: pr.missing, title: ENTITIES[k].title,
+        unit: pr.missing + (pr.missing > 1 ? ' tomes manquants' : ' tome manquant') + ' — ' + pr.ed.label,
+        grad: ENTITIES[k].grad, color: this.u('manga').color, reason: 'Il te manque peu pour finir', hasPrice: false, price: '',
+        actionLabel: 'Ouvrir', actionBg: 'rgba(33,28,25,.06)', actionColor: '#211c19', onAction: () => this.open(k, 'radar') }
+    }).filter((i) => i.missing > 0 && i.missing <= 3).sort((a, b) => a.missing - b.missing)
+
+    const radarGroups = [
+      { label: 'Disponible maintenant', color: '#bf5138', items: [...nowItems, ...nextTomes] },
+      { label: 'Bientôt', color: '#4a5a9e', items: soonItems },
+      { label: 'À compléter', color: '#3f7a63', items: almostItems },
+    ].filter((g) => g.items.length > 0).map((g) => ({ ...g, count: g.items.length }))
+
+    const mangaKeys = keys.filter((k) => ENTITIES[k].kind === 'manga')
+    const ownedTomes = mangaKeys.reduce((n, k) => n + this.progress(k).owned, 0)
+    const knownTomes = mangaKeys.reduce((n, k) => n + this.progress(k).total, 0)
+    const complete = mangaKeys.filter((k) => this.progress(k).missing === 0).length
+    const loans = LOANS_INIT.filter((l) => !this.state.loansReturned[l.key])
+
+    const draft = this.state.draft
+    const sel = this.state.draftSelected
+    // Détection de motif : 1,2,3,4 sélectionnés → proposer la plage complète.
+    let patternText = ''
+    if (draft && sel.length >= 3) {
+      const consecutive = sel.every((n, i) => i === 0 || n === sel[i - 1] + 1)
+      const last = sel[sel.length - 1]
+      if (consecutive && sel[0] === 1 && last < draft.total) patternText = 'Tu sembles posséder les tomes 1 à ' + last + '. Continuer jusqu’au dernier paru ?'
+    }
+
+    const navItems = [
+      { label: 'Collection', glyph: '▤', screens: ['home', 'category', 'detail'], go: () => this.setState({ screen: 'home', sheetTome: null }) },
+      { label: 'Radar', glyph: '◎', screens: ['radar'], go: () => this.setState({ screen: 'radar', sheetTome: null }) },
+      { label: 'Profil', glyph: '☺', screens: ['profile', 'stats', 'loans', 'settings'], go: () => this.setState({ screen: 'profile', sheetTome: null }) },
+    ].map((n) => {
+      const on = n.screens.includes(this.state.screen)
+      return { label: n.label, glyph: n.glyph, bg: on ? 'rgba(191,81,56,.10)' : 'transparent', color: on ? '#bf5138' : '#8c7f77', onClick: n.go }
+    })
+
+    return {
+      isDesktop, isMobile,
+      setDesktop: () => this.setState({ viewport: 'desktop' }), setMobile: () => this.setState({ viewport: 'mobile' }),
+      dBg: isDesktop ? '#faf8f6' : 'transparent', dColor: isDesktop ? '#211c19' : '#8c7f77', dShadow: soft(isDesktop),
+      mBg: isMobile ? '#faf8f6' : 'transparent', mColor: isMobile ? '#211c19' : '#8c7f77', mShadow: soft(isMobile),
+      frameW: isDesktop ? '1200px' : '390px', frameRadius: isDesktop ? '20px' : '30px',
+      frameH: isDesktop ? '780px' : '800px',
+      pagePad: isDesktop ? '32px 30px 46px' : '18px 16px 26px',
+      heroPad: isDesktop ? '28px 30px 34px' : '16px 16px 24px',
+      h1: isDesktop ? '38px' : '27px', h3: isDesktop ? '22px' : '19px', secTitle: isDesktop ? '23px' : '19px',
+      detailTitle: isDesktop ? '40px' : '26px', progressSize: isDesktop ? '21px' : '18px', coverTitle: isDesktop ? '21px' : '15px',
+      coverW: isDesktop ? '260px' : '132px',
+      heroDisplay: isDesktop ? 'grid' : 'flex', heroCols: isDesktop ? '260px minmax(0,1fr)' : 'none', heroGap: isDesktop ? '36px' : '16px',
+      tileW: isDesktop ? '152px' : '124px', railGap: isDesktop ? '16px' : '12px', gridGap: isDesktop ? '20px' : '13px',
+      catCols: catIsManga ? (isDesktop ? 'repeat(6,1fr)' : 'repeat(3,1fr)') : (isDesktop ? 'repeat(5,1fr)' : 'repeat(2,1fr)'),
+      tomeCols: isDesktop ? 'repeat(12,1fr)' : 'repeat(6,1fr)',
+      draftCols: isDesktop ? 'repeat(10,1fr)' : 'repeat(6,1fr)',
+      factCols: isDesktop ? 'repeat(3,minmax(0,1fr))' : 'repeat(2,minmax(0,1fr))',
+      profileCols: isDesktop ? 'repeat(3,1fr)' : '1fr',
+      statCols: isDesktop ? 'repeat(4,1fr)' : 'repeat(2,1fr)',
+      navItems,
+
+      isHome: this.state.screen === 'home', isCategory: this.state.screen === 'category', isDetail: this.state.screen === 'detail',
+      isRadar: this.state.screen === 'radar', isAdd: this.state.screen === 'add', isProfile: this.state.screen === 'profile',
+      isStats: this.state.screen === 'stats', isLoans: this.state.screen === 'loans', isSettings: this.state.screen === 'settings',
+      goHome: () => this.setState({ screen: 'home', sheetTome: null }),
+      goAdd: () => this.setState({ screen: 'add', addStep: 1, sheetTome: null }),
+      goProfile: () => this.setState({ screen: 'profile', sheetTome: null }),
+      back: () => this.back(),
+      backLabel: { home: 'Ma collection', category: this.u(this.state.catType).label, radar: 'Radar', add: 'Ajouter' }[this.state.from] || 'Ma collection',
+
+      homeSummary: keys.length + ' titres · ' + ownedTomes + ' tomes · ' + complete + ' séries complètes',
+      showRecentRail: this.props.showRecentRail !== false,
+      recent: keys.slice().sort((a, b) => ENTITIES[b].updated - ENTITIES[a].updated).slice(0, 6).map((k) => ({
+        title: ENTITIES[k].title, grad: ENTITIES[k].grad, when: ['il y a 2 jours', 'il y a 5 jours', 'la semaine dernière', 'il y a 2 semaines', 'ce mois-ci', 'ce mois-ci'][keys.indexOf(k) % 6],
+        onOpen: () => this.open(k, 'home') })),
+      sections,
+
+      catLabel: this.u(this.state.catType).label, catColor: this.u(this.state.catType).color,
+      catCount: catIds.length + (catIds.length > 1 ? ' titres' : ' titre'),
+      catTiles: catIds.map((id) => tile(id, 'category')).sort(SORT[this.state.sort]),
+      sortChips: sortIds.map((id) => ({ label: sortLabels[id],
+        bg: this.state.sort === id ? '#fff' : 'rgba(33,28,25,.05)', color: this.state.sort === id ? '#211c19' : '#8c7f77',
+        shadow: soft(this.state.sort === id), onClick: () => this.setState({ sort: id }) })),
+
+      eTitle: e.title, eAuthor: e.author, eGrad: e.grad, eColor: uni.color, eTint: uni.tint, eTypeLabel: uni.singular,
+      heroGrad: 'linear-gradient(180deg,' + uni.tint + ',rgba(250,248,246,0) 78%)',
+      isManga, facts: e.facts.map(([label, value]) => ({ label, value })),
+      progressLabel: isManga ? p.owned + ' tomes sur ' + p.total : '',
+      progressPct: isManga ? p.pct : 0, progressPctLabel: isManga ? p.pct + '%' : '',
+      nextHint: isManga && p.missing > 0 && p.missing <= 3,
+      nextHintText: isManga && p.missing > 0 ? 'Il te manque ' + p.missing + (p.missing > 1 ? ' tomes' : ' tome') + ' pour terminer cette édition.' : '',
+      multiEditions: isManga && e.editions.length > 1,
+      editionChips: isManga ? e.editions.map((ed) => {
+        const on = ed.id === p.ed.id
+        return { label: ed.label, count: this.ownedSet(this.state.entityId, ed).size + '/' + ed.total,
+          bg: on ? '#fff' : 'rgba(33,28,25,.05)', color: on ? '#211c19' : '#8c7f77', shadow: soft(on),
+          onClick: () => this.setState((s) => ({ editionChoice: { ...s.editionChoice, [s.entityId]: ed.id }, sheetTome: null, showAll: false })) }
+      }) : [],
+      tomes, tomeLegend: 'Blanc = possédé · Gris = paru · Pointillé = à paraître',
+      longSeries: isManga && p.ed.total > Component.LONG,
+      toggleAllLabel: this.state.showAll ? 'Réduire' : 'Voir les ' + (isManga ? p.ed.total : 0) + ' tomes',
+      toggleAll: () => this.setState((s) => ({ showAll: !s.showAll })),
+
+      radarGroups,
+
+      addStep1: this.state.addStep === 1, addStep2: this.state.addStep === 2,
+      addTypes: ORDER.map((t) => {
+        const on = this.state.addType === t
+        return { label: this.u(t).label, dot: this.u(t).color, bg: on ? '#fff' : 'rgba(33,28,25,.05)',
+          color: on ? '#211c19' : '#8c7f77', shadow: soft(on),
+          onClick: () => this.setState({ addType: t, searchInput: '', searchQuery: '', searching: false }) }
+      }),
+      searchPlaceholder: 'Chercher un ' + this.u(this.state.addType).singular.toLowerCase() + '…',
+      sourceLine: 'Source : ' + this.u(this.state.addType).source,
+      searchBg: idle ? 'rgba(33,28,25,.04)' : '#fff', searchShadow: idle ? 'none' : '0 6px 18px rgba(33,28,25,.10)',
+      searchInput: this.state.searchInput, searchQuery: this.state.searchQuery, searching: this.state.searching,
+      onSearch: (ev) => this.onSearch(ev.target.value),
+      clearSearch: () => this.setState({ searchInput: '', searchQuery: '', searching: false }),
+      addIdle: idle, addEmpty: !idle && !this.state.searching && results.length === 0, hasResults: results.length > 0 && !this.state.searching,
+      results, example: { manga: 'Vinland Saga', jv: 'Hollow Knight', jds: 'Wingspan', livre: 'Le Messie de Dune' }[this.state.addType],
+      skeletons: [{ w1: '58%', w2: '38%' }, { w1: '44%', w2: '30%' }, { w1: '52%', w2: '42%' }],
+
+      draftTitle: draft ? draft.title : '',
+      draftTomes: draft ? range(draft.total).map((n) => {
+        const on = sel.includes(n)
+        return { n, bg: on ? '#bf5138' : '#fff', color: on ? '#fff' : '#8c7f77', shadow: on ? '0 4px 12px rgba(191,81,56,.28)' : '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.toggleDraft(n) }
+      }) : [],
+      rangeShortcuts: draft ? [
+        { label: 'Tome 1 seulement', onClick: () => this.setState({ draftSelected: [1] }) },
+        { label: '1 à 5', onClick: () => this.setState({ draftSelected: range(Math.min(5, draft.total)) }) },
+        { label: '1 à 10', onClick: () => this.setState({ draftSelected: range(Math.min(10, draft.total)) }) },
+        { label: 'Tout sélectionner', onClick: () => this.setState({ draftSelected: range(draft.total) }) },
+        { label: 'Aucun', onClick: () => this.setState({ draftSelected: [] }) },
+      ] : [],
+      patternHint: patternText !== '', patternText,
+      acceptPattern: () => this.setState({ draftSelected: range(draft.total) }),
+      confirmDraftLabel: sel.length === 0 ? 'Ajouter sans tome' : 'Ajouter ' + sel.length + (sel.length > 1 ? ' tomes' : ' tome'),
+      confirmDraft: () => {
+        this.setState({ screen: 'home', addStep: 1, searchInput: '', searchQuery: '', draft: null, draftSelected: [] })
+        this.toast(draft.title + ' ajouté · ' + sel.length + (sel.length > 1 ? ' tomes' : ' tome'), () => this.setState({ toast: null }))
+      },
+      backToSearch: () => this.setState({ addStep: 1, draft: null, draftSelected: [] }),
+
+      profileSummary: keys.length + ' titres suivis · ' + loans.length + ' prêts en cours',
+      profileCards: [
+        { label: 'Statistiques', desc: 'Ce que contient ta collection, en un coup d’œil', glyph: '◱', tint: UNIVERSE.manga.tint, color: UNIVERSE.manga.color, onClick: () => this.setState({ screen: 'stats' }) },
+        { label: 'Prêts en cours', desc: 'Ce qui est sorti de chez toi, et chez qui', glyph: '⇄', tint: UNIVERSE.jv.tint, color: UNIVERSE.jv.color, onClick: () => this.setState({ screen: 'loans' }) },
+        { label: 'Paramètres', desc: 'Univers, imports, sources et export', glyph: '⚙', tint: UNIVERSE.jds.tint, color: UNIVERSE.jds.color, onClick: () => this.setState({ screen: 'settings' }) },
+      ],
+      stats: [
+        { value: String(keys.length), label: 'Titres', color: '#211c19' },
+        { value: String(ownedTomes), label: 'Tomes possédés', color: '#211c19' },
+        { value: String(complete), label: 'Séries complètes', color: '#bf5138' },
+        { value: Math.round((ownedTomes / knownTomes) * 100) + '%', label: 'Progression', color: '#211c19' },
+      ],
+      distribution: ORDER.map((t) => {
+        const c = keys.filter((k) => ENTITIES[k].type === t).length
+        return { label: this.u(t).label, count: c, pct: Math.round((c / keys.length) * 100), color: this.u(t).color }
+      }),
+      seriesProgress: mangaKeys.map((k) => {
+        const pr = this.progress(k)
+        return { title: ENTITIES[k].title, pct: pr.pct, label: pr.owned + '/' + pr.total, color: UNIVERSE.manga.color, onOpen: () => this.open(k, 'stats') }
+      }).filter((s) => s.pct < 100).sort((a, b) => b.pct - a.pct),
+      loans: loans.map((l) => ({ ...l, grad: ENTITIES[l.entity].grad,
+        onReturn: () => { this.setState((s) => ({ loansReturned: { ...s.loansReturned, [l.key]: true } })); this.toast(l.item + ' de retour chez toi', () => this.setState((s) => { const r = { ...s.loansReturned }; delete r[l.key]; return { loansReturned: r, toast: null } })) } })),
+      settingsRows: SETTINGS_ROWS,
+
+      // Le panneau hérite du contexte (série, édition, tome) et n'affiche que
+      // les actions pertinentes pour l'état courant.
+      sheetOpen: sheetN !== null && isManga,
+      sheetAnchor: isDesktop ? 'right:0;top:0;bottom:0;width:min(420px,92%)' : 'left:0;right:0;bottom:0',
+      sheetRadius: isDesktop ? '20px 0 0 20px' : '24px 24px 0 0',
+      sheetMaxH: isDesktop ? '100%' : '80%',
+      sheetNumber: sheetN, sheetEdition: isManga ? p.ed.label : '',
+      sheetStatus: sheetOwned ? 'Possédé' : (isManga && sheetN && p.ed.catalogued.includes(sheetN) ? 'Paru, pas encore à toi' : 'À paraître'),
+      sheetStatusTint: sheetOwned ? uni.tint : 'rgba(33,28,25,.06)',
+      sheetStatusColor: sheetOwned ? uni.color : '#8c7f77',
+      sheetActions: !sheetN ? [] : (sheetOwned
+        ? [
+            { label: 'Modifier le prix payé', glyph: '✎', bg: '#fff', color: '#211c19', shadow: '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.toast('Prix du tome ' + sheetN + ' mis à jour', () => this.setState({ toast: null })) },
+            { label: 'Prêter ce tome', glyph: '⇄', bg: '#fff', color: '#211c19', shadow: '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.toast('Tome ' + sheetN + ' marqué comme prêté', () => this.setState({ toast: null })) },
+            { label: 'Marquer comme revendu', glyph: '↩', bg: '#fff', color: '#8f3a26', shadow: '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.markSold(this.state.entityId, p.ed.id, sheetN) },
+          ]
+        : [
+            { label: 'Je l’ai acheté', glyph: '✓', bg: '#bf5138', color: '#fff', shadow: '0 8px 20px rgba(191,81,56,.3)', onClick: () => this.markOwned(this.state.entityId, p.ed.id, sheetN) },
+            { label: 'Ajouter à mes envies', glyph: '♡', bg: '#fff', color: '#211c19', shadow: '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.addWish(this.state.entityId, p.ed.id, sheetN) },
+            { label: 'Acheter en ligne', glyph: '↗', bg: '#fff', color: '#211c19', shadow: '0 1px 3px rgba(33,28,25,.07)', onClick: () => this.toast('Ouverture de la boutique…', () => this.setState({ toast: null })) },
+          ]),
+      sheetHasFacts: sheetOwned,
+      sheetFacts: [{ label: 'État', value: 'Neuf' }, { label: 'Acquis le', value: '16 août 2026' }, { label: 'Prix payé', value: '6,90 €' }],
+      closeSheet: () => this.setState({ sheetTome: null }),
+
+      toastOpen: !!this.state.toast,
+      toastText: this.state.toast ? this.state.toast.text : '',
+      toastBottom: isMobile ? '86px' : '26px',
+      undo: () => { if (this.state.toast && this.state.toast.undo) this.state.toast.undo() },
+    }
+  }
+}
+
+</script>
+</body>
+</html>
