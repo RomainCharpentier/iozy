@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useModalA11y } from '../../lib/useModalA11y'
 
 export type CompletionFilter = 'ALL' | 'INCOMPLETE' | 'COMPLETE'
 
@@ -31,14 +31,9 @@ export function CollectionFilters({
   status: CompletionFilter
   onStatusChange: (status: CompletionFilter) => void
 }) {
-  useEffect(() => {
-    if (!open) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  // Escape + piège de focus + focus rendu au déclencheur - voir
+  // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
+  const containerRef = useModalA11y<HTMLDivElement>(open, onClose)
 
   if (!open) return null
 
@@ -50,6 +45,7 @@ export function CollectionFilters({
           maquette V1.2, ligne ~1752 : overlay sans fond visible en desktop). */}
       <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="collection-filters-title"

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { TierBadge } from './TierBadge'
+import { useModalA11y } from '../../lib/useModalA11y'
 import { RANKS, type Rank } from '../../types/tierList'
 
 /**
@@ -32,13 +33,16 @@ export function TierPicker({
   currentRank: Rank | null
   onSelect: (rank: Rank | null) => void
 }) {
+  // Escape + piège de focus + focus rendu au déclencheur - voir
+  // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
+  const containerRef = useModalA11y<HTMLDivElement>(open, onClose)
+
+  // Raccourcis S-F : propre à ce composant (pas une préoccupation "a11y
+  // générique de dialog"), reste local. N'intercepte plus Escape lui-même -
+  // déjà géré par le hook ci-dessus.
   useEffect(() => {
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        onClose()
-        return
-      }
       const letter = e.key.toUpperCase()
       if (RANKS.includes(letter as Rank) && activeRanks.includes(letter as Rank)) {
         onSelect(letter as Rank)
@@ -46,7 +50,7 @@ export function TierPicker({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose, onSelect, activeRanks])
+  }, [open, onSelect, activeRanks])
 
   if (!open) return null
 
@@ -54,6 +58,7 @@ export function TierPicker({
     <>
       <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tier-picker-title"

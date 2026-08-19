@@ -8,6 +8,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { TierBoard } from './TierBoard'
 import { TierPicker } from './TierPicker'
 import { AddTierListItemsPanel } from './AddTierListItemsPanel'
+import { useModalA11y } from '../../lib/useModalA11y'
 import type { TierListEntryDto } from '../../types/tierList'
 
 /** Board d'une Tier List PERSONNALISÉE - même rendu que le classement
@@ -21,6 +22,10 @@ export function CustomTierBoardPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [addingItems, setAddingItems] = useState(false)
+  // Le "..." menu est un `role="dialog"` au même titre que les autres
+  // surfaces temporaires de l'app (voir la maquette, dlg-tiermenu) - Escape +
+  // piège de focus + focus rendu au bouton "..." (voir useModalA11y, Lot 9).
+  const menuRef = useModalA11y<HTMLDivElement>(menuOpen, () => setMenuOpen(false))
 
   const detailQuery = useQuery({ queryKey: queryKeys.tierLists.detail(id!), queryFn: () => getTierListDetail(id!) })
 
@@ -81,7 +86,13 @@ export function CustomTierBoardPage() {
               <MoreHorizontal size={18} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated">
+              <div
+                ref={menuRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu de la Tier List"
+                className="absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
+              >
                 {!confirmingDelete ? (
                   <button
                     type="button"

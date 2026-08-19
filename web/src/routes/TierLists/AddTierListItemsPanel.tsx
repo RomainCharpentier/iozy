@@ -7,6 +7,7 @@ import { addTierListItems } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isOwned, ownedVariantIds } from '../Shelf/ownership'
+import { useModalA11y } from '../../lib/useModalA11y'
 import { ErrorBanner } from '../../components/ErrorBanner'
 
 /**
@@ -31,6 +32,9 @@ export function AddTierListItemsPanel({
 }) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Toujours monté "ouvert" par le parent (voir CustomTierBoardPage,
+  // `{addingItems && <...>}`) - voir useModalA11y (Lot 9).
+  const containerRef = useModalA11y<HTMLDivElement>(true, onClose)
 
   const entitiesQuery = useQuery({
     queryKey: queryKeys.entities.search({ entityTypeId }),
@@ -67,6 +71,7 @@ export function AddTierListItemsPanel({
     <>
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-tier-items-title"

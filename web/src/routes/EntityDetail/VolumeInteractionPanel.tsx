@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Pencil } from 'lucide-react'
 import { mergeVariantAttributes } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { useModalA11y } from '../../lib/useModalA11y'
 import { findBestCoverMatch } from '../Shelf/backfillCovers'
 import { AddOwnershipForm } from './AddOwnershipForm'
 import { OwnershipDetails } from './OwnershipDetails'
@@ -128,16 +129,11 @@ export function VolumeInteractionPanel({
   editionName: string
   ownerships: OwnershipResponse[]
 }) {
-  // Escape desktop - nettoyage au démontage/fermeture (voir "ne pas coder de
-  // focus trap custom complexe", juste Escape + clic sur l'overlay).
-  useEffect(() => {
-    if (!activeTile) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeTile, onClose])
+  // Escape + piège de focus + focus rendu au déclencheur à la fermeture -
+  // voir useModalA11y (Lot 9, remplace l'ancien Escape-only "pas de focus
+  // trap custom complexe" : un hook partagé n'est plus une complexité
+  // par-composant, voir docs/DESIGN_MIGRATION_V1.2.md).
+  const containerRef = useModalA11y<HTMLDivElement>(activeTile !== null, onClose)
 
   if (!activeTile) return null
 
@@ -157,7 +153,9 @@ export function VolumeInteractionPanel({
           fermait le panneau au lieu de changer son contenu). */}
       <div className="fixed inset-0 z-40 bg-black/45 md:hidden" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
+        aria-modal="true"
         aria-label={`Tome ${activeTile.volumeNumber}`}
         className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl md:inset-x-auto md:right-0 md:top-16 md:bottom-0 md:max-h-none md:w-[min(420px,90vw)] md:rounded-none md:rounded-l-2xl md:border-l md:border-surface2"
       >
