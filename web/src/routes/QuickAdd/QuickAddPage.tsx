@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Camera, Loader2, Plus, RefreshCw, ScanBarcode, Search, X } from 'lucide-react'
+import { AlertTriangle, Camera, Loader2, Plus, RefreshCw, Scale, ScanBarcode, ScanLine, Search, X } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, searchVolumes } from '../../api/metadata'
 import { quickAdd, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -563,7 +563,44 @@ export function QuickAddPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Ajout rapide</h1>
+      {/* "Rechercher" (voir la maquette V1.2, §420) plutôt que "Ajout rapide" -
+       * seul point d'entrée pour ajouter à la collection (voir §24 du brief
+       * de migration), le libellé doit le dire directement. Le flux lui-même
+       * (formulaire continu recherche -> sélection tomes -> ajout) reste
+       * INCHANGÉ dans ce lot : c'est un parcours mature, très finement
+       * ajusté au fil de nombreuses sessions (débounce, résolution de titre
+       * français, correspondance de tomes/jaquettes, gestion de quota...) -
+       * le restructurer pour suivre exactement le modèle "liste de résultats
+       * -> écran de sélection séparé" de la maquette est un chantier à part,
+       * à part entière, pas une simple retouche visuelle (voir
+       * docs/DESIGN_MIGRATION_V1.2.md, noté comme travail dédié plutôt que
+       * rushé dans ce lot). */}
+      <h1 className="font-display text-2xl font-bold text-textPrimary">Rechercher</h1>
+
+      {/* Deux des "quatre façons d'identifier" de la maquette existent déjà
+       * réellement dans cette app (voir plus bas dans ce même formulaire
+       * pour le scan, et /purchase-analysis pour l'évaluation) - remontées
+       * ici comme points d'entrée visibles, sans dupliquer leur logique.
+       * "Analyser un lot" et "Reconnaissance photo" ne sont pas ajoutés ici :
+       * aucune preuve qu'ils existent réellement dans ce backend aujourd'hui
+       * (voir §64 du brief - ne jamais inventer un point d'entrée vers une
+       * fonctionnalité qui n'existe pas). */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to="/scan"
+          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+        >
+          <ScanLine size={16} />
+          Scanner
+        </Link>
+        <Link
+          to="/purchase-analysis"
+          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+        >
+          <Scale size={16} />
+          Évaluer une annonce
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {entityTypesQuery.isLoading && <p className="text-sm text-textDim">Chargement des types...</p>}
