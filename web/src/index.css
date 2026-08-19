@@ -78,6 +78,32 @@
   --font-body: "Inter", sans-serif;
 }
 
+/* Échelle de rang Tier Lists (S à F) - valeurs exactes de la DS v1.1
+   (RANK_SCALE) : teintes profondes en clair, éclaircies en sombre avec
+   encre foncée sur la pastille (voir lib/tierListVisuals.ts pour l'encre).
+   Théme-réactives comme accent/danger, contrairement aux couleurs de
+   catégorie (entityTypeVisuals.ts, fixes) - le rang est un jugement, pas
+   une identité stable. */
+:root {
+  --color-rank-s: #9c3324;
+  --color-rank-a: #c05a3c;
+  --color-rank-b: #b8801f;
+  --color-rank-c: #6e7d33;
+  --color-rank-d: #356b56;
+  --color-rank-e: #43607d;
+  --color-rank-f: #6b605a;
+}
+
+[data-theme="dark"] {
+  --color-rank-s: #e8654a;
+  --color-rank-a: #d9694a;
+  --color-rank-b: #d9b64a;
+  --color-rank-c: #9cb055;
+  --color-rank-d: #6cbd9d;
+  --color-rank-e: #7096bd;
+  --color-rank-f: #a99c91;
+}
+
 /* Thème sombre - même jeu de rôles, valeurs DS v1.1 "Thème sombre". Une
    seule redéfinition par rôle : les classes Tailwind générées (bg-surface,
    text-textDim...) référencent déjà `var(--color-*)`, donc les surcharger
