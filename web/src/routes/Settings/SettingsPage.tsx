@@ -1,12 +1,13 @@
 import { useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, GripVertical, Wrench } from 'lucide-react'
+import { ChevronRight, GripVertical, Moon, Sun, Wrench } from 'lucide-react'
 import {
   TITLE_LANGUAGE_LABELS,
   getTitleComposition,
   setTitleComposition,
   type TitleComposition,
 } from '../../lib/titleLanguage'
+import { useTheme } from '../../lib/theme'
 
 /** Réglage propre à cet appareil (localStorage, pas de compte/backend - voir
  * lib/titleLanguage.ts) : seule la recherche/ajout de manga (Jikan/MyAnimeList)
@@ -22,6 +23,7 @@ export function SettingsPage() {
   // voir lib/titleLanguage.ts.
   const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const { theme, toggleTheme } = useTheme()
 
   function update(next: TitleComposition) {
     setComposition(next)
@@ -71,6 +73,38 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-5">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Paramètres</h1>
+
+      {/* Apparence : réglage minimal pour l'instant (voir Lot 1 de la
+          migration Design V1.2 - docs/DESIGN_MIGRATION_V1.2.md), sera
+          intégré à une refonte plus large de cet écran en Lot 8. Pattern
+          switch identique à celui utilisé pour "Suivre les sorties" dans la
+          maquette (role="switch" + aria-checked, jamais un simple bouton
+          texte pour un état à deux valeurs). */}
+      <section className="flex items-center gap-3 rounded-xl bg-surface p-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+          {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium text-textPrimary">Thème {theme === 'dark' ? 'sombre' : 'clair'}</span>
+          <span className="block text-xs text-textDim">Basculer entre thème clair et sombre</span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={theme === 'dark'}
+          aria-label="Thème sombre"
+          onClick={toggleTheme}
+          className={`relative h-[26px] w-11 shrink-0 rounded-full p-0.5 transition-colors ${
+            theme === 'dark' ? 'bg-accent' : 'bg-surface2'
+          }`}
+        >
+          <span
+            className={`block h-[20px] w-[20px] rounded-full bg-white shadow-token-sm transition-transform ${
+              theme === 'dark' ? 'translate-x-[20px]' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="font-display text-lg font-semibold text-textPrimary">Titre des mangas</h2>

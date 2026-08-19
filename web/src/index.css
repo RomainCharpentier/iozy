@@ -1,40 +1,132 @@
 @import "tailwindcss";
 
-/* Design tokens Tailwind - miroir de web/src/theme/tokens.ts (source de
-   vérité pour le TS/JS, ex: theme/gradient.ts) et de
-   ios/IozyCore/DesignSystem/Theme.swift (direction visuelle d'origine).
-   Garder les deux en synchro si une couleur change. */
+/* Design tokens Tailwind — miroir de web/src/theme/tokens.ts (source de
+   vérité pour le TS/JS, ex: theme/gradient.ts) — voir aussi
+   ios/IozyCore/DesignSystem/Theme.swift, qui reste sur l'ancienne direction
+   (lime sur sombre) tant qu'il n'a pas reçu son propre lot de migration
+   (accepté explicitement — voir docs/DESIGN_MIGRATION_V1.2.md).
+   <p>
+   Palette terracotta — adoptée depuis IozyCore DS v1.1.dc.html (thèmes clair
+   ET sombre "expériences de premier niveau", pas un mode secondaire). Valeurs
+   ci-dessous = thème clair par défaut dans :root (source), thème sombre en
+   [data-theme="dark"] (voir theme.ts pour le mécanisme de bascule - défaut
+   réel = sombre au premier chargement, pour ne pas surprendre les usages
+   existants qui n'ont connu que le sombre jusqu'ici).
+   <p>
+   Suffixes en camelCase (pas kebab-case) pour matcher 1:1 les noms de
+   Theme.swift historiques (textPrimary, accentText...) - Tailwind v4 génère
+   les classes utilitaires à partir du nom exact après "color-", donc ceci
+   donne bg-surface2, text-textPrimary, text-accentText, etc. plutôt que
+   l'ambigu "text-text-primary". Noms conservés même quand la VALEUR change
+   (background/surface/surface2/textPrimary/textDim/accent/accentText/danger/
+   warning) pour ne pas casser les ~40 fichiers qui les référencent déjà;
+   nouveaux rôles de la DS v1.1 (dim/muted/faint, accentTint/accentPress,
+   dangerText/dangerTint, ok/okTint, warn.../ déjà couvert par warning/
+   warningTint, line/lineStrong/fieldBorder, softBtn/softPress/rowHover,
+   handle/scrim) ajoutés en complément - voir "réutilise/complète les tokens
+   existants" du brief de migration. */
 @theme {
-  /* Suffixes en camelCase (pas kebab-case) pour matcher 1:1 les noms de
-     Theme.swift (textPrimary, accentText...) - Tailwind v4 génère les
-     classes utilitaires à partir du nom exact après "color-", donc ceci
-     donne bg-surface2, text-textPrimary, text-accentText, etc. plutôt que
-     l'ambigu "text-text-primary". */
-  --color-background: #131316;
-  --color-surface: #1d1d21;
-  --color-surface2: #26262b;
-  --color-textPrimary: #f5f4f2;
-  --color-textDim: #8c8b92;
-  --color-accent: #b8ff3c;
-  --color-accentText: #0e1500;
+  --color-background: #faf6f2;
+  --color-surface: #fffdfb;
+  --color-surface2: #f4ece5;
+  --color-textPrimary: #231e1a;
+  /* dim : sous-titres et corps secondaire (garde le nom historique
+     textDim). muted/faint : deux niveaux plus discrets, nouveaux. */
+  --color-textDim: #544a43;
+  --color-muted: #6b605a;
+  --color-faint: #7c716a;
+
+  --color-accent: #c05a3c;
+  --color-accentText: #a2452c;
+  --color-accentPress: #933d24;
+  --color-accentTint: rgb(192 90 60 / 12%);
+
+  --color-danger: #9c3324;
+  --color-dangerText: #8c2d20;
+  --color-dangerTint: rgb(156 51 36 / 10%);
+
+  --color-ok: #356b56;
+  --color-okTint: rgb(53 107 86 / 12%);
+  --color-warning: #7a5c10;
+  --color-warningTint: rgb(122 92 16 / 12%);
+
+  /* Bordures et fonds interactifs discrets - toujours dérivés de l'encre du
+     thème (35,30,26 en clair / 244,238,231 en sombre), jamais un gris
+     indépendant qui se déphase du thème. */
+  --color-line: rgb(35 30 26 / 10%);
+  --color-lineStrong: rgb(35 30 26 / 17%);
+  --color-fieldBorder: rgb(35 30 26 / 14%);
+  --color-softBtn: rgb(35 30 26 / 6%);
+  --color-softPress: rgb(35 30 26 / 13%);
+  --color-rowHover: rgb(35 30 26 / 4%);
+  --color-handle: rgb(35 30 26 / 20%);
+  --color-scrim: rgb(35 30 26 / 38%);
+
+  /* Type de contenu (Manga/Jeu vidéo/Jeu de société/Livre) - hors périmètre
+     DS v1.1 (non redéfini par thème), conservé tel quel de la palette
+     précédente le temps qu'un lot dédié Collection (Lot 3) tranche la
+     couleur par univers de la maquette V1.2. */
   --color-violet: #8b7fff;
   --color-pink: #ff6fa5;
-  /* Verdict "Analyse d'achat" à 5 niveaux (🟢🟢/🟡/🟠/🔴) - accent (vert lime,
-     déjà défini ci-dessus) couvre les 2 niveaux verts, pink est réutilisé pour
-     🟠 CHER (assez proche d'un orange d'alerte sur fond sombre) ; seuls warning
-     (🟡) et danger (🔴) sont de vraies nouvelles couleurs, décision validée
-     avec l'utilisateur - voir VerdictBadge.tsx. */
-  --color-warning: #f5c542;
-  --color-danger: #ff5c5c;
+
+  --shadow-token-sm: 0 1px 2px rgb(35 30 26 / 9%);
+  --shadow-token-md: 0 4px 14px rgb(35 30 26 / 11%);
+  --shadow-token-elevated: 0 18px 44px rgb(35 30 26 / 22%);
+  --shadow-token-accent: 0 8px 20px rgb(192 90 60 / 30%);
 
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
 }
 
-/* Thème sombre forcé app-wide, pas de suivi de préférence système -
-   même choix que .preferredColorScheme(.dark) côté iOS. */
+/* Thème sombre - même jeu de rôles, valeurs DS v1.1 "Thème sombre". Une
+   seule redéfinition par rôle : les classes Tailwind générées (bg-surface,
+   text-textDim...) référencent déjà `var(--color-*)`, donc les surcharger
+   ici suffit à basculer TOUT composant existant sans y retoucher. */
+[data-theme="dark"] {
+  --color-background: #16120f;
+  --color-surface: #231e19;
+  --color-surface2: #2c261f;
+  --color-textPrimary: #f4eee7;
+  --color-textDim: #c2b5a9;
+  --color-muted: #a99c91;
+  --color-faint: #95887d;
+
+  --color-accent: #d9694a;
+  --color-accentText: #ef9070;
+  --color-accentPress: #f0a184;
+  --color-accentTint: rgb(217 105 74 / 18%);
+
+  --color-danger: #e8654a;
+  --color-dangerText: #f08a72;
+  --color-dangerTint: rgb(232 101 74 / 16%);
+
+  --color-ok: #6cbd9d;
+  --color-okTint: rgb(108 189 157 / 14%);
+  --color-warning: #d9b64a;
+  --color-warningTint: rgb(217 182 74 / 16%);
+
+  --color-line: rgb(244 238 231 / 10%);
+  --color-lineStrong: rgb(244 238 231 / 21%);
+  --color-fieldBorder: rgb(244 238 231 / 21%);
+  --color-softBtn: rgb(244 238 231 / 9%);
+  --color-softPress: rgb(244 238 231 / 19%);
+  --color-rowHover: rgb(244 238 231 / 6%);
+  --color-handle: rgb(244 238 231 / 24%);
+  --color-scrim: rgb(0 0 0 / 60%);
+
+  --shadow-token-sm: 0 1px 2px rgb(0 0 0 / 60%);
+  --shadow-token-md: 0 6px 18px rgb(0 0 0 / 55%);
+  --shadow-token-elevated: 0 22px 52px rgb(0 0 0 / 72%);
+  --shadow-token-accent: 0 8px 20px rgb(0 0 0 / 50%);
+}
+
+/* Thème sombre par défaut au premier chargement (voir lib/theme.ts) - l'app
+   n'a connu que le sombre jusqu'ici, un défaut clair aurait surpris sans
+   raison. Reste un choix explicite et bascule-able, pas un suivi de
+   `prefers-color-scheme` (même logique que l'ancien `html{color-scheme:dark}`
+   forcé, qu'on retire au profit de ce mécanisme réellement bi-thème). */
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {
@@ -42,6 +134,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-textPrimary);
   font-family: var(--font-body);
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 /* Polish global des interactions, appliqué une fois ici plutôt que répété
@@ -64,4 +157,17 @@ a:hover {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+/* Anneau de focus clavier — 2px accent, offset 2px, jamais le bleu par
+   défaut du navigateur (voir DS v1.1 §5). `:focus-visible` uniquement : pas
+   d'anneau permanent au clic souris/tactile. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
