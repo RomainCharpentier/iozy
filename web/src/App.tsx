@@ -1,7 +1,8 @@
 import { Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
-import { QuickAddPage } from './routes/QuickAdd/QuickAddPage'
+import { SearchPage } from './routes/QuickAdd/SearchPage'
+import { AddDraftPage } from './routes/QuickAdd/AddDraftPage'
 import { EntityDetailPage } from './routes/EntityDetail/EntityDetailPage'
 import { WishlistPage } from './routes/Wishlist/WishlistPage'
 import { SharedWishlistPage } from './routes/Wishlist/SharedWishlistPage'
@@ -37,7 +38,8 @@ export default function App() {
           <AppShell>
             <Routes>
               <Route path="/" element={<ShelfPage />} />
-              <Route path="/add" element={<QuickAddPage />} />
+              <Route path="/add" element={<SearchPage />} />
+              <Route path="/add/draft" element={<AddDraftPage />} />
               <Route path="/entity/:id" element={<EntityDetailPage />} />
               <Route path="/discover" element={<DiscoverPage />} />
               <Route path="/collection/:entityTypeId" element={<CategoryPage />} />
