@@ -25,13 +25,13 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 | Bottom bar mobile avec FAB Scan intégré (séparé par une bordure, sans aria-current) | Pas de FAB, Scan est une route `/scan` liée depuis Profil | Écart mineur, additif | **ADAPT** (Lot 2) |
 | Ma collection : rails horizontaux par catégorie (halo teinté, "Tout voir") | `ShelfPage.tsx` : grille unique multi-type avec filtres/tri (voir Lots précédents de cette session) | Structurel | **REFACTOR** (Lot 3) — à confirmer : le filtre actuel (Tout/Manga/JV/JDS + Par série/Par tome) reste-t-il en plus des rails, ou les rails remplacent le filtre de type ? Rails = groupement, pas un remplacement des filtres état (Incomplètes/Complètes/Sortie annoncée) déjà prévus §21 |
 | Card : image + titre/méta **hors** de l'image | `CoverTile.tsx` **déjà** image/texte séparés (refonte antérieure de cette session) | **Aligné**, mais raison différente du mock (le mock overlay le titre sur l'image avec dégradé) | **KEEP** avec différence documentée (§100 : vraie jaquette backend imprévisible en contraste, contrairement à un dégradé démo choisi pour son contraste garanti) |
-| Fiche : Hero (cover+titre+auteur+éditions+progression) → Mes tomes → Mes classements → À propos | `EntityDetailPage.tsx` : Hero → Mes tomes (+ panneau interaction, déjà refait) → À propos (pas de "Mes classements" — Tier Lists n'existe pas) | "Mes classements" bloqué par l'absence de Tier Lists backend | **ADAPT** hero/tomes (Lot 4), **BLOCKED_BY_DATA** "Mes classements" tant que Lot 7 (Tier Lists) n'existe pas |
+| Fiche : Hero (cover+titre+auteur+éditions+progression) → Mes tomes → Mes classements → À propos | `EntityDetailPage.tsx` : Hero → Mes tomes → **Mes classements (réel)** → À propos | Aligné | **ADAPT** hero/tomes (Lot 4), **fait** "Mes classements" (Lot 7b) — rang général dominant + chips Tier Lists perso, `getEntityTierSummary` |
 | Tome : drawer/sheet contenu canonique, manquant = état+prix seul, possédé = "Ma copie" + Modifier inline + "..." (Marquer vendu/Supprimer) | `VolumeInteractionPanel.tsx`/`AddOwnershipForm.tsx`/`OwnershipDetails.tsx` — **déjà construit ce lot-ci de session**, comportement quasi identique (drawer desktop 420px vs 392px maquette, bottom-sheet 85dvh vs 88% maquette, édition inline déjà en place) | Mineur (mesures, pas de prêt à retirer - déjà fait) | **KEEP**, ajustements de mesure seulement si Lot 9 QA le juge nécessaire |
-| Recherche : 1 point d'entrée, état personnel avant métadonnées, 4 actions (scan/annonce/lot/photo) | `QuickAddPage.tsx` — recherche existante, à vérifier précisément | À auditer en détail | **ADAPT** (Lot 5) |
-| Découvrir (Tier Lists / Opportunités / Sorties), layout desktop 60/40 + pleine largeur | N'existe pas | Total | **CREATE** (Lot 6, structure) |
-| Opportunités | `SuggestionsPage.tsx` (suggestions d'achat quasi-complètes) couvre une partie du concept | Partiel | **ADAPT** vers Découvrir (Lot 6), reste **BLOCKED_BY_DATA** pour toute donnée de marché non observée (cohérent avec le moteur Purchase Analysis existant : jamais de prix inventé) |
-| Prochaines sorties | Pas de concept "sorties suivies" identifié dans le repo actuel (à confirmer en Lot 6) | À auditer | **CREATE** ou **BLOCKED_BY_DATA** selon ce que révèle l'audit Lot 6 |
-| Tier Lists (hub, board drag&drop, quick rank, picker, création) | N'existe pas — aucun backend | Total, nouveau domaine | **CREATE** (Lot 7) — nouveau domaine backend (ranking S–F par item/univers) + frontend. Le plus gros morceau du handoff. |
+| Recherche : 1 point d'entrée, état personnel avant métadonnées, 4 actions (scan/annonce/lot/photo) | `SearchPage.tsx` → `AddDraftPage.tsx` — 2 écrans (liste résultats groupés → sélection tomes), `QuickAddPage.tsx` supprimé | Aligné avec le modèle de la maquette | **REFACTOR fait** (Lot 5 suite, `f8d626f`) — voir note Lot 5 mise à jour ci-dessous |
+| Découvrir (Tier Lists / Opportunités / Sorties), layout desktop 60/40 + pleine largeur | `DiscoverPage.tsx` : 3 sous-onglets réels, Tier Lists branché (Lot 7b), Opportunités/Sorties encore "Bientôt disponible" | Partiel | **CREATE** structure **fait** (Lot 2/6), Tier Lists **fait** (Lot 7b), Opportunités/Sorties **restant** (Lot 6) — layout desktop 60/40 éditorial pas encore construit, onglets encore un `role="tab"` simple empilé verticalement |
+| Opportunités | `SuggestionsPage.tsx` (suggestions d'achat quasi-complètes) couvre une partie du concept | Partiel | **ADAPT** vers Découvrir (Lot 6, restant), reste **BLOCKED_BY_DATA** pour toute donnée de marché non observée (cohérent avec le moteur Purchase Analysis existant : jamais de prix inventé) |
+| Prochaines sorties | Pas de concept "sorties suivies" identifié dans le repo actuel (à confirmer en Lot 6) | À auditer | **CREATE** ou **BLOCKED_BY_DATA** selon ce que révèle l'audit Lot 6 (restant) |
+| Tier Lists (hub, board, quick rank, picker, création) | `TierListsHub.tsx` (hub par univers réellement possédé), `GeneralTierBoardPage`/`CustomTierBoardPage` (boards), `TierPicker` (raccourcis clavier S-F + Échap), `CreateTierListModal`, `AddTierListItemsPanel` — backend `domain/tierlist` complet (`EntityRank` = classement général implicite, `TierList`/`TierListItem` = listes perso explicites) | Aligné, 2 écarts documentés ci-dessous | **CREATE fait** (Lot 7a `909f6d0` + Lot 7b `9ecb6c4`) — **drag&drop non implémenté** (clic/tap seul, explicitement permis par la maquette tant que ce n'est jamais la SEULE interaction) ; **pas de flux "Classer rapidement" séquentiel dédié** (on classe élément par élément via le même `TierPicker` que le board, mais rien n'enchaîne automatiquement au suivant) — **BLOCKED_BY_DATA** aucun des deux, pure priorisation de portée, récupérable plus tard sans changement de modèle |
 | Envies (Wishlist) | `WishlistPage.tsx` existe, fonctionnel (consultation/suppression) | Accès à déplacer sous Heart, contenu OK | **KEEP** contenu, **ADAPT** point d'entrée (Lot 2 nav + Lot 8) |
 | Valeur | `StatsPage.tsx`/`CollectionValueSection.tsx` existent | À vérifier vs états fiable/partiel/indisponible §55 | **ADAPT** (Lot 8) |
 | Import | `ImportBggPage.tsx` existe (BGG uniquement) | Le mock ne doit promettre que les sources réellement supportées | **KEEP**, vérifier le wording (Lot 8) |
@@ -49,23 +49,31 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 2. Shell : nav 3 destinations + Heart + Profil avatar, desktop + mobile, route `Découvrir` (squelette) — **fait** (`87cf993`)
 3. Ma Collection : rails par catégorie, cards, filtres état — **fait** (`49129e8` + `fadd9ae`)
 4. Fiche Manga : "Mes classements" (placeholder), "Évaluer une annonce" — **fait** (`17e33b5`)
-5. Recherche : titre + points d'entrée réels — **fait, portée réduite** (`0d6c015`) — voir note ci-dessous, décision à confirmer avant d'aller plus loin sur cet écran
-6. Découvrir : layout desktop 60/40, Opportunités (adapté de Suggestions), Sorties (à créer/bloquer selon audit) — **pas commencé**
-7. Tier Lists : nouveau domaine backend + frontend (le plus gros lot, migration DB) — **pas commencé**
+5. Recherche : titre + points d'entrée réels, puis restructuration complète en 2 écrans — **fait** (`0d6c015` portée réduite, puis `f8d626f` restructuration complète — décision utilisateur "Restructurer complètement") — voir note ci-dessous
+6. Découvrir : layout desktop 60/40, Opportunités (adapté de Suggestions), Sorties (à créer/bloquer selon audit) — **restant** (structure + Tier Lists faits en Lot 2/7, reste Opportunités/Sorties + layout éditorial 60/40)
+7. Tier Lists : nouveau domaine backend + frontend — **fait** (7a backend `909f6d0`, 7b frontend `9ecb6c4`) — décision utilisateur "Continuer en autonomie"
 8. Pages secondaires : Wishlist, Valeur, Import, Profil, Paramètres, Admin — **pas commencé**
 9. Accessibilité transversale — **pas commencé**
 10. Responsive + QA visuelle finale vs maquettes, rapport final — **pas commencé**
 
-### Note Lot 5 — décision en attente
+### Note Lot 5 — résolue
 
-`QuickAddPage.tsx` (968 lignes) est un formulaire continu très finement
+`QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement
 ajusté (débounce, résolution titre français, correspondance tome/jaquette,
 gestion de quota). La maquette V1.2 décrit un modèle structurellement
 différent (liste de résultats groupés → écran séparé de sélection des
-tomes). Seul un alignement sûr (titre, points d'entrée réels) a été fait ;
-la restructuration complète n'a pas été tentée - risque réel de casser un
-parcours mûr, à traiter comme un chantier à part avec validation explicite
-avant de s'y engager plutôt que rushé dans ce lot.
+tomes). Un premier alignement sûr (titre, points d'entrée réels, `0d6c015`)
+a d'abord été fait sans toucher la structure ; la restructuration complète
+a ensuite été explicitement validée par l'utilisateur ("Restructurer
+complètement" plutôt que rester en portée réduite) et livrée en `f8d626f` :
+`SearchPage.tsx` (liste groupée par titre) → `AddDraftPage.tsx` (sélection
+des tomes, reçoit le candidat choisi via `location.state` React Router,
+rejoue tout le pipeline résolution-titre/correspondance-jaquette au montage
+plutôt que de le partager par un state global). `QuickAddPage.tsx` supprimé.
+Bug pré-existant non introduit par le refactor et non corrigé (hors
+périmètre) : OpenLibrary résout parfois un titre français vers la mauvaise
+œuvre du même auteur (ex. "Vagabond" → "Slam Dunk") — confirmé identique
+avant/après le refactor, à traiter séparément.
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
@@ -75,3 +83,5 @@ avant de s'y engager plutôt que rushé dans ce lot.
 - Fiche (ligne ~238) : édition cards affichent chacune sa propre barre de progression (déjà fait), "Mes classements" est une section à part entière AVANT "À propos", pas fusionnée avec les tomes.
 - Découvrir (ligne ~958) : desktop affiche les 3 panneaux simultanément dans une grille (`discoverGrid`), mobile swipe un seul panneau à la fois — même markup, juste le conteneur qui change (identique au pattern déjà utilisé pour la Fiche : `ficheSwipe`/`fichePanels`).
 - DS tokens complets extraits de `IozyCore DS v1.1.dc.html` lignes 432-467 (LIGHT/DARK) — voir Lot 1 pour les valeurs exactes utilisées.
+- Tier Lists (Lot 7) : deux mécanismes distincts, pas un seul modèle généralisé — classement général (`EntityRank`, implicite, une œuvre possédée = candidate sans étape d'ajout explicite) vs Tier List perso (`TierList`/`TierListItem`, appartenance explicite via `POST /tier-lists/{id}/items` avant de pouvoir classer). Le hub Découvrir masque un univers entier si aucune œuvre possédée de ce type ET aucune Tier List perso (même principe que les rails vides de Ma Collection).
+- `CorsConfig.allowedMethods` ne listait que GET/POST/PATCH/DELETE — Tier Lists est la première feature à utiliser PUT (`setGeneralRank`/`setTierListItemRank`), découvert via un vrai 403 en vérification live du Lot 7b, corrigé en ajoutant PUT à la liste. À garder à l'esprit pour tout futur endpoint PUT.
