@@ -20,6 +20,7 @@ import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
 import { ScanPage } from './routes/Scan/ScanPage'
 import { AnalysisHistoryPage } from './routes/PurchaseAnalysis/AnalysisHistoryPage'
 import { AnalysisHistoryDetailPage } from './routes/PurchaseAnalysis/AnalysisHistoryDetailPage'
+import { DiscoverPage } from './routes/Discover/DiscoverPage'
 
 /** /public/wishlist/:token vit hors AppShell (voir SharedWishlistPage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de compte et ne doit
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/" element={<ShelfPage />} />
               <Route path="/add" element={<QuickAddPage />} />
               <Route path="/entity/:id" element={<EntityDetailPage />} />
+              <Route path="/discover" element={<DiscoverPage />} />
               <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
               <Route path="/purchase-analysis/history" element={<AnalysisHistoryPage />} />
               <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />
