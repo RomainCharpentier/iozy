@@ -13,6 +13,7 @@ import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
 import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
 import { groupByEntityType, matchesCompletionFilter } from './shelfTiles'
 import { isOwned, ownedVariantIds } from './ownership'
+import { useModalA11y } from '../../lib/useModalA11y'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
@@ -41,6 +42,9 @@ export function ShelfPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState<CompletionFilter>('ALL')
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
+  // Escape + piège de focus + focus rendu au déclencheur - voir
+  // useModalA11y (Lot 9).
+  const hubMenuRef = useModalA11y<HTMLDivElement>(hubMenuOpen, () => setHubMenuOpen(false))
 
   const entitiesQuery = useQuery({
     queryKey: queryKeys.entities.search({}),
@@ -235,6 +239,7 @@ export function ShelfPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={() => setHubMenuOpen(false)} />
           <div
+            ref={hubMenuRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="hub-menu-title"

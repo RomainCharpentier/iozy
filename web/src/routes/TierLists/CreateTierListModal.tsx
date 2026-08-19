@@ -6,6 +6,7 @@ import { createTierList } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TierBadge } from './TierBadge'
+import { useModalA11y } from '../../lib/useModalA11y'
 import { RANKS, type Rank } from '../../types/tierList'
 
 /** "Nouvelle Tier List" - vrai flow minimal (nom, univers, rangs actifs,
@@ -27,6 +28,10 @@ export function CreateTierListModal({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [activeRanks, setActiveRanks] = useState<Set<Rank>>(new Set(RANKS))
+  // Toujours monté "ouvert" - c'est le parent qui monte/démonte ce composant
+  // (voir TierListsScreen/DiscoverTierPreview, `{creatingFor && <...>}`) -
+  // voir useModalA11y (Lot 9) pour ce style d'usage.
+  const containerRef = useModalA11y<HTMLDivElement>(true, onClose)
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -59,6 +64,7 @@ export function CreateTierListModal({
     <>
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-tier-list-title"
@@ -82,7 +88,7 @@ export function CreateTierListModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="ex: Mes mangas préférés"
-              autoFocus
+              data-modal-initial-focus
               className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
