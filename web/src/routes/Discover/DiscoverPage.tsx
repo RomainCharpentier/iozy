@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Bell, ListOrdered, Sparkles } from 'lucide-react'
+import { TierListsHub } from './TierListsHub'
 
 type DiscoverTab = 'tiers' | 'opps' | 'releases'
 
@@ -9,15 +10,13 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'releases', label: 'Prochaines sorties', icon: Bell },
 ]
 
-/** Squelette Lot 2 (voir docs/DESIGN_MIGRATION_V1.2.md) : structure de
- * navigation réelle (3 sous-onglets, role="tab"/aria-selected comme le
- * reste de l'app - voir VolumeInteractionPanel pour le même pattern), mais
- * contenu volontairement pas encore branché - Tier Lists n'a aucun support
- * backend (nouveau domaine, Lot 7), Opportunités/Sorties seront adaptés de
- * l'existant (Suggestions d'achats, Envies d'amélioration) en Lot 6, pas
- * dupliqués ici en hâte. Mieux vaut un onglet honnête "à venir" qu'un
- * contenu à moitié câblé (voir §59/§66 : jamais de toast simulant une
- * fonctionnalité). */
+/** Structure réelle à 3 sous-onglets (role="tab"/aria-selected comme le
+ * reste de l'app - voir VolumeInteractionPanel pour le même pattern).
+ * Tier Lists est branché sur son vrai domaine backend (voir TierListsHub,
+ * Lot 7). Opportunités/Sorties seront adaptés de l'existant (Suggestions
+ * d'achats, Envies d'amélioration) en Lot 6, pas dupliqués ici en hâte -
+ * mieux vaut un onglet honnête "à venir" qu'un contenu à moitié câblé (voir
+ * §59/§66 : jamais de toast simulant une fonctionnalité). */
 export function DiscoverPage() {
   const [tab, setTab] = useState<DiscoverTab>('tiers')
 
@@ -43,14 +42,17 @@ export function DiscoverPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
-        <p className="font-display text-base font-semibold text-textPrimary">Bientôt disponible</p>
-        <p className="mt-1.5 text-sm text-textDim">
-          {tab === 'tiers' && 'Classer tes séries et jeux par rang (S à F) arrive dans une prochaine mise à jour.'}
-          {tab === 'opps' && "Les opportunités d'achat pertinentes pour ta collection arrivent bientôt ici."}
-          {tab === 'releases' && 'Les prochaines sorties des séries que tu suis arrivent bientôt ici.'}
-        </p>
-      </div>
+      {tab === 'tiers' && <TierListsHub />}
+
+      {tab !== 'tiers' && (
+        <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
+          <p className="font-display text-base font-semibold text-textPrimary">Bientôt disponible</p>
+          <p className="mt-1.5 text-sm text-textDim">
+            {tab === 'opps' && "Les opportunités d'achat pertinentes pour ta collection arrivent bientôt ici."}
+            {tab === 'releases' && 'Les prochaines sorties des séries que tu suis arrivent bientôt ici.'}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
