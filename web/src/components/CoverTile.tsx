@@ -23,6 +23,12 @@ interface CoverTileProps {
   typeLabel?: string
   /** ex: "aspect-[2/3]" (défaut) ou "aspect-square" pour les listes horizontales. */
   aspectClassName?: string
+  /** Signal prioritaire unique (voir la maquette V1.2 - "un seul signal par
+   * carte, jamais empilé" : chaque source potentielle de badge choisit
+   * elle-même LE signal le plus pertinent avant de le passer ici, ce
+   * composant ne fait qu'afficher ce qu'on lui donne, jamais d'empilement
+   * de plusieurs signaux indépendants). */
+  signal?: string
   /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
    * défaut. À surcharger quand plusieurs tuiles partagent le même titre mais
    * doivent rester visuellement distinctes sans jaquette réelle (ex: les
@@ -55,6 +61,7 @@ export function CoverTile({
   typeLabel,
   aspectClassName = 'aspect-[2/3]',
   gradientKey,
+  signal,
   onClick,
 }: CoverTileProps) {
   const [imageFailed, setImageFailed] = useState(false)
@@ -88,6 +95,11 @@ export function CoverTile({
         {typeLabel && (
           <span className="mt-1.5 w-fit rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-textDim">
             {typeLabel}
+          </span>
+        )}
+        {signal && (
+          <span className="mt-1.5 w-fit rounded-full bg-accentTint px-2 py-0.5 text-[10px] font-semibold text-accentText">
+            {signal}
           </span>
         )}
       </div>
