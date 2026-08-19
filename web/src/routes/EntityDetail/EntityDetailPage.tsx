@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { Pencil } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Pencil, Scale } from 'lucide-react'
 import { getEntity, mergeEntityAttributes, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
@@ -21,6 +21,7 @@ import { MoreOptionsSection } from './MoreOptionsSection'
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   // Correction manuelle de la couverture de SÉRIE (audit UX "correction
   // manuelle") - le Tome a sa propre correction équivalente dans
@@ -183,15 +184,32 @@ export function EntityDetailPage() {
               pas de grille de tomes pour ces types donc pas de progression à
               afficher à la place. */}
           {isManga && activeEditionGroup ? (
-            <EditionProgressSection
-              entityId={entityId}
-              entityTitle={entity.title}
-              variants={entity.variants}
-              ownerships={ownerships}
-              displayGroups={editionGroups}
-              activeGroup={activeEditionGroup}
-              onSelectEdition={setActiveEdition}
-            />
+            <>
+              <EditionProgressSection
+                entityId={entityId}
+                entityTitle={entity.title}
+                variants={entity.variants}
+                ownerships={ownerships}
+                displayGroups={editionGroups}
+                activeGroup={activeEditionGroup}
+                onSelectEdition={setActiveEdition}
+              />
+              {/* "Évaluer une annonce" - voir la maquette V1.2 (evalFromHere) :
+                  point d'entrée contextuel depuis la fiche vers Analyse
+                  d'achat (fonctionnalité déjà réelle, voir
+                  PurchaseAnalysisPage). Pas encore pré-rempli avec cette
+                  série - PurchaseAnalysisPage ne lit aucun paramètre d'URL
+                  aujourd'hui, ajouter ce pré-remplissage reste possible plus
+                  tard sans changer ce bouton. */}
+              <button
+                type="button"
+                onClick={() => navigate('/purchase-analysis')}
+                className="flex w-fit items-center gap-2 rounded-xl bg-surface px-3.5 py-2.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+              >
+                <Scale size={16} />
+                Évaluer une annonce
+              </button>
+            </>
           ) : (
             !isManga && (
               <div className="flex flex-wrap gap-2">

@@ -264,6 +264,21 @@ export function TomesGridSection({
         <AddVolumeSection entityId={entityId} entityTypeId={entityTypeId} title={entityTitle} />
       </section>
 
+      {/* "Mes classements" : section à part entière AVANT "À propos" (voir la
+          maquette V1.2, §30 dans le fichier source - "son propre panneau,
+          pour garder l'ordre fixe"). Contenu volontairement pas encore
+          câblé : Tier Lists n'a aucun support backend aujourd'hui (nouveau
+          domaine, voir docs/DESIGN_MIGRATION_V1.2.md Lot 7) - un placeholder
+          honnête plutôt qu'un classement inventé. La structure (section à sa
+          place, avant À propos) est déjà correcte pour quand Lot 7
+          branchera le vrai contenu. */}
+      <section className="flex flex-col gap-2 border-t border-surface pt-4">
+        <h2 className="font-display text-lg font-semibold text-textPrimary">Mes classements</h2>
+        <div className="rounded-xl border border-dashed border-surface2 p-4">
+          <p className="text-sm text-textDim">Classer tes séries par rang (S à F) arrive dans une prochaine mise à jour.</p>
+        </div>
+      </section>
+
       {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la
           maquette validée) - chaque paire libellé/valeur est son propre bloc,
           disposées en grille auto-fit plutôt qu'un tableau à 2 colonnes fixe
