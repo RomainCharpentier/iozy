@@ -296,6 +296,7 @@ export function EntityDetailPage() {
           <TomesGridSection
             entityId={entityId}
             entityTypeId={entity.entityTypeId}
+            entityTypeLabel={entityType?.label ?? null}
             entityTitle={entity.title}
             entityAttributes={entity.attributes}
             variants={entity.variants}

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Bell, ListOrdered, Sparkles } from 'lucide-react'
-import { TierListsHub } from './TierListsHub'
+import { DiscoverTierPreview } from './DiscoverTierPreview'
+import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
+import { DiscoverReleasesPanel } from './DiscoverReleasesPanel'
 
 type DiscoverTab = 'tiers' | 'opps' | 'releases'
 
@@ -10,13 +12,15 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'releases', label: 'Prochaines sorties', icon: Bell },
 ]
 
-/** Structure réelle à 3 sous-onglets (role="tab"/aria-selected comme le
- * reste de l'app - voir VolumeInteractionPanel pour le même pattern).
- * Tier Lists est branché sur son vrai domaine backend (voir TierListsHub,
- * Lot 7). Opportunités/Sorties seront adaptés de l'existant (Suggestions
- * d'achats, Envies d'amélioration) en Lot 6, pas dupliqués ici en hâte -
- * mieux vaut un onglet honnête "à venir" qu'un contenu à moitié câblé (voir
- * §59/§66 : jamais de toast simulant une fonctionnalité). */
+/** Sous 1100px (mobile ou desktop étroit) : 3 sous-onglets, un seul panneau
+ * visible à la fois (role="tab"/aria-selected, même pattern que
+ * VolumeInteractionPanel). À partir de 1100px sur desktop : composition
+ * éditoriale réelle - Tier Lists sur ~62%, Opportunités à côté (bordure de
+ * séparation), Sorties en pleine largeur dessous - plus d'onglets à ce
+ * stade (voir DS v1.1, commentaire source "Plus d'onglets à ce stade").
+ * Un seul markup : la bascule est purement CSS (`hidden`/`min-[1100px]:flex`,
+ * même principe que TabBar/DesktopHeader avec NAV_BREAKPOINT_PX), jamais du
+ * contenu dupliqué entre les deux mises en page. */
 export function DiscoverPage() {
   const [tab, setTab] = useState<DiscoverTab>('tiers')
 
@@ -24,7 +28,7 @@ export function DiscoverPage() {
     <div className="flex flex-col gap-5">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Découvrir</h1>
 
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-surface2">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -42,17 +46,24 @@ export function DiscoverPage() {
         ))}
       </div>
 
-      {tab === 'tiers' && <TierListsHub />}
+      <div className="flex flex-col gap-8 min-[1100px]:grid min-[1100px]:grid-cols-[1.65fr_1fr] min-[1100px]:items-start min-[1100px]:gap-0">
+        <section className={`flex-col gap-3 min-[1100px]:flex ${tab === 'tiers' ? 'flex' : 'hidden'}`}>
+          <h2 className="sr-only">Tier Lists</h2>
+          <DiscoverTierPreview />
+        </section>
 
-      {tab !== 'tiers' && (
-        <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
-          <p className="font-display text-base font-semibold text-textPrimary">Bientôt disponible</p>
-          <p className="mt-1.5 text-sm text-textDim">
-            {tab === 'opps' && "Les opportunités d'achat pertinentes pour ta collection arrivent bientôt ici."}
-            {tab === 'releases' && 'Les prochaines sorties des séries que tu suis arrivent bientôt ici.'}
-          </p>
-        </div>
-      )}
+        <section
+          className={`flex-col gap-3 min-[1100px]:flex min-[1100px]:border-l min-[1100px]:border-surface2 min-[1100px]:pl-7 ${tab === 'opps' ? 'flex' : 'hidden'}`}
+        >
+          <DiscoverOpportunitiesPreview />
+        </section>
+
+        <section
+          className={`flex-col gap-3 min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:border-t min-[1100px]:border-surface2 min-[1100px]:pt-6 ${tab === 'releases' ? 'flex' : 'hidden'}`}
+        >
+          <DiscoverReleasesPanel />
+        </section>
+      </div>
     </div>
   )
 }
