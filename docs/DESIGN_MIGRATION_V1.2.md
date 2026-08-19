@@ -45,16 +45,27 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 ## Lots (ordre d'exécution, un commit séparé par lot)
 
 0. Audit + matrice (ce document) — **fait**
-1. Foundations : tokens (palette terracotta clair+sombre, 4 niveaux texte, ombres), primitive `Button`, focus ring
-2. Shell : nav 3 destinations + Heart + Profil avatar, desktop + mobile, route `Découvrir` (squelette)
-3. Ma Collection : rails par catégorie, cards, filtres état
-4. Fiche Manga : hero, éditions, tomes (mesures), "Mes classements" (placeholder tant que Lot 7 n'existe pas)
-5. Recherche : audit + alignement 4 actions, hiérarchie résultats
-6. Découvrir : layout desktop 60/40, Opportunités (adapté de Suggestions), Sorties (à créer/bloquer selon audit)
-7. Tier Lists : nouveau domaine backend + frontend (le plus gros lot)
-8. Pages secondaires : Wishlist, Valeur, Import, Profil, Paramètres, Admin
-9. Accessibilité transversale
-10. Responsive + QA visuelle finale vs maquettes, rapport final
+1. Foundations : tokens (palette terracotta clair+sombre, 4 niveaux texte, ombres), focus ring, `lib/theme.ts` — **fait** (`0a3b237`)
+2. Shell : nav 3 destinations + Heart + Profil avatar, desktop + mobile, route `Découvrir` (squelette) — **fait** (`87cf993`)
+3. Ma Collection : rails par catégorie, cards, filtres état — **fait** (`49129e8` + `fadd9ae`)
+4. Fiche Manga : "Mes classements" (placeholder), "Évaluer une annonce" — **fait** (`17e33b5`)
+5. Recherche : titre + points d'entrée réels — **fait, portée réduite** (`0d6c015`) — voir note ci-dessous, décision à confirmer avant d'aller plus loin sur cet écran
+6. Découvrir : layout desktop 60/40, Opportunités (adapté de Suggestions), Sorties (à créer/bloquer selon audit) — **pas commencé**
+7. Tier Lists : nouveau domaine backend + frontend (le plus gros lot, migration DB) — **pas commencé**
+8. Pages secondaires : Wishlist, Valeur, Import, Profil, Paramètres, Admin — **pas commencé**
+9. Accessibilité transversale — **pas commencé**
+10. Responsive + QA visuelle finale vs maquettes, rapport final — **pas commencé**
+
+### Note Lot 5 — décision en attente
+
+`QuickAddPage.tsx` (968 lignes) est un formulaire continu très finement
+ajusté (débounce, résolution titre français, correspondance tome/jaquette,
+gestion de quota). La maquette V1.2 décrit un modèle structurellement
+différent (liste de résultats groupés → écran séparé de sélection des
+tomes). Seul un alignement sûr (titre, points d'entrée réels) a été fait ;
+la restructuration complète n'a pas été tentée - risque réel de casser un
+parcours mûr, à traiter comme un chantier à part avec validation explicite
+avant de s'y engager plutôt que rushé dans ce lot.
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
