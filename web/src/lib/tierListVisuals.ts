@@ -34,3 +34,15 @@ export function boardPreviewRows(board: GeneralBoardDto | undefined, maxRows = 3
     .slice(0, maxRows)
     .map((r) => ({ rank: r.rank, covers: r.entries.slice(0, maxCoversPerRow).map((e) => e.coverImageUrl) }))
 }
+
+/** Jaquettes des N premières œuvres classées (tous rangs confondus, ordre
+ * S->F) - pour une rangée compacte "aperçu Tier Lists" (voir ProfilePage)
+ * où le rang lui-même n'est pas montré, juste "X classés" + un aperçu
+ * visuel. Distinct de boardPreviewRows (qui groupe PAR rang) - ici on veut
+ * un flux plat de jaquettes, peu importe le rang. */
+export function flatRankedCovers(board: GeneralBoardDto | undefined, max = 3): (string | null)[] {
+  if (!board) return []
+  return RANKS.flatMap((rank) => board.ranked[rank] ?? [])
+    .slice(0, max)
+    .map((e) => e.coverImageUrl)
+}
