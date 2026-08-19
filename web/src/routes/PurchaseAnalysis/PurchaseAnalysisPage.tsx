@@ -167,8 +167,8 @@ export function PurchaseAnalysisPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <div className="flex flex-1 flex-col gap-1.5">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
               <label className="text-xs text-textDim" htmlFor="askingPrice">
                 Prix demandé (€)
               </label>
@@ -180,10 +180,10 @@ export function PurchaseAnalysisPage() {
                 value={askingPrice}
                 onChange={(e) => setAskingPrice(e.target.value)}
                 placeholder="ex: 216"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
+            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
               <label className="text-xs text-textDim" htmlFor="shippingFee">
                 Frais de port (€)
               </label>
@@ -195,10 +195,10 @@ export function PurchaseAnalysisPage() {
                 value={shippingFee}
                 onChange={(e) => setShippingFee(e.target.value)}
                 placeholder="0"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
+            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
               <label className="text-xs text-textDim" htmlFor="buyerProtectionFee">
                 Protection acheteur (€)
               </label>
@@ -210,7 +210,7 @@ export function PurchaseAnalysisPage() {
                 value={buyerProtectionFee}
                 onChange={(e) => setBuyerProtectionFee(e.target.value)}
                 placeholder="0"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
             </div>
           </div>
@@ -276,8 +276,8 @@ export function PurchaseAnalysisPage() {
         <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
           <h2 className="font-display text-sm font-semibold text-textPrimary">Contenu du lot</h2>
 
-          <div className="flex items-end gap-2">
-            <div className="flex flex-1 flex-col gap-1.5">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex min-w-[140px] flex-1 flex-col gap-1.5">
               <label className="text-xs text-textDim" htmlFor="itemSeries">
                 Série
               </label>
@@ -286,11 +286,11 @@ export function PurchaseAnalysisPage() {
                 value={seriesTitle}
                 onChange={(e) => setSeriesTitle(e.target.value)}
                 placeholder="ex: 20th Century Boys"
-                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="w-full rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
+            <div className="flex min-w-[140px] flex-1 flex-col gap-1.5">
               <label className="text-xs text-textDim" htmlFor="itemEdition">
                 Édition
               </label>
@@ -299,32 +299,36 @@ export function PurchaseAnalysisPage() {
                 value={editionName}
                 onChange={(e) => setEditionName(e.target.value)}
                 placeholder="ex: Perfect Edition"
-                className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="w-full rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="itemVolumes">
-                Tomes
-              </label>
-              <input
-                id="itemVolumes"
-                value={volumesText}
-                onChange={(e) => setVolumesText(e.target.value)}
-                placeholder="1-11"
-                className="w-24 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                autoComplete="off"
-              />
+            {/* Tomes + bouton restent groupés (jamais séparés par le wrap - le
+                bouton valide la ligne entière, pas seulement ce champ) */}
+            <div className="flex items-end gap-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-textDim" htmlFor="itemVolumes">
+                  Tomes
+                </label>
+                <input
+                  id="itemVolumes"
+                  value={volumesText}
+                  onChange={(e) => setVolumesText(e.target.value)}
+                  placeholder="1-11"
+                  className="w-24 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  autoComplete="off"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={queueItem}
+                disabled={!seriesTitle.trim() || !editionName.trim() || parsedVolumes.length === 0}
+                title="Ajouter cette série au lot - pratique pour enchaîner plusieurs séries avant de valider"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
+              >
+                <Plus size={16} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={queueItem}
-              disabled={!seriesTitle.trim() || !editionName.trim() || parsedVolumes.length === 0}
-              title="Ajouter cette série au lot - pratique pour enchaîner plusieurs séries avant de valider"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
-            >
-              <Plus size={16} />
-            </button>
           </div>
           <p className="text-xs text-textDim">Tomes : ex. "1-11" pour une plage, "1,3,5-9" pour plusieurs</p>
 
