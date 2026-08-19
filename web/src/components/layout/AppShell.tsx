@@ -43,7 +43,7 @@ const CONTAINER_CLASS: Record<ContentWidth, string> = {
  * deux derniers tant que leur propre mise en page n'est pas retravaillée
  * (voir EntityDetailPage - hors périmètre pour l'instant). */
 function contentWidthFor(pathname: string): ContentWidth {
-  if (pathname === '/' || pathname.startsWith('/entity/')) return 'wide'
+  if (pathname === '/' || pathname.startsWith('/entity/') || pathname.startsWith('/discover')) return 'wide'
   return 'narrow'
 }
 

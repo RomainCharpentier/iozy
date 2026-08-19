@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, BarChart3, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, ChevronRight } from 'lucide-react'
+import { Star, BarChart3, Scale, HandHeart, Sparkles, TrendingUp, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
 
 interface ProfileLink {
   to: string
@@ -25,6 +25,11 @@ const LINKS: ProfileLink[] = [
   { to: '/loans', label: 'Prêts en cours', description: 'À qui un manga ou un jeu a été prêté', icon: HandHeart },
   { to: '/stats', label: 'Statistiques', description: 'Vue d\'ensemble de ta collection', icon: BarChart3 },
   { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
+  // Paramètres a quitté la navigation principale (voir la maquette V1.2 -
+  // seules Ma collection/Rechercher/Découvrir y restent, voir
+  // docs/DESIGN_MIGRATION_V1.2.md Lot 2) : seul point d'entrée désormais,
+  // cohérent avec "Profil accessible via l'avatar, Paramètres depuis Profil".
+  { to: '/settings', label: 'Paramètres', description: 'Apparence, titres des mangas, administration avancée', icon: Settings2 },
 ]
 
 export function ProfilePage() {
