@@ -57,4 +57,10 @@ export const queryKeys = {
     byEntity: (entityId: string) => ['editionUpgradeWishes', 'entity', entityId] as const,
     all: ['editionUpgradeWishes', 'all'] as const,
   },
+  tierLists: {
+    general: (entityTypeId: string) => ['tierLists', 'general', entityTypeId] as const,
+    custom: (entityTypeId: string) => ['tierLists', 'custom', entityTypeId] as const,
+    detail: (id: string) => ['tierLists', 'detail', id] as const,
+    entitySummary: (entityId: string) => ['tierLists', 'entitySummary', entityId] as const,
+  },
 } as const

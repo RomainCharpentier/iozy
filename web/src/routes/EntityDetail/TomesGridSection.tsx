@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Check, Plus } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { Check, ListOrdered, Plus } from 'lucide-react'
 import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
+import { getEntityTierSummary, setGeneralRank } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
@@ -9,7 +11,95 @@ import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
 import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
+import { TierBadge } from '../TierLists/TierBadge'
+import { TierPicker } from '../TierLists/TierPicker'
+import { RANKS, type Rank } from '../../types/tierList'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
+
+/**
+ * "Mes classements" (voir DS v1.1 §52) : rang général visuellement dominant
+ * (voir TierListService.customRanksFor côté backend, même commentaire) + les
+ * Tier Lists personnalisées où cette œuvre est RÉELLEMENT classée. Rang
+ * général géré ICI (au niveau Entity, pas Variant/tome - un classement porte
+ * sur la série/l'œuvre entière, jamais un tome individuel), via le même
+ * TierPicker que les boards (voir CustomTierBoardPage/GeneralTierBoardPage).
+ */
+function TierSummarySection({ entityId, entityTitle, coverImageUrl }: { entityId: string; entityTitle: string; coverImageUrl: string | null }) {
+  const queryClient = useQueryClient()
+  const [picking, setPicking] = useState(false)
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.tierLists.entitySummary(entityId),
+    queryFn: () => getEntityTierSummary(entityId),
+  })
+
+  const rankMutation = useMutation({
+    mutationFn: (rank: Rank | null) => setGeneralRank(entityId, rank),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(entityId) })
+      setPicking(false)
+    },
+  })
+
+  const generalRank = summaryQuery.data?.generalRank ?? null
+  const customRanks = summaryQuery.data?.customRanks ?? []
+
+  return (
+    <section className="flex flex-col gap-3 border-t border-surface pt-4">
+      <h2 className="font-display text-lg font-semibold text-textPrimary">Mes classements</h2>
+
+      {summaryQuery.isLoading ? (
+        <p className="text-sm text-textDim">Chargement...</p>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setPicking(true)}
+            className="flex w-fit items-center gap-3 rounded-xl border border-surface2 bg-surface p-3 text-left transition-transform hover:-translate-y-0.5"
+          >
+            {generalRank ? (
+              <TierBadge rank={generalRank} />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed border-lineStrong text-textDim">
+                <ListOrdered size={16} />
+              </span>
+            )}
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-textPrimary">{generalRank ? 'Rang général' : 'Non classée'}</span>
+              <span className="text-xs text-textDim">{generalRank ? 'Modifier le classement' : 'Classer cette œuvre'}</span>
+            </span>
+          </button>
+
+          {customRanks.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {customRanks.map((entry) => (
+                <Link
+                  key={entry.tierListId}
+                  to={`/tier-lists/${entry.tierListId}`}
+                  className="flex items-center gap-2 rounded-full border border-surface2 bg-surface py-1 pr-3 pl-1 text-xs font-medium text-textPrimary transition-colors hover:bg-rowHover"
+                >
+                  <TierBadge rank={entry.rank} size="compact" />
+                  {entry.tierListName}
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {picking && (
+        <TierPicker
+          open
+          onClose={() => setPicking(false)}
+          title={entityTitle}
+          coverImageUrl={coverImageUrl}
+          activeRanks={RANKS}
+          currentRank={generalRank}
+          onSelect={(rank) => rankMutation.mutate(rank)}
+        />
+      )}
+    </section>
+  )
+}
 
 export interface TomeTile {
   volumeNumber: number
@@ -266,18 +356,9 @@ export function TomesGridSection({
 
       {/* "Mes classements" : section à part entière AVANT "À propos" (voir la
           maquette V1.2, §30 dans le fichier source - "son propre panneau,
-          pour garder l'ordre fixe"). Contenu volontairement pas encore
-          câblé : Tier Lists n'a aucun support backend aujourd'hui (nouveau
-          domaine, voir docs/DESIGN_MIGRATION_V1.2.md Lot 7) - un placeholder
-          honnête plutôt qu'un classement inventé. La structure (section à sa
-          place, avant À propos) est déjà correcte pour quand Lot 7
-          branchera le vrai contenu. */}
-      <section className="flex flex-col gap-2 border-t border-surface pt-4">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Mes classements</h2>
-        <div className="rounded-xl border border-dashed border-surface2 p-4">
-          <p className="text-sm text-textDim">Classer tes séries par rang (S à F) arrive dans une prochaine mise à jour.</p>
-        </div>
-      </section>
+          pour garder l'ordre fixe"). Vrai contenu Tier Lists (voir
+          TierSummarySection ci-dessus, Lot 7). */}
+      <TierSummarySection entityId={entityId} entityTitle={entityTitle} coverImageUrl={coverImageUrlFrom(entityAttributes)} />
 
       {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la
           maquette validée) - chaque paire libellé/valeur est son propre bloc,

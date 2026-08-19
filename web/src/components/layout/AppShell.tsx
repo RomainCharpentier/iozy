@@ -47,7 +47,8 @@ function contentWidthFor(pathname: string): ContentWidth {
     pathname === '/' ||
     pathname.startsWith('/entity/') ||
     pathname.startsWith('/discover') ||
-    pathname.startsWith('/collection/')
+    pathname.startsWith('/collection/') ||
+    pathname.startsWith('/tier-lists/')
   )
     return 'wide'
   return 'narrow'
