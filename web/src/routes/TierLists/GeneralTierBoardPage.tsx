@@ -39,9 +39,9 @@ export function GeneralTierBoardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <button type="button" onClick={() => navigate('/discover')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      <button type="button" onClick={() => navigate('/tier-lists')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
         <ArrowLeft size={15} />
-        Découvrir
+        Tier Lists
       </button>
 
       <div className="flex items-center gap-2.5">

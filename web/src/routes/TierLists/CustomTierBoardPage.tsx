@@ -36,7 +36,7 @@ export function CustomTierBoardPage() {
     mutationFn: () => deleteTierList(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.custom(detailQuery.data!.list.entityTypeId) })
-      navigate('/discover')
+      navigate('/tier-lists')
     },
   })
 
@@ -48,9 +48,9 @@ export function CustomTierBoardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <button type="button" onClick={() => navigate('/discover')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      <button type="button" onClick={() => navigate('/tier-lists')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
         <ArrowLeft size={15} />
-        Découvrir
+        Tier Lists
       </button>
 
       <div className="flex items-start justify-between gap-3">

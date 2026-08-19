@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Check, ListOrdered, Plus } from 'lucide-react'
+import { Check, Plus, Sparkles } from 'lucide-react'
 import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
 import { getEntityTierSummary, setGeneralRank } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
@@ -24,7 +24,17 @@ import type { OwnershipResponse, VariantDto } from '../../types/api'
  * sur la série/l'œuvre entière, jamais un tome individuel), via le même
  * TierPicker que les boards (voir CustomTierBoardPage/GeneralTierBoardPage).
  */
-function TierSummarySection({ entityId, entityTitle, coverImageUrl }: { entityId: string; entityTitle: string; coverImageUrl: string | null }) {
+function TierSummarySection({
+  entityId,
+  entityTitle,
+  entityTypeLabel,
+  coverImageUrl,
+}: {
+  entityId: string
+  entityTitle: string
+  entityTypeLabel: string | null
+  coverImageUrl: string | null
+}) {
   const queryClient = useQueryClient()
   const [picking, setPicking] = useState(false)
   const summaryQuery = useQuery({
@@ -47,44 +57,64 @@ function TierSummarySection({ entityId, entityTitle, coverImageUrl }: { entityId
     <section className="flex flex-col gap-3 border-t border-surface pt-4">
       <h2 className="font-display text-lg font-semibold text-textPrimary">Mes classements</h2>
 
-      {summaryQuery.isLoading ? (
-        <p className="text-sm text-textDim">Chargement...</p>
-      ) : (
-        <>
-          <button
-            type="button"
-            onClick={() => setPicking(true)}
-            className="flex w-fit items-center gap-3 rounded-xl border border-surface2 bg-surface p-3 text-left transition-transform hover:-translate-y-0.5"
-          >
-            {generalRank ? (
-              <TierBadge rank={generalRank} />
-            ) : (
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed border-lineStrong text-textDim">
-                <ListOrdered size={16} />
-              </span>
-            )}
-            <span className="flex flex-col">
-              <span className="text-sm font-semibold text-textPrimary">{generalRank ? 'Rang général' : 'Non classée'}</span>
-              <span className="text-xs text-textDim">{generalRank ? 'Modifier le classement' : 'Classer cette œuvre'}</span>
-            </span>
-          </button>
+      <div className="rounded-2xl border border-surface2 bg-surface p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <span className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Mon classement</span>
+          <Link to="/tier-lists" className="min-h-9 text-xs font-semibold text-accentText">
+            Toutes mes Tier Lists
+          </Link>
+        </div>
 
-          {customRanks.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {customRanks.map((entry) => (
-                <Link
-                  key={entry.tierListId}
-                  to={`/tier-lists/${entry.tierListId}`}
-                  className="flex items-center gap-2 rounded-full border border-surface2 bg-surface py-1 pr-3 pl-1 text-xs font-medium text-textPrimary transition-colors hover:bg-rowHover"
-                >
-                  <TierBadge rank={entry.rank} size="compact" />
-                  {entry.tierListName}
-                </Link>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        {summaryQuery.isLoading ? (
+          <p className="mt-3 text-sm text-textDim">Chargement...</p>
+        ) : generalRank ? (
+          <div className="mt-3 flex items-center gap-3">
+            <TierBadge rank={generalRank} />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-sm font-semibold text-textPrimary">
+                {entityTypeLabel ? `${entityTypeLabel} — général` : 'Classement général'}
+              </span>
+              <span className="text-xs text-textDim">Ton jugement, pas une note publique.</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="shrink-0 rounded-xl border border-fieldBorder bg-surface2 px-3.5 py-2.5 text-xs font-semibold text-textPrimary transition-colors hover:bg-rowHover"
+            >
+              Modifier
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="flex min-h-11 items-center rounded-xl border border-dashed border-fieldBorder bg-surface2 px-3.5 text-sm font-semibold text-textDim">
+              Non classée
+            </span>
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentText transition-transform hover:-translate-y-0.5"
+            >
+              <Sparkles size={15} />
+              Classer cette œuvre
+            </button>
+          </div>
+        )}
+
+        {customRanks.length > 0 && (
+          <div className="mt-3.5 flex flex-col gap-1 border-t border-surface pt-3">
+            {customRanks.map((entry) => (
+              <Link
+                key={entry.tierListId}
+                to={`/tier-lists/${entry.tierListId}`}
+                className="flex items-center gap-2.5 rounded-lg py-1 text-sm text-textPrimary transition-colors hover:text-accentText"
+              >
+                <TierBadge rank={entry.rank} size="compact" />
+                {entry.tierListName}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       {picking && (
         <TierPicker
@@ -230,6 +260,7 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
 export function TomesGridSection({
   entityId,
   entityTypeId,
+  entityTypeLabel,
   entityTitle,
   entityAttributes,
   variants,
@@ -243,6 +274,10 @@ export function TomesGridSection({
   // Pour AddOwnershipForm/VariantCoverEditor (voir VolumeInteractionPanel) -
   // quickAdd/searchVolumes en ont besoin comme partout ailleurs dans l'app.
   entityTypeId: string
+  // Uniquement pour la ligne "{type} — général" de Mes classements (voir
+  // TierSummarySection) - null tant que EntityDetailPage n'a pas fini de
+  // résoudre les types (jamais bloquant, juste un intitulé générique en repli).
+  entityTypeLabel: string | null
   entityTitle: string
   // Uniquement pour "Statut" dans "À propos" (voir isSeriesOngoing) - le
   // reste de cette section lit déjà ses propres données (editionInfo/
@@ -358,7 +393,12 @@ export function TomesGridSection({
           maquette V1.2, §30 dans le fichier source - "son propre panneau,
           pour garder l'ordre fixe"). Vrai contenu Tier Lists (voir
           TierSummarySection ci-dessus, Lot 7). */}
-      <TierSummarySection entityId={entityId} entityTitle={entityTitle} coverImageUrl={coverImageUrlFrom(entityAttributes)} />
+      <TierSummarySection
+        entityId={entityId}
+        entityTitle={entityTitle}
+        entityTypeLabel={entityTypeLabel}
+        coverImageUrl={coverImageUrlFrom(entityAttributes)}
+      />
 
       {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la
           maquette validée) - chaque paire libellé/valeur est son propre bloc,

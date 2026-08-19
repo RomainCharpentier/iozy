@@ -25,6 +25,7 @@ import { DiscoverPage } from './routes/Discover/DiscoverPage'
 import { CategoryPage } from './routes/Shelf/CategoryPage'
 import { GeneralTierBoardPage } from './routes/TierLists/GeneralTierBoardPage'
 import { CustomTierBoardPage } from './routes/TierLists/CustomTierBoardPage'
+import { TierListsScreen } from './routes/TierLists/TierListsScreen'
 
 /** /public/wishlist/:token vit hors AppShell (voir SharedWishlistPage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de compte et ne doit
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/add/draft" element={<AddDraftPage />} />
               <Route path="/entity/:id" element={<EntityDetailPage />} />
               <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/tier-lists" element={<TierListsScreen />} />
               <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
               <Route path="/tier-lists/:id" element={<CustomTierBoardPage />} />
               <Route path="/collection/:entityTypeId" element={<CategoryPage />} />
