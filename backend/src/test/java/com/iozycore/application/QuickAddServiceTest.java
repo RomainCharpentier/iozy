@@ -311,6 +311,11 @@ class QuickAddServiceTest {
         }
 
         @Override
+        public List<MangaEdition> findAll() {
+            return List.copyOf(store.values());
+        }
+
+        @Override
         public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
             return store.values().stream()
                     .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle) && e.editionName().equalsIgnoreCase(editionName))

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 @Transactional
@@ -40,6 +41,13 @@ public class JpaMangaEditionRepositoryAdapter implements MangaEditionRepository 
         return jpaRepository.findBySeriesTitleIgnoreCase(seriesTitle).stream()
                 .map(MangaEditionMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public List<MangaEdition> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(MangaEditionMapper::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override

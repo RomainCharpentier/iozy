@@ -160,6 +160,15 @@ public class PurchaseAnalysisService {
         return byTitle.map(edition -> linkToKnownEntityIfNeeded(edition, entityId));
     }
 
+    /** Toutes les éditions connues, toutes séries confondues - pour un écran qui
+     * affiche la progression de PLUSIEURS séries d'un coup (Ma collection) sans
+     * un appel par tuile. Aucun filtrage/enrichissement : c'est une lecture
+     * brute du référentiel, volontairement distincte de {@link #findEdition},
+     * qui elle rattache opportunément une édition à une Série. */
+    public List<MangaEdition> findAllEditions() {
+        return mangaEditionRepository.findAll();
+    }
+
     /** Même principe que {@link #findEdition} : par ID quand connu (jamais de repli texte dans ce cas,
      * contrairement à {@link #findEdition} - une liste "toutes les éditions rattachées" n'a pas de
      * raison de se compléter avec un résultat de correspondance textuelle une fois l'ID disponible). */

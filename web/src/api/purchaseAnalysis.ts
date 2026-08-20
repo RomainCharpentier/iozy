@@ -81,6 +81,14 @@ export function getCompleteness(
   )
 }
 
+/** Toutes les éditions connues, toutes séries confondues - une seule requête pour
+ * afficher la progression PAR ÉDITION de plusieurs séries d'un coup (voir Ma
+ * collection, editionTotals). Le référentiel est petit par nature : une ligne par
+ * édition réellement renseignée. */
+export function listAllEditions(): Promise<MangaEditionDto[]> {
+  return get<MangaEditionDto[]>('/purchase-analysis/editions/all')
+}
+
 /** "Suggestions d'achats" (Mon profil) - triées côté backend par nombre de tomes manquants croissant. */
 export function getNearCompleteSuggestions(): Promise<NearCompleteSuggestionDto[]> {
   return get<NearCompleteSuggestionDto[]>('/purchase-analysis/near-complete-suggestions')

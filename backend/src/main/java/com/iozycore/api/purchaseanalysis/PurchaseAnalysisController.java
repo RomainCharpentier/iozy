@@ -118,6 +118,14 @@ public class PurchaseAnalysisController {
                         "No known edition \"" + editionName + "\" for series \"" + seriesTitle + "\""));
     }
 
+    @Operation(summary = "Every known edition, all series confounded - powers the per-EDITION progression shown on "
+            + "Ma collection, which lists many series at once (one request instead of one per tile). The edition "
+            + "reference data is small by nature: one row per edition actually filled in, never a bulk table.")
+    @GetMapping("/editions/all")
+    public List<MangaEdition> allEditions() {
+        return service.findAllEditions();
+    }
+
     @Operation(summary = "All known editions of a series - powers \"a Perfect edition exists for this work\" "
             + "warnings. entityId (optional), when given, is used exclusively (no text-matching fallback): only "
             + "editions actually linked to this Série.")
