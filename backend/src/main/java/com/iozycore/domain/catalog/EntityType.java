@@ -20,7 +20,8 @@ public record EntityType(
         Set<String> allowedExperienceTypes,
         Set<String> customFieldKeys,
         String colorKey,
-        String iconKey
+        String iconKey,
+        String aspectKey
 ) {
 
     /** Constructeur historique (sans identité visuelle) - conservé pour que les
@@ -28,7 +29,13 @@ public record EntityType(
      * null = le client retombe sur son visuel par défaut. */
     public EntityType(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                        Set<String> customFieldKeys) {
-        this(id, code, label, allowedExperienceTypes, customFieldKeys, null, null);
+        this(id, code, label, allowedExperienceTypes, customFieldKeys, null, null, null);
+    }
+
+    /** Signature d'avant le format de jaquette - même rôle que celle ci-dessus. */
+    public EntityType(UUID id, String code, String label, Set<String> allowedExperienceTypes,
+                       Set<String> customFieldKeys, String colorKey, String iconKey) {
+        this(id, code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey, null);
     }
 
     public EntityType {
@@ -52,6 +59,7 @@ public record EntityType(
         // une couleur qui ne saurait pas s'adapter au thème.
         colorKey = normalizeKey(colorKey);
         iconKey = normalizeKey(iconKey);
+        aspectKey = normalizeKey(aspectKey);
     }
 
     private static String normalizeKey(String key) {
@@ -65,13 +73,14 @@ public record EntityType(
     /** Crée un nouveau type (id généré, code normalisé). */
     public static EntityType create(String code, String label, Set<String> allowedExperienceTypes,
                                      Set<String> customFieldKeys) {
-        return create(code, label, allowedExperienceTypes, customFieldKeys, null, null);
+        return create(code, label, allowedExperienceTypes, customFieldKeys, null, null, null);
     }
 
     /** Variante avec identité visuelle choisie (voir colorKey/iconKey). */
     public static EntityType create(String code, String label, Set<String> allowedExperienceTypes,
-                                     Set<String> customFieldKeys, String colorKey, String iconKey) {
-        return new EntityType(UUID.randomUUID(), code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey);
+                                     Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
+        return new EntityType(UUID.randomUUID(), code, label, allowedExperienceTypes, customFieldKeys, colorKey,
+                iconKey, aspectKey);
     }
 
     /** Reconstruit un type depuis la persistance (mêmes garanties que {@link #create}, id conservé). */
@@ -81,8 +90,9 @@ public record EntityType(
     }
 
     public static EntityType reconstitute(UUID id, String code, String label, Set<String> allowedExperienceTypes,
-                                           Set<String> customFieldKeys, String colorKey, String iconKey) {
-        return new EntityType(id, code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey);
+                                           Set<String> customFieldKeys, String colorKey, String iconKey,
+                                           String aspectKey) {
+        return new EntityType(id, code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey, aspectKey);
     }
 
     /** Retourne une copie avec le label/schema modifiés - le code ne change jamais après création
@@ -90,15 +100,19 @@ public record EntityType(
      * des attributs déjà enregistrés sous l'ancien code). */
     public EntityType withUpdatedFields(String newLabel, Set<String> newAllowedExperienceTypes,
                                          Set<String> newCustomFieldKeys) {
-        return withUpdatedFields(newLabel, newAllowedExperienceTypes, newCustomFieldKeys, colorKey, iconKey);
+        return withUpdatedFields(newLabel, newAllowedExperienceTypes, newCustomFieldKeys, colorKey, iconKey, aspectKey);
     }
 
     /** Variante qui touche aussi l'identité visuelle - null y signifie "retour
      * au visuel par défaut", jamais "inchangé" : l'appelant envoie l'état voulu
-     * en entier (voir EntityTypeController.update). */
+     * en entier (voir EntityTypeController.update). {@code aspectKey} : format
+     * de jaquette (une pochette de vinyle est carrée, un boîtier de jeu ne
+     * l'est pas) - même nature de clé que les deux autres. */
     public EntityType withUpdatedFields(String newLabel, Set<String> newAllowedExperienceTypes,
-                                         Set<String> newCustomFieldKeys, String newColorKey, String newIconKey) {
-        return new EntityType(id, code, newLabel, newAllowedExperienceTypes, newCustomFieldKeys, newColorKey, newIconKey);
+                                         Set<String> newCustomFieldKeys, String newColorKey, String newIconKey,
+                                         String newAspectKey) {
+        return new EntityType(id, code, newLabel, newAllowedExperienceTypes, newCustomFieldKeys, newColorKey,
+                newIconKey, newAspectKey);
     }
 
     public boolean allows(String experienceType) {

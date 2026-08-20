@@ -70,6 +70,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 20. Fiche : un seul bloc "L'œuvre", possession et métadonnées enfin distinctes — **fait** — voir ci-dessous
 21. Numéro d'un tome corrigeable — **fait** — voir ci-dessous
 22. Couleur et icône d'un type de collection — **fait** — voir ci-dessous
+23. Format de jaquette d'un type de collection — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -535,6 +536,35 @@ auxiliaire** à l'ancienne signature, si bien qu'aucun appelant existant
 Vérifié en direct : type "Vinyles" créé en violet + icône disque, titre de sa
 page catégorie rendu en `#a48fd1` (la variante SOMBRE du violet, donc
 thème-réactive), puis type supprimé - collection revenue à ses 3 types.
+
+### Lot 23 — format de jaquette d'un type
+
+Troisième attribut visuel après la couleur et l'icône (Lot 22), même patron :
+migration **V16** additive (`entity_type.aspect_key`, NULL = format par
+défaut), une CLÉ en base ("carre") et jamais une valeur de rendu
+("aspect-square") - le vocabulaire de classes d'un client n'a rien à faire
+dans le domaine.
+
+Quatre formats : Portrait (2/3, livres/mangas), Boîtier (3/4, jeux vidéo),
+Carré (1/1, vinyles/jeux de société), Paysage (16/9). Fermé pour une raison
+technique en plus des raisons d'usage : une classe Tailwind construite
+dynamiquement (`aspect-[${ratio}]`) n'existerait tout simplement pas dans le
+CSS produit, seul un littéral écrit dans le source est extrait. Le sélecteur
+montre la FORME réelle plutôt que le nom seul - "3/4" ne dit rien tant qu'on
+ne l'a pas vu à côté d'un carré.
+
+`EntityType` gagne un troisième composant, avec un constructeur auxiliaire de
+plus (celui d'avant le format) : là encore aucun appelant existant n'a bougé.
+
+Vérifié en direct : type "Vinyles" en violet/disque/carré, un élément ajouté,
+tuile rendue en `aspect-square` dans Ma collection quand celle d'un manga
+reste en `aspect-[2/3]` - puis élément et type supprimés.
+
+Piège de séance à noter : le fichier de migration V16 avait d'abord été créé
+dans une commande chaînée après un script qui a échoué (`&&`), donc jamais
+écrit - Flyway annonçait tranquillement "15 migrations, schéma à jour" et la
+colonne manquait. Toujours vérifier la ligne "Successfully applied" après un
+ajout de migration, pas seulement l'absence d'erreur.
 
 ### Note Lot 5 — résolue
 

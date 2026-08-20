@@ -29,8 +29,9 @@ public class EntityTypeService {
 
     /** Variante avec identité visuelle - voir EntityType.colorKey/iconKey. */
     public EntityType create(String code, String label, Set<String> allowedExperienceTypes,
-                              Set<String> customFieldKeys, String colorKey, String iconKey) {
-        EntityType candidate = EntityType.create(code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey);
+                              Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
+        EntityType candidate = EntityType.create(code, label, allowedExperienceTypes, customFieldKeys, colorKey,
+                iconKey, aspectKey);
         entityTypeRepository.findByCode(candidate.code()).ifPresent(existing -> {
             throw new IllegalStateException("Un type avec le code " + candidate.code() + " existe déjà");
         });
@@ -38,16 +39,16 @@ public class EntityTypeService {
     }
 
     public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,
-                              Set<String> customFieldKeys, String colorKey, String iconKey) {
+                              Set<String> customFieldKeys, String colorKey, String iconKey, String aspectKey) {
         EntityType existing = entityTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
-        return entityTypeRepository.save(
-                existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey));
+        return entityTypeRepository.save(existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys,
+                colorKey, iconKey, aspectKey));
     }
 
     public EntityType create(String code, String label, Set<String> allowedExperienceTypes,
                               Set<String> customFieldKeys) {
-        return create(code, label, allowedExperienceTypes, customFieldKeys, null, null);
+        return create(code, label, allowedExperienceTypes, customFieldKeys, null, null, null);
     }
 
     public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,

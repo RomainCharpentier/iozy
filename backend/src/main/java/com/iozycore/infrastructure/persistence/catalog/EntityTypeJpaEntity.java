@@ -43,21 +43,26 @@ public class EntityTypeJpaEntity {
     @Column(name = "icon_key")
     private String iconKey;
 
+    @Column(name = "aspect_key")
+    private String aspectKey;
+
     protected EntityTypeJpaEntity() {
         // requis par JPA
     }
 
     public EntityTypeJpaEntity(UUID id, String code, String label, SchemaJson schema) {
-        this(id, code, label, schema, null, null);
+        this(id, code, label, schema, null, null, null);
     }
 
-    public EntityTypeJpaEntity(UUID id, String code, String label, SchemaJson schema, String colorKey, String iconKey) {
+    public EntityTypeJpaEntity(UUID id, String code, String label, SchemaJson schema, String colorKey, String iconKey,
+                                String aspectKey) {
         this.id = id;
         this.code = code;
         this.label = label;
         this.schema = schema;
         this.colorKey = colorKey;
         this.iconKey = iconKey;
+        this.aspectKey = aspectKey;
     }
 
     public UUID getId() { return id; }
@@ -66,4 +71,5 @@ public class EntityTypeJpaEntity {
     public SchemaJson getSchema() { return schema; }
     public String getColorKey() { return colorKey; }
     public String getIconKey() { return iconKey; }
+    public String getAspectKey() { return aspectKey; }
 }

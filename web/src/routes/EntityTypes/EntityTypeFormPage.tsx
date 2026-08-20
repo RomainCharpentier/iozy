@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { listEntityTypes, createEntityType, updateEntityType } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
-import { UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '../../lib/entityTypeVisuals'
+import { UNIVERSE_ASPECTS, UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '../../lib/entityTypeVisuals'
 import { ErrorBanner } from '../../components/ErrorBanner'
 
 interface EntityTypeFormPageProps {
@@ -43,6 +43,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
   // les deux thèmes, ce qu'un sélecteur libre ne peut pas garantir.
   const [colorKey, setColorKey] = useState<string | null>(null)
   const [iconKey, setIconKey] = useState<string | null>(null)
+  const [aspectKey, setAspectKey] = useState<string | null>(null)
   // Le code suit le label tant que l'utilisateur n'y a pas touché : l'aide
   // sous le champ promettait "normalisé automatiquement" alors qu'il fallait
   // inventer un code technique à la main (VINYLE, BOARD_GAME...). Une fois
@@ -59,6 +60,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
       setCustomFieldKeys(existing.customFieldKeys)
       setColorKey(existing.colorKey)
       setIconKey(existing.iconKey)
+      setAspectKey(existing.aspectKey)
     }
   }, [existing])
 
@@ -72,6 +74,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
             customFieldKeys,
             colorKey: colorKey ?? undefined,
             iconKey: iconKey ?? undefined,
+            aspectKey: aspectKey ?? undefined,
           })
         : updateEntityType(id!, {
             label: label.trim(),
@@ -79,6 +82,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
             customFieldKeys,
             colorKey: colorKey ?? undefined,
             iconKey: iconKey ?? undefined,
+            aspectKey: aspectKey ?? undefined,
           }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entityTypes.all })
@@ -189,6 +193,34 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm text-textDim">Format des jaquettes</span>
+          <div className="flex flex-wrap gap-3">
+            {UNIVERSE_ASPECTS.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                onClick={() => setAspectKey(aspectKey === entry.key ? null : entry.key)}
+                aria-pressed={aspectKey === entry.key}
+                title={entry.hint}
+                className="flex flex-col items-center gap-1.5"
+              >
+                {/* Un aperçu de la forme réelle plutôt qu'un nom seul : "3/4"
+                    ne dit rien tant qu'on ne l'a pas vu à côté d'un carré. */}
+                <span
+                  className={`w-12 rounded-lg ${entry.className} ${
+                    aspectKey === entry.key ? 'bg-accent ring-2 ring-accent ring-offset-2 ring-offset-background' : 'bg-surface2'
+                  }`}
+                />
+                <span className={`text-xs ${aspectKey === entry.key ? 'text-textPrimary' : 'text-textDim'}`}>
+                  {entry.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-textDim">Rien de sélectionné = portrait, le format par défaut.</p>
         </div>
 
         <ChipListField

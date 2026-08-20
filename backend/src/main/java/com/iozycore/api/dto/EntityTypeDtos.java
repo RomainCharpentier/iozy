@@ -12,12 +12,14 @@ public final class EntityTypeDtos {
 
     /** code est normalisé côté domaine (UPPER_SNAKE_CASE) - peu importe ce que le client envoie. */
     public record CreateEntityTypeRequest(String code, String label, Set<String> allowedExperienceTypes,
-                                           Set<String> customFieldKeys, String colorKey, String iconKey) {
+                                           Set<String> customFieldKeys, String colorKey, String iconKey,
+                                           String aspectKey) {
     }
 
     /** Le code n'est jamais modifiable après création (voir EntityType.withUpdatedFields). */
     public record UpdateEntityTypeRequest(String label, Set<String> allowedExperienceTypes,
-                                           Set<String> customFieldKeys, String colorKey, String iconKey) {
+                                           Set<String> customFieldKeys, String colorKey, String iconKey,
+                                           String aspectKey) {
     }
 
     /** hasMetadataProvider : au moins un MetadataProvider (Jikan/BGG/IGDB) supporte ce type - permet
@@ -28,10 +30,10 @@ public final class EntityTypeDtos {
      * c'est le client qui les traduit, et lui seul sait s'adapter au thème. */
     public record EntityTypeResponse(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                                       Set<String> customFieldKeys, boolean hasMetadataProvider,
-                                      String colorKey, String iconKey) {
+                                      String colorKey, String iconKey, String aspectKey) {
         public static EntityTypeResponse from(EntityType t, boolean hasMetadataProvider) {
             return new EntityTypeResponse(t.id(), t.code(), t.label(), t.allowedExperienceTypes(),
-                    t.customFieldKeys(), hasMetadataProvider, t.colorKey(), t.iconKey());
+                    t.customFieldKeys(), hasMetadataProvider, t.colorKey(), t.iconKey(), t.aspectKey());
         }
     }
 }
