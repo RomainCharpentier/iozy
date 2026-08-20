@@ -23,14 +23,34 @@ export class ApiError extends Error {
   }
 }
 
+// Repli quand le backend n'a pas fourni de message exploitable : statusText
+// vaut alors "Not Found"/"Forbidden", de l'anglais brut affiché tel quel dans
+// une interface entièrement en français (constaté sur la fiche d'une œuvre
+// supprimée). On traduit les statuts qu'un utilisateur peut réellement
+// rencontrer, et on garde le code pour les autres.
+const MESSAGES_PAR_STATUT: Record<number, string> = {
+  400: "Requête invalide.",
+  401: "Accès refusé.",
+  403: "Accès refusé.",
+  404: "Introuvable - cette donnée n'existe plus, ou le lien est erroné.",
+  409: "Opération impossible dans l'état actuel.",
+  500: "Erreur du serveur.",
+  503: "Service indisponible, réessayez dans un instant.",
+}
+
 async function extractErrorMessage(response: Response): Promise<string> {
   try {
     const body = await response.json()
-    if (typeof body?.error === 'string') return body.error
+    // Piège : l'enveloppe générique de Spring porte ELLE AUSSI un champ
+    // "error", qui n'y contient pas un message mais la phrase de statut HTTP
+    // ("Not Found"). La reconnaître à sa forme (timestamp + status + path)
+    // évite d'afficher cet anglais brut au lieu du repli traduit.
+    const enveloppeSpring = body && 'timestamp' in body && 'status' in body
+    if (!enveloppeSpring && typeof body?.error === 'string') return body.error
   } catch {
-    // pas de corps JSON exploitable, on retombe sur statusText plus bas
+    // pas de corps JSON exploitable, on retombe sur le repli ci-dessous
   }
-  return response.statusText || `Erreur ${response.status}`
+  return MESSAGES_PAR_STATUT[response.status] ?? `Erreur ${response.status}`
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {

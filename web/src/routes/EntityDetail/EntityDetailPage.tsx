@@ -113,7 +113,9 @@ export function EntityDetailPage() {
   })
   const activeEditionInfo = activeEditionInfoQuery.isSuccess ? activeEditionInfoQuery.data : null
 
-  if (entityQuery.isLoading) return <p className="text-textDim">Chargement...</p>
+  // isPending, pas isLoading : isLoading retombe à false entre deux tentatives
+  // (temporisation exponentielle), et la fiche affichait alors un écran vide.
+  if (entityQuery.isPending) return <p className="text-textDim">Chargement...</p>
   if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
   if (!entity) return null
 

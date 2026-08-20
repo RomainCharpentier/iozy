@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react'
  * pas de cache offline, on affiche juste le message d'erreur). */
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-pink/10 px-4 py-3 text-sm text-pink">
+    <div className="flex items-center gap-2 rounded-xl bg-dangerTint px-4 py-3 text-sm text-dangerText">
       <AlertTriangle size={16} className="shrink-0" />
       {message}
     </div>

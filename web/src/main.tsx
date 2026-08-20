@@ -17,7 +17,19 @@ import App from './App.tsx'
 // thème stocké (voir lib/theme.ts).
 applyStoredTheme()
 
-const queryClient = new QueryClient()
+// networkMode 'always' : par défaut, TanStack Query MET EN PAUSE toute requête
+// dès que navigator.onLine passe à false - la requête reste alors `pending` avec
+// un fetchStatus `paused`, donc `isLoading` vaut false (isLoading = isPending &&
+// isFetching) alors qu'aucune donnée n'arrivera jamais. Les écrans tombaient
+// dans leur garde "pas de données" et n'affichaient plus RIEN : ni chargement,
+// ni erreur (constaté sur la fiche d'œuvre, écran entièrement blanc).
+// Ce signal est de toute façon peu fiable (navigator.onLine ment dès qu'une
+// interface réseau existe) et sans intérêt ici : l'API est jointe en local, pas
+// à l'autre bout d'Internet. Sans pause, une requête échoue franchement,
+// remonte en `isError`, et les ErrorBanner déjà en place font leur travail.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { networkMode: 'always' }, mutations: { networkMode: 'always' } },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
