@@ -139,6 +139,28 @@ class OpenLibraryFrenchTitleProviderTest {
     }
 
     @Test
+    void refuses_a_result_without_a_tome_number_when_only_the_author_name_matched() throws Exception {
+        // Dernier recours "auteur seul" : rien de la série cherchée n'a
+        // matché, un livre sans numéro de tome y est presque toujours un
+        // artbook/guide/one-shot du même auteur - mieux vaut ne rien
+        // remonter que de faire passer "Les Sept Rejetons du dragon" pour le
+        // titre français de "Delicious in Dungeon". Le repli reste en place
+        // aux étapes qui, elles, ont bien matché la série (voir
+        // falls_back_to_the_first_result_when_none_has_an_extractable_tome_number).
+        OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
+        String body = """
+                {
+                  "docs": [
+                    { "title": "Les Sept Rejetons du dragon", "language": ["fre"] }
+                  ]
+                }
+                """;
+
+        assertThat(provider.parse(body, List.of(), true)).isEmpty();
+        assertThat(provider.parse(body, List.of(), false)).contains("Les Sept Rejetons du dragon");
+    }
+
+    @Test
     void skips_a_result_whose_title_is_actually_in_japanese_and_falls_through_to_the_next_one() throws Exception {
         // Cas réel trouvé en continuant les tests sur "Detective Conan" (voir
         // historique) : "language=fre" DANS LA REQUÊTE ne garantit QUE

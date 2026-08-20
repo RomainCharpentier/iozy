@@ -3,6 +3,7 @@ package com.iozycore.metadata.openlibrary;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.metadata.FrenchTitleMatch;
 import com.iozycore.metadata.FrenchTitleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,16 @@ import java.util.stream.Collectors;
  *       des Titans" - Open Library semble exiger que tous les termes de la
  *       requête apparaissent quelque part, donc plus la phrase est longue,
  *       moins elle a de chances de matcher une traduction ;</li>
- *   <li>auteur seul - dernier recours, accepte le risque de retomber sur
- *       l'œuvre la plus connue de l'auteur si rien d'autre n'a matché (voir
- *       limite similaire pour un mangaka très prolifique).</li>
+ *   <li>auteur seul - dernier recours, remonté en {@link
+ *       FrenchTitleMatch.Confidence#AUTHOR_ONLY} : rien de la série cherchée
+ *       n'a matché, ce n'est qu'un livre français de cet auteur. Deux
+ *       garde-fous encadrent ce recours - ici, seule une fiche de tome
+ *       NUMÉROTÉ est acceptée (voir {@link #parse}, {@code
+ *       requireVolumeNumber}) ; côté appelant, le titre est confronté au
+ *       catalogue avant d'être retenu (voir
+ *       MetadataSearchService.namesAnotherKnownWork) - sans quoi "Vagabond"
+ *       (Takehiko Inoue) se résolvait en "Slam Dunk", son œuvre la plus
+ *       connue, vérifié en direct (voir historique de la conversation).</li>
  * </ol>
  * Chercher par titre seul (sans auteur) ne fait que l'étape 1 : ça remonte
  * surtout du merchandising francophone (agendas, goodies) plutôt que les
@@ -98,14 +106,14 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     @Override
-    public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
+    public Optional<FrenchTitleMatch> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
         if (query == null || query.isBlank()) {
             return Optional.empty();
         }
 
-        Optional<String> exactMatch = search(combine(author, query), excludedTitleFragments);
+        Optional<String> exactMatch = search(combine(author, query), excludedTitleFragments, false);
         if (exactMatch.isPresent()) {
-            return exactMatch;
+            return exactMatch.map(FrenchTitleMatch::seriesMatched);
         }
 
         if (author == null || author.isBlank()) {
@@ -113,9 +121,9 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
         }
 
         for (String keyword : significantWords(query)) {
-            Optional<String> byKeyword = search(combine(author, keyword), excludedTitleFragments);
+            Optional<String> byKeyword = search(combine(author, keyword), excludedTitleFragments, false);
             if (byKeyword.isPresent()) {
-                return byKeyword;
+                return byKeyword.map(FrenchTitleMatch::seriesMatched);
             }
         }
 
@@ -125,7 +133,8 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
         if (isTooGenericForAuthorOnlySearch(author)) {
             return Optional.empty();
         }
-        return search(author, excludedTitleFragments);
+        // requireVolumeNumber : voir javadoc de la classe et de parse().
+        return search(author, excludedTitleFragments, true).map(FrenchTitleMatch::authorOnly);
     }
 
     /**
@@ -164,7 +173,7 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
                 .collect(Collectors.toList());
     }
 
-    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments) {
+    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments, boolean requireVolumeNumber) {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             HttpRequest request = HttpRequest.newBuilder()
@@ -179,7 +188,7 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
                 return Optional.empty();
             }
 
-            return parse(response.body(), excludedTitleFragments);
+            return parse(response.body(), excludedTitleFragments, requireVolumeNumber);
         } catch (Exception e) {
             log.warn("Échec de la recherche de titre français Open Library pour '{}' : {}", rawQuery, e.getMessage());
             return Optional.empty();
@@ -194,6 +203,24 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
      * séparée de {@link #parse(String)} pour ne pas casser les tests existants
      * qui n'en ont pas besoin. */
     Optional<String> parse(String body, List<String> excludedTitleFragments) throws Exception {
+        return parse(body, excludedTitleFragments, false);
+    }
+
+    /**
+     * @param requireVolumeNumber n'accepter QUE des fiches de tome numéroté,
+     *                            sans jamais se rabattre sur un résultat sans
+     *                            numéro - réservé au dernier recours "auteur
+     *                            seul" (voir {@link #findFrenchTitle}), la
+     *                            seule étape de la cascade où les résultats
+     *                            ne sont rattachés à la série cherchée par
+     *                            RIEN : un livre sans numéro de tome y est
+     *                            presque toujours un artbook/guide/one-shot
+     *                            du même auteur ("Les Sept Rejetons du
+     *                            dragon" pour "Delicious in Dungeon",
+     *                            vérifié en direct), pas l'édition française
+     *                            cherchée.
+     */
+    Optional<String> parse(String body, List<String> excludedTitleFragments, boolean requireVolumeNumber) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         // Repli si AUCUN résultat n'a de numéro de tome extractible (voir
         // plus bas) - jamais le choix par défaut : un vrai manga multi-tome
@@ -249,7 +276,7 @@ public class OpenLibraryFrenchTitleProvider implements FrenchTitleProvider {
                 firstResultWithoutTomeNumber = cleaned;
             }
         }
-        return Optional.ofNullable(firstResultWithoutTomeNumber);
+        return requireVolumeNumber ? Optional.empty() : Optional.ofNullable(firstResultWithoutTomeNumber);
     }
 
     // Kanji/hiragana/katakana/hangeul - jamais présents dans un titre

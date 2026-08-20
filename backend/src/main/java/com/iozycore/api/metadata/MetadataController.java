@@ -95,7 +95,10 @@ public class MetadataController {
             + "repli) pour un titre déjà choisi (mangas) - ni Jikan ni MyAnimeList n'en connaissent. Déclenché "
             + "uniquement à la sélection d'une suggestion côté client, jamais pour toute une liste de résultats de "
             + "recherche (coût en appels externes) - voir MetadataSearchService.findFrenchTitle. 404 si rien "
-            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché. malId "
+            + "trouvé, pas une erreur : le client retombe alors sur le titre anglais/romaji déjà affiché - c'est "
+            + "aussi la réponse quand le seul titre candidat vient du dernier recours \"auteur seul\" et se "
+            + "révèle être le titre catalogué d'une AUTRE œuvre du même auteur (voir "
+            + "MetadataSearchService.namesAnotherKnownWork). malId "
             + "(déjà connu du candidat sélectionné) permet d'écarter une suite/spin-off connu(e) (voir "
             + "RelatedSeriesService) mal résolu(e) à la place du titre cherché - ex: \"Dragon Ball Super\" pour "
             + "\"Dragon Ball\" - best-effort, sans effet si absent. titleRomaji (voir "
@@ -115,7 +118,7 @@ public class MetadataController {
         }
 
         List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, query, titleRomaji);
-        return metadataSearchService.findFrenchTitle(entityType, query, author, excludedTitleFragments)
+        return metadataSearchService.findFrenchTitle(entityType, query, author, excludedTitleFragments, malId)
                 .map(FrenchTitleResponse::new)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun titre français trouvé pour : " + query));

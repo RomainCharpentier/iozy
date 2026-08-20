@@ -110,7 +110,7 @@ class MetadataSearchServiceTest {
     @Test
     void does_not_call_the_french_title_provider_again_for_a_repeated_identical_query() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
-        FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of("L'Attaque des Titans"));
+        FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.seriesMatched("L'Attaque des Titans")));
         MetadataSearchService service =
                 new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
@@ -127,7 +127,7 @@ class MetadataSearchServiceTest {
     void tries_the_next_french_title_provider_when_the_first_finds_nothing() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
         FakeFrenchTitleProvider firstProvider = new FakeFrenchTitleProvider(Optional.empty());
-        FakeFrenchTitleProvider secondProvider = new FakeFrenchTitleProvider(Optional.of("L'Attaque des Titans"));
+        FakeFrenchTitleProvider secondProvider = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.seriesMatched("L'Attaque des Titans")));
         MetadataSearchService service = new MetadataSearchService(
                 List.of(), List.of(), repository, List.of(firstProvider, secondProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
@@ -168,10 +168,120 @@ class MetadataSearchServiceTest {
     }
 
     @Test
+    void prefers_a_series_matched_french_title_over_an_author_only_one_found_by_an_earlier_provider() {
+        // Cas réel (voir historique) : Open Library, essayé en premier, ne
+        // trouve "Vagabond" que par le nom de l'auteur (et remonte "Slam
+        // Dunk") ; l'ordre des fournisseurs ne doit pas faire gagner cette
+        // supposition sur une vraie correspondance de série du suivant.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeFrenchTitleProvider guessing = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Slam Dunk")));
+        FakeFrenchTitleProvider matching = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.seriesMatched("Vagabond")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(), repository, List.of(guessing, matching), List.of(), new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Vagabond", "Takehiko Inoue");
+
+        assertThat(result).contains("Vagabond");
+    }
+
+    @Test
+    void drops_an_author_only_french_title_that_is_the_catalogued_title_of_another_work() {
+        // Le bug d'origine : "Vagabond" (Takehiko Inoue) se pré-remplissait
+        // en "Slam Dunk", son autre manga - catalogué tel quel sous un autre
+        // identifiant, donc jamais une traduction française de la série
+        // cherchée.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeMetadataProvider catalogue = new FakeMetadataProvider(List.of(candidate("Slam Dunk", "51")));
+        FakeFrenchTitleProvider frenchTitleProvider =
+                new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Slam Dunk")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(catalogue), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Vagabond", "Takehiko Inoue", List.of(), "656");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void keeps_an_author_only_french_title_that_no_catalogued_work_bears_exactly() {
+        // "Zom 100" (Haro Aso) est publié en France sous "Bucket List of the
+        // Dead" : le catalogue ne connaît que "Zom 100: Bucket List of the
+        // Dead", un titre DIFFÉRENT - la vérification compare par égalité
+        // exacte, jamais par inclusion, sans quoi ce vrai titre français
+        // serait écarté à tort.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeMetadataProvider catalogue =
+                new FakeMetadataProvider(List.of(candidate("Zom 100: Bucket List of the Dead", "122392")));
+        FakeFrenchTitleProvider frenchTitleProvider =
+                new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Bucket List of the Dead")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(catalogue), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Zom 100", "Haro Aso", List.of(), "122392");
+
+        assertThat(result).contains("Bucket List of the Dead");
+    }
+
+    @Test
+    void keeps_an_author_only_french_title_when_the_catalogued_work_is_the_queried_series_itself() {
+        // Une édition française qui garde le titre d'origine : le catalogue
+        // le connaît forcément, mais c'est la série cherchée elle-même, pas
+        // une autre œuvre - reconnue par son titre quand l'identifiant n'est
+        // pas fourni (ex: candidat issu d'un scan ISBN).
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeMetadataProvider catalogue = new FakeMetadataProvider(List.of(candidate("Vagabond", "656")));
+        FakeFrenchTitleProvider frenchTitleProvider =
+                new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Vagabond")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(catalogue), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Vagabond", "Takehiko Inoue");
+
+        assertThat(result).contains("Vagabond");
+    }
+
+    @Test
+    void ignores_a_provider_that_searches_by_french_title_when_checking_an_author_only_title() {
+        // "Gloutons et Dragons" (titre français de "Delicious in Dungeon")
+        // est évidemment trouvé par le fournisseur qui cherche PAR titre
+        // français - s'en servir pour décider "c'est une autre œuvre"
+        // écarterait systématiquement les bonnes réponses.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeFrenchTitleSearchProvider frenchCatalogue =
+                new FakeFrenchTitleSearchProvider(List.of(candidate("Gloutons et Dragons", "gb-1")));
+        FakeFrenchTitleProvider frenchTitleProvider =
+                new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Gloutons et Dragons")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(frenchCatalogue), List.of(), repository, List.of(frenchTitleProvider), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Delicious in Dungeon", "Ryoko Kui", List.of(), "88089");
+
+        assertThat(result).contains("Gloutons et Dragons");
+    }
+
+    @Test
+    void drops_an_author_only_title_when_the_catalogue_cannot_be_reached_to_check_it() {
+        // Une supposition non corroborée vaut moins qu'un 404 : le client
+        // garde alors le titre original déjà affiché, plutôt que de se voir
+        // imposer le titre d'une autre série.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        FakeFrenchTitleProvider frenchTitleProvider =
+                new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.authorOnly("Slam Dunk")));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(new FailingMetadataProvider()), List.of(), repository, List.of(frenchTitleProvider), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        Optional<String> result = service.findFrenchTitle(MANGA, "Vagabond", "Takehiko Inoue");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void does_not_call_the_french_title_provider_for_an_unsupported_entity_type() {
         EntityType videoGame = new EntityType(UUID.randomUUID(), "VIDEO_GAME", "Jeu vidéo", Set.of(), Set.of());
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
-        FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of("Ne devrait jamais sortir"));
+        FakeFrenchTitleProvider frenchTitleProvider = new FakeFrenchTitleProvider(Optional.of(FrenchTitleMatch.seriesMatched("Ne devrait jamais sortir")));
         MetadataSearchService service =
                 new MetadataSearchService(List.of(), List.of(), repository, List.of(frenchTitleProvider), List.of(), new FakeVolumeSearchCacheRepository());
 
@@ -369,6 +479,10 @@ class MetadataSearchServiceTest {
         return new MetadataCandidate("FAKE", title, title, null, Map.of());
     }
 
+    private static MetadataCandidate candidate(String title, String externalId) {
+        return new MetadataCandidate("FAKE", externalId, title, null, Map.of());
+    }
+
     /** entities est volontairement mutable (copie défensive en constructeur compact) -
      * certains tests simulent un ajout survenant entre deux recherches. */
     private record FakeEntityRepository(List<Entity> entities) implements EntityRepository {
@@ -435,6 +549,45 @@ class MetadataSearchServiceTest {
         }
     }
 
+    /** Cherche par titre FRANÇAIS (comme GoogleBooksTitleSearchProvider) -
+     * doit rester hors de la vérification d'un titre "auteur seul". */
+    private static final class FakeFrenchTitleSearchProvider implements MetadataProvider {
+        private final List<MetadataCandidate> results;
+
+        FakeFrenchTitleSearchProvider(List<MetadataCandidate> results) {
+            this.results = results;
+        }
+
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public boolean catalogsOriginalTitles() {
+            return false;
+        }
+
+        @Override
+        public List<MetadataCandidate> search(String query) {
+            return results;
+        }
+    }
+
+    /** Catalogue injoignable (panne réseau/quota) - voir
+     * drops_an_author_only_title_when_the_catalogue_cannot_be_reached_to_check_it. */
+    private static final class FailingMetadataProvider implements MetadataProvider {
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public List<MetadataCandidate> search(String query) {
+            throw new IllegalStateException("catalogue injoignable");
+        }
+    }
+
     private static final class FakeBarcodeProvider implements BarcodeMetadataProvider {
         private final MetadataCandidate result;
         int callCount = 0;
@@ -456,10 +609,10 @@ class MetadataSearchServiceTest {
     }
 
     private static final class FakeFrenchTitleProvider implements FrenchTitleProvider {
-        private final Optional<String> result;
+        private final Optional<FrenchTitleMatch> result;
         int callCount = 0;
 
-        FakeFrenchTitleProvider(Optional<String> result) {
+        FakeFrenchTitleProvider(Optional<FrenchTitleMatch> result) {
             this.result = result;
         }
 
@@ -469,7 +622,7 @@ class MetadataSearchServiceTest {
         }
 
         @Override
-        public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
+        public Optional<FrenchTitleMatch> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
             callCount++;
             return result;
         }
@@ -564,9 +717,9 @@ class MetadataSearchServiceTest {
         }
 
         @Override
-        public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
+        public Optional<FrenchTitleMatch> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
             callCount++;
-            return callCount == 1 ? Optional.empty() : Optional.of(result);
+            return callCount == 1 ? Optional.empty() : Optional.of(FrenchTitleMatch.seriesMatched(result));
         }
     }
 
