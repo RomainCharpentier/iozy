@@ -32,7 +32,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 | Opportunités | `DiscoverOpportunitiesPreview.tsx` (aperçu, 3 max) + `SuggestionsPage.tsx` existant (liste complète, lien "Tout voir") - adapté de `PurchaseAnalysisService.findNearCompleteSuggestions`, jaquettes croisées depuis `searchEntities({})` (la suggestion ne porte pas `coverImageUrl`) | Aligné | **ADAPT fait** (Lot 6 `16ffc9c`) - reste **BLOCKED_BY_DATA** pour toute donnée de marché non observée (cohérent avec le moteur Purchase Analysis existant : jamais de prix inventé) |
 | Prochaines sorties | Aucune des deux données requises n'existe : ni date de prochaine sortie par tome (aucun fournisseur branché - Jikan/MyAnimeList/Google Books n'exposent pas de calendrier de parution fiable par tome, vérifié par grep sur tout `backend/src/main/java` : zéro occurrence de `releaseDate`/`nextRelease`/`publicationDate`/`upcoming`), ni concept "suivre une série" distinct de la Wishlist (zéro occurrence de `follow`/`suivre` pertinente) | Total | **BLOCKED_BY_DATA confirmé** (Lot 6) - `DiscoverReleasesPanel.tsx` affiche un état honnête expliquant l'absence de source, jamais une date approximative. Se débloque le jour où une vraie source de calendrier de sorties est intégrée |
 | Tier Lists (hub, board, quick rank, picker, création) | `TierListsScreen.tsx` (`/tier-lists`, écran dédié "deuxième grande expérience" - aperçu par univers avec rangs réels + Tier Lists perso + création), `DiscoverTierPreview.tsx` (aperçu compact dans Découvrir, 2 univers max + 3 listes perso max + CTA "Classer mes éléments"), `GeneralTierBoardPage`/`CustomTierBoardPage` (boards), `TierPicker` (raccourcis clavier S-F + Échap), `CreateTierListModal`, `AddTierListItemsPanel` — backend `domain/tierlist` complet (`EntityRank` = classement général implicite, `TierList`/`TierListItem` = listes perso explicites) | Aligné, 3 écarts documentés ci-dessous | **CREATE fait** (Lot 7a `909f6d0`, Lot 7b `9ecb6c4`, écran dédié + aperçu Découvrir Lot 6 `16ffc9c`) — **drag&drop non implémenté** (clic/tap seul, explicitement permis par la maquette tant que ce n'est jamais la SEULE interaction) ; **pas de flux "Classer rapidement" séquentiel dédié** (le CTA ouvre le board général le plus chargé, on classe élément par élément via le même `TierPicker` que le board, rien n'enchaîne automatiquement) ; **pas de Tier List transverse "tous types"** (la maquette prévoit `scope: 'all'` mélangeant plusieurs univers dans une même liste - le schéma actuel a `TierList.entityTypeId` en FK non nulle, une liste = un seul univers) — **BLOCKED_BY_DATA** aucun des trois, pure priorisation de portée, tous récupérables plus tard sans casser le modèle existant (le 3e demande une migration additive : FK nullable + logique de filtrage des candidats à ajuster) |
-| Assistant contextuel sur la fiche ("Que me manque-t-il dans cette série ?" / "Qu'est-ce qui ressemble à mes S ?") | N'existe pas | Total, nouvelle fonctionnalité | **Découvert en Lot 6 en lisant la section "Mes classements" du mock, non construit** - explicitement pas un chatbot libre (commentaire source : "Assistant : contextuel, pas un chatbot", 2 boutons à question fixe, réponse calculée). Première question répondable avec des données réelles (moteur de complétude déjà existant) ; seconde **BLOCKED_BY_DATA** (aucun champ genre/thème n'est stocké - même raison déjà documentée pour "À propos", §101 - "ressemble à" n'a rien à comparer). Hors périmètre Découvrir/Tier Lists, mérite son propre lot avec sa propre matrice plutôt qu'un ajout opportuniste ici |
+| Assistant contextuel sur la fiche ("Que me manque-t-il dans cette série ?" / "Qu'est-ce qui ressemble à mes S ?") | N'existe pas | Total, nouvelle fonctionnalité | **CREATE fait** (Lot 13, `AssistantSection.tsx`) - découvert en Lot 6 en lisant la section "Mes classements" du mock, construit dans son propre lot comme prévu. Deux boutons à question FIXE, réponse calculée, jamais de saisie libre ni d'appel à un modèle de langage (commentaire source : "Assistant : contextuel, pas un chatbot"). Placé entre "Mes classements" et "À propos", l'emplacement du mock. Question 1 "Que me manque-t-il dans cette série ?" : répondue par le moteur de complétude existant (nombre et numéros manquants en plages lisibles, distinction catalogué/purement virtuel, coût estimé avec sa base de prix affichée) ; question 2 de la maquette "Qu'est-ce qui ressemble à mes S ?" **BLOCKED_BY_DATA confirmé** (aucun champ genre/thème stocké - même raison que l'absence de ligne "Genre" dans "À propos", §101), **remplacée** par "Où en suis-je dans mes lectures ?" (choix utilisateur du 2026-08-20), répondue par les Experiences réelles |
 | Envies (Wishlist) | `WishlistPage.tsx` existe, fonctionnel (consultation/suppression) | Accès à déplacer sous Heart, contenu OK | **KEEP** contenu, **ADAPT fait** point d'entrée (Lot 2 nav : Heart ; Lot 8 : ligne "Wishlist" retirée de `ProfilePage.tsx`, redondante avec Heart - même destination exacte, zéro différenciation) |
 | Profil : hero "Valeur estimée" cliquable (montant + confiance + aperçu titres/tomes/complètes), "Mes Tier Lists" (aperçu + Tout voir), 5 lignes (Importer/Statistiques/Valeur/Suivi & notifications/Paramètres) | `ProfileValueHero.tsx` (montant + badge fiable/partiel/indisponible + titres/tomes possédés, absent si 0 possession active), `ProfileTierListsSection.tsx` (une ligne par univers classé + jaquettes, une ligne par Tier List perso, absente si rien de classé nulle part), 4 lignes réelles (Évaluer un achat/Envies d'amélioration/Bilan annuel/Paramètres) | Aligné, écarts documentés | **ADAPT fait** (Lot 8) - "séries complètes" du hero non repris (aucun champ backend, recalcul complet côté client non justifié pour un teaser) ; "Suivi & notifications" **BLOCKED_BY_DATA** non construit (même cause que Sorties, Lot 6) ; "Importer"/"Statistiques" non répétés en ligne séparée (déjà couverts par le hero Valeur -> `/stats`, et Administration -> import BGG - une ligne strictement redondante sur le MÊME écran, pas juste une autre page) ; "Wishlist"/"Suggestions d'achats" retirées (redondantes avec Heart et Découvrir > Opportunités, le mock lui-même ne les liste pas sur Profil) ; "Prêts en cours" retiré (§88) |
 | Profil : "Partager ma collection" (visibilité + switch "partager aussi mes Tier Lists" + lien) | N'existe pas - le partage actuel (`WishlistShareSettings`, Lot "wishlist share" d'une session antérieure) ne couvre QUE la Wishlist, pas la collection entière ni les Tier Lists | Total, nouvelle fonctionnalité | **Découvert en Lot 6/8, non construit** - un domaine de partage "collection entière + Tier Lists en option" est distinct du partage Wishlist existant (nouvelle entité backend + endpoint public, pas une extension triviale). Décision produit non anodine (exposer publiquement des évaluations perso) - explicitement laissé de côté (choix utilisateur du 2026-08-19 : continuer le Lot 8 en autonomie plutôt que trancher cette question maintenant) |
@@ -60,6 +60,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 
 11. Titre français résolu vers la mauvaise œuvre — **fait** — voir ci-dessous
 12. Contraste et lisibilité de tous les textes — **fait** — voir ci-dessous
+13. Assistant contextuel sur la fiche — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -156,6 +157,34 @@ l'édition affichée sont réellement emportées jusqu'au formulaire via
 `location.state` (même mécanisme que SearchPage → AddDraftPage). Valeurs
 initiales seulement, jamais des champs verrouillés : un lot contient souvent
 d'autres séries.
+
+### Lot 13 — Assistant contextuel sur la fiche
+
+Deux questions fixes, réponses calculées à partir des données que la fiche
+charge DÉJÀ (complétude via la même clé de cache React Query que
+EditionProgressSection/TomesGridSection, expériences déjà chargées par
+EntityDetailPage) : zéro appel réseau supplémentaire, zéro changement
+backend.
+
+- **"Que me manque-t-il dans cette série ?"** — nombre et numéros manquants
+  en plages lisibles ("2 à 17, 19 à 29, 31 à 72" plutôt que 69 numéros),
+  distinction manquant-mais-catalogué / purement virtuel (elle existe dans
+  la réponse backend et change ce que l'utilisateur doit faire), coût estimé
+  avec sa base de prix nommée, puis un lien vers "Évaluer une annonce de
+  cette série" déjà pré-rempli (Lot 12 bis).
+- **"Où en suis-je dans mes lectures ?"** — remplace la seconde question de
+  la maquette, définitivement infaisable (aucun genre/thème stocké : "ce qui
+  ressemble à mes S" n'a rien à comparer). Tomes lus de l'édition, dernière
+  lecture datée, tomes possédés sans lecture, note moyenne, et les lectures
+  sans tome précisé comptées À PART (les fondre dans le compteur mentirait
+  sur l'avancement). Volontairement pas de ratio "lus sur possédés" : un tome
+  lu puis revendu afficherait "3 tomes sur les 1 que tu possèdes".
+
+Tous les cas d'absence de donnée disent pourquoi plutôt que d'afficher un
+zéro trompeur : édition non précisée (la complétude est toujours calculée PAR
+édition), nombre total de tomes inconnu, aucune lecture enregistrée. Vérifié
+en direct sur les 5 séries réelles de la collection, qui couvrent justement
+ces trois cas.
 
 ### Note Lot 5 — résolue
 
