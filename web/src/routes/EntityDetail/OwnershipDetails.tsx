@@ -215,7 +215,7 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
               type="button"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
-              className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-textPrimary disabled:opacity-50"
+              className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-dangerInk disabled:opacity-50"
             >
               {deleteMutation.isPending ? 'Suppression...' : 'Confirmer la suppression'}
             </button>

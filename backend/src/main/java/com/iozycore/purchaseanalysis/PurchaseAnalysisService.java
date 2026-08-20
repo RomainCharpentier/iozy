@@ -160,6 +160,36 @@ public class PurchaseAnalysisService {
         return byTitle.map(edition -> linkToKnownEntityIfNeeded(edition, entityId));
     }
 
+    /** Lecture par identifiant - utilisée avant une suppression, pour distinguer
+     * "cette édition n'existe pas" (404) de "elle existe mais est encore
+     * utilisée" (409). */
+    public Optional<MangaEdition> findEditionById(UUID editionId) {
+        return mangaEditionRepository.findById(editionId);
+    }
+
+    /**
+     * Supprime une édition de référence - REFUSÉE tant qu'un Tome y est encore
+     * rattaché (Variant.mangaEditionId), pour ne jamais laisser derrière soi
+     * un tome pointant vers une ligne disparue. Même parti pris que la
+     * suppression d'un EntityType (voir EntityTypeService) : on explique ce
+     * qui bloque plutôt que de délier en silence des données que l'utilisateur
+     * croyait liées.
+     *
+     * @return le nombre de tomes rattachés quand la suppression est refusée,
+     *         0 quand elle a bien eu lieu.
+     */
+    public int deleteEdition(UUID editionId) {
+        long linkedVolumes = entityRepository.search(null, null, null).stream()
+                .flatMap(entity -> entity.variants().stream())
+                .filter(variant -> editionId.equals(variant.mangaEditionId()))
+                .count();
+        if (linkedVolumes > 0) {
+            return (int) linkedVolumes;
+        }
+        mangaEditionRepository.deleteById(editionId);
+        return 0;
+    }
+
     /** Toutes les éditions connues, toutes séries confondues - pour un écran qui
      * affiche la progression de PLUSIEURS séries d'un coup (Ma collection) sans
      * un appel par tuile. Aucun filtrage/enrichissement : c'est une lecture

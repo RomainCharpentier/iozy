@@ -27,6 +27,7 @@ import { GeneralTierBoardPage } from './routes/TierLists/GeneralTierBoardPage'
 import { CustomTierBoardPage } from './routes/TierLists/CustomTierBoardPage'
 import { TierListsScreen } from './routes/TierLists/TierListsScreen'
 import { SharedCollectionPage } from './routes/Profile/SharedCollectionPage'
+import { EditionsPage } from './routes/Editions/EditionsPage'
 
 /** Les routes /public/* vivent hors AppShell (voir SharedWishlistPage,
  * SharedCollectionPage) : quelqu'un qui ouvre un lien de partage n'a pas de
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/stats" element={<StatsPage />} />
+              <Route path="/editions" element={<EditionsPage />} />
               <Route path="/types" element={<EntityTypesPage />} />
               <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
               <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />

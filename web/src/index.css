@@ -61,6 +61,13 @@
   --color-danger: #9c3324;
   --color-dangerText: #8c2d20;
   --color-dangerTint: rgb(156 51 36 / 10%);
+  /* Encre à poser SUR un remplissage danger (bouton "Confirmer" d'une
+     suppression, badge "À éviter"). Même distinction qu'accent/accentInk :
+     dangerText est le danger EN TEXTE sur fond neutre, dangerInk est ce qu'on
+     écrit PAR-DESSUS. Les cinq usages existants mélangeaient text-white et
+     text-textPrimary, fautifs dans un thème ou dans l'autre (3.29:1 pour le
+     blanc en sombre, 2.29:1 pour l'encre foncée en clair). */
+  --color-dangerInk: #ffffff;
 
   --color-ok: #356b56;
   --color-okTint: rgb(53 107 86 / 12%);
@@ -171,6 +178,9 @@
   --color-danger: #e8654a;
   --color-dangerText: #f08a72;
   --color-dangerTint: rgb(232 101 74 / 16%);
+  /* Encre FONCÉE sur le danger éclairci du thème sombre (5.67:1, contre 3.29
+     pour du blanc) - même principe qu'accentInk. */
+  --color-dangerInk: #16120f;
 
   --color-ok: #6cbd9d;
   --color-okTint: rgb(108 189 157 / 14%);
