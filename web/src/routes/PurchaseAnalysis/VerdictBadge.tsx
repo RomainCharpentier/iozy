@@ -11,7 +11,7 @@ const CONFIG: Record<Verdict, { label: string; icon: typeof Check; className: st
   GOOD_DEAL: { label: 'Bonne affaire', icon: Check, className: 'bg-accent text-accentInk' },
   FAIR_PRICE: { label: 'Prix correct', icon: Minus, className: 'bg-warning text-accentText' },
   EXPENSIVE: { label: 'Cher', icon: TriangleAlert, className: 'bg-pink text-textPrimary' },
-  AVOID: { label: 'À éviter', icon: X, className: 'bg-danger text-textPrimary' },
+  AVOID: { label: 'À éviter', icon: X, className: 'bg-danger text-dangerInk' },
 }
 
 export function VerdictBadge({ verdict, score }: { verdict: Verdict; score?: number }) {

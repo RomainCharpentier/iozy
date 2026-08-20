@@ -127,7 +127,7 @@ export function CustomTierBoardPage() {
                         type="button"
                         onClick={() => deleteMutation.mutate()}
                         disabled={deleteMutation.isPending}
-                        className="flex-1 rounded-lg bg-danger px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        className="flex-1 rounded-lg bg-danger px-2 py-1.5 text-xs font-semibold text-dangerInk disabled:opacity-50"
                       >
                         Confirmer
                       </button>

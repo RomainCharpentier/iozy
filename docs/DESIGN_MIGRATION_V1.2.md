@@ -66,6 +66,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 16. Progression X/Y de Ma collection alignée sur le total d'ÉDITION — **fait** — voir ci-dessous
 17. Types de collection personnalisés (sans API) : friction levée — **fait** — voir ci-dessous
 18. "Informations" : attributs de l'œuvre affichés et modifiables, tous types — **fait** — voir ci-dessous
+19. Administration des éditions de référence — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -399,6 +400,39 @@ Trois pièges traités, tous constatés sur des données réelles :
 
 Non traité : le numéro d'un tome reste non modifiable (sa jaquette et son
 édition le sont déjà, voir VolumeInteractionPanel).
+
+### Lot 19 — administration des éditions de référence
+
+Les fiches `MangaEdition` se créaient uniquement en contexte (fiche Série >
+"Modifier l'édition", ou "Évaluer un achat") et n'étaient visibles **nulle
+part** ensuite : une édition mal nommée, créée par erreur ou par un test,
+restait en base sans moyen de la voir ni de l'enlever - tout en continuant à
+compter, puisque c'est ce référentiel qui fournit le total de tomes affiché
+par Ma collection et la fiche (Lot 16).
+
+Nouvel écran `/editions` (Administration > "Éditions de référence") :
+lecture groupée par série + suppression. Volontairement PAS un formulaire de
+création/correction de plus - renseigner reste là où l'information manque
+concrètement, sur la fiche de la série. Nouveau `DELETE
+/purchase-analysis/editions/{id}`, **refusé (409) tant qu'un tome y est
+rattaché** (`Variant.mangaEditionId`), jamais un déliage silencieux - même
+parti pris que la suppression d'un EntityType.
+
+Utilité immédiate confirmée : l'écran a révélé une ligne fantôme
+("Death Note Test AI 1786613083134 / Edition Inconnue Test"), résidu des
+tests de la Phase 2 IA, invisible jusque-là. Supprimée. Une seconde ligne de
+test ("Raw Hero / Perfect Edition (test)") a été laissée à l'utilisateur -
+elle est rattachée à une vraie série, à lui de trancher.
+
+**Défaut de contraste attrapé au passage, plus large que cet écran** : les
+CINQ usages de `bg-danger` de l'app portaient une encre fautive dans au
+moins un thème - `text-white` (3.29:1 en sombre) ou `text-textPrimary`
+(2.29:1 en clair). Le balayage du Lot 12 les avait manqués parce que ces
+états ne sont jamais rendus au repos : confirmations de suppression et badge
+"À éviter" d'un verdict d'achat. Nouveau token `--color-dangerInk` (blanc en
+clair, encre foncée en sombre), appliqué aux cinq - 7.21:1 et 5.67:1
+mesurés. À retenir pour tout futur audit : balayer aussi les états qui
+demandent un clic pour exister.
 
 ### Note Lot 5 — résolue
 

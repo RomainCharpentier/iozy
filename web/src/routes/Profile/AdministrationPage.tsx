@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Tags, Upload, ChevronRight } from 'lucide-react'
+import { Tags, Upload, ChevronRight, BookMarked } from 'lucide-react'
 
 interface AdminLink {
   to: string
@@ -18,6 +18,12 @@ interface AdminLink {
 const LINKS: AdminLink[] = [
   { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...) et leurs champs', icon: Tags },
   { to: '/import-bgg', label: 'Importer depuis BGG', description: 'Récupérer tes jeux de société depuis BoardGameGeek', icon: Upload },
+  {
+    to: '/editions',
+    label: 'Éditions de référence',
+    description: "Nombre de tomes et éditeur par édition - c'est de là que vient la progression X/Y",
+    icon: BookMarked,
+  },
 ]
 
 export function AdministrationPage() {

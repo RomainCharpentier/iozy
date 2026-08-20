@@ -118,6 +118,20 @@ public class PurchaseAnalysisController {
                         "No known edition \"" + editionName + "\" for series \"" + seriesTitle + "\""));
     }
 
+    @Operation(summary = "Delete an edition reference - 409 when volumes are still linked to it "
+            + "(Variant.mangaEditionId), never a silent unlink. 404 when the edition does not exist.")
+    @DeleteMapping("/editions/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteEdition(@PathVariable UUID id) {
+        service.findEditionById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Édition introuvable : " + id));
+        int linkedVolumes = service.deleteEdition(id);
+        if (linkedVolumes > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Impossible de supprimer cette édition : " + linkedVolumes + " tome(s) y sont encore rattachés");
+        }
+    }
+
     @Operation(summary = "Every known edition, all series confounded - powers the per-EDITION progression shown on "
             + "Ma collection, which lists many series at once (one request instead of one per tile). The edition "
             + "reference data is small by nature: one row per edition actually filled in, never a bulk table.")

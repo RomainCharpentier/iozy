@@ -1,4 +1,4 @@
-import { get, post, patch } from './client'
+import { get, post, patch, del } from './client'
 import { buildQuery } from './client'
 import type {
   AnalyzeListingRequest,
@@ -92,6 +92,12 @@ export function listAllEditions(): Promise<MangaEditionDto[]> {
 /** "Suggestions d'achats" (Mon profil) - triées côté backend par nombre de tomes manquants croissant. */
 export function getNearCompleteSuggestions(): Promise<NearCompleteSuggestionDto[]> {
   return get<NearCompleteSuggestionDto[]>('/purchase-analysis/near-complete-suggestions')
+}
+
+/** Supprime une édition de référence - 409 si des tomes y sont encore
+ * rattachés (jamais un déliage silencieux, voir PurchaseAnalysisService.deleteEdition). */
+export function deleteEdition(id: string): Promise<void> {
+  return del<void>(`/purchase-analysis/editions/${id}`)
 }
 
 export function createEdition(body: CreateMangaEditionRequest): Promise<MangaEditionDto> {
