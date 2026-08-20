@@ -82,6 +82,18 @@ public class Entity {
         attributes.putAll(additionalAttributes);
     }
 
+    /**
+     * Retire un attribut - opération À PART de {@link #mergeAttributes}, dont
+     * la javadoc interdit justement la valeur vide comme moyen d'effacer.
+     * Vider un champ dans un formulaire d'édition doit vraiment le faire
+     * disparaître, pas laisser une chaîne vide qui ressemblerait ensuite à
+     * une donnée renseignée. Sans effet si la clé n'existe pas : effacer ce
+     * qui n'est pas là n'est pas une erreur.
+     */
+    public void removeAttribute(String key) {
+        attributes.remove(key);
+    }
+
     public Variant addVariant(String label, Map<String, Object> variantAttributes) {
         Variant variant = new Variant(UUID.randomUUID(), label, variantAttributes, null);
         variants.add(variant);

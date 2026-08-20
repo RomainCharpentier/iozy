@@ -35,6 +35,14 @@ export function mergeEntityAttributes(entityId: string, attributes: Record<strin
   return patch<EntityResponse>(`/entities/${entityId}`, attributes)
 }
 
+/** Retire un attribut - distinct de mergeEntityAttributes, qui ne sait que
+ * compléter/corriger : une valeur vide y serait stockée telle quelle et
+ * ressemblerait ensuite à une donnée renseignée (voir Entity.mergeAttributes
+ * côté backend). */
+export function removeEntityAttribute(entityId: string, key: string): Promise<void> {
+  return del<void>(`/entities/${entityId}/attributes/${encodeURIComponent(key)}`)
+}
+
 /** Renomme la Série (correction manuelle, voir action "Modifier" de la fiche
  * Série) - ne casse jamais les Éditions/Tomes déjà rattachés (voir migration
  * "Série -> Édition par ID" : leur lien passe par entityId, jamais par une
