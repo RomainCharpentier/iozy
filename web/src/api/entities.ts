@@ -51,6 +51,14 @@ export function renameEntity(entityId: string, title: string): Promise<EntityRes
   return patch<EntityResponse>(`/entities/${entityId}/rename`, { title })
 }
 
+/** Renumérote un Tome - endpoint DÉDIÉ et non une fusion d'attributs : le
+ * numéro et le libellé doivent bouger ensemble (la déduplication à l'ajout se
+ * fait par libellé, voir QuickAddService côté backend), et un numéro déjà pris
+ * dans la même édition est refusé (409) plutôt qu'accepté en double. */
+export function renumberVariant(entityId: string, variantId: string, volumeNumber: number): Promise<EntityResponse> {
+  return patch<EntityResponse>(`/entities/${entityId}/variants/${variantId}/volume-number`, { volumeNumber })
+}
+
 /** Complète les attributs d'un Variant existant sans écraser ceux déjà
  * renseignés (ex: jaquette du tome retrouvée après coup, voir "Retrouver
  * les jaquettes manquantes" sur Ma collection). */

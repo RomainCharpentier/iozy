@@ -5,6 +5,7 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.domain.catalog.VariantLabels;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
@@ -163,7 +164,7 @@ public class QuickAddService {
         UUID variantId = null;
         boolean matchedExistingVariant = false;
         if (volumeNumber != null) {
-            String label = variantLabel(volumeNumber, edition);
+            String label = VariantLabels.of(volumeNumber, edition);
             Optional<Variant> existingVariant = entity.findVariantByLabel(label);
             Variant variant = existingVariant.orElseGet(() -> entity.addVariant(label, variantAttributes(volumeNumber, edition, volumeImageUrl)));
             variantId = variant.id();
@@ -233,11 +234,6 @@ public class QuickAddService {
         MangaEdition created = MangaEdition.create(entity.id(), entity.title(), editionName, EditionTier.OTHER,
                 null, null, null, false, false, null);
         return mangaEditionRepository.save(created).id();
-    }
-
-    private String variantLabel(int volumeNumber, String edition) {
-        String base = "Tome " + volumeNumber;
-        return (edition == null || edition.isBlank()) ? base : base + " — " + edition.trim();
     }
 
     private Map<String, Object> variantAttributes(int volumeNumber, String edition, String volumeImageUrl) {

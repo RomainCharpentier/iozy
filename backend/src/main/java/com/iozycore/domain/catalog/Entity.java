@@ -136,6 +136,57 @@ public class Entity {
     }
 
     /**
+     * Renumérote un Tome - change l'attribut {@code volumeNumber} ET le libellé
+     * d'un seul geste. Les deux DOIVENT bouger ensemble : QuickAddService
+     * déduplique par libellé (voir {@link #findVariantByLabel}), donc un tome
+     * dont le numéro aurait changé sans son libellé serait re-créé en double au
+     * prochain ajout du même tome, et le libellé mentirait entre-temps.
+     *
+     * @throws IllegalArgumentException si le Tome n'existe pas, ou si le numéro
+     *         n'est pas au moins 1.
+     * @throws IllegalStateException si un AUTRE tome de la même édition porte
+     *         déjà ce numéro - deux "Tome 4" dans une même édition ne sont pas
+     *         un doublon d'exemplaire (ça, c'est une Ownership de plus), c'est
+     *         une incohérence de catalogue.
+     */
+    public void renumberVariant(UUID variantId, int newVolumeNumber) {
+        if (newVolumeNumber < 1) {
+            throw new IllegalArgumentException("Le numéro de tome doit être au moins 1");
+        }
+        int index = -1;
+        for (int i = 0; i < variants.size(); i++) {
+            if (variants.get(i).id().equals(variantId)) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            throw new IllegalArgumentException("Variant introuvable : " + variantId);
+        }
+        Variant existing = variants.get(index);
+        String edition = existing.attributes().get("edition") instanceof String value ? value : null;
+
+        boolean taken = variants.stream()
+                .filter(other -> !other.id().equals(variantId))
+                .filter(other -> sameEdition(other, edition))
+                .anyMatch(other -> other.attributes().get("volumeNumber") instanceof Number number
+                        && number.intValue() == newVolumeNumber);
+        if (taken) {
+            throw new IllegalStateException("Le tome " + newVolumeNumber + " existe déjà pour cette édition");
+        }
+
+        Map<String, Object> attributes = new HashMap<>(existing.attributes());
+        attributes.put("volumeNumber", newVolumeNumber);
+        variants.set(index, new Variant(existing.id(), VariantLabels.of(newVolumeNumber, edition), attributes,
+                existing.mangaEditionId()));
+    }
+
+    private static boolean sameEdition(Variant variant, String edition) {
+        String other = variant.attributes().get("edition") instanceof String value ? value.trim() : "";
+        return other.equalsIgnoreCase(edition == null ? "" : edition.trim());
+    }
+
+    /**
      * Relie un Tome déjà existant à son Édition catalogue ({@link MangaEdition}) - modèle
      * cible Série -> Édition -> Tome. Même patron de recherche que
      * {@link #mergeVariantAttributes(UUID, Map)}. Ne retire jamais un lien existant (pas de

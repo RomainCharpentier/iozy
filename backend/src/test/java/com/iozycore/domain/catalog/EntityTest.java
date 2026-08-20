@@ -121,6 +121,54 @@ class EntityTest {
     }
 
     @Test
+    void renumbering_a_volume_moves_its_label_with_it() {
+        // Le libellé et le numéro DOIVENT bouger ensemble : QuickAddService
+        // déduplique par libellé, un tome renuméroté sans son libellé serait
+        // re-créé en double au prochain ajout du même tome.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome = entity.addVariant("Tome 3 — Black Édition",
+                Map.of("volumeNumber", 3, "edition", "Black Édition"));
+
+        entity.renumberVariant(tome.id(), 5);
+
+        Variant renumbered = entity.variants().get(0);
+        assertEquals("Tome 5 — Black Édition", renumbered.label());
+        assertEquals(5, renumbered.attributes().get("volumeNumber"));
+        // Les autres attributs survivent (jaquette du tome, édition...).
+        assertEquals("Black Édition", renumbered.attributes().get("edition"));
+    }
+
+    @Test
+    void renumbering_onto_a_number_already_taken_in_the_same_edition_fails_loudly() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome3 = entity.addVariant("Tome 3 — Black Édition", Map.of("volumeNumber", 3, "edition", "Black Édition"));
+        entity.addVariant("Tome 4 — Black Édition", Map.of("volumeNumber", 4, "edition", "Black Édition"));
+
+        assertThrows(IllegalStateException.class, () -> entity.renumberVariant(tome3.id(), 4));
+    }
+
+    @Test
+    void the_same_number_in_a_DIFFERENT_edition_is_not_a_conflict() {
+        // Deux éditions d'une même série ont chacune leur tome 4 - ce n'est pas
+        // un doublon, elles sont numérotées indépendamment.
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome3 = entity.addVariant("Tome 3 — Black Édition", Map.of("volumeNumber", 3, "edition", "Black Édition"));
+        entity.addVariant("Tome 4 — Kana", Map.of("volumeNumber", 4, "edition", "Kana"));
+
+        entity.renumberVariant(tome3.id(), 4);
+
+        assertEquals("Tome 4 — Black Édition", entity.variants().get(0).label());
+    }
+
+    @Test
+    void a_volume_number_below_one_is_rejected() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        Variant tome = entity.addVariant("Tome 3", Map.of("volumeNumber", 3));
+
+        assertThrows(IllegalArgumentException.class, () -> entity.renumberVariant(tome.id(), 0));
+    }
+
+    @Test
     void merging_attributes_on_an_unknown_variant_fails_loudly() {
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
 

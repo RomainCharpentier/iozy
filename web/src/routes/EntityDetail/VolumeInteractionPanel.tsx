@@ -9,6 +9,7 @@ import { useModalA11y } from '../../lib/useModalA11y'
 import { findBestCoverMatch } from '../Shelf/backfillCovers'
 import { AddOwnershipForm } from './AddOwnershipForm'
 import { OwnershipDetails } from './OwnershipDetails'
+import { VariantNumberEditor } from './VariantNumberEditor'
 import type { TomeTile } from './TomesGridSection'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
@@ -114,6 +115,7 @@ function VariantCoverEditor({
  */
 export function VolumeInteractionPanel({
   activeTile,
+  onRenumbered,
   onClose,
   entityId,
   entityTypeId,
@@ -122,6 +124,10 @@ export function VolumeInteractionPanel({
   ownerships,
 }: {
   activeTile: TomeTile | null
+  /** Le tome renuméroté change de place dans la grille - le parent suit le
+   * panneau sur son nouveau numéro plutôt que de le laisser ouvert sur un
+   * numéro qui n'existe plus. */
+  onRenumbered: (newVolumeNumber: number) => void
   onClose: () => void
   entityId: string
   entityTypeId: string
@@ -194,13 +200,21 @@ export function VolumeInteractionPanel({
               réellement (catalogué manquant ou possédé) - rien à corriger
               pour un tome purement virtuel. */}
           {activeTile.variant && (
-            <VariantCoverEditor
-              entityId={entityId}
-              entityTypeId={entityTypeId}
-              entityTitle={entityTitle}
-              variant={activeTile.variant}
-              currentUrl={coverUrl}
-            />
+            <>
+              <VariantCoverEditor
+                entityId={entityId}
+                entityTypeId={entityTypeId}
+                entityTitle={entityTitle}
+                variant={activeTile.variant}
+                currentUrl={coverUrl}
+              />
+              <VariantNumberEditor
+                entityId={entityId}
+                variantId={activeTile.variant.id}
+                volumeNumber={activeTile.volumeNumber}
+                onRenumbered={onRenumbered}
+              />
+            </>
           )}
 
           {activeTile.status === 'owned' ? (
