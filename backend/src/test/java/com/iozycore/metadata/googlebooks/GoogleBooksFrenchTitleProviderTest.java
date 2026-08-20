@@ -156,6 +156,27 @@ class GoogleBooksFrenchTitleProviderTest {
     }
 
     @Test
+    void refuses_a_result_without_a_tome_number_when_only_the_author_name_matched() throws Exception {
+        // Dernier recours "auteur seul" (inauthor:) : vérifié en direct sur
+        // inauthor:"Ryoko Kui" - "Les Sept Rejetons du dragon" ET "Gloutons
+        // et Dragons : guide officiel" arrivent AVANT "Gloutons et Dragons
+        // (Tome 12)". Sans numéro de tome, un résultat de cette étape n'est
+        // rattaché à la série cherchée par strictement rien.
+        GoogleBooksFrenchTitleProvider provider = new GoogleBooksFrenchTitleProvider();
+        String body = """
+                {
+                  "totalItems": 1,
+                  "items": [
+                    { "volumeInfo": { "title": "Les Sept Rejetons du dragon", "language": "fr" } }
+                  ]
+                }
+                """;
+
+        assertThat(provider.parse(body, List.of(), true)).isEmpty();
+        assertThat(provider.parse(body, List.of(), false)).contains("Les Sept Rejetons du dragon");
+    }
+
+    @Test
     void falls_back_to_the_first_result_when_none_has_an_extractable_tome_number() throws Exception {
         // Contrairement au cas ci-dessus : si AUCUN résultat n'a de numéro
         // de tome (ex: un vrai one-shot sans jamais de fiche "Tome 1"

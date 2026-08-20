@@ -93,6 +93,14 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
         this(new GoogleBooksHttpClient("", ""));
     }
 
+    /** Ce fournisseur cherche justement par titre FRANÇAIS - voir la javadoc
+     * de la méthode : il ne peut pas servir à décider qu'un titre français
+     * est "en fait le titre d'une autre œuvre". */
+    @Override
+    public boolean catalogsOriginalTitles() {
+        return false;
+    }
+
     @Override
     public boolean supports(EntityType entityType) {
         return "MANGA".equals(entityType.code());

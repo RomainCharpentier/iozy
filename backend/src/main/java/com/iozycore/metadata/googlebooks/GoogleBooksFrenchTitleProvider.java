@@ -3,6 +3,7 @@ package com.iozycore.metadata.googlebooks;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.metadata.FrenchTitleMatch;
 import com.iozycore.metadata.FrenchTitleProvider;
 import com.iozycore.metadata.QuotaExceededException;
 import org.slf4j.Logger;
@@ -43,7 +44,12 @@ import java.util.regex.Pattern;
  * titre original, la combinaison titre+auteur ne matche donc jamais rien.
  * Chercher l'auteur seul remonte "Fragments d'elles" en tout premier
  * résultat français - même principe que le dernier recours déjà en place
- * côté OpenLibraryFrenchTitleProvider.
+ * côté OpenLibraryFrenchTitleProvider, et encadré des deux mêmes
+ * garde-fous : seule une fiche de tome NUMÉROTÉ est acceptée à cette étape
+ * (voir {@link #parse}, {@code requireVolumeNumber}), et le titre remonté
+ * en {@link FrenchTitleMatch.Confidence#AUTHOR_ONLY} est confronté au
+ * catalogue par l'appelant avant d'être retenu (voir
+ * MetadataSearchService.namesAnotherKnownWork).
  */
 @Component
 @Order(2)
@@ -96,15 +102,15 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
     }
 
     @Override
-    public Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
+    public Optional<FrenchTitleMatch> findFrenchTitle(String query, String author, List<String> excludedTitleFragments) {
         if (query == null || query.isBlank()) {
             return Optional.empty();
         }
         String combinedQuery = (author == null || author.isBlank()) ? query : author + " " + query;
 
-        Optional<String> result = search(combinedQuery, excludedTitleFragments);
+        Optional<String> result = search(combinedQuery, excludedTitleFragments, false);
         if (result.isPresent()) {
-            return result;
+            return result.map(FrenchTitleMatch::seriesMatched);
         }
 
         // Dernier recours : auteur seul, sans le titre original qui peut ne
@@ -130,7 +136,9 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         if (author == null || author.isBlank() || isTooGenericForAuthorOnlySearch(author)) {
             return Optional.empty();
         }
-        return search("inauthor:\"" + author + "\"", excludedTitleFragments);
+        // requireVolumeNumber : voir javadoc de la classe et de parse().
+        return search("inauthor:\"" + author + "\"", excludedTitleFragments, true)
+                .map(FrenchTitleMatch::authorOnly);
     }
 
     /** Voir OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch
@@ -139,14 +147,14 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         return !author.trim().contains(" ");
     }
 
-    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments) {
+    private Optional<String> search(String rawQuery, List<String> excludedTitleFragments, boolean requireVolumeNumber) {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
             if (body == null) {
                 return Optional.empty();
             }
-            return parse(body, excludedTitleFragments);
+            return parse(body, excludedTitleFragments, requireVolumeNumber);
         } catch (QuotaExceededException e) {
             // Open Library est déjà essayé en premier (voir @Order) - pas
             // d'alarme utilisateur nécessaire pour ce repli.
@@ -166,6 +174,25 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
      * séparée de {@link #parse(String)} pour ne pas casser les tests existants
      * qui n'en ont pas besoin. */
     Optional<String> parse(String body, List<String> excludedTitleFragments) throws Exception {
+        return parse(body, excludedTitleFragments, false);
+    }
+
+    /**
+     * @param requireVolumeNumber n'accepter QUE des fiches de tome numéroté,
+     *                            sans jamais se rabattre sur un résultat sans
+     *                            numéro - réservé au dernier recours "auteur
+     *                            seul" (voir {@link #findFrenchTitle}), seule
+     *                            étape où RIEN ne rattache les résultats à la
+     *                            série cherchée : un livre sans numéro de
+     *                            tome y est presque toujours un
+     *                            artbook/guide/one-shot du même auteur ("Les
+     *                            Sept Rejetons du dragon" et "Gloutons et
+     *                            Dragons : guide officiel" arrivent tous deux
+     *                            AVANT "Gloutons et Dragons (Tome 12)" pour
+     *                            inauthor:"Ryoko Kui", vérifié en direct),
+     *                            pas l'édition française cherchée.
+     */
+    Optional<String> parse(String body, List<String> excludedTitleFragments, boolean requireVolumeNumber) throws Exception {
         JsonNode root = objectMapper.readTree(body);
         if (root.path("totalItems").asInt(0) == 0) {
             return Optional.empty();
@@ -213,7 +240,7 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
                 firstResultWithoutTomeNumber = cleaned;
             }
         }
-        return Optional.ofNullable(firstResultWithoutTomeNumber);
+        return requireVolumeNumber ? Optional.empty() : Optional.ofNullable(firstResultWithoutTomeNumber);
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées

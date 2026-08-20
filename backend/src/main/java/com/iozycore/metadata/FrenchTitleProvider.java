@@ -10,8 +10,14 @@ import java.util.Optional;
  * choisi (mangas) - ni Jikan ni MyAnimeList n'en connaissent (voir
  * JikanMetadataProvider/MyAnimeListMetadataProvider). Plusieurs fournisseurs
  * peuvent implémenter cette interface (voir MetadataSearchService.findFrenchTitle,
- * qui les essaie dans l'ordre et s'arrête au premier résultat) - même
- * principe que BarcodeMetadataProvider pour le scan ISBN.
+ * qui les essaie dans l'ordre) - même principe que BarcodeMetadataProvider
+ * pour le scan ISBN.
+ * <p>
+ * Chaque fournisseur dit aussi COMMENT il a trouvé son résultat (voir
+ * {@link FrenchTitleMatch.Confidence}) : l'appelant ne s'arrête plus
+ * systématiquement au premier fournisseur qui répond, une trouvaille
+ * "auteur seul" ne devant jamais l'emporter sur une vraie correspondance de
+ * série remontée par le fournisseur suivant.
  */
 public interface FrenchTitleProvider {
 
@@ -29,5 +35,5 @@ public interface FrenchTitleProvider {
      *               sur Open Library - vérifié manuellement, voir historique
      *               de la conversation).
      */
-    Optional<String> findFrenchTitle(String query, String author, List<String> excludedTitleFragments);
+    Optional<FrenchTitleMatch> findFrenchTitle(String query, String author, List<String> excludedTitleFragments);
 }
