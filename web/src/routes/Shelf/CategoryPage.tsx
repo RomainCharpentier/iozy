@@ -48,7 +48,7 @@ export function CategoryPage() {
   const ownerships = ownershipsQuery.data ?? EMPTY_OWNERSHIPS
   const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
   const entityType = entityTypes.find((t) => t.id === entityTypeId)
-  const visual = getEntityTypeVisual(entityType?.code)
+  const visual = getEntityTypeVisual(entityType)
 
   const entities = useMemo(
     () =>

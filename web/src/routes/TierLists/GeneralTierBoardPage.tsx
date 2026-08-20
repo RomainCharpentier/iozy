@@ -28,7 +28,7 @@ export function GeneralTierBoardPage() {
   })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const entityType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
-  const visual = getEntityTypeVisual(entityType?.code)
+  const visual = getEntityTypeVisual(entityType)
 
   // "Classer mes éléments" (Découvrir/Tier Lists) demande le classement
   // rapide, pas seulement l'ouverture du board (voir DS v1.1 §50) - la file

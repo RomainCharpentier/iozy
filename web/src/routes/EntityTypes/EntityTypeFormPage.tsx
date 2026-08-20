@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { listEntityTypes, createEntityType, updateEntityType } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
+import { UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '../../lib/entityTypeVisuals'
 import { ErrorBanner } from '../../components/ErrorBanner'
 
 interface EntityTypeFormPageProps {
@@ -37,6 +38,11 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
 
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
+  // Identité visuelle : des CLÉS de palette, pas une couleur libre - chaque
+  // teinte de UNIVERSE_PALETTE est calibrée pour rester lisible en TEXTE dans
+  // les deux thèmes, ce qu'un sélecteur libre ne peut pas garantir.
+  const [colorKey, setColorKey] = useState<string | null>(null)
+  const [iconKey, setIconKey] = useState<string | null>(null)
   // Le code suit le label tant que l'utilisateur n'y a pas touché : l'aide
   // sous le champ promettait "normalisé automatiquement" alors qu'il fallait
   // inventer un code technique à la main (VINYLE, BOARD_GAME...). Une fois
@@ -51,14 +57,29 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
       setLabel(existing.label)
       setAllowedExperienceTypes(existing.allowedExperienceTypes)
       setCustomFieldKeys(existing.customFieldKeys)
+      setColorKey(existing.colorKey)
+      setIconKey(existing.iconKey)
     }
   }, [existing])
 
   const mutation = useMutation({
     mutationFn: () =>
       mode === 'create'
-        ? createEntityType({ code, label: label.trim(), allowedExperienceTypes, customFieldKeys })
-        : updateEntityType(id!, { label: label.trim(), allowedExperienceTypes, customFieldKeys }),
+        ? createEntityType({
+            code,
+            label: label.trim(),
+            allowedExperienceTypes,
+            customFieldKeys,
+            colorKey: colorKey ?? undefined,
+            iconKey: iconKey ?? undefined,
+          })
+        : updateEntityType(id!, {
+            label: label.trim(),
+            allowedExperienceTypes,
+            customFieldKeys,
+            colorKey: colorKey ?? undefined,
+            iconKey: iconKey ?? undefined,
+          }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entityTypes.all })
       navigate('/types')
@@ -124,6 +145,50 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
               </p>
             </div>
           )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm text-textDim">Couleur</span>
+          <div className="flex flex-wrap gap-2">
+            {UNIVERSE_PALETTE.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                onClick={() => setColorKey(colorKey === entry.key ? null : entry.key)}
+                aria-pressed={colorKey === entry.key}
+                aria-label={entry.label}
+                title={entry.label}
+                className={`h-9 w-9 rounded-full transition-transform hover:-translate-y-0.5 ${
+                  colorKey === entry.key ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''
+                }`}
+                style={{ background: colorVarFor(entry.key) }}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-textDim">
+            Rien de sélectionné = couleur par défaut. Chaque teinte reste lisible dans les deux thèmes.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm text-textDim">Icône</span>
+          <div className="flex flex-wrap gap-2">
+            {UNIVERSE_ICONS.map(({ key, label: iconLabel, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setIconKey(iconKey === key ? null : key)}
+                aria-pressed={iconKey === key}
+                aria-label={iconLabel}
+                title={iconLabel}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                  iconKey === key ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
+                }`}
+              >
+                <Icon size={17} />
+              </button>
+            ))}
+          </div>
         </div>
 
         <ChipListField

@@ -82,7 +82,7 @@ export function DiscoverTierPreview() {
     <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {previewedUniverses.map(({ entityType, board, counts }) => {
-          const visual = getEntityTypeVisual(entityType.code)
+          const visual = getEntityTypeVisual(entityType)
           const preview = boardPreviewRows(board, 3, 4)
           return (
             <button
