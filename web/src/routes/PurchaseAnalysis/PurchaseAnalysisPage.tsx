@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Plus, X, ChevronRight, History } from 'lucide-react'
 import { analyzeListing } from '../../api/purchaseAnalysis'
@@ -54,6 +54,10 @@ function parseVolumes(text: string): number[] {
  * détail de complétude/édition par série.
  */
 export function PurchaseAnalysisPage() {
+  // Contexte optionnel passé par la fiche d'une série (voir EntityDetailPage) -
+  // absent quand on arrive par Rechercher, par Profil, ou par URL directe.
+  const fromEntity = useLocation().state as { seriesTitle?: string; editionName?: string } | null
+
   const [platform, setPlatform] = useState<ListingPlatform>('VINTED')
   const [url, setUrl] = useState('')
   const [rawTitle, setRawTitle] = useState('')
@@ -68,8 +72,12 @@ export function PurchaseAnalysisPage() {
   // ces deux champs d'office).
   const [showListingDetails, setShowListingDetails] = useState(false)
 
-  const [seriesTitle, setSeriesTitle] = useState('')
-  const [editionName, setEditionName] = useState('')
+  // Pré-remplissage quand on arrive depuis la fiche d'une série (voir
+  // EntityDetailPage, "Évaluer une annonce de cette série") - simple valeur
+  // initiale, jamais un champ verrouillé : le lot d'une annonce contient
+  // souvent d'autres séries, qu'on ajoute ensuite normalement.
+  const [seriesTitle, setSeriesTitle] = useState(fromEntity?.seriesTitle ?? '')
+  const [editionName, setEditionName] = useState(fromEntity?.editionName ?? '')
   const [volumesText, setVolumesText] = useState('')
   const [items, setItems] = useState<QueuedItem[]>([])
 
@@ -367,7 +375,7 @@ export function PurchaseAnalysisPage() {
           type="button"
           onClick={() => analyzeMutation.mutate()}
           disabled={!canAnalyze || analyzeMutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
           {analyzeMutation.isPending ? 'Analyse...' : 'ANALYSER LE LOT'}
         </button>
