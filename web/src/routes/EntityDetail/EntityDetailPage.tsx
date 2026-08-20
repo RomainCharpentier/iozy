@@ -194,27 +194,40 @@ export function EntityDetailPage() {
                 activeGroup={activeEditionGroup}
                 onSelectEdition={setActiveEdition}
               />
-              {/* "Évaluer une annonce" - voir la maquette V1.2 (evalFromHere) :
-                  point d'entrée contextuel depuis la fiche vers Analyse
-                  d'achat (fonctionnalité déjà réelle, voir
-                  PurchaseAnalysisPage). Pas encore pré-rempli avec cette
-                  série - PurchaseAnalysisPage ne lit aucun paramètre d'URL
-                  aujourd'hui, ajouter ce pré-remplissage reste possible plus
-                  tard sans changer ce bouton. */}
-              <button
-                type="button"
-                onClick={() => navigate('/purchase-analysis')}
-                className="flex w-fit items-center gap-2 rounded-xl bg-surface px-3.5 py-2.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-              >
-                <Scale size={16} />
-                Évaluer une annonce
-              </button>
+              {/* Point d'entrée contextuel vers Analyse d'achat (voir la
+                  maquette V1.2, evalFromHere). Libellé et sous-titre
+                  explicites : "Évaluer une annonce" seul, posé au milieu
+                  d'une fiche de série possédée, ne disait ni de quelle
+                  annonce il s'agissait, ni ce que la série venait y faire -
+                  signalé directement par l'utilisateur. La série ET
+                  l'édition affichée sont maintenant emportées dans l'écran
+                  d'analyse (voir PurchaseAnalysisPage, location.state - même
+                  mécanisme que SearchPage -> AddDraftPage), ce qui rend le
+                  libellé littéralement vrai plutôt qu'à moitié tenu. */}
+              <div className="flex w-fit flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate('/purchase-analysis', {
+                      state: { seriesTitle: entity.title, editionName: activeEditionGroup.edition },
+                    })
+                  }
+                  className="flex w-fit items-center gap-2 rounded-xl bg-surface px-3.5 py-2.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+                >
+                  <Scale size={16} />
+                  Évaluer une annonce de cette série
+                </button>
+                <p className="text-xs text-textDim">
+                  Tu as trouvé un lot d'occasion (Vinted, Leboncoin...) ? Compare le prix demandé à ta collection :
+                  tomes qui te manquent, doublons, prix conseillé pour négocier.
+                </p>
+              </div>
             </>
           ) : (
             !isManga && (
               <div className="flex flex-wrap gap-2">
                 {activeOwnership && (
-                  <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentText">Possédé</span>
+                  <span className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accentInk">Possédé</span>
                 )}
                 {bestExperience && (
                   <span className="rounded-full bg-surface px-3 py-1 text-sm font-medium text-textDim">
@@ -240,7 +253,7 @@ export function EntityDetailPage() {
             type="button"
             onClick={() => titleInput.trim() && renameMutation.mutate(titleInput.trim())}
             disabled={!titleInput.trim() || renameMutation.isPending}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accentText disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             Enregistrer
           </button>
@@ -268,7 +281,7 @@ export function EntityDetailPage() {
             type="button"
             onClick={() => coverUrlInput.trim() && coverMutation.mutate(coverUrlInput.trim())}
             disabled={!coverUrlInput.trim() || coverMutation.isPending}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
           >
             Enregistrer
           </button>

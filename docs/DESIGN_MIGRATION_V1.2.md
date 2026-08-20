@@ -58,6 +58,105 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 9. Accessibilité transversale — **fait** (`91c22c5`) — hook `useModalA11y` partagé (focus trap + Escape + restauration) appliqué aux 7 surfaces `role="dialog"` de l'app, 2 bugs réels corrigés au passage (Escape manquant sur 2 composants, course autoFocus/StrictMode)
 10. Responsive + QA visuelle finale vs maquettes, rapport final — **fait** (`c73d4c2`) — un vrai débordement horizontal mobile trouvé et corrigé (Évaluer un achat), rapport final livré à l'utilisateur
 
+11. Titre français résolu vers la mauvaise œuvre — **fait** — voir ci-dessous
+12. Contraste et lisibilité de tous les textes — **fait** — voir ci-dessous
+
+### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
+
+Reproduit en direct avant correction (`GET /api/metadata/french-title?query=Vagabond&author=Takehiko Inoue`
+→ `{"frenchTitle":"Slam Dunk"}`). Cause : le dernier recours "auteur seul"
+des deux fournisseurs de titre français (Open Library, Google Books) cherche
+le seul nom de l'auteur quand rien du titre cherché n'a matché — il ramenait
+donc l'œuvre la mieux référencée de cet auteur, sans que rien ne la rattache
+à la série demandée. Ce recours a pourtant de vraies réussites ("Forget Me
+Not" → "Fragments d'elles", "Zom 100" → "Bucket List of the Dead") : il ne
+fallait ni le supprimer, ni lui faire confiance aveuglément.
+
+Trois garde-fous, tous vérifiés en direct :
+
+- **Valeur de preuve du résultat** (`FrenchTitleMatch.Confidence`) : une
+  correspondance sur la série cherchée l'emporte désormais sur une trouvaille
+  "auteur seul", quel que soit l'ordre des fournisseurs — avant, la
+  supposition d'Open Library (essayé en premier) court-circuitait Google
+  Books. Effet de bord constaté : "Witch Hat Atelier", qui répondait 404,
+  résout maintenant "L'Atelier des Sorciers".
+- **Numéro de tome obligatoire** à cette étape seulement : sans lui, le
+  résultat est presque toujours un artbook/guide/one-shot du même auteur
+  (vérifié sur `inauthor:"Ryoko Kui"`, où "Les Sept Rejetons du dragon" et
+  "Gloutons et Dragons : guide officiel" précèdent le vrai "Gloutons et
+  Dragons (Tome 12)").
+- **Confrontation au catalogue** (`MetadataSearchService.namesAnotherKnownWork`) :
+  un titre "auteur seul" est écarté s'il est LUI-MÊME le titre catalogué
+  d'une autre œuvre (MyAnimeList/Jikan). Une traduction française n'y existe
+  pas ; "Slam Dunk" si (malId 51 ≠ 656). Comparaison par égalité EXACTE,
+  jamais par inclusion — sinon "Bucket List of the Dead" serait écarté à
+  tort à cause de "Zom 100: Bucket List of the Dead". Ne consulte que les
+  fournisseurs qui cataloguent sous le titre d'origine (nouveau
+  `MetadataProvider.catalogsOriginalTitles()`) : inclure celui qui cherche
+  PAR titre français inverserait complètement le raisonnement. Vérification
+  impossible (panne/quota) = titre écarté : un 404 honnête vaut mieux qu'un
+  titre de série faux, que la recherche de tomes propagerait ensuite en
+  jaquettes fausses.
+
+351 tests backend verts. Vérifié en direct après reconstruction :
+Vagabond → 404 (correct, son titre français EST "Vagabond", le client garde
+donc le titre déjà affiché), Attack on Titan → "L'Attaque des Titans",
+My Hero Academia → inchangé, Witch Hat Atelier → "L'Atelier des Sorciers".
+
+### Lot 12 — contraste et lisibilité
+
+Audit automatisé (calcul WCAG du ratio réel texte/fond composé, en parcourant
+tous les nœuds de texte rendus) sur 18 routes × 2 thèmes, en 1280px et 375px,
+plus les surfaces `role="dialog"` ouvertes une à une. Cinq défauts réels,
+tous corrigés :
+
+- **`bg-accent` + `text-accentText`** (~40 fichiers, 43 occurrences) : le
+  token de l'accent EN TEXTE était posé SUR un remplissage accent — 1.47:1
+  en sombre, 1.39:1 en clair, soit tous les boutons primaires, chips
+  sélectionnées et badges illisibles. Nouveau token `--color-accentInk`
+  (blanc en clair, encre foncée en sombre, comme la maquette qui écrit bien
+  `color:#fff` sur ses boutons primaires) → 4.57:1 / 5.38:1.
+- **`text-accent` utilisé comme couleur de texte** (25 occurrences) →
+  `text-accentText` (4.25:1 → 5.70:1 en clair).
+- **Couleurs d'univers** (`lib/entityTypeVisuals.ts`) : valeurs en dur
+  calibrées pour un fond clair, utilisées aussi en texte ("Tout voir", titre
+  de page catégorie) — 4.23:1 (manga) et 3.06:1 (jeu vidéo) sur fond sombre.
+  Déléguées à des tokens CSS thème-réactifs ; teinte conservée, luminosité
+  adaptée. Renverse la note "identité de catégorie stable" du Lot 3, à
+  dessein.
+- **Pastilles de rang** : encre blanche en thème clair sur `rank-a` (4.40) et
+  `rank-b` (3.42, l'ambre) — les deux fonds assombris au strict nécessaire.
+- **`--color-faint`** : 4.41 sur le fond clair, 4.06 sur surface2 — recalibré
+  dans les deux thèmes pour tenir 4.5:1 sur les TROIS fonds, pas seulement le
+  plus contrasté.
+
+Également corrigé au passage : `CoverTile` posait `text-accent-text`, une
+classe qui n'existe pas (le token génère `text-accentText`) — l'icône
+héritait donc simplement de la couleur du parent.
+
+Note de méthode (pour ne pas refaire l'erreur) : dans ce navigateur, quand
+l'onglet ne compose pas de frames, les transitions CSS restent FIGÉES à leur
+valeur de départ — `getComputedStyle().color` renvoie alors l'ancienne
+couleur après une bascule de thème, alors que les variables CSS, elles, sont
+à jour. Un premier balayage a ainsi produit des dizaines de faux positifs
+"texte sombre sur fond clair" dans l'en-tête (les seuls éléments ayant une
+transition sur `color`). Toujours injecter
+`*{transition:none !important}` avant d'auditer, et ne jamais basculer de
+thème en cours de balayage.
+
+### Lot 12 bis — "Évaluer une annonce" sur la fiche
+
+Signalé par l'utilisateur : le bouton, posé au milieu d'une fiche de série
+possédée, ne disait ni de quelle annonce il s'agissait ni ce que la série
+venait y faire — et pour cause, il ouvrait un formulaire d'analyse VIDE (le
+pré-remplissage était noté "possible plus tard" au Lot 4). Corrigé des deux
+côtés : libellé "Évaluer une annonce de cette série" + une ligne qui dit à
+quoi ça sert (comparer un lot d'occasion à sa collection), et la série +
+l'édition affichée sont réellement emportées jusqu'au formulaire via
+`location.state` (même mécanisme que SearchPage → AddDraftPage). Valeurs
+initiales seulement, jamais des champs verrouillés : un lot contient souvent
+d'autres séries.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement
@@ -72,10 +171,9 @@ complètement" plutôt que rester en portée réduite) et livrée en `f8d626f` :
 des tomes, reçoit le candidat choisi via `location.state` React Router,
 rejoue tout le pipeline résolution-titre/correspondance-jaquette au montage
 plutôt que de le partager par un state global). `QuickAddPage.tsx` supprimé.
-Bug pré-existant non introduit par le refactor et non corrigé (hors
-périmètre) : OpenLibrary résout parfois un titre français vers la mauvaise
-œuvre du même auteur (ex. "Vagabond" → "Slam Dunk") — confirmé identique
-avant/après le refactor, à traiter séparément.
+Bug pré-existant signalé ici comme "à traiter séparément" — **corrigé
+depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
+"Vagabond" (Takehiko Inoue) en "Slam Dunk".
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
