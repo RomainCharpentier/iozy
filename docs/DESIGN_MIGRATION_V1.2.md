@@ -346,11 +346,18 @@ Deux frictions réelles la faisaient passer pour impossible, corrigées :
 Non-régression vérifiée : un type AVEC fournisseur cherche et scanne comme
 avant.
 
-Reste en friction, non traité (choix de navigation, pas un défaut) :
-"Types de collection" est à trois niveaux de profondeur (Profil >
-Paramètres > Administration avancée), et un type personnalisé n'a pas de
-couleur/icône propre - il prend le visuel de repli (voir
-`getEntityTypeVisual`, FALLBACK).
+Accès raccourci dans la foulée, sur retour utilisateur ("pas logique de
+passer par le profil") : **Ma collection > "Plus d'outils" > "Types de
+collection"**, à côté de "Retrouver les jaquettes manquantes". Un type
+STRUCTURE cet écran (un rail par type), c'est donc là qu'on se rend compte
+qu'il en manque un. L'écran reste atteignable depuis Administration - un
+second chemin, pas un déplacement. Le bouton "Plus d'outils" a gagné un
+`aria-label` au passage : il n'avait qu'un `title`, jamais annoncé au
+toucher.
+
+Reste en friction, non traité : un type personnalisé n'a pas de couleur ni
+d'icône propre - il prend le visuel de repli (voir `getEntityTypeVisual`,
+FALLBACK), alors que les 4 univers connus ont chacun les leurs.
 
 ### Note Lot 5 — résolue
 
