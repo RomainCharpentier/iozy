@@ -8,6 +8,8 @@ import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
 import { listEntityTypes } from '../../api/entityTypes'
+import { findEdition } from '../../api/purchaseAnalysis'
+import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { gradientFor } from '../../theme/gradient'
@@ -87,21 +89,36 @@ export function EntityDetailPage() {
   })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
 
-  if (entityQuery.isLoading) return <p className="text-textDim">Chargement...</p>
-  if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
-  if (!entityQuery.data) return null
-
-  const entity = entityQuery.data
-  const entityType = entityTypesQuery.data?.find((t) => t.id === entity.entityTypeId)
-  const ownerships = ownershipsQuery.data ?? []
-  const experiences = experiencesQuery.data ?? []
+  // Tout ce qui suit vit AVANT les retours anticipés : un Hook ne peut pas
+  // être appelé conditionnellement (React rendrait moins de Hooks pendant le
+  // chargement qu'après, voir "Rendered fewer hooks than expected"). D'où un
+  // `entity` qui tolère null jusqu'à la garde plus bas.
+  const entity = entityQuery.data ?? null
+  const entityType = entityTypesQuery.data?.find((t) => t.id === entity?.entityTypeId)
   const isManga = entityType?.code === 'MANGA'
 
   // Édition active partagée entre EditionProgressSection (dans le hero) et
   // TomesGridSection (la grille, hors du hero) - voir activeEdition ci-dessus.
-  // Calcul pur, jamais un Hook : peut vivre après les retours anticipés.
-  const editionGroups = isManga ? resolveEditionView(groupVariantsByEdition(entity.variants)) : []
+  const editionGroups = entity && isManga ? resolveEditionView(groupVariantsByEdition(entity.variants)) : []
   const activeEditionGroup = editionGroups.find((g) => g.edition === activeEdition) ?? editionGroups[0]
+
+  // Fiche d'édition de l'édition affichée - MÊME clé de cache que
+  // EditionProgressSection (React Query partage la requête, aucun appel réseau
+  // de plus) : elle alimente le sous-groupe "Édition" du bloc "L'œuvre".
+  const activeEditionInfoQuery = useQuery({
+    queryKey: queryKeys.purchaseAnalysis.edition(entity?.title ?? '', activeEditionGroup?.edition ?? ''),
+    queryFn: () => findEdition(entity!.title, activeEditionGroup!.edition, entityId),
+    enabled: !!entity && !!activeEditionGroup && activeEditionGroup.edition !== '',
+    retry: false,
+  })
+  const activeEditionInfo = activeEditionInfoQuery.isSuccess ? activeEditionInfoQuery.data : null
+
+  if (entityQuery.isLoading) return <p className="text-textDim">Chargement...</p>
+  if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
+  if (!entity) return null
+
+  const ownerships = ownershipsQuery.data ?? []
+  const experiences = experiencesQuery.data ?? []
 
   const coverImageUrl = coverImageUrlFrom(entity.attributes)
   // mangaka (Manga) ou studio (Jeu vidéo) - voir creatorInfo.ts. Rien pour
@@ -330,6 +347,18 @@ export function EntityDetailPage() {
         entityId={entityId}
         attributes={entity.attributes}
         customFieldKeys={entityType?.customFieldKeys ?? []}
+        edition={
+          activeEditionGroup && activeEditionGroup.edition !== ''
+            ? {
+                name: activeEditionGroup.edition,
+                publisher: activeEditionInfo?.publisher ?? null,
+                outOfPrint: activeEditionInfo?.outOfPrint ?? false,
+                betterEditionAnnounced: activeEditionInfo?.betterEditionAnnounced ?? false,
+                betterEditionNote: activeEditionInfo?.betterEditionNote ?? null,
+                ongoing: isSeriesOngoing(entity.attributes),
+              }
+            : null
+        }
       />
 
       {/* Tags/Expériences/Relations/Suppression : rien de tout ça ne répond

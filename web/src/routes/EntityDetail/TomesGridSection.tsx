@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Check, Plus, Sparkles } from 'lucide-react'
-import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
+import { getCompleteness } from '../../api/purchaseAnalysis'
 import { getEntityTierSummary, setGeneralRank } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
-import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
 import { AssistantSection } from './AssistantSection'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
@@ -321,32 +320,12 @@ export function TomesGridSection({
     queryFn: () => getCompleteness(entityTitle, activeGroup.edition, owned, activeGroup.volumeNumbers, entityId),
     enabled: activeGroup.edition !== '',
   })
-  const editionInfoQuery = useQuery({
-    queryKey: queryKeys.purchaseAnalysis.edition(entityTitle, activeGroup.edition),
-    queryFn: () => findEdition(entityTitle, activeGroup.edition, entityId),
-    enabled: activeGroup.edition !== '',
-    retry: false,
-  })
-  const editionInfo = editionInfoQuery.isSuccess ? editionInfoQuery.data : null
-
   const totalVolumes = completenessQuery.data?.totalVolumes ?? null
   const cataloguedMissing = completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []
   const tiles = buildTiles(activeGroup, variants, owned, totalVolumes, cataloguedMissing)
   const activeTile = tiles.find((t) => t.volumeNumber === activeVolumeNumber) ?? null
   const isLongSeries = tiles.length > LONG_SERIES_THRESHOLD
   const visibleTiles = showAllTomes ? tiles : buildPreviewTiles(tiles)
-  const ongoing = isSeriesOngoing(entityAttributes)
-  // "À propos" : uniquement des données réellement connues (jamais de valeur
-  // devinée/technique) - voir la maquette validée, qui liste explicitement
-  // Éditeur/Statut/Tomes comme les seules infos utiles ici. Éditeur vient de
-  // editionInfo (MangaEdition), jamais de entity.attributes.publisher : pour
-  // un candidat Jikan, cet attribut est en réalité la revue de sérialisation
-  // JAPONAISE, pas un éditeur français (voir pickCandidate côté QuickAddPage -
-  // même bug déjà corrigé là, la même confusion serait réintroduite ici sinon).
-  const aboutRows: Array<[string, string]> = []
-  if (editionInfo?.publisher) aboutRows.push(['Éditeur', editionInfo.publisher])
-  if (ongoing !== null) aboutRows.push(['Statut', ongoing ? 'En cours' : 'Terminée'])
-  if (totalVolumes !== null) aboutRows.push(['Tomes', String(totalVolumes)])
 
   return (
     <div className="flex flex-col gap-8">
@@ -419,27 +398,6 @@ export function TomesGridSection({
         activeGroup={activeGroup}
       />
 
-      {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la
-          maquette validée) - chaque paire libellé/valeur est son propre bloc,
-          disposées en grille auto-fit plutôt qu'un tableau à 2 colonnes fixe
-          (jamais de longues lignes pleine largeur pour seulement 2-3 valeurs).
-          Uniquement des données réellement connues - aucune ligne "Genre"/
-          "Thèmes" ici : ni Jikan ni MyAnimeList ne sont exploités pour ces
-          champs dans ce backend aujourd'hui, les afficher inventerait une
-          donnée. Absente entièrement si rien n'est connu. */}
-      {aboutRows.length > 0 && (
-        <section className="flex flex-col gap-2 border-t border-surface pt-4">
-          <h2 className="font-display text-lg font-semibold text-textPrimary">À propos</h2>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
-            {aboutRows.map(([label, value]) => (
-              <dl key={label} className="flex flex-col gap-0.5 text-sm">
-                <dt className="text-textDim">{label}</dt>
-                <dd className="text-textPrimary">{value}</dd>
-              </dl>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Surface contextuelle unique (voir la refonte demandée) - remplace
           l'ancien rendu de AddVolumeSection/OwnershipsSection plus bas dans

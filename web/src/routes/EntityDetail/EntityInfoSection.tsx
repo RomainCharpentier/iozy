@@ -7,8 +7,17 @@ import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 
 /**
- * "Informations" - les attributs de l'œuvre elle-même, affichés ET
- * modifiables, quel que soit son type.
+ * "L'œuvre" - TOUT ce qui décrit la chose elle-même, par opposition au reste
+ * de la fiche, qui décrit ce que l'utilisateur en POSSÈDE (progression, mes
+ * tomes, mes classements, l'état de chaque exemplaire).
+ * <p>
+ * Un seul bloc, deux sous-groupes explicites (retour utilisateur du
+ * 2026-08-20 : "compliqué de faire la différence entre notre possession et
+ * les metadatas du truc") : la fiche affichait deux blocs de métadonnées sans
+ * dire d'où ils venaient - "À propos" (données de l'ÉDITION, source
+ * MangaEdition, qui vivait dans TomesGridSection) et "Informations" (données
+ * de la SÉRIE, source entity.attributes). Le nombre de tomes y était même
+ * répété une troisième fois, le hero l'affichant déjà deux fois.
  * <p>
  * Principe posé par l'utilisateur (2026-08-20) : ce qu'on copie depuis une
  * API externe devient une donnée à SOI, donc corrigeable ; et un type sans
@@ -28,10 +37,26 @@ export function EntityInfoSection({
   entityId,
   attributes,
   customFieldKeys,
+  edition,
 }: {
   entityId: string
   attributes: Record<string, unknown>
   customFieldKeys: string[]
+  /** Édition affichée, quand il y en a une (mangas). Volontairement SANS le
+   * nombre de tomes : le hero l'annonce déjà deux fois ("1 / 6 tomes
+   * possédés" puis "Black Édition · 6 tomes"). Et sans bouton de correction :
+   * il existe déjà, accroché au nom de l'édition dans le hero (voir
+   * EditionCorrectionSection) - deux entrées vers le même formulaire seraient
+   * exactement le genre de doublon qu'on retire ici. */
+  edition?: {
+    name: string
+    publisher: string | null
+    outOfPrint: boolean
+    betterEditionAnnounced: boolean
+    betterEditionNote: string | null
+    /** Statut lisible de la série (En cours / Terminée), null si inconnu. */
+    ongoing: boolean | null
+  } | null
 }) {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
@@ -91,14 +116,33 @@ export function EntityInfoSection({
   const filled = descriptive.filter((key) => displayValue(attributes[key]) !== '')
   const filledTechnical = technical.filter((key) => displayValue(attributes[key]) !== '')
 
-  // Rien à montrer ET rien à remplir : la section disparaît entièrement
-  // plutôt que d'afficher un bloc vide (même règle que "À propos").
-  if (fields.length === 0) return null
+  // "Terminée" plutôt que "finished" : la valeur brute reste modifiable parmi
+  // les champs techniques, mais ce qu'on LIT ici est la forme humaine (voir
+  // lib/seriesInfo.isSeriesOngoing, qui ne comprend que le vocabulaire des
+  // fournisseurs).
+  const seriesStatusRow = edition?.ongoing == null ? null : edition.ongoing ? 'En cours' : 'Terminée'
+
+  const editionRows: Array<[string, string]> = []
+  // "Éditeur de cette édition" et non "Éditeur" : l'attribut publisher de la
+  // SÉRIE existe aussi (champ personnalisé du type Manga) et ne veut pas dire
+  // la même chose - pour un candidat Jikan c'est la revue de prépublication
+  // japonaise, pas l'éditeur français, confusion déjà corrigée ailleurs (voir
+  // pickCandidate). Deux lignes "Éditeur" côte à côte avec deux valeurs
+  // différentes seraient exactement l'ambiguïté qu'on retire ici.
+  if (edition?.publisher) editionRows.push(['Éditeur de cette édition', edition.publisher])
+  if (edition?.outOfPrint) editionRows.push(['Disponibilité', 'Édition épuisée'])
+  if (edition?.betterEditionAnnounced) {
+    editionRows.push(['À venir', edition.betterEditionNote || 'Meilleure édition annoncée'])
+  }
+
+  // Rien à montrer ET rien à remplir : le bloc disparaît entièrement plutôt
+  // que d'afficher une section vide.
+  if (fields.length === 0 && editionRows.length === 0 && edition?.ongoing == null) return null
 
   return (
     <section className="flex flex-col gap-3 border-t border-surface pt-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Informations</h2>
+        <h2 className="font-display text-lg font-semibold text-textPrimary">L'œuvre</h2>
         {!editing && (
           <button
             type="button"
@@ -154,28 +198,61 @@ export function EntityInfoSection({
             <span className="text-xs text-textDim">Un champ vidé est retiré.</span>
           </div>
         </>
-      ) : filled.length > 0 || filledTechnical.length > 0 ? (
+      ) : (
         <>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
-            {(showTechnical ? [...filled, ...filledTechnical] : filled).map((key) => (
-              <dl key={key} className="flex flex-col gap-0.5 text-sm">
-                <dt className="text-textDim">{labelFor(key)}</dt>
-                <dd className="text-textPrimary">{displayValue(attributes[key])}</dd>
-              </dl>
-            ))}
+          {/* Sous-groupe SÉRIE : ce qui reste vrai quelle que soit l'édition
+              qu'on possède (auteur, année, statut de publication). */}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold tracking-wide text-textDim uppercase">Série</h3>
+            {filled.length > 0 || filledTechnical.length > 0 || seriesStatusRow !== null ? (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
+                {seriesStatusRow && (
+                  <dl className="flex flex-col gap-0.5 text-sm">
+                    <dt className="text-textDim">Statut</dt>
+                    <dd className="text-textPrimary">{seriesStatusRow}</dd>
+                  </dl>
+                )}
+                {(showTechnical ? [...filled, ...filledTechnical] : filled).map((key) => (
+                  <dl key={key} className="flex flex-col gap-0.5 text-sm">
+                    <dt className="text-textDim">{labelFor(key)}</dt>
+                    <dd className="text-textPrimary">{displayValue(attributes[key])}</dd>
+                  </dl>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-textDim">Aucune information renseignée pour l'instant.</p>
+            )}
+            {filledTechnical.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowTechnical((v) => !v)}
+                className="w-fit text-xs font-semibold text-accentText"
+              >
+                {showTechnical ? 'Masquer les champs techniques' : `Champs techniques (${filledTechnical.length})`}
+              </button>
+            )}
           </div>
-          {filledTechnical.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowTechnical((v) => !v)}
-              className="w-fit text-xs font-semibold text-accentText"
-            >
-              {showTechnical ? 'Masquer les champs techniques' : `Champs techniques (${filledTechnical.length})`}
-            </button>
+
+          {/* Sous-groupe ÉDITION : ce qui ne vaut QUE pour l'édition affichée
+              (l'éditeur français, son épuisement...). Nommé avec l'édition
+              elle-même, sinon "Éditeur : Kana" ressemble à une propriété de la
+              série - alors qu'une autre édition a un autre éditeur. */}
+          {editionRows.length > 0 && (
+            <div className="flex flex-col gap-2 pt-1">
+              <h3 className="text-xs font-semibold tracking-wide text-textDim uppercase">
+                Édition « {edition?.name} »
+              </h3>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
+                {editionRows.map(([label, value]) => (
+                  <dl key={label} className="flex flex-col gap-0.5 text-sm">
+                    <dt className="text-textDim">{label}</dt>
+                    <dd className="text-textPrimary">{value}</dd>
+                  </dl>
+                ))}
+              </div>
+            </div>
           )}
         </>
-      ) : (
-        <p className="text-sm text-textDim">Aucune information renseignée pour l'instant.</p>
       )}
     </section>
   )
