@@ -67,6 +67,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 17. Types de collection personnalisés (sans API) : friction levée — **fait** — voir ci-dessous
 18. "Informations" : attributs de l'œuvre affichés et modifiables, tous types — **fait** — voir ci-dessous
 19. Administration des éditions de référence — **fait** — voir ci-dessous
+20. Fiche : un seul bloc "L'œuvre", possession et métadonnées enfin distinctes — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -433,6 +434,42 @@ moins un thème - `text-white` (3.29:1 en sombre) ou `text-textPrimary`
 clair, encre foncée en sombre), appliqué aux cinq - 7.21:1 et 5.67:1
 mesurés. À retenir pour tout futur audit : balayer aussi les états qui
 demandent un clic pour exister.
+
+### Lot 20 — "L'œuvre" : séparer ce qu'on possède de ce que la chose EST
+
+Retour utilisateur : "compliqué de faire la différence entre notre possession
+et les metadatas du truc". Constat sur la fiche de Death Note : **deux blocs
+de métadonnées** qui ne disaient pas d'où ils venaient - "À propos" (données
+de l'ÉDITION, source MangaEdition, qui vivait dans TomesGridSection) et
+"Informations" (données de la SÉRIE, source entity.attributes, ajouté au Lot
+18 sans fusionner). Le nombre de tomes y apparaissait une troisième fois, le
+hero l'affichant déjà deux fois.
+
+Un seul bloc **"L'œuvre"**, deux sous-groupes explicitement nommés :
+
+- **SÉRIE** - ce qui reste vrai quelle que soit l'édition possédée : statut
+  (forme lisible "Terminée", la valeur brute restant modifiable parmi les
+  champs techniques), mangaka, année, champs personnalisés du type.
+- **ÉDITION « X »** - ce qui ne vaut que pour l'édition affichée : "Éditeur
+  de cette édition", épuisement, meilleure édition annoncée. Nommé avec
+  l'édition elle-même, sinon "Éditeur : Kana" ressemble à une propriété de la
+  série alors qu'une autre édition a un autre éditeur - et le libellé est
+  qualifié parce qu'un attribut `publisher` de SÉRIE existe aussi, avec un
+  autre sens (revue de prépublication japonaise pour un candidat Jikan).
+
+Tout le reste de la fiche est désormais, sans ambiguïté, ce que l'utilisateur
+POSSÈDE : progression, "Mes tomes", "Mes classements", l'état de chaque
+exemplaire dans le tiroir d'un tome.
+
+Le nombre de tomes ne figure plus dans le bloc (le hero l'annonce deux fois),
+et l'édition ne gagne PAS un second bouton de correction : celui du hero,
+accroché au nom de l'édition, reste l'unique entrée vers ce formulaire.
+
+Piège rencontré : le `useQuery` ajouté pour lire la fiche d'édition avait
+d'abord été posé APRÈS les retours anticipés de la page - violation des
+règles des Hooks, visible seulement à l'exécution ("Rendered fewer hooks than
+expected"), jamais au typecheck. Tout ce dont il dépend est calculable avant,
+au prix d'un `entity` qui tolère null jusqu'à la garde.
 
 ### Note Lot 5 — résolue
 
