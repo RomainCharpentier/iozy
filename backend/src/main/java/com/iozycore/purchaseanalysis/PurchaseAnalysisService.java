@@ -168,26 +168,42 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * Supprime une édition de référence - REFUSÉE tant qu'un Tome y est encore
-     * rattaché (Variant.mangaEditionId), pour ne jamais laisser derrière soi
-     * un tome pointant vers une ligne disparue. Même parti pris que la
-     * suppression d'un EntityType (voir EntityTypeService) : on explique ce
-     * qui bloque plutôt que de délier en silence des données que l'utilisateur
-     * croyait liées.
-     *
-     * @return le nombre de tomes rattachés quand la suppression est refusée,
-     *         0 quand elle a bien eu lieu.
+     * Ce qui retient encore une édition de référence et empêche sa suppression.
+     * Aucun blocage = elle a bien été supprimée.
      */
-    public int deleteEdition(UUID editionId) {
+    public record EditionDeletionBlockers(int linkedVolumes, int linkedObservations) {
+        public boolean none() {
+            return linkedVolumes == 0 && linkedObservations == 0;
+        }
+    }
+
+    /**
+     * Supprime une édition de référence - REFUSÉE tant qu'un Tome y est encore
+     * rattaché (Variant.mangaEditionId) OU qu'une observation de prix s'y
+     * réfère, pour ne jamais laisser derrière soi une ligne pointant vers une
+     * édition disparue. Même parti pris que la suppression d'un EntityType
+     * (voir EntityTypeService) : on explique ce qui bloque plutôt que de délier
+     * en silence des données que l'utilisateur croyait liées.
+     * <p>
+     * Les observations manquaient à cet inventaire : la contrainte de clé
+     * étrangère de Postgres restait alors seule à protéger la table, et
+     * remontait une erreur SQL brute en 500 au lieu du 409 explicite prévu
+     * ici (constaté en vérification, Lot 26).
+     *
+     * @return ce qui bloque, ou des compteurs à zéro quand la suppression a
+     *         bien eu lieu.
+     */
+    public EditionDeletionBlockers deleteEdition(UUID editionId) {
         long linkedVolumes = entityRepository.search(null, null, null).stream()
                 .flatMap(entity -> entity.variants().stream())
                 .filter(variant -> editionId.equals(variant.mangaEditionId()))
                 .count();
-        if (linkedVolumes > 0) {
-            return (int) linkedVolumes;
+        int linkedObservations = marketPriceObservationRepository.findByEditionId(editionId).size();
+        if (linkedVolumes > 0 || linkedObservations > 0) {
+            return new EditionDeletionBlockers((int) linkedVolumes, linkedObservations);
         }
         mangaEditionRepository.deleteById(editionId);
-        return 0;
+        return new EditionDeletionBlockers(0, 0);
     }
 
     /** Toutes les éditions connues, toutes séries confondues - pour un écran qui

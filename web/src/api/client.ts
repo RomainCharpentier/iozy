@@ -46,7 +46,23 @@ async function extractErrorMessage(response: Response): Promise<string> {
     // ("Not Found"). La reconnaître à sa forme (timestamp + status + path)
     // évite d'afficher cet anglais brut au lieu du repli traduit.
     const enveloppeSpring = body && 'timestamp' in body && 'status' in body
-    if (!enveloppeSpring && typeof body?.error === 'string') return body.error
+    // Enveloppe Spring : "error" ne porte que la phrase de statut, mais
+    // "message" porte la raison écrite par le contrôleur quand il y en a une
+    // (server.error.include-message: always). Spring y met "No message
+    // available" lorsqu'il n'y en a pas - à ignorer, le repli traduit dit
+    // mieux les choses.
+    if (enveloppeSpring) {
+      const raison = typeof body.message === 'string' ? body.message.trim() : ''
+      // Sauf en 404 : là, le message ne fait que nommer l'identifiant absent
+      // ("Entity introuvable : 3f2a...-9c1e"), ce qui n'apprend rien à qui lit.
+      // Le repli traduit dit la seule chose utile - le lien ne mène plus nulle
+      // part. Aux autres statuts (409/400 surtout), le message EST la raison
+      // actionnable ("3 tome(s) y sont encore rattachés") : on l'affiche.
+      const utile = raison && raison !== 'No message available' && response.status !== 404
+      if (utile) return raison
+    } else if (typeof body?.error === 'string') {
+      return body.error
+    }
   } catch {
     // pas de corps JSON exploitable, on retombe sur le repli ci-dessous
   }

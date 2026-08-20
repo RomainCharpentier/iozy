@@ -180,6 +180,35 @@ class PurchaseAnalysisPersistenceIntegrationTest {
     }
 
     @Test
+    void deleting_an_edition_is_refused_while_a_price_observation_still_refers_to_it() {
+        // Avant ce garde-fou, seule la contrainte de clé étrangère de Postgres
+        // protégeait la table : la suppression remontait une erreur SQL brute
+        // (500) au lieu du refus explicite déjà prévu pour les tomes.
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Pluto " + UUID.randomUUID(),
+                "Deluxe", EditionTier.DELUXE, "Delcourt", 8, new BigDecimal("15.50"), false, false, null));
+        marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 8),
+                new BigDecimal("90"), ListingPlatform.VINTED, Condition.GOOD, LocalDate.now(), null));
+
+        var blocages = purchaseAnalysisService.deleteEdition(edition.id());
+
+        assertThat(blocages.none()).isFalse();
+        assertThat(blocages.linkedObservations()).isEqualTo(1);
+        assertThat(blocages.linkedVolumes()).isZero();
+        assertThat(mangaEditionRepository.findById(edition.id())).isPresent();
+    }
+
+    @Test
+    void an_edition_that_nothing_refers_to_is_deleted() {
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Vinland Saga " + UUID.randomUUID(),
+                "Standard", EditionTier.STANDARD, "Kurokawa", 27, new BigDecimal("7.65"), false, false, null));
+
+        var blocages = purchaseAnalysisService.deleteEdition(edition.id());
+
+        assertThat(blocages.none()).isTrue();
+        assertThat(mangaEditionRepository.findById(edition.id())).isEmpty();
+    }
+
+    @Test
     void collector_preferences_fall_back_to_defaults_before_any_save_then_persist_once_updated() {
         CollectorPreferences beforeAnySave = collectorPreferencesRepository.find();
         assertThat(beforeAnySave).isEqualTo(CollectorPreferences.defaults());
