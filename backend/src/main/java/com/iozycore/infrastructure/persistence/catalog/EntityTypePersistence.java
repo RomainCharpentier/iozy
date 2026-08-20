@@ -57,7 +57,7 @@ class JpaEntityTypeRepositoryAdapter implements EntityTypeRepository {
 
     private static EntityTypeJpaEntity toJpa(EntityType t) {
         SchemaJson schema = new SchemaJson(List.copyOf(t.customFieldKeys()), List.copyOf(t.allowedExperienceTypes()));
-        return new EntityTypeJpaEntity(t.id(), t.code(), t.label(), schema);
+        return new EntityTypeJpaEntity(t.id(), t.code(), t.label(), schema, t.colorKey(), t.iconKey());
     }
 
     private static EntityType toDomain(EntityTypeJpaEntity e) {
@@ -66,6 +66,7 @@ class JpaEntityTypeRepositoryAdapter implements EntityTypeRepository {
                 ? Set.of() : Set.copyOf(schema.allowedExperienceTypes());
         Set<String> customFieldKeys = schema == null || schema.customFieldKeys() == null
                 ? Set.of() : Set.copyOf(schema.customFieldKeys());
-        return EntityType.reconstitute(e.getId(), e.getCode(), e.getLabel(), allowedExperienceTypes, customFieldKeys);
+        return EntityType.reconstitute(e.getId(), e.getCode(), e.getLabel(), allowedExperienceTypes, customFieldKeys,
+                e.getColorKey(), e.getIconKey());
     }
 }

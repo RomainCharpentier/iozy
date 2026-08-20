@@ -110,6 +110,22 @@
   --color-universeBoardGameTint: rgb(63 122 99 / 12%);
   --color-universeBookTint: rgb(163 120 47 / 12%);
 
+  /* Teintes proposées au choix pour un type créé par l'utilisateur (voir
+     lib/entityTypeVisuals, UNIVERSE_PALETTE). Calibrées comme les 4 ci-dessus :
+     chacune tient au moins 4.5:1 sur les TROIS fonds de son thème
+     (background/surface/surface2), parce qu'une couleur d'univers est aussi du
+     TEXTE ("Tout voir", titre de la page catégorie). C'est la raison d'une
+     palette fermée plutôt que d'un sélecteur libre : un rouge choisi à l'œil
+     serait illisible dans un thème sur deux. */
+  --color-universeViolet: #6f4eb7;
+  --color-universeRose: #a33e68;
+  --color-universeCyan: #2b6a73;
+  --color-universeArdoise: #58646f;
+  --color-universeVioletTint: rgb(111 78 183 / 12%);
+  --color-universeRoseTint: rgb(163 62 104 / 12%);
+  --color-universeCyanTint: rgb(43 106 115 / 12%);
+  --color-universeArdoiseTint: rgb(88 100 111 / 12%);
+
   --shadow-token-sm: 0 1px 2px rgb(35 30 26 / 9%);
   --shadow-token-md: 0 4px 14px rgb(35 30 26 / 11%);
   --shadow-token-elevated: 0 18px 44px rgb(35 30 26 / 22%);
@@ -195,6 +211,15 @@
   --color-universeVideoGameTint: rgb(143 160 221 / 16%);
   --color-universeBoardGameTint: rgb(105 179 148 / 16%);
   --color-universeBookTint: rgb(209 164 88 / 16%);
+
+  --color-universeViolet: #a48fd1;
+  --color-universeRose: #cf81a2;
+  --color-universeCyan: #45a8b5;
+  --color-universeArdoise: #909ca7;
+  --color-universeVioletTint: rgb(164 143 209 / 16%);
+  --color-universeRoseTint: rgb(207 129 162 / 16%);
+  --color-universeCyanTint: rgb(69 168 181 / 16%);
+  --color-universeArdoiseTint: rgb(144 156 167 / 16%);
 
   --color-line: rgb(244 238 231 / 10%);
   --color-lineStrong: rgb(244 238 231 / 21%);

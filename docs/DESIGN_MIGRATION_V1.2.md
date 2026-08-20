@@ -69,6 +69,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 19. Administration des éditions de référence — **fait** — voir ci-dessous
 20. Fiche : un seul bloc "L'œuvre", possession et métadonnées enfin distinctes — **fait** — voir ci-dessous
 21. Numéro d'un tome corrigeable — **fait** — voir ci-dessous
+22. Couleur et icône d'un type de collection — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -502,6 +503,38 @@ affiche désormais à la suite les tomes réellement catalogués/possédés
 au-delà du total. Le cas existait déjà sans le renumérotage (ajout manuel
 avec un numéro trop grand), et un total d'édition peut lui-même être faux :
 mieux vaut montrer la contradiction que la cacher.
+
+### Lot 22 — couleur et icône d'un type de collection
+
+Un type créé par l'utilisateur prenait le visuel de repli (terracotta + icône
+bibliothèque) alors que les 4 univers livrés ont chacun le leur. Migration
+**V15** additive : `entity_type` gagne `color_key` et `icon_key`, NULL =
+visuel par défaut.
+
+**Des CLÉS, jamais des valeurs de rendu** ("violet"/"disc", jamais
+"#a48fd1") : seul le client sait traduire une clé, et lui seul sait l'adapter
+au thème. Stocker un code couleur en base figerait une teinte calibrée pour
+un seul des deux thèmes. Le backend ne valide donc que la FORME (un slug
+court) et laisse le client retomber sur son défaut pour une clé inconnue -
+il n'a aucune raison de connaître le jeu d'icônes d'un client.
+
+**Palette fermée de 8 teintes, pas un sélecteur libre** : une couleur
+d'univers sert aussi de TEXTE ("Tout voir" d'une ligne de Ma collection,
+titre de la page catégorie). Chaque teinte est calibrée comme les 4
+existantes - au moins 4.5:1 sur les TROIS fonds de son thème - et les 4
+premières clés réutilisent exactement les tokens des univers livrés plutôt
+que d'introduire un second terracotta légèrement différent. Une teinte
+choisie à l'œil serait illisible dans un thème sur deux : c'est précisément
+ce que le Lot 12 a eu à corriger. Même logique pour les icônes : 12 choix,
+fermés parce qu'une icône est un composant importé, pas une chaîne.
+
+`EntityType` gagne deux composants de record - avec un **constructeur
+auxiliaire** à l'ancienne signature, si bien qu'aucun appelant existant
+(tests compris) n'a eu à changer.
+
+Vérifié en direct : type "Vinyles" créé en violet + icône disque, titre de sa
+page catégorie rendu en `#a48fd1` (la variante SOMBRE du violet, donc
+thème-réactive), puis type supprimé - collection revenue à ses 3 types.
 
 ### Note Lot 5 — résolue
 

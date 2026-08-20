@@ -45,8 +45,8 @@ public class EntityTypeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EntityTypeResponse create(@RequestBody CreateEntityTypeRequest request) {
-        EntityType created = entityTypeService.create(
-                request.code(), request.label(), request.allowedExperienceTypes(), request.customFieldKeys());
+        EntityType created = entityTypeService.create(request.code(), request.label(),
+                request.allowedExperienceTypes(), request.customFieldKeys(), request.colorKey(), request.iconKey());
         return EntityTypeResponse.from(created, hasMetadataProvider(created));
     }
 
@@ -67,11 +67,13 @@ public class EntityTypeController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "EntityType introuvable : " + id));
     }
 
-    @Operation(summary = "Modifier le label/schema d'un type existant (le code ne change jamais après création)")
+    @Operation(summary = "Modifier le label/schema/identité visuelle d'un type existant (le code ne change jamais "
+            + "après création). colorKey/iconKey absents = retour au visuel par défaut, l'appelant envoyant l'état "
+            + "voulu en entier.")
     @PatchMapping("/{id}")
     public EntityTypeResponse update(@PathVariable UUID id, @RequestBody UpdateEntityTypeRequest request) {
-        EntityType updated = entityTypeService.update(
-                id, request.label(), request.allowedExperienceTypes(), request.customFieldKeys());
+        EntityType updated = entityTypeService.update(id, request.label(), request.allowedExperienceTypes(),
+                request.customFieldKeys(), request.colorKey(), request.iconKey());
         return EntityTypeResponse.from(updated, hasMetadataProvider(updated));
     }
 

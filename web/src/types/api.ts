@@ -236,6 +236,11 @@ export interface EntityTypeDto {
   // Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
   // type - jamais le cas pour un type personnalisé créé via cet éditeur.
   hasMetadataProvider: boolean
+  /** Identité visuelle choisie (voir lib/entityTypeVisuals) - null = visuel
+   * par défaut. Des CLÉS, jamais des couleurs : seul le client sait les
+   * traduire, et lui seul sait s'adapter au thème clair/sombre. */
+  colorKey: string | null
+  iconKey: string | null
 }
 
 export interface CreateEntityTypeRequest {
@@ -243,6 +248,8 @@ export interface CreateEntityTypeRequest {
   label: string
   allowedExperienceTypes: string[]
   customFieldKeys: string[]
+  colorKey?: string
+  iconKey?: string
 }
 
 /** Le code n'est jamais modifiable après création (voir EntityTypeService côté backend). */
@@ -250,6 +257,10 @@ export interface UpdateEntityTypeRequest {
   label: string
   allowedExperienceTypes: string[]
   customFieldKeys: string[]
+  /** Absent = retour au visuel par défaut : l'appelant envoie l'état voulu en
+   * entier, jamais un delta (voir EntityTypeController.update). */
+  colorKey?: string
+  iconKey?: string
 }
 
 export interface BggImportResult {

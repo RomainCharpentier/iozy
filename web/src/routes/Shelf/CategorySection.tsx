@@ -16,7 +16,7 @@ import type { ShelfTile } from './shelfTiles'
  */
 export function CategorySection({ entityType, tiles }: { entityType: EntityTypeDto; tiles: ShelfTile[] }) {
   const navigate = useNavigate()
-  const visual = getEntityTypeVisual(entityType.code)
+  const visual = getEntityTypeVisual(entityType)
 
   return (
     <section

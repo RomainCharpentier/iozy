@@ -101,7 +101,7 @@ export function TierListsScreen() {
       )}
 
       {sections.map(({ entityType, board, counts, lists }) => {
-        const visual = getEntityTypeVisual(entityType.code)
+        const visual = getEntityTypeVisual(entityType)
         const preview = boardPreviewRows(board)
         return (
           <div key={entityType.id} className="flex flex-col gap-3">

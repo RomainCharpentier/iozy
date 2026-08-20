@@ -27,9 +27,10 @@ public class EntityTypeService {
         this.entityRepository = entityRepository;
     }
 
+    /** Variante avec identité visuelle - voir EntityType.colorKey/iconKey. */
     public EntityType create(String code, String label, Set<String> allowedExperienceTypes,
-                              Set<String> customFieldKeys) {
-        EntityType candidate = EntityType.create(code, label, allowedExperienceTypes, customFieldKeys);
+                              Set<String> customFieldKeys, String colorKey, String iconKey) {
+        EntityType candidate = EntityType.create(code, label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey);
         entityTypeRepository.findByCode(candidate.code()).ifPresent(existing -> {
             throw new IllegalStateException("Un type avec le code " + candidate.code() + " existe déjà");
         });
@@ -37,11 +38,26 @@ public class EntityTypeService {
     }
 
     public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,
+                              Set<String> customFieldKeys, String colorKey, String iconKey) {
+        EntityType existing = entityTypeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
+        return entityTypeRepository.save(
+                existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys, colorKey, iconKey));
+    }
+
+    public EntityType create(String code, String label, Set<String> allowedExperienceTypes,
+                              Set<String> customFieldKeys) {
+        return create(code, label, allowedExperienceTypes, customFieldKeys, null, null);
+    }
+
+    public EntityType update(UUID id, String label, Set<String> allowedExperienceTypes,
                               Set<String> customFieldKeys) {
         EntityType existing = entityTypeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("EntityType introuvable : " + id));
-        EntityType updated = existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys);
-        return entityTypeRepository.save(updated);
+        // Sans clés visuelles fournies, celles déjà enregistrées survivent (voir
+        // EntityType.withUpdatedFields à 3 arguments) - un appelant qui ignore
+        // cette notion ne doit pas l'effacer par omission.
+        return entityTypeRepository.save(existing.withUpdatedFields(label, allowedExperienceTypes, customFieldKeys));
     }
 
     public void delete(UUID id) {
