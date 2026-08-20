@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { createTierList } from '../../api/tierLists'
+import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TierBadge } from './TierBadge'
@@ -13,18 +14,24 @@ import { RANKS, type Rank } from '../../types/tierList'
  * description optionnelle - voir DS v1.1 §51), jamais un simple toast
  * descriptif. Le choix des éléments à ajouter se fait ensuite depuis le
  * board vide de la liste créée (pas dans ce même formulaire - garde la
- * création courte). */
+ * création courte).
+ * <p>
+ * L'univers est un vrai choix depuis le Lot 14, "Toutes catégories" compris
+ * (voir TierList côté backend, entityTypeId nullable) - avant, il était
+ * imposé par le bouton d'où l'on venait et seulement rappelé en pastille.
+ * L'appelant ne fait plus que proposer une valeur de départ. */
 export function CreateTierListModal({
-  entityTypeId,
-  entityTypeLabel,
+  entityTypeId: initialEntityTypeId,
   onClose,
 }: {
-  entityTypeId: string
-  entityTypeLabel: string
+  /** Univers présélectionné, null pour démarrer sur "Toutes catégories". */
+  entityTypeId: string | null
   onClose: () => void
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [entityTypeId, setEntityTypeId] = useState<string | null>(initialEntityTypeId)
+  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [activeRanks, setActiveRanks] = useState<Set<Rank>>(new Set(RANKS))
@@ -95,7 +102,34 @@ export function CreateTierListModal({
 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm text-textDim">Univers</span>
-            <span className="w-fit rounded-full bg-surface2 px-3 py-1.5 text-sm text-textPrimary">{entityTypeLabel}</span>
+            <div className="flex flex-wrap gap-2">
+              {(entityTypesQuery.data ?? []).map((type) => (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setEntityTypeId(type.id)}
+                  aria-pressed={entityTypeId === type.id}
+                  className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                    entityTypeId === type.id ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+              {/* "Toutes catégories" volontairement en DERNIER et visuellement
+                  à part : mélanger les univers est le cas particulier, pas le
+                  défaut - une liste sans univers doit être un choix assumé. */}
+              <button
+                type="button"
+                onClick={() => setEntityTypeId(null)}
+                aria-pressed={entityTypeId === null}
+                className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  entityTypeId === null ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
+                }`}
+              >
+                Toutes catégories
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

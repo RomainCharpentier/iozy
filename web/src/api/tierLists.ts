@@ -27,7 +27,9 @@ export function getEntityTierSummary(entityId: string): Promise<EntityTierSummar
 
 // ═══ Tier Lists personnalisées ═══
 
-export function listTierLists(entityTypeId: string): Promise<TierListDto[]> {
+/** `entityTypeId` null = les Tier Lists transverses "toutes catégories" (voir
+ * TierListController.byEntityType, paramètre omis), jamais toutes les listes confondues. */
+export function listTierLists(entityTypeId: string | null): Promise<TierListDto[]> {
   return get<TierListDto[]>(`/tier-lists${buildQuery({ entityTypeId })}`)
 }
 

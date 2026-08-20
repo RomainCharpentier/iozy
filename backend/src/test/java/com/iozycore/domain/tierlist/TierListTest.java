@@ -64,8 +64,24 @@ class TierListTest {
     }
 
     @Test
-    void a_tier_list_must_belong_to_exactly_one_entity_type() {
-        assertThatThrownBy(() -> TierList.create("Ma liste", null, null, null))
-                .isInstanceOf(IllegalArgumentException.class);
+    void a_tier_list_without_an_entity_type_spans_all_universes() {
+        // Remplace l'ancienne règle "une Tier List appartient forcément à UN
+        // univers" : la maquette V1.2 prévoit un scope 'all' (écart documenté
+        // au Lot 7, comblé au Lot 14). Un univers absent n'est plus un oubli,
+        // c'est un choix explicite côté client.
+        TierList crossUniverse = TierList.create("Mes coups de coeur, tous supports", null, null, null);
+
+        assertThat(crossUniverse.isAllUniverses()).isTrue();
+        assertThat(crossUniverse.entityTypeId()).isEmpty();
+    }
+
+    @Test
+    void a_tier_list_with_an_entity_type_stays_bound_to_that_universe() {
+        UUID mangaTypeId = UUID.randomUUID();
+
+        TierList list = TierList.create("Mes mangas", mangaTypeId, null, null);
+
+        assertThat(list.isAllUniverses()).isFalse();
+        assertThat(list.entityTypeId()).contains(mangaTypeId);
     }
 }

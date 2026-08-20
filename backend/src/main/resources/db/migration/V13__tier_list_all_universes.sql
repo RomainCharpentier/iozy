@@ -1,0 +1,12 @@
+-- V13__tier_list_all_universes.sql
+-- Tier List transverse "toutes catégories" (voir la maquette V1.2, scope
+-- 'all' - écart documenté au Lot 7 dans docs/DESIGN_MIGRATION_V1.2.md, comblé
+-- au Lot 14).
+--
+-- Strictement additif : entity_type_id devient NULLABLE, NULL signifiant
+-- "toutes catégories". Aucune ligne existante n'est touchée - une Tier List
+-- déjà créée reste rattachée à son univers, et le sens de la colonne ne
+-- change pas pour elle. L'index reste valable (Postgres n'indexe simplement
+-- pas les NULL pour une requête d'égalité, or ces lignes-là ne sont jamais
+-- cherchées par univers).
+ALTER TABLE tier_list ALTER COLUMN entity_type_id DROP NOT NULL;

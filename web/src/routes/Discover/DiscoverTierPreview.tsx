@@ -36,10 +36,15 @@ export function DiscoverTierPreview() {
       queryFn: () => listTierLists(t.id),
     })),
   })
+  const crossUniverseQuery = useQuery({
+    queryKey: queryKeys.tierLists.custom(null),
+    queryFn: () => listTierLists(null),
+  })
 
   if (entityTypesQuery.isError) return <ErrorBanner message={entityTypesQuery.error.message} />
   if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
-  const stillLoading = boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading)
+  const stillLoading =
+    boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading) || crossUniverseQuery.isLoading
   if (stillLoading) return <p className="text-textDim">Chargement...</p>
 
   const universes = entityTypes
@@ -48,15 +53,20 @@ export function DiscoverTierPreview() {
 
   const previewedUniverses = universes.slice(0, MAX_UNIVERSE_PREVIEWS)
 
-  const allCustomLists = entityTypes.flatMap((_, i) => listsQueries[i].data ?? ([] as TierListDto[]))
+  // Les listes transverses "toutes catégories" (Lot 14) comptent comme les
+  // autres dans cet aperçu : elles n'appartiennent à aucun univers, mais
+  // elles restent des Tier Lists perso de l'utilisateur.
+  const allCustomLists = [
+    ...entityTypes.flatMap((_, i) => listsQueries[i].data ?? ([] as TierListDto[])),
+    ...(crossUniverseQuery.data ?? ([] as TierListDto[])),
+  ]
   const previewedCustom = allCustomLists.slice(0, MAX_CUSTOM_PREVIEWS)
 
   const totalUnranked = universes.reduce((sum, u) => sum + (u.counts.total - u.counts.ranked), 0)
-  // "Classer mes éléments" ouvre le board général qui a le plus d'attente -
-  // pas un flux séquentiel dédié multi-univers (non construit, voir
-  // docs/DESIGN_MIGRATION_V1.2.md) : on emmène l'utilisateur là où classer
-  // au clic, comme sur n'importe quel board, plutôt que d'inventer un
-  // enchaînement automatique inexistant.
+  // "Classer mes éléments" ouvre le board général qui a le plus d'attente,
+  // et y démarre le classement rapide (Lot 14, voir useQuickRank). Toujours
+  // UN seul univers, jamais un enchaînement multi-univers : le classement
+  // général est par nature rattaché à un univers (voir DS v1.1 §45).
   const busiestUniverse = [...universes].sort((a, b) => b.counts.total - b.counts.ranked - (a.counts.total - a.counts.ranked))[0]
 
   if (universes.length === 0 && allCustomLists.length === 0) {
@@ -137,7 +147,11 @@ export function DiscoverTierPreview() {
       {totalUnranked > 0 && busiestUniverse && (
         <button
           type="button"
-          onClick={() => navigate(`/tier-lists/general/${busiestUniverse.entityType.id}`)}
+          // Demande explicitement le classement RAPIDE, pas juste l'ouverture
+          // du board (voir GeneralTierBoardPage, state.quickRank) : "Classer
+          // mes éléments" promet d'enchaîner, pas de rouvrir le sélecteur
+          // œuvre par œuvre à la main.
+          onClick={() => navigate(`/tier-lists/general/${busiestUniverse.entityType.id}`, { state: { quickRank: true } })}
           className="flex w-full items-center gap-3 rounded-2xl bg-accentTint p-3.5 text-left transition-transform hover:-translate-y-0.5"
         >
           <Sparkles size={18} className="shrink-0 text-accentText" />

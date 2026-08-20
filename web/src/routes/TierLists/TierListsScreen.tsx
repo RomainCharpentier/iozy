@@ -19,18 +19,20 @@ import type { TierListDto } from '../../types/tierList'
  * fiche d'une œuvre ("Toutes mes Tier Lists", voir TomesGridSection). Un
  * classement général par univers réellement possédé + les Tier Lists
  * personnalisées de chaque univers + un point d'entrée de création par
- * univers - jamais un flux générique qui mélangerait les univers (une Tier
- * List perso appartient à exactement un type de collection dans ce modèle ;
- * une liste transverse "tous types" façon maquette n'est pas supportée par
- * le schéma actuel - TierList.entityTypeId est une FK non nulle - extension
- * additive possible plus tard, non prioritaire tant qu'un seul univers a du
- * contenu réel). Univers sans aucune œuvre possédée ET sans aucune Tier
- * List perso masqué (même principe que groupByEntityType côté Ma
- * collection - jamais une section vide).
+ * univers. Les Tier Lists TRANSVERSES "toutes catégories" (scope 'all' de la
+ * maquette, Lot 14) forment leur propre famille en fin d'écran plutôt que
+ * d'apparaître sous chaque univers : elles n'appartiennent à aucun, les
+ * répéter partout les afficherait autant de fois qu'il y a de types.
+ * Univers sans aucune œuvre possédée ET sans aucune Tier List perso masqué
+ * (même principe que groupByEntityType côté Ma collection - jamais une
+ * section vide) ; la famille transverse suit la même règle, absente tant
+ * qu'aucune liste de ce genre n'existe.
  */
 export function TierListsScreen() {
   const navigate = useNavigate()
-  const [creatingFor, setCreatingFor] = useState<{ id: string; label: string } | null>(null)
+  // null dans le state = modal fermée ; { id: null } = modal ouverte sur
+  // "Toutes catégories" - deux "null" de sens différents, d'où l'objet.
+  const [creatingFor, setCreatingFor] = useState<{ id: string | null } | null>(null)
 
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const entityTypes = entityTypesQuery.data ?? []
@@ -47,11 +49,16 @@ export function TierListsScreen() {
       queryFn: () => listTierLists(t.id),
     })),
   })
+  const crossUniverseQuery = useQuery({
+    queryKey: queryKeys.tierLists.custom(null),
+    queryFn: () => listTierLists(null),
+  })
 
   if (entityTypesQuery.isError) return <ErrorBanner message={entityTypesQuery.error.message} />
   if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
 
-  const stillLoading = boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading)
+  const stillLoading =
+    boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading) || crossUniverseQuery.isLoading
   if (stillLoading) return <p className="text-textDim">Chargement...</p>
 
   const sections = entityTypes
@@ -62,6 +69,8 @@ export function TierListsScreen() {
       lists: listsQueries[i].data ?? ([] as TierListDto[]),
     }))
     .filter((s) => s.counts.total > 0 || s.lists.length > 0)
+
+  const crossUniverseLists = crossUniverseQuery.data ?? ([] as TierListDto[])
 
   return (
     <div className="flex flex-col gap-5">
@@ -75,7 +84,7 @@ export function TierListsScreen() {
         {sections.length > 0 && (
           <button
             type="button"
-            onClick={() => setCreatingFor({ id: sections[0].entityType.id, label: sections[0].entityType.label })}
+            onClick={() => setCreatingFor({ id: sections[0].entityType.id })}
             className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
           >
             <Plus size={16} />
@@ -103,7 +112,7 @@ export function TierListsScreen() {
               </div>
               <button
                 type="button"
-                onClick={() => setCreatingFor({ id: entityType.id, label: entityType.label })}
+                onClick={() => setCreatingFor({ id: entityType.id })}
                 className="text-xs font-semibold text-accentText"
               >
                 + Nouvelle liste
@@ -165,13 +174,42 @@ export function TierListsScreen() {
         )
       })}
 
-      {creatingFor && (
-        <CreateTierListModal
-          entityTypeId={creatingFor.id}
-          entityTypeLabel={creatingFor.label}
-          onClose={() => setCreatingFor(null)}
-        />
+      {(crossUniverseLists.length > 0 || sections.length > 0) && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="h-[11px] w-[11px] shrink-0 rounded-full bg-lineStrong" />
+              <h2 className="font-display text-base font-semibold text-textPrimary">Toutes catégories</h2>
+            </div>
+            <button type="button" onClick={() => setCreatingFor({ id: null })} className="text-xs font-semibold text-accentText">
+              + Nouvelle liste
+            </button>
+          </div>
+
+          {crossUniverseLists.length > 0 ? (
+            <div className="flex flex-col gap-2 rounded-2xl border border-surface2 bg-surface p-2 shadow-token-sm">
+              {crossUniverseLists.map((list) => (
+                <Link
+                  key={list.id}
+                  to={`/tier-lists/${list.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
+                >
+                  <span className="truncate text-sm font-semibold text-textPrimary">{list.name}</span>
+                  <span className="shrink-0 text-xs text-textDim">
+                    {list.rankedCount}/{list.itemCount}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-textDim">
+              Une Tier List qui mélange les univers — comparer un manga et un jeu dans le même classement.
+            </p>
+          )}
+        </div>
       )}
+
+      {creatingFor && <CreateTierListModal entityTypeId={creatingFor.id} onClose={() => setCreatingFor(null)} />}
     </div>
   )
 }
