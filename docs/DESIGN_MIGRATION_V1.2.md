@@ -68,6 +68,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 18. "Informations" : attributs de l'œuvre affichés et modifiables, tous types — **fait** — voir ci-dessous
 19. Administration des éditions de référence — **fait** — voir ci-dessous
 20. Fiche : un seul bloc "L'œuvre", possession et métadonnées enfin distinctes — **fait** — voir ci-dessous
+21. Numéro d'un tome corrigeable — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -470,6 +471,37 @@ d'abord été posé APRÈS les retours anticipés de la page - violation des
 règles des Hooks, visible seulement à l'exécution ("Rendered fewer hooks than
 expected"), jamais au typecheck. Tout ce dont il dépend est calculable avant,
 au prix d'un `entity` qui tolère null jusqu'à la garde.
+
+### Lot 21 — corriger le numéro d'un tome
+
+Dernier attribut de la collection qui restait figé : la jaquette et l'édition
+d'un tome étaient rattrapables, pas son numéro - pourtant la donnée la plus
+facile à se tromper (tome ajouté à la main, ou numéro déduit par regex du
+titre d'un scan, voir ScanPage).
+
+**Pas** une simple fusion d'attributs : `QuickAddService` déduplique les tomes
+par LIBELLÉ exact ("Tome 3 — Black Édition", voir `findVariantByLabel`).
+Changer `volumeNumber` sans le libellé aurait fait re-créer un doublon au
+prochain ajout du même tome, et le libellé aurait menti entre-temps. D'où :
+
+- `Entity.renumberVariant(variantId, n)` - change le numéro ET le libellé d'un
+  seul geste, refuse un numéro déjà pris **dans la même édition** (deux
+  éditions ont chacune leur tome 4, ce n'est pas un conflit) et un numéro
+  inférieur à 1.
+- Convention de libellé extraite dans `VariantLabels`, partagée avec
+  QuickAddService : deux endroits qui la calculeraient finiraient par diverger.
+- `PATCH /entities/{id}/variants/{variantId}/volume-number`, 409 sur conflit.
+- `VariantNumberEditor` dans le tiroir du tome, à côté de la correction de
+  jaquette. Le tiroir SUIT le tome renuméroté (il change de place dans la
+  grille) plutôt que de rester ouvert sur un numéro qui n'existe plus.
+
+Effet de bord découvert en testant : la grille ne dessinait que 1..total de
+l'édition, donc un tome renuméroté au-delà (7 dans une édition de 6)
+disparaissait de l'écran - donnée invisible ET irrécupérable. `buildTiles`
+affiche désormais à la suite les tomes réellement catalogués/possédés
+au-delà du total. Le cas existait déjà sans le renumérotage (ajout manuel
+avec un numéro trop grand), et un total d'édition peut lui-même être faux :
+mieux vaut montrer la contradiction que la cacher.
 
 ### Note Lot 5 — résolue
 

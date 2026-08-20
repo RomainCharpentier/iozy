@@ -198,6 +198,23 @@ function buildTiles(group: EditionGroup, variants: VariantDto[], owned: number[]
       tiles.push({ volumeNumber: n, status: 'virtualMissing' })
     }
   }
+
+  // Tomes réellement catalogués/possédés AU-DELÀ du total connu de l'édition :
+  // affichés à la suite plutôt qu'escamotés. Le cas existe dès qu'un tome est
+  // ajouté à la main avec un numéro trop grand, ou renuméroté ainsi (voir
+  // VariantNumberEditor) - les masquer rendait la donnée invisible ET
+  // irrécupérable depuis l'écran. Un total d'édition peut aussi être faux :
+  // mieux vaut montrer la contradiction que de la cacher.
+  const beyondTotal = [...new Set([...owned, ...group.volumeNumbers])]
+    .filter((n) => n > totalVolumes)
+    .sort((a, b) => a - b)
+  for (const n of beyondTotal) {
+    tiles.push({
+      volumeNumber: n,
+      status: ownedSet.has(n) ? 'owned' : 'cataloguedMissing',
+      variant: variantsByNumber.get(n),
+    })
+  }
   return tiles
 }
 
@@ -404,6 +421,7 @@ export function TomesGridSection({
           la page au clic d'un tome. Un seul panneau, jamais deux visibles. */}
       <VolumeInteractionPanel
         activeTile={activeTile}
+        onRenumbered={setActiveVolumeNumber}
         onClose={() => setActiveVolumeNumber(null)}
         entityId={entityId}
         entityTypeId={entityTypeId}
