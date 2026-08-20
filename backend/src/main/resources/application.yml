@@ -15,6 +15,16 @@ spring:
 
 server:
   port: 8080
+  error:
+    # Les refus explicites levés par les contrôleurs (ResponseStatusException)
+    # portent un message écrit POUR l'utilisateur - "Impossible de supprimer
+    # cette édition : 3 tome(s) y sont encore rattachés". Sans ce réglage,
+    # Spring ne le transmet pas : le client ne recevait que la phrase de statut
+    # HTTP ("Conflict", "Not Found") et affichait donc de l'anglais générique
+    # à la place de la raison (constaté en vérification, Lot 26).
+    # Application personnelle auto-hébergée : aucune exposition indésirable,
+    # ces messages sont précisément écrits pour être lus.
+    include-message: always
 
 web:
   # Origines autorisées pour les requêtes POST/PATCH/DELETE du client web

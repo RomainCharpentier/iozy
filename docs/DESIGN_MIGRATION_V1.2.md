@@ -676,6 +676,60 @@ vérifié en direct sur Filtres et le hub "Plus d'outils"), et les deux pages
 publiques correctes (contenu réel, progressions justes, aucune navigation
 privée exposée). Les liens de partage créés pour ce test ont été révoqués.
 
+### Lot 26 — vérification des écritures
+
+Le Lot 25 n'avait vérifié que le rendu et les lectures. Ce lot exerce les 46
+endpoints d'écriture par un aller-retour complet (créer → modifier →
+supprimer) mené dans un **type de collection dédié**, avec comparaison des
+compteurs avant/après pour prouver qu'il ne reste rien.
+
+**Un 500 trouvé** : `DELETE /purchase-analysis/editions/{id}` ne comptait que
+les tomes rattachés, jamais les observations de prix. La contrainte de clé
+étrangère de Postgres restait donc seule à protéger la table et remontait une
+`DataIntegrityViolationException` en 500, trace SQL comprise, là où un 409
+explicite était prévu juste à côté pour les tomes. `deleteEdition` renvoie
+maintenant un `EditionDeletionBlockers(linkedVolumes, linkedObservations)` et
+le contrôleur compose la phrase ("1 observation(s) de prix s'y réfèrent
+encore"). Deux tests d'intégration couvrent le refus et le cas passant.
+
+**Les refus n'arrivaient jamais à l'écran.** Les contrôleurs écrivent des
+messages destinés à être lus ("Impossible de supprimer cette édition : 3
+tome(s) y sont encore rattachés"), mais Spring ne transmet le message d'une
+`ResponseStatusException` que si `server.error.include-message` est réglé - ce
+qui n'était pas le cas. Le client ne recevait que la phrase de statut et
+affichait "Conflict". Réglé à `always` (application personnelle
+auto-hébergée), avec une nuance côté client : le message serveur est affiché
+sauf en **404**, où il ne fait que nommer un identifiant absent ("Entity
+introuvable : 3f2a…") - là, le repli traduit dit la seule chose utile.
+
+**Verrou de suppression, par conception** : une œuvre ajoutée avec un nom
+d'édition voit une fiche d'édition catalogue créée automatiquement ; l'œuvre
+est alors bloquée par son édition, et l'édition par ses tomes. La sortie
+existe et est cohérente - supprimer le tome libère les deux (l'édition
+disparaît avec son dernier tome) - mais elle n'est pas devinable depuis la
+fiche. À garder en tête si un jour la suppression doit être rendue plus
+directe. Rappel du même invariant, confirmé ici : `experience` et `loan`
+n'ont aucun endpoint de suppression, donc une œuvre qui a connu une lecture
+ou un prêt est définitivement indélébile (choix documenté dans
+`DeleteEntitySection`).
+
+**Non exercé volontairement** : `POST /purchase-analysis/analyze` (consomme le
+quota Gemini et écrit un historique qu'aucun endpoint ne sait supprimer) et
+`POST /metadata/bgg/import` (appel réseau externe). `POST
+/purchase-analysis/market-observations` existe côté client
+(`recordMarketObservation`) mais n'a **aucun appelant dans l'interface** -
+troisième surface morte connue, après `/loans` et `/wishlist/lookup`.
+
+**Reste vert** : 368 tests backend + les 2 nouveaux, `tsc -b`, `oxlint`, le
+build de production, et aucune erreur console / requête en échec / rejet non
+géré sur les 26 routes balayées.
+
+**Trace laissée par la vérification** : les données de test ont dû être
+retirées en SQL direct (transaction unique), l'invariant "rien ne disparaît
+silencieusement" rendant impossible leur suppression par l'API une fois une
+expérience et un prêt créés. Compteurs vérifiés après coup : 3 types, 6
+œuvres, 0 prêt, 0 observation - l'état d'avant.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

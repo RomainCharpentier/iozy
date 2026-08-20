@@ -25,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -125,10 +126,17 @@ public class PurchaseAnalysisController {
     public void deleteEdition(@PathVariable UUID id) {
         service.findEditionById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Édition introuvable : " + id));
-        int linkedVolumes = service.deleteEdition(id);
-        if (linkedVolumes > 0) {
+        var blocages = service.deleteEdition(id);
+        if (!blocages.none()) {
+            List<String> raisons = new ArrayList<>();
+            if (blocages.linkedVolumes() > 0) {
+                raisons.add(blocages.linkedVolumes() + " tome(s) y sont encore rattachés");
+            }
+            if (blocages.linkedObservations() > 0) {
+                raisons.add(blocages.linkedObservations() + " observation(s) de prix s'y réfèrent encore");
+            }
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Impossible de supprimer cette édition : " + linkedVolumes + " tome(s) y sont encore rattachés");
+                    "Impossible de supprimer cette édition : " + String.join(" et ", raisons));
         }
     }
 
