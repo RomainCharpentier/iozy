@@ -17,6 +17,7 @@ import { groupVariantsByEdition, resolveEditionView } from '../../lib/editionGro
 import { EditionProgressSection } from './EditionProgressSection'
 import { TomesGridSection } from './TomesGridSection'
 import { MoreOptionsSection } from './MoreOptionsSection'
+import { EntityInfoSection } from './EntityInfoSection'
 
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -319,6 +320,17 @@ export function EntityDetailPage() {
           />
         </div>
       )}
+
+      {/* "Informations" : les attributs de l'œuvre, affichés ET modifiables,
+          pour TOUS les types - un jeu ou un type personnalisé n'affichait
+          jusqu'ici aucune information (voir EntityInfoSection : "À propos"
+          est propre aux mangas et vit dans TomesGridSection). Ce qu'une API
+          a copié en base devient une donnée à soi, donc corrigeable. */}
+      <EntityInfoSection
+        entityId={entityId}
+        attributes={entity.attributes}
+        customFieldKeys={entityType?.customFieldKeys ?? []}
+      />
 
       {/* Tags/Expériences/Relations/Suppression : rien de tout ça ne répond
           aux 6 questions centrales de cette fiche (quelle série, quelle

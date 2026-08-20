@@ -108,6 +108,18 @@ public class EntityController {
         return EntityResponse.from(entityRepository.save(entity));
     }
 
+    @Operation(summary = "Retirer un attribut de la Série - complète PATCH /{entityId}, qui ne sait que "
+            + "compléter/corriger : une valeur vide y serait stockée telle quelle et ressemblerait ensuite à une "
+            + "donnée renseignée (voir Entity.mergeAttributes). 204 même si la clé n'existait pas.")
+    @DeleteMapping("/{entityId}/attributes/{key}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeAttribute(@PathVariable UUID entityId, @PathVariable String key) {
+        Entity entity = entityRepository.findById(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entité introuvable : " + entityId));
+        entity.removeAttribute(key);
+        entityRepository.save(entity);
+    }
+
     public record RenameEntityRequest(String title) {
     }
 

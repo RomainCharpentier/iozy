@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -94,6 +95,29 @@ class EntityTest {
         entity.mergeAttributes(Map.of("coverImageUrl", "https://example.com/new.jpg"));
 
         assertEquals("https://example.com/new.jpg", entity.attributes().get("coverImageUrl"));
+    }
+
+    @Test
+    void removing_an_attribute_makes_it_disappear_rather_than_leaving_it_empty() {
+        // Vider un champ dans le formulaire "Informations" de la fiche doit
+        // vraiment retirer l'attribut : une chaîne vide ressemblerait ensuite
+        // à une donnée renseignée (voir la javadoc de mergeAttributes, qui
+        // interdit justement la valeur vide comme moyen d'effacer).
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        entity.setAttribute("mangaka", "Tsugumi Ohba");
+
+        entity.removeAttribute("mangaka");
+
+        assertFalse(entity.attributes().containsKey("mangaka"));
+    }
+
+    @Test
+    void removing_an_attribute_that_was_never_set_is_not_an_error() {
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+
+        entity.removeAttribute("mangaka");
+
+        assertTrue(entity.attributes().isEmpty());
     }
 
     @Test

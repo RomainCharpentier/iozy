@@ -65,6 +65,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 15. Partager ma collection — **fait** — voir ci-dessous
 16. Progression X/Y de Ma collection alignée sur le total d'ÉDITION — **fait** — voir ci-dessous
 17. Types de collection personnalisés (sans API) : friction levée — **fait** — voir ci-dessous
+18. "Informations" : attributs de l'œuvre affichés et modifiables, tous types — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -358,6 +359,46 @@ toucher.
 Reste en friction, non traité : un type personnalisé n'a pas de couleur ni
 d'icône propre - il prend le visuel de repli (voir `getEntityTypeVisual`,
 FALLBACK), alors que les 4 univers connus ont chacun les leurs.
+
+### Lot 18 — "Informations" : ce qui vient d'une API devient une donnée à soi
+
+Principe posé par l'utilisateur : "quand on insère depuis l'API recherche on
+copie en base puis on pourra éditer (ou ajouter directement si pas d'API)".
+Jusqu'ici seuls le titre, la jaquette et l'édition étaient rattrapables - le
+reste (mangaka, éditeur, plateforme, studio, champs personnalisés du type)
+restait figé tel que le fournisseur l'avait renvoyé, et une œuvre d'un type
+non-manga n'affichait **aucune** information ("À propos" est propre aux
+mangas et vit dans TomesGridSection).
+
+Nouvelle section `EntityInfoSection`, sur la fiche de TOUS les types :
+lecture + édition des attributs. Les champs proposés sont l'union des champs
+personnalisés DÉCLARÉS par le type (`EntityType.customFieldKeys`, même quand
+la valeur est vide - c'est ce qui rend un type sans API réellement
+utilisable) et des attributs réellement présents. Aucune clé libre n'est
+créée ici : inventer un champ, c'est modifier le TYPE, pas une de ses œuvres.
+
+Trois pièges traités, tous constatés sur des données réelles :
+
+- **Vider un champ ne pouvait pas fonctionner.** La javadoc de
+  `Entity.mergeAttributes` interdit explicitement la valeur vide comme moyen
+  d'effacer (elle serait stockée telle quelle et ressemblerait ensuite à une
+  donnée renseignée). D'où `Entity.removeAttribute` + `DELETE
+  /entities/{id}/attributes/{key}`, opération à part entière.
+- **Le formulaire écrivait tout en texte.** `totalVolumes` est lu avec un
+  `typeof === 'number'` strict (voir `lib/seriesInfo`) : enregistrer "48"
+  aurait fait disparaître la progression X/Y sans le moindre message. Le
+  type de la valeur existante est désormais conservé - vérifié :
+  `averageDurationHours` enregistré en nombre, `igdbId` resté une chaîne
+  (plusieurs lecteurs testent `typeof === 'string'` dessus).
+- **`seriesStatus` n'est pas du texte libre** : seuls
+  `finished`/`publishing`/`currently_publishing` sont compris. Y écrire
+  "Terminée" ferait disparaître la ligne "Statut" de "À propos". Rangé avec
+  les champs techniques (identifiants externes, titres alternatifs, type de
+  média) - repliés par défaut, modifiables quand même : ce sont des rouages,
+  pas le visage de la fiche.
+
+Non traité : le numéro d'un tome reste non modifiable (sa jaquette et son
+édition le sont déjà, voir VolumeInteractionPanel).
 
 ### Note Lot 5 — résolue
 
