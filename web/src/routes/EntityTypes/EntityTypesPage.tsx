@@ -73,6 +73,8 @@ export function EntityTypesPage() {
                 type="button"
                 onClick={() => deleteMutation.mutate(type.id)}
                 disabled={deleteMutation.isPending}
+                aria-label={`Supprimer le type ${type.label}`}
+                title={`Supprimer le type ${type.label}`}
                 className="shrink-0 rounded-lg p-2 text-textDim hover:text-pink disabled:opacity-50"
               >
                 <Trash2 size={16} />

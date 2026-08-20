@@ -107,6 +107,7 @@ export function CollectionRecapPage() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold text-textPrimary">Bilan annuel</h1>
         <select
+          aria-label="Année du bilan"
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
           className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"

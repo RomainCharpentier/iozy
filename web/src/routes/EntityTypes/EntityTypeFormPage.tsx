@@ -260,6 +260,9 @@ interface ChipListFieldProps {
 
 function ChipListField({ title, placeholder, values, onChange }: ChipListFieldProps) {
   const [newValue, setNewValue] = useState('')
+  // Identifiant stable dérivé du titre : deux ChipListField coexistent sur ce
+  // formulaire, chacun doit pointer SON propre libellé.
+  const labelId = `chip-field-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 
   function add() {
     const trimmed = newValue.trim()
@@ -270,9 +273,15 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm text-textDim">{title}</span>
+      {/* Le titre de section EST le libellé du champ : sans ce lien explicite,
+          un lecteur d'écran annonce "zone d'édition" sans nom (le placeholder
+          ne fait pas office de libellé). */}
+      <span className="text-sm text-textDim" id={labelId}>
+        {title}
+      </span>
       <div className="flex gap-2">
         <input
+          aria-labelledby={labelId}
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
           onKeyDown={(e) => {

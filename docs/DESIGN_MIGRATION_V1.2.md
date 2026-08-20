@@ -71,6 +71,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 21. Numéro d'un tome corrigeable — **fait** — voir ci-dessous
 22. Couleur et icône d'un type de collection — **fait** — voir ci-dessous
 23. Format de jaquette d'un type de collection — **fait** — voir ci-dessous
+24. Audit transversal (erreurs, débordements, contraste, a11y, cohérence) — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -565,6 +566,42 @@ dans une commande chaînée après un script qui a échoué (`&&`), donc jamais
 écrit - Flyway annonçait tranquillement "15 migrations, schéma à jour" et la
 colonne manquait. Toujours vérifier la ligne "Successfully applied" après un
 ajout de migration, pas seulement l'absence d'erreur.
+
+### Lot 24 — audit transversal
+
+Balayage complet demandé après les lots 16-23. Méthode : 18 routes en 1280px
+et en 375px, sondes sur `error`/`unhandledrejection`/`fetch` non-ok,
+détection de débordement horizontal (`scrollWidth` vs `clientWidth`, voir la
+note de calibrage du Lot 10), contraste WCAG sur les écrans récents dans les
+deux thèmes, requêtes de cohérence sur les données réelles, logs backend,
+build de production.
+
+**Propre** : aucune erreur d'exécution, aucune requête en échec, aucun
+débordement horizontal, aucun écran vide, aucun WARN/ERROR backend, build de
+production OK, 368 tests verts.
+
+**Trois défauts d'accessibilité trouvés et corrigés** - tous des états que le
+balayage de contraste du Lot 12 ne pouvait pas voir, puisqu'il ne regardait
+que les couleurs :
+
+- `/types` : le bouton de suppression d'un type est une icône seule, sans
+  nom accessible - un lecteur d'écran annonçait "bouton" tout court.
+- `/types/new` : les deux champs des ChipListField n'avaient qu'un
+  placeholder, jamais un libellé (un placeholder n'en fait pas office). Le
+  titre de section leur sert désormais de libellé via `aria-labelledby`, avec
+  un identifiant dérivé du titre puisque deux de ces champs coexistent.
+- `/recap` : le sélecteur d'année, un `<select>` nu.
+
+**Cohérence des données** : aucune édition orpheline, aucune fiche d'édition
+sans tome, aucun numéro de tome en double ou manquant, aucune possession
+pointant un tome inexistant. Un seul point signalé, connu : les tomes de Raw
+Hero sont répartis sur deux éditions ("Soleil" et "Perfect Edition (test)",
+résidu de test), ce qui empêche l'affichage de sa progression - décision
+laissée à l'utilisateur.
+
+**Surface morte confirmée** : `/loans` reste sans aucun lien entrant (décision
+du Lot 8, code conservé) et `GET /api/wishlist/lookup` n'a toujours aucun
+appelant web. Deux constats déjà documentés, inchangés.
 
 ### Note Lot 5 — résolue
 
