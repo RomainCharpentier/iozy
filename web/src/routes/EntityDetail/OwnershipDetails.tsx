@@ -160,7 +160,7 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
             type="button"
             onClick={() => priceMutation.mutate(priceInput.trim() ? Number(priceInput) : null)}
             disabled={priceMutation.isPending}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
           >
             OK
           </button>
@@ -190,7 +190,7 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
             type="button"
             onClick={() => lendMutation.mutate()}
             disabled={!borrowerName.trim() || lendMutation.isPending}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
           >
             OK
           </button>

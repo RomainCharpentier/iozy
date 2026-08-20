@@ -66,7 +66,7 @@ export function TabBar() {
         type="button"
         onClick={() => navigate('/scan')}
         title="Scanner un code-barres"
-        className="my-1 flex min-h-[46px] w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accentText shadow-token-accent active:translate-y-0.5"
+        className="my-1 flex min-h-[46px] w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent text-accentInk shadow-token-accent active:translate-y-0.5"
       >
         <ScanLine size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold tracking-wide uppercase">Scan</span>

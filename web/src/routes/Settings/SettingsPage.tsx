@@ -81,7 +81,7 @@ export function SettingsPage() {
           maquette (role="switch" + aria-checked, jamais un simple bouton
           texte pour un état à deux valeurs). */}
       <section className="flex items-center gap-3 rounded-xl bg-surface p-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
           {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
         </span>
         <span className="flex-1">
@@ -139,7 +139,7 @@ export function SettingsPage() {
                 {TITLE_LANGUAGE_LABELS[item.language]}
               </label>
               {index === primaryIndex && (
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accentText">
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accentInk">
                   principal
                 </span>
               )}
@@ -157,7 +157,7 @@ export function SettingsPage() {
         to="/administration"
         className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
           <Wrench size={18} />
         </span>
         <span className="flex-1">

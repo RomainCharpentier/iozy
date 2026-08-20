@@ -92,7 +92,7 @@ function TierSummarySection({
             <button
               type="button"
               onClick={() => setPicking(true)}
-              className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentText transition-transform hover:-translate-y-0.5"
+              className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk transition-transform hover:-translate-y-0.5"
             >
               <Sparkles size={15} />
               Classer cette œuvre
@@ -226,7 +226,7 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
         <span className="font-display text-base font-semibold text-textPrimary">{tile.volumeNumber}</span>
       )}
       {owned ? (
-        <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentText">
+        <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk">
           <Check size={11} strokeWidth={3} />
         </span>
       ) : (
@@ -376,7 +376,7 @@ export function TomesGridSection({
           <button
             type="button"
             onClick={() => setShowAllTomes((v) => !v)}
-            className="w-fit text-sm text-accent underline"
+            className="w-fit text-sm text-accentText underline"
           >
             {showAllTomes ? 'Réduire' : `Voir tout (${tiles.length})`}
           </button>

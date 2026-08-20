@@ -115,7 +115,7 @@ export function EditionReferenceLookup({
   if (editionQuery.isSuccess) {
     const edition = editionQuery.data
     return (
-      <p className="flex items-center gap-1.5 text-xs text-accent">
+      <p className="flex items-center gap-1.5 text-xs text-accentText">
         <CircleCheck size={13} />
         Édition connue · {EDITION_TIER_LABELS[edition.tier]}
         {edition.totalVolumes !== null && ` · ${edition.totalVolumes} tomes`}
@@ -145,7 +145,7 @@ export function EditionReferenceLookup({
           type="button"
           onClick={() => suggestMutation.mutate()}
           disabled={suggestMutation.isPending}
-          className="flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-xs font-medium text-accent disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-xs font-medium text-accentText disabled:opacity-50"
         >
           <Sparkles size={13} />
           {suggestMutation.isPending ? "Interrogation de l'IA..." : "Pré-remplir avec l'IA"}
@@ -153,7 +153,7 @@ export function EditionReferenceLookup({
       </div>
       {suggestMutation.isSuccess && suggestMutation.data && (
         <p className="rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs text-textDim">
-          <span className="font-medium text-accent">Estimation IA — non vérifiée</span>
+          <span className="font-medium text-accentText">Estimation IA — non vérifiée</span>
           {` (confiance ${CONFIDENCE_LABELS[suggestMutation.data.confidence]})`}
           {suggestMutation.data.rationale && ` · ${suggestMutation.data.rationale}`}
           {' '}Vérifie et corrige les champs ci-dessous avant d'enregistrer.
@@ -226,7 +226,7 @@ export function EditionReferenceLookup({
           type="button"
           onClick={() => createMutation.mutate()}
           disabled={createMutation.isPending}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
         >
           {createMutation.isPending ? 'Enregistrement...' : 'Enregistrer cette édition'}
         </button>

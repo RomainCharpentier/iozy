@@ -96,7 +96,7 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
                 <p className="text-textDim">{candidate.reason}</p>
               </div>
               {isAdded ? (
-                <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-accent">
+                <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-accentText">
                   <Check size={14} />
                   Ajouté
                 </span>

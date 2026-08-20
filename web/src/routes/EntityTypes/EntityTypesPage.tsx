@@ -44,7 +44,7 @@ export function EntityTypesPage() {
         <button
           type="button"
           onClick={() => navigate('/types/new')}
-          className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accentText"
+          className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accentInk"
         >
           <Plus size={16} />
           Nouveau type
@@ -60,7 +60,7 @@ export function EntityTypesPage() {
           const Icon = iconFor(type.code)
           return (
             <li key={type.id} className="flex items-center gap-3 rounded-xl bg-surface p-3">
-              <Icon size={20} className="shrink-0 text-accent" />
+              <Icon size={20} className="shrink-0 text-accentText" />
               <button
                 type="button"
                 onClick={() => navigate(`/types/${type.id}/edit`)}

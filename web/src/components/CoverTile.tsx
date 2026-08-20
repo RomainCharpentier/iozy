@@ -82,7 +82,7 @@ export function CoverTile({
           />
         )}
         {showBadge && (
-          <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-text">
+          <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accentInk">
             <Check size={14} strokeWidth={3} />
           </span>
         )}

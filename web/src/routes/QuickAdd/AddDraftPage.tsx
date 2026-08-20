@@ -323,7 +323,7 @@ export function AddDraftPage() {
                       })
                     }
                     disabled={isSearchingVolumes}
-                    className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-accentText disabled:opacity-50"
                     title="Cherche des éditions plus rares (star edition, collector, intégrale...) en plus de celles déjà trouvées"
                   >
                     <Search size={12} />
@@ -340,7 +340,7 @@ export function AddDraftPage() {
                       })
                     }
                     disabled={isSearchingVolumes}
-                    className="flex items-center gap-1 text-xs text-accent disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-accentText disabled:opacity-50"
                     title="Relance la recherche des tomes/éditions (résultat normalement gardé tel quel)"
                   >
                     <RefreshCw size={12} className={isSearchingVolumes ? 'animate-spin' : ''} />
@@ -366,7 +366,7 @@ export function AddDraftPage() {
               if (!edition.trim() && volumeCandidates[0]) setEdition(volumeCandidates[0].edition)
               setShowManualVolumeFields(true)
             }}
-            className="w-fit text-xs text-accent underline"
+            className="w-fit text-xs text-accentText underline"
           >
             + Tome introuvable ci-dessus ? Ajouter manuellement
           </button>
@@ -467,7 +467,7 @@ export function AddDraftPage() {
         <button
           type="submit"
           disabled={!title.trim() || addMutation.isPending || isTranslating}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
           {addMutation.isPending ? 'Ajout...' : totalVolumesToAdd > 1 ? `Ajouter ${totalVolumesToAdd} tomes` : 'Ajouter'}
         </button>
@@ -478,7 +478,7 @@ export function AddDraftPage() {
       {addMutation.isSuccess && (
         <div className="rounded-xl bg-surface p-3 text-sm text-textPrimary">
           {formatAddResultMessage(addMutation.data)}
-          <button type="button" onClick={() => navigate('/add')} className="ml-2 text-accent underline">
+          <button type="button" onClick={() => navigate('/add')} className="ml-2 text-accentText underline">
             Ajouter autre chose
           </button>
         </div>

@@ -52,7 +52,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
         <button
           type="button"
           onClick={() => setFormOpen((v) => !v)}
-          className="text-sm font-medium text-accent"
+          className="text-sm font-medium text-accentText"
         >
           Ajouter une expérience
         </button>
@@ -82,7 +82,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
                 type="button"
                 onClick={() => setExperienceType(type)}
                 className={`rounded-full px-3 py-1 text-sm font-medium ${
-                  experienceType === type ? 'bg-accent text-accentText' : 'bg-surface2 text-textDim'
+                  experienceType === type ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                 }`}
               >
                 {type}
@@ -132,7 +132,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
           <button
             type="submit"
             disabled={addMutation.isPending}
-            className="self-start rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentText disabled:opacity-50"
+            className="self-start rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             {addMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
           </button>

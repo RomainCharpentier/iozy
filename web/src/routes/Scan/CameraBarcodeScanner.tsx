@@ -118,7 +118,7 @@ export function CameraBarcodeScanner({ onScan }: { onScan: (code: string) => voi
       <button
         type="button"
         onClick={scanning ? stop : start}
-        className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accentText"
+        className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accentInk"
       >
         {scanning ? <CameraOff size={16} /> : <Camera size={16} />}
         {scanning ? 'Arrêter le scan' : 'Démarrer le scan'}

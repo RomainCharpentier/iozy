@@ -34,12 +34,29 @@
      textDim). muted/faint : deux niveaux plus discrets, nouveaux. */
   --color-textDim: #544a43;
   --color-muted: #6b605a;
-  --color-faint: #7c716a;
+  /* #746963 et non le #7c716a de la DS : le niveau le plus discret des
+     quatre restait sous le seuil AA (4.41 sur le fond, 4.06 sur surface2) -
+     c'est pourtant lui qui porte des compteurs et des méta-informations
+     réellement lues. Calibré pour tenir 4.5:1 sur les TROIS fonds du thème
+     (background/surface/surface2), pas seulement sur le plus contrasté. */
+  --color-faint: #746963;
 
-  --color-accent: #c05a3c;
+  /* #bc583b et non le #c05a3c de la DS : c'est l'assombrissement MINIMAL
+     (1% de luminosité, indiscernable à l'œil) qui fait passer le blanc posé
+     dessus de 4.40 à 4.57 - la DS ne fixe que la couleur de remplissage, et
+     son propre mock écrit bien du #fff par-dessus (voir les boutons
+     primaires de IozyCore.dc.html), combinaison qui ratait le seuil AA de
+     4.5 de justesse. */
+  --color-accent: #bc583b;
   --color-accentText: #a2452c;
   --color-accentPress: #933d24;
   --color-accentTint: rgb(192 90 60 / 12%);
+  /* Encre à poser SUR un remplissage accent (bouton primaire, chip
+     sélectionnée, pastille). À ne jamais confondre avec accentText, qui est
+     l'accent EN TANT QUE texte, sur fond neutre : les deux étaient
+     systématiquement mélangés avant ce lot (`bg-accent text-accentText`,
+     ~40 fichiers), soit 1.47:1 en sombre - illisible. */
+  --color-accentInk: #ffffff;
 
   --color-danger: #9c3324;
   --color-dangerText: #8c2d20;
@@ -69,6 +86,23 @@
   --color-violet: #8b7fff;
   --color-pink: #ff6fa5;
 
+  /* Couleurs par univers (voir lib/entityTypeVisuals.ts) - teintes de la
+     maquette V1.2, mais réactives au thème, contrairement à ce qui était
+     prévu au Lot 3 ("identité de catégorie stable") : ces valeurs sont
+     calibrées pour un fond CLAIR et servent aussi de texte ("Tout voir", le
+     titre de la page catégorie), où elles tombaient à 4.23:1 sur le fond
+     sombre et 3.06:1 pour le jeu vidéo. La teinte (l'identité) est
+     conservée, seule la luminosité s'adapte - même arbitrage que l'échelle
+     de rang, déjà thème-réactive. */
+  --color-universeManga: #a2452c;
+  --color-universeVideoGame: #3f4c80;
+  --color-universeBoardGame: #2f5d4b;
+  --color-universeBook: #7d5b1f;
+  --color-universeMangaTint: rgb(192 90 60 / 12%);
+  --color-universeVideoGameTint: rgb(79 95 156 / 12%);
+  --color-universeBoardGameTint: rgb(63 122 99 / 12%);
+  --color-universeBookTint: rgb(163 120 47 / 12%);
+
   --shadow-token-sm: 0 1px 2px rgb(35 30 26 / 9%);
   --shadow-token-md: 0 4px 14px rgb(35 30 26 / 11%);
   --shadow-token-elevated: 0 18px 44px rgb(35 30 26 / 22%);
@@ -86,8 +120,14 @@
    une identité stable. */
 :root {
   --color-rank-s: #9c3324;
-  --color-rank-a: #c05a3c;
-  --color-rank-b: #b8801f;
+  /* rank-a/rank-b assombris par rapport à la DS (#c05a3c/#b8801f) pour la
+     même raison que --color-accent ci-dessous : l'encre du badge est
+     BLANCHE en thème clair (voir lib/tierListVisuals.ts, rankInk de la DS),
+     et ces deux fonds la laissaient à 4.40 et 3.42 - la lettre du rang,
+     seule porteuse de l'information, devenait pâle sur l'ambre. Teinte
+     conservée, luminosité juste descendue au seuil AA. */
+  --color-rank-a: #bc583b;
+  --color-rank-b: #9c6c1a;
   --color-rank-c: #6e7d33;
   --color-rank-d: #356b56;
   --color-rank-e: #43607d;
@@ -115,12 +155,18 @@
   --color-textPrimary: #f4eee7;
   --color-textDim: #c2b5a9;
   --color-muted: #a99c91;
-  --color-faint: #95887d;
+  /* Même correction qu'en clair, dans l'autre sens : #95887d tombait à 4.34
+     sur surface2. */
+  --color-faint: #978b80;
 
   --color-accent: #d9694a;
   --color-accentText: #ef9070;
   --color-accentPress: #f0a184;
   --color-accentTint: rgb(217 105 74 / 18%);
+  /* Encre FONCÉE sur l'accent éclairci du thème sombre (5.38:1, contre 3.46
+     pour du blanc) - même principe que l'échelle de rang ci-dessus, dont les
+     pastilles éclaircies portent déjà une encre foncée en sombre. */
+  --color-accentInk: #16120f;
 
   --color-danger: #e8654a;
   --color-dangerText: #f08a72;
@@ -130,6 +176,15 @@
   --color-okTint: rgb(108 189 157 / 14%);
   --color-warning: #d9b64a;
   --color-warningTint: rgb(217 182 74 / 16%);
+
+  --color-universeManga: #e0805f;
+  --color-universeVideoGame: #8fa0dd;
+  --color-universeBoardGame: #69b394;
+  --color-universeBook: #d1a458;
+  --color-universeMangaTint: rgb(224 128 95 / 16%);
+  --color-universeVideoGameTint: rgb(143 160 221 / 16%);
+  --color-universeBoardGameTint: rgb(105 179 148 / 16%);
+  --color-universeBookTint: rgb(209 164 88 / 16%);
 
   --color-line: rgb(244 238 231 / 10%);
   --color-lineStrong: rgb(244 238 231 / 21%);

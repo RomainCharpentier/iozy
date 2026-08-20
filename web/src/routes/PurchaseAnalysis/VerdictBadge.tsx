@@ -7,8 +7,8 @@ import type { Verdict } from '../../types/purchaseAnalysis'
 // introduit --color-danger - décision de palette validée avec l'utilisateur
 // (voir index.css).
 const CONFIG: Record<Verdict, { label: string; icon: typeof Check; className: string }> = {
-  EXCELLENT_DEAL: { label: 'Excellente affaire', icon: CheckCheck, className: 'bg-accent text-accentText' },
-  GOOD_DEAL: { label: 'Bonne affaire', icon: Check, className: 'bg-accent text-accentText' },
+  EXCELLENT_DEAL: { label: 'Excellente affaire', icon: CheckCheck, className: 'bg-accent text-accentInk' },
+  GOOD_DEAL: { label: 'Bonne affaire', icon: Check, className: 'bg-accent text-accentInk' },
   FAIR_PRICE: { label: 'Prix correct', icon: Minus, className: 'bg-warning text-accentText' },
   EXPENSIVE: { label: 'Cher', icon: TriangleAlert, className: 'bg-pink text-textPrimary' },
   AVOID: { label: 'À éviter', icon: X, className: 'bg-danger text-textPrimary' },

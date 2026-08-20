@@ -174,7 +174,7 @@ export function SearchPage() {
         <button
           type="button"
           onClick={() => navigate('/add/draft', { state: { entityTypeId, candidate: null, manualTitle: title.trim() } satisfies DraftLocationState })}
-          className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentText"
+          className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk"
         >
           Ajouter « {title.trim()} »
         </button>

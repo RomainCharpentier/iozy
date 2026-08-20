@@ -76,7 +76,7 @@ export function TierListsScreen() {
           <button
             type="button"
             onClick={() => setCreatingFor({ id: sections[0].entityType.id, label: sections[0].entityType.label })}
-            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentText"
+            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
           >
             <Plus size={16} />
             Nouvelle Tier List

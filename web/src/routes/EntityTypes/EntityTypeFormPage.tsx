@@ -119,7 +119,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
         <button
           type="submit"
           disabled={!label.trim() || !code.trim() || mutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
           {mutation.isPending ? 'Enregistrement...' : mode === 'create' ? 'Créer' : 'Enregistrer'}
         </button>

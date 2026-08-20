@@ -107,7 +107,7 @@ export function AddVolumeSection({
 
   if (!expanded) {
     return (
-      <button type="button" onClick={() => setExpanded(true)} className="w-fit text-sm text-accent underline">
+      <button type="button" onClick={() => setExpanded(true)} className="w-fit text-sm text-accentText underline">
         + Ajouter un tome
       </button>
     )
@@ -212,7 +212,7 @@ export function AddVolumeSection({
           type="button"
           onClick={() => addMutation.mutate()}
           disabled={totalVolumesToAdd === 0 || addMutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
           {addMutation.isPending
             ? 'Ajout...'

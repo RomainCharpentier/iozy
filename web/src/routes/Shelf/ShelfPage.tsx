@@ -162,7 +162,7 @@ export function ShelfPage() {
           <SlidersHorizontal size={15} />
           Filtres
           {status !== 'ALL' && (
-            <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentText">
+            <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
               1
             </span>
           )}

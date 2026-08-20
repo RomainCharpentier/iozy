@@ -55,7 +55,7 @@ export function WishlistShareSection() {
             <button
               type="button"
               onClick={copyLink}
-              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText"
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk"
             >
               <Copy size={13} />
               {copied ? 'Copié !' : 'Copier le lien'}
@@ -90,7 +90,7 @@ export function WishlistShareSection() {
             type="button"
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
-            className="w-fit rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+            className="w-fit rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
           >
             Générer un lien
           </button>

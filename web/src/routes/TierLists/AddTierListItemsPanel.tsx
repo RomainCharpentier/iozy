@@ -117,7 +117,7 @@ export function AddTierListItemsPanel({
                       </span>
                     )}
                     {checked && (
-                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentText">
+                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk">
                         <Check size={12} strokeWidth={3} />
                       </span>
                     )}
@@ -136,7 +136,7 @@ export function AddTierListItemsPanel({
             type="button"
             onClick={() => selected.size > 0 && addMutation.mutate()}
             disabled={selected.size === 0 || addMutation.isPending}
-            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentText disabled:opacity-50"
+            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             {addMutation.isPending
               ? 'Ajout...'

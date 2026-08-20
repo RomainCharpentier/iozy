@@ -105,7 +105,7 @@ export function VolumeSelectionGrid({
                 </span>
               )}
               {isSelected && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accentText">
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accentInk">
                   <Check size={10} strokeWidth={3} />
                 </span>
               )}

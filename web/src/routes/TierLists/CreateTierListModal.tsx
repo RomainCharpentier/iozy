@@ -135,7 +135,7 @@ export function CreateTierListModal({
             type="button"
             onClick={() => name.trim() && createMutation.mutate()}
             disabled={!name.trim() || createMutation.isPending}
-            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentText disabled:opacity-50"
+            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             {createMutation.isPending ? 'Création...' : 'Créer la Tier List'}
           </button>

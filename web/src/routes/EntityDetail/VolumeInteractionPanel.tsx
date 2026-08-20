@@ -82,7 +82,7 @@ function VariantCoverEditor({
           type="button"
           onClick={() => urlInput.trim() && saveMutation.mutate(urlInput.trim())}
           disabled={!urlInput.trim() || saveMutation.isPending}
-          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
         >
           Enregistrer
         </button>
@@ -94,7 +94,7 @@ function VariantCoverEditor({
         type="button"
         onClick={() => searchMutation.mutate()}
         disabled={searchMutation.isPending}
-        className="w-fit text-xs text-accent underline disabled:opacity-50"
+        className="w-fit text-xs text-accentText underline disabled:opacity-50"
       >
         {searchMutation.isPending ? 'Recherche...' : 'Rechercher automatiquement sur Google Books'}
       </button>
@@ -172,7 +172,7 @@ export function VolumeInteractionPanel({
             {editionName && <p className="text-sm text-textDim">{editionName}</p>}
             <span
               className={`mt-1 w-fit rounded-full px-2 py-0.5 text-xs font-medium ${
-                activeTile.status === 'owned' ? 'bg-accent text-accentText' : 'bg-surface2 text-textDim'
+                activeTile.status === 'owned' ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
               }`}
             >
               {activeTile.status === 'owned' ? 'Possédé' : 'Manquant'}

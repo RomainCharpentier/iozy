@@ -128,7 +128,7 @@ export function ScanPage() {
           {entries.map((entry, index) => (
             <li key={index} className="flex items-center gap-2 rounded-lg bg-surface p-2.5 text-sm">
               {entry.status === 'added' && (
-                <CheckCircle2 size={16} className={`shrink-0 ${entry.alreadyOwned ? 'text-textDim' : 'text-accent'}`} />
+                <CheckCircle2 size={16} className={`shrink-0 ${entry.alreadyOwned ? 'text-textDim' : 'text-accentText'}`} />
               )}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}

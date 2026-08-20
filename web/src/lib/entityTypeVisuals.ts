@@ -18,21 +18,29 @@ const FALLBACK: EntityTypeVisual = {
   aspectClassName: 'aspect-[2/3]',
 }
 
-/** Couleurs/icônes par univers de contenu - valeurs exactes de la maquette
- * V1.2 (const UNIVERSE), clé sur `EntityType.code` (voir backend) plutôt que
- * sur un id arbitraire : ces 3 codes sont les seuls réellement utilisés
+/** Couleurs/icônes par univers de contenu - teintes de la maquette V1.2
+ * (const UNIVERSE), clé sur `EntityType.code` (voir backend) plutôt que sur
+ * un id arbitraire : ces 3 codes sont les seuls réellement utilisés
  * aujourd'hui (voir DiscoverySection.tsx qui fait la même vérification).
- * Fixe (pas de variante par thème, contrairement à `accent`) - une identité
- * de catégorie stable plutôt qu'un token d'interaction. "Livre" inclus par
- * anticipation (présent dans la maquette) même si ce type n'existe pas
- * encore réellement dans cette instance - voir getEntityTypeVisual, qui
- * retombe sur FALLBACK pour tout code non reconnu (jamais une erreur pour
- * un type créé plus tard via Administration > Types de collection). */
+ * "Livre" inclus par anticipation (présent dans la maquette) même si ce type
+ * n'existe pas encore réellement dans cette instance - voir
+ * getEntityTypeVisual, qui retombe sur FALLBACK pour tout code non reconnu
+ * (jamais une erreur pour un type créé plus tard via Administration > Types
+ * de collection).
+ *
+ * Valeurs déléguées à des tokens CSS (voir index.css) plutôt qu'écrites en
+ * dur ici : ces couleurs ne servent pas qu'à des pastilles décoratives, elles
+ * sont aussi du TEXTE ("Tout voir" d'une ligne de Ma collection, titre de la
+ * page catégorie, icône d'univers) - les valeurs de la maquette, calibrées
+ * pour un fond clair, tombaient à 4.23:1 (manga) et 3.06:1 (jeu vidéo) sur le
+ * fond sombre. La teinte reste celle de la maquette dans les deux thèmes,
+ * seule la luminosité s'adapte : l'identité de catégorie est préservée, sa
+ * lisibilité aussi. */
 const BY_CODE: Record<string, EntityTypeVisual> = {
-  MANGA: { color: '#c05a3c', tint: 'rgba(192,90,60,.12)', icon: Library, aspectClassName: 'aspect-[2/3]' },
-  VIDEO_GAME: { color: '#4f5f9c', tint: 'rgba(79,95,156,.12)', icon: Layers, aspectClassName: 'aspect-[3/4]' },
-  BOARD_GAME: { color: '#3f7a63', tint: 'rgba(63,122,99,.12)', icon: Grip, aspectClassName: 'aspect-square' },
-  BOOK: { color: '#a3782f', tint: 'rgba(163,120,47,.12)', icon: Book, aspectClassName: 'aspect-[2/3]' },
+  MANGA: { color: 'var(--color-universeManga)', tint: 'var(--color-universeMangaTint)', icon: Library, aspectClassName: 'aspect-[2/3]' },
+  VIDEO_GAME: { color: 'var(--color-universeVideoGame)', tint: 'var(--color-universeVideoGameTint)', icon: Layers, aspectClassName: 'aspect-[3/4]' },
+  BOARD_GAME: { color: 'var(--color-universeBoardGame)', tint: 'var(--color-universeBoardGameTint)', icon: Grip, aspectClassName: 'aspect-square' },
+  BOOK: { color: 'var(--color-universeBook)', tint: 'var(--color-universeBookTint)', icon: Book, aspectClassName: 'aspect-[2/3]' },
 }
 
 export function getEntityTypeVisual(code: string | undefined): EntityTypeVisual {
