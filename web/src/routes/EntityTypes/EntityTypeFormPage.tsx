@@ -15,6 +15,19 @@ interface EntityTypeFormPageProps {
  * historique a la sienne, aucune liste canonique commune n'existe côté
  * backend pour proposer un multi-select) - même formulaire que côté iOS
  * (EntityTypeFormView). */
+/** "Vinyles" -> "VINYLE", "Jeux de société" -> "JEUX_DE_SOCIETE" - accents
+ * retirés, séparateurs en underscore, majuscules : la forme qu'ont déjà les
+ * codes livrés (MANGA, VIDEO_GAME, BOARD_GAME). Reste modifiable à la main :
+ * c'est une proposition, pas une contrainte. */
+function codeFromLabel(label: string): string {
+  return label
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
 export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -24,6 +37,11 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
 
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
+  // Le code suit le label tant que l'utilisateur n'y a pas touché : l'aide
+  // sous le champ promettait "normalisé automatiquement" alors qu'il fallait
+  // inventer un code technique à la main (VINYLE, BOARD_GAME...). Une fois
+  // édité manuellement, il n'est plus jamais écrasé.
+  const [codeEditedByHand, setCodeEditedByHand] = useState(false)
   const [allowedExperienceTypes, setAllowedExperienceTypes] = useState<string[]>([])
   const [customFieldKeys, setCustomFieldKeys] = useState<string[]>([])
 
@@ -72,7 +90,10 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
             <input
               id="label"
               value={label}
-              onChange={(e) => setLabel(e.target.value)}
+              onChange={(e) => {
+                setLabel(e.target.value)
+                if (mode === 'create' && !codeEditedByHand) setCode(codeFromLabel(e.target.value))
+              }}
               placeholder="ex : Films, Vinyles..."
               className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
@@ -91,11 +112,16 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
               <input
                 id="code"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => {
+                  setCodeEditedByHand(true)
+                  setCode(e.target.value)
+                }}
                 placeholder="ex : FILM, VINYLE..."
                 className="rounded-lg bg-surface2 px-3 py-2 text-sm uppercase text-textPrimary placeholder:text-textDim placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
-              <p className="text-xs text-textDim">Normalisé automatiquement, ne pourra plus être modifié après la création.</p>
+              <p className="text-xs text-textDim">
+                Déduit du label, modifiable ici. Ne pourra plus être changé après la création.
+              </p>
             </div>
           )}
         </div>

@@ -59,7 +59,13 @@ export function SearchPage() {
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const debouncedTitle = useDebouncedValue(title, 500)
-  const searchEnabled = !!entityTypeId && debouncedTitle.trim().length >= 3
+  // Un type sans fournisseur de métadonnées (type personnalisé créé depuis
+  // Administration) n'a AUCUNE source externe : ni recherche, ni scan - voir
+  // requiresMatch et EntityTypeDto.hasMetadataProvider. Sans ce garde, l'écran
+  // lançait une recherche vouée à ne rien trouver, puis affichait "Aucun
+  // résultat pour ce titre" - un échec annoncé là où il n'y avait tout
+  // simplement rien à chercher.
+  const searchEnabled = !!entityTypeId && !!selectedType?.hasMetadataProvider && debouncedTitle.trim().length >= 3
 
   const suggestionsQuery = useQuery({
     queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
@@ -118,8 +124,6 @@ export function SearchPage() {
     suggestionsQuery.data.length === 0 &&
     localMatches.length === 0
   const showSearchError = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isError
-  // Type personnalisé (jamais de fournisseur - voir hasMetadataProvider) :
-  // aucune recherche externe possible, saisie libre directe vers l'écran 2.
   const requiresMatch = !!selectedType?.hasMetadataProvider
 
   return (
@@ -169,7 +173,14 @@ export function SearchPage() {
       </div>
 
       {/* Type sans fournisseur de métadonnées (personnalisé) : rien à
-          chercher, saisie directe vers l'écran de sélection. */}
+          chercher, saisie directe vers l'écran de sélection. Annoncé AVANT la
+          saisie - sinon l'écran ressemble à une recherche qui ne trouverait
+          jamais rien. */}
+      {!requiresMatch && entityTypeId && title.trim().length === 0 && (
+        <p className="text-xs text-textDim">
+          Ce type n'a pas de source externe : saisis le titre, il sera ajouté tel quel.
+        </p>
+      )}
       {!requiresMatch && title.trim().length > 0 && entityTypeId && (
         <button
           type="button"
@@ -180,7 +191,10 @@ export function SearchPage() {
         </button>
       )}
 
-      {showBarcodeLookup ? (
+      {/* Scan masqué pour un type sans fournisseur : le lookup par code-barres
+          passe par les mêmes sources externes que la recherche (voir
+          MetadataSearchService.lookupByBarcode), il ne peut rien trouver ici. */}
+      {!requiresMatch ? null : showBarcodeLookup ? (
         <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={goToDraft} />
       ) : (
         entityTypeId && (

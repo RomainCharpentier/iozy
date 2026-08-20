@@ -64,6 +64,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 14. Écarts Tier Lists (drag & drop, classement rapide, liste transverse) — **fait** — voir ci-dessous
 15. Partager ma collection — **fait** — voir ci-dessous
 16. Progression X/Y de Ma collection alignée sur le total d'ÉDITION — **fait** — voir ci-dessous
+17. Types de collection personnalisés (sans API) : friction levée — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -315,6 +316,41 @@ Piège au passage : `mvn compile` ne compile que les sources principales -
 ajouter `findAll()` au port `MangaEditionRepository` casse en réalité les 4
 faux dépôts en mémoire des tests, ce que seul `mvn test`/`package` révèle
 (la construction de l'image Docker, elle, a bien échoué).
+
+### Lot 17 — types de collection personnalisés, sans source externe
+
+Demande utilisateur : "pouvoir ajouter n'importe quel autre type de
+collection (sans API) et l'administrer". Vérification faite d'abord :
+**la capacité existait déjà de bout en bout** - création du type depuis
+Administration > Types de collection, saisie libre dans Rechercher (voir
+`DraftLocationState.candidate: null`), rail dans Ma collection avec le visuel
+de repli, classement général dans Tier Lists, fiche fonctionnelle,
+suppression du type refusée tant qu'une entité l'utilise (409 explicite).
+Testé en créant un type "Vinyles" + un élément, puis en supprimant les deux.
+
+Deux frictions réelles la faisaient passer pour impossible, corrigées :
+
+- **Rechercher lançait une recherche vouée à l'échec.** Pour un type sans
+  fournisseur, l'écran interrogeait quand même les sources externes, puis
+  affichait "Aucun résultat pour ce titre" et proposait "Scanner un
+  code-barres / ISBN" - un échec annoncé là où il n'y a simplement rien à
+  chercher, et un scan qui passe par ces mêmes sources. Désormais : aucune
+  requête, aucun scan, et une phrase avant la saisie ("Ce type n'a pas de
+  source externe : saisis le titre, il sera ajouté tel quel").
+- **Le code du type devait être inventé à la main** (VINYLE, BOARD_GAME...)
+  alors que l'aide sous le champ promettait "normalisé automatiquement". Il
+  est maintenant déduit du label ("Jeux de société rétro" ->
+  "JEUX_DE_SOCIETE_RETRO"), et reste modifiable tant qu'on ne l'a pas édité
+  soi-même. Le libellé d'aide dit ce qui se passe réellement.
+
+Non-régression vérifiée : un type AVEC fournisseur cherche et scanne comme
+avant.
+
+Reste en friction, non traité (choix de navigation, pas un défaut) :
+"Types de collection" est à trois niveaux de profondeur (Profil >
+Paramètres > Administration avancée), et un type personnalisé n'a pas de
+couleur/icône propre - il prend le visuel de repli (voir
+`getEntityTypeVisual`, FALLBACK).
 
 ### Note Lot 5 — résolue
 
