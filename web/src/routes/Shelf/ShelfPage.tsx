@@ -11,7 +11,13 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
 import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
-import { groupByEntityType, matchesCompletionFilter } from './shelfTiles'
+import { groupByEntityType, indexEditionTotals, matchesCompletionFilter } from './shelfTiles'
+import { listAllEditions } from '../../api/purchaseAnalysis'
+import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+
+/** Référence stable : une liste vide recréée à chaque rendu invaliderait les
+ * useMemo qui en dépendent (même raison que EMPTY_ENTITIES ci-dessous). */
+const EMPTY_EDITIONS: MangaEditionDto[] = []
 import { isOwned, ownedVariantIds } from './ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
@@ -55,6 +61,11 @@ export function ShelfPage() {
     queryKey: queryKeys.allOwnerships,
     queryFn: listAllOwnerships,
   })
+  // Référentiel d'éditions : une seule requête pour tout l'écran, partagée
+  // en cache entre Ma collection et la page catégorie - la progression X/Y
+  // se lit PAR ÉDITION (voir indexEditionTotals), comme sur la fiche.
+  const editionsQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.allEditions, queryFn: listAllEditions })
+  const editionTotals = useMemo(() => indexEditionTotals(editionsQuery.data ?? EMPTY_EDITIONS), [editionsQuery.data])
 
   const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
@@ -66,11 +77,14 @@ export function ShelfPage() {
   // (tout revendu) n'y a pas sa place, voir isOwned.
   const entities = useMemo(
     () =>
-      allEntities.filter((e) => isOwned(e, ownerships, owned) && matchesCompletionFilter(e, owned, status)),
-    [allEntities, ownerships, owned, status],
+      allEntities.filter((e) => isOwned(e, ownerships, owned) && matchesCompletionFilter(e, owned, status, editionTotals)),
+    [allEntities, ownerships, owned, status, editionTotals],
   )
 
-  const sections = useMemo(() => groupByEntityType(entities, entityTypes, owned), [entities, entityTypes, owned])
+  const sections = useMemo(
+    () => groupByEntityType(entities, entityTypes, owned, editionTotals),
+    [entities, entityTypes, owned, editionTotals],
+  )
 
   // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
   // d'outils" (voir hubMenuOpen ci-dessous), l'action elle-même est

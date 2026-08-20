@@ -9,7 +9,12 @@ import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
-import { buildShelfTile, matchesCompletionFilter, type CompletionFilter } from './shelfTiles'
+import { buildShelfTile, indexEditionTotals, matchesCompletionFilter, type CompletionFilter } from './shelfTiles'
+import { listAllEditions } from '../../api/purchaseAnalysis'
+import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+
+/** Référence stable - voir ShelfPage pour la même précaution. */
+const EMPTY_EDITIONS: MangaEditionDto[] = []
 import { CollectionFilters } from './CollectionFilters'
 import { ownedVariantIds, isOwned } from './ownership'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
@@ -32,6 +37,11 @@ export function CategoryPage() {
   const entitiesQuery = useQuery({ queryKey: queryKeys.entities.search({}), queryFn: () => searchEntities({}) })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const ownershipsQuery = useQuery({ queryKey: queryKeys.allOwnerships, queryFn: listAllOwnerships })
+  // Référentiel d'éditions : une seule requête pour tout l'écran, partagée
+  // en cache entre Ma collection et la page catégorie - la progression X/Y
+  // se lit PAR ÉDITION (voir indexEditionTotals), comme sur la fiche.
+  const editionsQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.allEditions, queryFn: listAllEditions })
+  const editionTotals = useMemo(() => indexEditionTotals(editionsQuery.data ?? EMPTY_EDITIONS), [editionsQuery.data])
 
   const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
@@ -43,11 +53,17 @@ export function CategoryPage() {
   const entities = useMemo(
     () =>
       allEntities.filter(
-        (e) => e.entityTypeId === entityTypeId && isOwned(e, ownerships, owned) && matchesCompletionFilter(e, owned, status),
+        (e) =>
+          e.entityTypeId === entityTypeId &&
+          isOwned(e, ownerships, owned) &&
+          matchesCompletionFilter(e, owned, status, editionTotals),
       ),
-    [allEntities, entityTypeId, ownerships, owned, status],
+    [allEntities, entityTypeId, ownerships, owned, status, editionTotals],
   )
-  const tiles = useMemo(() => entities.map((e) => buildShelfTile(e, owned)), [entities, owned])
+  const tiles = useMemo(
+    () => entities.map((e) => buildShelfTile(e, owned, editionTotals)),
+    [entities, owned, editionTotals],
+  )
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
 

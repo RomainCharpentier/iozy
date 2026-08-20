@@ -21,6 +21,12 @@ public interface MangaEditionRepository {
      * {@link #findBySeriesTitle}, never a text-matching fallback: only editions actually rattachées. */
     List<MangaEdition> findByEntityId(UUID entityId);
 
+    /** Toutes les éditions connues - lecture en masse pour un écran qui affiche la
+     * progression de PLUSIEURS séries d'un coup (voir Ma collection), plutôt qu'un
+     * appel par tuile. Le référentiel d'éditions est petit par nature (une ligne par
+     * édition réellement renseignée), jamais une table de volumétrie. */
+    List<MangaEdition> findAll();
+
     /** One specific edition of a structurally-linked Série, by ID rather than by title (case-insensitive on
      * editionName) - the preferred lookup once a Série's {@code entityId} is known: unlike
      * {@link #findBySeriesAndEdition}, immune to the Série having been renamed since this edition was linked

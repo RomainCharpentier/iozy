@@ -63,6 +63,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 13. Assistant contextuel sur la fiche — **fait** — voir ci-dessous
 14. Écarts Tier Lists (drag & drop, classement rapide, liste transverse) — **fait** — voir ci-dessous
 15. Partager ma collection — **fait** — voir ci-dessous
+16. Progression X/Y de Ma collection alignée sur le total d'ÉDITION — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -278,6 +279,42 @@ sens, absence de barre d'onglets privée et **zéro lien sortant** sur la page
 publique, révocation (404 immédiat côté API, message neutre après
 rechargement), contraste clair/sombre. Aucun lien de partage n'a été laissé
 actif après les tests.
+
+### Lot 16 — Ma collection alignée sur le total d'édition
+
+Incohérence révélée en ajoutant un jeu vidéo à la collection de test : deux
+écrans calculaient "X/Y tomes" avec deux règles différentes.
+
+- **Ma collection** (`shelfTiles.ts`) lisait l'attribut `totalVolumes` de la
+  **Série**, fourni par MyAnimeList.
+- **La fiche, l'assistant et la page publique** lisent le total de
+  l'**Édition** (`MangaEdition`).
+
+Sur des données réelles, elles se contredisaient dans les deux sens : *Death
+Note* affichait "Black Édition · 1 tome" en collection contre "1/6" sur la
+fiche ; *Jujutsu Kaisen* affichait "Ki-oon · 1/30" en collection alors que le
+total de l'édition Ki-oon n'est justement pas renseigné.
+
+Alignement demandé par l'utilisateur : Ma collection suit désormais la règle
+générale de l'app (la complétude se calcule TOUJOURS par édition, deux
+éditions n'ayant pas le même nombre de tomes - voir `CollectionStatus`).
+Nouveau `GET /purchase-analysis/editions/all` : une seule requête pour tout
+l'écran (le référentiel d'éditions est petit par nature), indexée en
+`(entityId + édition) -> total` côté client, plutôt qu'un appel par tuile.
+
+Conséquences assumées, visibles immédiatement : une série dont l'édition n'a
+pas de fiche de référence perd son "X/Y" et son signal "Plus que N tomes",
+et affiche simplement "N tomes" ; elle sort aussi des filtres
+Complètes/Incomplètes (une complétude inconnue n'a jamais correspondu à ces
+filtres, voir `matchesCompletionFilter`). C'est le prix de l'honnêteté :
+"1/30" pour une édition dont on ne connaît pas le nombre de tomes était une
+information inventée. Renseigner l'édition depuis la fiche restaure aussitôt
+l'affichage complet.
+
+Piège au passage : `mvn compile` ne compile que les sources principales -
+ajouter `findAll()` au port `MangaEditionRepository` casse en réalité les 4
+faux dépôts en mémoire des tests, ce que seul `mvn test`/`package` révèle
+(la construction de l'image Docker, elle, a bien échoué).
 
 ### Note Lot 5 — résolue
 
