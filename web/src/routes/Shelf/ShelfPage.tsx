@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Download, ImagePlus, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, Download, ImagePlus, Layers, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mergeVariantAttributes, searchEntities } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
@@ -201,6 +201,9 @@ export function ShelfPage() {
           type="button"
           onClick={() => setHubMenuOpen(true)}
           title="Plus d'outils"
+          // aria-label en plus du title : un bouton qui n'a qu'une icône tire
+          // sinon son nom accessible du seul title, jamais annoncé au toucher.
+          aria-label="Plus d'outils"
           aria-expanded={hubMenuOpen}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fieldBorder text-textDim transition-colors hover:bg-rowHover"
         >
@@ -283,6 +286,25 @@ export function ShelfPage() {
               {entitiesMissingCovers.length > 0 && (
                 <span className="ml-auto text-xs font-normal text-textDim">{entitiesMissingCovers.length}</span>
               )}
+            </button>
+            {/* "Types de collection" ici plutôt qu'uniquement sous Profil >
+                Paramètres > Administration avancée : un type STRUCTURE cet
+                écran (un rail par type), c'est donc ici qu'on se rend compte
+                qu'il en manque un - signalé par l'utilisateur, "pas logique de
+                passer par le profil". L'écran reste atteignable depuis
+                Administration : ce n'est pas un déplacement mais un second
+                chemin, plus court, posé là où le besoin naît. */}
+            <button
+              type="button"
+              onClick={() => {
+                setHubMenuOpen(false)
+                navigate('/types')
+              }}
+              className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
+            >
+              <Layers size={17} />
+              Types de collection
+              <span className="ml-auto text-xs font-normal text-textDim">{entityTypes.length}</span>
             </button>
           </div>
         </>
