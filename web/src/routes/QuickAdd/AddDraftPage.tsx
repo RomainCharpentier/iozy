@@ -350,7 +350,7 @@ export function AddDraftPage() {
               )}
             </div>
             {volumesQuotaExceeded && !isSearchingVolumes && (
-              <p className="flex items-center gap-1.5 text-xs text-pink">
+              <p className="flex items-center gap-1.5 text-xs text-dangerText">
                 <AlertTriangle size={12} className="shrink-0" />
                 Quota Google Books dépassé - la dernière action n'a pas pu aboutir, réessaie plus tard.
               </p>
@@ -373,7 +373,7 @@ export function AddDraftPage() {
         )}
 
         {selectedType?.code === 'MANGA' && volumeCandidates.length === 0 && volumesQuotaExceeded && !isSearchingVolumes && (
-          <div className="flex items-start gap-2 rounded-xl bg-pink/10 px-4 py-3 text-xs text-pink">
+          <div className="flex items-start gap-2 rounded-xl bg-dangerTint px-4 py-3 text-xs text-dangerText">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
             <span>
               Quota Google Books dépassé pour le moment - impossible de vérifier s'il existe des éditions françaises.{' '}

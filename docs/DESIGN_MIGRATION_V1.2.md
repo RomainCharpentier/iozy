@@ -603,6 +603,79 @@ laissée à l'utilisateur.
 du Lot 8, code conservé) et `GET /api/wishlist/lookup` n'a toujours aucun
 appelant web. Deux constats déjà documentés, inchangés.
 
+### Lot 25 — vérification exhaustive de l'app
+
+Demande : "vérifie toute l'app". Balayage complet, pas un contrôle par
+sondage : 67 endpoints backend énumérés depuis l'OpenAPI, 25 routes web x 2
+thèmes, les 7 dialogues, les 2 pages publiques, le viewport mobile.
+
+**Backend** — tous les GET sûrs répondent 200. Les trois 400 initiaux
+(`/insights/discover`, `/loans`, `/wishlist/lookup`) venaient de paramètres
+requis omis par le test, pas de l'API : rejoués corrects, ils répondent 200.
+Les deux endpoints publics renvoient bien un 404 nu sur jeton inconnu (pas de
+message qui distinguerait "jeton révoqué" de "jeton inexistant").
+
+**Écran entièrement blanc sur la fiche d'une œuvre introuvable.** Le défaut le
+plus sérieux de ce lot, et le plus discret : ni chargement, ni erreur, rien.
+Cause : TanStack Query **met en pause** toute requête quand il croit le
+navigateur hors ligne (`fetchStatus: 'paused'`). La requête reste alors
+`pending` sans jamais aboutir, et `isLoading` vaut `false` - car
+`isLoading = isPending && isFetching`. Tous les écrans tombaient donc dans
+leur garde "pas encore de données" et n'affichaient plus rien. Deux
+corrections, à deux niveaux :
+- `networkMode: 'always'` par défaut sur le `QueryClient` (main.tsx) : le
+  signal `navigator.onLine` est peu fiable (il ment dès qu'une interface
+  réseau existe) et sans objet ici, l'API étant jointe en local. Sans pause,
+  une requête échoue franchement, remonte en `isError`, et les `ErrorBanner`
+  déjà en place font leur travail - sur toute l'app d'un coup.
+- `isPending` au lieu de `isLoading` sur la garde de chargement de la fiche :
+  `isLoading` retombe aussi à `false` dans les creux entre deux tentatives
+  (temporisation exponentielle), même en ligne.
+
+**Piège de vérification** : les *retries* restent en pause tant que la fenêtre
+n'a pas le focus (`focusManager`), ce qui est le cas d'un panneau navigateur
+masqué. Le chemin d'erreur ne peut donc pas s'observer tel quel dans cet
+environnement - il a fallu forcer `retry: 0` à l'exécution sur le
+`QueryClient` (atteint via l'arbre de fibres React) pour voir la bannière.
+
+**"Not Found" affiché en anglais** dans une interface entièrement française.
+Le repli du client HTTP lisait `body.error`... or l'enveloppe générique de
+Spring porte **elle aussi** un champ `error`, qui n'y contient pas un message
+mais la phrase de statut HTTP. On la reconnaît maintenant à sa forme
+(`timestamp` + `status`) pour retomber sur un message traduit par statut, tout
+en préservant les vrais messages du domaine (`{"error": "Un type avec le code
+MANGA existe déjà"}`, sans enveloppe) qui, eux, doivent s'afficher tels quels.
+
+**Contrastes** — le Lot 12 avait balayé l'historique d'analyses **vide**, donc
+sans ses badges. Deux vrais échecs y dormaient : "Prix correct" à **1.21:1**
+et "Cher" à **2.26:1**. Ils venaient du jeton hérité `pink`, non theme-aware,
+qui servait aussi à `ErrorBanner` - **2.34:1 en thème clair, soit le composant
+qui affiche les erreurs, illisible**. Nouveau jeton `warningInk` (texte posé
+SUR un fond `warning`, même rôle que `accentInk`/`dangerInk`), et bascule de
+`pink` vers la famille `danger` pour `ErrorBanner`, `AddDraftPage` (x2) et le
+survol de `EntityTypesPage`.
+
+**Jeton `faint` recalibré une seconde fois**, dans les deux thèmes
+(`#978b80` -> `#9e9288` en sombre, `#746963` -> `#6c625c` en clair) : il avait
+été calibré sur les trois fonds neutres (background/surface/surface2), mais il
+en existe un **quatrième**, les en-têtes de rayon teintés par l'univers, où
+les compteurs d'œuvres retombaient à 4.21-4.44:1.
+
+**L'auditeur de contraste lui-même était faux** sur un point : il lisait
+`backgroundColor` et ignorait `background-image`, donc tout **dégradé**. La
+carte de récap exportable (texte blanc sur dégradé sombre en ligne) remontait
+ainsi 4 faux positifs à 1.08:1. Corrigé en résolvant tous les arrêts du
+dégradé et en gardant le pire cas ; le Lot 12 gagnerait à être relu avec cette
+version-là - c'est fait ici, les 25 routes ont été rejouées dans les deux
+thèmes avec l'auditeur corrigé.
+
+**Résultat final** : 25 routes x 2 thèmes sans aucun échec de contraste, aucun
+débordement horizontal à 375px, les 7 dialogues nommés et pilotables au
+clavier (`useModalA11y` : Escape, piège de focus, focus rendu au déclencheur -
+vérifié en direct sur Filtres et le hub "Plus d'outils"), et les deux pages
+publiques correctes (contenu réel, progressions justes, aucune navigation
+privée exposée). Les liens de partage créés pour ce test ont été révoqués.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

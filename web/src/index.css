@@ -38,8 +38,10 @@
      quatre restait sous le seuil AA (4.41 sur le fond, 4.06 sur surface2) -
      c'est pourtant lui qui porte des compteurs et des méta-informations
      réellement lues. Calibré pour tenir 4.5:1 sur les TROIS fonds du thème
-     (background/surface/surface2), pas seulement sur le plus contrasté. */
-  --color-faint: #746963;
+     (background/surface/surface2), pas seulement sur le plus contrasté.
+     Assombri une seconde fois (#746963 -> #6c625c) : il manquait un QUATRIÈME
+     fond, celui des en-têtes de rayon, teinté par l'univers - 4.21 dessus. */
+  --color-faint: #6c625c;
 
   /* #bc583b et non le #c05a3c de la DS : c'est l'assombrissement MINIMAL
      (1% de luminosité, indiscernable à l'œil) qui fait passer le blanc posé
@@ -73,6 +75,10 @@
   --color-okTint: rgb(53 107 86 / 12%);
   --color-warning: #7a5c10;
   --color-warningTint: rgb(122 92 16 / 12%);
+  /* Encre sur un remplissage warning - même distinction qu'accent/accentInk et
+     danger/dangerInk. Le badge "Prix correct" portait text-accentText sur
+     bg-warning : 1.21:1 en sombre, illisible. */
+  --color-warningInk: #ffffff;
 
   /* Bordures et fonds interactifs discrets - toujours dérivés de l'encre du
      thème (35,30,26 en clair / 244,238,231 en sombre), jamais un gris
@@ -179,8 +185,10 @@
   --color-textDim: #c2b5a9;
   --color-muted: #a99c91;
   /* Même correction qu'en clair, dans l'autre sens : #95887d tombait à 4.34
-     sur surface2. */
-  --color-faint: #978b80;
+     sur surface2. Relevé une seconde fois (#978b80 -> #9e9288) : les en-têtes
+     de rayon posent ce gris sur un fond TEINTÉ par l'univers, plus sombre que
+     surface2, où il retombait à 4.35 (compte d'œuvres du rayon). */
+  --color-faint: #9e9288;
 
   --color-accent: #d9694a;
   --color-accentText: #ef9070;
@@ -202,6 +210,9 @@
   --color-okTint: rgb(108 189 157 / 14%);
   --color-warning: #d9b64a;
   --color-warningTint: rgb(217 182 74 / 16%);
+  /* Encre FONCÉE sur l'ambre éclairci du thème sombre (9.53:1, contre 1.96
+     pour du blanc). */
+  --color-warningInk: #16120f;
 
   --color-universeManga: #e0805f;
   --color-universeVideoGame: #8fa0dd;
