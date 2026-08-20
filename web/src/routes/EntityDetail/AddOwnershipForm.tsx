@@ -93,7 +93,7 @@ export function AddOwnershipForm({
         type="button"
         onClick={() => addMutation.mutate()}
         disabled={addMutation.isPending}
-        className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentText disabled:opacity-50"
+        className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
       >
         {addMutation.isPending ? 'Ajout...' : 'Ajouter à ma collection'}
       </button>

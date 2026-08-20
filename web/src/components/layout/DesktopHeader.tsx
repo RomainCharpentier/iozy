@@ -77,7 +77,7 @@ export function DesktopHeader() {
           >
             <Heart size={20} />
             {wishlistCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentText">
+              <span className="absolute -top-0.5 -right-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
                 {wishlistCount}
               </span>
             )}

@@ -35,7 +35,7 @@ export function VirtualVolumeCard({
         Tome {volumeNumber}
       </span>
       <span className="text-[10px] text-textDim/70">Manquant</span>
-      <Plus size={14} className="mt-1 text-textDim group-hover:text-accent" />
+      <Plus size={14} className="mt-1 text-textDim group-hover:text-accentText" />
     </button>
   )
 }

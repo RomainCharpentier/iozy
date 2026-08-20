@@ -70,7 +70,7 @@ export function CustomTierBoardPage() {
           <button
             type="button"
             onClick={() => setAddingItems(true)}
-            className="flex min-h-10 items-center gap-2 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentText"
+            className="flex min-h-10 items-center gap-2 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
           >
             <Plus size={15} />
             Ajouter

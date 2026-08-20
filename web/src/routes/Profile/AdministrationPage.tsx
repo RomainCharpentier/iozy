@@ -35,7 +35,7 @@ export function AdministrationPage() {
               to={to}
               className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
                 <Icon size={18} />
               </span>
               <span className="flex-1">

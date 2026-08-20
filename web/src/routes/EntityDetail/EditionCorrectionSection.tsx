@@ -162,7 +162,7 @@ export function EditionCorrectionSection({
           type="button"
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentText disabled:opacity-50"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
         >
           {saveMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
         </button>

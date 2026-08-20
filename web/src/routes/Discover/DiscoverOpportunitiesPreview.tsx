@@ -77,7 +77,7 @@ export function DiscoverOpportunitiesPreview() {
                 {s.estimatedCostToComplete !== null && ` · ~${s.estimatedCostToComplete.toFixed(2)} € (${basisLabel(s.costToCompleteBasis)})`}
               </span>
             </span>
-            <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accentText">
+            <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accentInk">
               {s.ownedCount}/{s.totalVolumes}
             </span>
           </button>

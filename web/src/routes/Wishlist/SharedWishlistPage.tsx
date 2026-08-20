@@ -25,7 +25,7 @@ export function SharedWishlistPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col gap-5 bg-background p-4">
       <div className="flex items-center gap-2 pt-4">
-        <Gift size={22} className="text-accent" />
+        <Gift size={22} className="text-accentText" />
         <h1 className="font-display text-xl font-bold text-textPrimary">Liste d'envies</h1>
       </div>
 

@@ -75,7 +75,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold text-textPrimary">Relations</h2>
-        <button type="button" onClick={() => setFormOpen((v) => !v)} className="text-sm font-medium text-accent">
+        <button type="button" onClick={() => setFormOpen((v) => !v)} className="text-sm font-medium text-accentText">
           Ajouter une relation
         </button>
       </div>
@@ -142,7 +142,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
                 }}
                 className={`rounded-full px-3 py-1 text-sm font-medium ${
                   relationshipType === preset.value && !customType
-                    ? 'bg-accent text-accentText'
+                    ? 'bg-accent text-accentInk'
                     : 'bg-surface2 text-textDim'
                 }`}
               >
@@ -160,7 +160,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
           <button
             type="submit"
             disabled={!targetId || addMutation.isPending}
-            className="self-start rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentText disabled:opacity-50"
+            className="self-start rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             Créer
           </button>

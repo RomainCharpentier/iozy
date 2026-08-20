@@ -180,7 +180,7 @@ export function CollectionRecapPage() {
             <button
               type="button"
               onClick={() => downloadImage(recapQuery.data)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentText"
+              className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk"
             >
               <Download size={16} />
               Télécharger l'image

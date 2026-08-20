@@ -60,7 +60,7 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
       <div className="flex items-center gap-1.5 text-sm">
         {completeness.totalVolumes !== null ? (
           completeness.missingCount === 0 ? (
-            <span className="flex items-center gap-1.5 text-accent">
+            <span className="flex items-center gap-1.5 text-accentText">
               <CircleCheck size={14} />
               Édition complète ({includedCount}/{completeness.totalVolumes} volumes)
             </span>
@@ -90,7 +90,7 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
 
       <div className="flex items-center gap-1.5 text-xs">
         {marketPrice.basis === 'OBSERVED_MARKET' && (
-          <span className="rounded-full bg-accent/15 px-2 py-0.5 text-accent">
+          <span className="rounded-full bg-accent/15 px-2 py-0.5 text-accentText">
             Prix observé sur {marketPrice.observationCount} annonce{marketPrice.observationCount > 1 ? 's' : ''}
             {marketPrice.observedMedian !== null && ` · médiane ${marketPrice.observedMedian.toFixed(2)} €/tome`}
           </span>
