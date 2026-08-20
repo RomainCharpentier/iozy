@@ -73,6 +73,23 @@ export const UNIVERSE_ICONS = [
 
 export type UniverseIconKey = (typeof UNIVERSE_ICONS)[number]['key']
 
+/**
+ * Formats de jaquette proposés. Fermé comme le reste : ce sont des classes
+ * Tailwind écrites en dur, seule forme que le compilateur sait extraire - une
+ * classe construite dynamiquement (`aspect-[${ratio}]`) n'existerait tout
+ * simplement pas dans le CSS produit.
+ */
+export const UNIVERSE_ASPECTS = [
+  { key: 'portrait', label: 'Portrait', className: 'aspect-[2/3]', hint: 'Livres, mangas' },
+  { key: 'boitier', label: 'Boîtier', className: 'aspect-[3/4]', hint: 'Jeux vidéo' },
+  { key: 'carre', label: 'Carré', className: 'aspect-square', hint: 'Vinyles, jeux de société' },
+  { key: 'paysage', label: 'Paysage', className: 'aspect-[16/9]', hint: 'Affiches, écrans' },
+] as const
+
+export type UniverseAspectKey = (typeof UNIVERSE_ASPECTS)[number]['key']
+
+const ASPECTS: Record<string, string> = Object.fromEntries(UNIVERSE_ASPECTS.map((a) => [a.key, a.className]))
+
 /** Variable CSS d'une teinte de la palette - pour dessiner les pastilles de
  * choix dans le formulaire de type, sans passer par un faux EntityType. */
 export function colorVarFor(key: string): string {
@@ -116,11 +133,13 @@ export function getEntityTypeVisual(type: EntityTypeDto | string | undefined): E
   }
   const chosenColor = type.colorKey ? COLOR_TOKENS[type.colorKey] : undefined
   const chosenIcon = type.iconKey ? ICONS[type.iconKey] : undefined
+  const chosenAspect = type.aspectKey ? ASPECTS[type.aspectKey] : undefined
   // Une clé inconnue (palette élargie ailleurs, donnée saisie à la main) ne
   // casse rien : on retombe simplement sur le visuel de base.
   return {
     ...base,
     ...(chosenColor ?? {}),
     ...(chosenIcon ? { icon: chosenIcon } : {}),
+    ...(chosenAspect ? { aspectClassName: chosenAspect } : {}),
   }
 }

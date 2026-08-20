@@ -1,0 +1,12 @@
+-- V16__entity_type_aspect.sql
+-- Format de jaquette d'un type de collection (voir
+-- com.iozycore.domain.catalog.EntityType) - troisième attribut visuel après
+-- la couleur et l'icône (V15) : une pochette de vinyle est carrée, un boîtier
+-- de jeu ne l'est pas, un tome de manga est en portrait.
+--
+-- Une CLÉ, jamais une valeur de rendu ("carre", jamais "aspect-square") :
+-- c'est au client de traduire, et son vocabulaire de classes n'a rien à faire
+-- en base. Même raisonnement que color_key/icon_key.
+--
+-- Strictement additif : NULL = format par défaut du type.
+ALTER TABLE entity_type ADD COLUMN aspect_key VARCHAR(32);

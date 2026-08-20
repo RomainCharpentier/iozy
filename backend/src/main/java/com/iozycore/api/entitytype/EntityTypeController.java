@@ -46,7 +46,8 @@ public class EntityTypeController {
     @ResponseStatus(HttpStatus.CREATED)
     public EntityTypeResponse create(@RequestBody CreateEntityTypeRequest request) {
         EntityType created = entityTypeService.create(request.code(), request.label(),
-                request.allowedExperienceTypes(), request.customFieldKeys(), request.colorKey(), request.iconKey());
+                request.allowedExperienceTypes(), request.customFieldKeys(), request.colorKey(), request.iconKey(),
+                request.aspectKey());
         return EntityTypeResponse.from(created, hasMetadataProvider(created));
     }
 
@@ -73,7 +74,7 @@ public class EntityTypeController {
     @PatchMapping("/{id}")
     public EntityTypeResponse update(@PathVariable UUID id, @RequestBody UpdateEntityTypeRequest request) {
         EntityType updated = entityTypeService.update(id, request.label(), request.allowedExperienceTypes(),
-                request.customFieldKeys(), request.colorKey(), request.iconKey());
+                request.customFieldKeys(), request.colorKey(), request.iconKey(), request.aspectKey());
         return EntityTypeResponse.from(updated, hasMetadataProvider(updated));
     }
 

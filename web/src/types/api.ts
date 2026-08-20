@@ -241,6 +241,8 @@ export interface EntityTypeDto {
    * traduire, et lui seul sait s'adapter au thème clair/sombre. */
   colorKey: string | null
   iconKey: string | null
+  /** Format de jaquette (voir UNIVERSE_ASPECTS) - null = format par défaut du type. */
+  aspectKey: string | null
 }
 
 export interface CreateEntityTypeRequest {
@@ -250,6 +252,7 @@ export interface CreateEntityTypeRequest {
   customFieldKeys: string[]
   colorKey?: string
   iconKey?: string
+  aspectKey?: string
 }
 
 /** Le code n'est jamais modifiable après création (voir EntityTypeService côté backend). */
@@ -261,6 +264,7 @@ export interface UpdateEntityTypeRequest {
    * entier, jamais un delta (voir EntityTypeController.update). */
   colorKey?: string
   iconKey?: string
+  aspectKey?: string
 }
 
 export interface BggImportResult {
