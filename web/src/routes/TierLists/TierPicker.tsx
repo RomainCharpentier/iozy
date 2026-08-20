@@ -15,6 +15,11 @@ import { RANKS, type Rank } from '../../types/tierList'
  * choisissent directement le rang correspondant SI actif pour cette liste,
  * Échap ferme sans changement - en plus de la navigation Tab/Entrée
  * standard sur les boutons eux-mêmes.
+ * <p>
+ * En mode "Classer rapidement" (voir useQuickRank), le même composant porte
+ * en plus un compteur de progression et un bouton "Passer" - jamais un
+ * second sélecteur en parallèle : c'est la promesse du §50 ("même sélecteur,
+ * juste enchaîné élément par élément").
  */
 export function TierPicker({
   open,
@@ -24,6 +29,8 @@ export function TierPicker({
   activeRanks,
   currentRank,
   onSelect,
+  progress = null,
+  onSkip,
 }: {
   open: boolean
   onClose: () => void
@@ -32,6 +39,11 @@ export function TierPicker({
   activeRanks: Rank[]
   currentRank: Rank | null
   onSelect: (rank: Rank | null) => void
+  /** Mode "Classer rapidement" seulement : position dans la file (1-indexée). */
+  progress?: { current: number; total: number } | null
+  /** Mode "Classer rapidement" seulement : laisser cette œuvre non classée et
+   * passer à la suivante - distinct de Fermer, qui abandonne toute la file. */
+  onSkip?: () => void
 }) {
   // Escape + piège de focus + focus rendu au déclencheur - voir
   // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
@@ -70,8 +82,15 @@ export function TierPicker({
           ) : (
             <span className="h-11 w-8 shrink-0 rounded bg-surface2" />
           )}
-          <span id="tier-picker-title" className="min-w-0 flex-1 truncate font-display text-sm font-semibold text-textPrimary">
-            {title}
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span id="tier-picker-title" className="truncate font-display text-sm font-semibold text-textPrimary">
+              {title}
+            </span>
+            {progress && (
+              <span className="text-xs text-textDim">
+                Classement rapide · {progress.current} / {progress.total}
+              </span>
+            )}
           </span>
           <button
             type="button"
@@ -104,6 +123,17 @@ export function TierPicker({
             className="border-t border-surface2 py-3 text-center text-sm font-semibold text-textDim hover:text-textPrimary"
           >
             Retirer le classement
+          </button>
+        )}
+        {/* "Passer" n'existe qu'en classement rapide : hors de ce mode, ne
+            rien choisir se fait déjà en fermant le sélecteur. */}
+        {onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="border-t border-surface2 py-3 text-center text-sm font-semibold text-textDim hover:text-textPrimary"
+          >
+            Passer cette œuvre
           </button>
         )}
       </div>

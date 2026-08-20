@@ -26,7 +26,9 @@ export function AddTierListItemsPanel({
   onClose,
 }: {
   tierListId: string
-  entityTypeId: string
+  /** null pour une Tier List transverse "toutes catégories" - les candidats sont
+   * alors cherchés sans filtre de type (voir TierList côté backend). */
+  entityTypeId: string | null
   alreadyAddedIds: Set<string>
   onClose: () => void
 }) {
@@ -36,9 +38,13 @@ export function AddTierListItemsPanel({
   // `{addingItems && <...>}`) - voir useModalA11y (Lot 9).
   const containerRef = useModalA11y<HTMLDivElement>(true, onClose)
 
+  // Liste transverse (entityTypeId null) : candidats de TOUS les univers -
+  // la recherche sans filtre est déjà celle qu'utilise Découvrir/Opportunités,
+  // donc partagée en cache avec elle plutôt qu'une requête de plus.
+  const searchFilter = entityTypeId === null ? {} : { entityTypeId }
   const entitiesQuery = useQuery({
-    queryKey: queryKeys.entities.search({ entityTypeId }),
-    queryFn: () => searchEntities({ entityTypeId }),
+    queryKey: queryKeys.entities.search(searchFilter),
+    queryFn: () => searchEntities(searchFilter),
   })
   const ownershipsQuery = useQuery({ queryKey: queryKeys.allOwnerships, queryFn: listAllOwnerships })
 

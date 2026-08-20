@@ -31,7 +31,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 | Découvrir (Tier Lists / Opportunités / Sorties), layout desktop 60/40 + pleine largeur | `DiscoverPage.tsx` : sous 1100px, 3 sous-onglets réels (un panneau visible) ; dès 1100px, composition éditoriale réelle (grille `1.65fr 1fr` mesurée, Tier Lists à gauche, Opportunités à droite avec bordure, Sorties pleine largeur dessous avec bordure haute, onglets masqués) - même markup, bascule 100% CSS (`hidden`/`min-[1100px]:flex`) | Aligné | **CREATE fait** (Lot 2/6 `16ffc9c`) - les 3 panneaux sont des aperçus compacts (`DiscoverTierPreview`/`DiscoverOpportunitiesPreview`/`DiscoverReleasesPanel`), pas les écrans complets |
 | Opportunités | `DiscoverOpportunitiesPreview.tsx` (aperçu, 3 max) + `SuggestionsPage.tsx` existant (liste complète, lien "Tout voir") - adapté de `PurchaseAnalysisService.findNearCompleteSuggestions`, jaquettes croisées depuis `searchEntities({})` (la suggestion ne porte pas `coverImageUrl`) | Aligné | **ADAPT fait** (Lot 6 `16ffc9c`) - reste **BLOCKED_BY_DATA** pour toute donnée de marché non observée (cohérent avec le moteur Purchase Analysis existant : jamais de prix inventé) |
 | Prochaines sorties | Aucune des deux données requises n'existe : ni date de prochaine sortie par tome (aucun fournisseur branché - Jikan/MyAnimeList/Google Books n'exposent pas de calendrier de parution fiable par tome, vérifié par grep sur tout `backend/src/main/java` : zéro occurrence de `releaseDate`/`nextRelease`/`publicationDate`/`upcoming`), ni concept "suivre une série" distinct de la Wishlist (zéro occurrence de `follow`/`suivre` pertinente) | Total | **BLOCKED_BY_DATA confirmé** (Lot 6) - `DiscoverReleasesPanel.tsx` affiche un état honnête expliquant l'absence de source, jamais une date approximative. Se débloque le jour où une vraie source de calendrier de sorties est intégrée |
-| Tier Lists (hub, board, quick rank, picker, création) | `TierListsScreen.tsx` (`/tier-lists`, écran dédié "deuxième grande expérience" - aperçu par univers avec rangs réels + Tier Lists perso + création), `DiscoverTierPreview.tsx` (aperçu compact dans Découvrir, 2 univers max + 3 listes perso max + CTA "Classer mes éléments"), `GeneralTierBoardPage`/`CustomTierBoardPage` (boards), `TierPicker` (raccourcis clavier S-F + Échap), `CreateTierListModal`, `AddTierListItemsPanel` — backend `domain/tierlist` complet (`EntityRank` = classement général implicite, `TierList`/`TierListItem` = listes perso explicites) | Aligné, 3 écarts documentés ci-dessous | **CREATE fait** (Lot 7a `909f6d0`, Lot 7b `9ecb6c4`, écran dédié + aperçu Découvrir Lot 6 `16ffc9c`) — **drag&drop non implémenté** (clic/tap seul, explicitement permis par la maquette tant que ce n'est jamais la SEULE interaction) ; **pas de flux "Classer rapidement" séquentiel dédié** (le CTA ouvre le board général le plus chargé, on classe élément par élément via le même `TierPicker` que le board, rien n'enchaîne automatiquement) ; **pas de Tier List transverse "tous types"** (la maquette prévoit `scope: 'all'` mélangeant plusieurs univers dans une même liste - le schéma actuel a `TierList.entityTypeId` en FK non nulle, une liste = un seul univers) — **BLOCKED_BY_DATA** aucun des trois, pure priorisation de portée, tous récupérables plus tard sans casser le modèle existant (le 3e demande une migration additive : FK nullable + logique de filtrage des candidats à ajuster) |
+| Tier Lists (hub, board, quick rank, picker, création) | `TierListsScreen.tsx` (`/tier-lists`, écran dédié "deuxième grande expérience" - aperçu par univers avec rangs réels + Tier Lists perso + création), `DiscoverTierPreview.tsx` (aperçu compact dans Découvrir, 2 univers max + 3 listes perso max + CTA "Classer mes éléments"), `GeneralTierBoardPage`/`CustomTierBoardPage` (boards), `TierPicker` (raccourcis clavier S-F + Échap), `CreateTierListModal`, `AddTierListItemsPanel` — backend `domain/tierlist` complet (`EntityRank` = classement général implicite, `TierList`/`TierListItem` = listes perso explicites) | Aligné, 3 écarts documentés ci-dessous | **CREATE fait** (Lot 7a `909f6d0`, Lot 7b `9ecb6c4`, écran dédié + aperçu Découvrir Lot 6 `16ffc9c`), **3 écarts comblés au Lot 14** : glisser-déposer (en PLUS du clic, jamais à la place - voir DS v1.1 §47), flux "Classer rapidement" séquentiel (`useQuickRank`), et Tier List transverse "toutes catégories" (`scope: 'all'`, migration additive V13 rendant `TierList.entityTypeId` nullable) |
 | Assistant contextuel sur la fiche ("Que me manque-t-il dans cette série ?" / "Qu'est-ce qui ressemble à mes S ?") | N'existe pas | Total, nouvelle fonctionnalité | **CREATE fait** (Lot 13, `AssistantSection.tsx`) - découvert en Lot 6 en lisant la section "Mes classements" du mock, construit dans son propre lot comme prévu. Deux boutons à question FIXE, réponse calculée, jamais de saisie libre ni d'appel à un modèle de langage (commentaire source : "Assistant : contextuel, pas un chatbot"). Placé entre "Mes classements" et "À propos", l'emplacement du mock. Question 1 "Que me manque-t-il dans cette série ?" : répondue par le moteur de complétude existant (nombre et numéros manquants en plages lisibles, distinction catalogué/purement virtuel, coût estimé avec sa base de prix affichée) ; question 2 de la maquette "Qu'est-ce qui ressemble à mes S ?" **BLOCKED_BY_DATA confirmé** (aucun champ genre/thème stocké - même raison que l'absence de ligne "Genre" dans "À propos", §101), **remplacée** par "Où en suis-je dans mes lectures ?" (choix utilisateur du 2026-08-20), répondue par les Experiences réelles |
 | Envies (Wishlist) | `WishlistPage.tsx` existe, fonctionnel (consultation/suppression) | Accès à déplacer sous Heart, contenu OK | **KEEP** contenu, **ADAPT fait** point d'entrée (Lot 2 nav : Heart ; Lot 8 : ligne "Wishlist" retirée de `ProfilePage.tsx`, redondante avec Heart - même destination exacte, zéro différenciation) |
 | Profil : hero "Valeur estimée" cliquable (montant + confiance + aperçu titres/tomes/complètes), "Mes Tier Lists" (aperçu + Tout voir), 5 lignes (Importer/Statistiques/Valeur/Suivi & notifications/Paramètres) | `ProfileValueHero.tsx` (montant + badge fiable/partiel/indisponible + titres/tomes possédés, absent si 0 possession active), `ProfileTierListsSection.tsx` (une ligne par univers classé + jaquettes, une ligne par Tier List perso, absente si rien de classé nulle part), 4 lignes réelles (Évaluer un achat/Envies d'amélioration/Bilan annuel/Paramètres) | Aligné, écarts documentés | **ADAPT fait** (Lot 8) - "séries complètes" du hero non repris (aucun champ backend, recalcul complet côté client non justifié pour un teaser) ; "Suivi & notifications" **BLOCKED_BY_DATA** non construit (même cause que Sorties, Lot 6) ; "Importer"/"Statistiques" non répétés en ligne séparée (déjà couverts par le hero Valeur -> `/stats`, et Administration -> import BGG - une ligne strictement redondante sur le MÊME écran, pas juste une autre page) ; "Wishlist"/"Suggestions d'achats" retirées (redondantes avec Heart et Découvrir > Opportunités, le mock lui-même ne les liste pas sur Profil) ; "Prêts en cours" retiré (§88) |
@@ -61,6 +61,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 11. Titre français résolu vers la mauvaise œuvre — **fait** — voir ci-dessous
 12. Contraste et lisibilité de tous les textes — **fait** — voir ci-dessous
 13. Assistant contextuel sur la fiche — **fait** — voir ci-dessous
+14. Écarts Tier Lists (drag & drop, classement rapide, liste transverse) — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -185,6 +186,50 @@ zéro trompeur : édition non précisée (la complétude est toujours calculée 
 édition), nombre total de tomes inconnu, aucune lecture enregistrée. Vérifié
 en direct sur les 5 séries réelles de la collection, qui couvrent justement
 ces trois cas.
+
+### Lot 14 — les trois écarts Tier Lists
+
+**1. Glisser-déposer** (`TierBoard`) — ajouté EN PLUS du clic, jamais à la
+place : l'API HTML5 de drag & drop ignore le tactile, et le §47 exige
+justement qu'il ne soit jamais la seule façon de classer. Clic et clavier
+(Tab + Entrée sur une jaquette, puis S-F dans le sélecteur) restent intacts.
+La zone "À classer" est elle aussi une cible de dépôt - sans elle, le geste
+ne serait pas réversible au glisser. Déposer une œuvre sur son propre rang
+n'envoie rien (même résultat, requête inutile).
+
+**2. "Classer rapidement"** (`useQuickRank`) — enchaîne les œuvres non
+classées une par une dans le MÊME `TierPicker` que le board (promesse du
+§50), avec compteur de progression et bouton "Passer cette œuvre" (distinct
+de Fermer, qui abandonne toute la file). La file est un instantané pris au
+démarrage, jamais la liste vivante : chaque classement invalide la requête du
+board, donc `unranked` rétrécit sous les pieds - s'y fier ferait sauter un
+élément sur deux. Le CTA "Classer mes éléments" de Découvrir démarre
+maintenant réellement ce flux (`state.quickRank`) au lieu d'ouvrir un board
+qu'il fallait ensuite parcourir à la main.
+
+**3. Tier List transverse "toutes catégories"** (`scope: 'all'`) — migration
+**V13** strictement additive : `tier_list.entity_type_id` devient nullable,
+NULL = toutes catégories. Aucune ligne existante touchée, aucune Tier List
+déjà créée ne change de sens. `GET /tier-lists` sans `entityTypeId` renvoie
+désormais les listes transverses (et elles seules, jamais tout confondu) :
+elles n'appartiennent à aucun univers, les afficher sous chacun les
+répéterait autant de fois qu'il y a de types - d'où leur famille dédiée en
+fin d'écran Tier Lists. Les candidats d'une telle liste sont cherchés sans
+filtre de type. Effet de bord assumé : la règle de domaine "une Tier List
+appartient à exactement un univers" disparaît, et le test qui l'affirmait est
+remplacé par deux tests qui décrivent la nouvelle règle (univers absent =
+choix explicite, pas un oubli). Au passage, l'univers devient un VRAI choix
+dans "Nouvelle Tier List" (chips, §51) au lieu d'une pastille imposée par le
+bouton d'où l'on venait.
+
+Vérifié en direct sur la vraie collection, état d'origine restauré après
+chaque test d'écriture : classement rapide au clavier (S) puis "Passer",
+glisser-déposer d'un rang vers "À classer" et l'inverse, création d'une liste
+transverse + ajout d'œuvres + classement + suppression. La collection ne
+contenant aujourd'hui que des mangas, le MÉLANGE d'univers dans une liste
+transverse n'a pas pu être observé sur des données réelles - seule la requête
+de candidats sans filtre de type l'a été (`/api/entities/search` sans
+`entityTypeId`).
 
 ### Note Lot 5 — résolue
 

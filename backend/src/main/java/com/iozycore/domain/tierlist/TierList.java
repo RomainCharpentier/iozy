@@ -11,10 +11,16 @@ import java.util.UUID;
 /**
  * Racine d'agrégat représentant un classement personnalisé (voir la
  * maquette V1.2, "Nouvelle Tier List" - nom, univers/type, rangs actifs,
- * description optionnelle). Toujours rattachée à UN SEUL EntityType
- * (univers) - "Mangas" et "Jeux vidéo" ne partagent jamais une même Tier
- * List, voir la maquette "Tier générale... Mangas / Jeux vidéo / Jeux de
- * société / Livres" qui applique déjà cette règle à l'échelle générale.
+ * description optionnelle). Rattachée à UN SEUL EntityType (univers) dans
+ * le cas courant - le classement GÉNÉRAL applique d'ailleurs toujours cette
+ * règle (voir EntityRank : "Mangas" et "Jeux vidéo" ont chacun leur
+ * échelle).
+ * <p>
+ * {@code entityTypeId} null = Tier List TRANSVERSE, "toutes catégories"
+ * (scope 'all' de la maquette) : elle accepte des œuvres de n'importe quel
+ * univers. C'est le seul cas où mélanger est voulu, et il est toujours
+ * explicite - jamais le défaut d'une liste dont on aurait oublié l'univers
+ * (voir le champ dédié de CreateTierListModal côté web).
  * <p>
  * Le classement GÉNÉRAL (un rang par œuvre, toujours sur l'échelle
  * complète S-F) n'est PAS une TierList : voir EntityRank, plus simple
@@ -41,9 +47,6 @@ public class TierList {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Le nom de la Tier List ne peut pas être vide");
         }
-        if (entityTypeId == null) {
-            throw new IllegalArgumentException("Une Tier List doit être rattachée à un univers (EntityType)");
-        }
         if (activeRanks == null || activeRanks.isEmpty()) {
             throw new IllegalArgumentException("Une Tier List doit avoir au moins un rang actif");
         }
@@ -58,7 +61,10 @@ public class TierList {
 
     /** Rangs actifs par défaut = l'échelle complète (voir la maquette - une
      * Tier List personnalisée peut ensuite en désactiver certains, jamais
-     * l'inverse d'un défaut vide). */
+     * l'inverse d'un défaut vide).
+     *
+     * @param entityTypeId univers de la liste, {@code null} pour une liste
+     *                     transverse "toutes catégories" (voir javadoc de classe). */
     public static TierList create(String name, UUID entityTypeId, Set<Rank> activeRanks, String description) {
         Set<Rank> ranks = (activeRanks == null || activeRanks.isEmpty()) ? EnumSet.allOf(Rank.class) : activeRanks;
         return new TierList(UUID.randomUUID(), DefaultOwner.ID, name.trim(), entityTypeId, ranks,
@@ -104,8 +110,14 @@ public class TierList {
         return name;
     }
 
-    public UUID entityTypeId() {
-        return entityTypeId;
+    /** Vide = Tier List transverse "toutes catégories" (voir javadoc de classe). */
+    public Optional<UUID> entityTypeId() {
+        return Optional.ofNullable(entityTypeId);
+    }
+
+    /** Toutes catégories confondues - une œuvre de n'importe quel univers peut y entrer. */
+    public boolean isAllUniverses() {
+        return entityTypeId == null;
     }
 
     public Set<Rank> activeRanks() {

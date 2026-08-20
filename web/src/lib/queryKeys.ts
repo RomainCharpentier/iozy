@@ -59,7 +59,9 @@ export const queryKeys = {
   },
   tierLists: {
     general: (entityTypeId: string) => ['tierLists', 'general', entityTypeId] as const,
-    custom: (entityTypeId: string) => ['tierLists', 'custom', entityTypeId] as const,
+    // null = les listes transverses "toutes catégories" (voir TierListDto.entityTypeId) -
+    // une famille à part, jamais mélangée avec celles d'un univers donné.
+    custom: (entityTypeId: string | null) => ['tierLists', 'custom', entityTypeId ?? 'all-universes'] as const,
     detail: (id: string) => ['tierLists', 'detail', id] as const,
     entitySummary: (entityId: string) => ['tierLists', 'entitySummary', entityId] as const,
   },

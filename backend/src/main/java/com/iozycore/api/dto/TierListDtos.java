@@ -13,16 +13,20 @@ import java.util.UUID;
 
 public class TierListDtos {
 
+    /** @param entityTypeId univers de la liste - {@code null} pour une Tier List
+     *                     transverse "toutes catégories" (voir TierList). */
     public record CreateTierListRequest(String name, UUID entityTypeId, Set<Rank> activeRanks, String description) {
     }
 
     public record UpdateTierListRequest(String name, Set<Rank> activeRanks, String description) {
     }
 
+    /** @param entityTypeId {@code null} pour une Tier List transverse "toutes
+     *                     catégories" - le client l'affiche alors hors de tout univers. */
     public record TierListResponse(UUID id, String name, UUID entityTypeId, Set<Rank> activeRanks, String description,
                                     Instant createdAt, int itemCount, int rankedCount) {
         public static TierListResponse from(TierList list, int itemCount, int rankedCount) {
-            return new TierListResponse(list.id(), list.name(), list.entityTypeId(), list.activeRanks(),
+            return new TierListResponse(list.id(), list.name(), list.entityTypeId().orElse(null), list.activeRanks(),
                     list.description().orElse(null), list.createdAt(), itemCount, rankedCount);
         }
     }

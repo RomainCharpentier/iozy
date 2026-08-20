@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 
 interface TierListJpaRepository extends JpaRepository<TierListJpaEntity, UUID> {
     List<TierListJpaEntity> findByEntityTypeId(UUID entityTypeId);
+
+    List<TierListJpaEntity> findByEntityTypeIdIsNull();
 }
 
 @Repository
@@ -47,6 +49,13 @@ class JpaTierListRepositoryAdapter implements TierListRepository {
     }
 
     @Override
+    public List<TierList> findAllUniversesLists() {
+        return jpaRepository.findByEntityTypeIdIsNull().stream()
+                .map(JpaTierListRepositoryAdapter::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
@@ -62,8 +71,9 @@ class JpaTierListRepositoryAdapter implements TierListRepository {
     }
 
     private static TierListJpaEntity toJpa(TierList tierList) {
-        return new TierListJpaEntity(tierList.id(), tierList.ownerId(), tierList.name(), tierList.entityTypeId(),
-                serializeRanks(tierList.activeRanks()), tierList.description().orElse(null), tierList.createdAt());
+        return new TierListJpaEntity(tierList.id(), tierList.ownerId(), tierList.name(),
+                tierList.entityTypeId().orElse(null), serializeRanks(tierList.activeRanks()),
+                tierList.description().orElse(null), tierList.createdAt());
     }
 
     private static TierList toDomain(TierListJpaEntity jpa) {

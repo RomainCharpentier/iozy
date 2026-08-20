@@ -18,7 +18,8 @@ public class TierListJpaEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "entity_type_id", nullable = false)
+    /** Nullable depuis V13 : null = Tier List transverse "toutes catégories" (voir TierList). */
+    @Column(name = "entity_type_id")
     private UUID entityTypeId;
 
     /** Rangs actifs, sérialisés en liste jointe par virgules (ex: "S,A,B") - voir TierListMapper. */

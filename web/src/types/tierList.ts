@@ -6,7 +6,9 @@ export const RANKS: Rank[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F']
 export interface TierListDto {
   id: string
   name: string
-  entityTypeId: string
+  /** null = Tier List TRANSVERSE "toutes catégories" (scope 'all' de la maquette V1.2) -
+   * elle accepte des œuvres de n'importe quel univers, voir TierList côté backend. */
+  entityTypeId: string | null
   activeRanks: Rank[]
   description: string | null
   createdAt: string
@@ -47,7 +49,8 @@ export interface EntityTierSummaryDto {
 
 export interface CreateTierListRequest {
   name: string
-  entityTypeId: string
+  /** null = Tier List transverse "toutes catégories" (voir TierListDto.entityTypeId). */
+  entityTypeId: string | null
   activeRanks?: Rank[]
   description?: string
 }

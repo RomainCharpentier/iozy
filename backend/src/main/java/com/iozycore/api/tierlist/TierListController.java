@@ -88,12 +88,15 @@ public class TierListController {
 
     // ═══ Tier Lists personnalisées ═══
 
-    @Operation(summary = "Tier Lists personnalisées d'un univers (Hub Découvrir)")
+    @Operation(summary = "Tier Lists personnalisées d'un univers (Hub Découvrir). entityTypeId omis = les Tier "
+            + "Lists TRANSVERSES \"toutes catégories\" (voir TierList.isAllUniverses), jamais toutes les listes "
+            + "confondues : elles forment une famille à part côté client, pas un univers de plus.")
     @GetMapping
-    public List<TierListResponse> byEntityType(@RequestParam UUID entityTypeId) {
-        return tierListRepository.findByEntityTypeId(entityTypeId).stream()
-                .map(this::toSummary)
-                .collect(Collectors.toList());
+    public List<TierListResponse> byEntityType(@RequestParam(required = false) UUID entityTypeId) {
+        List<TierList> lists = entityTypeId == null
+                ? tierListRepository.findAllUniversesLists()
+                : tierListRepository.findByEntityTypeId(entityTypeId);
+        return lists.stream().map(this::toSummary).collect(Collectors.toList());
     }
 
     @Operation(summary = "Créer une Tier List personnalisée")
@@ -103,7 +106,11 @@ public class TierListController {
         if (request.name() == null || request.name().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la Tier List ne peut pas être vide");
         }
-        entityRepository.findAllByType(request.entityTypeId()); // valide implicitement l'existence du type (liste vide sinon, pas d'exception)
+        // entityTypeId null = liste transverse "toutes catégories" (voir TierList) -
+        // rien à valider dans ce cas, il n'y a justement pas d'univers.
+        if (request.entityTypeId() != null) {
+            entityRepository.findAllByType(request.entityTypeId()); // valide implicitement l'existence du type (liste vide sinon, pas d'exception)
+        }
         TierList list = TierList.create(request.name(), request.entityTypeId(), request.activeRanks(), request.description());
         return toSummary(tierListRepository.save(list));
     }

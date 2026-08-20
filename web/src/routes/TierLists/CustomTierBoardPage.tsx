@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, MoreHorizontal, Plus, Trash2, Zap } from 'lucide-react'
 import { deleteTierList, getTierListDetail, setTierListItemRank } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TierBoard } from './TierBoard'
 import { TierPicker } from './TierPicker'
 import { AddTierListItemsPanel } from './AddTierListItemsPanel'
+import { useQuickRank } from './useQuickRank'
 import { useModalA11y } from '../../lib/useModalA11y'
-import type { TierListEntryDto } from '../../types/tierList'
+import type { Rank, TierListEntryDto } from '../../types/tierList'
 
 /** Board d'une Tier List PERSONNALISÉE - même rendu que le classement
  * général (voir TierBoard), rangs actifs propres à cette liste (voir
@@ -22,6 +23,7 @@ export function CustomTierBoardPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [addingItems, setAddingItems] = useState(false)
+  const quickRank = useQuickRank()
   // Le "..." menu est un `role="dialog"` au même titre que les autres
   // surfaces temporaires de l'app (voir la maquette, dlg-tiermenu) - Escape +
   // piège de focus + focus rendu au bouton "..." (voir useModalA11y, Lot 9).
@@ -30,10 +32,14 @@ export function CustomTierBoardPage() {
   const detailQuery = useQuery({ queryKey: queryKeys.tierLists.detail(id!), queryFn: () => getTierListDetail(id!) })
 
   const rankMutation = useMutation({
-    mutationFn: (rank: TierListEntryDto['rank']) => setTierListItemRank(id!, activeEntry!.entityId, rank),
-    onSuccess: () => {
+    mutationFn: ({ entityId, rank }: { entityId: string; rank: Rank | null }) => setTierListItemRank(id!, entityId, rank),
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
-      setActiveEntry(null)
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(variables.entityId) })
+      // Classement rapide : enchaîner sur l'œuvre suivante remplace la
+      // fermeture du sélecteur (voir useQuickRank).
+      if (quickRank.isActive) quickRank.next()
+      else setActiveEntry(null)
     },
   })
 
@@ -50,6 +56,7 @@ export function CustomTierBoardPage() {
 
   const { list, ranked, unranked } = detailQuery.data
   const rankedByRank = Object.fromEntries(list.activeRanks.map((r) => [r, ranked.filter((e) => e.rank === r)]))
+  const selectedEntry = quickRank.isActive ? quickRank.current : activeEntry
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,6 +74,16 @@ export function CustomTierBoardPage() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {unranked.length > 0 && (
+            <button
+              type="button"
+              onClick={() => quickRank.start(unranked)}
+              className="flex min-h-10 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm"
+            >
+              <Zap size={15} />
+              Classer rapidement ({unranked.length})
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setAddingItems(true)}
@@ -140,18 +157,29 @@ export function CustomTierBoardPage() {
           <p className="text-sm text-textDim">Aucune œuvre dans cette Tier List pour l'instant.</p>
         </div>
       ) : (
-        <TierBoard ranked={rankedByRank} unranked={unranked} activeRanks={list.activeRanks} onSelectEntry={setActiveEntry} />
+        <TierBoard
+          ranked={rankedByRank}
+          unranked={unranked}
+          activeRanks={list.activeRanks}
+          onSelectEntry={setActiveEntry}
+          onDropEntry={(entry, rank) => rankMutation.mutate({ entityId: entry.entityId, rank })}
+        />
       )}
 
-      {activeEntry && (
+      {selectedEntry && (
         <TierPicker
           open
-          onClose={() => setActiveEntry(null)}
-          title={activeEntry.title}
-          coverImageUrl={activeEntry.coverImageUrl}
+          onClose={() => {
+            quickRank.stop()
+            setActiveEntry(null)
+          }}
+          title={selectedEntry.title}
+          coverImageUrl={selectedEntry.coverImageUrl}
           activeRanks={list.activeRanks}
-          currentRank={activeEntry.rank}
-          onSelect={(rank) => rankMutation.mutate(rank)}
+          currentRank={selectedEntry.rank}
+          onSelect={(rank) => rankMutation.mutate({ entityId: selectedEntry.entityId, rank })}
+          progress={quickRank.progress}
+          onSkip={quickRank.isActive ? quickRank.next : undefined}
         />
       )}
     </div>
