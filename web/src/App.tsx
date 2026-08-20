@@ -26,15 +26,17 @@ import { CategoryPage } from './routes/Shelf/CategoryPage'
 import { GeneralTierBoardPage } from './routes/TierLists/GeneralTierBoardPage'
 import { CustomTierBoardPage } from './routes/TierLists/CustomTierBoardPage'
 import { TierListsScreen } from './routes/TierLists/TierListsScreen'
+import { SharedCollectionPage } from './routes/Profile/SharedCollectionPage'
 
-/** /public/wishlist/:token vit hors AppShell (voir SharedWishlistPage) :
- * quelqu'un qui ouvre un lien de partage n'a pas de compte et ne doit
- * jamais voir la barre d'onglets privée ni pouvoir y naviguer. Tout le
- * reste de l'app reste dans AppShell, inchangé. */
+/** Les routes /public/* vivent hors AppShell (voir SharedWishlistPage,
+ * SharedCollectionPage) : quelqu'un qui ouvre un lien de partage n'a pas de
+ * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
+ * naviguer. Tout le reste de l'app reste dans AppShell, inchangé. */
 export default function App() {
   return (
     <Routes>
       <Route path="/public/wishlist/:token" element={<SharedWishlistPage />} />
+      <Route path="/public/collection/:token" element={<SharedCollectionPage />} />
       <Route
         path="/*"
         element={

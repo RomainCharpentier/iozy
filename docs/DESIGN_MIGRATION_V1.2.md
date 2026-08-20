@@ -35,7 +35,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 | Assistant contextuel sur la fiche ("Que me manque-t-il dans cette série ?" / "Qu'est-ce qui ressemble à mes S ?") | N'existe pas | Total, nouvelle fonctionnalité | **CREATE fait** (Lot 13, `AssistantSection.tsx`) - découvert en Lot 6 en lisant la section "Mes classements" du mock, construit dans son propre lot comme prévu. Deux boutons à question FIXE, réponse calculée, jamais de saisie libre ni d'appel à un modèle de langage (commentaire source : "Assistant : contextuel, pas un chatbot"). Placé entre "Mes classements" et "À propos", l'emplacement du mock. Question 1 "Que me manque-t-il dans cette série ?" : répondue par le moteur de complétude existant (nombre et numéros manquants en plages lisibles, distinction catalogué/purement virtuel, coût estimé avec sa base de prix affichée) ; question 2 de la maquette "Qu'est-ce qui ressemble à mes S ?" **BLOCKED_BY_DATA confirmé** (aucun champ genre/thème stocké - même raison que l'absence de ligne "Genre" dans "À propos", §101), **remplacée** par "Où en suis-je dans mes lectures ?" (choix utilisateur du 2026-08-20), répondue par les Experiences réelles |
 | Envies (Wishlist) | `WishlistPage.tsx` existe, fonctionnel (consultation/suppression) | Accès à déplacer sous Heart, contenu OK | **KEEP** contenu, **ADAPT fait** point d'entrée (Lot 2 nav : Heart ; Lot 8 : ligne "Wishlist" retirée de `ProfilePage.tsx`, redondante avec Heart - même destination exacte, zéro différenciation) |
 | Profil : hero "Valeur estimée" cliquable (montant + confiance + aperçu titres/tomes/complètes), "Mes Tier Lists" (aperçu + Tout voir), 5 lignes (Importer/Statistiques/Valeur/Suivi & notifications/Paramètres) | `ProfileValueHero.tsx` (montant + badge fiable/partiel/indisponible + titres/tomes possédés, absent si 0 possession active), `ProfileTierListsSection.tsx` (une ligne par univers classé + jaquettes, une ligne par Tier List perso, absente si rien de classé nulle part), 4 lignes réelles (Évaluer un achat/Envies d'amélioration/Bilan annuel/Paramètres) | Aligné, écarts documentés | **ADAPT fait** (Lot 8) - "séries complètes" du hero non repris (aucun champ backend, recalcul complet côté client non justifié pour un teaser) ; "Suivi & notifications" **BLOCKED_BY_DATA** non construit (même cause que Sorties, Lot 6) ; "Importer"/"Statistiques" non répétés en ligne séparée (déjà couverts par le hero Valeur -> `/stats`, et Administration -> import BGG - une ligne strictement redondante sur le MÊME écran, pas juste une autre page) ; "Wishlist"/"Suggestions d'achats" retirées (redondantes avec Heart et Découvrir > Opportunités, le mock lui-même ne les liste pas sur Profil) ; "Prêts en cours" retiré (§88) |
-| Profil : "Partager ma collection" (visibilité + switch "partager aussi mes Tier Lists" + lien) | N'existe pas - le partage actuel (`WishlistShareSettings`, Lot "wishlist share" d'une session antérieure) ne couvre QUE la Wishlist, pas la collection entière ni les Tier Lists | Total, nouvelle fonctionnalité | **Découvert en Lot 6/8, non construit** - un domaine de partage "collection entière + Tier Lists en option" est distinct du partage Wishlist existant (nouvelle entité backend + endpoint public, pas une extension triviale). Décision produit non anodine (exposer publiquement des évaluations perso) - explicitement laissé de côté (choix utilisateur du 2026-08-19 : continuer le Lot 8 en autonomie plutôt que trancher cette question maintenant) |
+| Profil : "Partager ma collection" (visibilité + switch "partager aussi mes Tier Lists" + lien) | N'existe pas - le partage actuel (`WishlistShareSettings`, Lot "wishlist share" d'une session antérieure) ne couvre QUE la Wishlist, pas la collection entière ni les Tier Lists | Total, nouvelle fonctionnalité | **CREATE fait** (Lot 15) - domaine `collectionshare` distinct du partage Wishlist, migration V14, page publique `/public/collection/:token`. Décision produit tranchée le 2026-08-20 : la vue publique montre titre + jaquette + édition(s) possédée(s) + progression X/Y, et les Tier Lists ne sortent que via un interrupteur dédié, désactivé par défaut |
 | Valeur | `StatsPage.tsx`/`CollectionValueSection.tsx` existent, messages fiable ("Sur les X possessions actuelles")/partiel ("Prix connu sur X/Y - valeur réelle probablement plus élevée") déjà conformes à §55 | Aligné | **KEEP confirmé** (Lot 8, relecture) - aucun changement nécessaire |
 | Import | `ImportBggPage.tsx` existe (BGG uniquement), wording de `AdministrationPage.tsx` déjà honnête ("Récupérer tes jeux de société depuis BoardGameGeek", jamais "importer ta collection" en général) | Structurel (le mock place Import en ligne Profil visible ; notre import réel est BGG-only, une action rare/technique) | **KEEP confirmé** (Lot 8, relecture) - délibérément PAS promu en ligne Profil comme le mock : promouvoir une action BGG-only (jeux de société, aucun rapport avec la majorité manga de l'app) au même rang que Statistiques/Valeur donnerait une fausse impression de capacité d'import généraliste. Reste sous Administration avancée, cohérent avec une décision déjà prise lors d'un lot antérieur de cette session |
 | Paramètres : Apparence (thème), Importer/Administration (lignes séparées dans le mock), Export des données ("Bientôt" **dans le mock**), Reconnaissance intelligente (switch traitement local) | `SettingsPage.tsx` : Apparence (thème, déjà conforme) + "Titre des mangas" (réglage réel propre à cette app, absent du mock) + une seule ligne "Administration avancée" (regroupe types/import BGG/export) | Structurel dans la forme, aligné dans l'intention | **KEEP confirmé** (Lot 8, relecture) - le mock lui-même titre cette section "deux entrées réelles valent mieux que quatre décoratives" : notre regroupement (une entrée réelle plutôt que import+administration+export séparés) sert ce même principe, décision déjà prise lors d'un lot antérieur. Point notable : l'export JSON/CSV complet est déjà réellement livré (liens de téléchargement fonctionnels dans `AdministrationPage.tsx`) alors que le mock lui-même l'affiche encore "Bientôt" - notre app est en avance sur le mock ici. "Reconnaissance intelligente" (traitement local device) **BLOCKED_BY_DATA/non applicable** - aucune notion de traitement on-device dans ce backend, le scan passe par de vraies API externes, non construit |
@@ -62,6 +62,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 12. Contraste et lisibilité de tous les textes — **fait** — voir ci-dessous
 13. Assistant contextuel sur la fiche — **fait** — voir ci-dessous
 14. Écarts Tier Lists (drag & drop, classement rapide, liste transverse) — **fait** — voir ci-dessous
+15. Partager ma collection — **fait** — voir ci-dessous
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -230,6 +231,53 @@ contenant aujourd'hui que des mangas, le MÉLANGE d'univers dans une liste
 transverse n'a pas pu être observé sur des données réelles - seule la requête
 de candidats sans filtre de type l'a été (`/api/entities/search` sans
 `entityTypeId`).
+
+### Lot 15 — "Partager ma collection"
+
+Décision produit tranchée par l'utilisateur le 2026-08-20, après avoir été
+laissée de côté au Lot 8 : la vue publique montre **titre + jaquette +
+édition(s) possédée(s) + progression X/Y**, et les **Tier Lists via un
+interrupteur dédié, désactivé par défaut**.
+
+Ce qui n'en sort JAMAIS (voir `CollectionShareDtos`, qui en porte la liste) :
+aucun identifiant ni lien profond vers l'app, aucun prix d'achat, aucune
+valeur estimée, aucune date, aucune wishlist (elle garde son propre lien).
+Le contrôleur public existant portait déjà l'avertissement "à ne jamais
+faire évoluer au-delà de ça sans revalider le même raisonnement" - c'est
+précisément ce qui a été fait ici, plutôt que d'étendre le partage existant.
+
+Choix de conception notables :
+
+- **Domaine et table séparés** (`collection_share_settings`, V14), jamais
+  une colonne de plus sur `wishlist_share_settings` : les deux liens doivent
+  pouvoir être révoqués indépendamment. Partager ce qu'on cherche et
+  partager ce qu'on possède sont deux décisions différentes.
+- **L'interrupteur Tier Lists ne touche pas au jeton** : un lien déjà envoyé
+  reste valable, seul son contenu change. En revanche **régénérer** un lien
+  repart toujours sans les classements (choix le plus fermé), et un drapeau
+  resté à vrai sur une ligne sans jeton n'expose rien (`sharesTierLists()`
+  exige d'abord `hasLink()`).
+- **Ne montre que ce qui est réellement possédé** (Ownership active), jamais
+  le catalogue : une fiche créée puis revendue n'a plus à apparaître.
+- **Le total de tomes vient EXCLUSIVEMENT de `MangaEdition`**, jamais de
+  l'attribut `totalVolumes` de la Série. Premier jet fait, puis retiré après
+  comparaison sur données réelles : le repli sur l'attribut de série faisait
+  afficher "3/6" sur la page publique là où la fiche du propriétaire dit, à
+  raison, que le total de cette édition est inconnu - la complétude se
+  calcule toujours PAR ÉDITION dans cette app.
+
+Bug attrapé uniquement grâce à la vérification sur données réelles :
+`Ownership.variantId()` renvoie un `Optional<UUID>`, et `Map.get(Object)`
+accepte cet `Optional` comme clé **sans erreur de compilation**, en renvoyant
+null pour tout le monde - la vue publique annonçait donc "0 tome possédé"
+pour toutes les séries. Corrigé par `flatMap(Optional::stream)`.
+
+Vérifié en direct de bout en bout : génération du lien, contenu public
+identique à ce qu'annoncent les fiches, interrupteur Tier Lists dans les deux
+sens, absence de barre d'onglets privée et **zéro lien sortant** sur la page
+publique, révocation (404 immédiat côté API, message neutre après
+rechargement), contraste clair/sombre. Aucun lien de partage n'a été laissé
+actif après les tests.
 
 ### Note Lot 5 — résolue
 

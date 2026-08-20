@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Scale, Sparkles, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
+import { CollectionShareSection } from './CollectionShareSection'
 
 interface ProfileLink {
   to: string
@@ -35,6 +36,10 @@ export function ProfilePage() {
 
       <ProfileValueHero />
       <ProfileTierListsSection />
+      {/* "Partager ma collection" - emplacement de la maquette V1.2 (Profil),
+          au-dessus des lignes d'accès aux autres écrans : c'est un réglage de
+          CE profil, pas une destination de plus. */}
+      <CollectionShareSection />
 
       <ul className="flex flex-col gap-2">
         {LINKS.map(({ to, label, description, icon: Icon }) => (
