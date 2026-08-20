@@ -8,13 +8,14 @@ import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
+import { AssistantSection } from './AssistantSection'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
 import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierBadge } from '../TierLists/TierBadge'
 import { TierPicker } from '../TierLists/TierPicker'
 import { RANKS, type Rank } from '../../types/tierList'
-import type { OwnershipResponse, VariantDto } from '../../types/api'
+import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../types/api'
 
 /**
  * "Mes classements" (voir DS v1.1 §52) : rang général visuellement dominant
@@ -265,6 +266,7 @@ export function TomesGridSection({
   entityAttributes,
   variants,
   ownerships,
+  experiences,
   activeGroup,
 }: {
   // Voir migration "Série -> Édition par ID" - préféré à entityTitle pour
@@ -285,6 +287,10 @@ export function TomesGridSection({
   entityAttributes: Record<string, unknown>
   variants: VariantDto[]
   ownerships: OwnershipResponse[]
+  // Uniquement pour l'Assistant ("Où en suis-je dans mes lectures ?", voir
+  // AssistantSection) - déjà chargées par EntityDetailPage pour la section
+  // Expériences, jamais une requête de plus.
+  experiences: ExperienceResponse[]
   // Décidée par le parent (EntityDetailPage), partagée avec
   // EditionProgressSection - les deux doivent réagir au même changement
   // d'édition sélectionnée, voir EntityDetailPage.activeGroup.
@@ -398,6 +404,19 @@ export function TomesGridSection({
         entityTitle={entityTitle}
         entityTypeLabel={entityTypeLabel}
         coverImageUrl={coverImageUrlFrom(entityAttributes)}
+      />
+
+      {/* "Assistant" : questions fixes à réponse calculée, entre "Mes
+          classements" et "À propos" - emplacement de la maquette V1.2 (voir
+          AssistantSection pour ce qui est répondable et ce qui ne l'est
+          pas). */}
+      <AssistantSection
+        entityId={entityId}
+        entityTitle={entityTitle}
+        variants={variants}
+        ownerships={ownerships}
+        experiences={experiences}
+        activeGroup={activeGroup}
       />
 
       {/* "À propos" : bloc compact, secondaire par rapport aux tomes (voir la

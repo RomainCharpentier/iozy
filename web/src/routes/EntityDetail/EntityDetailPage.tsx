@@ -314,6 +314,7 @@ export function EntityDetailPage() {
             entityAttributes={entity.attributes}
             variants={entity.variants}
             ownerships={ownerships}
+            experiences={experiences}
             activeGroup={activeEditionGroup}
           />
         </div>
