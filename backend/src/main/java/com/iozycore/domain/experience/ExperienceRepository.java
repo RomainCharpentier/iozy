@@ -17,4 +17,12 @@ public interface ExperienceRepository {
     List<Experience> findAll();
 
     boolean existsByEntityId(UUID entityId);
+
+    /**
+     * Retire une expérience enregistrée par erreur. Idempotent, comme les
+     * autres suppressions de petites données utilisateur du projet (wishlist,
+     * envie d'amélioration, Tier List) : un double clic ou une tuile devenue
+     * obsolète après un rechargement tardif ne doit pas produire d'erreur.
+     */
+    void deleteById(UUID id);
 }

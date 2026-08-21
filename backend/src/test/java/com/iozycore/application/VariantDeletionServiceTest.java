@@ -313,6 +313,11 @@ class VariantDeletionServiceTest {
         }
 
         @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+
+        @Override
         public boolean existsByEntityId(UUID entityId) {
             return !findByEntityId(entityId).isEmpty();
         }
@@ -377,6 +382,11 @@ class VariantDeletionServiceTest {
         public MarketPriceObservation save(MarketPriceObservation observation) {
             store.add(observation);
             return observation;
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.removeIf(o -> o.id().equals(id));
         }
 
         @Override

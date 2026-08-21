@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { recordExperience } from '../../api/experiences'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { ExperienceRow } from './ExperienceRow'
+import { variantLabel } from '../../lib/editionGroups'
 import type { ExperienceResponse, VariantDto } from '../../types/api'
 
 interface ExperiencesSectionProps {
@@ -14,13 +16,6 @@ interface ExperiencesSectionProps {
   // jusqu'ici une Experience ne référençait que la série entière, impossible
   // de distinguer "j'ai lu le tome 3" de "j'ai lu le tome 4" dans l'historique).
   variants?: VariantDto[]
-}
-
-/** "Tome 12" si un numéro de tome est exploitable, sinon le label brut -
- * même règle que ShelfPage.variantSubtitle, gardée cohérente ici. */
-function variantLabel(variant: VariantDto): string {
-  const volumeNumber = variant.attributes.volumeNumber
-  return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
 }
 
 export function ExperiencesSection({ entityId, experiences, allowedExperienceTypes, variants = [] }: ExperiencesSectionProps) {
@@ -141,19 +136,14 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
       )}
 
       <ul className="flex flex-col gap-2">
-        {sorted.map((experience) => {
-          const variant = experience.variantId ? variantsById.get(experience.variantId) : undefined
-          return (
-            <li key={experience.id} className="rounded-xl bg-surface p-3 text-sm">
-              <p className="text-textPrimary">
-                {experience.experienceType}
-                {variant && ` · ${variantLabel(variant)}`}
-                {experience.rating !== null && ` · ★ ${experience.rating}/10`}
-              </p>
-              {experience.comment && <p className="text-textDim">{experience.comment}</p>}
-            </li>
-          )
-        })}
+        {sorted.map((experience) => (
+          <ExperienceRow
+            key={experience.id}
+            experience={experience}
+            entityId={entityId}
+            variant={experience.variantId ? variantsById.get(experience.variantId) : undefined}
+          />
+        ))}
       </ul>
     </section>
   )

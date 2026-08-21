@@ -2,6 +2,7 @@ package com.iozycore.api.experience;
 
 import com.iozycore.api.dto.ExperienceDtos.ExperienceResponse;
 import com.iozycore.api.dto.ExperienceDtos.RecordExperienceRequest;
+import com.iozycore.api.dto.ExperienceDtos.UpdateExperienceRequest;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
@@ -68,6 +69,32 @@ public class ExperienceController {
                 request.rating(), request.comment());
 
         return ExperienceResponse.from(experienceRepository.save(experience));
+    }
+
+    @Operation(summary = "Corriger la note et/ou le commentaire d'une expérience (les deux champs sont "
+            + "remplacés tels quels, null compris - voir UpdateExperienceRequest)")
+    @PatchMapping("/{id}")
+    public ExperienceResponse update(@PathVariable UUID id, @RequestBody UpdateExperienceRequest request) {
+        Experience experience = experienceRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Expérience introuvable : " + id));
+        try {
+            // La borne 0-10 vit dans le domaine (Experience.updateRating) : la
+            // rejouer ici la dupliquerait. On traduit juste son refus en 400,
+            // sans quoi une note hors bornes remonterait en 500.
+            experience.updateRating(request.rating());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+        experience.updateComment(request.comment());
+        return ExperienceResponse.from(experienceRepository.save(experience));
+    }
+
+    @Operation(summary = "Supprimer une expérience enregistrée par erreur - idempotent")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        experienceRepository.deleteById(id);
     }
 
     @Operation(summary = "Lister les Experience d'une Entity")

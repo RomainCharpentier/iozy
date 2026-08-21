@@ -95,3 +95,10 @@ export function ownedVolumeNumbers(variants: VariantDto[], ownerships: Ownership
   }
   return Array.from(owned).sort((a, b) => a - b)
 }
+
+/** "Tome 12" si un numéro de tome est exploitable, sinon le label brut -
+ * même règle que ShelfPage.variantSubtitle, gardée cohérente ici. */
+export function variantLabel(variant: VariantDto): string {
+  const volumeNumber = variant.attributes.volumeNumber
+  return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
+}
