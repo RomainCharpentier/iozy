@@ -83,7 +83,7 @@ export function WishlistPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Wishlist</h1>
+      <h1 className="font-display text-2xl font-bold text-textPrimary">Envies</h1>
 
       <ShareSection miseEnAvant="wishlist" />
 

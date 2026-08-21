@@ -226,12 +226,6 @@ export function EntityDetailPage() {
                   d'analyse (voir PurchaseAnalysisPage, location.state - même
                   mécanisme que SearchPage -> AddDraftPage), ce qui rend le
                   libellé littéralement vrai plutôt qu'à moitié tenu. */}
-              {/* Envies : la décision « je le veux » se prend en regardant la
-                  fiche, c'est donc là que le bouton doit vivre. Il n'existait
-                  auparavant qu'un seul point d'ajout dans toute l'app, au bout
-                  d'une analyse d'achat (voir docs/USER_JOURNEYS.md, UX-2). */}
-              <WishlistToggle entityId={entity.id} />
-
               <div className="flex w-fit flex-col gap-1">
                 <button
                   type="button"
@@ -265,6 +259,20 @@ export function EntityDetailPage() {
               </div>
             )
           )}
+
+          {/* Envies : la décision « je le veux » se prend en regardant la
+              fiche, c'est donc là que le bouton doit vivre.
+
+              Hors de toute condition, à dessein. Il vivait dans la branche
+              « manga avec une édition affichée », si bien qu'il manquait
+              exactement là où on le cherche : sur la fiche d'une œuvre
+              justement SOUHAITÉE - qui n'a ni tome ni édition, et n'a donc
+              jamais d'édition affichée - et sur toute fiche non-manga. Une
+              œuvre en envies pouvait ainsi ouvrir sa fiche sans qu'aucun
+              élément n'indique qu'elle y était, ni ne permette de l'en
+              retirer. Vouloir une œuvre ne dépend ni de son type, ni de ce
+              qu'on en possède déjà. */}
+          <WishlistToggle entityId={entity.id} />
         </div>
       </div>
 
