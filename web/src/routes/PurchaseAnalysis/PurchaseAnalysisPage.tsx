@@ -331,6 +331,11 @@ export function PurchaseAnalysisPage() {
                 type="button"
                 onClick={queueItem}
                 disabled={!seriesTitle.trim() || !editionName.trim() || parsedVolumes.length === 0}
+                // aria-label court pour l'annonce, title long pour l'infobulle :
+                // le title est le DERNIER recours de l'algorithme accname (et
+                // n'existe pas au doigt), il ne doit pas rester seul à nommer
+                // un bouton en icône seule - voir Lot 29.
+                aria-label="Ajouter cette série au lot"
                 title="Ajouter cette série au lot - pratique pour enchaîner plusieurs séries avant de valider"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
               >

@@ -307,10 +307,24 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
           {values.map((value) => (
             <span
               key={value}
-              className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-sm text-textPrimary"
+              className="flex items-center gap-0.5 rounded-full bg-surface py-1 pr-1 pl-3 text-sm text-textPrimary"
             >
               {value}
-              <button type="button" onClick={() => onChange(values.filter((v) => v !== value))}>
+              {/* Le libellé de la puce est DANS le <span> parent, pas dans le
+                  bouton : sans aria-label, celui-ci s'annonçait "bouton" tout
+                  court. Invisible au Lot 24, qui n'a audité que /types/new -
+                  un formulaire vierge, donc sans aucune puce (voir Lot 29). */}
+              {/* 24x24 de zone cliquable pour une croix de 12px : en dessous,
+                  la cible échoue au critère WCAG 2.5.8 (24x24 minimum) et
+                  l'exception d'espacement ne s'applique pas, les puces étant
+                  collées les unes aux autres. La puce compense par un padding
+                  droit réduit, pour que rien ne grossisse visuellement. */}
+              <button
+                type="button"
+                aria-label={`Retirer ${value}`}
+                onClick={() => onChange(values.filter((v) => v !== value))}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full hover:bg-surface2"
+              >
                 <X size={12} className="text-textDim" />
               </button>
             </span>

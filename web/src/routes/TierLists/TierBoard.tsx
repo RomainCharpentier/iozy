@@ -106,6 +106,13 @@ export function TierBoard({
                   key={entry.entityId}
                   type="button"
                   onClick={() => onSelectEntry(entry)}
+                  // Le rang fait partie du nom : il se lit visuellement dans la
+                  // ligne (voir TierBadge à gauche), mais rien ne l'associe à la
+                  // tuile pour qui ne voit pas la mise en page. Sans aria-label,
+                  // une tuile à jaquette n'avait pour tout nom que son `title`,
+                  // dernier recours de l'algorithme accname (voir Lot 29) - la
+                  // tuile SANS jaquette, elle, portait déjà son titre en texte.
+                  aria-label={`${entry.title}, rang ${rank}`}
                   title={entry.title}
                   {...tileHandlers(entry)}
                   className={`aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-lg transition-transform hover:-translate-y-1 focus-visible:-translate-y-1 sm:w-12 ${
@@ -147,6 +154,7 @@ export function TierBoard({
                 key={entry.entityId}
                 type="button"
                 onClick={() => onSelectEntry(entry)}
+                aria-label={`${entry.title}, non classée`}
                 title={entry.title}
                 {...tileHandlers(entry)}
                 className={`aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-dashed ring-lineStrong transition-transform hover:-translate-y-1 focus-visible:-translate-y-1 sm:w-16 ${
