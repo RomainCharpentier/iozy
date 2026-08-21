@@ -1,33 +1,13 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { getEntity, searchEntities } from '../../api/entities'
+import { searchEntities } from '../../api/entities'
 import { createRelationship } from '../../api/relationships'
+import { RelationshipRow } from './RelationshipRow'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { CoverTile } from '../../components/CoverTile'
-import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { RELATIONSHIP_TYPE_PRESETS } from '../../types/entityTypes'
 import type { RelationshipDto } from '../../types/api'
-
-/** Résout et affiche une entité liée par son id - récupérée directement
- * (pas de cache local à consulter comme sur iOS : simplification qui évite
- * de masquer silencieusement une relation vers une entité non résolue). */
-function RelatedEntityTile({ entityId }: { entityId: string }) {
-  const navigate = useNavigate()
-  const query = useQuery({ queryKey: queryKeys.entities.detail(entityId), queryFn: () => getEntity(entityId) })
-  if (!query.data) return null
-  return (
-    <div className="w-28 shrink-0">
-      <CoverTile
-        title={query.data.title}
-        imageUrl={coverImageUrlFrom(query.data.attributes)}
-        onClick={() => navigate(`/entity/${entityId}`)}
-      />
-    </div>
-  )
-}
 
 interface RelationshipsSectionProps {
   entityId: string
@@ -63,12 +43,6 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
     },
   })
 
-  // Union des relations sortantes (cible) et entrantes (source) - toutes
-  // les entités liées à celle-ci, quel que soit le sens.
-  const relatedIds = Array.from(
-    new Set([...relationshipsFrom.map((r) => r.targetEntityId), ...relationshipsTo.map((r) => r.sourceEntityId)]),
-  )
-
   const suggestions = (suggestionsQuery.data ?? []).filter((e) => e.id !== entityId)
 
   return (
@@ -80,12 +54,28 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
         </button>
       </div>
 
-      {relatedIds.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {relatedIds.map((id) => (
-            <RelatedEntityTile key={id} entityId={id} />
+      {/* Les deux sens dans une seule liste, chacun explicitement étiqueté :
+          une rangée de jaquettes les fondait ensemble et taisait le type,
+          rendant une relation erronée à la fois invisible et incorrigible. */}
+      {(relationshipsFrom.length > 0 || relationshipsTo.length > 0) && (
+        <ul className="flex flex-col gap-2">
+          {relationshipsFrom.map((relationship) => (
+            <RelationshipRow
+              key={relationship.id}
+              relationship={relationship}
+              direction="outgoing"
+              entityId={entityId}
+            />
           ))}
-        </div>
+          {relationshipsTo.map((relationship) => (
+            <RelationshipRow
+              key={relationship.id}
+              relationship={relationship}
+              direction="incoming"
+              entityId={entityId}
+            />
+          ))}
+        </ul>
       )}
 
       {formOpen && (

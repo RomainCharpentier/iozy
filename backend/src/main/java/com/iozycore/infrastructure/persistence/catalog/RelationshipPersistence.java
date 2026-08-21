@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -66,6 +67,11 @@ class JpaRelationshipRepositoryAdapter implements RelationshipRepository {
                 relationship.id(), relationship.sourceEntityId(), relationship.targetEntityId(),
                 relationship.relationshipType()));
         return toDomain(saved);
+    }
+
+    @Override
+    public Optional<Relationship> findById(UUID id) {
+        return jpaRepository.findById(id).map(JpaRelationshipRepositoryAdapter::toDomain);
     }
 
     @Override

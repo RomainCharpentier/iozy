@@ -35,3 +35,9 @@ export const RELATIONSHIP_TYPE_PRESETS = [
   { value: 'PART_OF_SERIES', label: 'Fait partie de la série' },
   { value: 'RELATED_TO', label: 'Lié à' },
 ] as const
+
+/** Le libellé d'un type prédéfini, ou le type brut s'il a été saisi librement -
+ * on n'invente pas de traduction pour un texte de l'utilisateur. */
+export function relationshipTypeLabel(value: string): string {
+  return RELATIONSHIP_TYPE_PRESETS.find((preset) => preset.value === value)?.label ?? value
+}
