@@ -432,8 +432,9 @@ pendant qu'un menu est ouvert est ignoré ; Échap = Passer.
 ### 35. Analyser une annonce d'occasion
 **Point de départ** : Rechercher ▸ Évaluer une annonce, Profil ▸ Évaluer un
 achat, ou fiche ▸ « Évaluer une annonce de cette série » (série pré-remplie).
-**Étapes** : plateforme, prix demandé, frais de port, frais de protection, état
-(et « l'état porte sur un coffret »), URL/titre facultatifs ; puis une ou
+**Étapes** : coller le lien de l'annonce si on l'a (voir 35 bis, qui pré-remplit
+la suite), plateforme, prix demandé, frais de port, frais de protection, état
+(et « l'état porte sur un coffret »), titre et description ; puis une ou
 plusieurs séries avec leur édition et leurs tomes (« 1-11 ») ; « Ajouter cette
 série au lot » pour un lot multi-séries ; **ANALYSER LE LOT**.
 **Résultat** : verdict et score, coût réel, valeur neuve, décote, offre
@@ -447,6 +448,75 @@ inventé ; prix très au-dessus → conseil de passer son tour ; lot sans série
 **Backend** : `POST /purchase-analysis/analyze`
 **Statut** : `COMPLET` — arithmétique re-dérivée indépendamment et vérifiée
 juste (Lot 36).
+
+### 35 bis. Pré-remplir l'analyse depuis le lien de l'annonce
+*(2026-08-21 — voir `docs/LISTING_SOURCES.md` pour la source, la sécurité et les limites)*
+
+**Point de départ** : le champ « Lien de l'annonce », désormais en tête de
+l'écran d'analyse.
+**Parcours** :
+
+```
+lien collé
+→ détection de la source (« Détection : Vinted »)
+→ « Récupération de l'annonce… »
+→ titre, prix, description et photos pré-remplis
+→ l'utilisateur vérifie et corrige
+→ il déclare le contenu du lot
+→ analyse habituelle
+```
+
+**Ce que le lien faisait avant** : rien, sinon être conservé pour retrouver
+l'annonce. Il était même rangé derrière « Ajouter l'URL et le titre ». Il est
+maintenant lu.
+
+**Ce qui est récupéré chez Vinted** : titre, description et URL canonique
+(balises OpenGraph — un contrat publié, donc solide) ; prix et photos (données
+embarquées dans la page, donc lues au mieux). Rien sur le vendeur : pseudo,
+avatar et localisation n'entrent dans aucun calcul et ne sont pas collectés.
+
+**Trois règles** :
+- **rien n'est inventé** — un champ que la source ne donne pas reste vide, jamais
+  supposé ni rempli d'une valeur de démonstration ;
+- **rien n'est écrasé** — une valeur déjà saisie est conservée, et l'écart avec
+  l'annonce est affiché (« Tes saisies ont été conservées pour : le prix ») ;
+- **rien ne bloque** — la saisie manuelle est le parcours normal, pas un repli.
+
+**Branches**, toutes menant au formulaire manuel avec le lien conservé :
+- lien manifestement invalide → « Lien invalide », dit en local, **sans appel
+  serveur** ;
+- autre plateforme → « Cette plateforme n'est pas encore récupérée
+  automatiquement » ;
+- annonce supprimée → « Cette annonce n'est plus accessible » ;
+- source indisponible ou page illisible → « Impossible de récupérer
+  automatiquement cette annonce pour le moment » ;
+- **récupération partielle** → ce qui a été lu est pré-rempli, et l'écran dit
+  quoi (« Complété : titre · prix ») ainsi que ce qui reste à compléter. Ce
+  n'est pas une erreur.
+
+**Sécurité** : le serveur ne va chercher que ce qu'un provider déclaré reconnaît
+— liste blanche d'hôtes exacts, HTTPS seul, refus des adresses internes,
+redirections revalidées une par une, délai, taille et nombre de photos
+plafonnés. Il n'existe aucun endpoint de récupération d'URL arbitraire.
+
+**Snapshot** : l'analyse enregistrée fige le titre, le prix, les photos et
+l'URL au moment de la lecture. Si le vendeur modifie ou retire son annonce, elle
+ne bouge pas — et « Voir l'annonce sur Vinted » reste affiché sur l'analyse
+passée, même si le lien ne mène plus nulle part. Aucune synchronisation, aucun
+suivi de prix.
+
+**Limite connue** : les photos récupérées sont affichées, retirables une à une
+et conservées avec l'analyse, mais **elles ne sont analysées par rien** —
+IozyCore n'a pas de moteur de reconnaissance d'images (`Listing.photoUrls`
+existait en base sans aucun consommateur, et les deux usages de Gemini sont
+textuels). Le contenu du lot reste déclaré à la main.
+
+**Écrans** : `ListingUrlField`, `ListingPhotos`, `PurchaseAnalysisPage`
+**Backend** : `POST /listing-metadata/resolve`, `ListingSourceResolver`,
+`VintedListingProvider`, `ListingUrlGuard`
+**Statut** : `COMPLET` pour Vinted — vérifié en direct sur une annonce publique
+réelle (titre, prix, description et photos récupérés, analyse menée jusqu'au
+verdict, snapshot relu en base).
 
 ### 36. Renseigner une édition inconnue pendant l'analyse
 **Résultat** : quand l'édition n'est pas connue, un formulaire s'ouvre en ligne
