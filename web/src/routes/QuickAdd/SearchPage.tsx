@@ -8,6 +8,7 @@ import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { Chip } from '../../components/Chip'
+import { WishlistToggle } from '../../components/WishlistToggle'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle } from '../../lib/titleLanguage'
 import { BarcodeLookupField } from './BarcodeLookupField'
@@ -213,15 +214,20 @@ export function SearchPage() {
           <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Déjà dans ta collection</span>
           <div className="flex flex-col gap-1.5">
             {localMatches.map((entity) => (
-              <button
+              // Seuls les résultats LOCAUX portent un entityId : une entrée de
+              // wishlist en exige un (voir useWishlist). Un candidat externe
+              // absent de la collection ne peut donc pas être mis en envies -
+              // aucune API ne crée une fiche sans possession.
+              <div
                 key={entity.id}
-                type="button"
-                onClick={() => goToEntity(entity)}
-                className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 text-left transition-transform hover:-translate-y-0.5"
+                className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5"
               >
-                <span className="flex-1 truncate text-sm font-medium text-textPrimary">{entity.title}</span>
-                <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">Possédé</span>
-              </button>
+                <button type="button" onClick={() => goToEntity(entity)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                  <span className="flex-1 truncate text-sm font-medium text-textPrimary">{entity.title}</span>
+                  <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">Possédé</span>
+                </button>
+                <WishlistToggle entityId={entity.id} variant="inline" />
+              </div>
             ))}
           </div>
         </div>

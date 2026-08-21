@@ -1,5 +1,6 @@
 import { BookPlus, ExternalLink, ListPlus, SkipForward, X } from 'lucide-react'
 import { useModalA11y } from '../../lib/useModalA11y'
+import { WishlistToggle } from '../../components/WishlistToggle'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 
 /** Ce qu'un scan vient d'identifier, avant toute écriture. */
@@ -24,11 +25,10 @@ export interface ScanCandidate {
  * <p>
  * Les actions proposées sont exactement celles que l'app sait faire d'un
  * code-barres, jamais une de plus : ajouter avec l'état choisi, ouvrir l'ajout
- * détaillé pour préciser édition et tome, ouvrir la fiche quand l'œuvre est
- * déjà là, ou passer. "Ajouter à la liste d'envies" n'y figure pas
- * volontairement : une entrée de wishlist référence une œuvre EXISTANTE
- * (POST /wishlist exige un entityId, voir Lot 28), et un livre scanné qui
- * n'est pas encore dans la collection n'en a pas.
+ * détaillé pour préciser édition et tome, ouvrir la fiche ou l'ajouter aux
+ * envies quand l'œuvre est déjà là, ou passer. Les deux dernières n'apparaissent
+ * que dans ce cas : une entrée de wishlist référence une œuvre EXISTANTE
+ * (POST /wishlist exige un entityId), qu'un livre scanné inconnu n'a pas.
  * <p>
  * Même patron que TierPicker : bottom-sheet en mobile, boîte centrée en
  * desktop, Escape / piège de focus / focus rendu au déclencheur via
@@ -111,6 +111,15 @@ export function ScanActionMenu({
             <ListPlus size={16} className="shrink-0 text-textDim" />
             Choisir l'édition et les tomes
           </button>
+
+          {/* Envies : possible uniquement pour une œuvre DÉJÀ dans la
+              collection - une entrée de wishlist exige un entityId (voir
+              useWishlist), qu'un livre scanné inconnu n'a pas. */}
+          {existingEntity && (
+            <div className="px-1 py-1">
+              <WishlistToggle entityId={existingEntity.id} />
+            </div>
+          )}
 
           {existingEntity && (
             <button
