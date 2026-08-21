@@ -1,24 +1,23 @@
-package com.iozycore.api.collectionshare;
+package com.iozycore.api.share;
 
-import com.iozycore.api.dto.CollectionShareDtos.*;
+import com.iozycore.api.dto.ShareDtos.*;
 import com.iozycore.application.TierListService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.collectionshare.CollectionShareSettings;
-import com.iozycore.insights.CollectionProgress;
-import com.iozycore.insights.CollectionProgressService;
-import com.iozycore.domain.collectionshare.CollectionShareSettingsRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.share.ShareSettings;
+import com.iozycore.domain.share.ShareSettingsRepository;
 import com.iozycore.domain.tierlist.Rank;
 import com.iozycore.domain.tierlist.TierList;
 import com.iozycore.domain.tierlist.TierListItem;
 import com.iozycore.domain.tierlist.TierListRepository;
+import com.iozycore.domain.wishlist.WishlistEntry;
+import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.insights.CollectionProgress;
+import com.iozycore.insights.CollectionProgressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -32,77 +31,91 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Deuxième (et seul autre) contrôleur de l'app conçu pour être ouvert par
- * quelqu'un d'autre que le propriétaire - voir PublicWishlistController, dont
- * il reprend exactement le raisonnement de sécurité : le jeton fait office de
- * mot de passe, un jeton inconnu ou révoqué donne un 404 nu, jamais un détail
- * qui laisserait deviner qu'il a existé.
- * <p>
- * Contenu volontairement borné (choix utilisateur du 2026-08-20, voir
- * CollectionShareDtos pour la liste de ce qui est délibérément absent) :
- * titre, jaquette, édition(s) possédée(s) et progression X/Y. Aucun prix,
- * aucune valeur, aucun identifiant, aucun lien profond. Les Tier Lists ne
- * sortent que si l'interrupteur dédié est actif (voir
- * CollectionShareSettings.sharesTierLists) - un classement est un jugement
- * personnel, pas un inventaire.
- * <p>
- * Ne montre que ce qui est RÉELLEMENT possédé (Ownership active), jamais le
- * simple catalogue : une fiche créée puis revendue n'a plus à apparaître dans
- * ce que quelqu'un vient regarder.
+ * Le SEUL contrôleur de l'application conçu pour être ouvert par quelqu'un
+ * d'autre que le propriétaire. Il y en avait deux - un par section - et c'est
+ * précisément ce que cette unification a supprimé.
+ *
+ * <h2>Le jeton fait office de mot de passe</h2>
+ * Le posséder suffit, il n'y a rien d'autre à présenter : ce contrôleur ne
+ * demande aucune authentification, et c'est voulu - la personne qui reçoit le
+ * lien n'a pas de compte. Un jeton inconnu, révoqué, vide ou absent donne un
+ * <b>404 nu</b>, jamais un détail qui laisserait deviner qu'il a existé un jour.
+ *
+ * <h2>Le filtrage est ici, pas dans le client</h2>
+ * Les sections non partagées ne sont pas masquées à l'affichage : elles ne
+ * sont pas calculées et ne figurent pas dans la réponse. Un visiteur qui
+ * inspecte le réseau ne trouve pas de collection cachée dans un partage
+ * d'envies. Et rien ne sort jamais des œuvres au-delà du titre, de la jaquette,
+ * des éditions possédées et de la progression - voir {@code ShareDtos} pour la
+ * liste de ce qui est délibérément absent.
+ *
+ * <h2>Vue vivante, pas photographie</h2>
+ * Chaque appel relit la collection et les envies telles qu'elles sont
+ * maintenant : ajouter un tome le fait apparaître dans le lien déjà distribué,
+ * sans rien à régénérer. La collection ne montre que ce qui est RÉELLEMENT
+ * possédé (Ownership active) ; les envies montrent les œuvres souhaitées, <b>y
+ * compris celles qu'on ne possède pas</b> - c'est même le cas normal.
  */
 @RestController
-@RequestMapping("/api/public/collection")
-@Tag(name = "Public collection", description = "Lecture seule, non authentifiée, réservée au porteur du lien de partage")
-public class PublicCollectionController {
+@RequestMapping("/api/public/share")
+@Tag(name = "Espace partagé", description = "Lecture seule, non authentifiée, réservée au porteur du lien")
+public class PublicShareController {
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
-    private static final String VOLUME_NUMBER = "volumeNumber";
-    private static final String EDITION = "edition";
 
-    private final CollectionShareSettingsRepository shareSettingsRepository;
+    private final ShareSettingsRepository shareSettingsRepository;
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final OwnershipRepository ownershipRepository;
-    private final MangaEditionRepository mangaEditionRepository;
+    private final WishlistEntryRepository wishlistEntryRepository;
     private final TierListRepository tierListRepository;
     private final TierListService tierListService;
     private final CollectionProgressService progressService;
 
-    public PublicCollectionController(CollectionShareSettingsRepository shareSettingsRepository,
-                                       EntityRepository entityRepository,
-                                       EntityTypeRepository entityTypeRepository,
-                                       OwnershipRepository ownershipRepository,
-                                       MangaEditionRepository mangaEditionRepository,
-                                       TierListRepository tierListRepository,
-                                       TierListService tierListService,
-                                       CollectionProgressService progressService) {
+    public PublicShareController(ShareSettingsRepository shareSettingsRepository,
+                                  EntityRepository entityRepository,
+                                  EntityTypeRepository entityTypeRepository,
+                                  OwnershipRepository ownershipRepository,
+                                  WishlistEntryRepository wishlistEntryRepository,
+                                  TierListRepository tierListRepository,
+                                  TierListService tierListService,
+                                  CollectionProgressService progressService) {
         this.shareSettingsRepository = shareSettingsRepository;
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
-        this.mangaEditionRepository = mangaEditionRepository;
+        this.wishlistEntryRepository = wishlistEntryRepository;
         this.tierListRepository = tierListRepository;
         this.tierListService = tierListService;
         this.progressService = progressService;
     }
 
-    @Operation(summary = "Collection partagée en lecture seule via un jeton - 404 si le lien n'existe pas ou a été "
-            + "supprimé. tierLists absent (null) quand le propriétaire ne les partage pas.")
+    @Operation(summary = "Espace partagé en lecture seule via un jeton. 404 si le lien n'existe pas ou a été "
+            + "supprimé. Une section non partagée est ABSENTE de la réponse (null), pas vide.")
     @GetMapping("/{token}")
-    public SharedCollectionResponse shared(@PathVariable String token) {
-        CollectionShareSettings settings = shareSettingsRepository.findByToken(token)
+    public SharedSpaceResponse shared(@PathVariable String token) {
+        ShareSettings settings = shareSettingsRepository.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
 
+        return new SharedSpaceResponse(
+                settings.sharesCollection() ? sharedCollection() : null,
+                settings.sharesWishlist() ? sharedWishlist() : null,
+                settings.sharesTierLists() ? sharedTierLists() : null);
+    }
+
+    /** Ce qui est réellement possédé, groupé par univers - jamais le simple catalogue. */
+    private List<SharedUniverse> sharedCollection() {
         Map<UUID, CollectionProgress> progressByEntity = progressService.computeAll().stream()
                 .collect(Collectors.toMap(CollectionProgress::entityId, p -> p));
-        Map<UUID, List<Ownership>> activeByEntity = ownershipRepository.findAll().stream()
+        Set<UUID> owned = ownershipRepository.findAll().stream()
                 .filter(Ownership::isActive)
-                .collect(Collectors.groupingBy(Ownership::entityId));
+                .map(Ownership::entityId)
+                .collect(Collectors.toSet());
 
         List<SharedUniverse> universes = new ArrayList<>();
         for (EntityType type : entityTypeRepository.findAll()) {
             List<SharedCollectionItem> items = entityRepository.findAllByType(type.id()).stream()
-                    .filter(entity -> activeByEntity.containsKey(entity.id()))
+                    .filter(entity -> owned.contains(entity.id()))
                     .map(entity -> toItem(entity, progressByEntity.get(entity.id())))
                     .sorted(Comparator.comparing(SharedCollectionItem::title, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
@@ -112,18 +125,32 @@ public class PublicCollectionController {
                 universes.add(new SharedUniverse(type.label(), items));
             }
         }
-
-        return new SharedCollectionResponse(universes, settings.sharesTierLists() ? sharedTierLists() : null);
+        return universes;
     }
 
     /**
-     * Ne calcule plus rien : la progression vient de CollectionProgressService,
-     * source unique depuis le Lot 31. Cette méthode avait sa propre version des
-     * règles (éditions déduites des tomes POSSÉDÉS, total pris sur la première
-     * édition renseignée), qui donnait ici de meilleurs chiffres que Ma
-     * collection - deux réponses différentes à la même question, sur les mêmes
-     * données.
+     * Les envies. Aucune possession n'est requise ni consultée : une œuvre
+     * souhaitée n'a le plus souvent aucun exemplaire, c'est tout l'intérêt de
+     * la partager. Une œuvre à la fois possédée et souhaitée apparaît dans les
+     * deux sections - ce sont deux intentions différentes, pas un doublon.
      */
+    private List<SharedWishlistItem> sharedWishlist() {
+        return wishlistEntryRepository.findAll().stream()
+                .map(this::toWishlistItem)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .sorted(Comparator.comparing(SharedWishlistItem::title, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    /** Vide si l'œuvre référencée a disparu : une entrée orpheline ne doit pas casser la vue publique. */
+    private Optional<SharedWishlistItem> toWishlistItem(WishlistEntry entry) {
+        return entityRepository.findById(entry.entityId()).map(entity -> {
+            Object cover = entity.attributes().get(COVER_IMAGE_URL);
+            return new SharedWishlistItem(entity.title(), cover instanceof String url ? url : null, entry.addedAt());
+        });
+    }
+
     private SharedCollectionItem toItem(Entity entity, CollectionProgress progress) {
         List<String> editions = progress.editions().stream()
                 .filter(e -> !e.editionName().isEmpty() && e.ownedCount() > 0)
@@ -149,7 +176,7 @@ public class PublicCollectionController {
                     .filter(e -> !e.getValue().isEmpty())
                     .sorted(Map.Entry.comparingByKey())
                     .map(e -> new SharedTierRow(e.getKey().name(), e.getValue().stream()
-                            .map(PublicCollectionController::toRankedItem)
+                            .map(PublicShareController::toRankedItem)
                             .collect(Collectors.toList())))
                     .collect(Collectors.toList());
             // Un univers sans AUCUNE œuvre classée n'apparaît pas : "rien de

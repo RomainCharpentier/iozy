@@ -196,7 +196,7 @@ public class CollectionProgressService {
     }
 
     /** Les attributs sont un sac non typé : un même champ peut arriver en Integer d'un
-     * fournisseur et en String d'un autre (voir PublicCollectionController). */
+     * fournisseur et en String d'un autre (voir PublicShareController). */
     private static Integer volumeNumberOf(Variant variant) {
         Object value = variant.attributes().get(VOLUME_NUMBER);
         if (value instanceof Number number) {

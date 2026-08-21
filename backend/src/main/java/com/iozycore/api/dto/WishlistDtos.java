@@ -40,14 +40,4 @@ public final class WishlistDtos {
         public static final LookupResponse WISHLISTED = new LookupResponse("WISHLISTED");
         public static final LookupResponse OWNED = new LookupResponse("OWNED");
     }
-
-    /** "Liste d'envies partageable" - état courant du lien (token null = pas de lien actif). */
-    public record ShareLinkResponse(String token) {
-    }
-
-    /** Une entrée telle que vue via le lien public (com.iozycore.api.wishlist.PublicWishlistController) -
-     * volontairement minimale (titre + jaquette), jamais d'entityId ni de lien profond vers le reste
-     * de l'app : quelqu'un qui n'a que ce lien ne doit rien pouvoir atteindre d'autre. */
-    public record SharedWishlistEntryResponse(String title, String coverImageUrl, LocalDate addedAt) {
-    }
 }
