@@ -19,6 +19,7 @@ import { creatorFrom } from '../../lib/creatorInfo'
 import { groupVariantsByEdition, resolveEditionView } from '../../lib/editionGroups'
 import { EditionProgressSection } from './EditionProgressSection'
 import { TomesGridSection } from './TomesGridSection'
+import { TierSummarySection } from './TierSummarySection'
 import { MoreOptionsSection } from './MoreOptionsSection'
 import { EntityInfoSection } from './EntityInfoSection'
 
@@ -345,6 +346,27 @@ export function EntityDetailPage() {
             activeGroup={activeEditionGroup}
           />
         </div>
+      )}
+
+      {/* "Mes classements" pour toutes les autres fiches. La grille de tomes
+          la porte déjà pour une série manga dont une édition est affichée
+          (voir TomesGridSection, qui la place avant "À propos" comme le veut
+          la maquette) - ce rendu-ci prend le relais partout ailleurs, jamais
+          les deux à la fois.
+
+          Sans lui, classer une œuvre depuis sa fiche était réservé aux mangas
+          possédés : un jeu vidéo, un type personnalisé ou une série seulement
+          mise en envies n'avaient AUCUN accès au classement, alors que le
+          backend sait depuis toujours classer n'importe quelle Entity, sans
+          exiger la moindre possession. Un classement dit ce qu'on pense d'une
+          œuvre, pas ce qu'on possède. */}
+      {!(isManga && activeEditionGroup) && (
+        <TierSummarySection
+          entityId={entityId}
+          entityTitle={entity.title}
+          entityTypeLabel={entityType?.label ?? null}
+          coverImageUrl={coverImageUrlFrom(entity.attributes)}
+        />
       )}
 
       {/* "Informations" : les attributs de l'œuvre, affichés ET modifiables,
