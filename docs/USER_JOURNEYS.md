@@ -685,8 +685,9 @@ silencieusement ignorée (idempotence voulue).
 
 ### 50. Partager ses Tier Lists
 **Réalité** : il n'existe **aucun partage propre aux Tier Lists**. Elles sortent
-uniquement à travers le lien de partage de la collection, via un interrupteur
-dédié (voir 53).
+uniquement avec la section Collection de l'espace partagé, via une case dédiée
+et décochée par défaut (voir 53). Décocher la collection les retire du même
+geste : un classement accompagne l'inventaire, il ne se partage pas seul.
 **Statut** : `PARTIEL` — la capacité existe, mais pas là où on la chercherait.
 
 ---
@@ -744,12 +745,72 @@ séries déjà possédées.
 `DELETE /wishlist/{id}`, `CatalogEntityResolver`
 **Statut** : `COMPLET`
 
-### 53. Partager sa liste d'envies
-**Étapes** : Envies ▸ Générer un lien → copier → (régénérer) → supprimer.
-**Résultat** : URL publique `/public/wishlist/:token`, révocable, montrant
-**titre et jaquette seulement**.
-**Écrans** : `WishlistShareSection`, `SharedWishlistPage`
-**Statut** : `COMPLET`
+### 53. Partager son espace — collection, envies, ou les deux
+*(unifié le 2026-08-21 ; remplace les parcours « Partager ma collection » et
+« Partager ma liste d'envies », qui étaient deux systèmes séparés)*
+
+**Ce qu'il y avait avant** : deux partages parallèles, chacun avec sa table,
+son jeton, son contrôleur public, sa page et sa section de réglages. Entrer par
+« Ma collection » ou par « Mes envies » donnait **deux URL différentes pour le
+même espace personnel**, et la personne qui les recevait devait jongler entre
+deux pages. Or collection et envies sont deux **vues** du même espace, pas deux
+espaces.
+
+**Points de départ**, tous les trois pilotant le **même** partage et le **même**
+jeton :
+- Profil ▸ Partage (sa maison principale) ;
+- Mes envies ▸ Partage (envies mises en avant dans la liste des cases) ;
+- Ma collection ▸ « … » ▸ Partager ma collection (mène à Profil, sur le partage).
+
+**Parcours** :
+
+```
+Générer un lien
+→ cocher Ma collection et/ou Mes envies
+→ (Mes Tier Lists, sous la collection)
+→ Copier
+→ l'envoyer
+→ ouverture sans compte
+```
+
+**Résultat** : une seule URL, `/public/share/:token`. La page publique affiche
+des onglets **Collection / Envies** uniquement si les deux sections sont
+partagées — un onglet inaccessible dirait déjà quelque chose du propriétaire.
+
+**Au moins une section visible** : décocher la dernière est refusé côté domaine
+ET désactivé dans le formulaire, avec la raison affichée. Un lien qui n'expose
+rien n'est pas un partage discret, c'est une URL vers une page vide.
+
+**Ce qui sort** : titres, jaquettes, éditions réellement possédées, progression
+X/Y, et pour les envies la date d'ajout. **Ce qui ne sort jamais** : prix payé,
+valeur estimée, date d'acquisition, note ou commentaire personnel, tag,
+relation, analyse d'achat, prix relevé, identifiant interne, lien profond. Le
+filtrage est **backend** : une section non partagée n'est pas masquée à
+l'affichage, elle n'est pas calculée et ne figure pas dans la réponse.
+
+**Vue vivante, pas photographie** : ajouter un tome ou une envie apparaît dans
+le lien déjà distribué, sans rien à régénérer.
+
+**Révocation** : « Désactiver le partage » efface le jeton — l'ancienne URL
+répond aussitôt un 404 neutre, jamais un détail qui laisserait deviner qu'elle a
+existé. « Régénérer » crée un nouveau jeton et invalide l'ancien du même geste,
+avec l'avertissement affiché.
+
+**Lecture stricte** : la page publique vit hors de l'AppShell privé — pas
+d'onglets de navigation, pas de cœur, pas d'avatar, **aucune carte cliquable**.
+Il n'existe pas de fiche publique, et envoyer un visiteur anonyme vers une fiche
+privée l'exposerait aux prix et aux notes.
+
+**Identité** : aucune. Le modèle n'a ni pseudo ni avatar, et cette passe n'en a
+pas inventé — la page ne montre que le nom de l'application.
+
+**Branches** : jeton inconnu, vide ou révoqué → 404 neutre ; section vide →
+« Cette collection est vide » / « Rien dans cette liste ».
+**Écrans** : `ShareSection` (unique, monté depuis Profil et Envies),
+`SharedSpacePage`
+**Backend** : `GET/POST/PATCH/DELETE /share`, `GET /public/share/{token}`
+**Statut** : `COMPLET` — vérifié en direct, y compris dans un onglet neuf
+n'appelant que l'endpoint public.
 
 ---
 
@@ -764,12 +825,10 @@ Paramètres.
 **Statut** : `COMPLET`
 
 ### 55. Partager sa collection
-**Étapes** : Générer un lien → copier → **interrupteur « inclure mes Tier
-Lists »** → supprimer le lien.
-**Résultat** : `/public/collection/:token` — titres, jaquettes, éditions
-possédées et progression ; **jamais de prix, de valeur ni d'identifiant**.
-**Écrans** : `CollectionShareSection`, `SharedCollectionPage`
-**Statut** : `COMPLET`
+**Fusionné dans le parcours 53** le 2026-08-21 : la collection est devenue une
+**section** de l'espace partagé, plus un partage à part avec son propre lien.
+Profil ▸ Partage reste le point d'entrée principal ; « Ma collection ▸ … ▸
+Partager ma collection » y mène, sans créer de second jeton.
 
 ### 56. Générer le bilan annuel
 **Étapes** : Profil ▸ Bilan annuel → choisir l'année → « Télécharger l'image ».
@@ -857,7 +916,7 @@ d'accès**, alors que les écrans existaient et fonctionnaient.
 
 `MobileHeader` (nom de l'app + cœur + avatar) rétablit ces deux accès, et avec
 eux Paramètres, Administration, l'export, le bilan annuel, les éditions de
-référence et les deux liens de partage. La navigation globale n'a pas bougé :
+référence et le partage d'espace. La navigation globale n'a pas bougé :
 la barre du pouce garde **strictement** ses trois destinations plus le
 raccourci Scan — Envies et Profil ne sont pas des destinations pairs.
 
@@ -904,7 +963,7 @@ aucun débordement horizontal. Desktop inchangé.
 | Ajouter à une Tier List | Oui — « Retirer de cette Tier List » |
 | Ajouter aux envies | Oui — retirer depuis Envies |
 | Envie d'amélioration | Oui — « Annuler » / « Retirer » |
-| Lien de partage | Oui — supprimer le lien |
+| Lien de partage | Oui — désactiver le partage, ou régénérer (l'ancien jeton cesse aussitôt) |
 | Marquer vendu / perdu | **Oui** — « Annuler » dans le message qui suit l'action (`POST /ownerships/{id}/restore`, ajouté le 2026-08-21) ; réversible aussi ensuite, l'exemplaire restant visible sous « Exemplaires passés » |
 | Expérience enregistrée | **Oui** — note et commentaire modifiables, suppression avec « Annuler » (2026-08-21) |
 | Relation créée | **Oui** — type modifiable, suppression (2026-08-21) ; ne touche à aucune des deux œuvres |
