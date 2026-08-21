@@ -970,7 +970,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 ---
 
-## 24. Classement des fonctionnalités historiques
+## 23. Classement des fonctionnalités historiques
 
 Établi le 2026-08-21 en croisant le code, la navigation réelle, les maquettes
 V1.2 et l'usage constaté sur les données. **Aucune suppression arbitraire** :
@@ -991,7 +991,7 @@ actuel sans devenir des destinations de navigation.
 
 ---
 
-## 23. Où retrouver l'implémentation
+## 24. Où retrouver l'implémentation
 
 ```text
 Navigation      web/src/App.tsx
