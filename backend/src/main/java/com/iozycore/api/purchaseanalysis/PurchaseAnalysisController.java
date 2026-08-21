@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +104,30 @@ public class PurchaseAnalysisController {
     public PurchaseAnalysis historyById(@PathVariable UUID id) {
         return service.findAnalysisById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analyse introuvable : " + id));
+    }
+
+    @Operation(summary = "Supprimer une analyse de l'historique - idempotent. Ne supprime ni les prix relevés "
+            + "ni les éditions renseignés au fil de cette analyse : ce sont des données de référence.")
+    @DeleteMapping("/history/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAnalysis(@PathVariable UUID id) {
+        service.deleteAnalysis(id);
+    }
+
+    @Operation(summary = "Les prix relevés d'une édition, du plus récent au plus ancien")
+    @GetMapping("/market-observations")
+    public List<MarketPriceObservation> marketObservations(@RequestParam UUID mangaEditionId) {
+        return service.observationsOfEdition(mangaEditionId).stream()
+                .sorted(Comparator.comparing(MarketPriceObservation::observedAt).reversed())
+                .toList();
+    }
+
+    @Operation(summary = "Supprimer un prix relevé par erreur - idempotent. Aucune modification n'est offerte : "
+            + "un relevé est un fait constaté à une date, on retire le faux et on enregistre le juste.")
+    @DeleteMapping("/market-observations/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMarketObservation(@PathVariable UUID id) {
+        service.deleteMarketObservation(id);
     }
 
     @Operation(summary = "Look up a known manga edition by series + edition name - 404 triggers the client's "

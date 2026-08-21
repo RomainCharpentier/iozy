@@ -5,6 +5,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react'
 import { deleteEdition, listAllEditions } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { EditionObservations } from './EditionObservations'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 
 /**
@@ -110,6 +111,11 @@ export function EditionsPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Les prix relevés de cette édition : c'est leur contexte
+                    naturel, et le seul endroit d'où ils étaient jusqu'ici
+                    invisibles après enregistrement. */}
+                <EditionObservations editionId={edition.id} editionName={edition.editionName} />
 
                 {(edition.outOfPrint || edition.betterEditionAnnounced) && (
                   <p className="flex items-center gap-1.5 text-xs text-warning">

@@ -103,3 +103,33 @@ export function updateEdition(id: string, body: UpdateMangaEditionRequest): Prom
 export function recordMarketObservation(body: RecordMarketObservationRequest): Promise<MarketPriceObservationDto> {
   return post<MarketPriceObservationDto>('/purchase-analysis/market-observations', body)
 }
+
+/**
+ * Retire une analyse de l'historique. Aucune modification n'est offerte en
+ * regard : une analyse est le RÉSULTAT figé d'un calcul sur une annonce à un
+ * instant donné - en corriger un chiffre produirait un verdict qui n'a jamais
+ * été calculé. On la supprime, et on relance une analyse si besoin.
+ *
+ * Ne supprime ni les prix relevés ni les éditions renseignés au fil de cette
+ * analyse : ce sont des données de référence qui servent toutes les analyses
+ * suivantes. Idempotent.
+ */
+export function deleteAnalysis(id: string): Promise<void> {
+  return del<void>(`/purchase-analysis/history/${id}`)
+}
+
+/** Les prix relevés d'une édition, du plus récent au plus ancien. */
+export function listMarketObservations(mangaEditionId: string): Promise<MarketPriceObservationDto[]> {
+  return get<MarketPriceObservationDto[]>(`/purchase-analysis/market-observations${buildQuery({ mangaEditionId })}`)
+}
+
+/**
+ * Retire un prix relevé par erreur. Aucune modification n'est offerte : un
+ * relevé est un fait constaté à une date, pas un champ qu'on ajuste - on
+ * retire le faux et on enregistre le juste. Les analyses déjà enregistrées ne
+ * bougent pas (chacune fige ses chiffres au moment du calcul) ; ce sont les
+ * suivantes qui cesseront de compter ce relevé. Idempotent.
+ */
+export function deleteMarketObservation(id: string): Promise<void> {
+  return del<void>(`/purchase-analysis/market-observations/${id}`)
+}

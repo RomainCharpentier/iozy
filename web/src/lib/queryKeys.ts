@@ -51,6 +51,9 @@ export const queryKeys = {
     completeness: (seriesTitle: string, editionName: string, volumes: number[]) =>
       ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     nearCompleteSuggestions: ['purchaseAnalysis', 'nearCompleteSuggestions'] as const,
+    /** Les prix relevés d'une édition (écran Éditions de référence). */
+    marketObservations: (mangaEditionId: string) =>
+      ['purchaseAnalysis', 'marketObservations', mangaEditionId] as const,
   },
   editionUpgradeWishes: {
     byEntity: (entityId: string) => ['editionUpgradeWishes', 'entity', entityId] as const,

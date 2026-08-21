@@ -30,6 +30,11 @@ public class JpaPurchaseAnalysisRepositoryAdapter implements PurchaseAnalysisRep
     }
 
     @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public List<PurchaseAnalysis> findAll() {
         return jpaRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(PurchaseAnalysisMapper::toDomain)
