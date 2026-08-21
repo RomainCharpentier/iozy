@@ -215,6 +215,17 @@ public class PurchaseAnalysisController {
     @PostMapping("/editions")
     @ResponseStatus(HttpStatus.CREATED)
     public MangaEdition createEdition(@RequestBody CreateMangaEditionRequest request) {
+        // Une contrainte d'unicité (series_title, edition_name) protège cette
+        // table ; laissée seule, elle remontait en 500 avec la requête SQL et le
+        // nom de la contrainte - il suffisait d'un double clic sur "Enregistrer"
+        // (voir Lot 36). Même correctif qu'aux Lots 26 et 28 : refuser avant
+        // d'écrire, avec une phrase qui se lit.
+        service.findEditionBySeriesAndName(request.seriesTitle(), request.editionName())
+                .ifPresent(existing -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Une édition \"" + request.editionName() + "\" existe déjà pour la série \""
+                                    + request.seriesTitle() + "\"");
+                });
         return service.createEdition(request.entityId(), request.seriesTitle(), request.editionName(),
                 parseEnum(EditionTier.class, request.editionTier(), "editionTier"), request.publisher(),
                 request.totalVolumes(), request.retailPriceNewPerVolume(), request.outOfPrint(),

@@ -6,6 +6,7 @@ import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +48,26 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Filet général : une contrainte de base violée (unicité, clé étrangère)
+     * sortait en 500 avec la requête SQL complète et le nom de la contrainte.
+     * Trois cas ont déjà été corrigés un par un en amont - suppression d'édition
+     * (Lot 26), wishlist et relations (Lot 28), création d'édition en double
+     * (Lot 36) - mais chacun ne fermait que sa porte. Ici on ferme le couloir :
+     * un conflit de données est un 409, jamais une trace SQL à l'écran.
+     * <p>
+     * Le message reste générique volontairement : celui de Postgres nomme des
+     * colonnes et des contraintes, qui ne veulent rien dire pour qui lit
+     * l'écran. Le détail part en WARN dans les logs, car cette exception peut
+     * aussi trahir un vrai défaut serveur.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Requête refusée en 409 (contrainte de base violée)", ex);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Cette donnée entre en conflit avec une donnée existante."));
     }
 
     /**
