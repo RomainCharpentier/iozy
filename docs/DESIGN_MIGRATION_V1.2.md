@@ -730,6 +730,160 @@ silencieusement" rendant impossible leur suppression par l'API une fois une
 expérience et un prêt créés. Compteurs vérifiés après coup : 3 types, 6
 œuvres, 0 prêt, 0 observation - l'état d'avant.
 
+### Lot 27 — surfaces mortes et impasses fonctionnelles
+
+Les Lots 24-26 ont balayé le rendu, les lectures puis les écritures, toujours
+depuis l'interface. Ce lot part de l'autre bout : les **fonctions client sans
+appelant**. Sur les 13 trouvées, la moitié ne sont pas du code mort mais des
+fonctionnalités dont le point d'entrée a disparu au fil de la refonte V1.2 -
+un endpoint livré, testé, documenté, et plus rien pour l'appeler.
+
+**Une envie d'amélioration ne pouvait plus être créée.** `/edition-upgrades`
+liste et supprime, Profil y renvoie, mais `createEditionUpgradeWish` n'avait
+aucun appelant : le point d'entrée vivait sur `SeriesCompletenessSection`,
+supprimée au Lot 5. L'écran ne pouvait donc plus qu'annoncer "Aucune envie
+d'amélioration pour le moment", définitivement. Nouveau
+`EditionUpgradeWishToggle.tsx`, posé dans `EditionProgressSection` juste après
+les avertissements "Cette édition est épuisée" / "Nouvelle édition annoncée" -
+c'est précisément là que l'envie se forme, et elle porte sur l'édition active,
+dont le nom est le premier champ de la requête. Absent tant qu'aucune édition
+n'est nommée : vouloir remplacer "l'édition non précisée" n'a pas de sens.
+
+**Un exemplaire vendu ou perdu n'apparaissait nulle part.** Le défaut repéré en
+lisant `OwnershipDetails` était que le statut n'était jamais rendu ; en
+vérifiant en direct, c'était pire - `VolumeInteractionPanel` filtrait
+`status === 'OWNED'` avant même de passer la liste. "Marquer vendu" faisait
+donc **disparaître la copie sans laisser la moindre trace**, indiscernable
+d'une suppression, alors que l'app oppose explicitement les deux (voir
+`DeleteEntitySection` : "contrairement à Marquer vendu/perdu, cette action est
+irréversible") et que `OwnershipDetails` documentait l'inverse de ce qu'il
+faisait ("un exemplaire vendu/perdu reste affiché ici, pas filtré"). Le filtre
+saute, chaque ligne porte sa pastille de statut, et un tome dont il ne reste
+que des exemplaires passés affiche le formulaire d'ajout (on peut le racheter)
+**puis** son historique sous "Exemplaires passés".
+
+Deux autres actions manquaient sur la même ligne : `POST /ownerships/{id}/lose`
+("Marquer perdu", livré depuis le début, jamais exposé - on pouvait vendre,
+jamais perdre) et `PATCH /ownerships/{id}/note`. Au passage, l'entrée de menu
+"Modifier ma copie" n'ouvrait en réalité que la saisie du prix : scindée en
+"Modifier le prix payé" et "Ajouter/Modifier ma note", chacune faisant ce que
+son libellé annonce. `updateNote` accepte désormais `null` (et l'envoie quand
+le champ est vidé) plutôt qu'une chaîne vide, que le domaine stockerait telle
+quelle - "pas de note" doit rester un seul état.
+
+**Une œuvre ajoutée à une Tier List ne pouvait plus en sortir.**
+`removeTierListItem` (`DELETE /tier-lists/{id}/items/{entityId}`) n'avait aucun
+appelant ; "Retirer le classement" appelle `setTierListItemRank(null)`, qui
+déclasse sans retirer. Un ajout par erreur depuis `AddTierListItemsPanel`
+n'avait d'autre issue que de supprimer la liste entière. "Retirer de cette
+Tier List" ajouté au `TierPicker`, passé **uniquement** par le board
+personnalisé : sur le classement général, l'appartenance est implicite (toute
+œuvre possédée est candidate), il n'y a rien dont on puisse la retirer. Même
+raisonnement pour `updateTierList` : une faute de frappe dans le nom d'une
+liste était définitive, "Renommer" rejoint le menu "...".
+
+**Aucun garde-fou anti-doublon sur les types personnalisés.** `SearchPage`
+branchait la recherche LOCALE sur le même drapeau que la recherche externe
+(`hasMetadataProvider`), donc le bloc "Déjà dans ta collection" - ajouté en
+`13405a9` précisément pour éviter les doublons - ne s'affichait jamais sur un
+type créé à la main, c'est-à-dire le seul cas où aucune déduplication externe
+ne rattrape derrière. La recherche locale est gratuite et ne dépend d'aucun
+fournisseur : drapeau séparé. Le bouton "Ajouter « X »" passe en outre **après**
+ce bloc - le placer avant revenait à proposer de créer le doublon avant
+d'avoir montré qu'il existe.
+
+**Relever un prix de marché n'était possible par aucun geste.**
+`SeriesBreakdownItem` affiche "Prix observé sur N annonces", mais rien dans
+l'app ne savait écrire dans ce journal : la branche `OBSERVED_MARKET` du moteur
+était inatteignable en usage normal. Un bouton "Relever ce prix comme
+observation de marché" apparaît maintenant sur chaque lot analysé dont
+l'édition est reconnue. Deux précautions : rien n'est relevé automatiquement
+(un prix d'annonce ne devient une donnée de marché que sur décision explicite,
+même principe que le garde-fou sur les données IA), et le bouton **n'apparaît
+pas si les tomes du lot ne sont pas contigus** - `MarketPriceCalculator` divise
+le prix relevé par le nombre de tomes de l'intervalle, donc un lot "1, 2, 5"
+enregistré en 1-5 donnerait un prix/tome faux. `observedAt` vient de la date de
+l'analyse, pas du jour : depuis l'historique, le prix relevé est celui du jour
+où l'annonce a été vue.
+
+**Code réellement mort, supprimé** : `listEntitiesByType` (remplacé par
+`searchEntities`), `listLoansForOwnership` (remplacé par `listActiveLoans`),
+`searchEditionsForSeries`, et les clés de requête devenues sans objet.
+`getPreferences`/`updatePreferences` supprimés eux aussi, mais c'est une
+**décision, pas un nettoyage** : les `CollectorPreferences` pilotent le moteur
+de négociation et ne sont éditables nulle part, donc l'analyse d'achat tourne
+depuis toujours sur les valeurs par défaut de la spécification. Les endpoints
+restent (Swagger, iOS) ; y donner accès est une fonctionnalité à part entière,
+pas un correctif, et n'est pas faite ici.
+
+**Un 500 devenu 400.** Un identifiant absent du corps d'une requête arrive
+jusqu'à Spring Data, qui refuse un `findById(null)` : l'`IllegalArgumentException`
+levée est enveloppée dans une `InvalidDataAccessApiUsageException`, que le
+handler d'`IllegalArgumentException` d'`ApiExceptionHandler` ne voit pas. `POST
+/api/entities/quick-add` sans `entityTypeId` répondait donc 500 avec la trace,
+pour un corps simplement incomplet. Handler dédié, message générique côté
+client (la phrase de Spring est en anglais et parle de l'API JPA, pas de la
+requête HTTP) et détail en WARN dans les logs, car cette exception peut aussi
+trahir un vrai défaut serveur qu'un 400 muet rendrait invisible. Le balayage
+complet "corps de requête invalide" sur les 46 écritures reste à faire - aucune
+validation déclarative n'existe dans le backend
+(`spring-boot-starter-validation` n'est pas au `pom.xml`, pas un seul `@Valid`).
+
+**L'application n'a aucune authentification, et le compose Synology la publie
+sur Internet.** Le README assume l'absence d'authentification comme "cohérente
+avec le choix mono-utilisateur, à ajouter si l'app doit un jour être exposée
+au-delà du réseau local" - or `docker-compose.synology.yml` fait exactement
+cela (Traefik + Let's Encrypt sur deux sous-domaines). Sans garde-fou, qui
+connaît l'hôte peut lire ET écrire toute la collection (`GET /api/export/json`,
+`DELETE /api/entities/{id}`), Swagger UI comprise ; CORS n'y change rien,
+`allowedOrigins` n'étant vérifié que par un navigateur, jamais par `curl`. Cela
+vidait aussi de son sens tout le raisonnement "capability URL" des deux
+contrôleurs publics.
+
+Authentification HTTP Basic portée par **le proxy, pas par l'application** :
+une SPA ne peut pas garder un secret (tout jeton embarqué dans le bundle est
+lisible par qui charge la page), alors que Basic est géré nativement par le
+navigateur et se retransmet seul aux appels `/api` same-origin proxifiés par
+nginx. Deux routeurs par service, le public prioritaire : `/public/*` (les deux
+écrans partagés), `/assets/*` (le bundle, sans lequel ces écrans sont blancs,
+et qui ne contient aucune donnée) et `/api/public/*` restent hors
+authentification - c'est toute leur raison d'être. `BASIC_AUTH_USERS` documenté
+dans `.env.example`.
+
+**Le fichier était de toute façon inchargeable.** En le validant pour la
+première fois (`docker compose -f docker-compose.synology.yml config`), erreur
+YAML pré-existante : `WEB_ALLOWED_ORIGINS: ${...:?erreur - ... (ex: https://...)}`
+contient un `": "` dans un scalaire nu, que YAML lit comme une imbrication. Tout
+le fichier était invalide, donc le déploiement Synology tel que livré n'aurait
+pas démarré. Guillemets ajoutés, fichier validé.
+
+**Vérification** : les quatre correctifs d'interface exercés en direct sur des
+données jetables (type, série, tome, liste, envie), avec retour à l'état exact
+d'avant - 3 types, 6 œuvres, 9 possessions, 6 éditions, 0 observation, 0 liste,
+0 envie. "Marquer perdu" testé pour de vrai (irréversible : aucun endpoint ne
+défait un statut) sur un exemplaire jetable, jamais sur les données réelles.
+L'endpoint d'observation de marché exercé avec le payload exact du bouton :
+201, puis 20 € sur les tomes 1-3 correctement relus en 6.67 €/tome et
+`costToCompleteBasis` basculé en `OBSERVED_MARKET` - la ligne retirée ensuite
+en SQL direct, aucun endpoint ne sachant supprimer une observation. Le **rendu**
+du bouton n'a pas été vu en direct : aucune analyse de l'historique n'a
+d'édition reconnue, et en produire une écrirait un historique indélébile en
+consommant du quota Gemini. Contrastes des nouveaux éléments mesurés dans les
+deux thèmes (7.4 à 16.3:1). Reste vert : 368 tests backend, `tsc -b`, `oxlint`,
+build de production, et sur 17 routes aucune erreur console, aucune requête en
+échec, aucun débordement horizontal.
+
+**Sept répertoires vides** supprimés dans `backend/src` (`api/{dto,error}`,
+`domain/{shared,catalog,...}`...), restes d'une expansion d'accolades jamais
+faite par un shell Windows. Non suivis par git, donc invisibles en revue.
+
+**Trouvé, non corrigé** : les tuiles des boards Tier List sont des `<button>`
+dont le seul nom accessible vient d'un `title` (leur contenu est une
+`<img alt="">`) - le dernier recours de l'algorithme accname, là où les tuiles
+de Ma collection, elles, portent leur titre en texte. Pas un échec franc, mais
+la forme la plus fragile ; à revoir avec le reste des surfaces purement
+visuelles plutôt qu'isolément.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

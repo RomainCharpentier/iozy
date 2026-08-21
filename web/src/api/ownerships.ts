@@ -27,7 +27,10 @@ export function markLost(id: string): Promise<OwnershipResponse> {
   return post<OwnershipResponse>(`/ownerships/${id}/lose`)
 }
 
-export function updateNote(id: string, note: string): Promise<OwnershipResponse> {
+/** note null efface la note (voir Ownership.updateNote, qui stocke la valeur
+ * telle quelle : passer "" y laisserait une chaîne vide indiscernable d'une
+ * note réelle côté lecture). */
+export function updateNote(id: string, note: string | null): Promise<OwnershipResponse> {
   return patch<OwnershipResponse>(`/ownerships/${id}/note`, { note })
 }
 

@@ -5,6 +5,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
 import { Chip } from '../../components/Chip'
 import { EditionCorrectionSection } from './EditionCorrectionSection'
+import { EditionUpgradeWishToggle } from './EditionUpgradeWishToggle'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 
 /**
@@ -139,6 +140,13 @@ export function EditionProgressSection({
           <AlertTriangle size={12} className="shrink-0" />
           Nouvelle édition annoncée{editionInfo.betterEditionNote ? ` · ${editionInfo.betterEditionNote}` : ''}
         </p>
+      )}
+
+      {/* Juste après ces deux avertissements, qui sont précisément ce qui
+          déclenche l'envie ("épuisée", "nouvelle édition annoncée") - et
+          seulement quand l'édition active porte un nom, voir le composant. */}
+      {activeGroup.edition !== '' && (
+        <EditionUpgradeWishToggle entityId={entityId} editionName={activeGroup.edition} />
       )}
     </div>
   )

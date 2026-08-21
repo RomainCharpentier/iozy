@@ -144,9 +144,17 @@ export function VolumeInteractionPanel({
   if (!activeTile) return null
 
   const coverUrl = activeTile.variant ? coverImageUrlFrom(activeTile.variant.attributes) : null
+  // Sans filtre de statut, contrairement à avant : un exemplaire vendu ou perdu
+  // n'apparaissait NULLE PART dans l'interface, donc "Marquer vendu" faisait
+  // disparaître la copie sans laisser la moindre trace - impossible à
+  // distinguer d'une suppression, alors que l'app tient précisément à opposer
+  // les deux (voir DeleteEntitySection : "contrairement à Marquer vendu/perdu,
+  // cette action est irréversible"). Chaque ligne porte son statut, voir
+  // OwnershipDetails.
   const variantOwnerships = activeTile.variant
-    ? ownerships.filter((o) => o.variantId === activeTile.variant!.id && o.status === 'OWNED')
+    ? ownerships.filter((o) => o.variantId === activeTile.variant!.id)
     : []
+  const pastOwnerships = variantOwnerships.filter((o) => o.status !== 'OWNED')
 
   return (
     <>
@@ -220,13 +228,21 @@ export function VolumeInteractionPanel({
           {activeTile.status === 'owned' ? (
             <OwnershipDetails ownerships={variantOwnerships} entityId={entityId} />
           ) : (
-            <AddOwnershipForm
-              entityId={entityId}
-              entityTypeId={entityTypeId}
-              entityTitle={entityTitle}
-              volumeNumber={activeTile.volumeNumber}
-              edition={editionName}
-            />
+            <>
+              <AddOwnershipForm
+                entityId={entityId}
+                entityTypeId={entityTypeId}
+                entityTitle={entityTitle}
+                volumeNumber={activeTile.volumeNumber}
+                edition={editionName}
+              />
+              {/* Le tome n'est plus possédé, mais il l'a été : l'ajout reste
+                  l'action principale (on peut le racheter), l'historique se
+                  lit en dessous plutôt que d'être escamoté. */}
+              {pastOwnerships.length > 0 && (
+                <OwnershipDetails ownerships={pastOwnerships} entityId={entityId} heading="Exemplaires passés" />
+              )}
+            </>
           )}
         </div>
       </div>

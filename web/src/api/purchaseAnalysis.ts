@@ -3,7 +3,6 @@ import { buildQuery } from './client'
 import type {
   AnalyzeListingRequest,
   CollectionStatusDto,
-  CollectorPreferencesDto,
   CreateMangaEditionRequest,
   EditionSuggestionDto,
   MangaEditionDto,
@@ -39,13 +38,6 @@ export function getAnalysisById(id: string): Promise<PurchaseAnalysisDto> {
  * reste inchangé. */
 export function findEdition(seriesTitle: string, editionName: string, entityId?: string): Promise<MangaEditionDto> {
   return get<MangaEditionDto>(`/purchase-analysis/editions${buildQuery({ entityId, seriesTitle, editionName })}`)
-}
-
-/** `entityId` (voir findEdition) : fourni, ne renvoie QUE les éditions réellement
- * rattachées à cette Série (jamais de repli texte) plutôt que tout ce qui
- * correspond au titre. */
-export function searchEditionsForSeries(seriesTitle: string, entityId?: string): Promise<MangaEditionDto[]> {
-  return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ entityId, seriesTitle })}`)
 }
 
 /** Phase 2 (assistance IA) - undefined (204) si aucun fournisseur IA n'est
@@ -110,12 +102,4 @@ export function updateEdition(id: string, body: UpdateMangaEditionRequest): Prom
 
 export function recordMarketObservation(body: RecordMarketObservationRequest): Promise<MarketPriceObservationDto> {
   return post<MarketPriceObservationDto>('/purchase-analysis/market-observations', body)
-}
-
-export function getPreferences(): Promise<CollectorPreferencesDto> {
-  return get<CollectorPreferencesDto>('/purchase-analysis/preferences')
-}
-
-export function updatePreferences(body: CollectorPreferencesDto): Promise<CollectorPreferencesDto> {
-  return patch<CollectorPreferencesDto>('/purchase-analysis/preferences', body)
 }

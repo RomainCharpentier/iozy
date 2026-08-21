@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MoreHorizontal, Plus, Trash2, Zap } from 'lucide-react'
-import { deleteTierList, getTierListDetail, setTierListItemRank } from '../../api/tierLists'
+import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2, Zap } from 'lucide-react'
+import {
+  deleteTierList,
+  getTierListDetail,
+  removeTierListItem,
+  setTierListItemRank,
+  updateTierList,
+} from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TierBoard } from './TierBoard'
@@ -22,6 +28,8 @@ export function CustomTierBoardPage() {
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [nameInput, setNameInput] = useState('')
   const [addingItems, setAddingItems] = useState(false)
   const quickRank = useQuickRank()
   // Le "..." menu est un `role="dialog"` au même titre que les autres
@@ -40,6 +48,38 @@ export function CustomTierBoardPage() {
       // fermeture du sélecteur (voir useQuickRank).
       if (quickRank.isActive) quickRank.next()
       else setActiveEntry(null)
+    },
+  })
+
+  // Retirer une œuvre de la liste - distinct de setTierListItemRank(null), qui
+  // ne fait que la déclasser. Sans ça, un ajout par erreur depuis
+  // AddTierListItemsPanel n'avait aucune sortie (DELETE /tier-lists/{id}/items/
+  // {entityId} existait pourtant depuis le Lot 7).
+  const removeItemMutation = useMutation({
+    mutationFn: (entityId: string) => removeTierListItem(id!, entityId),
+    onSuccess: (_result, entityId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
+      // La fiche de l'œuvre affiche ses appartenances (voir TomesGridSection) :
+      // sans cette invalidation, elle continuerait d'annoncer cette liste.
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(entityId) })
+      quickRank.stop()
+      setActiveEntry(null)
+    },
+  })
+
+  // PATCH /tier-lists/{id} existait sans appelant : une faute de frappe dans le
+  // nom d'une liste était définitive, la seule sortie étant de la supprimer et
+  // de tout réajouter.
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => updateTierList(id!, { name }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
+      // Le nom se lit aussi depuis la liste des Tier Lists de cet univers et
+      // depuis la fiche d'une œuvre (entitySummary porte tierListName).
+      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.custom(updated.entityTypeId) })
+      queryClient.invalidateQueries({ queryKey: ['tierLists', 'entitySummary'] })
+      setRenaming(false)
+      setMenuOpen(false)
     },
   })
 
@@ -110,15 +150,55 @@ export function CustomTierBoardPage() {
                 aria-label="Menu de la Tier List"
                 className="absolute right-0 top-full z-10 mt-1 w-56 rounded-xl border border-surface2 bg-surface p-1.5 shadow-token-elevated"
               >
-                {!confirmingDelete ? (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDelete(true)}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-dangerText hover:bg-dangerTint"
-                  >
-                    <Trash2 size={15} />
-                    Supprimer cette Tier List
-                  </button>
+                {renaming ? (
+                  <div className="flex flex-col gap-2 p-2">
+                    <label className="text-xs text-textDim" htmlFor="tier-list-name">
+                      Nom de la Tier List
+                    </label>
+                    <input
+                      id="tier-list-name"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      autoFocus
+                      className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => renameMutation.mutate(nameInput.trim())}
+                        disabled={!nameInput.trim() || renameMutation.isPending}
+                        className="flex-1 rounded-lg bg-accent px-2 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
+                      >
+                        Enregistrer
+                      </button>
+                      <button type="button" onClick={() => setRenaming(false)} className="rounded-lg px-2 py-1.5 text-xs text-textDim">
+                        Annuler
+                      </button>
+                    </div>
+                    {renameMutation.isError && <ErrorBanner message={renameMutation.error.message} />}
+                  </div>
+                ) : !confirmingDelete ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNameInput(list.name)
+                        setRenaming(true)
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-textPrimary hover:bg-rowHover"
+                    >
+                      <Pencil size={15} />
+                      Renommer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(true)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-dangerText hover:bg-dangerTint"
+                    >
+                      <Trash2 size={15} />
+                      Supprimer cette Tier List
+                    </button>
+                  </>
                 ) : (
                   <div className="flex flex-col gap-2 p-2">
                     <p className="text-xs text-textDim">Supprimer définitivement « {list.name} » ? Irréversible.</p>
@@ -180,6 +260,7 @@ export function CustomTierBoardPage() {
           onSelect={(rank) => rankMutation.mutate({ entityId: selectedEntry.entityId, rank })}
           progress={quickRank.progress}
           onSkip={quickRank.isActive ? quickRank.next : undefined}
+          onRemoveFromList={() => removeItemMutation.mutate(selectedEntry.entityId)}
         />
       )}
     </div>

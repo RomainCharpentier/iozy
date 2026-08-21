@@ -66,6 +66,12 @@ export function SearchPage() {
   // résultat pour ce titre" - un échec annoncé là où il n'y avait tout
   // simplement rien à chercher.
   const searchEnabled = !!entityTypeId && !!selectedType?.hasMetadataProvider && debouncedTitle.trim().length >= 3
+  // La recherche LOCALE, elle, ne dépend d'aucun fournisseur : elle interroge
+  // la collection déjà en base, gratuitement. La brancher sur searchEnabled
+  // privait du garde-fou anti-doublon ("Déjà dans ta collection", voir plus
+  // bas) exactement les types personnalisés - c'est-à-dire les seuls où
+  // AUCUNE déduplication externe ne rattrape le coup derrière.
+  const localSearchEnabled = !!entityTypeId && debouncedTitle.trim().length >= 3
 
   const suggestionsQuery = useQuery({
     queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
@@ -75,7 +81,7 @@ export function SearchPage() {
   const localMatchQuery = useQuery({
     queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId }),
     queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId }),
-    enabled: searchEnabled,
+    enabled: localSearchEnabled,
   })
   const localMatches = localMatchQuery.data ?? []
 
@@ -181,16 +187,6 @@ export function SearchPage() {
           Ce type n'a pas de source externe : saisis le titre, il sera ajouté tel quel.
         </p>
       )}
-      {!requiresMatch && title.trim().length > 0 && entityTypeId && (
-        <button
-          type="button"
-          onClick={() => navigate('/add/draft', { state: { entityTypeId, candidate: null, manualTitle: title.trim() } satisfies DraftLocationState })}
-          className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk"
-        >
-          Ajouter « {title.trim()} »
-        </button>
-      )}
-
       {/* Scan masqué pour un type sans fournisseur : le lookup par code-barres
           passe par les mêmes sources externes que la recherche (voir
           MetadataSearchService.lookupByBarcode), il ne peut rien trouver ici. */}
@@ -229,6 +225,20 @@ export function SearchPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Après "Déjà dans ta collection", jamais avant : sur un type sans
+          fournisseur, ce bouton est le SEUL chemin d'ajout - le placer en
+          premier revenait à proposer de créer un doublon avant même d'avoir
+          montré que l'œuvre existe déjà. */}
+      {!requiresMatch && title.trim().length > 0 && entityTypeId && (
+        <button
+          type="button"
+          onClick={() => navigate('/add/draft', { state: { entityTypeId, candidate: null, manualTitle: title.trim() } satisfies DraftLocationState })}
+          className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk"
+        >
+          Ajouter « {title.trim()} »
+        </button>
       )}
 
       {showSearching && (
