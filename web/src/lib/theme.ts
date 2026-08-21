@@ -20,9 +20,27 @@ function readStoredTheme(): Theme {
  * dans main.tsx) - évite un flash thème-par-défaut puis thème-stocké au
  * chargement. `data-theme` uniquement pour "dark" : le clair reste la valeur
  * de base de :root dans index.css, pas besoin d'un attribut pour lui. */
+/**
+ * Pose l'attribut pour le sombre, le RETIRE pour le clair.
+ *
+ * Affecter `undefined` à `dataset.theme` ne supprime pas l'attribut : il le
+ * fixe à la chaîne `"undefined"`. Le clair fonctionnait quand même, par
+ * accident - `[data-theme="dark"]` ne correspond simplement pas à
+ * `"undefined"` - mais le DOM portait un attribut qui ne veut rien dire, et
+ * tout futur sélecteur du genre `:root:not([data-theme])` aurait échoué sans
+ * raison visible.
+ */
+function appliquerAttribut(theme: Theme): void {
+  if (theme === 'dark') {
+    document.documentElement.dataset.theme = 'dark'
+  } else {
+    delete document.documentElement.dataset.theme
+  }
+}
+
 export function applyStoredTheme(): void {
   const theme = readStoredTheme()
-  document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : undefined
+  appliquerAttribut(theme)
 }
 
 /** Hook de bascule thème clair/sombre - utilisé depuis Paramètres (voir
@@ -33,7 +51,7 @@ export function useTheme(): { theme: Theme; setTheme: (t: Theme) => void; toggle
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : undefined
+    appliquerAttribut(theme)
     window.localStorage.setItem(STORAGE_KEY, theme)
   }, [theme])
 
