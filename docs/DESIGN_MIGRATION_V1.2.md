@@ -1372,6 +1372,66 @@ affiché - un "débordement de 242px" y est apparu sur une page parfaitement
 saine. Toujours vérifier que `clientWidth` est non nul avant de conclure quoi
 que ce soit sur une largeur.
 
+### Lot 35 — le chemin le plus fréquenté coûtait 1 + 3N requêtes
+
+Deux angles jamais audités : le coût des lectures, et l'intégrité du modèle.
+
+**La latence ne prouvait rien.** Les treize endpoints de lecture répondent tous
+entre 6 et 59 ms - sur 6 œuvres et 9 possessions. La vraie question n'est pas
+le temps mais le **nombre de requêtes**, seul indicateur qui dit ce qui se
+passera à 500 séries.
+
+**Deux instruments écartés avant de conclure.** `pg_stat_user_tables` remonte
+ses compteurs de façon différée : il attribuait le travail d'un appel au
+suivant, puis a fini par ne plus rien remonter du tout. Ce n'est qu'en activant
+`log_statement='all'` côté Postgres - et en cherchant `LOG: execute` et non
+`statement:`, les requêtes étant préparées - que la mesure est devenue fiable.
+Le réglage a été remis à `none` après coup.
+
+**Trois N+1 sur le même chemin**, celui dont dépendent Ma collection, un rayon,
+l'export, la progression, les suggestions et la page publique :
+
+1. `findAllByType` et `search` chargeaient les tomes **une œuvre à la fois** -
+   1 + N requêtes, depuis toujours. Remplacé par un `findByEntityIdIn` unique
+   avec regroupement en mémoire (`withVariants`), la liste des œuvres étant de
+   toute façon déjà chargée.
+2. `CollectionProgressService.totalVolumesFor` interrogeait `manga_edition`
+   **une fois par groupe d'édition et par œuvre** - défaut introduit au Lot 31,
+   dans du code écrit trois lots plus tôt. Toutes les éditions sont désormais
+   indexées en une requête, exactement comme `indexEditionTotals` le fait déjà
+   côté web.
+3. La collection de tags (`@ElementCollection(fetch = EAGER)`) était chargée
+   **une œuvre à la fois** : 7 requêtes `entity_tag` pour en lister 6.
+   `@BatchSize(size = 100)` la ramène à une par centaine d'œuvres.
+
+**Mesuré, requêtes SQL réelles par appel** :
+
+| | avant `@BatchSize` | après |
+|---|---|---|
+| `GET /entities/search` | 10 (dont 7 `entity_tag`) | **5** (dont 2) |
+| `GET /insights/progress` | 16 (dont 7 `entity_tag`) | **11** (dont 2) |
+
+Ces deux colonnes sont mesurées *après* les correctifs 1 et 2 ; avant eux, les
+mêmes appels ajoutaient encore 5 requêtes `variant` et 4 `manga_edition` sur ce
+jeu de 6 œuvres. Le gain n'est pas un pourcentage fixe : il **croît
+linéairement avec le nombre de séries**, là où le coût précédent le faisait
+aussi. Le `select ... from variant where entity_id in ($1..$6)` visible dans le
+journal est la preuve directe du regroupement.
+
+**Intégrité : rien à signaler.** Huit contrôles croisés sur les données réelles,
+au-delà de ce que les clés étrangères garantissent - possession dont le tome
+appartiendrait à une autre œuvre, même chose pour une expérience, numéro de tome
+en double dans une même édition, édition rattachée à une œuvre absente,
+classement orphelin, tome sans numéro exploitable, édition sans aucun tome
+rattaché : **zéro anomalie**. Le seul compteur non nul ("possession active sans
+tome") est un jeu vidéo, dont la possession n'a légitimement pas de tome - la
+requête était trop large, pas la donnée fausse.
+
+**Vérification** : 386 tests backend, dont les 8 cas de `CollectionProgressServiceTest`
+qui garantissent que les règles de progression n'ont pas bougé sous le
+regroupement. Chiffres identiques avant/après sur les données réelles, à l'API
+comme à l'écran (Ma collection, Suggestions, Statistiques).
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement
