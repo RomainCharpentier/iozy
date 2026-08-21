@@ -313,6 +313,16 @@ public class PurchaseAnalysisController {
     @Operation(summary = "Replace the collector preferences profile driving the scoring engine")
     @PatchMapping("/preferences")
     public CollectorPreferences updatePreferences(@RequestBody UpdateCollectorPreferencesRequest request) {
+        // Ces deux collections sont obligatoires : cet endpoint REMPLACE le
+        // profil entier (voir son résumé), il ne fusionne pas. Sans ces gardes,
+        // un corps incomplet les laissait à null et le .stream() ci-dessous
+        // remontait un 500 exposant le nom interne de la classe et sa méthode -
+        // exactement ce que la mise en cohérence des corps invalides avait
+        // corrigé partout ailleurs (Lot 28), et le seul endroit qui l'avait
+        // échappé. conditionImportance, lui, était déjà couvert par parseEnum.
+        requireField(request.editionTierRanking(), "editionTierRanking");
+        requireField(request.factorWeights(), "factorWeights");
+
         List<EditionTier> ranking = request.editionTierRanking().stream()
                 .map(name -> parseEnum(EditionTier.class, name, "editionTierRanking")).toList();
         Map<VerdictFactor, Integer> weights = request.factorWeights().entrySet().stream()
@@ -325,6 +335,14 @@ public class PurchaseAnalysisController {
                 parseEnum(WeightLevel.class, request.conditionImportance(), "conditionImportance"),
                 request.minimumDiscountVsRetailPercent(), weights);
         return service.updatePreferences(preferences);
+    }
+
+    /** Même contrat que {@link #parseEnum} pour un champ absent : un 400 qui nomme
+     * le champ manquant, jamais un 500 qui expose la mécanique interne. */
+    private static void requireField(Object value, String fieldName) {
+        if (value == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le champ '" + fieldName + "' est obligatoire");
+        }
     }
 
     private static <E extends Enum<E>> E parseEnum(Class<E> enumType, String value, String fieldName) {
