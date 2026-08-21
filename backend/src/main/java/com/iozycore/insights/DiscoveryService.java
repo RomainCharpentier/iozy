@@ -11,7 +11,7 @@ import com.iozycore.metadata.bgg.BggCollectionItem;
 import com.iozycore.metadata.bgg.BggHotListFetcher;
 import com.iozycore.metadata.bgg.BggThingFetcher;
 import com.iozycore.metadata.igdb.IgdbSimilarGamesFetcher;
-import com.iozycore.metadata.jikan.JikanMetadataProvider;
+import com.iozycore.metadata.MetadataProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.AbstractMap;
@@ -44,7 +44,8 @@ public class DiscoveryService {
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final ExperienceRepository experienceRepository;
-    private final JikanMetadataProvider jikanMetadataProvider;
+    /** TOUS les fournisseurs qui couvrent le manga, pas seulement Jikan : voir mangaProvidersSearch. */
+    private final List<MetadataProvider> metadataProviders;
     private final BggThingFetcher bggThingFetcher;
     private final BggHotListFetcher bggHotListFetcher;
     private final IgdbSimilarGamesFetcher igdbSimilarGamesFetcher;
@@ -52,14 +53,14 @@ public class DiscoveryService {
     public DiscoveryService(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
                              ExperienceRepository experienceRepository,
-                             JikanMetadataProvider jikanMetadataProvider,
+                             List<MetadataProvider> metadataProviders,
                              BggThingFetcher bggThingFetcher,
                              BggHotListFetcher bggHotListFetcher,
                              IgdbSimilarGamesFetcher igdbSimilarGamesFetcher) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.experienceRepository = experienceRepository;
-        this.jikanMetadataProvider = jikanMetadataProvider;
+        this.metadataProviders = metadataProviders;
         this.bggThingFetcher = bggThingFetcher;
         this.bggHotListFetcher = bggHotListFetcher;
         this.igdbSimilarGamesFetcher = igdbSimilarGamesFetcher;
@@ -77,10 +78,11 @@ public class DiscoveryService {
      * excluant ce que tu possèdes déjà.
      */
     public List<DiscoveryCandidate> discoverManga() {
-        UUID mangaTypeId = resolveTypeId("MANGA");
-        if (mangaTypeId == null) {
+        Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
+        if (mangaType.isEmpty()) {
             return List.of();
         }
+        UUID mangaTypeId = mangaType.get().id();
         List<Entity> ownedManga = entityRepository.findAllByType(mangaTypeId);
         if (ownedManga.isEmpty()) {
             return List.of();
@@ -106,7 +108,7 @@ public class DiscoveryService {
 
         List<DiscoveryCandidate> suggestions = new ArrayList<>();
         for (String mangaka : favoriteMangaka) {
-            List<MetadataCandidate> results = jikanMetadataProvider.search(mangaka);
+            List<MetadataCandidate> results = searchWithFallback(mangaType.get(), mangaka);
             for (MetadataCandidate candidate : results) {
                 if (suggestions.size() >= MAX_SUGGESTIONS) {
                     break;
@@ -241,5 +243,30 @@ public class DiscoveryService {
                 .map(Optional::get)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
+    }
+
+    /**
+     * Interroge les fournisseurs qui couvrent ce type, dans l'ordre, et rend le
+     * premier résultat non vide.
+     * <p>
+     * Découvrir appelait Jikan EN DUR, alors que la Recherche, elle, reçoit la
+     * liste complète des fournisseurs et bascule sur MyAnimeList quand Jikan
+     * flanche - or c'est précisément pour ça que ce relais a été ajouté :
+     * MyAnimeList bloque/throttle Jikan par intermittence. Constaté en direct
+     * (audit du 2026-08-21) : Jikan répondait 504 sur "Takeshi Obata", et le
+     * panneau Manga de Découvrir était donc vide, sans que rien ne le dise -
+     * une panne externe présentée comme une absence de suggestions.
+     */
+    private List<MetadataCandidate> searchWithFallback(EntityType entityType, String query) {
+        for (MetadataProvider provider : metadataProviders) {
+            if (!provider.supports(entityType)) {
+                continue;
+            }
+            List<MetadataCandidate> results = provider.search(query);
+            if (!results.isEmpty()) {
+                return results;
+            }
+        }
+        return List.of();
     }
 }

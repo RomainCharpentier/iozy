@@ -1224,6 +1224,46 @@ aussi, aucune erreur console. Suppression de l'édition « (test) » faite via
 l'API : son tome retiré, l'édition disparue avec lui (comportement documenté au
 Lot 26), Raw Hero repassé à « Soleil · 3/6 ».
 
+### Lot 32 — Découvrir n'avait pas le filet de la Recherche
+
+Parti d'une remarque de l'utilisateur ("il manque mon token BGG") qui s'est
+révélée fausse : le token était déjà en place, identique, bien transmis au
+conteneur, et un appel réel à BGG répondait correctement. Mais l'impression
+venait de quelque part - deux des trois panneaux de Découvrir étaient vides.
+
+**Jeux de société** : vide par conception, `discoverBoardGames` s'arrêtant
+faute de jeu possédé portant un `bggId`. Rien à voir avec le token.
+
+**Manga** : vide à cause d'un vrai défaut. `DiscoveryService` appelait
+`JikanMetadataProvider` **en dur**, alors que `MetadataSearchService` (la
+Recherche) reçoit la liste complète des fournisseurs et bascule sur
+MyAnimeList quand Jikan flanche - or ce relais a été ajouté précisément parce
+que MyAnimeList bloque/throttle Jikan par intermittence, et `MAL_CLIENT_ID`
+est bien renseigné. Constaté en direct : Jikan répondait 504 sur
+"Takeshi Obata", donc Découvrir/Manga n'affichait rien, sans que rien ne le
+dise - une panne externe présentée comme une absence de suggestions.
+
+Découvrir interroge désormais, dans l'ordre, tous les fournisseurs qui
+couvrent le type (`MetadataProvider.supports`), et rend le premier résultat
+non vide - exactement la résilience dont la Recherche disposait déjà. Vérifié
+pendant que Jikan était encore en panne : 8 suggestions servies par
+MyAnimeList là où il y en avait 0.
+
+**Trouvé, non corrigé** : chercher "les œuvres du même auteur" en passant le
+nom du mangaka à une API de recherche par TITRE donne des résultats
+approximatifs - "Takeshi Obata" ramène des titres contenant "Takeshi". Le
+défaut est antérieur et vaut pour Jikan comme pour MyAnimeList ; le repli le
+rend seulement visible. À traiter comme une question de pertinence, pas de
+disponibilité.
+
+**Reste ouvert** : un panneau vide reste indiscernable d'une source
+indisponible. Distinguer les deux à l'écran demande de changer la forme de la
+réponse (aujourd'hui une simple liste), donc un lot à part.
+
+**Vérification** : 386 tests backend, `DiscoveryServiceTest` adapté à
+l'injection par liste, appel réel à BGG et à MyAnimeList sur les données
+réelles.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

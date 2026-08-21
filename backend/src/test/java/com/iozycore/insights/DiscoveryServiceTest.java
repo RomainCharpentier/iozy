@@ -41,7 +41,7 @@ class DiscoveryServiceTest {
         ));
 
         DiscoveryService service = new DiscoveryService(
-                entityRepository, new InMemoryEntityTypeRepository(), experienceRepository, jikan,
+                entityRepository, new InMemoryEntityTypeRepository(), experienceRepository, List.of(jikan),
                 new BggThingFetcher(), new BggHotListFetcher(), new StubIgdbSimilarGamesFetcher(List.of()));
 
         List<DiscoveryCandidate> suggestions = service.discoverManga();
@@ -54,7 +54,7 @@ class DiscoveryServiceTest {
     void returns_an_empty_list_when_nothing_is_owned() {
         DiscoveryService service = new DiscoveryService(
                 new InMemoryEntityRepository(), new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(),
-                new StubJikanMetadataProvider(List.of()), new BggThingFetcher(), new BggHotListFetcher(),
+                List.of(new StubJikanMetadataProvider(List.of())), new BggThingFetcher(), new BggHotListFetcher(),
                 new StubIgdbSimilarGamesFetcher(List.of()));
 
         assertThat(service.discoverManga()).isEmpty();
@@ -75,7 +75,7 @@ class DiscoveryServiceTest {
 
         DiscoveryService service = new DiscoveryService(
                 entityRepository, new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(),
-                new StubJikanMetadataProvider(List.of()), new BggThingFetcher(), new BggHotListFetcher(), igdb);
+                List.of(new StubJikanMetadataProvider(List.of())), new BggThingFetcher(), new BggHotListFetcher(), igdb);
 
         List<DiscoveryCandidate> suggestions = service.discoverVideoGames();
 
