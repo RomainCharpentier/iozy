@@ -91,6 +91,10 @@ export function SharedSpacePage() {
               // aria-current plutôt qu'un simple style : l'onglet actif doit
               // être annoncé, pas seulement coloré.
               aria-current={onglet === cle ? 'page' : undefined}
+              // Sans ce nom explicite, le compteur se colle au libellé et un
+              // lecteur d'écran annonce « Collection 5 » - un nombre sans unité,
+              // collé à un mot, qui ne veut rien dire à l'oreille.
+              aria-label={`${libelle}, ${nombre} œuvre${nombre > 1 ? 's' : ''}`}
               className={`min-h-11 border-b-2 px-3 text-sm font-semibold transition-colors ${
                 onglet === cle
                   ? 'border-accent text-textPrimary'
