@@ -95,8 +95,8 @@ public class PurchaseAnalysisEngine {
             List<Warning> editionWarnings = new ArrayList<>();
             if (edition == null) {
                 editionWarnings.add(new Warning(WarningSeverity.CAUTION,
-                        "Edition \"" + item.editionNameRaw() + "\" for \"" + item.series().title()
-                                + "\" is not known yet - fill in its reference data for a full analysis.",
+                        "L'édition \"" + item.editionNameRaw() + "\" de \"" + item.series().title()
+                                + "\" n'est pas encore renseignée - complète sa fiche pour une analyse complète.",
                         ConfidenceLevel.LOW));
             }
 
@@ -111,13 +111,13 @@ public class PurchaseAnalysisEngine {
                 if (completeness.missingCount() > 0) {
                     editionWarnings.add(new Warning(WarningSeverity.INFO,
                             completeness.missingCount() + "/" + completeness.totalVolumes()
-                                    + " volume(s) missing to complete this edition"
+                                    + " tome(s) manquant(s) pour compléter cette édition"
                                     + (completeness.estimatedCostToComplete() != null
-                                            ? " (~" + completeness.estimatedCostToComplete().setScale(2, RoundingMode.HALF_UP) + " EUR"
+                                            ? " (~" + completeness.estimatedCostToComplete().setScale(2, RoundingMode.HALF_UP) + " €"
                                                     + switch (completeness.costToCompleteBasis()) {
-                                                        case THEORETICAL_ONLY -> ", theoretical estimate";
-                                                        case AI_ESTIMATED -> ", AI estimate - unverified";
-                                                        case OBSERVED_MARKET -> ", based on market observations";
+                                                        case THEORETICAL_ONLY -> ", estimation théorique";
+                                                        case AI_ESTIMATED -> ", estimation IA - non vérifiée";
+                                                        case OBSERVED_MARKET -> ", d'après des prix relevés";
                                                     }
                                                     + ")"
                                             : ", cost unknown")
@@ -131,7 +131,7 @@ public class PurchaseAnalysisEngine {
                 }
             } else {
                 editionWarnings.add(new Warning(WarningSeverity.CAUTION,
-                        "Total volume count for \"" + item.editionNameRaw() + "\" is unknown - completeness cannot be computed yet.",
+                        "Le nombre total de tomes de \"" + item.editionNameRaw() + "\" est inconnu - la complétude ne peut pas être calculée.",
                         ConfidenceLevel.LOW));
                 costToCompleteFullyKnown = false;
             }
@@ -171,7 +171,7 @@ public class PurchaseAnalysisEngine {
                 if (edition.outOfPrint()) {
                     anyOutOfPrint = true;
                     editionWarnings.add(new Warning(WarningSeverity.CAUTION,
-                            "This edition is out of print - could mean rarity or a devaluation risk depending on demand.",
+                            "Cette édition est épuisée - signe de rareté autant que risque de dévalorisation, selon la demande.",
                             ConfidenceLevel.LOW));
                 }
                 if (edition.betterEditionAnnounced()) {
@@ -179,7 +179,7 @@ public class PurchaseAnalysisEngine {
                     editionWarnings.add(new Warning(WarningSeverity.CAUTION,
                             edition.betterEditionNote() != null && !edition.betterEditionNote().isBlank()
                                     ? edition.betterEditionNote()
-                                    : "A better edition of this series has been announced.",
+                                    : "Une meilleure édition de cette série a été annoncée.",
                             ConfidenceLevel.MEDIUM));
                 }
                 editionWarnings.addAll(betterTierWarnings(edition, ctx.siblingEditions(), preferences));
@@ -192,16 +192,11 @@ public class PurchaseAnalysisEngine {
 
             DuplicateAnalysis duplicates = duplicateDetector.detect(
                     item.includedVolumes(), ctx.alreadyOwnedVolumes(), itemCostShare, perVolumeMarketPrice);
-            if (duplicates.hasDuplicates()) {
-                editionWarnings.add(new Warning(WarningSeverity.INFO,
-                        duplicates.duplicateVolumeNumbers().size() + "/" + includedCount
-                                + " volume(s) already owned in this lot - only " + duplicates.usefulVolumeCount()
-                                + " useful volume(s)"
-                                + (duplicates.pricePerUsefulVolume() != null
-                                        ? " (~" + duplicates.pricePerUsefulVolume() + " EUR/useful volume)"
-                                        : ".") + ".",
-                        ConfidenceLevel.HIGH));
-            }
+            // Les doublons ne produisent plus d'avertissement en prose : la même
+            // information part déjà, structurée et chiffrée, dans
+            // ItemAnalysis.duplicates - le seul client la rendait puis filtrait
+            // ce doublon-ci en cherchant "already owned" dans le texte, un
+            // filtre que la traduction de ce lot aurait cassé en silence.
             if (duplicates.usefulVolumeCount() > 0) {
                 if (duplicates.maxWorthwhilePrice() != null) {
                     totalMaxWorthwhile = totalMaxWorthwhile.add(duplicates.maxWorthwhilePrice());
@@ -226,7 +221,7 @@ public class PurchaseAnalysisEngine {
 
         if (finalFairValue == null) {
             listingWarnings.add(new Warning(WarningSeverity.CAUTION,
-                    "No market observation and no retail price available for this lot - price recommendations are unavailable.",
+                    "Aucun prix relevé ni prix neuf connu pour ce lot - aucune recommandation de prix possible.",
                     ConfidenceLevel.LOW));
         }
 
@@ -258,8 +253,8 @@ public class PurchaseAnalysisEngine {
             int siblingRank = ranking.indexOf(sibling.tier());
             if (siblingRank >= 0 && siblingRank < matchedRank) {
                 warnings.add(new Warning(WarningSeverity.CAUTION,
-                        "A " + sibling.tier() + " edition (\"" + sibling.editionName() + "\") exists for this series - "
-                                + "consider it over this " + matched.tier() + " edition.",
+                        "Une édition " + sibling.tier() + " (\"" + sibling.editionName() + "\") existe pour cette "
+                                + "série - à préférer à cette édition " + matched.tier() + ".",
                         ConfidenceLevel.MEDIUM));
             }
         }

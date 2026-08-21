@@ -115,7 +115,7 @@ public class VerdictScorer {
         else if (ratio.compareTo(new BigDecimal("1.10")) <= 0) score = 50;
         else if (ratio.compareTo(new BigDecimal("1.25")) <= 0) score = 30;
         else score = 10;
-        String rationale = "Real cost is " + percent(ratio) + "% of the estimated fair value.";
+        String rationale = "Le coût réel représente " + percent(ratio) + " % de la valeur estimée.";
         return new FactorScore(score, rationale, input.anyObservedMarketData() ? ConfidenceLevel.HIGH : ConfidenceLevel.MEDIUM);
     }
 
@@ -125,16 +125,16 @@ public class VerdictScorer {
         }
         BigDecimal gap = input.discountPercent().subtract(BigDecimal.valueOf(preferences.minimumDiscountVsRetailPercent()));
         int score = clamp(50 + gap.multiply(BigDecimal.valueOf(2)).intValue(), 0, 100);
-        String rationale = "Discount vs retail is " + input.discountPercent().setScale(0, RoundingMode.HALF_UP)
-                + "% (minimum expected: " + preferences.minimumDiscountVsRetailPercent() + "%).";
+        String rationale = "Décote vis-à-vis du neuf : " + input.discountPercent().setScale(0, RoundingMode.HALF_UP)
+                + " % (minimum attendu : " + preferences.minimumDiscountVsRetailPercent() + " %).";
         return new FactorScore(score, rationale, ConfidenceLevel.MEDIUM);
     }
 
     private FactorScore scoreRealMarketAlignment(Input input) {
         if (input.anyObservedMarketData()) {
-            return new FactorScore(90, "At least one item is priced from a real market observation.", ConfidenceLevel.HIGH);
+            return new FactorScore(90, "Au moins un lot est valorisé à partir d'un prix réellement relevé.", ConfidenceLevel.HIGH);
         }
-        return new FactorScore(40, "No market observation recorded yet - pricing relies on theoretical estimates only.", ConfidenceLevel.LOW);
+        return new FactorScore(40, "Aucun prix relevé pour l'instant - la valorisation repose uniquement sur des estimations théoriques.", ConfidenceLevel.LOW);
     }
 
     private FactorScore scoreCondition(Input input) {
@@ -146,8 +146,8 @@ public class VerdictScorer {
             case ACCEPTABLE -> 35;
             case VISIBLE_DEFECTS -> 15;
         };
-        String rationale = "Declared condition: " + input.listingCondition()
-                + (input.conditionAppliesToContainer() ? " (applies to the box/slipcase, weighted more heavily)." : ".");
+        String rationale = "État déclaré : " + label(input.listingCondition())
+                + (input.conditionAppliesToContainer() ? " (porte sur le coffret, donc pondéré plus fortement)." : ".");
         return new FactorScore(score, rationale, ConfidenceLevel.MEDIUM);
     }
 
@@ -160,7 +160,7 @@ public class VerdictScorer {
                 .mapToDouble(status -> 1.0 - (double) status.missingCount() / status.totalVolumes())
                 .average().orElse(0);
         int score = clamp((int) Math.round(averageRatio * 100), 0, 100);
-        String rationale = "Average completeness across known editions: " + Math.round(averageRatio * 100) + "%.";
+        String rationale = "Complétude moyenne sur les éditions connues : " + Math.round(averageRatio * 100) + " %.";
         ConfidenceLevel confidence = known.size() == input.completenessStatuses().size() ? ConfidenceLevel.HIGH : ConfidenceLevel.MEDIUM;
         return new FactorScore(score, rationale, confidence);
     }
@@ -170,12 +170,12 @@ public class VerdictScorer {
             return null;
         }
         if (!input.anyOutOfPrint()) {
-            return new FactorScore(75, "The edition is still in print - no availability risk.", ConfidenceLevel.MEDIUM);
+            return new FactorScore(75, "L'édition est toujours au catalogue - aucun risque de disponibilité.", ConfidenceLevel.MEDIUM);
         }
         if (preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced() && input.anyBetterEditionAnnounced()) {
-            return new FactorScore(30, "Edition is out of print and a better edition has been announced - devaluation risk.", ConfidenceLevel.MEDIUM);
+            return new FactorScore(30, "Édition épuisée et meilleure édition annoncée - risque de dévalorisation.", ConfidenceLevel.MEDIUM);
         }
-        return new FactorScore(55, "Edition is out of print - could mean rarity as much as risk, depending on demand.", ConfidenceLevel.LOW);
+        return new FactorScore(55, "Édition épuisée - signe de rareté autant que de risque, selon la demande.", ConfidenceLevel.LOW);
     }
 
     private FactorScore scoreEditionQuality(Input input, CollectorPreferences preferences) {
@@ -187,7 +187,9 @@ public class VerdictScorer {
                 .mapToInt(tier -> tierScore(tier, ranking))
                 .average().orElse(50);
         int score = clamp((int) Math.round(averageScore), 0, 100);
-        return new FactorScore(score, "Edition tier(s): " + input.itemTiers(), ConfidenceLevel.MEDIUM);
+        String tiers = input.itemTiers().stream().map(VerdictScorer::label).distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return new FactorScore(score, "Gamme(s) d'édition : " + tiers, ConfidenceLevel.MEDIUM);
     }
 
     private static int tierScore(EditionTier tier, List<EditionTier> ranking) {
@@ -206,7 +208,7 @@ public class VerdictScorer {
         BigDecimal cost = input.totalCostToComplete() == null ? BigDecimal.ZERO : input.totalCostToComplete();
         BigDecimal ratio = cost.divide(input.totalNewValue(), 4, RoundingMode.HALF_UP);
         int score = clamp(100 - ratio.multiply(BigDecimal.valueOf(100)).intValue(), 0, 100);
-        String rationale = "Completing the collection costs about " + percent(ratio) + "% of its full retail value.";
+        String rationale = "Compléter la collection coûte environ " + percent(ratio) + " % de sa valeur neuve totale.";
         return new FactorScore(score, rationale, ConfidenceLevel.MEDIUM);
     }
 
@@ -215,12 +217,12 @@ public class VerdictScorer {
             return null;
         }
         if (!input.anyBetterEditionAnnounced()) {
-            return new FactorScore(90, "No better edition announced for this series.", ConfidenceLevel.LOW);
+            return new FactorScore(90, "Aucune meilleure édition annoncée pour cette série.", ConfidenceLevel.LOW);
         }
         if (preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced()) {
-            return new FactorScore(20, "A better edition has been announced - this copy may lose value.", ConfidenceLevel.MEDIUM);
+            return new FactorScore(20, "Une meilleure édition a été annoncée - cet exemplaire peut perdre de la valeur.", ConfidenceLevel.MEDIUM);
         }
-        return new FactorScore(60, "A better edition has been announced, but this is not a blocking preference.", ConfidenceLevel.LOW);
+        return new FactorScore(60, "Une meilleure édition a été annoncée, mais ce n'est pas un critère bloquant pour toi.", ConfidenceLevel.LOW);
     }
 
     private FactorScore scoreRarity(Input input) {
@@ -228,9 +230,9 @@ public class VerdictScorer {
             return null;
         }
         if (input.anyOutOfPrint() && !input.anyObservedMarketData()) {
-            return new FactorScore(65, "Out of print with very little market data - could be genuinely rare.", ConfidenceLevel.LOW);
+            return new FactorScore(65, "Épuisée et très peu de données de marché - possible véritable rareté.", ConfidenceLevel.LOW);
         }
-        return new FactorScore(50, "No strong rarity signal.", ConfidenceLevel.LOW);
+        return new FactorScore(50, "Aucun signal de rareté marqué.", ConfidenceLevel.LOW);
     }
 
     private static int clamp(int value, int min, int max) {
@@ -239,5 +241,32 @@ public class VerdictScorer {
 
     private static BigDecimal percent(BigDecimal ratio) {
         return ratio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    // Ces justifications sont lues telles quelles par l'utilisateur (voir Lot 30) :
+    // y interpoler la constante d'enum laissait passer "GOOD" ou "[STANDARD]" au
+    // milieu d'une phrase française. Libellés alignés sur ceux déjà utilisés par
+    // l'interface (CONDITION_LABELS / EDITION_TIER_LABELS, web/src/types).
+    private static String label(Condition condition) {
+        return switch (condition) {
+            case MINT_SEALED -> "neuf sous blister";
+            case LIKE_NEW -> "comme neuf";
+            case VERY_GOOD -> "très bon état";
+            case GOOD -> "bon état";
+            case ACCEPTABLE -> "état correct";
+            case VISIBLE_DEFECTS -> "défauts visibles";
+        };
+    }
+
+    private static String label(EditionTier tier) {
+        return switch (tier) {
+            case STANDARD -> "Standard";
+            case DELUXE -> "Deluxe";
+            case PRESTIGE -> "Prestige";
+            case PERFECT -> "Perfect";
+            case COLLECTOR -> "Collector";
+            case INTEGRAL -> "Intégrale";
+            case OTHER -> "Autre";
+        };
     }
 }

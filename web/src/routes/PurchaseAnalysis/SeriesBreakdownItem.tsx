@@ -184,11 +184,16 @@ export function SeriesBreakdownItem({
         </div>
       )}
 
-      {/* Le warning "already owned" du backend est déjà couvert par le bloc doublons
-          dédié ci-dessus (structuré, chiffré) - filtré ici pour ne pas le répéter en prose. */}
-      {editionWarnings.filter((w) => !w.message.includes('already owned')).length > 0 && (
+      {/* Plus de filtre sur le texte : le backend n'émet plus l'avertissement
+          "doublons" en prose, la même information partant déjà structurée dans
+          le bloc dédié ci-dessus (Lot 30). Reconnaître un avertissement à sa
+          formulation anglaise n'aurait de toute façon pas survécu à sa
+          traduction. Les analyses d'AVANT ce lot, elles, gardent la phrase
+          anglaise figée dans leur historique - un instantané, pas un calcul
+          rejoué : elle réapparaît donc dans cette liste, à sa place. */}
+      {editionWarnings.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {editionWarnings.filter((w) => !w.message.includes('already owned')).map((warning, index) => {
+          {editionWarnings.map((warning, index) => {
             const Icon = WARNING_ICONS[warning.severity]
             return (
               <li key={index} className={`flex items-start gap-1.5 text-xs ${WARNING_COLORS[warning.severity]}`}>

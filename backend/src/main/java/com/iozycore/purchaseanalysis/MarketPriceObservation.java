@@ -23,13 +23,13 @@ public record MarketPriceObservation(UUID id, UUID mangaEditionId, VolumeRange s
                                       String note, Instant createdAt) {
     public MarketPriceObservation {
         if (mangaEditionId == null) {
-            throw new IllegalArgumentException("A market price observation must reference a manga edition");
+            throw new IllegalArgumentException("Un prix relevé doit se rattacher à une édition");
         }
         if (observedPrice == null || observedPrice.signum() < 0) {
-            throw new IllegalArgumentException("Observed price must be zero or positive");
+            throw new IllegalArgumentException("Le prix relevé doit être nul ou positif");
         }
         if (observedAt == null) {
-            throw new IllegalArgumentException("A market price observation must have an observation date");
+            throw new IllegalArgumentException("Un prix relevé doit porter une date");
         }
     }
 

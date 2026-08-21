@@ -4,7 +4,7 @@ package com.iozycore.purchaseanalysis;
 public record Volume(int number) {
     public Volume {
         if (number < 1) {
-            throw new IllegalArgumentException("Volume number must be at least 1");
+            throw new IllegalArgumentException("Un numéro de tome vaut au minimum 1");
         }
     }
 }

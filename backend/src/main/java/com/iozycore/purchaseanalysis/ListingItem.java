@@ -20,10 +20,10 @@ public record ListingItem(MangaSeries series, String editionNameRaw, Set<Integer
                            Condition itemConditionOverride) {
     public ListingItem {
         if (editionNameRaw == null || editionNameRaw.isBlank()) {
-            throw new IllegalArgumentException("An edition name is required for each listing item");
+            throw new IllegalArgumentException("Chaque lot de l'annonce doit indiquer un nom d'édition");
         }
         if (includedVolumes == null || includedVolumes.isEmpty()) {
-            throw new IllegalArgumentException("A listing item must include at least one volume");
+            throw new IllegalArgumentException("Chaque lot de l'annonce doit inclure au moins un tome");
         }
         includedVolumes = Set.copyOf(includedVolumes);
     }
