@@ -10,7 +10,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CoverTile } from '../../components/CoverTile'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { totalVolumesFrom } from '../../lib/seriesInfo'
-import { WishlistShareSection } from './WishlistShareSection'
+import { ShareSection } from '../Share/ShareSection'
 import type { EntityTypeDto, WishlistEntryResponse } from '../../types/api'
 
 /** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total) -
@@ -85,7 +85,7 @@ export function WishlistPage() {
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Wishlist</h1>
 
-      <WishlistShareSection />
+      <ShareSection miseEnAvant="wishlist" />
 
       {wishlistQuery.isError && <ErrorBanner message={wishlistQuery.error.message} />}
       {wishlistQuery.isLoading && <p className="text-textDim">Chargement...</p>}

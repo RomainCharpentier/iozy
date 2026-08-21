@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Scale, Sparkles, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
-import { CollectionShareSection } from './CollectionShareSection'
+import { ShareSection } from '../Share/ShareSection'
+import { useEffect, useRef } from 'react'
 
 interface ProfileLink {
   to: string
@@ -30,6 +31,15 @@ const LINKS: ProfileLink[] = [
 ]
 
 export function ProfilePage() {
+  // Arriver depuis « Ma collection ▸ Partager » doit montrer le partage tout
+  // de suite : la page Profil est longue, et un raccourci qui dépose en haut
+  // sans rien désigner ne raccourcit rien.
+  const partageRef = useRef<HTMLDivElement>(null)
+  const focusPartage = (useLocation().state as { focusPartage?: boolean } | null)?.focusPartage
+  useEffect(() => {
+    if (focusPartage) partageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [focusPartage])
+
   return (
     <div className="flex flex-col gap-5">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Mon profil</h1>
@@ -39,7 +49,12 @@ export function ProfilePage() {
       {/* "Partager ma collection" - emplacement de la maquette V1.2 (Profil),
           au-dessus des lignes d'accès aux autres écrans : c'est un réglage de
           CE profil, pas une destination de plus. */}
-      <CollectionShareSection />
+      {/* Le partage vit ici, sa maison principale. Les raccourcis de « Ma
+          collection » et de « Mes envies » mènent au même partage et au même
+          jeton - c'est bien ce composant qu'ils pilotent, jamais un second. */}
+      <div id="partage" ref={partageRef} className="scroll-mt-4">
+        <ShareSection />
+      </div>
 
       <ul className="flex flex-col gap-2">
         {LINKS.map(({ to, label, description, icon: Icon }) => (

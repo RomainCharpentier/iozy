@@ -93,19 +93,6 @@ export interface WishlistEntryResponse {
   addedAt: LocalDateString
 }
 
-/** "Liste d'envies partageable" - token null = pas de lien actif. */
-export interface ShareLinkResponse {
-  token: string | null
-}
-
-/** Une entrée telle que vue via le lien public - volontairement minimale
- * (titre + jaquette), voir PublicWishlistController côté backend. */
-export interface SharedWishlistEntryResponse {
-  title: string
-  coverImageUrl: string | null
-  addedAt: LocalDateString
-}
-
 // --- Tag / Relationship (records de domaine exposés tels quels) ---
 export interface TagDto {
   id: UUID

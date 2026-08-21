@@ -22,13 +22,12 @@ export const queryKeys = {
   },
   wishlist: {
     all: ['wishlist'] as const,
-    shareLink: ['wishlist', 'shareLink'] as const,
-    shared: (token: string) => ['wishlist', 'shared', token] as const,
+
   },
-  // Partage de la collection - clé SÉPARÉE de wishlist.shareLink : les deux
-  // liens sont indépendants, invalider l'un ne doit jamais refléter l'autre.
-  collectionShare: ['collectionShare'] as const,
-  sharedCollection: (token: string) => ['collectionShare', 'shared', token] as const,
+  // Partage d'espace - une seule clé, parce qu'il n'y a plus qu'un partage :
+  // collection et envies en sont deux sections, pas deux liens.
+  share: ['share'] as const,
+  sharedSpace: (token: string) => ['share', 'shared', token] as const,
   insights: {
     stats: ['insights', 'stats'] as const,
     discover: (entityTypeCode: string) => ['insights', 'discover', entityTypeCode] as const,
