@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
-import { deleteOwnership, markLost, markSold, updateNote, updatePurchasePrice } from '../../api/ownerships'
+import { deleteOwnership, markLost, markSold, restoreOwnership, updateNote, updatePurchasePrice } from '../../api/ownerships'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { useToast } from '../../components/Toast'
 import { CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse } from '../../types/api'
 
@@ -23,6 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
  * Marquer vendu/Supprimer en boutons visibles en permanence. */
 function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; entityId: string }) {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
   const [editingPrice, setEditingPrice] = useState(false)
   const [priceInput, setPriceInput] = useState('')
@@ -37,11 +39,21 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
   }
 
 
+  // Annulation REELLE : POST /ownerships/{id}/restore remet le statut a OWNED.
+  // Sans cet endpoint, ces deux actions d'un seul clic etaient definitives -
+  // un geste de trop faisait disparaitre un tome de la collection pour de bon
+  // (voir docs/USER_JOURNEYS.md, UX-11).
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreOwnership(ownership.id),
+    onSuccess: invalidateAll,
+  })
+
   const sellMutation = useMutation({
     mutationFn: () => markSold(ownership.id),
     onSuccess: () => {
       invalidateAll()
       setMenuOpen(false)
+      toast('Exemplaire marqué vendu', { label: 'Annuler', onAction: () => restoreMutation.mutate() })
     },
   })
   // Symétrique de markSold, qui existait seul alors que POST /ownerships/{id}/lose
@@ -52,6 +64,7 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
     onSuccess: () => {
       invalidateAll()
       setMenuOpen(false)
+      toast('Exemplaire marqué perdu', { label: 'Annuler', onAction: () => restoreMutation.mutate() })
     },
   })
   const priceMutation = useMutation({
@@ -257,9 +270,9 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
         </div>
       )}
 
-      {(sellMutation.isError || loseMutation.isError || noteMutation.isError || deleteMutation.isError) && (
+      {(sellMutation.isError || loseMutation.isError || restoreMutation.isError || noteMutation.isError || deleteMutation.isError) && (
         <ErrorBanner
-          message={(sellMutation.error ?? loseMutation.error ?? noteMutation.error ?? deleteMutation.error)!.message}
+          message={(sellMutation.error ?? loseMutation.error ?? restoreMutation.error ?? noteMutation.error ?? deleteMutation.error)!.message}
         />
       )}
     </div>

@@ -59,6 +59,15 @@ public class OwnershipController {
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 
+    @Operation(summary = "Remettre en possession un exemplaire vendu ou perdu - sert l'action \"Annuler\" "
+            + "proposée juste après avoir marqué vendu/perdu. 409 si l'exemplaire est déjà actif.")
+    @PostMapping("/{id}/restore")
+    public OwnershipResponse restore(@PathVariable UUID id) {
+        Ownership ownership = findOrThrow(id);
+        ownership.restore();
+        return OwnershipResponse.from(ownershipRepository.save(ownership));
+    }
+
     @Operation(summary = "Mettre à jour la note libre d'une Ownership")
     @PatchMapping("/{id}/note")
     public OwnershipResponse updateNote(@PathVariable UUID id, @RequestBody UpdateNoteRequest request) {

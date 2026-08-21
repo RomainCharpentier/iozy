@@ -88,6 +88,26 @@ public class Ownership {
         release(OwnershipStatus.LOST);
     }
 
+    /**
+     * Remet un exemplaire vendu ou perdu en possession.
+     * <p>
+     * Existe pour une raison précise : "Marquer vendu" et "Marquer perdu" sont
+     * déclenchés d'un seul clic depuis le menu d'un exemplaire, et rien ne
+     * permettait de revenir en arrière - une faute de frappe de geste faisait
+     * disparaître un tome de la collection définitivement (voir
+     * docs/USER_JOURNEYS.md, UX-11). L'interface propose désormais "Annuler"
+     * juste après l'action ; sans cette méthode, ce bouton serait décoratif.
+     * <p>
+     * Refuse un exemplaire déjà actif plutôt que de ne rien faire en silence :
+     * appeler restore() sur une possession en cours trahit un défaut d'appel.
+     */
+    public void restore() {
+        if (this.status == OwnershipStatus.OWNED) {
+            throw new IllegalStateException("Cette Ownership est déjà active");
+        }
+        this.status = OwnershipStatus.OWNED;
+    }
+
     public void updateCondition(OwnershipCondition newCondition) {
         this.condition = newCondition;
     }
