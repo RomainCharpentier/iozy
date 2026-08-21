@@ -43,7 +43,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
         QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
@@ -75,7 +75,7 @@ class QuickAddServiceTest {
     void prefilled_attributes_never_overwrite_attributes_already_set_on_a_matched_entity() {
         InMemoryEntityRepository repo = new InMemoryEntityRepository();
         QuickAddService service = new QuickAddService(repo, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(repo), event -> {
         });
 
         service.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW,
@@ -93,7 +93,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
         QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult tome1 = service.addNewEntityWithOwnership(
@@ -116,7 +116,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
         QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
@@ -136,7 +136,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
         QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                mangaEditionRepository, event -> {
+                mangaEditionRepository, new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult pika = service.addNewEntityWithOwnership(
@@ -163,7 +163,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
         QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                mangaEditionRepository, event -> {
+                mangaEditionRepository, new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult tome1 = service.addNewEntityWithOwnership(
@@ -183,7 +183,7 @@ class QuickAddServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
         QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                mangaEditionRepository, event -> {
+                mangaEditionRepository, new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
@@ -203,7 +203,7 @@ class QuickAddServiceTest {
         MangaEdition preExisting = mangaEditionRepository.save(MangaEdition.create(
                 "Death Note", "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
         QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                mangaEditionRepository, event -> {
+                mangaEditionRepository, new CatalogEntityResolver(entityRepository), event -> {
         });
 
         QuickAddService.QuickAddResult result = service.addNewEntityWithOwnership(
@@ -232,8 +232,9 @@ class QuickAddServiceTest {
     }
 
     private QuickAddService newService() {
-        return new QuickAddService(new InMemoryEntityRepository(), new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), event -> {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        return new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
     }
 

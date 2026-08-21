@@ -37,7 +37,7 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -58,7 +58,7 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
