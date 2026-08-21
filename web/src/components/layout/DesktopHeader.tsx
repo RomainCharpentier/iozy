@@ -1,6 +1,6 @@
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Compass, Heart, Library, Search } from 'lucide-react'
-import { useWishlist } from '../../lib/useWishlist'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Compass, Library, Search } from 'lucide-react'
+import { GlobalShortcuts } from './GlobalShortcuts'
 
 interface NavItem {
   to: string
@@ -53,8 +53,6 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
  * Envies (Heart, avec badge) et Profil (avatar) restent des raccourcis
  * séparés, jamais des destinations de nav pairs (voir §9-11 du brief). */
 export function DesktopHeader() {
-  const navigate = useNavigate()
-  const { count: wishlistCount } = useWishlist()
 
   return (
     <header className="sticky top-0 z-10 hidden h-16 shrink-0 border-b border-surface2 bg-surface md:block">
@@ -67,29 +65,8 @@ export function DesktopHeader() {
             <NavLinkItem key={item.to} {...item} />
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/wishlist')}
-            title="Mes envies"
-            aria-label={wishlistCount > 0 ? `Mes envies, ${wishlistCount}` : 'Mes envies'}
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary"
-          >
-            <Heart size={20} />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-                {wishlistCount}
-              </span>
-            )}
-          </button>
-          <Link
-            to="/profile"
-            title="Mon profil"
-            aria-label="Mon profil"
-            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-surface2 to-accentTint font-display text-xs font-bold text-textPrimary"
-          >
-            IO
-          </Link>
+        <div className="ml-auto">
+          <GlobalShortcuts />
         </div>
       </div>
     </header>

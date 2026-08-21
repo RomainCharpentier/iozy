@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { DesktopHeader } from './DesktopHeader'
+import { MobileHeader } from './MobileHeader'
 import { TabBar } from './TabBar'
 
 /** Point de bascule unique entre navigation mobile (TabBar, en bas, fixed) et
@@ -68,6 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <DesktopHeader />
+      <MobileHeader />
       <main className={`${CONTAINER_CLASS[width]} pt-6 pb-24 md:pb-10`}>{children}</main>
       <TabBar />
     </div>
