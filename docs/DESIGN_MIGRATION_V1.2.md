@@ -869,7 +869,7 @@ en SQL direct, aucun endpoint ne sachant supprimer une observation. Le **rendu**
 du bouton n'a pas été vu en direct : aucune analyse de l'historique n'a
 d'édition reconnue, et en produire une écrirait un historique indélébile en
 consommant du quota Gemini. Contrastes des nouveaux éléments mesurés dans les
-deux thèmes (7.4 à 16.3:1). Reste vert : 368 tests backend, `tsc -b`, `oxlint`,
+deux thèmes (7.4 à 16.3:1). Reste vert : 370 tests backend, `tsc -b`, `oxlint`,
 build de production, et sur 17 routes aucune erreur console, aucune requête en
 échec, aucun débordement horizontal.
 
@@ -883,6 +883,90 @@ dont le seul nom accessible vient d'un `title` (leur contenu est une
 de Ma collection, elles, portent leur titre en texte. Pas un échec franc, mais
 la forme la plus fragile ; à revoir avec le reste des surfaces purement
 visuelles plutôt qu'isolément.
+
+### Lot 28 — corps de requête invalides
+
+Le Lot 26 avait exercé les 46 écritures en cas passant, le Lot 27 en avait
+corrigé un cas isolé. Ce lot les reprend toutes **avec des corps invalides** :
+champs absents, identifiants inexistants, types erronés, UUID malformés, corps
+totalement absent. Attendu partout : un 400 ou un 404 lisible. Trouvé : quatre
+500, dont deux qui recrachaient la requête SQL et le nom d'une contrainte
+Postgres.
+
+Endpoints énumérés depuis l'OpenAPI de l'app (`/v3/api-docs`) plutôt qu'à la
+main - 46, le même total qu'au Lot 26. Exercés depuis un **type de collection
+dédié** avec ses propres œuvre, tome, possession, édition et Tier List, pour
+que les endpoints exigeant un identifiant existant soient réellement atteints
+sans toucher aux vraies données.
+
+**Deux NullPointerException.** `POST /relationships` sans corps utile
+déréférençait `sourceEntityId` dans le constructeur compact du record
+(`Cannot invoke "java.util.UUID.equals(Object)"`), et `POST
+/tier-lists/{id}/items` itérait sur un `entityIds` nul (`Cannot invoke
+"java.util.List.iterator()"`). Gardes ajoutées, dans le domaine pour la
+première (c'est un invariant de `Relationship` : une relation sans extrémité
+n'existe pas), dans le contrôleur pour la seconde (c'est la forme de la
+requête, pas une règle métier).
+
+**Deux contraintes de clé étrangère laissées seules en défense.** `POST
+/wishlist` et `POST /relationships` avec un identifiant d'œuvre inexistant
+mais bien formé descendaient jusqu'à Postgres, dont la violation remontait en
+500 avec l'`insert into ...` complet et le nom de la contrainte. Exactement le
+motif corrigé au Lot 26 pour la suppression d'édition, et exactement ce que
+`EditionUpgradeWishController` - qui référence lui aussi une Entity - fait
+correctement depuis toujours : vérifier avant d'écrire. Les deux contrôleurs
+s'alignent dessus.
+
+**Une œuvre inconnue ajoutée à une Tier List était ignorée en silence.**
+`addItems` faisait `entityRepository.findById(entityId).ifPresent(...)` :
+l'appelant recevait un 201 et une liste inchangée, en croyant avoir ajouté
+quelque chose. Désormais un 400 nommant l'identifiant. La distinction est
+volontaire : une œuvre **déjà présente** reste passée sous silence (idempotence
+assumée, la rajouter n'est pas une erreur), une œuvre **inconnue** est un défaut
+d'appel. Sans effet sur l'interface, qui n'envoie que des œuvres de la
+collection et désactive déjà son bouton sur une sélection vide.
+
+**Un refus incohérent.** `POST /experiences` répondait 404 pour une œuvre
+inconnue, là où `/loans`, `/wishlist`, `/edition-upgrade-wishes` et
+`/tier-lists/general` répondent 400 - l'endpoint existe, c'est le corps envoyé
+qui référence une œuvre absente. Le 404 avait de plus un effet de bord côté
+client, qui remplace tout message de 404 par un repli traduit (voir Lot 26) :
+la raison réelle n'arrivait jamais à l'écran. Aligné sur 400.
+
+**Ce qui allait déjà bien** : UUID malformé dans le chemin (400 "Invalid UUID
+string", via le handler d'`IllegalArgumentException`), type erroné dans le
+corps (400 "JSON parse error"), corps absent là où il est requis (400
+"Required request body is missing"), et les quatre endpoints que le Lot 27
+avait déjà couverts par le handler d'`InvalidDataAccessApiUsageException`
+(`quick-add`, `experiences`, `loans`, `edition-upgrade-wishes`).
+
+**Sept réponses 2xx sur corps vide, vérifiées et légitimes** : les `PATCH` de
+fusion (`/entities/{id}`, `/entities/{id}/variants/{vid}`,
+`/purchase-analysis/editions/{id}`, `/tier-lists/{id}`) sont des no-op quand
+tout est absent - vérifié explicitement sur une édition renseignée
+(éditeur/nb de tomes/prix intacts après un `PATCH {}`), ils ne remettent rien
+à zéro. `/ownerships/{id}/note` et `/purchase-analysis/{id}/purchase-price`
+effacent, ce qui est leur contrat documenté (`null` efface). `PUT
+/tier-lists/general/entities/{id}` déclasse, également documenté.
+
+**Non corrigé, décidé** : `POST /tags` avec `{"label": 42}` crée un tag "42",
+Jackson convertissant le nombre en chaîne. Le corriger demanderait de durcir la
+configuration de désérialisation pour toute l'API afin d'empêcher un utilisateur
+unique de nommer un tag avec un nombre - hors de proportion.
+
+**Trouvé au passage** : il n'existe **aucun endpoint de suppression pour les
+tags** (`POST /api/tags` et les rattachements à une œuvre, rien d'autre). Un tag
+créé par erreur est définitivement dans la base - le tag de test de ce lot a dû
+partir en SQL direct. Quatrième objet indélébile connu, après `experience`,
+`loan` et `purchase_analysis`.
+
+**Vérification** : les deux passes rejouées après reconstruction de l'image,
+zéro 500 sur les 46 écritures. 378 tests backend (+8 : `RelationshipTest` et
+`WishlistEntryTest`, tous deux nouveaux - les deux gardes de domaine n'avaient
+aucune couverture). Bac à sable démonté, chaque compteur de table revenu à
+l'identique (6 œuvres, 13 tomes, 9 possessions, 3 types, 0 tag, 2 expériences,
+6 éditions, 0 observation), préférences et réglage de partage inchangés au
+diff près. 11 routes rejouées côté web sans erreur console ni débordement.
 
 ### Note Lot 5 — résolue
 

@@ -35,6 +35,13 @@ public class WishlistEntry {
     }
 
     public static WishlistEntry add(UUID entityId, LocalDate addedAt) {
+        // Sans cette garde, un corps sans entityId descendait jusqu'à Hibernate,
+        // qui remontait sa violation de contrainte en 500 (Lot 28). Seule
+        // reconstitute() reste sans contrôle : elle relit ce que la base contient
+        // déjà, elle ne crée rien.
+        if (entityId == null) {
+            throw new IllegalArgumentException("Une entrée de wishlist doit référencer une œuvre");
+        }
         WishlistEntry entry = new WishlistEntry(UUID.randomUUID(), entityId, DefaultOwner.ID, addedAt);
         entry.pendingEvents.add(new EntityAddedToWishlist(entry.id, entityId, Instant.now()));
         return entry;

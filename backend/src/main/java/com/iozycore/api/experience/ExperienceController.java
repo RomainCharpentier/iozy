@@ -38,9 +38,15 @@ public class ExperienceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ExperienceResponse record(@RequestBody RecordExperienceRequest request) {
+        // 400 et non 404 : l'endpoint existe, c'est le CORPS envoyé qui référence
+        // une œuvre inconnue - même refus que /loans, /wishlist,
+        // /edition-upgrade-wishes et /tier-lists/general (Lot 28, mise en
+        // cohérence). Le 404 avait en outre un effet de bord côté client, qui
+        // remplace tout message de 404 par un repli traduit (voir Lot 26) : la
+        // raison réelle n'arrivait jamais à l'écran.
         Entity entity = entityRepository.findById(request.entityId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Entity introuvable : " + request.entityId()));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Entité introuvable : " + request.entityId()));
 
         EntityType entityType = entityTypeRepository.findById(entity.entityTypeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
