@@ -4,6 +4,7 @@ import com.iozycore.api.dto.WishlistDtos.AddToWishlistRequest;
 import com.iozycore.api.dto.WishlistDtos.LookupResponse;
 import com.iozycore.api.dto.WishlistDtos.ShareLinkResponse;
 import com.iozycore.api.dto.WishlistDtos.WishlistEntryResponse;
+import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,19 +29,30 @@ public class WishlistController {
     private final WishlistEntryRepository wishlistEntryRepository;
     private final OwnershipRepository ownershipRepository;
     private final WishlistShareSettingsRepository shareSettingsRepository;
+    private final EntityRepository entityRepository;
 
     public WishlistController(WishlistEntryRepository wishlistEntryRepository,
                                OwnershipRepository ownershipRepository,
-                               WishlistShareSettingsRepository shareSettingsRepository) {
+                               WishlistShareSettingsRepository shareSettingsRepository,
+                               EntityRepository entityRepository) {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.ownershipRepository = ownershipRepository;
         this.shareSettingsRepository = shareSettingsRepository;
+        this.entityRepository = entityRepository;
     }
 
     @Operation(summary = "Ajouter une Entity à la wishlist")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public WishlistEntryResponse add(@RequestBody AddToWishlistRequest request) {
+        // Sans ce contrôle, seule la contrainte de clé étrangère de Postgres
+        // protégeait la table : une œuvre inconnue remontait un 500 portant la
+        // requête SQL et le nom de la contrainte (Lot 28), là où
+        // EditionUpgradeWishController - qui référence lui aussi une Entity -
+        // répond depuis toujours un 400 lisible.
+        entityRepository.findById(request.entityId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Entité introuvable : " + request.entityId()));
         WishlistEntry entry = WishlistEntry.add(request.entityId(), LocalDate.now());
         return WishlistEntryResponse.from(wishlistEntryRepository.save(entry));
     }

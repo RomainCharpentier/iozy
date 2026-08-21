@@ -14,6 +14,15 @@ public record Relationship(
         String relationshipType
 ) {
     public Relationship {
+        // Avant ces deux gardes, un corps de requête incomplet arrivait jusqu'au
+        // .equals() ci-dessous et remontait une NullPointerException en 500
+        // ("Cannot invoke java.util.UUID.equals(Object)") - voir Lot 28.
+        if (sourceEntityId == null) {
+            throw new IllegalArgumentException("Une relation doit avoir une Entity source");
+        }
+        if (targetEntityId == null) {
+            throw new IllegalArgumentException("Une relation doit avoir une Entity cible");
+        }
         if (sourceEntityId.equals(targetEntityId)) {
             throw new IllegalArgumentException("Une Entity ne peut pas être en relation avec elle-même");
         }

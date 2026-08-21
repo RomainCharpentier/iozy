@@ -155,9 +155,23 @@ public class TierListController {
     @ResponseStatus(HttpStatus.CREATED)
     public TierListDetailResponse addItems(@PathVariable UUID id, @RequestBody AddTierListItemsRequest request) {
         requireTierList(id);
+        // Sans cette garde, un corps sans entityIds remontait une
+        // NullPointerException en 500 sur le for ci-dessous ("Cannot invoke
+        // java.util.List.iterator()") - voir Lot 28.
+        if (request.entityIds() == null || request.entityIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucune œuvre à ajouter");
+        }
         for (UUID entityId : request.entityIds()) {
+            // Déjà présente : passée sous silence, c'est une idempotence voulue
+            // (rajouter une œuvre déjà là n'est pas une erreur de l'appelant).
             if (tierListItemRepository.findByTierListIdAndEntityId(id, entityId).isPresent()) continue;
-            entityRepository.findById(entityId).ifPresent(e -> tierListItemRepository.save(TierListItem.add(id, entityId)));
+            // Inconnue : refusée, jamais ignorée. Un ifPresent() renvoyait un 201
+            // avec une liste inchangée - l'appelant croyait avoir ajouté une œuvre
+            // qui n'existe pas (Lot 28).
+            entityRepository.findById(entityId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Entité introuvable : " + entityId));
+            tierListItemRepository.save(TierListItem.add(id, entityId));
         }
         return detail(id);
     }
