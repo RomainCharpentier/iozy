@@ -12,9 +12,9 @@ export function listAllOwnerships(): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>('/ownerships')
 }
 
-/** Suppression définitive (contrairement à markSold/markLost, des changements de
- * statut réversibles) - bloquée côté backend si un prêt référence encore cet
- * exemplaire (voir OwnershipDeletionService), même celui-ci déjà rendu. */
+/** Suppression définitive, contrairement à markSold/markLost qui ne changent que
+ * le statut. Le backend peut la refuser en 409 ; son message est affiché tel
+ * quel. */
 export function deleteOwnership(id: string): Promise<void> {
   return del<void>(`/ownerships/${id}`)
 }

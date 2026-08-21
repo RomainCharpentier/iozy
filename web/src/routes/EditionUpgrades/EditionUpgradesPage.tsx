@@ -7,7 +7,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 /** "Je possède déjà cette série, mais je recherche une meilleure édition
  * pour la remplacer" - toutes les envies d'amélioration, tous propriétaires
  * confondus (voir EditionUpgradeWishController.all côté backend), même
- * patron que LoansPage. */
+ * patron que les autres listes de Profil. */
 export function EditionUpgradesPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()

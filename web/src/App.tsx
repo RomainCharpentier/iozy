@@ -14,7 +14,6 @@ import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysis
 import { ProfilePage } from './routes/Profile/ProfilePage'
 import { ImportBggPage } from './routes/Profile/ImportBggPage'
 import { AdministrationPage } from './routes/Profile/AdministrationPage'
-import { LoansPage } from './routes/Loans/LoansPage'
 import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
 import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
 import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
@@ -58,7 +57,6 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/import-bgg" element={<ImportBggPage />} />
               <Route path="/administration" element={<AdministrationPage />} />
-              <Route path="/loans" element={<LoansPage />} />
               <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
               <Route path="/suggestions" element={<SuggestionsPage />} />
               <Route path="/recap" element={<CollectionRecapPage />} />
