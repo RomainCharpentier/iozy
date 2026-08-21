@@ -196,11 +196,11 @@ export function PurchaseAnalysisResultCard({
           type="button"
           onClick={() => wishlist.addMany(knownEntityIds)}
           disabled={knownEntityIds.length === 0 || wishlist.isPending}
-          title={knownEntityIds.length === 0 ? "Aucune série de ce lot n'est encore dans ta collection/wishlist" : undefined}
+          title={knownEntityIds.length === 0 ? "Aucune série de ce lot n'est encore dans ta collection ni dans tes envies" : undefined}
           className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
           <Heart size={15} />
-          Ajouter à ma wishlist
+          Ajouter à mes envies
         </button>
         <Link
           to="/purchase-analysis/history"

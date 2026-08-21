@@ -29,7 +29,7 @@ export function StatsPage() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard value={String(statsQuery.data.totalEntities)} label="Entités" />
             <StatCard value={String(statsQuery.data.totalActiveOwnerships)} label="Possédés" />
-            <StatCard value={String(statsQuery.data.wishlistCount)} label="Wishlist" />
+            <StatCard value={String(statsQuery.data.wishlistCount)} label="Envies" />
             <StatCard value={String(statsQuery.data.experiencesThisYear)} label="Expériences cette année" />
           </div>
 

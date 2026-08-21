@@ -704,8 +704,13 @@ envie.
 
 ### 52. Ajouter une œuvre à ses envies
 **Points de départ** (depuis le 2026-08-21) :
-- **fiche d'une œuvre**, à côté d'« Évaluer une annonce » — là où la décision
-  « je le veux » se prend ;
+- **fiche d'une œuvre**, quel que soit son type et qu'elle soit possédée ou non
+  — là où la décision « je le veux » se prend. Le bouton vivait jusqu'au
+  2026-08-21 dans la branche « manga avec une édition affichée », si bien qu'il
+  manquait exactement là où on le cherche : sur la fiche d'une œuvre justement
+  SOUHAITÉE (aucun tome, donc aucune édition affichée) et sur toute fiche
+  non-manga. Une œuvre en envies pouvait ainsi ouvrir sa fiche sans que rien
+  n'indique qu'elle y était, ni ne permette de l'en retirer ;
 - **résultat de recherche local** (bloc « Déjà dans IozyCore »), possédé ou non ;
 - **suggestion externe d'une recherche**, même si l'œuvre est totalement
   inconnue d'IozyCore ;
@@ -1190,7 +1195,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-6 — Trois libellés pour la même idée de valeur.** « Valeur » (bouton de Ma collection) mène à `/stats`, intitulé « Statistiques », qui contient une section « Valeur de la collection » ; Profil affiche « Valeur estimée ».
 
-**UX-7 — « Envies » et « Wishlist » cohabitent.** La navigation et Profil disent « Envies » ; le titre de l'écran dit « Wishlist » ; le bouton de l'analyse dit « Ajouter à ma wishlist » ; « Envies d'amélioration » désigne encore autre chose (les éditions).
+**UX-7 — ~~« Envies » et « Wishlist » cohabitent~~ — RÉSOLU (2026-08-21).** Tout ce qui est visible à l'écran dit désormais « Envies » : le titre de l'écran, la carte des statistiques, le bouton du résultat d'analyse et son infobulle. Le mot « wishlist » ne subsiste que dans des identifiants techniques (routes, clés de cache, noms de types), jamais sous les yeux de l'utilisateur. « Envies d'amélioration » désigne toujours autre chose (les éditions) - c'est un troisième objet, pas une variante de nom.
 
 **UX-8 — Retours arrière hétérogènes.** Les boards Tier Lists reviennent toujours vers `/tier-lists`, même ouverts depuis Découvrir ; le détail d'une analyse revient vers l'historique ; un rayon revient vers Ma collection. Aucun de ces retours n'utilise l'historique du navigateur, ce qui rend le bouton « précédent » parfois incohérent avec le bouton de l'écran.
 
