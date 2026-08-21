@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import com.iozycore.insights.CollectionProgress;
+import com.iozycore.insights.CollectionProgressService;
+
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -44,6 +47,7 @@ public class PurchaseAnalysisService {
     private final OwnershipRepository ownershipRepository;
     private final AiEditionAdvisor aiEditionAdvisor;
     private final AiMarketPriceAdvisor aiMarketPriceAdvisor;
+    private final CollectionProgressService progressService;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -56,7 +60,8 @@ public class PurchaseAnalysisService {
                                     EntityTypeRepository entityTypeRepository,
                                     OwnershipRepository ownershipRepository,
                                     AiEditionAdvisor aiEditionAdvisor,
-                                    AiMarketPriceAdvisor aiMarketPriceAdvisor) {
+                                    AiMarketPriceAdvisor aiMarketPriceAdvisor,
+                                    CollectionProgressService progressService) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -66,6 +71,7 @@ public class PurchaseAnalysisService {
         this.ownershipRepository = ownershipRepository;
         this.aiEditionAdvisor = aiEditionAdvisor;
         this.aiMarketPriceAdvisor = aiMarketPriceAdvisor;
+        this.progressService = progressService;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
 
@@ -299,13 +305,18 @@ public class PurchaseAnalysisService {
 
         List<NearCompleteSuggestion> suggestions = new ArrayList<>();
         for (Entity entity : mangaEntities) {
-            // groupVolumesByEdition sert uniquement à découvrir quelles éditions existent
-            // (à partir des Variant catalogués, quelle que soit leur Ownership) - jamais
-            // à mesurer la possession elle-même, voir findOwnedVolumeNumbers ci-dessous.
-            for (Map.Entry<String, Set<Integer>> group : groupVolumesByEdition(entity).entrySet()) {
-                String editionName = group.getKey();
-                Set<Integer> cataloguedVolumes = group.getValue();
-                Set<Integer> ownedVolumes = findOwnedVolumeNumbers(entity.id(), editionName);
+            // Les groupes et le possédé viennent de CollectionProgressService, source
+            // unique de la progression : ce moteur les recalculait pour son compte et
+            // ignorait les tomes sans édition précisée, d'où une série annoncée 2/72
+            // ici et 3/72 sur Ma collection (audit du 2026-08-21, Lot 31).
+            for (CollectionProgress.EditionProgress group : progressService.compute(entity.id())
+                    .map(CollectionProgress::editions).orElse(List.of())) {
+                String editionName = group.editionName();
+                if (editionName.isEmpty()) {
+                    continue; // sans édition nommée, rien à confronter à manga_edition
+                }
+                Set<Integer> cataloguedVolumes = new TreeSet<>(group.cataloguedVolumeNumbers());
+                Set<Integer> ownedVolumes = new TreeSet<>(group.ownedVolumeNumbers());
                 CollectionStatus status = computeCompleteness(entity.id(), entity.title(), editionName, ownedVolumes, cataloguedVolumes);
                 if (status.isKnown() && !status.isComplete()) {
                     suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), editionName,

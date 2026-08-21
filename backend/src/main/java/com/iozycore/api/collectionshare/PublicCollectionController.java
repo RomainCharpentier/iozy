@@ -10,6 +10,8 @@ import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.collectionshare.CollectionShareSettings;
+import com.iozycore.insights.CollectionProgress;
+import com.iozycore.insights.CollectionProgressService;
 import com.iozycore.domain.collectionshare.CollectionShareSettingsRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -64,6 +66,7 @@ public class PublicCollectionController {
     private final MangaEditionRepository mangaEditionRepository;
     private final TierListRepository tierListRepository;
     private final TierListService tierListService;
+    private final CollectionProgressService progressService;
 
     public PublicCollectionController(CollectionShareSettingsRepository shareSettingsRepository,
                                        EntityRepository entityRepository,
@@ -71,7 +74,8 @@ public class PublicCollectionController {
                                        OwnershipRepository ownershipRepository,
                                        MangaEditionRepository mangaEditionRepository,
                                        TierListRepository tierListRepository,
-                                       TierListService tierListService) {
+                                       TierListService tierListService,
+                                       CollectionProgressService progressService) {
         this.shareSettingsRepository = shareSettingsRepository;
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
@@ -79,6 +83,7 @@ public class PublicCollectionController {
         this.mangaEditionRepository = mangaEditionRepository;
         this.tierListRepository = tierListRepository;
         this.tierListService = tierListService;
+        this.progressService = progressService;
     }
 
     @Operation(summary = "Collection partagée en lecture seule via un jeton - 404 si le lien n'existe pas ou a été "
@@ -88,6 +93,8 @@ public class PublicCollectionController {
         CollectionShareSettings settings = shareSettingsRepository.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
 
+        Map<UUID, CollectionProgress> progressByEntity = progressService.computeAll().stream()
+                .collect(Collectors.toMap(CollectionProgress::entityId, p -> p));
         Map<UUID, List<Ownership>> activeByEntity = ownershipRepository.findAll().stream()
                 .filter(Ownership::isActive)
                 .collect(Collectors.groupingBy(Ownership::entityId));
@@ -96,7 +103,7 @@ public class PublicCollectionController {
         for (EntityType type : entityTypeRepository.findAll()) {
             List<SharedCollectionItem> items = entityRepository.findAllByType(type.id()).stream()
                     .filter(entity -> activeByEntity.containsKey(entity.id()))
-                    .map(entity -> toItem(entity, activeByEntity.get(entity.id())))
+                    .map(entity -> toItem(entity, progressByEntity.get(entity.id())))
                     .sorted(Comparator.comparing(SharedCollectionItem::title, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
             // Univers sans rien de possédé : absent, jamais une section vide
@@ -109,80 +116,29 @@ public class PublicCollectionController {
         return new SharedCollectionResponse(universes, settings.sharesTierLists() ? sharedTierLists() : null);
     }
 
-    private SharedCollectionItem toItem(Entity entity, List<Ownership> activeOwnerships) {
-        Map<UUID, Variant> variantsById = entity.variants().stream()
-                .collect(Collectors.toMap(Variant::id, v -> v));
-
-        // flatMap(Optional::stream) et non filter(nonNull) : variantId() renvoie
-        // un Optional, et Map.get(Object) aurait accepté cet Optional comme clé
-        // sans erreur de compilation - en renvoyant null pour tout le monde
-        // (trouvé en vérifiant la vue publique sur des données réelles, qui
-        // annonçait 0 tome possédé pour une série qui en a bien un).
-        List<Variant> ownedVariants = activeOwnerships.stream()
-                .map(Ownership::variantId)
-                .flatMap(Optional::stream)
-                .map(variantsById::get)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // Tomes DISTINCTS : deux exemplaires du même tome ne font pas
-        // "2 tomes possédés" - c'est une progression, pas un inventaire.
-        Set<Integer> ownedVolumes = ownedVariants.stream()
-                .map(v -> intAttribute(v.attributes().get(VOLUME_NUMBER)))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(TreeSet::new));
-
-        List<String> editions = ownedVariants.stream()
-                .map(v -> v.attributes().get(EDITION))
-                .filter(value -> value instanceof String s && !s.isBlank())
-                .map(value -> ((String) value).trim())
-                .distinct()
+    /**
+     * Ne calcule plus rien : la progression vient de CollectionProgressService,
+     * source unique depuis le Lot 31. Cette méthode avait sa propre version des
+     * règles (éditions déduites des tomes POSSÉDÉS, total pris sur la première
+     * édition renseignée), qui donnait ici de meilleurs chiffres que Ma
+     * collection - deux réponses différentes à la même question, sur les mêmes
+     * données.
+     */
+    private SharedCollectionItem toItem(Entity entity, CollectionProgress progress) {
+        List<String> editions = progress.editions().stream()
+                .filter(e -> !e.editionName().isEmpty() && e.ownedCount() > 0)
+                .map(CollectionProgress.EditionProgress::editionName)
                 .sorted()
                 .collect(Collectors.toList());
 
+        // Le total n'a de sens que rattaché à UNE édition : quand plusieurs sont
+        // réellement collectionnées, la progression reste sans total plutôt que
+        // d'en choisir une au hasard (voir dominantEdition).
+        Integer totalVolumes = progress.dominantEdition() == null ? null : progress.dominantEdition().totalVolumes();
+
         Object cover = entity.attributes().get(COVER_IMAGE_URL);
         return new SharedCollectionItem(entity.title(), cover instanceof String url ? url : null, editions,
-                ownedVolumes.size(), totalVolumesFor(entity, editions));
-    }
-
-    /**
-     * Total de tomes de l'édition possédée - la même source que la fiche
-     * (MangaEdition, donnée de référence saisie/validée), PAS l'attribut
-     * {@code totalVolumes} de la Série, qui vient d'un fournisseur externe et
-     * n'existe pas toujours. Le total dépend de l'ÉDITION (une Perfect
-     * Edition n'a pas le même nombre de tomes que l'édition standard). Se
-     * rabattre sur l'attribut totalVolumes de la Série (fournisseur externe)
-     * ferait dire à cette page publique "3/6" là où la fiche du propriétaire
-     * dit, à raison, que le total de cette édition est inconnu - constaté en
-     * comparant les deux sur des données réelles. null = progression
-     * simplement pas affichée, jamais un total deviné.
-     */
-    private Integer totalVolumesFor(Entity entity, List<String> editions) {
-        for (String editionName : editions) {
-            Optional<MangaEdition> edition = mangaEditionRepository.findByEntityIdAndEditionName(entity.id(), editionName);
-            if (edition.isPresent() && edition.get().totalVolumes() != null) {
-                return edition.get().totalVolumes();
-            }
-        }
-        return null;
-    }
-
-    /** Les attributs sont un sac non typé (voir Entity.attributes) : un même
-     * champ peut arriver en Integer d'un fournisseur et en String d'un autre -
-     * null si la valeur n'est pas un entier exploitable, jamais une exception
-     * qui ferait tomber toute la vue publique. */
-    private static Integer intAttribute(Object value) {
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Integer.parseInt(text.trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
+                progress.ownedVolumeCount(), totalVolumes);
     }
 
     private SharedTierLists sharedTierLists() {
