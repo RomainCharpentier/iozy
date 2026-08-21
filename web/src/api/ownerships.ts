@@ -23,6 +23,12 @@ export function markSold(id: string): Promise<OwnershipResponse> {
   return post<OwnershipResponse>(`/ownerships/${id}/sell`)
 }
 
+/** Remet en possession un exemplaire vendu ou perdu - sert l'action « Annuler »
+ * proposée juste après. */
+export function restoreOwnership(id: string): Promise<OwnershipResponse> {
+  return post<OwnershipResponse>(`/ownerships/${id}/restore`)
+}
+
 export function markLost(id: string): Promise<OwnershipResponse> {
   return post<OwnershipResponse>(`/ownerships/${id}/lose`)
 }

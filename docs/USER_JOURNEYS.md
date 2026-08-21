@@ -30,12 +30,11 @@ mobile (`DesktopHeader.PRIMARY` et `TabBar.TABS`, maintenues en miroir) :
 Tout le reste est atteint par des **raccourcis** ou depuis l'espace auquel il
 appartient :
 
-- **Envies** — icône cœur du header desktop (avec badge de compte). **Aucun
-  accès en mobile** : c'est le seul lien de toute l'application vers
-  `/wishlist` (voir §12.1).
-- **Profil** — avatar « IO » du header desktop. **Aucun accès en mobile** non
-  plus, et avec lui disparaissent Paramètres, Administration, le bilan annuel,
-  les prêts et les deux partages (voir §12.1).
+- **Envies** — icône cœur, avec badge de compte, dans l'en-tête **desktop et
+  mobile** (`GlobalShortcuts`, partagé par les deux en-têtes).
+- **Profil** — avatar « IO », même en-tête, mêmes deux plateformes. Ces deux
+  accès n'existaient que sur desktop jusqu'au 2026-08-21 ; `MobileHeader` les
+  rétablit sans toucher à la barre du pouce, qui garde ses trois destinations.
 - **Scan** — bouton dédié dans la barre du pouce (mobile) et lien « Scanner »
   en tête de Rechercher (les deux plateformes).
 - **Paramètres** → depuis Profil. **Administration** → depuis Paramètres.
@@ -213,14 +212,17 @@ prix alimente la valeur de collection. Vider le champ efface la donnée.
 **Backend** : `PATCH /ownerships/{id}/purchase-price`, `/note`
 **Statut** : `COMPLET`
 
-### 16. Prêter un exemplaire et le récupérer
-**Étapes** : menu « … » ▸ Prêter → nom de l'emprunteur → OK. Plus tard :
-« Marquer rendu », depuis la fiche ou depuis Profil ▸ Prêts en cours.
-**Résultat** : « Prêté à X depuis le … » sur l'exemplaire ; le prêt apparaît
-dans la liste des prêts en cours.
-**Écrans** : `OwnershipDetails`, `LoansPage`
-**Backend** : `POST /loans`, `POST /loans/{id}/return`, `GET /loans/active`
-**Statut** : `COMPLET`
+### 16. ~~Prêter un exemplaire~~ — retiré du produit (2026-08-21)
+La gestion des prêts ne fait plus partie du périmètre. « Prêter », « Marquer
+rendu » et l'écran `/loans` ont été retirés de l'interface.
+**À savoir** : `/loans` n'était de toute façon **lié depuis aucun écran** — la
+page existait sans chemin d'accès, et la première version de cet audit la
+présentait à tort comme atteignable depuis Profil.
+**Backend laissé intact** : `LoanController`, le domaine et la table `loan`
+restent en place. `OwnershipDeletionService` s'en sert encore pour refuser la
+suppression d'un exemplaire encore prêté ; ce refus, s'il survenait, resterait
+affiché avec son message.
+**Statut** : `RETIRÉ`
 
 ### 17. Marquer un exemplaire vendu ou perdu
 **Étapes** : menu « … » ▸ « Marquer vendu » ou « Marquer perdu ».
@@ -552,13 +554,27 @@ envie.
 **Backend** : `GET /wishlist`, `DELETE /wishlist/{id}`
 **Statut** : `COMPLET`
 
-### 52. Ajouter à ses envies
-**Réalité** : **un seul point d'entrée** — le bouton « Ajouter à ma wishlist »
-du résultat d'analyse d'achat (parcours 40). Il n'existe **aucun bouton
-« ajouter aux envies » depuis la fiche d'une œuvre, depuis la recherche, depuis
-le scan ni depuis les opportunités**.
-**Statut** : `PARTIEL` — la wishlist est consultable et vidable, mais quasiment
-impossible à remplir (voir §UX-2).
+### 52. Ajouter une œuvre à ses envies
+**Points de départ** (depuis le 2026-08-21) :
+- **fiche d'une œuvre**, à côté d'« Évaluer une annonce » — là où la décision
+  « je le veux » se prend ;
+- **résultat de recherche déjà possédé** (bloc « Déjà dans ta collection ») ;
+- **menu du scan**, quand l'œuvre identifiée est déjà dans la collection ;
+- **résultat d'une analyse d'achat**, qui ajoute d'un coup toutes les séries
+  connues du lot.
+
+**Résultat** : le bouton passe à « Dans vos envies », le badge de l'en-tête
+s'incrémente, et un message « Ajouté aux envies » propose **Annuler**.
+**Réversibilité** : réelle dans les deux sens — annuler un ajout supprime
+l'entrée créée, annuler un retrait la recrée.
+**Branches** : une œuvre **absente de la collection** ne peut pas être mise en
+envies — `POST /wishlist` exige un `entityId` et aucune API ne crée une fiche
+sans possession. Les candidats externes d'une recherche et les scans inconnus
+n'ont donc pas ce bouton. Les Opportunités non plus : ce sont par définition des
+séries déjà possédées.
+**Écrans** : `WishlistToggle`, `useWishlist` (source unique), `Toast`
+**Backend** : `POST /wishlist`, `DELETE /wishlist/{id}`
+**Statut** : `COMPLET`
 
 ### 53. Partager sa liste d'envies
 **Étapes** : Envies ▸ Générer un lien → copier → (régénérer) → supprimer.
@@ -595,13 +611,7 @@ auteur le plus présent.
 **Écrans** : `CollectionRecapPage`
 **Statut** : `COMPLET` — export statique, **aucun lien public**.
 
-### 57. Consulter ses prêts en cours
-**Point de départ** : Profil ▸ Prêts en cours
-**Étapes** : voir les prêts actifs, ouvrir la fiche, « Marquer rendu ».
-**Branches** : aucun prêt → écran vide (aucun contrôle).
-**Statut** : `COMPLET`
-
-### 58. Changer l'apparence et l'ordre des titres
+### 57. Changer l'apparence et l'ordre des titres
 **Étapes** : Paramètres ▸ interrupteur **Thème sombre** ; cocher/ordonner
 (glisser-déposer) les langues de titre (français, romaji, anglais).
 **Résultat** : thème appliqué immédiatement et persisté ; l'ordre des langues
@@ -609,7 +619,7 @@ décide du titre affiché partout.
 **Écrans** : `SettingsPage`, `titleLanguage.ts`
 **Statut** : `COMPLET`
 
-### 59. Gérer les types de collection
+### 58. Gérer les types de collection
 **Point de départ** : Ma collection ▸ Plus d'outils, **ou** Administration
 **Étapes** : créer un type (code, libellé, couleur, icône, format de jaquette,
 champs personnalisés, types d'expérience), le modifier, le supprimer.
@@ -619,7 +629,7 @@ créé à la main n'a **aucune source externe** (ni recherche, ni scan) — anno
 **Écrans** : `EntityTypesPage`, `EntityTypeFormPage`
 **Statut** : `COMPLET`
 
-### 60. Consulter et nettoyer les éditions de référence
+### 59. Consulter et nettoyer les éditions de référence
 **Point de départ** : Administration ▸ Éditions de référence
 **Étapes** : parcourir par série, ouvrir la série, supprimer une édition.
 **Branches** : suppression refusée en 409 lisible si des tomes ou des prix
@@ -628,7 +638,7 @@ renseigner se fait depuis la fiche.
 **Écrans** : `EditionsPage`
 **Statut** : `COMPLET`
 
-### 61. Exporter sa collection
+### 60. Exporter sa collection
 **Étapes** : Administration ▸ Télécharger en JSON ou en CSV (.zip).
 **Résultat** : œuvres, tomes, possessions, expériences, envies, relations, tags,
 **éditions de référence, classements, Tier Lists et envies d'amélioration** —
@@ -642,7 +652,7 @@ collectionneur, jetons de partage.
 
 ## 11. Parcours — Pages publiques (visiteur sans compte)
 
-### 62. Consulter une collection partagée
+### 61. Consulter une collection partagée
 **Résultat** : univers, œuvres, éditions possédées, progression X/Y, et les Tier
 Lists **si et seulement si** le propriétaire a activé l'interrupteur.
 **Branches** : jeton inconnu, malformé, révoqué ou d'une autre fonctionnalité →
@@ -650,7 +660,7 @@ Lists **si et seulement si** le propriétaire a activé l'interrupteur.
 existé.
 **Statut** : `COMPLET`
 
-### 63. Consulter une liste d'envies partagée
+### 62. Consulter une liste d'envies partagée
 **Résultat** : titre et jaquette seulement. Mêmes garanties de jeton.
 **Statut** : `COMPLET`
 
@@ -668,20 +678,25 @@ Le point de bascule est **768 px** (`AppShell.NAV_BREAKPOINT_PX`). Les deux navi
 | Menu du scan | Boîte centrée 360 px | Bottom-sheet pleine largeur |
 | Classer sur un board | Clic **ou glisser-déposer** vers une ligne de rang | Clic uniquement — **pas de glisser-déposer** |
 | Découvrir | Les 3 panneaux côte à côte au-delà de 1100 px | Un onglet à la fois |
-| **Accès à Profil** | Avatar « IO » du header | **Aucun** |
-| **Accès à Envies** | Cœur du header, avec badge | **Aucun** |
+| Accès à Profil | Avatar « IO » du header | Avatar de `MobileHeader` |
+| Accès à Envies | Cœur du header, avec badge | Cœur de `MobileHeader`, même badge |
 
-### 12.1. Une zone entière inaccessible en mobile — vérifié à 375 px
+### 12.1. Accès mobile — rétabli le 2026-08-21
 
-`/profile` et `/wishlist` ne sont liés **que** depuis `DesktopHeader`, masqué en dessous de 768 px (`hidden md:block`). La barre du pouce ne compte que trois destinations plus le raccourci Scan. Il n'existe aucun autre lien vers ces deux routes dans tout `web/src` (vérifié par recherche exhaustive, puis à l'écran sur cinq routes à 375 px).
+`/profile` et `/wishlist` n'étaient liés que depuis `DesktopHeader`
+(`hidden md:block`) : sous 768 px, dix parcours n'avaient **aucun chemin
+d'accès**, alors que les écrans existaient et fonctionnaient.
 
-**Conséquence** : sur téléphone, tout ce qui suit n'a **aucun chemin d'accès**, alors que les écrans existent et fonctionnent :
+`MobileHeader` (nom de l'app + cœur + avatar) rétablit ces deux accès, et avec
+eux Paramètres, Administration, l'export, le bilan annuel, les éditions de
+référence et les deux liens de partage. La navigation globale n'a pas bougé :
+la barre du pouce garde **strictement** ses trois destinations plus le
+raccourci Scan — Envies et Profil ne sont pas des destinations pairs.
 
-`/profile` · `/wishlist` · `/settings` · `/administration` · `/editions` · `/recap` · `/loans` · `/edition-upgrades` · partage de la collection · partage de la liste d'envies · thème et langues de titre · export.
-
-Restent atteignables en mobile : Ma collection et tous les parcours de la fiche, Rechercher, Scan, Analyse d'achat et son historique, Découvrir, Tier Lists, Opportunités, `/stats` (via « Valeur »), `/types` et `/import-bgg` (via la barre d'outils de Ma collection).
-
-C'est l'écart le plus structurant relevé par cet audit, sur une application dont la barre basse est explicitement pensée « pour le pouce ».
+Vérifié à **375, 390 et 430 px** : cœur et avatar présents, chaîne complète
+parcourue (Cœur → Envies → retour ; Avatar → Profil → Paramètres →
+Administration → liens d'export), les deux « Générer un lien » atteignables,
+aucun débordement horizontal. Desktop inchangé.
 
 ---
 
@@ -721,9 +736,8 @@ C'est l'écart le plus structurant relevé par cet audit, sur une application do
 | Ajouter à une Tier List | Oui — « Retirer de cette Tier List » |
 | Ajouter aux envies | Oui — retirer depuis Envies |
 | Envie d'amélioration | Oui — « Annuler » / « Retirer » |
-| Prêt | Oui — « Marquer rendu » |
 | Lien de partage | Oui — supprimer le lien |
-| **Marquer vendu / perdu** | **Non** — aucun endpoint ne restaure `OWNED` |
+| Marquer vendu / perdu | **Oui** — « Annuler » dans le message qui suit l'action (`POST /ownerships/{id}/restore`, ajouté le 2026-08-21) ; réversible aussi ensuite, l'exemplaire restant visible sous « Exemplaires passés » |
 | **Expérience enregistrée** | **Non** — aucun endpoint de suppression |
 | **Relation créée** | **Non** — aucun endpoint de suppression |
 | **Analyse d'achat** | **Non** — l'historique ne se supprime pas |
@@ -743,7 +757,6 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 | Écran | Comportement actuel | Nature |
 |---|---|---|
 | Découvrir ▸ Prochaines sorties | Explique qu'aucune source ne fournit de date fiable par tome | Vide assumé et motivé — pas un faux-fini |
-| Profil ▸ Prêts en cours | Vide tant qu'aucun prêt n'existe | État vide normal |
 | Profil ▸ Envies d'amélioration | Vide tant qu'aucune envie n'existe | État vide normal |
 | Envies | Presque toujours vide, faute de point d'entrée pour la remplir | **Conséquence de UX-2**, pas un état vide normal |
 
@@ -807,17 +820,17 @@ IozyCore
 │   └── Tier Lists (/tier-lists) → 45 écran · 46 créer · 47 classer
 │                                  48 classement rapide · 49 gérer · 50 partager
 │
-├── Envies  (/wishlist)                                    [mobile : INACCESSIBLE]
+├── Envies  (/wishlist)                                    [mobile : OK]
 │   └── 51 Consulter/retirer · 52 Ajouter (1 seul point d'entrée) · 53 Partager
 │
-├── Profil  (/profile)                                     [mobile : INACCESSIBLE]
-│   ├── 54 Profil · 55 Partager la collection · 56 Bilan annuel · 57 Prêts
-│   └── Paramètres (/settings)                             [mobile : INACCESSIBLE]
-│       ├── 58 Thème et langues
-│       └── Administration (/administration)               [mobile : INACCESSIBLE]
-│           └── 59 Types (aussi via Ma collection) · 60 Éditions · 61 Export
+├── Profil  (/profile)                                     [mobile : OK]
+│   ├── 54 Profil · 55 Partager la collection · 56 Bilan annuel
+│   └── Paramètres (/settings)                             [mobile : OK]
+│       ├── 57 Thème et langues
+│       └── Administration (/administration)               [mobile : OK]
+│           └── 58 Types (aussi via Ma collection) · 59 Éditions · 60 Export
 │
-└── Pages publiques (hors AppShell)   → 62 collection partagée · 63 envies partagées
+└── Pages publiques (hors AppShell)   → 61 collection partagée · 62 envies partagées
 ```
 
 ---
@@ -841,7 +854,7 @@ IozyCore
 | 13 | Ajouter un tome manquant | Fiche d'une œuvre | COMPLET | Drawer | Sheet |
 | 14 | Ajouter un tome à la main | Fiche d'une œuvre | COMPLET | oui | oui |
 | 15 | Gérer un exemplaire possédé (prix, note) | Fiche d'une œuvre | COMPLET | oui | oui |
-| 16 | Prêter un exemplaire et le récupérer | Fiche d'une œuvre | COMPLET | oui | oui |
+| 16 | ~~Prêter un exemplaire~~ | — | **RETIRÉ** | — | — |
 | 17 | Marquer un exemplaire vendu ou perdu | Fiche d'une œuvre | COMPLET | oui | oui |
 | 18 | Supprimer définitivement un exemplaire | Fiche d'une œuvre | COMPLET | oui | oui |
 | 19 | Corriger la jaquette d'un tome | Fiche d'une œuvre | COMPLET | oui | oui |
@@ -875,39 +888,42 @@ IozyCore
 | 47 | Classer une œuvre depuis un board | Tier Lists | COMPLET | Clic + glisser-déposer | Clic seul |
 | 48 | Classer rapidement une file d'œuvres | Tier Lists | COMPLET | oui | oui |
 | 49 | Gérer une Tier List personnalisée | Tier Lists | COMPLET | oui | oui |
-| 50 | Partager ses Tier Lists | Tier Lists | PARTIEL | oui | **non** |
-| 51 | Consulter et gérer ses envies | Envies | COMPLET | oui | **non** |
-| 52 | Ajouter à ses envies | Envies | PARTIEL | oui | oui |
-| 53 | Partager sa liste d'envies | Envies | COMPLET | oui | **non** |
-| 54 | Consulter son profil | Profil | COMPLET | oui | **non** |
-| 55 | Partager sa collection | Profil | COMPLET | oui | **non** |
-| 56 | Générer le bilan annuel | Profil | COMPLET | oui | **non** |
-| 57 | Consulter ses prêts en cours | Profil | COMPLET | oui | **non** |
-| 58 | Changer l'apparence et l'ordre des titres | Paramètres / Administration | COMPLET | oui | **non** |
-| 59 | Gérer les types de collection | Paramètres / Administration | COMPLET | oui | oui |
-| 60 | Consulter et nettoyer les éditions de référence | Paramètres / Administration | COMPLET | oui | **non** |
-| 61 | Exporter sa collection | Paramètres / Administration | COMPLET | oui | **non** |
-| 62 | Consulter une collection partagée | Lien public | COMPLET | oui | oui |
-| 63 | Consulter une liste d'envies partagée | Lien public | COMPLET | oui | oui |
+| 50 | Partager ses Tier Lists | Tier Lists | PARTIEL | oui | oui |
+| 51 | Consulter et gérer ses envies | Envies | COMPLET | oui | oui |
+| 52 | Ajouter une œuvre à ses envies | Envies | COMPLET | oui | oui |
+| 53 | Partager sa liste d'envies | Envies | COMPLET | oui | oui |
+| 54 | Consulter son profil | Profil | COMPLET | oui | oui |
+| 55 | Partager sa collection | Profil | COMPLET | oui | oui |
+| 56 | Générer le bilan annuel | Profil | COMPLET | oui | oui |
+| 57 | Changer l'apparence et l'ordre des titres | Paramètres / Administration | COMPLET | oui | oui |
+| 58 | Gérer les types de collection | Paramètres / Administration | COMPLET | oui | oui |
+| 59 | Consulter et nettoyer les éditions de référence | Paramètres / Administration | COMPLET | oui | oui |
+| 60 | Exporter sa collection | Paramètres / Administration | COMPLET | oui | oui |
+| 61 | Consulter une collection partagée | Lien public | COMPLET | oui | oui |
+| 62 | Consulter une liste d'envies partagée | Lien public | COMPLET | oui | oui |
 
 ---
 
 ## 20. Statistiques
 
 ```text
-Nombre total de parcours identifiés : 63
-Parcours COMPLETS                   : 60
-Parcours PARTIELS                   :  3   (44 Prochaines sorties, 50 Partage des Tier Lists,
-                                            52 Ajouter à ses envies)
+Nombre total de parcours identifiés : 61   (62 lignes, dont 1 retirée du produit)
+Parcours COMPLETS                   : 59
+Parcours PARTIELS                   :  2   (44 Prochaines sorties, 50 Partage des Tier Lists)
 Parcours CASSÉS                     :  0
 Parcours MOCK / DÉMO                :  0
 
-Parcours principaux                 : 23   (atteints en 2 gestes au plus depuis une des
-                                            3 destinations de navigation)
-Parcours secondaires                : 40   (dans un panneau, un menu « … », ou à 3 niveaux ou plus)
+Parcours principaux                 : 24   (atteints en 2 gestes au plus depuis une des
+                                            3 destinations, du cœur ou de l'avatar)
+Parcours secondaires                : 37
 
-Parcours sans aucun accès en mobile : 10   (50, 51, 53, 54, 55, 56, 57, 58, 60, 61)
+Parcours sans aucun accès en mobile :  0   (10 avant le 2026-08-21, voir §12.1)
 ```
+
+> Évolution depuis la première version de cet audit : la gestion des prêts a été
+> retirée du produit (elle n'était de toute façon liée depuis aucun écran), les
+> dix parcours inaccessibles en mobile ont été rétablis, et « Ajouter à ses
+> envies » est passé de PARTIEL à COMPLET avec quatre points d'entrée.
 
 ---
 
@@ -930,13 +946,13 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 ## 22. Incohérences entre parcours
 
-**UX-1 — Deux navigations aux périmètres différents.** Le header desktop porte cinq accès (3 destinations + Envies + Profil), la barre du pouce trois plus le Scan. Ce n'est pas une adaptation de taille mais **une amputation fonctionnelle** : dix parcours disparaissent en mobile (§12.1).
+**UX-1 — ~~Deux navigations aux périmètres différents~~ — RÉSOLU (2026-08-21).** Le header desktop portait cinq accès, la barre du pouce trois : dix parcours disparaissaient en mobile. `MobileHeader` porte désormais les mêmes cœur et avatar, via un composant partagé (`GlobalShortcuts`), sans toucher aux trois destinations de la barre du pouce.
 
-**UX-2 — Une wishlist qu'on ne peut presque pas remplir.** `addToWishlist` n'a qu'**un seul appelant** dans toute l'application : le bouton du résultat d'analyse d'achat. Aucun bouton « ajouter aux envies » sur la fiche d'une œuvre, dans les résultats de recherche, après un scan, ni dans les opportunités — alors que l'écran Envies, son badge dans le header et son lien de partage existent tous.
+**UX-2 — ~~Une wishlist qu'on ne peut presque pas remplir~~ — RÉSOLU (2026-08-21).** `addToWishlist` n'avait qu'un seul appelant. Quatre points d'entrée désormais (fiche, résultat de recherche déjà possédé, menu du scan, résultat d'analyse), tous branchés sur le même `useWishlist`. Limite qui demeure, par contrainte backend : une œuvre absente de la collection ne peut pas être mise en envies (`POST /wishlist` exige un `entityId`).
 
 **UX-3 — Le Scan demande, l'ajout par recherche ne demande pas.** Un tome scanné ouvre un menu qui demande quoi en faire ; le même geste depuis Rechercher ▸ un résultat écrit directement à la validation du brouillon. Deux chemins d'identification, deux contrats implicites différents.
 
-**UX-4 — « Ajouter à ma wishlist » agit en masse et en silence.** Le bouton ajoute **toutes** les séries connues du lot d'un coup, sans confirmation, sans message de retour et sans indiquer combien ont été ajoutées.
+**UX-4 — ~~« Ajouter à ma wishlist » agit en masse et en silence~~ — RÉSOLU (2026-08-21).** L'ajout groupé passe par `addMany` : un seul message annonçant le nombre de séries ajoutées, avec Annuler, et rien n'est ajouté deux fois.
 
 **UX-5 — Deux chemins vers les types de collection.** Ma collection ▸ Plus d'outils, et Profil ▸ Paramètres ▸ Administration. C'est délibéré et documenté, mais c'est le seul écran de l'app dans ce cas.
 
@@ -950,7 +966,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-10 — Les analyses anciennes parlent anglais.** L'historique mêle des analyses d'avant et d'après la francisation du moteur : ce sont des instantanés stockés, jamais recalculés. Cohérent techniquement, déroutant à la lecture.
 
-**UX-11 — La suppression est asymétrique.** Un exemplaire, une œuvre, une édition, une Tier List, une envie et un prêt se défont. Une expérience, une relation, un tag, une analyse et un prix relevé, **jamais** — sans que l'écran ne le dise au moment de créer.
+**UX-11 — La suppression reste asymétrique — partiellement traité (2026-08-21).** Marquer vendu ou perdu est devenu réversible (« Annuler », `POST /ownerships/{id}/restore`). Restent sans reprise : une **expérience** et une **relation** (leurs contrôleurs n'exposent que POST et GET), une **analyse d'achat** et un **prix relevé**. Un tag se détache de l'œuvre où il s'affiche.
 
 ---
 
@@ -984,12 +1000,13 @@ Analyse d'achat web/src/routes/PurchaseAnalysis/*.tsx
 Tier Lists      web/src/routes/TierLists/*.tsx
 Envies          web/src/routes/Wishlist/*.tsx
 Profil/Admin    web/src/routes/Profile/*.tsx, routes/Settings/SettingsPage.tsx
-                web/src/routes/{Editions,EntityTypes,Recap,Loans,EditionUpgrades,
+                web/src/routes/{Editions,EntityTypes,Recap,EditionUpgrades,
                                 Suggestions,Stats,Discover}/*.tsx
 
 Client API      web/src/api/*.ts          Clés de cache : web/src/lib/queryKeys.ts
 Progression     backend .../insights/CollectionProgressService.java  (source unique)
-Tests           backend/src/test/java/**  (386 tests)
+Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
+Tests           backend/src/test/java/**  (389 tests)
 ```
 
 **À noter pour la suite** : il n'existe **aucun test frontend ni end-to-end** dans ce dépôt. Les 386 tests sont tous côté backend (domaine, services, persistance Testcontainers). Ce document peut servir de base pour écrire les premiers scénarios E2E — les dix parcours de la §21 étant les candidats naturels.

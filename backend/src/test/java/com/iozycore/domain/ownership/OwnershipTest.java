@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,5 +79,35 @@ class OwnershipTest {
 
         ownership.updatePurchasePrice(null);
         assertTrue(ownership.purchasePrice().isEmpty());
+    }
+
+    // "Annuler" propose juste apres "Marquer vendu"/"Marquer perdu" ne doit pas
+    // etre decoratif : ces deux cas garantissent qu'il restaure vraiment.
+    @Test
+    void a_sold_copy_can_be_restored_to_owned() {
+        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.USED, LocalDate.now(), null);
+        ownership.markSold();
+        assertFalse(ownership.isActive());
+
+        ownership.restore();
+
+        assertTrue(ownership.isActive());
+    }
+
+    @Test
+    void a_lost_copy_can_be_restored_to_owned() {
+        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.USED, LocalDate.now(), null);
+        ownership.markLost();
+
+        ownership.restore();
+
+        assertTrue(ownership.isActive());
+    }
+
+    @Test
+    void restoring_an_already_active_copy_is_refused_rather_than_silently_ignored() {
+        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.NEW, LocalDate.now(), null);
+
+        assertThrows(IllegalStateException.class, ownership::restore);
     }
 }
