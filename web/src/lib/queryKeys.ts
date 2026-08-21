@@ -52,10 +52,6 @@ export const queryKeys = {
       ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     nearCompleteSuggestions: ['purchaseAnalysis', 'nearCompleteSuggestions'] as const,
   },
-  loans: {
-    active: ['loans', 'active'] as const,
-    byOwnership: (ownershipId: string) => ['loans', 'ownership', ownershipId] as const,
-  },
   editionUpgradeWishes: {
     byEntity: (entityId: string) => ['editionUpgradeWishes', 'entity', entityId] as const,
     all: ['editionUpgradeWishes', 'all'] as const,

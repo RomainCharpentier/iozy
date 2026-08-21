@@ -1,17 +1,11 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
 import { deleteOwnership, markLost, markSold, updateNote, updatePurchasePrice } from '../../api/ownerships'
-import { lendOwnership, listActiveLoans, markLoanReturned } from '../../api/loans'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse } from '../../types/api'
-
-/** "YYYY-MM-DD" du jour, même format que LocalDateString côté backend. */
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 /** OWNED absent volontairement : c'est le cas normal, il ne porte pas de
  * pastille (voir StatusBadge). */
@@ -26,7 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
  * par scroll, ce composant reçoit déjà exactement les Ownership du Variant
  * concerné (voir VolumeInteractionPanel). Menu secondaire "..." replié par
  * défaut (voir §"ne pas exposer toutes les actions directement") plutôt que
- * Marquer vendu/Prêter/Supprimer en boutons visibles en permanence. */
+ * Marquer vendu/Supprimer en boutons visibles en permanence. */
 function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; entityId: string }) {
   const queryClient = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -34,8 +28,6 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
   const [priceInput, setPriceInput] = useState('')
   const [editingNote, setEditingNote] = useState(false)
   const [noteInput, setNoteInput] = useState('')
-  const [lending, setLending] = useState(false)
-  const [borrowerName, setBorrowerName] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   function invalidateAll() {
@@ -44,8 +36,6 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
     queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
   }
 
-  const activeLoansQuery = useQuery({ queryKey: queryKeys.loans.active, queryFn: listActiveLoans })
-  const activeLoan = (activeLoansQuery.data ?? []).find((loan) => loan.ownershipId === ownership.id)
 
   const sellMutation = useMutation({
     mutationFn: () => markSold(ownership.id),
@@ -81,22 +71,8 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
       setEditingNote(false)
     },
   })
-  const lendMutation = useMutation({
-    mutationFn: () => lendOwnership({ ownershipId: ownership.id, borrowerName: borrowerName.trim(), lentAt: today() }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.loans.active })
-      setLending(false)
-      setBorrowerName('')
-      setMenuOpen(false)
-    },
-  })
-  const returnMutation = useMutation({
-    mutationFn: () => markLoanReturned(activeLoan!.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.loans.active }),
-  })
-  // Bloquée côté backend (409) si un prêt référence encore cet exemplaire,
-  // même déjà rendu (voir OwnershipDeletionService) - le message d'erreur
-  // renvoyé explique déjà pourquoi, affiché tel quel.
+  // Un refus du backend (409) est affiché tel quel : son message explique déjà
+  // pourquoi la suppression est bloquée.
   const deleteMutation = useMutation({
     mutationFn: () => deleteOwnership(ownership.id),
     onSuccess: () => invalidateAll(),
@@ -124,7 +100,6 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
             {ownership.purchasePrice !== null ? `Prix payé : ${ownership.purchasePrice.toFixed(2)} €` : 'Prix payé : —'}
           </p>
           {ownership.note && <p className="text-textDim italic">« {ownership.note} »</p>}
-          {activeLoan && <p className="text-warning">Prêté à {activeLoan.borrowerName} depuis le {activeLoan.lentAt}</p>}
         </div>
         <button
           type="button"
@@ -140,7 +115,7 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
           popover flottant : reste correct même à l'intérieur d'un panneau
           scrollable (drawer/bottom-sheet), sans logique de positionnement/
           clipping supplémentaire à gérer. */}
-      {menuOpen && !editingPrice && !editingNote && !lending && !confirmingDelete && (
+      {menuOpen && !editingPrice && !editingNote && !confirmingDelete && (
         <div className="flex flex-col gap-1 border-t border-surface pt-2 text-sm">
           {/* "Modifier ma copie" n'ouvrait en fait que la saisie du prix -
               deux entrées explicites plutôt qu'un libellé qui promet plus
@@ -165,21 +140,6 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
           >
             {ownership.note ? 'Modifier ma note' : 'Ajouter une note'}
           </button>
-          {ownership.status === 'OWNED' && !activeLoan && (
-            <button type="button" onClick={() => setLending(true)} className="w-fit text-textDim hover:text-textPrimary">
-              Prêter
-            </button>
-          )}
-          {activeLoan && (
-            <button
-              type="button"
-              onClick={() => returnMutation.mutate()}
-              disabled={returnMutation.isPending}
-              className="w-fit text-textDim hover:text-textPrimary disabled:opacity-50"
-            >
-              Marquer rendu
-            </button>
-          )}
           {ownership.status === 'OWNED' && (
             <button
               type="button"
@@ -270,35 +230,6 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
         </div>
       )}
 
-      {lending && (
-        <div className="flex items-center gap-2 border-t border-surface pt-2">
-          <input
-            value={borrowerName}
-            onChange={(e) => setBorrowerName(e.target.value)}
-            placeholder="Prêté à qui ?"
-            autoFocus
-            className="min-w-0 flex-1 rounded-lg bg-surface px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-          />
-          <button
-            type="button"
-            onClick={() => lendMutation.mutate()}
-            disabled={!borrowerName.trim() || lendMutation.isPending}
-            className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
-          >
-            OK
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setLending(false)
-              setMenuOpen(false)
-            }}
-            className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-textDim"
-          >
-            Annuler
-          </button>
-        </div>
-      )}
 
       {confirmingDelete && (
         <div className="flex flex-col gap-1.5 border-t border-danger/20 pt-2">
