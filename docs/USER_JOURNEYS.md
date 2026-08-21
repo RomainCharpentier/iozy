@@ -297,12 +297,29 @@ lien avec les éditions (rattachement par identifiant).
 **Étapes** : créer/attacher un tag ; ajouter une expérience (type, date, note,
 commentaire, **tome concerné** si la série en a) ; ajouter une relation typée
 vers une autre œuvre.
+
+**Corriger et retirer** (depuis le 2026-08-21) — menu « … » sur la ligne
+concernée, même patron qu'un exemplaire possédé :
+- **Expérience** ▸ *Modifier la note et le commentaire* / *Supprimer*. Seuls
+  ces deux champs sont modifiables : le type, la date et le tome concerné sont
+  immuables côté domaine — s'être trompé de tome, c'est avoir enregistré une
+  AUTRE expérience, qu'on supprime. La note peut redevenir *absente*, pas
+  seulement changer de valeur. La suppression propose **Annuler**, qui
+  réenregistre l'expérience à l'identique.
+- **Relation** ▸ *Modifier le type* / *Supprimer*. Les relations s'affichent
+  désormais comme une vraie liste, chacune avec son **type** et son **sens**
+  (« Adapté en — depuis cette œuvre »), au lieu d'une rangée de jaquettes qui
+  taisait les deux. Changer une extrémité n'est pas proposé : ce ne serait pas
+  corriger cette relation mais en décrire une autre. Supprimer un lien ne
+  touche à aucune des deux œuvres.
+
 **Branches** : type d'expérience non autorisé pour ce type de collection → 400 ;
-relation vers une œuvre inexistante → 400.
+relation vers une œuvre inexistante → 400 ; note hors de 0-10 → 400 ; type de
+relation vide → 400. Les deux suppressions sont idempotentes.
 **Écrans** : `MoreOptionsSection`, `TagsSection`, `ExperiencesSection`,
-`RelationshipsSection`
-**Statut** : `COMPLET` — **mais** ni une expérience ni une relation ne peuvent
-être supprimées (voir §Parcours interrompus).
+`ExperienceRow`, `RelationshipsSection`, `RelationshipRow`
+**Backend** : `PATCH`/`DELETE /experiences/{id}`, `PATCH`/`DELETE /relationships/{id}`
+**Statut** : `COMPLET`
 
 ### 26. Supprimer la fiche d'une œuvre
 **Point de départ** : fiche ▸ Plus d'options ▸ « Supprimer cette fiche »
@@ -451,8 +468,24 @@ ne produit rien d'affirmatif.
 contigus (sinon le prix/tome serait faux — le bouton n'apparaît pas).
 **Résultat** : le prix relevé alimente les analyses suivantes de cette édition
 (bascule de « estimation théorique » vers « prix observé »).
-**Branches** : **aucune suppression possible** — aucun endpoint ne retire une
-observation.
+
+**Relire et retirer** (depuis le 2026-08-21) : les relevés d'une édition
+s'affichent sous elle dans **Éditions de référence**, avec prix, portée,
+plateforme, état et date — jusque-là ils étaient invisibles une fois
+enregistrés. Chacun peut être supprimé, avec **Annuler** (le relevé est
+réenregistré à l'identique).
+
+**Aucune modification n'est offerte, volontairement** : un relevé est un fait
+constaté à une date, pas un champ qu'on ajuste. Le corriger après coup
+réécrirait une observation passée, et donc les analyses qui s'appuient dessus ;
+on retire le faux et on enregistre le juste. Les analyses **déjà enregistrées**
+ne bougent pas — chacune fige ses chiffres au moment du calcul ; ce sont les
+suivantes qui cesseront de compter le relevé retiré.
+
+**Branches** : retirer le dernier relevé d'une édition la rend à nouveau
+supprimable (voir le garde-fou de `deleteEdition`). Suppression idempotente.
+**Écrans** : `SeriesBreakdownItem` (enregistrer), `EditionObservations` (relire, retirer)
+**Backend** : `GET`/`DELETE /purchase-analysis/market-observations`
 **Statut** : `COMPLET`
 
 ### 39. Préparer une offre à envoyer
@@ -472,9 +505,22 @@ retour visible** (voir §UX-4).
 ### 41. Consulter et rouvrir une analyse passée
 **Étapes** : Historique → une ligne → le résultat complet est rejoué à
 l'identique, avec retour vers l'historique.
+**Supprimer une analyse** (depuis le 2026-08-21) : depuis l'historique, avec
+une **confirmation légère** — et non un « Annuler » après coup, qui ne
+restaurerait rien : relancer l'analyse donnerait un autre résultat, les prix
+relevés et éditions ayant pu changer entre-temps. La suppression **ne touche ni
+aux prix relevés ni aux éditions** renseignés au fil de cette analyse : ce sont
+des données de référence, qui servent toutes les analyses suivantes.
+
+**Aucune modification n'est offerte, volontairement** : une analyse est le
+résultat figé d'un calcul ; en corriger un chiffre produirait un verdict qui n'a
+jamais été calculé.
+
 **Branches** : les analyses **antérieures au 2026-08-21** portent des textes en
 anglais figés — ce sont des instantanés stockés, pas des calculs rejoués.
+Suppression idempotente.
 **Écrans** : `AnalysisHistoryPage`, `AnalysisHistoryDetailPage`
+**Backend** : `DELETE /purchase-analysis/history/{id}`
 **Statut** : `COMPLET`
 
 ---
@@ -525,9 +571,29 @@ rangs actifs, description → Créer.
 
 ### 47. Classer une œuvre depuis un board
 **Étapes** : cliquer une tuile → sélecteur de rang → choisir S→F.
+
+**Classer n'est pas posséder** (vérifié et corrigé le 2026-08-21). Un
+classement dit ce que l'utilisateur pense d'une œuvre : la revendre, la perdre
+ou ne l'avoir jamais achetée ne change pas cet avis.
+- Le **modèle** le permettait déjà : `EntityRank` ne référence qu'une Entity,
+  jamais une Ownership ; aucune suppression de possession ne le met en cascade ;
+  l'API de classement n'exige que l'existence de l'œuvre.
+- C'était la **lecture du board** qui rompait la règle : elle ne partait que des
+  œuvres possédées, si bien que vendre un manga classé S le faisait disparaître
+  de la ligne S alors que son rang existait toujours en base. Le board affiche
+  désormais **toutes** les œuvres classées de l'univers.
+- La file **« à classer »** reste, elle, volontairement adossée à la
+  possession : proposer de classer tout ce qui a une fiche la noierait sous les
+  œuvres seulement mises en envies. **Pouvoir être classée** et **devoir
+  apparaître dans « à classer »** sont deux questions distinctes.
+- Conséquence sur la fiche : « Mes classements » s'affiche désormais pour
+  **toute** œuvre. Il était réservé aux séries manga dont une édition est
+  affichée — un jeu vidéo, un type personnalisé ou une série seulement souhaitée
+  n'avaient aucun accès au classement depuis leur fiche.
+
 **Branches** : « Retirer le classement » (l'œuvre reste dans la liste, non
 classée) ; touches S-F au clavier ; Échap ferme sans changement.
-**Écrans** : `TierBoard`, `TierPicker`
+**Écrans** : `TierBoard`, `TierPicker`, `TierSummarySection`
 **Statut** : `COMPLET` — **Desktop** popover centré **+ glisser-déposer d'une
 tuile vers une ligne de rang** / **Mobile** bottom-sheet, **pas de
 glisser-déposer**.
@@ -770,13 +836,18 @@ aucun débordement horizontal. Desktop inchangé.
 | Envie d'amélioration | Oui — « Annuler » / « Retirer » |
 | Lien de partage | Oui — supprimer le lien |
 | Marquer vendu / perdu | **Oui** — « Annuler » dans le message qui suit l'action (`POST /ownerships/{id}/restore`, ajouté le 2026-08-21) ; réversible aussi ensuite, l'exemplaire restant visible sous « Exemplaires passés » |
-| **Expérience enregistrée** | **Non** — aucun endpoint de suppression |
-| **Relation créée** | **Non** — aucun endpoint de suppression |
-| **Analyse d'achat** | **Non** — l'historique ne se supprime pas |
-| **Prix relevé (observation)** | **Non** — aucun endpoint de suppression |
+| Expérience enregistrée | **Oui** — note et commentaire modifiables, suppression avec « Annuler » (2026-08-21) |
+| Relation créée | **Oui** — type modifiable, suppression (2026-08-21) ; ne touche à aucune des deux œuvres |
+| Analyse d'achat | **Oui** — suppression avec confirmation (2026-08-21). Pas de modification : un résultat figé ne se corrige pas |
+| Prix relevé (observation) | **Oui** — suppression avec « Annuler » (2026-08-21). Pas de modification : un fait constaté ne se réécrit pas |
 | **Tag créé** | **Non** — détachable d'une œuvre, jamais supprimable |
 
 Aucune action n'offre d'annulation *différée* : pas de « Annuler » après coup, pas de corbeille.
+
+**Modifier ou supprimer, selon ce que la donnée est.** Une donnée éditable se
+corrige dans son contexte ; un résultat calculé ou un fait daté se supprime et
+se refait. Aucun PATCH n'a été créé là où le domaine n'en avait pas besoin — et
+aucun « Annuler » n'est proposé là où il ne restaurerait rien.
 
 ---
 
@@ -796,7 +867,7 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 
 ## 16. Capacités existantes mais difficiles à découvrir
 
-1. **Relever un prix de marché** — n'apparaît que dans le détail d'une série d'un résultat d'analyse, et seulement si l'édition est reconnue *et* les tomes contigus. C'est pourtant le seul moyen d'alimenter la base de prix observés dont dépend la qualité de toutes les analyses suivantes.
+1. **Relever un prix de marché** — n'apparaît que dans le détail d'une série d'un résultat d'analyse, et seulement si l'édition est reconnue *et* les tomes contigus. C'est pourtant le seul moyen d'alimenter la base de prix observés dont dépend la qualité de toutes les analyses suivantes. Les relevés déjà enregistrés sont, eux, visibles et retirables depuis **Éditions de référence** (2026-08-21).
 2. **Exemplaires passés** — un tome vendu ou perdu n'est visible qu'en ouvrant le panneau du tome correspondant, qui affiche par ailleurs un formulaire d'ajout.
 3. **Types de collection** — deux chemins ; le second est à trois niveaux de profondeur.
 4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit tous les « X/Y » de l'app, rangé sous Administration.
@@ -998,7 +1069,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-10 — Les analyses anciennes parlent anglais.** L'historique mêle des analyses d'avant et d'après la francisation du moteur : ce sont des instantanés stockés, jamais recalculés. Cohérent techniquement, déroutant à la lecture.
 
-**UX-11 — La suppression reste asymétrique — partiellement traité (2026-08-21).** Marquer vendu ou perdu est devenu réversible (« Annuler », `POST /ownerships/{id}/restore`). Restent sans reprise : une **expérience** et une **relation** (leurs contrôleurs n'exposent que POST et GET), une **analyse d'achat** et un **prix relevé**. Un tag se détache de l'œuvre où il s'affiche.
+**UX-11 — ~~La suppression reste asymétrique~~ — RÉSOLU (2026-08-21).** Marquer vendu ou perdu est devenu réversible (« Annuler », `POST /ownerships/{id}/restore`). Les quatre écritures qui restaient sans reprise le sont désormais toutes, chacune selon ce que la donnée est : **expérience** (modifier note/commentaire, supprimer avec Annuler), **relation** (modifier le type, supprimer), **analyse d'achat** (supprimer avec confirmation — un résultat figé ne se corrige pas), **prix relevé** (supprimer avec Annuler — un fait daté ne se réécrit pas). Un tag se détache de l'œuvre où il s'affiche.
 
 ---
 
@@ -1013,9 +1084,9 @@ seule une fonctionnalité clairement remplacée ou abandonnée perd son accès.
 | **Éditions de référence** (`/editions`) | `ACTIVE` | Porte le nombre de tomes de chaque édition — **toute** progression « X/Y » de l'app en dépend, sur tous les écrans. Reste un écran de maintenance sous Administration, pas une destination : renseigner se fait depuis la fiche, là où le manque se constate. |
 | **Bilan annuel** (`/recap`) | `SECONDARY` | Fonctionne sur données réelles, produit un PNG téléchargeable. Usage saisonnier, sa place sous Profil est cohérente. Conservé tel quel. |
 | **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu récemment aux éditions, classements, Tier Lists et envies d'amélioration (11 fichiers). Conservé sous Administration. |
-| **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Limite connue : ni modifiables ni supprimables (voir §14). |
+| **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Modifiables (note, commentaire) et supprimables depuis la fiche depuis le 2026-08-21. |
 | **Tags** | `SECONDARY` | Attachables et détachables depuis la fiche, remontés dans les statistiques (`topTags`). Le backend sait filtrer par tag (`GET /entities/search?tagId=`) mais **aucun écran ne l'expose** — sous-employés, pas abandonnés. Rien ne les a remplacés : les retirer serait arbitraire. |
-| **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche, exportées. Purement descriptives, aucun autre écran ne s'en sert. Limite : pas de suppression possible (voir §14). |
+| **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche avec leur type et leur sens, exportées, corrigeables et supprimables depuis le 2026-08-21. Purement descriptives, aucun autre écran ne s'en sert. |
 | **Prêts** | `LEGACY` → **retiré** | Hors périmètre produit. Ses surfaces d'interface ont été retirées le 2026-08-21 ; elle n'était de toute façon liée depuis aucun écran. Backend laissé en place, voir le parcours 16. |
 
 **Rien d'autre n'a été retiré.** Les écrans jugés `SECONDARY` gardent leur accès
