@@ -1,15 +1,20 @@
 import { BookPlus, ExternalLink, ListPlus, SkipForward, X } from 'lucide-react'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { WishlistToggle } from '../../components/WishlistToggle'
+import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 
 /** Ce qu'un scan vient d'identifier, avant toute écriture. */
 export interface ScanCandidate {
   code: string
   candidate: MetadataCandidateDto
+  /** Le type de collection scanné - permet de mettre en envies une œuvre encore inconnue. */
+  entityTypeId: string
   volumeNumber?: number
   edition?: string
-  /** L'œuvre existe déjà dans la collection (recherche locale par titre) - null sinon. */
+  /** L'œuvre a déjà une fiche IozyCore (recherche locale par titre) - null sinon.
+   * Avoir une fiche ne veut pas dire la posséder : une œuvre mise en envies en a
+   * une sans aucun exemplaire. */
   existingEntity: EntityResponse | null
 }
 
@@ -25,10 +30,11 @@ export interface ScanCandidate {
  * <p>
  * Les actions proposées sont exactement celles que l'app sait faire d'un
  * code-barres, jamais une de plus : ajouter avec l'état choisi, ouvrir l'ajout
- * détaillé pour préciser édition et tome, ouvrir la fiche ou l'ajouter aux
- * envies quand l'œuvre est déjà là, ou passer. Les deux dernières n'apparaissent
- * que dans ce cas : une entrée de wishlist référence une œuvre EXISTANTE
- * (POST /wishlist exige un entityId), qu'un livre scanné inconnu n'a pas.
+ * détaillé pour préciser édition et tome, la mettre en envies, ouvrir sa fiche
+ * si elle en a déjà une, ou passer. « Ajouter aux envies » vaut pour TOUT livre
+ * scanné, y compris inconnu : scanner en boutique une œuvre qu'on ne prend pas
+ * aujourd'hui est justement le cas d'usage. Le backend crée alors sa fiche
+ * catalogue, sans aucune possession.
  * <p>
  * Même patron que TierPicker : bottom-sheet en mobile, boîte centrée en
  * desktop, Escape / piège de focus / focus rendu au déclencheur via
@@ -50,7 +56,7 @@ export function ScanActionMenu({
   onSkip: () => void
 }) {
   const containerRef = useModalA11y<HTMLDivElement>(true, onSkip)
-  const { candidate, volumeNumber, edition, existingEntity } = pending
+  const { candidate, entityTypeId, volumeNumber, edition, existingEntity } = pending
 
   return (
     <>
@@ -76,7 +82,10 @@ export function ScanActionMenu({
               {volumeNumber !== undefined ? `Tome ${volumeNumber}` : 'Numéro de tome non détecté'}
               {edition && ` · ${edition}`}
             </span>
-            {existingEntity && <span className="text-xs text-accentText">Déjà dans ta collection</span>}
+            {/* Fait vérifiable : une fiche existe. Dire « déjà dans ta
+                collection » serait faux pour une œuvre seulement mise en
+                envies, qui a une fiche et zéro exemplaire. */}
+            {existingEntity && <span className="text-xs text-accentText">Déjà connu d'IozyCore</span>}
           </div>
           <button
             type="button"
@@ -112,14 +121,26 @@ export function ScanActionMenu({
             Choisir l'édition et les tomes
           </button>
 
-          {/* Envies : possible uniquement pour une œuvre DÉJÀ dans la
-              collection - une entrée de wishlist exige un entityId (voir
-              useWishlist), qu'un livre scanné inconnu n'a pas. */}
-          {existingEntity && (
-            <div className="px-1 py-1">
+          {/* Proposé pour toute œuvre scannée : celle qui a déjà une fiche
+              par son identité interne, celle qui n'en a pas via sa référence
+              externe, que le backend résout ou crée - sans possession. */}
+          <div className="px-1 py-1">
+            {existingEntity ? (
               <WishlistToggle entityId={existingEntity.id} />
-            </div>
-          )}
+            ) : (
+              <WishlistToggle
+                external={{
+                  entityTypeId,
+                  title: candidate.title,
+                  // Même clé de jaquette que l'ajout normal, sinon l'œuvre
+                  // arriverait sans visuel dans les Envies.
+                  attributes: candidate.imageUrl
+                    ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
+                    : candidate.attributes,
+                }}
+              />
+            )}
+          </div>
 
           {existingEntity && (
             <button

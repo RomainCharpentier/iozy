@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { addToWishlist, listWishlist, removeFromWishlist } from '../api/wishlist'
+import { addToWishlist, listWishlist, removeFromWishlist, type WishlistTarget } from '../api/wishlist'
 import { useToast } from '../components/Toast'
 import { queryKeys } from './queryKeys'
 
@@ -21,10 +21,11 @@ import { queryKeys } from './queryKeys'
  * retrait recrée l'entrée pour la même œuvre. Les deux restaurent vraiment
  * l'état précédent, c'est pourquoi « Annuler » est proposé dans les deux sens.
  *
- * Contrainte à connaître : une entrée de wishlist référence une œuvre EXISTANTE
- * (`POST /wishlist` exige un `entityId`). Une œuvre trouvée par une recherche
- * externe ou un scan mais absente de la collection ne peut donc pas être mise
- * en envies - il n'existe aucun moyen de créer une fiche sans possession.
+ * **Une œuvre non possédée peut être mise en envies** : c'est même le cas
+ * normal. `add` accepte aussi bien une œuvre déjà fichée qu'une œuvre venue
+ * d'une recherche externe ou d'un scan (voir WishlistTarget) ; le backend
+ * résout ou crée la fiche catalogue correspondante, sans jamais créer de
+ * possession. Vouloir quelque chose n'est pas le posséder.
  */
 export function useWishlist() {
   const queryClient = useQueryClient()
@@ -36,10 +37,25 @@ export function useWishlist() {
     queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
   }
 
+  /**
+   * Ajouter une œuvre EXTERNE lui crée une fiche catalogue : deux caches
+   * deviennent alors faux et doivent repartir de zéro.
+   * - la recherche locale, qui ne connaissait pas encore cette fiche et
+   *   n'affichait donc pas l'œuvre dans « Déjà dans IozyCore » ;
+   * - la recherche de métadonnées, qui écarte les titres déjà catalogués
+   *   (voir MetadataSearchService) et doit donc cesser de la proposer.
+   * Sans ça, l'écran continue d'afficher l'état d'avant l'ajout.
+   */
+  function invalidateApresCreationDeFiche() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
+    queryClient.invalidateQueries({ queryKey: ['metadata'] })
+  }
+
   const addMutation = useMutation({
-    mutationFn: (entityId: string) => addToWishlist(entityId),
-    onSuccess: (created) => {
+    mutationFn: (target: WishlistTarget) => addToWishlist(target),
+    onSuccess: (created, target) => {
       invalidate()
+      if (!('entityId' in target)) invalidateApresCreationDeFiche()
       toast('Ajouté aux envies', {
         label: 'Annuler',
         onAction: () => removeMutation.mutate({ entryId: created.id, entityId: created.entityId, silencieux: true }),
@@ -57,7 +73,9 @@ export function useWishlist() {
       if (variables.silencieux) return
       toast('Retiré des envies', {
         label: 'Annuler',
-        onAction: () => addMutation.mutate(variables.entityId),
+        // L'œuvre a forcément une fiche à ce stade (elle en avait une pour
+        // être en envies), donc on réajoute par identité interne.
+        onAction: () => addMutation.mutate({ entityId: variables.entityId }),
       })
     },
   })
@@ -73,7 +91,7 @@ export function useWishlist() {
     mutationFn: async (entityIds: string[]) => {
       const nouveaux = []
       for (const entityId of entityIds) {
-        nouveaux.push(await addToWishlist(entityId))
+        nouveaux.push(await addToWishlist({ entityId }))
       }
       return nouveaux
     },
@@ -104,7 +122,14 @@ export function useWishlist() {
     /** L'entrée de wishlist pour cette œuvre, ou undefined. */
     entryFor: (entityId: string) => byEntityId.get(entityId),
     isInWishlist: (entityId: string) => byEntityId.has(entityId),
-    add: (entityId: string) => addMutation.mutate(entityId),
+    add: (target: WishlistTarget) => addMutation.mutate(target),
+    /**
+     * Comme `add`, mais rend l'entrée créée : la seule façon, pour une œuvre
+     * externe qui n'avait pas encore de fiche, de connaître son identité
+     * interne - et donc de pouvoir ensuite l'afficher comme « dans vos
+     * envies » ou la retirer.
+     */
+    addAsync: (target: WishlistTarget) => addMutation.mutateAsync(target),
     /** N'ajoute que ce qui n'y est pas déjà : rejouer le bouton ne crée pas de doublon. */
     addMany: (entityIds: string[]) =>
       addManyMutation.mutate(entityIds.filter((id) => !byEntityId.has(id))),

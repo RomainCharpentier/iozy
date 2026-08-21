@@ -328,12 +328,19 @@ saisie.
 **Backend** : `GET /metadata/search`
 **Statut** : `COMPLET`
 
-### 28. Constater qu'un titre est déjà possédé
-**Résultat** : un bloc « Déjà dans ta collection » s'affiche **au-dessus** des
-suggestions, avec la pastille « Possédé » et un accès direct à la fiche.
+### 28. Constater qu'un titre est déjà connu d'IozyCore
+**Résultat** : un bloc « Déjà dans IozyCore » s'affiche **au-dessus** des
+suggestions, avec un accès direct à la fiche et une pastille qui distingue deux
+états bien réels : **« Possédé »** (au moins un exemplaire) et **« Pas encore
+possédé »** (l'œuvre a une fiche mais aucun exemplaire — typiquement parce
+qu'elle est en envies).
 **Pourquoi ça compte** : la recherche externe exclut délibérément les titres
-déjà possédés — sans ce bloc, chercher « Death Note » ne renverrait que des
-spin-offs sans explication.
+**déjà catalogués** — sans ce bloc, chercher « Death Note » ne renverrait que
+des spin-offs sans explication. Et depuis qu'une œuvre peut être cataloguée sans
+être possédée (parcours 52), une pastille « Possédé » universelle serait
+devenue un mensonge sur ses propres envies.
+**Écrans** : `SearchPage`
+**Backend** : `GET /entities/search`, `GET /ownerships`
 **Statut** : `COMPLET` (y compris sur les types sans fournisseur externe).
 
 ### 29. Rechercher par code-barres depuis Rechercher
@@ -352,6 +359,8 @@ les tomes (grille), ou en saisir à la main. 4. Choisir l'état, le prix.
 **Branches** : quota de recherche de tomes dépassé → message ; aucun tome trouvé
 → saisie manuelle ; ouverture directe de `/add/draft` sans état de navigation →
 message + retour vers Rechercher.
+**Autre issue possible** : « Ajouter aux envies », directement sur la ligne du
+résultat, sans passer par la saisie des tomes — voir le parcours 52.
 **Écrans** : `AddDraftPage`, `VolumeSelectionGrid`, `draftState.ts`
 **Backend** : `GET /metadata/volumes`, `/metadata/french-title`,
 `POST /entities/quick-add`
@@ -386,11 +395,13 @@ d'audit — aucune caméra, `BarcodeDetector` absent).
 ### 34. Décider quoi faire d'un tome scanné
 **Point de départ** : tout scan reconnu
 **Résultat** : un menu contextuel affiche ce qui a été identifié — titre,
-jaquette, tome détecté ou non, édition devinée, mention « Déjà dans ta
-collection » — puis propose : **Ajouter à ma collection** (avec l'état choisi en
+jaquette, tome détecté ou non, édition devinée, mention « Déjà connu
+d'IozyCore » — puis propose : **Ajouter à ma collection** (avec l'état choisi en
 haut d'écran), **Choisir l'édition et les tomes** (bascule vers l'ajout
-détaillé), **Ouvrir la fiche** (seulement si l'œuvre existe), **Passer ce tome**.
-**Rien n'est écrit tant que rien n'est choisi.**
+détaillé), **Ajouter aux envies** (pour **tout** livre scanné, connu ou non —
+scanner en boutique une œuvre qu'on ne prend pas aujourd'hui est justement le
+cas d'usage), **Ouvrir la fiche** (seulement si l'œuvre en a déjà une),
+**Passer ce tome**. **Rien n'est écrit tant que rien n'est choisi.**
 **Branches** : code non reconnu → « Rien trouvé pour X » + « Chercher par
 titre » ; échec réseau → « Échec de la recherche » + même issue ; un scan
 pendant qu'un menu est ouvert est ignoré ; Échap = Passer.
@@ -558,8 +569,10 @@ envie.
 **Points de départ** (depuis le 2026-08-21) :
 - **fiche d'une œuvre**, à côté d'« Évaluer une annonce » — là où la décision
   « je le veux » se prend ;
-- **résultat de recherche déjà possédé** (bloc « Déjà dans ta collection ») ;
-- **menu du scan**, quand l'œuvre identifiée est déjà dans la collection ;
+- **résultat de recherche local** (bloc « Déjà dans IozyCore »), possédé ou non ;
+- **suggestion externe d'une recherche**, même si l'œuvre est totalement
+  inconnue d'IozyCore ;
+- **menu du scan**, y compris pour un livre scanné dont aucune fiche n'existe ;
 - **résultat d'une analyse d'achat**, qui ajoute d'un coup toutes les séries
   connues du lot.
 
@@ -567,13 +580,32 @@ envie.
 s'incrémente, et un message « Ajouté aux envies » propose **Annuler**.
 **Réversibilité** : réelle dans les deux sens — annuler un ajout supprime
 l'entrée créée, annuler un retrait la recrée.
-**Branches** : une œuvre **absente de la collection** ne peut pas être mise en
-envies — `POST /wishlist` exige un `entityId` et aucune API ne crée une fiche
-sans possession. Les candidats externes d'une recherche et les scans inconnus
-n'ont donc pas ce bouton. Les Opportunités non plus : ce sont par définition des
+
+**Vouloir n'est pas posséder** (levé le 2026-08-21). Une œuvre venue d'une
+source externe n'avait aucun moyen d'entrer dans les envies : le seul chemin qui
+faisait exister une fiche (`QuickAddService`) créait toujours une possession
+dans la foulée. Une œuvre externe est désormais envoyée par sa **référence**
+(type de collection + titre + attributs déjà connus) ; le backend résout ou crée
+sa **fiche catalogue seule**, sans aucune `Ownership`, et renvoie son identité
+interne. Le catalogue n'est pas la collection : l'œuvre n'apparaît donc ni dans
+« Ma collection », ni dans les Tier Lists, ni dans les statistiques — seulement
+dans les Envies, où elle a sa place.
+**Déduplication** : la règle est celle de l'ajout rapide, partagée dans
+`CatalogEntityResolver` — la même œuvre atteinte par la recherche, par le scan
+ou par un achat retombe sur la même fiche. Ajouter deux fois la même œuvre ne
+crée ni seconde fiche ni seconde envie ; l'acheter plus tard réutilise sa fiche
+et lui ajoute une possession, sans retirer l'envie (ce comportement-là est
+inchangé).
+**Cohérence d'affichage** : créer une fiche invalide les caches de recherche
+locale et de métadonnées — l'œuvre quitte aussitôt les suggestions externes pour
+le bloc « Déjà dans IozyCore », marquée « Pas encore possédé ».
+**Branches** : requête sans identité exploitable (ni `entityId`, ni type + titre)
+→ 400 ; type de collection ou œuvre introuvable → 400 lisible, jamais un 500 de
+contrainte. Les Opportunités n'ont pas ce bouton : ce sont par définition des
 séries déjà possédées.
 **Écrans** : `WishlistToggle`, `useWishlist` (source unique), `Toast`
-**Backend** : `POST /wishlist`, `DELETE /wishlist/{id}`
+**Backend** : `POST /wishlist` (par `entityId` **ou** par référence externe),
+`DELETE /wishlist/{id}`, `CatalogEntityResolver`
 **Statut** : `COMPLET`
 
 ### 53. Partager sa liste d'envies
@@ -758,7 +790,7 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 |---|---|---|
 | Découvrir ▸ Prochaines sorties | Explique qu'aucune source ne fournit de date fiable par tome | Vide assumé et motivé — pas un faux-fini |
 | Profil ▸ Envies d'amélioration | Vide tant qu'aucune envie n'existe | État vide normal |
-| Envies | Presque toujours vide, faute de point d'entrée pour la remplir | **Conséquence de UX-2**, pas un état vide normal |
+| Envies | Vide tant qu'aucune œuvre n'a été souhaitée | État vide normal depuis la résolution d'UX-2 : cinq points d'entrée la remplissent, y compris pour une œuvre qu'on ne possède pas |
 
 ---
 
@@ -782,7 +814,7 @@ Vérifié en confrontant l'OpenAPI de l'application (`/v3/api-docs`) à l'intég
 | Endpoint | Ce qu'il permettrait | Pourquoi c'est notable |
 |---|---|---|
 | `GET` / `PATCH /purchase-analysis/preferences` | Régler le profil de collectionneur qui pilote le verdict et la négociation | **Six des dix préférences ne sont lues par aucune ligne du moteur** — un écran ferait dix interrupteurs dont six inertes |
-| `GET /wishlist/lookup` | Vérifier avant achat si une œuvre est possédée ou déjà en envies | Couvert autrement par le bloc « Déjà dans ta collection » |
+| `GET /wishlist/lookup` | Vérifier avant achat si une œuvre est possédée ou déjà en envies | Couvert autrement par le bloc « Déjà dans IozyCore », qui distingue désormais possédé et seulement catalogué |
 | `GET /purchase-analysis/editions/search` | Lister toutes les éditions d'une série | Couvert par l'écran Éditions de référence |
 | `GET /entities?entityTypeId=` | Lister les œuvres d'un type | Remplacé par `/entities/search` |
 | `GET /loans?ownershipId=` | Historique des prêts d'un exemplaire, rendus compris | Seuls les prêts **actifs** sont exposés ; l'historique n'est visible nulle part |
@@ -948,7 +980,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-1 — ~~Deux navigations aux périmètres différents~~ — RÉSOLU (2026-08-21).** Le header desktop portait cinq accès, la barre du pouce trois : dix parcours disparaissaient en mobile. `MobileHeader` porte désormais les mêmes cœur et avatar, via un composant partagé (`GlobalShortcuts`), sans toucher aux trois destinations de la barre du pouce.
 
-**UX-2 — ~~Une wishlist qu'on ne peut presque pas remplir~~ — RÉSOLU (2026-08-21).** `addToWishlist` n'avait qu'un seul appelant. Quatre points d'entrée désormais (fiche, résultat de recherche déjà possédé, menu du scan, résultat d'analyse), tous branchés sur le même `useWishlist`. Limite qui demeure, par contrainte backend : une œuvre absente de la collection ne peut pas être mise en envies (`POST /wishlist` exige un `entityId`).
+**UX-2 — ~~Une wishlist qu'on ne peut presque pas remplir~~ — RÉSOLU (2026-08-21).** `addToWishlist` n'avait qu'un seul appelant. Cinq points d'entrée désormais (fiche, résultat de recherche local, suggestion externe, menu du scan, résultat d'analyse), tous branchés sur le même `useWishlist`. La limite métier qui subsistait — une œuvre absente de la collection ne pouvait pas être mise en envies, faute de pouvoir exister au catalogue sans possession — a été levée le 2026-08-21 : voir le parcours 52.
 
 **UX-3 — Le Scan demande, l'ajout par recherche ne demande pas.** Un tome scanné ouvre un menu qui demande quoi en faire ; le même geste depuis Rechercher ▸ un résultat écrit directement à la validation du brouillon. Deux chemins d'identification, deux contrats implicites différents.
 

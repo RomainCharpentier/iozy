@@ -86,7 +86,8 @@ export function ScanPage() {
       // regroupent toutes deux les tomes par cet attribut.
       const edition = typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined
       // Recherche locale, gratuite : sert à proposer "ouvrir la fiche" quand
-      // l'œuvre est déjà là, plutôt que de laisser l'ajout comme seule issue.
+      // l'œuvre a déjà la sienne, plutôt que de laisser l'ajout comme seule
+      // issue. Trouver une fiche ne dit rien de la possession.
       let existingEntity = null
       try {
         const matches = await searchEntities({ q: candidate.title, entityTypeId: mangaType.id })
@@ -96,7 +97,7 @@ export function ScanPage() {
       }
 
       // Plus aucune écriture ici : le scan IDENTIFIE, l'utilisateur décide.
-      setPending({ code, candidate, volumeNumber, edition, existingEntity })
+      setPending({ code, candidate, entityTypeId: mangaType.id, volumeNumber, edition, existingEntity })
     } finally {
       setProcessing(false)
     }

@@ -53,15 +53,18 @@ public class QuickAddService {
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
     private final MangaEditionRepository mangaEditionRepository;
+    private final CatalogEntityResolver catalogEntityResolver;
     private final ApplicationEventPublisher eventPublisher;
 
     public QuickAddService(EntityRepository entityRepository,
                             OwnershipRepository ownershipRepository,
                             MangaEditionRepository mangaEditionRepository,
+                            CatalogEntityResolver catalogEntityResolver,
                             ApplicationEventPublisher eventPublisher) {
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
         this.mangaEditionRepository = mangaEditionRepository;
+        this.catalogEntityResolver = catalogEntityResolver;
         this.eventPublisher = eventPublisher;
     }
 
@@ -131,35 +134,18 @@ public class QuickAddService {
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition, String volumeImageUrl,
                                                       BigDecimal purchasePrice) {
-        String normalizedTitle = title.trim();
-        Optional<Entity> existing = entityRepository.findByTypeAndTitle(entityTypeId, normalizedTitle);
-
-        Entity entity;
-        boolean matchedExisting = existing.isPresent();
-
-        if (matchedExisting) {
-            entity = existing.get();
-            // On complète les attributs manquants sans écraser ceux déjà
-            // renseignés (ex: une saisie manuelle antérieure ne doit pas
-            // être effacée par une recherche de métadonnées ultérieure).
-            prefilledAttributes.forEach((key, value) -> {
-                if (!entity.attributes().containsKey(key)) {
-                    entity.setAttribute(key, value);
-                }
-            });
-        } else {
-            entity = Entity.create(entityTypeId, normalizedTitle);
-            prefilledAttributes.forEach(entity::setAttribute);
-        }
-
-        // Sauvegarde immédiate, avant toute résolution d'Édition : une Entity toute
-        // neuve n'existe pas encore en base à ce stade, et resolveOrCreateMangaEdition
-        // (ci-dessous) peut créer un MangaEdition référençant entity.id() via la
-        // contrainte FK manga_edition.entity_id (étape 1) - sans cette sauvegarde
-        // anticipée, cette insertion échouerait pour toute toute nouvelle série ajoutée
-        // avec une édition renseignée. Une Entity déjà existante (matchedExisting) est
-        // simplement ré-écrite à l'identique ici, sans effet de bord.
-        entityRepository.save(entity);
+        // « Faire exister la fiche catalogue » est désormais extrait dans
+        // CatalogEntityResolver, partagé avec le parcours Envies : la règle de
+        // déduplication (type + titre) et la fusion d'attributs ne vivent qu'à
+        // un seul endroit, donc les deux chemins ne peuvent pas produire deux
+        // Entity différentes pour la même œuvre. La sauvegarde y est immédiate,
+        // ce dont resolveOrCreateMangaEdition ci-dessous a besoin : une Entity
+        // toute neuve doit exister en base avant qu'un MangaEdition ne
+        // référence son id (contrainte FK manga_edition.entity_id).
+        CatalogEntityResolver.Resolution resolution =
+                catalogEntityResolver.resolveOrCreate(entityTypeId, title, prefilledAttributes);
+        Entity entity = resolution.entity();
+        boolean matchedExisting = resolution.matchedExisting();
 
         UUID variantId = null;
         boolean matchedExistingVariant = false;

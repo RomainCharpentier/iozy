@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2, Scale, ScanBarcode, ScanLine } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
+import { listAllOwnerships } from '../../api/ownerships'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
@@ -11,6 +12,7 @@ import { Chip } from '../../components/Chip'
 import { WishlistToggle } from '../../components/WishlistToggle'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle } from '../../lib/titleLanguage'
+import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import type { DraftLocationState } from './draftState'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
@@ -85,6 +87,19 @@ export function SearchPage() {
     enabled: localSearchEnabled,
   })
   const localMatches = localMatchQuery.data ?? []
+  // Une œuvre connue d'IozyCore n'est pas forcément possédée : une série mise
+  // en envies sans être achetée a une fiche et aucune possession. Sans cette
+  // vérification, ce bloc affichait « Possédé » sur TOUT résultat local -
+  // c'est-à-dire un mensonge sur ses propres envies. Une seule requête pour
+  // toute la liste, jamais une par résultat.
+  const ownershipsQuery = useQuery({
+    queryKey: queryKeys.allOwnerships,
+    queryFn: listAllOwnerships,
+    enabled: localSearchEnabled,
+  })
+  const entityIdsPossedes = new Set(
+    (ownershipsQuery.data ?? []).filter((o) => o.status === 'OWNED').map((o) => o.entityId),
+  )
 
   // Résout un titre français pour les 6 premières suggestions affichées -
   // voir l'ancien QuickAddPage.tsx pour le même mécanisme et son
@@ -211,24 +226,34 @@ export function SearchPage() {
           les suggestions externes. */}
       {localMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Déjà dans ta collection</span>
+          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Déjà dans IozyCore</span>
           <div className="flex flex-col gap-1.5">
-            {localMatches.map((entity) => (
-              // Seuls les résultats LOCAUX portent un entityId : une entrée de
-              // wishlist en exige un (voir useWishlist). Un candidat externe
-              // absent de la collection ne peut donc pas être mis en envies -
-              // aucune API ne crée une fiche sans possession.
-              <div
-                key={entity.id}
-                className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5"
-              >
-                <button type="button" onClick={() => goToEntity(entity)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-                  <span className="flex-1 truncate text-sm font-medium text-textPrimary">{entity.title}</span>
-                  <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">Possédé</span>
-                </button>
-                <WishlistToggle entityId={entity.id} variant="inline" />
-              </div>
-            ))}
+            {localMatches.map((entity) => {
+              const possede = entityIdsPossedes.has(entity.id)
+              return (
+                <div
+                  key={entity.id}
+                  className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5"
+                >
+                  <button type="button" onClick={() => goToEntity(entity)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                    <span className="flex-1 truncate text-sm font-medium text-textPrimary">{entity.title}</span>
+                    {/* Deux états bien distincts : possédée, ou seulement
+                        connue (fiche existante sans aucun exemplaire - typique
+                        d'une œuvre mise en envies). */}
+                    {possede ? (
+                      <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">
+                        Possédé
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-surface2 px-2.5 py-1 text-xs font-semibold text-textDim">
+                        Pas encore possédé
+                      </span>
+                    )}
+                  </button>
+                  <WishlistToggle entityId={entity.id} variant="inline" />
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -261,11 +286,11 @@ export function SearchPage() {
           <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Suggestions</span>
           <ul className="flex flex-col gap-1.5">
             {suggestionsQuery.data!.map((candidate) => (
-              <li key={candidateKey(candidate)}>
+              <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
                 <button
                   type="button"
                   onClick={() => goToDraft(candidate)}
-                  className="flex w-full items-center gap-2.5 rounded-xl bg-surface p-2.5 text-left transition-transform hover:-translate-y-0.5"
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
                   {candidate.imageUrl ? (
                     <img src={candidate.imageUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
@@ -279,6 +304,28 @@ export function SearchPage() {
                     <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
                   </div>
                 </button>
+                {/* Deux issues possibles pour une œuvre trouvée : « je
+                    l'achète » (le clic, qui mène à la saisie des tomes
+                    possédés) et « je la veux » - la seconde n'existait pas,
+                    faute de pouvoir référencer une œuvre sans la posséder. Le
+                    backend crée sa fiche catalogue, sans aucune possession. */}
+                <WishlistToggle
+                  variant="inline"
+                  external={{
+                    entityTypeId: entityTypeId!,
+                    // Le titre envoyé est celui AFFICHÉ : c'est l'identité que
+                    // l'utilisateur vient de choisir, et c'est sur elle que
+                    // porte la déduplication côté backend.
+                    title: candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
+                    // Même règle que l'écran de saisie (AddDraftPage) : la
+                    // jaquette du candidat est persistée sous la clé
+                    // partagée, sans quoi l'œuvre apparaîtrait sans visuel
+                    // dans les Envies et dans la liste partagée.
+                    attributes: candidate.imageUrl
+                      ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
+                      : candidate.attributes,
+                  }}
+                />
               </li>
             ))}
           </ul>
