@@ -1138,6 +1138,92 @@ vérification retirées en SQL direct - aucun endpoint ne sait supprimer une
 analyse ni une observation - compteurs revenus à l'identique (6 œuvres, 13
 tomes, 9 possessions, 6 éditions, 0 observation, 6 analyses).
 
+### Lot 31 — une seule source de vérité pour "X sur Y"
+
+Audit demandé sur la justesse des chiffres, et non plus sur le rendu ou la
+robustesse. Méthode : partir de la vérité en base, puis confronter ce que
+chaque écran en dit.
+
+**Le même fait, quatre réponses.** "Combien de tomes possédés sur combien"
+était recalculé par quatre implémentations indépendantes - la tuile de Ma
+collection, la fiche, le moteur de suggestions, la page publique - qui ne
+s'accordaient pas :
+
+| | Ma collection | Fiche | Suggestions | Page publique |
+|---|---|---|---|---|
+| Naruto | 3/72 | 3/72 | **2/72** | 3/72 |
+| Raw Hero | **3 tomes** | 3/6 | 3/6 | 3/6 |
+
+Deux défauts distincts, chacun dans une implémentation différente, et aucun
+détectable en lisant un seul écran.
+
+**Naruto** : le tome 1 n'a pas d'édition saisie, les tomes 18 et 30 sont en
+"Kana". Le web les fusionne (règle explicite de `editionGroups.ts` : une seule
+édition nommée plus des tomes sans édition précisée, c'est presque toujours un
+tome ajouté sans retaper un nom déjà connu) ; le moteur de suggestions les
+ignorait, son `groupVolumesByEdition` faisant `if (edition.isEmpty()) continue`.
+Il annonçait donc un tome de moins et un manquant de plus - et l'estimation du
+coût pour compléter était calculée sur ce mauvais compte. Le commentaire du
+backend se disait « équivalent serveur de `groupVariantsByEdition` » : il l'était,
+mais c'est `resolveEditionView` que l'interface applique réellement. Les deux
+ont divergé le jour où cette seconde règle est apparue.
+
+**Raw Hero** : la tuile choisissait son édition parmi les tomes CATALOGUÉS
+(`singleNamedEdition`), la page publique parmi les tomes POSSÉDÉS. Une édition
+parasite à 0 tome possédé - « Perfect Edition (test) », reste d'une session de
+test - suffisait donc à faire perdre "3/6" à la tuile, qui retombait sur "3
+tomes". Un visiteur extérieur voyait une meilleure information que le
+propriétaire.
+
+**Décidé avec l'utilisateur** (les trois questions posées avant de coder) : le
+tome sans édition compte dans l'édition nommée ; l'édition « (test) » est
+supprimée ; et le correctif va jusqu'à la source unique plutôt que de faire
+converger quatre copies.
+
+**`CollectionProgressService`** (paquet `insights`, lecture pure cross-contexte,
+même convention que `StatsService`) porte désormais les cinq règles, écrites
+une fois : groupes issus des tomes catalogués, fusion du groupe sans édition
+quand il n'existe qu'une édition nommée, possession mesurée sur les Ownership
+actives par numéro de tome DISTINCT, total pris sur la fiche `MangaEdition` de
+cette édition précise et jamais deviné, et **édition dominante** = l'unique
+groupe réellement possédé (zéro ou plusieurs : pas de dominante, l'ambiguïté ne
+se tranche pas au hasard). `CollectionProgressServiceTest` est la spécification
+exécutable de ces règles - huit cas, tous tirés d'un écart réellement constaté.
+
+Consommateurs branchés : `findNearCompleteSuggestions` et
+`PublicCollectionController`, qui perdent chacun leur version des règles, plus
+un endpoint `GET /api/insights/progress` pour les surfaces suivantes. La page
+publique n'a plus aucun calcul : elle lit une dominante et l'affiche.
+
+**Reste à faire, explicitement** : le web calcule encore sa propre copie
+(`editionGroups.ts`, `shelfTiles.ts`). Il donne aujourd'hui les mêmes chiffres
+que le backend, mais par une implémentation parallèle - donc la classe de bug
+n'est pas éteinte tant que Ma collection et la fiche ne consomment pas
+`/insights/progress`. C'est le lot suivant, et il supprimera la règle
+`singleNamedEdition` qui a produit le défaut Raw Hero.
+
+**Vérifié sans rien corriger** : le bilan annuel, la chronologie mensuelle, les
+statistiques par type et la valeur de collection concordent tous avec la base
+(9 acquisitions, 2 expériences à 7.0, 8 manga + 1 jeu vidéo, 0 prix renseigné).
+La valeur affiche « Pas encore de prix renseigné / Indisponible » plutôt qu'un
+"0,00 €" trompeur. Deux fausses pistes écartées en vérifiant plutôt qu'en
+supposant : les libellés ne sont pas doublement encodés (les octets sont bien
+`c3 a9`, c'était le tuyau de test qui décodait en cp1252), et le "0 / None" de
+la page publique pour un jeu vidéo n'apparaît jamais à l'écran.
+
+**Trouvé, non corrigé** : Mon profil annonce « 9 TOMES POSSÉDÉS » alors que le
+compte inclut un jeu vidéo - exactement le défaut de vocabulaire corrigé au Lot
+17 sur Ma collection et les statistiques, resté sur cet écran-là. Et le bilan
+annuel proclame un « auteur/studio le plus présent (1x) » alors que les cinq
+séries ont cinq auteurs distincts : à 1 partout, le gagnant est arbitraire, sur
+une carte destinée à être partagée.
+
+**Vérification** : 386 tests backend (+8), les trois surfaces backend rejouées
+sur les données réelles donnent maintenant la même réponse, les écrans web
+aussi, aucune erreur console. Suppression de l'édition « (test) » faite via
+l'API : son tome retiré, l'édition disparue avec lui (comportement documenté au
+Lot 26), Raw Hero repassé à « Soleil · 3/6 ».
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

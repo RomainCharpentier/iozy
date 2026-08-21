@@ -2,6 +2,8 @@ package com.iozycore.api.insights;
 
 import com.iozycore.insights.CollectionValue;
 import com.iozycore.insights.DiscoveryCandidate;
+import com.iozycore.insights.CollectionProgress;
+import com.iozycore.insights.CollectionProgressService;
 import com.iozycore.insights.DiscoveryService;
 import com.iozycore.insights.StatsService;
 import com.iozycore.insights.StatsSummary;
@@ -25,10 +27,13 @@ public class InsightsController {
 
     private final StatsService statsService;
     private final DiscoveryService discoveryService;
+    private final CollectionProgressService collectionProgressService;
 
-    public InsightsController(StatsService statsService, DiscoveryService discoveryService) {
+    public InsightsController(StatsService statsService, DiscoveryService discoveryService,
+                               CollectionProgressService collectionProgressService) {
         this.statsService = statsService;
         this.discoveryService = discoveryService;
+        this.collectionProgressService = collectionProgressService;
     }
 
     @Operation(summary = "Statistiques agrégées : nombre d'entités/possessions par type, "
@@ -58,6 +63,13 @@ public class InsightsController {
     @GetMapping("/yearly-recap")
     public YearlyRecap yearlyRecap(@RequestParam(required = false) Integer year) {
         return statsService.computeYearlyRecap(year != null ? year : LocalDate.now().getYear());
+    }
+
+    @Operation(summary = "Progression \"X tomes possédés sur Y\" de chaque œuvre - source unique, "
+            + "à consommer plutôt qu'à recalculer (voir CollectionProgressService)")
+    @GetMapping("/progress")
+    public List<CollectionProgress> progress() {
+        return collectionProgressService.computeAll();
     }
 
     @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
