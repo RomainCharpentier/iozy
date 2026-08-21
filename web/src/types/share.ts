@@ -1,10 +1,12 @@
-/** Miroir de CollectionShareDtos côté backend - voir sa javadoc pour la liste
- * de ce qui est DÉLIBÉRÉMENT absent de la vue publique (identifiants, prix,
- * valeur estimée, dates, wishlist). */
+/** Miroir de ShareDtos côté backend - voir sa javadoc pour la liste de ce qui
+ * est DÉLIBÉRÉMENT absent de la vue publique (identifiants, prix, valeur
+ * estimée, dates d'acquisition, notes, tags, relations, analyses). */
 
-/** `token` null = aucun lien actif. */
-export interface CollectionShareDto {
+/** État du partage côté propriétaire. `token` null = aucun lien actif. */
+export interface ShareDto {
   token: string | null
+  shareCollection: boolean
+  shareWishlist: boolean
   includeTierLists: boolean
 }
 
@@ -22,6 +24,12 @@ export interface SharedCollectionItemDto {
 export interface SharedUniverseDto {
   label: string
   items: SharedCollectionItemDto[]
+}
+
+export interface SharedWishlistItemDto {
+  title: string
+  coverImageUrl: string | null
+  addedAt: string
 }
 
 export interface SharedRankedItemDto {
@@ -44,9 +52,14 @@ export interface SharedTierListsDto {
   custom: SharedTierBoardDto[]
 }
 
-export interface SharedCollectionDto {
-  universes: SharedUniverseDto[]
-  /** null = le propriétaire ne partage PAS ses classements - distinct d'une
-   * liste vide, qui voudrait dire "partagés, mais aucun". */
+/**
+ * Ce qu'un visiteur reçoit. Une section non partagée vaut `null` et n'est
+ * même pas calculée côté serveur - distinct d'un tableau vide, qui dirait
+ * « partagée, mais rien dedans ». C'est ce qui permet à la page de n'afficher
+ * que les onglets réellement accessibles.
+ */
+export interface SharedSpaceDto {
+  collection: SharedUniverseDto[] | null
+  wishlist: SharedWishlistItemDto[] | null
   tierLists: SharedTierListsDto | null
 }

@@ -5,7 +5,6 @@ import { SearchPage } from './routes/QuickAdd/SearchPage'
 import { AddDraftPage } from './routes/QuickAdd/AddDraftPage'
 import { EntityDetailPage } from './routes/EntityDetail/EntityDetailPage'
 import { WishlistPage } from './routes/Wishlist/WishlistPage'
-import { SharedWishlistPage } from './routes/Wishlist/SharedWishlistPage'
 import { StatsPage } from './routes/Stats/StatsPage'
 import { EntityTypesPage } from './routes/EntityTypes/EntityTypesPage'
 import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
@@ -25,18 +24,17 @@ import { CategoryPage } from './routes/Shelf/CategoryPage'
 import { GeneralTierBoardPage } from './routes/TierLists/GeneralTierBoardPage'
 import { CustomTierBoardPage } from './routes/TierLists/CustomTierBoardPage'
 import { TierListsScreen } from './routes/TierLists/TierListsScreen'
-import { SharedCollectionPage } from './routes/Profile/SharedCollectionPage'
+import { SharedSpacePage } from './routes/Share/SharedSpacePage'
 import { EditionsPage } from './routes/Editions/EditionsPage'
 
-/** Les routes /public/* vivent hors AppShell (voir SharedWishlistPage,
- * SharedCollectionPage) : quelqu'un qui ouvre un lien de partage n'a pas de
+/** La route /public/share/:token vit hors AppShell (voir SharedSpacePage) :
+ * quelqu'un qui ouvre un lien de partage n'a pas de
  * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
  * naviguer. Tout le reste de l'app reste dans AppShell, inchangé. */
 export default function App() {
   return (
     <Routes>
-      <Route path="/public/wishlist/:token" element={<SharedWishlistPage />} />
-      <Route path="/public/collection/:token" element={<SharedCollectionPage />} />
+      <Route path="/public/share/:token" element={<SharedSpacePage />} />
       <Route
         path="/*"
         element={

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Download, ImagePlus, Layers, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mergeVariantAttributes, searchEntities } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
@@ -305,6 +305,21 @@ export function ShelfPage() {
               <Layers size={17} />
               Types de collection
               <span className="ml-auto text-xs font-normal text-textDim">{entityTypes.length}</span>
+            </button>
+            {/* Raccourci vers le partage commun, pas un second mécanisme :
+                collection et envies se partagent par le MÊME lien, et ce
+                raccourci mène donc aux mêmes réglages que depuis Profil ou
+                Envies. Entrer par ici ne crée pas un jeton de plus. */}
+            <button
+              type="button"
+              onClick={() => {
+                setHubMenuOpen(false)
+                navigate('/profile', { state: { focusPartage: true } })
+              }}
+              className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
+            >
+              <Link2 size={17} />
+              Partager ma collection
             </button>
           </div>
         </>
