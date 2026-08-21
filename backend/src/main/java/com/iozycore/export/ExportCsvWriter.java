@@ -69,6 +69,39 @@ public class ExportCsvWriter {
                 r -> List.of(str(r.id()), str(r.sourceEntityId()), str(r.sourceEntityTitle()), str(r.targetEntityId()),
                         str(r.targetEntityTitle()), str(r.relationshipType()))));
 
+        files.put("editions.csv", writeCsv(
+                List.of("id", "entityId", "seriesTitle", "editionName", "tier", "publisher", "totalVolumes",
+                        "retailPriceNewPerVolume", "outOfPrint", "betterEditionAnnounced", "betterEditionNote",
+                        "languageCode"),
+                document.editions(),
+                e -> List.of(str(e.id()), str(e.entityId()), str(e.seriesTitle()), str(e.editionName()),
+                        str(e.tier()), str(e.publisher()), str(e.totalVolumes()), str(e.retailPriceNewPerVolume()),
+                        str(e.outOfPrint()), str(e.betterEditionAnnounced()), str(e.betterEditionNote()),
+                        str(e.languageCode()))));
+
+        files.put("general-rankings.csv", writeCsv(
+                List.of("entityId", "entityTitle", "rank"),
+                document.generalRankings(),
+                r -> List.of(str(r.entityId()), str(r.entityTitle()), str(r.rank()))));
+
+        // Une ligne par ŒUVRE classée, la liste étant répétée en colonnes : un
+        // CSV imbriqué n'existe pas, et c'est le classement qu'on vient lire.
+        files.put("tier-lists.csv", writeCsv(
+                List.of("tierListId", "tierListName", "entityTypeLabel", "activeRanks", "entityId", "entityTitle", "rank"),
+                document.tierLists().stream()
+                        .flatMap(l -> l.items().stream().map(i -> Map.entry(l, i)))
+                        .toList(),
+                pair -> List.of(str(pair.getKey().id()), str(pair.getKey().name()),
+                        str(pair.getKey().entityTypeLabel()), String.join(";", pair.getKey().activeRanks()),
+                        str(pair.getValue().entityId()), str(pair.getValue().entityTitle()),
+                        str(pair.getValue().rank()))));
+
+        files.put("edition-upgrade-wishes.csv", writeCsv(
+                List.of("id", "entityId", "entityTitle", "currentEditionName", "desiredEditionName", "note", "addedAt"),
+                document.editionUpgradeWishes(),
+                w -> List.of(str(w.id()), str(w.entityId()), str(w.entityTitle()), str(w.currentEditionName()),
+                        str(w.desiredEditionName()), str(w.note()), str(w.addedAt()))));
+
         files.put("tags.csv", writeCsv(
                 List.of("id", "label"),
                 document.tags(),
