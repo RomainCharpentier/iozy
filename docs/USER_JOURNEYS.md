@@ -970,6 +970,27 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 ---
 
+## 24. Classement des fonctionnalités historiques
+
+Établi le 2026-08-21 en croisant le code, la navigation réelle, les maquettes
+V1.2 et l'usage constaté sur les données. **Aucune suppression arbitraire** :
+seule une fonctionnalité clairement remplacée ou abandonnée perd son accès.
+
+| Fonctionnalité | Classement | Justification |
+|---|---|---|
+| **Éditions de référence** (`/editions`) | `ACTIVE` | Porte le nombre de tomes de chaque édition — **toute** progression « X/Y » de l'app en dépend, sur tous les écrans. Reste un écran de maintenance sous Administration, pas une destination : renseigner se fait depuis la fiche, là où le manque se constate. |
+| **Bilan annuel** (`/recap`) | `SECONDARY` | Fonctionne sur données réelles, produit un PNG téléchargeable. Usage saisonnier, sa place sous Profil est cohérente. Conservé tel quel. |
+| **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu récemment aux éditions, classements, Tier Lists et envies d'amélioration (11 fichiers). Conservé sous Administration. |
+| **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Limite connue : ni modifiables ni supprimables (voir §14). |
+| **Tags** | `SECONDARY` | Attachables et détachables depuis la fiche, remontés dans les statistiques (`topTags`). Le backend sait filtrer par tag (`GET /entities/search?tagId=`) mais **aucun écran ne l'expose** — sous-employés, pas abandonnés. Rien ne les a remplacés : les retirer serait arbitraire. |
+| **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche, exportées. Purement descriptives, aucun autre écran ne s'en sert. Limite : pas de suppression possible (voir §14). |
+| **Prêts** | `LEGACY` → **retiré** | Hors périmètre produit. Ses surfaces d'interface ont été retirées le 2026-08-21 ; elle n'était de toute façon liée depuis aucun écran. Backend laissé en place, voir le parcours 16. |
+
+**Rien d'autre n'a été retiré.** Les écrans jugés `SECONDARY` gardent leur accès
+actuel sans devenir des destinations de navigation.
+
+---
+
 ## 23. Où retrouver l'implémentation
 
 ```text
