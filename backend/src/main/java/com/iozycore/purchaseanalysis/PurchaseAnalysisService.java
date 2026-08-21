@@ -444,6 +444,16 @@ public class PurchaseAnalysisService {
         return marketPriceObservationRepository.save(observation);
     }
 
+    /** Édition existante portant ce couple (titre de série, nom d'édition) - la
+     * contrainte d'unicité de la base porte exactement sur ce couple, quel que
+     * soit l'entityId. Sert à refuser un doublon avant l'insert (voir Lot 36). */
+    public Optional<MangaEdition> findEditionBySeriesAndName(String seriesTitle, String editionName) {
+        if (seriesTitle == null || editionName == null) {
+            return Optional.empty();
+        }
+        return mangaEditionRepository.findBySeriesAndEdition(seriesTitle, editionName);
+    }
+
     public CollectorPreferences preferences() {
         return collectorPreferencesRepository.find();
     }

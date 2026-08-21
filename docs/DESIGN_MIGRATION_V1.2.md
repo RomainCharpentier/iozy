@@ -1432,6 +1432,64 @@ qui garantissent que les règles de progression n'ont pas bougé sous le
 regroupement. Chiffres identiques avant/après sur les données réelles, à l'API
 comme à l'écran (Ma collection, Suggestions, Statistiques).
 
+### Lot 36 — l'arithmétique du moteur, re-dérivée à la main
+
+Le cœur de la fonctionnalité phare n'avait jamais été vérifié autrement que par
+ses propres tests. Ce lot le re-dérive **indépendamment** : un cas dont chaque
+valeur est connue d'avance, puis comparaison.
+
+Cas construit : édition à 10 tomes, prix neuf 10 €/tome ; un prix relevé de 32 €
+pour les tomes 1-4, soit 8 €/tome observé (une donnée réelle, donc l'IA n'est
+jamais appelée) ; annonce de 45 € pour les tomes 1-5, état "bon état", sans
+frais.
+
+Valeurs prédites à la main, puis retrouvées **toutes** dans la réponse : coût
+réel 45 ; valeur neuve 50 ; décote 10 % ; valeur juste 40 (8 × 5) ; prix
+maximum 42 (40 × 1,05) ; cible basse 38 (40 × 0,95) ; seuil d'abandon 52,50
+(42 × 1,25) ; 45 dépassant 42 sans atteindre 52,50, la recommandation est
+**NEGOTIATE** avec une offre conseillée à 38. Côté critères :
+prix/valeur juste 45/40 = 1,125, donc score 30 ; décote 10 % contre 20 %
+attendus, donc 50 + (10 − 20) × 2 = 30 ; alignement marché 90 (une observation
+réelle existe) ; état "bon état" 55 ; qualité d'édition STANDARD, 6e rang sur 7
+dans la hiérarchie par défaut, donc 100 − (5/6) × 80 = 33 ; coût pour compléter
+40/50 = 80 %, donc 20.
+
+**Score pondéré : 4885/100 = 48,85 → 49**, exactement ce que le moteur rend, et
+49 étant sous le seuil de 50, le verdict "Cher" est correct. **L'arithmétique
+est juste, de bout en bout.**
+
+**Les deux surfaces publiques tiennent aussi.** Jeton inconnu, malformé, vide,
+en forme d'injection SQL, ou jeton d'une autre fonctionnalité : **404 dans tous
+les cas**, indistinctement - rien ne laisse deviner qu'un lien a existé. Après
+révocation : 404 immédiat. Les champs réellement exposés sont exactement ceux
+promis (titre, jaquette, éditions, progression) - **aucun identifiant, aucun
+prix**. L'interrupteur Tier Lists tient sa promesse : `tierLists` vaut `null`
+tant qu'il est fermé, et les œuvres classées ne sortent qu'avec titre et
+jaquette.
+
+**Un défaut trouvé en chemin.** `POST /purchase-analysis/editions` sur un couple
+(titre de série, nom d'édition) déjà pris répondait **500**, avec la requête SQL
+et le nom de la contrainte `manga_edition_series_title_edition_name_key`. Un
+double clic sur "Enregistrer" suffit à le déclencher. Refus explicite ajouté
+avant l'insert : 409 "Une édition « Kana » existe déjà pour la série « X »".
+
+Et surtout, **un filet général** : c'est le quatrième cas de contrainte de base
+qui remonte en 500 après la suppression d'édition (Lot 26), la wishlist et les
+relations (Lot 28). Chacun ne fermait que sa porte. `ApiExceptionHandler`
+traduit désormais toute `DataIntegrityViolationException` en 409 avec un
+message générique, le détail partant en WARN dans les logs - plus aucune trace
+SQL ne peut atteindre l'écran, quelle que soit la table.
+
+**Vérification** : 386 tests backend, doublon rejeté en 409 lisible et création
+légitime toujours acceptée (201), données d'audit retirées, compteurs revenus à
+l'identique (6 œuvres, 12 tomes, 9 possessions, 5 éditions, 0 observation, 6
+analyses, 2 classements), écrans inchangés.
+
+**Rappel de méthode** : le nettoyage par l'API a échoué à mi-parcours (une
+édition encore référencée par son tome), et c'est le SQL en une transaction, dans
+l'ordre des dépendances, qui a rétabli l'état - avec la liste de ce qui allait
+partir affichée AVANT de supprimer.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement
