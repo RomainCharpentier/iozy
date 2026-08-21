@@ -12,6 +12,7 @@ import { findEdition } from '../../api/purchaseAnalysis'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { WishlistToggle } from '../../components/WishlistToggle'
 import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
@@ -224,6 +225,12 @@ export function EntityDetailPage() {
                   d'analyse (voir PurchaseAnalysisPage, location.state - même
                   mécanisme que SearchPage -> AddDraftPage), ce qui rend le
                   libellé littéralement vrai plutôt qu'à moitié tenu. */}
+              {/* Envies : la décision « je le veux » se prend en regardant la
+                  fiche, c'est donc là que le bouton doit vivre. Il n'existait
+                  auparavant qu'un seul point d'ajout dans toute l'app, au bout
+                  d'une analyse d'achat (voir docs/USER_JOURNEYS.md, UX-2). */}
+              <WishlistToggle entityId={entity.id} />
+
               <div className="flex w-fit flex-col gap-1">
                 <button
                   type="button"

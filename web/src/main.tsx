@@ -12,6 +12,7 @@ import './index.css'
 import { applyStoredTheme } from './lib/theme'
 
 import App from './App.tsx'
+import { ToastProvider } from './components/Toast'
 
 // Avant le premier rendu React - évite un flash thème par défaut puis
 // thème stocké (voir lib/theme.ts).
@@ -35,7 +36,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

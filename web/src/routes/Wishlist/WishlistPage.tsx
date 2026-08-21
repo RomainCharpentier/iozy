@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
-import { listWishlist, removeFromWishlist } from '../../api/wishlist'
+import { listWishlist } from '../../api/wishlist'
 import { getEntity } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
+import { useWishlist } from '../../lib/useWishlist'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CoverTile } from '../../components/CoverTile'
 import { coverImageUrlFrom } from '../../lib/coverImage'
@@ -28,22 +29,13 @@ function wishlistTileSubtitle(attributes: Record<string, unknown>): string | und
  * réseau supplémentaire dans ce cas. */
 function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse; entityTypesById: Map<string, EntityTypeDto> }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  // Passe par le hook partagé : même invalidation et même retour visuel
+  // (« Retiré des envies » + Annuler) que depuis la fiche, la recherche ou le
+  // scan - au lieu d'une mutation propre à cet écran, qui divergeait déjà.
+  const wishlist = useWishlist()
   const entityQuery = useQuery({
     queryKey: queryKeys.entities.detail(entry.entityId),
     queryFn: () => getEntity(entry.entityId),
-  })
-
-  const removeMutation = useMutation({
-    mutationFn: () => removeFromWishlist(entry.id),
-    onSuccess: () => {
-      // Retire directement cette entrée du cache plutôt que d'invalider la
-      // liste entière : la tuile disparaît immédiatement, sans aller-retour
-      // réseau supplémentaire ni recharger toute la page.
-      queryClient.setQueryData<WishlistEntryResponse[]>(queryKeys.wishlist.all, (current) =>
-        (current ?? []).filter((e) => e.id !== entry.id),
-      )
-    },
   })
 
   if (!entityQuery.data) return null
@@ -69,14 +61,12 @@ function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse;
         type="button"
         onClick={(e) => {
           e.stopPropagation()
-          removeMutation.mutate()
+          wishlist.remove(entry.id, entry.entityId)
         }}
-        disabled={removeMutation.isPending}
+        disabled={wishlist.isPending}
         aria-label={`Retirer ${entityQuery.data.title} de la wishlist`}
-        title={removeMutation.isError ? 'Échec du retrait, réessaie' : 'Retirer de la wishlist'}
-        className={`absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full text-textPrimary transition disabled:opacity-50 ${
-          removeMutation.isError ? 'bg-danger/80' : 'bg-black/70 hover:bg-black/85'
-        }`}
+        title="Retirer de la wishlist"
+        className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-textPrimary transition hover:bg-black/85 disabled:opacity-50"
       >
         <X size={13} strokeWidth={2.5} />
       </button>

@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Copy, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { addToWishlist } from '../../api/wishlist'
-import { queryKeys } from '../../lib/queryKeys'
+import { useWishlist } from '../../lib/useWishlist'
 import { VerdictBadge } from './VerdictBadge'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
 import type { PurchaseAnalysisDto, WarningSeverity } from '../../types/purchaseAnalysis'
@@ -34,7 +32,6 @@ export function PurchaseAnalysisResultCard({
   resetLabel?: string
   resetIcon?: typeof History
 }) {
-  const queryClient = useQueryClient()
   const [showOfferText, setShowOfferText] = useState(false)
   const [copied, setCopied] = useState(false)
   const { listing, negotiation } = analysis
@@ -48,12 +45,9 @@ export function PurchaseAnalysisResultCard({
   // "Prix maximum" déjà affiché dans le bloc négociation ci-dessus.
   const hasAnyDuplicate = analysis.itemBreakdown.some((item) => item.duplicates.duplicateVolumeNumbers.length > 0)
 
-  const wishlistMutation = useMutation({
-    mutationFn: (entityId: string) => addToWishlist(entityId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
-    },
-  })
+  // Même hook que la fiche, la recherche et le scan : un seul comportement
+  // d'ajout aux envies dans toute l'app, retour visuel et annulation compris.
+  const wishlist = useWishlist()
 
   const offerText =
     negotiation.recommendedOffer !== null
@@ -183,8 +177,8 @@ export function PurchaseAnalysisResultCard({
         </button>
         <button
           type="button"
-          onClick={() => knownEntityIds.forEach((id) => wishlistMutation.mutate(id))}
-          disabled={knownEntityIds.length === 0 || wishlistMutation.isPending}
+          onClick={() => wishlist.addMany(knownEntityIds)}
+          disabled={knownEntityIds.length === 0 || wishlist.isPending}
           title={knownEntityIds.length === 0 ? "Aucune série de ce lot n'est encore dans ta collection/wishlist" : undefined}
           className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
