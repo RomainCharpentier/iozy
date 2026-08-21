@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,22 +77,37 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
 
     @Override
     public List<Entity> findAllByType(UUID entityTypeId) {
-        return entityJpaRepository.findByEntityTypeId(entityTypeId).stream()
-                .map(jpaEntity -> {
-                    List<VariantJpaEntity> variants = variantJpaRepository.findByEntityId(jpaEntity.getId());
-                    return EntityMapper.toDomain(jpaEntity, variants);
-                })
-                .collect(java.util.stream.Collectors.toList());
+        return withVariants(entityJpaRepository.findByEntityTypeId(entityTypeId));
     }
 
     @Override
     public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-        return entityJpaRepository.search(titleQuery, entityTypeId, tagId).stream()
-                .map(jpaEntity -> {
-                    List<VariantJpaEntity> variants = variantJpaRepository.findByEntityId(jpaEntity.getId());
-                    return EntityMapper.toDomain(jpaEntity, variants);
-                })
-                .collect(java.util.stream.Collectors.toList());
+        return withVariants(entityJpaRepository.search(titleQuery, entityTypeId, tagId));
+    }
+
+    /**
+     * Rattache leurs tomes à plusieurs œuvres en UNE requête, au lieu d'une par
+     * œuvre.
+     * <p>
+     * Ces deux listings sont le chemin le plus fréquenté de l'app - Ma
+     * collection, un rayon, l'export, la progression, les suggestions et la page
+     * publique en dépendent tous - et chacun coûtait 1 + N requêtes. Mesuré au
+     * moment du correctif : 6 œuvres, donc 6 requêtes de tomes évitées ; à 500
+     * séries, 500. Le regroupement se fait en mémoire, la liste des œuvres étant
+     * de toute façon déjà chargée.
+     */
+    private List<Entity> withVariants(List<EntityJpaEntity> jpaEntities) {
+        if (jpaEntities.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<VariantJpaEntity>> variantsByEntityId = variantJpaRepository
+                .findByEntityIdIn(jpaEntities.stream().map(EntityJpaEntity::getId).collect(Collectors.toSet()))
+                .stream()
+                .collect(Collectors.groupingBy(VariantJpaEntity::getEntityId));
+        return jpaEntities.stream()
+                .map(jpaEntity -> EntityMapper.toDomain(jpaEntity,
+                        variantsByEntityId.getOrDefault(jpaEntity.getId(), List.of())))
+                .collect(Collectors.toList());
     }
 
     @Override
