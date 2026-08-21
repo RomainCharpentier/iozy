@@ -868,7 +868,8 @@ L'endpoint d'observation de marché exercé avec le payload exact du bouton :
 en SQL direct, aucun endpoint ne sachant supprimer une observation. Le **rendu**
 du bouton n'a pas été vu en direct : aucune analyse de l'historique n'a
 d'édition reconnue, et en produire une écrirait un historique indélébile en
-consommant du quota Gemini. Contrastes des nouveaux éléments mesurés dans les
+consommant du quota Gemini. **Levé au Lot 30**, dont la vérification produit
+une telle analyse sans appeler l'IA. Contrastes des nouveaux éléments mesurés dans les
 deux thèmes (7.4 à 16.3:1). Reste vert : 370 tests backend, `tsc -b`, `oxlint`,
 build de production, et sur 17 routes aucune erreur console, aucune requête en
 échec, aucun débordement horizontal.
@@ -1046,6 +1047,96 @@ accessible, zéro débordement horizontal, aucune erreur console. Croix mesurée
 `tsc -b`, `oxlint` et le build de production verts. Aucune donnée touchée : les
 deux liens de partage créés pour auditer les pages publiques ont été révoqués,
 les deux réglages singletons relus identiques.
+
+### Lot 30 — l'analyse d'achat parle français
+
+Ce lot devait exposer les `CollectorPreferences`, dernier « endpoint sans
+interface » connu. Il a changé de cible en cours de route, pour deux raisons
+qui valent mieux que la fonctionnalité prévue.
+
+**La première : le moteur d'analyse parlait anglais à l'écran.** Toute la
+sortie de la fonctionnalité phare - conseil de négociation, avertissements
+d'édition, justifications des dix critères - était produite en anglais et
+affichée telle quelle dans une interface intégralement française. « Asking
+price is above fair value - propose an offer close to the fair value range. »
+s'affichait sous l'offre conseillée, « Edition "Deluxe" for "Vinland Saga" is
+not known yet » sous le détail par série. Aucun lot précédent ne l'avait relevé,
+alors que le Lot 25 avait corrigé un « Not Found » anglais autrement plus
+discret.
+
+Ce n'était pas un choix : la convention de cette fonctionnalité (anglais pour
+les identifiants, les commentaires et les noms de classes) ne dit rien des
+chaînes lues par l'utilisateur, et la Phase 2 le confirme - **les deux prompts
+Gemini demandent explicitement une justification en français depuis le premier
+jour**. Seul le moteur déterministe de la Phase 1 était resté en anglais.
+
+Traduit : les 8 avertissements de `PurchaseAnalysisEngine`, les 5 conseils de
+`NegotiationEngine`, les 16 justifications de `VerdictScorer`, et les messages
+de refus lisibles à l'écran (`PurchaseAnalysisController`,
+`PurchaseAnalysisService`, et 10 invariants de domaine déclenchables par une
+saisie). **Règle appliquée** : un message qu'une saisie utilisateur peut
+provoquer passe en français, un message qui ne peut résulter que d'une erreur
+de programmation reste en anglais - il ne s'adresse pas à l'utilisateur. Les
+trois derniers (« A factor score must be between 0 and 100 », « A warning must
+have a message », « Observed price fields must be null when observationCount is
+0 ») relèvent du second cas.
+
+**Trois fuites résiduelles**, trouvées en relisant la sortie réelle plutôt que
+le code : `"État déclaré : GOOD"` et `"Gamme(s) d'édition : [STANDARD]"`
+interpolaient la constante d'enum brute au milieu d'une phrase française, et
+les montants s'affichaient en `EUR` là où l'interface écrit `€`. Libellés
+alignés sur ceux déjà utilisés côté web (`CONDITION_LABELS` /
+`EDITION_TIER_LABELS`).
+
+**La seconde raison : un filtre qui n'aurait pas survécu.**
+`SeriesBreakdownItem` reconnaissait l'avertissement « doublons » **à sa
+formulation anglaise** (`w.message.includes('already owned')`) pour ne pas le
+répéter, la même information partant déjà structurée et chiffrée dans le bloc
+dédié juste au-dessus. Traduire l'avertissement aurait cassé ce filtre en
+silence, et le doublon serait réapparu en prose. Plutôt que de traduire des
+deux côtés, le moteur **n'émet plus cet avertissement du tout** : il faisait
+doublon avec une donnée déjà présente, et reconnaître un avertissement à son
+texte était fragile par construction.
+
+**Les analyses d'avant ce lot gardent leur anglais.** Le résultat est stocké en
+JSONB, c'est un instantané, pas un calcul rejoué - les 6 analyses de
+l'historique restent telles qu'elles ont été produites. Conséquence assumée :
+sur ces six-là, l'avertissement doublons réapparaît dans la liste en prose,
+puisque le filtre a disparu. À sa place, et en anglais, comme le reste de ces
+instantanés.
+
+**Réserve du Lot 27 levée.** Le bouton « Relever ce prix comme observation de
+marché » n'avait jamais été vu à l'écran, faute d'une analyse dont l'édition
+soit reconnue. La vérification de ce lot en produit une : le bouton s'affiche,
+et le relevé écrit exactement ce qu'il annonce - tomes 1-5 (contigus), 67,00 €
+soit la part du lot dans le coût réel, plateforme et état repris de l'annonce,
+date de l'analyse, titre de l'annonce en note. Vérifié en base.
+
+**Découvert, à traiter en priorité** : sur les dix `CollectorPreferences`,
+**six ne sont lues par aucune ligne du moteur** - `preferCompletedSeries`,
+`avoidOngoingSeries`, `preferOmnibusIntegral`, `frenchLanguageOnly`,
+`preferEasyToCompleteCollections` et `conditionImportance` (cette dernière
+faisant doublon avec `factorWeights.get(CONDITION)`). Elles sont pourtant
+persistées, exposées par l'API et documentées comme « meant to be
+user-editable ». Seules quatre pilotent réellement le verdict :
+`factorWeights`, `minimumDiscountVsRetailPercent`, `editionTierRanking` et
+`avoidOutdatedEditionWhenBetterExistsOrAnnounced`.
+
+C'est **pour cette raison** que l'écran de réglages n'a pas été construit :
+six interrupteurs qui ne changent rien seraient pires que pas d'écran du tout.
+Le travail à faire n'est pas d'ajouter une interface par-dessus, mais de
+trancher champ par champ - brancher ou retirer - avant d'exposer quoi que ce
+soit.
+
+**Vérification** : 378 tests backend (trois assertions ajustées, une réécrite
+pour vérifier la donnée structurée plutôt que la prose supprimée), `tsc -b`,
+`oxlint`, build de production. Analyse réelle jouée de bout en bout sur une
+édition jetable **avec un prix relevé**, pour que le conseiller IA ne soit
+jamais appelé (les vraies données priment) et que rien ne consomme de quota :
+sortie intégralement française, à l'API comme à l'écran. Données de
+vérification retirées en SQL direct - aucun endpoint ne sait supprimer une
+analyse ni une observation - compteurs revenus à l'identique (6 œuvres, 13
+tomes, 9 possessions, 6 éditions, 0 observation, 6 analyses).
 
 ### Note Lot 5 — résolue
 

@@ -27,7 +27,7 @@ public class NegotiationEngine {
     public NegotiationRecommendation recommend(BigDecimal askingPrice, BigDecimal fairValue) {
         if (fairValue == null) {
             return NegotiationRecommendation.unavailable(
-                    "No market observation and no retail price available for this edition - a fair value cannot be estimated.");
+                    "Aucun prix relevé ni prix neuf connu pour cette édition - impossible d'estimer une valeur juste.");
         }
 
         BigDecimal maxPrice = round(fairValue.multiply(BigDecimal.ONE.add(BAND)));
@@ -38,21 +38,21 @@ public class NegotiationEngine {
         if (askingPrice.compareTo(targetMin) <= 0) {
             return new NegotiationRecommendation(askingPrice, targetMin, targetMax, maxPrice,
                     NegotiationAdvice.ACCEPTABLE_AS_IS,
-                    "Asking price is already at or below the estimated fair value - no need to lowball.", true);
+                    "Le prix demandé est déjà au niveau de la valeur estimée, voire en dessous - inutile de négocier bas.", true);
         }
         if (askingPrice.compareTo(maxPrice) <= 0) {
             return new NegotiationRecommendation(targetMin, targetMin, targetMax, maxPrice,
                     NegotiationAdvice.ACCEPTABLE_AS_IS,
-                    "Asking price already sits within a fair range for this listing.", true);
+                    "Le prix demandé se situe déjà dans une fourchette correcte pour cette annonce.", true);
         }
         if (askingPrice.compareTo(skipThreshold) <= 0) {
             return new NegotiationRecommendation(targetMin, targetMin, targetMax, maxPrice,
                     NegotiationAdvice.NEGOTIATE,
-                    "Asking price is above fair value - propose an offer close to the fair value range.", true);
+                    "Le prix demandé dépasse la valeur estimée - propose une offre proche de la fourchette juste.", true);
         }
         return NegotiationRecommendation.unavailable(
-                "Asking price (" + askingPrice + ") is far above the estimated fair value (" + fairValue
-                        + ") - passing on this listing is more realistic than negotiating.");
+                "Le prix demandé (" + askingPrice + ") dépasse très largement la valeur estimée (" + fairValue
+                        + ") - passer son tour est plus réaliste que négocier.");
     }
 
     private static BigDecimal round(BigDecimal value) {

@@ -18,7 +18,7 @@ import java.util.UUID;
 public record MangaSeries(String title, UUID knownEntityId) {
     public MangaSeries {
         if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("A manga series must have a title");
+            throw new IllegalArgumentException("Une série doit avoir un titre");
         }
     }
 }

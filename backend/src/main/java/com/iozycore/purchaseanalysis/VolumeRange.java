@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 public record VolumeRange(int from, int to) {
     public VolumeRange {
         if (from < 1 || to < from) {
-            throw new IllegalArgumentException("Invalid volume range: " + from + "-" + to);
+            throw new IllegalArgumentException("Intervalle de tomes invalide : " + from + "-" + to);
         }
     }
 

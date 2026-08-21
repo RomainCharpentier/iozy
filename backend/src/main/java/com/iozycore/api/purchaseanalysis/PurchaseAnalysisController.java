@@ -66,7 +66,7 @@ public class PurchaseAnalysisController {
     @ResponseStatus(HttpStatus.CREATED)
     public PurchaseAnalysis analyze(@RequestBody AnalyzeListingRequest request) {
         if (request.items() == null || request.items().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A listing must include at least one item");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Une annonce doit contenir au moins un lot");
         }
         List<AnalyzeListingItemCommand> items = request.items().stream()
                 .map(item -> new AnalyzeListingItemCommand(item.seriesTitle(), item.editionName(),
@@ -102,7 +102,7 @@ public class PurchaseAnalysisController {
     @GetMapping("/history/{id}")
     public PurchaseAnalysis historyById(@PathVariable UUID id) {
         return service.findAnalysisById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analysis not found: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analyse introuvable : " + id));
     }
 
     @Operation(summary = "Look up a known manga edition by series + edition name - 404 triggers the client's "
@@ -116,7 +116,7 @@ public class PurchaseAnalysisController {
                                     @RequestParam String editionName) {
         return service.findEdition(entityId, seriesTitle, editionName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No known edition \"" + editionName + "\" for series \"" + seriesTitle + "\""));
+                        "Aucune édition \"" + editionName + "\" connue pour la série \"" + seriesTitle + "\""));
     }
 
     @Operation(summary = "Delete an edition reference - 409 when volumes are still linked to it "
@@ -293,12 +293,12 @@ public class PurchaseAnalysisController {
 
     private static <E extends Enum<E>> E parseEnum(Class<E> enumType, String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'" + fieldName + "' is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le champ '" + fieldName + "' est obligatoire");
         }
         try {
             return Enum.valueOf(enumType, value);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid value for '" + fieldName + "': " + value);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Valeur invalide pour '" + fieldName + "' : " + value);
         }
     }
 

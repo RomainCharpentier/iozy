@@ -416,7 +416,7 @@ public class PurchaseAnalysisService {
                                        BigDecimal retailPriceNewPerVolume, Boolean outOfPrint,
                                        Boolean betterEditionAnnounced, String betterEditionNote) {
         MangaEdition existing = mangaEditionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown manga edition: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Édition introuvable : " + id));
         MangaEdition updated = existing.withUpdatedReferenceData(tier, publisher, totalVolumes,
                 retailPriceNewPerVolume, outOfPrint, betterEditionAnnounced, betterEditionNote);
         return mangaEditionRepository.save(updated);
@@ -427,7 +427,7 @@ public class PurchaseAnalysisService {
                                                             Condition observedCondition, LocalDate observedAt,
                                                             String note) {
         mangaEditionRepository.findById(mangaEditionId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown manga edition: " + mangaEditionId));
+                .orElseThrow(() -> new IllegalArgumentException("Édition introuvable : " + mangaEditionId));
         MarketPriceObservation observation = MarketPriceObservation.record_(
                 mangaEditionId, scope, observedPrice, platform, observedCondition, observedAt, note);
         return marketPriceObservationRepository.save(observation);

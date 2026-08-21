@@ -20,10 +20,10 @@ public record Listing(UUID id, ListingPlatform platform, String url, String rawT
                        List<ListingItem> items, List<String> photoUrls, Instant requestedAt) {
     public Listing {
         if (askingPrice == null || askingPrice.signum() < 0) {
-            throw new IllegalArgumentException("Asking price must be zero or positive");
+            throw new IllegalArgumentException("Le prix demandé doit être nul ou positif");
         }
         if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("A listing must include at least one item");
+            throw new IllegalArgumentException("Une annonce doit contenir au moins un lot");
         }
         shippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee;
         buyerProtectionFee = buyerProtectionFee == null ? BigDecimal.ZERO : buyerProtectionFee;

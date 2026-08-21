@@ -125,7 +125,7 @@ class PurchaseAnalysisEngineTest {
                 List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), List.of(), Set.of())), defaults);
 
         List<String> messages = analysis.itemBreakdown().get(0).editionWarnings().stream().map(Warning::message).toList();
-        assertThat(messages).anyMatch(m -> m.contains("out of print"));
+        assertThat(messages).anyMatch(m -> m.contains("épuisée"));
         assertThat(messages).anyMatch(m -> m.contains("Perfect Edition has been announced"));
     }
 
@@ -139,7 +139,7 @@ class PurchaseAnalysisEngineTest {
 
         assertThat(analysis.itemBreakdown().get(0).matchedEdition()).isNull();
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
-                .anyMatch(w -> w.severity() == WarningSeverity.CAUTION && w.message().contains("not known yet"));
+                .anyMatch(w -> w.severity() == WarningSeverity.CAUTION && w.message().contains("n'est pas encore renseignée"));
         assertThat(analysis.negotiation().advice()).isEqualTo(NegotiationAdvice.SKIP_LISTING); // no price data at all
     }
 
@@ -157,8 +157,10 @@ class PurchaseAnalysisEngineTest {
         DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
         assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
+        // Aucun avertissement en prose sur les doublons : l'information vit
+        // dans DuplicateAnalysis ci-dessus, jamais dupliquee en texte (Lot 30).
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
-                .anyMatch(w -> w.message().contains("already owned"));
+                .noneMatch(w -> w.message().toLowerCase().contains("doublon"));
         assertThat(analysis.totalMaxWorthwhilePrice()).isEqualByComparingTo(new BigDecimal("6.90")); // 1 useful volume
         // Duplicates never affect the core verdict/negotiation math (unchanged from before this
         // feature existed) - fair value below is still computed from all 3 volumes, not just the useful one.
