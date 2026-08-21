@@ -39,35 +39,62 @@ public class TierListService {
      * (ShelfPage/ownership.ts) pour la même règle : au moins une Ownership
      * active, directement ou via un Variant. */
     public List<Entity> ownedEntitiesOfType(UUID entityTypeId) {
-        Set<UUID> ownedEntityIds = ownershipRepository.findAll().stream()
-                .filter(com.iozycore.domain.ownership.Ownership::isActive)
-                .map(com.iozycore.domain.ownership.Ownership::entityId)
-                .collect(Collectors.toSet());
+        Set<UUID> ownedEntityIds = ownedEntityIds();
         return entityRepository.findAllByType(entityTypeId).stream()
                 .filter(e -> ownedEntityIds.contains(e.id()))
                 .collect(Collectors.toList());
     }
 
+    /** Les Entity dont au moins une Ownership est active - vendu/perdu ne compte pas. */
+    private Set<UUID> ownedEntityIds() {
+        return ownershipRepository.findAll().stream()
+                .filter(com.iozycore.domain.ownership.Ownership::isActive)
+                .map(com.iozycore.domain.ownership.Ownership::entityId)
+                .collect(Collectors.toSet());
+    }
+
     public record GeneralBoard(Map<Rank, List<Entity>> ranked, List<Entity> unranked) {
     }
 
-    /** Board complet du classement général d'un univers : possédées classées
-     * groupées par rang (voir TierBoard côté maquette), possédées non
-     * classées à part (voir "Classer mes éléments"). */
+    /**
+     * Board complet du classement général d'un univers.
+     * <p>
+     * Les deux moitiés n'obéissent volontairement pas à la même règle, et c'est
+     * la distinction centrale de cet écran :
+     * <ul>
+     *   <li><b>{@code ranked}</b> - <b>toutes</b> les œuvres du catalogue de ce
+     *       type qui portent un rang, possédées ou non. Un classement dit ce
+     *       que l'utilisateur pense d'une œuvre ; le revendre ne change pas son
+     *       avis. Ce board ne partait auparavant que des œuvres possédées :
+     *       vendre un manga classé S le faisait disparaître de la ligne S alors
+     *       que son EntityRank existait toujours en base - un avis rendu
+     *       invisible par un mouvement de collection.</li>
+     *   <li><b>{@code unranked}</b> - les œuvres <b>possédées</b> sans rang,
+     *       c'est-à-dire la file « à classer ». Elle reste volontairement
+     *       adossée à la possession : proposer de classer tout ce qui a une
+     *       fiche noierait cette file sous les œuvres seulement mises en envies
+     *       ou croisées au catalogue. <b>Pouvoir être classée</b> et <b>devoir
+     *       apparaître dans « à classer »</b> sont deux questions distinctes.</li>
+     * </ul>
+     */
     public GeneralBoard generalBoard(UUID entityTypeId) {
-        List<Entity> owned = ownedEntitiesOfType(entityTypeId);
-        Map<UUID, Entity> byId = owned.stream().collect(Collectors.toMap(Entity::id, e -> e));
-        List<EntityRank> ranks = entityRankRepository.findByEntityIds(byId.keySet());
-        Map<UUID, Rank> rankByEntity = ranks.stream()
+        List<Entity> ofType = entityRepository.findAllByType(entityTypeId);
+        Set<UUID> ownedIds = ownedEntityIds();
+        Map<UUID, Rank> rankByEntity = entityRankRepository
+                .findByEntityIds(ofType.stream().map(Entity::id).collect(Collectors.toSet()))
+                .stream()
                 .collect(Collectors.toMap(EntityRank::entityId, EntityRank::rank));
 
         Map<Rank, List<Entity>> ranked = new EnumMap<>(Rank.class);
         for (Rank r : Rank.values()) ranked.put(r, new ArrayList<>());
         List<Entity> unranked = new ArrayList<>();
-        for (Entity entity : owned) {
+        for (Entity entity : ofType) {
             Rank rank = rankByEntity.get(entity.id());
-            if (rank == null) unranked.add(entity);
-            else ranked.get(rank).add(entity);
+            if (rank != null) {
+                ranked.get(rank).add(entity);
+            } else if (ownedIds.contains(entity.id())) {
+                unranked.add(entity);
+            }
         }
         return new GeneralBoard(ranked, unranked);
     }
