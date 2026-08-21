@@ -18,6 +18,18 @@ public class RelationshipController {
     public record CreateRelationshipRequest(UUID sourceEntityId, UUID targetEntityId, String relationshipType) {
     }
 
+    /**
+     * Corrige le TYPE d'une relation existante - la seule correction qui ait un
+     * sens ici. Changer une extrémité ne corrige pas une relation, c'est en
+     * décrire une autre : on supprime alors celle-ci et on en crée une bonne.
+     * <p>
+     * Le type est d'autant plus corrigeable qu'il se choisit parmi des
+     * présélections ou en texte libre au moment de la création, sans que la
+     * fiche ne le réaffiche ensuite - une erreur y passait inaperçue.
+     */
+    public record UpdateRelationshipRequest(String relationshipType) {
+    }
+
     private final RelationshipRepository relationshipRepository;
     private final EntityRepository entityRepository;
 
@@ -45,6 +57,30 @@ public class RelationshipController {
         if (entityRepository.findById(entityId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Entité introuvable : " + entityId);
         }
+    }
+
+    @Operation(summary = "Corriger le type d'une relation existante (ex: ADAPTED_INTO saisi à la place de SPIN_OFF)")
+    @PatchMapping("/{id}")
+    public Relationship update(@PathVariable UUID id, @RequestBody UpdateRelationshipRequest request) {
+        Relationship existing = relationshipRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Relation introuvable : " + id));
+        try {
+            // Les extrémités sont reprises telles quelles : seul le type change.
+            // La validation (type non vide) vit dans le constructeur compact de
+            // Relationship - on traduit juste son refus en 400.
+            return relationshipRepository.save(new Relationship(
+                    existing.id(), existing.sourceEntityId(), existing.targetEntityId(), request.relationshipType()));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Supprimer une relation créée par erreur - idempotent, ne touche à aucune des deux œuvres")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        relationshipRepository.deleteById(id);
     }
 
     @Operation(summary = "Lister les relations où l'Entity est source")
