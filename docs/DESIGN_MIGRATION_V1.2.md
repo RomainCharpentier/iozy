@@ -877,12 +877,13 @@ build de production, et sur 17 routes aucune erreur console, aucune requête en
 `domain/{shared,catalog,...}`...), restes d'une expansion d'accolades jamais
 faite par un shell Windows. Non suivis par git, donc invisibles en revue.
 
-**Trouvé, non corrigé** : les tuiles des boards Tier List sont des `<button>`
-dont le seul nom accessible vient d'un `title` (leur contenu est une
+**Trouvé, non corrigé ici** : les tuiles des boards Tier List sont des
+`<button>` dont le seul nom accessible vient d'un `title` (leur contenu est une
 `<img alt="">`) - le dernier recours de l'algorithme accname, là où les tuiles
 de Ma collection, elles, portent leur titre en texte. Pas un échec franc, mais
 la forme la plus fragile ; à revoir avec le reste des surfaces purement
-visuelles plutôt qu'isolément.
+visuelles plutôt qu'isolément. **Fait au Lot 29**, avec le balayage complet
+qu'il appelait.
 
 ### Lot 28 — corps de requête invalides
 
@@ -967,6 +968,84 @@ aucune couverture). Bac à sable démonté, chaque compteur de table revenu à
 l'identique (6 œuvres, 13 tomes, 9 possessions, 3 types, 0 tag, 2 expériences,
 6 éditions, 0 observation), préférences et réglage de partage inchangés au
 diff près. 11 routes rejouées côté web sans erreur console ni débordement.
+
+### Lot 29 — surfaces purement visuelles
+
+Le Lot 27 avait laissé un seul point ouvert : les tuiles des boards Tier List,
+dont le nom accessible ne venait que d'un `title`, « à revoir avec le reste des
+surfaces purement visuelles plutôt qu'isolément ». Ce lot fait ce balayage-là,
+sur **25 routes** - les 18 publiques plus les 7 à paramètre (fiche, board,
+rayon, édition d'un type, détail d'analyse) et les surfaces qui n'existent
+qu'ouvertes (dialogues, panneaux).
+
+**L'arbre d'accessibilité du navigateur ne suffisait pas.** Interrogé
+directement, il présente sans nom des boutons qui en ont un parfaitement
+(les tuiles de Ma collection portent leur titre en texte, dans des `<span>`
+imbriqués). S'y fier aurait produit une liste de faux positifs. Le balayage
+calcule donc son propre nom accessible, dans l'ordre de l'algorithme accname :
+`aria-label`, `aria-labelledby`, `<label for>`, `<label>` englobant, contenu
+textuel, `alt` d'une image contenue, puis `title` et `placeholder` - ces deux
+derniers signalés à part, car ce sont des recours de dernier rang, pas des
+libellés.
+
+**L'auditeur s'est trompé lui-même, une fois.** Sa première version ne
+connaissait que `label[for=id]` et pas le `<label>` englobant : quatre cases à
+cocher (trois dans Paramètres, une dans Évaluer un achat) sont remontées comme
+anonymes alors qu'elles sont correctement étiquetées. Vérifié une par une
+avant de toucher au code - aucune correction n'a été faite sur ce faux signal.
+Même leçon qu'au Lot 25, où l'auditeur de contraste ignorait les dégradés :
+un outil d'audit se vérifie sur un cas connu-bon avant d'être cru.
+
+**Quatre défauts réels, corrigés.**
+
+Les croix de suppression des puces (`ChipListField`) n'avaient aucun nom : le
+libellé de la puce vit dans le `<span>` parent, pas dans le bouton, qui
+s'annonçait donc « bouton » tout court. Sept d'un coup sur `/types/{id}/edit`.
+Le Lot 24 avait corrigé exactement ce défaut sur `/types` et étiqueté les deux
+champs de ce même composant - mais il n'a audité que `/types/new`, **un
+formulaire vierge, donc sans aucune puce**. Le même angle mort qu'au Lot 25,
+où le Lot 12 avait balayé un historique d'analyses vide, donc sans ses badges :
+auditer un écran, c'est auditer un écran *rempli*.
+
+Le champ d'import BoardGameGeek n'avait qu'un placeholder, qui ne fait pas
+office de libellé et disparaît à la première frappe - `/import-bgg` ne
+figurait dans aucun balayage précédent. Libellé visible ajouté, patron de
+`SearchPage` (libellé au-dessus, champ et bouton sur la ligne suivante).
+
+Le bouton « + » d'Évaluer un achat n'était nommé que par son `title`, une
+phrase d'explication de 80 caractères. `aria-label` court pour l'annonce,
+`title` long conservé pour l'infobulle.
+
+Les tuiles des boards, enfin - le point du Lot 27. Une tuile **sans** jaquette
+portait déjà son titre en texte ; une tuile **avec** jaquette n'avait que son
+`title`. Elles annoncent désormais le rang avec le titre (« Naruto, rang S »,
+« Death Note, non classée ») : le rang se lit visuellement dans la ligne, mais
+rien ne l'associait à la tuile.
+
+**Une cible trop petite.** Ces mêmes croix de puce faisaient 12x12 px, sous le
+minimum de 24x24 du critère WCAG 2.5.8, et l'exception d'espacement ne
+s'applique pas puisque les puces se touchent. Zone cliquable portée à 24x24,
+padding droit de la puce réduit d'autant : la puce garde sa hauteur de 32 px,
+rien ne grossit à l'écran.
+
+**Mesuré, non corrigé** : à 375 px, 53 des 134 éléments interactifs (40 %) font
+moins de 44x44, la recommandation confortable. Presque tous passent le seuil AA
+réel (24x24, ou l'exception d'espacement) - il reste des liens texte de 16 à
+20 px de haut, isolés et larges, donc couverts par l'exception. Aligner toute
+l'app sur 44 px relève du système de design (taille des puces, des boutons
+secondaires, des liens inline), pas d'un correctif.
+
+**Vérifié propre par ailleurs** : aucune `<img>` sans attribut `alt`, aucune
+`<svg>` ni masquée ni nommée, aucun `role="dialog"` sans nom, et les six
+`onClick` posés sur un `<div>` sont tous des voiles de modale (fermeture au
+clic en dehors) doublés d'Escape via `useModalA11y` - jamais l'unique chemin.
+
+**Vérification** : 25 routes rebalayées après correction, zéro élément sans nom
+accessible, zéro débordement horizontal, aucune erreur console. Croix mesurées
+à 24x24 et puces inchangées à 32 px de haut, à 375 px comme en desktop.
+`tsc -b`, `oxlint` et le build de production verts. Aucune donnée touchée : les
+deux liens de partage créés pour auditer les pages publiques ont été révoqués,
+les deux réglages singletons relus identiques.
 
 ### Note Lot 5 — résolue
 

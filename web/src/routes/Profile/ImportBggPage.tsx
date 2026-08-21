@@ -31,22 +31,33 @@ export function ImportBggPage() {
           e.preventDefault()
           if (username.trim()) importMutation.mutate(username.trim())
         }}
-        className="flex gap-2"
+        className="flex flex-col gap-1.5"
       >
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Pseudo BoardGameGeek"
-          autoFocus
-          className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-        />
-        <button
-          type="submit"
-          disabled={importMutation.isPending || !username.trim()}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
-        >
-          {importMutation.isPending ? 'Import...' : 'Importer'}
-        </button>
+        {/* Libellé visible plutôt qu'un simple placeholder, qui n'en fait pas
+            office et disparaît dès la première frappe - même correctif qu'au
+            Lot 24 sur les deux champs de /types/new, cet écran-ci n'ayant pas
+            été balayé à l'époque (voir Lot 29). Patron repris de SearchPage :
+            label au-dessus, champ et bouton sur la ligne suivante. */}
+        <label className="text-sm text-textDim" htmlFor="bgg-username">
+          Pseudo BoardGameGeek
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="bgg-username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Pseudo BoardGameGeek"
+            autoFocus
+            className="min-w-0 flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={importMutation.isPending || !username.trim()}
+            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+          >
+            {importMutation.isPending ? 'Import...' : 'Importer'}
+          </button>
+        </div>
       </form>
 
       {importMutation.isError && <ErrorBanner message={importMutation.error.message} />}
