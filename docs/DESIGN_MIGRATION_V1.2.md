@@ -1311,6 +1311,67 @@ déjà en place et valide.
 fichiers et ses cinq constructions adaptées, export rejoué sur les données
 réelles - les 5 éditions et les 2 classements y sont, valeurs comprises.
 
+### Lot 34 — le scan demande avant d'écrire
+
+Le scan ajoutait chaque tome reconnu **directement**, sans rien demander : un
+geste irréversible - un exemplaire est créé - déclenché par un simple passage
+de code-barres devant la caméra, y compris sur un tome scanné par erreur, un
+mauvais tome de la pile, ou un tome déjà possédé. Le "· déjà possédé" ajouté au
+Lot 27 ne faisait que *constater* l'ajout après coup.
+
+Chaque scan reconnu ouvre désormais un menu contextuel (`ScanActionMenu`) qui
+montre ce qui a été identifié - titre, jaquette, tome détecté ou non, édition
+devinée, et "Déjà dans ta collection" le cas échéant - puis demande quoi en
+faire. **Le scan identifie, l'utilisateur décide.**
+
+Les actions sont exactement celles que l'app sait faire d'un code-barres,
+jamais une de plus :
+- **Ajouter à ma collection**, avec l'état choisi en haut d'écran ;
+- **Choisir l'édition et les tomes**, qui ouvre l'ajout détaillé - le numéro de
+  tome n'étant deviné qu'à partir du titre et sans garantie, c'est la sortie
+  quand le scan n'a pas su ou que l'édition proposée est fausse ;
+- **Ouvrir la fiche**, seulement quand l'œuvre est déjà là (recherche locale
+  par titre, gratuite) ;
+- **Passer ce tome**, tracé dans le journal pour qu'un tome écarté reste
+  visible.
+
+"Ajouter à ma liste d'envies" n'y figure pas, volontairement : une entrée de
+wishlist référence une œuvre EXISTANTE (`POST /wishlist` exige un `entityId`,
+durci au Lot 28), et un livre scanné absent de la collection n'en a pas. Mieux
+vaut pas d'entrée qu'une entrée qui échouerait.
+
+**Une impasse comblée au passage.** Quand `BarcodeDetector` est absent - Safari,
+Firefox, tout poste sans caméra - le scanner affichait "utilise la recherche
+par code-barres manuelle ci-dessous", **qui n'existait sur aucun de ces
+écrans**. `/scan` était donc entièrement inutilisable sur ces navigateurs, en
+renvoyant vers un champ imaginaire. Le champ existe maintenant, et passe par
+exactement le même chemin que la caméra, menu compris.
+
+**Un échec de scan n'est plus un cul-de-sac.** "Aucune correspondance pour X"
+affirmait une absence ; or le fournisseur peut simplement n'avoir pas répondu -
+constaté en direct, le même code-barres servi en 200 puis refusé en 404 à
+quelques secondes d'intervalle. Devenu "Rien trouvé pour X", avec un lien
+"Chercher par titre". Même famille que le défaut du Lot 32 : ne pas présenter
+une panne externe comme une réponse négative.
+
+**Vérification** (sans caméra, via la saisie manuelle qui emprunte le même
+chemin) : menu ouvert sur un scan reconnu **sans aucune écriture** en base
+(compteur d'œuvres inchangé pendant que le menu est ouvert) ; "Ajouter" crée
+exactement l'attendu (œuvre + possession, attribut `mangaka` repris du scan, 0
+tome puisque le numéro n'était pas détecté - ce que le menu annonçait) ;
+"Passer" et Escape journalisent sans écrire ; "Ouvrir la fiche" n'apparaît
+qu'une fois l'œuvre présente, vérifié en rescannant le même code juste après
+l'ajout ; un scan pendant qu'un menu est ouvert est ignoré, la question posée
+n'étant jamais écrasée. Bottom-sheet plein écran en 375px, boîte centrée de
+360px en 1280px, aucun débordement, cibles d'action à 359x44. Données de
+vérification retirées, compteurs revenus à l'identique.
+
+**Piège de mesure, pour mémoire** : `clientWidth`, `innerWidth` et
+`visualViewport.width` valent tous **0** quand le panneau navigateur n'est pas
+affiché - un "débordement de 242px" y est apparu sur une page parfaitement
+saine. Toujours vérifier que `clientWidth` est non nul avant de conclure quoi
+que ce soit sur une largeur.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

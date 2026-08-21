@@ -1,19 +1,22 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, HelpCircle, XCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { CheckCircle2, HelpCircle, SkipForward, XCircle } from 'lucide-react'
 import { lookupBarcode } from '../../api/metadata'
-import { quickAdd } from '../../api/entities'
+import { quickAdd, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { Chip } from '../../components/Chip'
 import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { CameraBarcodeScanner } from './CameraBarcodeScanner'
+import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
+import type { DraftLocationState } from '../QuickAdd/draftState'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { MetadataCandidateDto } from '../../types/api'
 
 interface ScanEntry {
   code: string
-  status: 'added' | 'not-found' | 'error'
+  status: 'added' | 'skipped' | 'not-found' | 'error'
   title?: string
   volumeNumber?: number
   edition?: string
@@ -49,9 +52,16 @@ export function ScanPage() {
   const [condition, setCondition] = useState<Condition>('NEW')
   const [entries, setEntries] = useState<ScanEntry[]>([])
   const [processing, setProcessing] = useState(false)
+  // Tant qu'un menu est ouvert, la caméra continue de tourner mais ses
+  // détections sont ignorées (voir handleScan) : sinon le tome suivant
+  // remplacerait la question posée sur le précédent.
+  const [pending, setPending] = useState<ScanCandidate | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [manualCode, setManualCode] = useState('')
+  const navigate = useNavigate()
 
   async function handleScan(code: string) {
-    if (!mangaType || processing) return
+    if (!mangaType || processing || pending) return
     setProcessing(true)
     try {
       let candidate: MetadataCandidateDto | null = null
@@ -75,10 +85,31 @@ export function ScanPage() {
       // détection d'éditions mélangées / aux suggestions de complétion, qui
       // regroupent toutes deux les tomes par cet attribut.
       const edition = typeof candidate.attributes.publisher === 'string' ? candidate.attributes.publisher : undefined
+      // Recherche locale, gratuite : sert à proposer "ouvrir la fiche" quand
+      // l'œuvre est déjà là, plutôt que de laisser l'ajout comme seule issue.
+      let existingEntity = null
+      try {
+        const matches = await searchEntities({ q: candidate.title, entityTypeId: mangaType.id })
+        existingEntity = matches[0] ?? null
+      } catch {
+        existingEntity = null
+      }
+
+      // Plus aucune écriture ici : le scan IDENTIFIE, l'utilisateur décide.
+      setPending({ code, candidate, volumeNumber, edition, existingEntity })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  async function addPending() {
+    if (!pending || !mangaType) return
+    setAdding(true)
+    try {
+      const { candidate, volumeNumber, edition, code } = pending
       const attributes = candidate.imageUrl
         ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
         : candidate.attributes
-
       const result = await quickAdd({
         entityTypeId: mangaType.id,
         title: candidate.title,
@@ -88,13 +119,24 @@ export function ScanPage() {
         edition,
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
       setEntries((prev) => [
-        { code, status: 'added', title: candidate!.title, volumeNumber, edition, alreadyOwned: result.matchedExistingVariant },
+        { code, status: 'added', title: candidate.title, volumeNumber, edition, alreadyOwned: result.matchedExistingVariant },
         ...prev,
       ])
+      setPending(null)
     } finally {
-      setProcessing(false)
+      setAdding(false)
     }
+  }
+
+  function skipPending() {
+    if (!pending) return
+    setEntries((prev) => [
+      { code: pending.code, status: 'skipped', title: pending.candidate.title },
+      ...prev,
+    ])
+    setPending(null)
   }
 
   if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
@@ -107,13 +149,13 @@ export function ScanPage() {
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-2xl font-bold text-textPrimary">Scan rapide</h1>
       <p className="text-sm text-textDim">
-        Pointe la caméra sur le code-barres de chaque tome, à la suite - chaque tome reconnu est ajouté directement,
-        sans repasser par le formulaire. Le numéro de tome est déduit du titre quand c'est possible, sinon le tome est
-        ajouté rattaché à la série seule (à préciser ensuite depuis sa fiche si besoin).
+        Pointe la caméra sur le code-barres de chaque tome, à la suite. Chaque tome reconnu ouvre un menu qui te
+        demande quoi en faire - rien n'est enregistré sans toi. Le numéro de tome est déduit du titre quand c'est
+        possible ; quand il ne l'est pas, « Choisir l'édition et les tomes » est là pour ça.
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-textDim">État (appliqué à chaque tome ajouté)</span>
+        <span className="text-sm text-textDim">État (appliqué quand tu choisis « Ajouter à ma collection »)</span>
         <div className="flex gap-2">
           {CONDITIONS.map((c) => (
             <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
@@ -123,6 +165,60 @@ export function ScanPage() {
 
       <CameraBarcodeScanner onScan={handleScan} />
 
+      {/* Saisie manuelle du code : le repli affiché par CameraBarcodeScanner
+          quand BarcodeDetector est absent (Safari, Firefox, poste sans caméra)
+          renvoyait vers "la recherche par code-barres manuelle ci-dessous",
+          qui n'existait sur aucun de ces écrans - cette page était donc une
+          impasse complète sur ces navigateurs. Elle passe par exactement le
+          même chemin que la caméra, menu contextuel compris. */}
+      <form
+        className="flex flex-col gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault()
+          const code = manualCode.trim()
+          if (!code) return
+          setManualCode('')
+          void handleScan(code)
+        }}
+      >
+        <label className="text-sm text-textDim" htmlFor="manual-barcode">
+          Ou saisis le code-barres (ISBN)
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="manual-barcode"
+            value={manualCode}
+            onChange={(e) => setManualCode(e.target.value)}
+            placeholder="9782505..."
+            inputMode="numeric"
+            autoComplete="off"
+            className="min-w-0 flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!manualCode.trim() || processing || !!pending}
+            className="shrink-0 rounded-lg bg-surface2 px-4 py-2 text-sm font-semibold text-textPrimary disabled:opacity-50"
+          >
+            {processing ? 'Recherche...' : 'Chercher'}
+          </button>
+        </div>
+      </form>
+
+      {pending && (
+        <ScanActionMenu
+          pending={pending}
+          busy={adding}
+          onAdd={addPending}
+          onSkip={skipPending}
+          onOpenDraft={() =>
+            navigate('/add/draft', {
+              state: { entityTypeId: mangaType.id, candidate: pending.candidate } satisfies DraftLocationState,
+            })
+          }
+          onOpenEntity={(entityId) => navigate(`/entity/${entityId}`)}
+        />
+      )}
+
       {entries.length > 0 && (
         <ul className="flex flex-col gap-1.5">
           {entries.map((entry, index) => (
@@ -130,11 +226,13 @@ export function ScanPage() {
               {entry.status === 'added' && (
                 <CheckCircle2 size={16} className={`shrink-0 ${entry.alreadyOwned ? 'text-textDim' : 'text-accentText'}`} />
               )}
+              {entry.status === 'skipped' && <SkipForward size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
               <span className="min-w-0 flex-1 truncate text-textPrimary">
                 {entry.status === 'added' && (entry.title ?? entry.code)}
-                {entry.status === 'not-found' && `Aucune correspondance pour ${entry.code}`}
+                {entry.status === 'skipped' && `${entry.title ?? entry.code} - passé`}
+                {entry.status === 'not-found' && `Rien trouvé pour ${entry.code}`}
                 {entry.status === 'error' && `Échec de la recherche pour ${entry.code}`}
               </span>
               {entry.volumeNumber !== undefined && (
@@ -142,6 +240,21 @@ export function ScanPage() {
                   Tome {entry.volumeNumber}
                   {entry.edition && ` · ${entry.edition}`}
                 </span>
+              )}
+              {/* Un scan sans résultat n'est pas forcément une absence : le
+                  fournisseur peut simplement n'avoir pas répondu (constaté en
+                  direct, même code-barres servi puis refusé à quelques secondes
+                  d'intervalle). D'où "Rien trouvé" plutôt qu'"Aucune
+                  correspondance", et une porte de sortie plutôt qu'une ligne
+                  morte. */}
+              {(entry.status === 'not-found' || entry.status === 'error') && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/add')}
+                  className="shrink-0 text-xs text-textDim underline hover:text-textPrimary"
+                >
+                  Chercher par titre
+                </button>
               )}
               {entry.alreadyOwned && (
                 <span
