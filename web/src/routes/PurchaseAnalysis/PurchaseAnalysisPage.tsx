@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Plus, X, ChevronRight, History } from 'lucide-react'
+import { Plus, X, History } from 'lucide-react'
 import { analyzeListing } from '../../api/purchaseAnalysis'
+import { ListingUrlField, ListingPhotos } from './ListingUrlField'
 import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import {
@@ -12,6 +13,7 @@ import {
   LISTING_PLATFORM_LABELS,
   type Condition,
   type ListingPlatform,
+  type ListingPreviewDto,
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
@@ -47,11 +49,23 @@ function parseVolumes(text: string): number[] {
 }
 
 /**
- * "Évaluer un achat" (Analyse d'achat) - saisie d'une annonce d'occasion
- * (aucune récupération automatique depuis une URL : ni Vinted, ni
- * Leboncoin, ni Rakuten n'offrent d'API publique exploitable pour ça) puis
- * analyse produisant un verdict, un prix conseillé/cible/maximum et un
- * détail de complétude/édition par série.
+ * "Évaluer un achat" (Analyse d'achat) - saisie d'une annonce d'occasion puis
+ * analyse produisant un verdict, un prix conseillé/cible/maximum et un détail
+ * de complétude/édition par série.
+ *
+ * **Coller un lien d'annonce pré-remplit le brouillon** (voir ListingUrlField).
+ * Le lien ne servait auparavant qu'à retrouver l'annonce plus tard ; il est
+ * désormais lu — titre, prix, description, photos — pour n'avoir à saisir que
+ * ce qui manque. Trois garde-fous encadrent ce pré-remplissage :
+ * - seuls les champs RÉELLEMENT lus sont remplis : un prix que la source ne
+ *   donne pas reste vide, jamais supposé ;
+ * - une valeur déjà saisie n'est jamais écrasée, et la divergence est annoncée ;
+ * - un échec (plateforme inconnue, annonce supprimée, source indisponible) ne
+ *   bloque rien : la saisie manuelle est le parcours normal, pas un repli
+ *   dégradé.
+ *
+ * Ce qui est calculé ensuite ne change pas d'un iota : le lien alimente le
+ * brouillon, il ne double aucune logique d'analyse.
  */
 export function PurchaseAnalysisPage() {
   // Contexte optionnel passé par la fiche d'une série (voir EntityDetailPage) -
@@ -66,11 +80,64 @@ export function PurchaseAnalysisPage() {
   const [buyerProtectionFee, setBuyerProtectionFee] = useState('')
   const [condition, setCondition] = useState<Condition>('VERY_GOOD')
   const [conditionAppliesToContainer, setConditionAppliesToContainer] = useState(false)
-  // Replié par défaut - l'URL/titre ne servent qu'à retrouver l'annonce plus
-  // tard, aucun des deux n'entre dans le calcul (voir "améliore l'UX" : la
-  // plateforme et le prix suffisent pour démarrer, pas la peine d'afficher
-  // ces deux champs d'office).
-  const [showListingDetails, setShowListingDetails] = useState(false)
+  // Photos lues sur l'annonce - conservées avec l'analyse enregistrée, et
+  // retirables une à une avant de lancer le calcul.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  // Champs que l'utilisateur a modifiés lui-même : ce sont les seuls que le
+  // pré-remplissage n'a pas le droit de toucher (voir appliquerPreview).
+  const [saisisParUtilisateur, setSaisisParUtilisateur] = useState<Set<string>>(new Set())
+
+  function marquerSaisi(champ: string) {
+    setSaisisParUtilisateur((prev) => (prev.has(champ) ? prev : new Set(prev).add(champ)))
+  }
+
+  /**
+   * Reporte dans le formulaire ce que l'annonce a livré.
+   *
+   * Règle simple et sans surprise : un champ vide et non touché est
+   * pré-rempli ; un champ que l'utilisateur a rempli lui-même est CONSERVÉ, et
+   * son nom est renvoyé pour que l'écart avec l'annonce soit dit à l'écran
+   * plutôt que subi en silence. Les champs absents de `retrievedFields` ne sont
+   * jamais devinés.
+   */
+  function appliquerPreview(preview: ListingPreviewDto): { conserves: string[] } {
+    const conserves: string[] = []
+    const appliquer = (champ: string, libelle: string, valeurActuelle: string, valeurLue: string,
+                        appliquerValeur: (v: string) => void) => {
+      if (!valeurLue) return
+      const dejaRempli = valeurActuelle.trim().length > 0
+      if (dejaRempli || saisisParUtilisateur.has(champ)) {
+        if (valeurActuelle.trim() !== valeurLue.trim()) conserves.push(libelle)
+        return
+      }
+      appliquerValeur(valeurLue)
+    }
+
+    if (preview.title) appliquer('rawTitle', 'le titre', rawTitle, preview.title, setRawTitle)
+    if (preview.price !== null) {
+      appliquer('askingPrice', 'le prix', askingPrice, String(preview.price), setAskingPrice)
+    }
+    if (preview.description) {
+      appliquer('description', 'la description', description, preview.description, setDescription)
+    }
+    // Les photos ne remplacent jamais une sélection en cours : elles s'ajoutent
+    // à ce qui est déjà là, sans doublon.
+    if (preview.imageUrls.length > 0) {
+      setPhotoUrls((prev) => Array.from(new Set([...prev, ...preview.imageUrls])))
+    }
+    // La plateforme suit la source détectée tant que l'utilisateur ne l'a pas
+    // choisie lui-même - c'est un fait constaté, pas une supposition.
+    if (preview.source !== 'OTHER' && !saisisParUtilisateur.has('platform')) {
+      setPlatform(preview.source)
+    }
+    if (preview.url) setUrl(preview.url)
+    return { conserves }
+  }
+
+  // Description de l'annonce : lue sur la source quand elle existe, saisissable
+  // sinon. Elle ne rentre dans aucun calcul - elle sert à relire ce que le
+  // vendeur annonçait, notamment ce que les photos ne montrent pas.
+  const [description, setDescription] = useState('')
 
   // Pré-remplissage quand on arrive depuis la fiche d'une série (voir
   // EntityDetailPage, "Évaluer une annonce de cette série") - simple valeur
@@ -99,6 +166,10 @@ export function PurchaseAnalysisPage() {
           editionName: item.editionName,
           includedVolumes: item.includedVolumes,
         })),
+        // Conservées avec l'analyse : celle-ci est l'état de l'annonce à
+        // l'instant où elle a été lue, et le reste même si le vendeur la
+        // modifie ou la retire ensuite.
+        photoUrls,
       }),
   })
 
@@ -121,6 +192,9 @@ export function PurchaseAnalysisPage() {
     analyzeMutation.reset()
     setUrl('')
     setRawTitle('')
+    setDescription('')
+    setPhotoUrls([])
+    setSaisisParUtilisateur(new Set())
     setAskingPrice('')
     setShippingFee('')
     setBuyerProtectionFee('')
@@ -128,7 +202,6 @@ export function PurchaseAnalysisPage() {
     setSeriesTitle('')
     setEditionName('')
     setVolumesText('')
-    setShowListingDetails(false)
   }
 
   const canAnalyze = items.length > 0 && !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
@@ -158,9 +231,15 @@ export function PurchaseAnalysisPage() {
         </Link>
       </div>
       <p className="text-sm text-textDim">
-        Aucune récupération automatique depuis une URL : ni Vinted, ni Leboncoin, ni Rakuten n'offrent d'API publique
-        exploitable pour ça. Renseigne les champs ci-dessous à partir de l'annonce.
+        Colle le lien d'une annonce Vinted pour en récupérer le titre, le prix, la description et les photos — ou
+        renseigne tout à la main. Ce qui n'a pas pu être lu reste simplement à compléter.
       </p>
+
+      <ListingUrlField
+        url={url}
+        onUrlChange={(v) => setUrl(v)}
+        onResolved={appliquerPreview}
+      />
 
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
@@ -170,7 +249,15 @@ export function PurchaseAnalysisPage() {
             <span className="text-xs text-textDim">Plateforme</span>
             <div className="flex gap-2">
               {LISTING_PLATFORMS.map((p) => (
-                <Chip key={p} label={LISTING_PLATFORM_LABELS[p]} isActive={platform === p} onClick={() => setPlatform(p)} />
+                <Chip
+                  key={p}
+                  label={LISTING_PLATFORM_LABELS[p]}
+                  isActive={platform === p}
+                  onClick={() => {
+                    marquerSaisi('platform')
+                    setPlatform(p)
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -186,7 +273,10 @@ export function PurchaseAnalysisPage() {
                 min={0}
                 step="0.01"
                 value={askingPrice}
-                onChange={(e) => setAskingPrice(e.target.value)}
+                onChange={(e) => {
+                  marquerSaisi('askingPrice')
+                  setAskingPrice(e.target.value)
+                }}
                 placeholder="ex: 216"
                 className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
@@ -223,45 +313,48 @@ export function PurchaseAnalysisPage() {
             </div>
           </div>
 
-          {showListingDetails ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-textDim" htmlFor="listingUrl">
-                  URL de l'annonce (facultatif)
-                </label>
-                <input
-                  id="listingUrl"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-textDim" htmlFor="rawTitle">
-                  Titre de l'annonce
-                </label>
-                <input
-                  id="rawTitle"
-                  value={rawTitle}
-                  onChange={(e) => setRawTitle(e.target.value)}
-                  placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                  autoComplete="off"
-                />
-              </div>
+          {/* Titre et description : pré-remplis quand l'annonce a pu être lue,
+              saisissables sinon. Affichés en permanence plutôt que repliés -
+              ils portent désormais du contenu récupéré, qu'il faut pouvoir
+              relire et corriger avant d'analyser. */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-textDim" htmlFor="rawTitle">
+                Titre de l'annonce
+              </label>
+              <input
+                id="rawTitle"
+                value={rawTitle}
+                onChange={(e) => {
+                  marquerSaisi('rawTitle')
+                  setRawTitle(e.target.value)
+                }}
+                placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                autoComplete="off"
+              />
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowListingDetails(true)}
-              className="flex w-fit items-center gap-1 text-xs text-textDim underline"
-            >
-              <ChevronRight size={13} />
-              Ajouter l'URL et le titre de l'annonce (facultatif, pour la retrouver plus tard)
-            </button>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-textDim" htmlFor="listingDescription">
+                Description de l'annonce (facultatif)
+              </label>
+              <textarea
+                id="listingDescription"
+                value={description}
+                onChange={(e) => {
+                  marquerSaisi('description')
+                  setDescription(e.target.value)
+                }}
+                rows={3}
+                placeholder="Ce que le vendeur décrit (état, tomes inclus, éditions…)"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+              />
+            </div>
+            <ListingPhotos
+              imageUrls={photoUrls}
+              onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
+            />
+          </div>
         </section>
 
         <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
