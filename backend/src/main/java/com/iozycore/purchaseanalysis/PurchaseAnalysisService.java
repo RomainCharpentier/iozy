@@ -143,6 +143,30 @@ public class PurchaseAnalysisService {
     }
 
     /**
+     * Retire une analyse de l'historique, et rien d'autre : les prix relevés et
+     * les éditions de référence renseignés au fil de cette analyse survivent -
+     * ce sont des données de référence qui servent toutes les analyses
+     * suivantes, pas des sous-objets de celle-ci.
+     */
+    public void deleteAnalysis(UUID id) {
+        purchaseAnalysisRepository.deleteById(id);
+    }
+
+    /** Les relevés d'une édition, pour pouvoir les relire et en retirer un faux. */
+    public List<MarketPriceObservation> observationsOfEdition(UUID mangaEditionId) {
+        return marketPriceObservationRepository.findByEditionId(mangaEditionId);
+    }
+
+    /**
+     * Retire un relevé de prix saisi par erreur. Les analyses déjà enregistrées
+     * ne changent pas : chacune fige ses propres chiffres au moment du calcul.
+     * Ce sont les analyses SUIVANTES qui cesseront de compter ce relevé.
+     */
+    public void deleteMarketObservation(UUID id) {
+        marketPriceObservationRepository.deleteById(id);
+    }
+
+    /**
      * {@code entityId} (voir migration "Série -> Édition par ID", historique de la conversation) est
      * désormais la source de vérité une fois connue : recherche par ID d'abord, jamais reconsultée via
      * {@code seriesTitle} pour une édition déjà rattachée - immunisé contre un renommage de Série

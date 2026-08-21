@@ -24,6 +24,11 @@ public class JpaMarketPriceObservationRepositoryAdapter implements MarketPriceOb
     }
 
     @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public List<MarketPriceObservation> findByEditionId(UUID mangaEditionId) {
         return jpaRepository.findByMangaEditionId(mangaEditionId).stream()
                 .map(MarketPriceObservationMapper::toDomain)
