@@ -146,7 +146,14 @@ export function PurchaseAnalysisResultCard({
       <div className="flex flex-col gap-2">
         <h2 className="font-display text-sm font-semibold text-textPrimary">Détail par série</h2>
         {analysis.itemBreakdown.map((item, index) => (
-          <SeriesBreakdownItem key={index} item={item} />
+          <SeriesBreakdownItem
+            key={index}
+            item={item}
+            listing={analysis.listing}
+            // requestedAt est un instant ISO côté backend - la date suffit ici
+            // (MarketPriceObservation.observedAt est un LocalDate).
+            observedAt={analysis.requestedAt.slice(0, 10)}
+          />
         ))}
       </div>
 

@@ -4,6 +4,9 @@ import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.domain.shared.EntityTypeDeletionNotAllowedException;
 import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +16,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(EntityDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleDeletionNotAllowed(EntityDeletionNotAllowedException ex) {
@@ -42,5 +47,27 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Un identifiant absent du corps de la requête arrive jusqu'à Spring Data,
+     * qui refuse un {@code findById(null)} : l'{@code IllegalArgumentException}
+     * qu'il lève est enveloppée dans une {@link InvalidDataAccessApiUsageException},
+     * que le handler d'{@code IllegalArgumentException} ci-dessus ne voit donc
+     * pas - le client recevait un 500 avec la trace, là où le corps envoyé était
+     * simplement incomplet (ex: {@code POST /api/entities/quick-add} sans
+     * {@code entityTypeId}).
+     * <p>
+     * Message générique et non {@code ex.getMessage()} : la phrase de Spring est
+     * en anglais et parle de l'API JPA, pas de la requête HTTP. Le détail part
+     * en WARN dans les logs, car cette exception peut aussi trahir un vrai
+     * défaut serveur (requête JPQL invalide) - qu'un 400 muet rendrait
+     * invisible.
+     */
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidDataAccessUsage(InvalidDataAccessApiUsageException ex) {
+        log.warn("Requête refusée en 400 (usage invalide de la couche d'accès aux données)", ex);
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "Requête invalide : un identifiant obligatoire est absent ou mal formé."));
     }
 }

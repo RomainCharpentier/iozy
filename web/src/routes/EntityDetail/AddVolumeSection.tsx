@@ -86,6 +86,10 @@ export function AddVolumeSection({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      // Ajouté ici pour s'aligner sur AddOwnershipForm/OwnershipDetails, qui
+      // invalident les trois : cette clé alimente Ma collection et les
+      // panneaux de sélection des Tier Lists (voir listAllOwnerships).
+      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
       setVolumeNumber('')
       setEdition('')
       setPurchasePrice('')

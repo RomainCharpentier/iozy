@@ -1,5 +1,8 @@
-import { CircleCheck, TriangleAlert, Info, CircleX } from 'lucide-react'
-import type { ItemAnalysisDto, WarningSeverity } from '../../types/purchaseAnalysis'
+import { useMutation } from '@tanstack/react-query'
+import { CircleCheck, TriangleAlert, Info, CircleX, BookmarkPlus } from 'lucide-react'
+import { recordMarketObservation } from '../../api/purchaseAnalysis'
+import { ErrorBanner } from '../../components/ErrorBanner'
+import type { ItemAnalysisDto, ListingDto, WarningSeverity } from '../../types/purchaseAnalysis'
 import { EDITION_TIER_LABELS } from '../../types/purchaseAnalysis'
 
 const WARNING_ICONS: Record<WarningSeverity, typeof Info> = {
@@ -20,10 +23,55 @@ const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as
  * voir l'exemple 20th/21st Century Boys + Sanctuary du cahier des charges) -
  * complétude (✓/⚠️) et avertissements d'édition, avec la distinction
  * observé/théorique toujours visible sur le prix. */
-export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
+export function SeriesBreakdownItem({
+  item,
+  listing = null,
+  observedAt = null,
+}: {
+  item: ItemAnalysisDto
+  /** L'annonce d'où vient ce lot - plateforme et état pour l'observation de
+   * prix ci-dessous. Absente = pas de bouton (voir observationPossible). */
+  listing?: ListingDto | null
+  /** Date de l'analyse ("YYYY-MM-DD"), pas celle du jour : depuis
+   * l'historique, le prix relevé est celui du jour de l'analyse. */
+  observedAt?: string | null
+}) {
   const { completeness, marketPrice, matchedEdition, editionWarnings, duplicates } = item
   const includedCount = item.item.includedVolumes.length
   const hasDuplicates = duplicates.duplicateVolumeNumbers.length > 0
+
+  // "Prix observé sur N annonces" s'affichait déjà juste en dessous, mais RIEN
+  // dans l'app ne savait alimenter ce journal : POST /purchase-analysis/
+  // market-observations était livré sans appelant, donc la branche
+  // OBSERVED_MARKET du moteur restait inatteignable en usage normal.
+  //
+  // Les tomes doivent être CONTIGUS : le backend divise le prix relevé par le
+  // nombre de tomes de l'intervalle (voir MarketPriceCalculator), donc un lot
+  // "1, 2, 5" enregistré en 1-5 donnerait un prix/tome faux. Mieux vaut ne
+  // rien proposer que relever un prix erroné.
+  const volumes = item.item.includedVolumes
+  const contiguous =
+    includedCount > 0 && Math.max(...volumes) - Math.min(...volumes) + 1 === includedCount
+  const observationPossible =
+    matchedEdition !== null && listing !== null && observedAt !== null && contiguous && item.itemCostShare !== null
+
+  const observationMutation = useMutation({
+    mutationFn: () =>
+      recordMarketObservation({
+        mangaEditionId: matchedEdition!.id,
+        volumeRangeStart: Math.min(...volumes),
+        volumeRangeEnd: Math.max(...volumes),
+        // La part du prix TOTAL revenant à ce lot, pas un prix/tome : c'est le
+        // backend qui divise par l'intervalle.
+        observedPrice: item.itemCostShare!,
+        platform: listing!.platform,
+        // L'état propre au lot prime sur celui de l'annonce entière, comme
+        // partout ailleurs dans le moteur (voir ListingItem.itemConditionOverride).
+        observedCondition: item.item.itemConditionOverride ?? listing!.condition,
+        observedAt: observedAt!,
+        note: listing!.rawTitle,
+      }),
+  })
 
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
@@ -110,6 +158,31 @@ export function SeriesBreakdownItem({ item }: { item: ItemAnalysisDto }) {
           </span>
         )}
       </div>
+
+      {/* Rien n'est relevé automatiquement : le prix d'une annonce ne devient
+          une donnée de marché que si l'utilisateur le décide, un geste
+          explicite (même principe que le garde-fou sur les données IA). */}
+      {observationPossible && (
+        <div className="text-xs">
+          {observationMutation.isSuccess ? (
+            <span className="flex items-center gap-1.5 text-textDim">
+              <CircleCheck size={13} className="shrink-0" />
+              Prix relevé — il comptera dans les prochaines analyses de cette édition.
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => observationMutation.mutate()}
+              disabled={observationMutation.isPending}
+              className="flex items-center gap-1.5 text-textDim underline hover:text-textPrimary disabled:opacity-50"
+            >
+              <BookmarkPlus size={13} className="shrink-0" />
+              {observationMutation.isPending ? 'Enregistrement...' : 'Relever ce prix comme observation de marché'}
+            </button>
+          )}
+          {observationMutation.isError && <ErrorBanner message={observationMutation.error.message} />}
+        </div>
+      )}
 
       {/* Le warning "already owned" du backend est déjà couvert par le bloc doublons
           dédié ci-dessus (structuré, chiffré) - filtré ici pour ne pas le répéter en prose. */}

@@ -31,6 +31,7 @@ export function TierPicker({
   onSelect,
   progress = null,
   onSkip,
+  onRemoveFromList,
 }: {
   open: boolean
   onClose: () => void
@@ -44,6 +45,14 @@ export function TierPicker({
   /** Mode "Classer rapidement" seulement : laisser cette œuvre non classée et
    * passer à la suivante - distinct de Fermer, qui abandonne toute la file. */
   onSkip?: () => void
+  /** Tier List PERSONNALISÉE seulement : retirer l'œuvre de la liste, à ne pas
+   * confondre avec "Retirer le classement" ci-dessous, qui la laisse dans la
+   * liste, simplement non classée. Sans cette action, une œuvre ajoutée par
+   * erreur depuis AddTierListItemsPanel n'avait plus aucune sortie, sinon
+   * supprimer la liste entière. Absent sur le classement général, où
+   * l'appartenance est implicite (toute œuvre possédée est candidate, voir
+   * TierListService) : il n'y a rien dont on puisse la retirer. */
+  onRemoveFromList?: () => void
 }) {
   // Escape + piège de focus + focus rendu au déclencheur - voir
   // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
@@ -134,6 +143,15 @@ export function TierPicker({
             className="border-t border-surface2 py-3 text-center text-sm font-semibold text-textDim hover:text-textPrimary"
           >
             Passer cette œuvre
+          </button>
+        )}
+        {onRemoveFromList && (
+          <button
+            type="button"
+            onClick={onRemoveFromList}
+            className="border-t border-surface2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-sm font-semibold text-dangerText hover:bg-dangerTint"
+          >
+            Retirer de cette Tier List
           </button>
         )}
       </div>

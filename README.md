@@ -435,19 +435,31 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   3 codes historiques (`MANGA`/`BOARD_GAME`/`VIDEO_GAME`) — un type créé
   par l'utilisateur n'a accès à aucun de ces trois, intrinsèquement liés à
   des API externes spécifiques.
-- Pas d'**authentification** (JWT) sur les appels réseau — cohérent avec le
-  choix mono-utilisateur strict de la conception, à ajouter si l'app doit un
-  jour être exposée au-delà du réseau local. Le schéma de base est déjà
-  préparé pour ça (`owner_id` sur les possessions/expériences/wishlist,
-  Catalog partagé) sans que ce soit encore exploité.
+- Pas d'**authentification applicative** (JWT) sur les appels réseau —
+  cohérent avec le choix mono-utilisateur strict de la conception. Le schéma
+  de base est déjà préparé pour ça (`owner_id` sur les possessions/
+  expériences/wishlist, Catalog partagé) sans que ce soit encore exploité.
+  **En déploiement Synology, c'est le proxy qui protège l'app** : Traefik
+  exige une authentification HTTP Basic (`BASIC_AUTH_USERS`, voir
+  `backend/.env.example`) sur l'app web comme sur l'API, à la seule exception
+  des deux surfaces de partage (`/public/*`, `/api/public/*`), dont le jeton
+  fait lui-même office de mot de passe. Sans ce garde-fou, publier
+  `docker-compose.synology.yml` sur Internet rendrait toute la collection
+  lisible **et modifiable** par qui connaît le domaine — CORS n'y change rien,
+  `allowedOrigins` n'étant vérifié que par un navigateur, jamais par `curl`.
+  Le proxy plutôt que l'app : une SPA ne peut pas garder un secret, alors que
+  Basic est géré nativement par le navigateur.
 - Le sous-domaine Traefik de l'app Web dans `docker-compose.synology.yml`
   (`app.iozycore.mondomaine.tld`) est un exemple à adapter à ton propre
   domaine/DDNS, comme celui de l'API — voir "Renommer le projet" plus haut
   pour l'équivalent côté API.
-- L'app Web ne gère pas le **scan de code-barres par caméra** (saisie
-  manuelle à la place) et n'a pas de **cache hors-ligne** persistant
-  (contrairement au cache SwiftData de l'iOS) — pensée pour tester avec le
-  backend lancé, pas pour un usage nomade.
+- Le **scan de code-barres par caméra** de l'app Web (`/scan`) repose sur
+  l'API navigateur `BarcodeDetector` (Shape Detection API) : disponible sur
+  Chrome/Edge desktop et Android, absente de Safari et Firefox, où l'écran
+  annonce clairement le repli sur la saisie manuelle de l'ISBN. L'app Web n'a
+  par ailleurs pas de **cache hors-ligne** persistant (contrairement au cache
+  SwiftData de l'iOS) — pensée pour tester avec le backend lancé, pas pour un
+  usage nomade.
 
 ## En cas de problème
 
