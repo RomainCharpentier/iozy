@@ -57,8 +57,11 @@ export function AdministrationPage() {
       <section className="flex flex-col gap-2">
         <h2 className="font-display text-lg font-semibold text-textPrimary">Export de la collection</h2>
         <p className="text-sm text-textDim">
-          Toute ta collection (séries, tomes, possessions, expériences, wishlist, relations, tags) dans un format
-          ouvert, lisible sans cette app - pour garantir l'absence d'enfermement, même auto-hébergé.
+          Toute ta collection (séries, tomes, possessions, expériences, wishlist, relations, tags), plus ce que tu
+          as saisi à la main et qu'on ne peut pas recalculer : éditions de référence, classements et Tier Lists,
+          envies d'amélioration. Format ouvert, lisible sans cette app - pour garantir l'absence d'enfermement,
+          même auto-hébergé. Restent dehors, volontairement : l'historique d'analyses d'achat (des instantanés,
+          pas des données saisies) et les jetons de partage, qui sont des secrets.
         </p>
         <div className="mt-2 flex gap-2">
           <a

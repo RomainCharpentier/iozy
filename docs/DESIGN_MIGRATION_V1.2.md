@@ -1264,6 +1264,53 @@ réponse (aujourd'hui une simple liste), donc un lot à part.
 l'injection par liste, appel réel à BGG et à MyAnimeList sur les données
 réelles.
 
+### Lot 33 — un export qui n'exportait pas tout
+
+Audit de l'export, jamais vérifié depuis sa livraison (§19). Les comptes
+concordaient avec la base (6 œuvres, 12 tomes, 9 possessions, 2 expériences) et
+la structure est saine : tomes imbriqués dans leur série, possessions
+dénormalisées avec le titre et le libellé du tome. Mais l'export couvrait **7
+tables sur une quinzaine**.
+
+Absentes alors qu'elles portaient des données réelles : les **5 éditions de
+référence** (nombre de tomes, éditeur, prix neuf, épuisée, meilleure édition
+annoncée) et les **2 classements généraux** (Naruto S, Jujutsu Kaisen A).
+Absentes aussi, vides ce jour-là mais bien réelles : Tier Lists personnalisées
+et envies d'amélioration.
+
+Le texte de l'écran énumérait honnêtement ce qui partait - il ne mentait pas.
+Mais il annonce aussi **"garantir l'absence d'enfermement"**, et sous cette
+promesse-là le compte n'y était pas : repartir de cet export, c'était perdre
+les éditions de référence - donc **plus aucun "X sur Y" reconstructible** - et
+les classements. Deux choses saisies à la main, que rien ne permet de
+recalculer.
+
+Quatre familles ajoutées, JSON et CSV : `editions`, `generalRankings`,
+`tierLists` (une ligne par œuvre classée, un CSV n'ayant pas d'imbrication) et
+`editionUpgradeWishes`. Onze fichiers dans le ZIP au lieu de sept. Texte de
+l'écran mis en accord, exclusions comprises.
+
+**Restent dehors, volontairement** : l'historique d'analyses d'achat, qui est
+une suite d'instantanés dérivés et non des données saisies ; les préférences de
+collectionneur, dont six champs sur dix ne sont de toute façon lus par personne
+(voir Lot 30) ; et les **jetons de partage**, qui sont des secrets - un export
+téléchargeable ne doit pas les diffuser. Les prêts sont laissés de côté pour
+une raison technique assumée : `LoanRepository` n'expose que les prêts ACTIFS,
+et n'exporter que ceux-là serait une demi-vérité ; ça demande une méthode de
+repository, comme il en a fallu une pour les relations au Lot 27.
+
+**Vérifié au passage, sain** : la couche des sources externes, celle-là même que
+le Lot 32 avait trouvée fissurée. Recherche manga servie par MyAnimeList
+pendant que Jikan est toujours en 504 - le repli fonctionne bien là où il
+existait déjà ; BGG répond (34 résultats sur "Naruto"), IGDB répond, Google
+Books répond au code-barres comme à la recherche de tomes, la résolution de
+titre français répond. Le token BGG que l'utilisateur croyait manquant était
+déjà en place et valide.
+
+**Vérification** : 386 tests backend, `ExportCsvWriterTest` étendu aux onze
+fichiers et ses cinq constructions adaptées, export rejoué sur les données
+réelles - les 5 éditions et les 2 classements y sont, valeurs comprises.
+
 ### Note Lot 5 — résolue
 
 `QuickAddPage.tsx` (968 lignes) était un formulaire continu très finement

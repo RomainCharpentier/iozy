@@ -23,7 +23,14 @@ public record ExportDocument(
         List<ExperienceExport> experiences,
         List<WishlistEntryExport> wishlist,
         List<RelationshipExport> relationships,
-        List<TagExport> tags
+        List<TagExport> tags,
+        // Ajoutées au Lot 33 : saisies à la main, irrécupérables, et pourtant
+        // absentes d'un export qui promet "l'absence d'enfermement" - sans les
+        // éditions de référence, plus aucun "X sur Y" ne peut être reconstruit.
+        List<MangaEditionExport> editions,
+        List<GeneralRankExport> generalRankings,
+        List<TierListExport> tierLists,
+        List<EditionUpgradeWishExport> editionUpgradeWishes
 ) {
     public record VariantExport(UUID id, String label, Map<String, Object> attributes) {
     }
@@ -47,6 +54,27 @@ public record ExportDocument(
 
     public record RelationshipExport(UUID id, UUID sourceEntityId, String sourceEntityTitle, UUID targetEntityId,
                                       String targetEntityTitle, String relationshipType) {
+    }
+
+    public record MangaEditionExport(UUID id, UUID entityId, String seriesTitle, String editionName, String tier,
+                                      String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
+                                      boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote,
+                                      String languageCode) {
+    }
+
+    /** Classement général d'une œuvre (échelle S-F), hors Tier List nommée. */
+    public record GeneralRankExport(UUID entityId, String entityTitle, String rank) {
+    }
+
+    public record TierListExport(UUID id, String name, String entityTypeLabel, String description,
+                                  List<String> activeRanks, List<TierListItemExport> items) {
+    }
+
+    public record TierListItemExport(UUID entityId, String entityTitle, String rank) {
+    }
+
+    public record EditionUpgradeWishExport(UUID id, UUID entityId, String entityTitle, String currentEditionName,
+                                            String desiredEditionName, String note, LocalDate addedAt) {
     }
 
     public record TagExport(UUID id, String label) {
