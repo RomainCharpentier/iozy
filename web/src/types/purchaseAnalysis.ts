@@ -346,3 +346,45 @@ export interface NearCompleteSuggestionDto {
   estimatedCostToComplete: number | null
   costToCompleteBasis: PriceBasis | null
 }
+
+// --- Lecture d'une annonce depuis son lien (voir ListingMetadataController) ---
+
+/**
+ * Issue d'une tentative de lecture d'annonce. Volontairement plus riche qu'un
+ * booléen : l'utilisateur n'a pas la même chose à faire selon les cas, et un
+ * message unique serait inutile dans les cinq.
+ *
+ * - `SUCCESS` / `PARTIAL` : des données ont été lues (partiellement pour le
+ *   second). Dans les deux cas on pré-remplit ce qui a été trouvé.
+ * - `UNSUPPORTED_SOURCE` : plateforme pas encore prise en charge. L'URL est
+ *   conservée, la saisie manuelle continue.
+ * - `LISTING_NOT_FOUND` : l'annonce n'existe plus.
+ * - `UNAVAILABLE` : la source n'a rien livré d'exploitable.
+ * - `INVALID_URL` : lien inexploitable (le formulaire l'attrape en local avant
+ *   même d'appeler le serveur).
+ */
+export type ListingResolutionStatus =
+  | 'SUCCESS'
+  | 'PARTIAL'
+  | 'INVALID_URL'
+  | 'UNSUPPORTED_SOURCE'
+  | 'LISTING_NOT_FOUND'
+  | 'UNAVAILABLE'
+
+/** Les champs qu'une source peut rendre - `retrievedFields` dit lesquels ont RÉELLEMENT été lus. */
+export type ListingField = 'TITLE' | 'DESCRIPTION' | 'PRICE' | 'IMAGES'
+
+export interface ListingPreviewDto {
+  status: ListingResolutionStatus
+  source: ListingPlatform
+  url: string | null
+  externalId: string | null
+  title: string | null
+  description: string | null
+  price: number | null
+  currency: string | null
+  imageUrls: string[]
+  retrievedAt: string | null
+  /** Ce qui a été trouvé. Un champ absent d'ici n'est jamais deviné. */
+  retrievedFields: ListingField[]
+}

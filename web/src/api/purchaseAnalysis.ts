@@ -5,6 +5,7 @@ import type {
   CollectionStatusDto,
   CreateMangaEditionRequest,
   EditionSuggestionDto,
+  ListingPreviewDto,
   MangaEditionDto,
   MarketPriceObservationDto,
   NearCompleteSuggestionDto,
@@ -132,4 +133,16 @@ export function listMarketObservations(mangaEditionId: string): Promise<MarketPr
  */
 export function deleteMarketObservation(id: string): Promise<void> {
   return del<void>(`/purchase-analysis/market-observations/${id}`)
+}
+
+/**
+ * Lit une annonce depuis son lien pour pré-remplir le brouillon d'analyse.
+ *
+ * Répond toujours 200 : une annonce supprimée, une plateforme non prise en
+ * charge ou un résultat partiel sont des issues normales du parcours, pas des
+ * erreurs - c'est `status` qui les distingue, jamais une exception. Le
+ * formulaire manuel reste utilisable dans tous les cas.
+ */
+export function resolveListing(url: string): Promise<ListingPreviewDto> {
+  return post<ListingPreviewDto>('/listing-metadata/resolve', { url })
 }

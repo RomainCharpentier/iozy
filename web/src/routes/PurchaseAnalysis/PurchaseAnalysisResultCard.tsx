@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Copy, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
+import { Copy, ExternalLink, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
 import { useWishlist } from '../../lib/useWishlist'
 import { VerdictBadge } from './VerdictBadge'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
+import { LISTING_PLATFORM_LABELS } from '../../types/purchaseAnalysis'
 import type { PurchaseAnalysisDto, WarningSeverity } from '../../types/purchaseAnalysis'
 
 const CONFIDENCE_LABELS = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Faible' } as const
@@ -74,6 +75,22 @@ export function PurchaseAnalysisResultCard({
           critères disponibles - une donnée manquante n'est jamais devinée, seulement exclue du calcul.
         </p>
       </div>
+
+      {/* La source, et le lien pour rouvrir l'annonce. Une analyse est un état
+          figé : si le vendeur change son prix ou retire l'annonce, ce qui est
+          affiché ici ne bouge pas - le lien peut donc mener à une page
+          disparue, et c'est normal. */}
+      {listing.url && (
+        <a
+          href={listing.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-fit items-center gap-1.5 text-xs font-semibold text-accentText underline"
+        >
+          <ExternalLink size={12} />
+          Voir l'annonce sur {LISTING_PLATFORM_LABELS[listing.platform]}
+        </a>
+      )}
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-surface2 p-3 text-sm">
         <span className="text-textDim">Prix affiché</span>
