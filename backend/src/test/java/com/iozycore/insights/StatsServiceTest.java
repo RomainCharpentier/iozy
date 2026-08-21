@@ -367,6 +367,11 @@ class StatsServiceTest {
         }
 
         @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
+        }
+
+        @Override
         public boolean existsByEntityId(UUID entityId) {
             return !findByEntityId(entityId).isEmpty();
         }

@@ -38,6 +38,13 @@ public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
     }
 
     @Override
+    public void deleteById(UUID id) {
+        // deleteById de Spring Data est déjà silencieux sur un id absent -
+        // c'est exactement le contrat idempotent documenté sur le port.
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public boolean existsByEntityId(UUID entityId) {
         return jpaRepository.existsByEntityId(entityId);
     }
