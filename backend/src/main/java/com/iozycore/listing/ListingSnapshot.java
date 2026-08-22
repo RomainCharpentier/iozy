@@ -27,20 +27,24 @@ import java.util.List;
  *
  * @param externalId identifiant de l'annonce chez la source, quand il est lisible - sert à reconnaître deux URL de la même annonce
  * @param price              prix affiché, hors frais - le formulaire d'analyse les tient séparés
- * @param shippingFee        frais de port annoncés. C'est un prix <b>« à partir de »</b> : quand plusieurs
- *                           modes de livraison existent, la source affiche le moins cher, et le montant
- *                           réel peut être supérieur selon le point relais choisi. Zéro quand la livraison
- *                           est annoncée gratuite - un vrai zéro, pas une absence.
+ * @param shippingFee        montant de livraison lu, ou null s'il est illisible
+ * @param shippingKind       ce que ce montant vaut réellement - offert, ferme, ou simple plancher
+ *                           quand plusieurs modes de livraison existent. Sans lui, « 2,83 € » et
+ *                           « à partir de 2,83 € » deviendraient indiscernables.
  * @param buyerProtectionFee frais de protection acheteur, montant réellement facturé (après remise
  *                           éventuelle), pas le tarif affiché avant promotion
  * @param imageUrls  photos de l'annonce elle-même, dans l'ordre d'affichage - jamais les avatars ni les vignettes d'articles similaires
  */
 public record ListingSnapshot(ListingPlatform source, String sourceUrl, String externalId, String title,
                                String description, BigDecimal price, String currency,
-                               BigDecimal shippingFee, BigDecimal buyerProtectionFee,
+                               BigDecimal shippingFee, ShippingEstimateKind shippingKind,
+                               BigDecimal buyerProtectionFee,
                                List<String> imageUrls, Instant retrievedAt, List<ListingField> retrievedFields) {
 
     public ListingSnapshot {
+        // Jamais de zéro implicite : une livraison illisible reste inconnue,
+        // la supposer offerte minorerait le coût d'acquisition.
+        shippingKind = shippingKind == null ? ShippingEstimateKind.UNKNOWN : shippingKind;
         imageUrls = imageUrls == null ? List.of() : List.copyOf(imageUrls);
         retrievedFields = retrievedFields == null ? List.of() : List.copyOf(retrievedFields);
     }

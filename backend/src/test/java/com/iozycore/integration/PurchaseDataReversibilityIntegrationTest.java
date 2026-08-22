@@ -3,6 +3,7 @@ package com.iozycore.integration;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.listing.ShippingEstimateKind;
 import com.iozycore.purchaseanalysis.Condition;
 import com.iozycore.purchaseanalysis.ListingPlatform;
 import com.iozycore.purchaseanalysis.MarketPriceObservation;
@@ -77,7 +78,7 @@ class PurchaseDataReversibilityIntegrationTest {
     private PurchaseAnalysis uneAnalyse(MangaEdition edition) {
         return service.analyze(new AnalyzeListingCommand(
                 ListingPlatform.VINTED, null, "Lot " + edition.seriesTitle(),
-                null, new BigDecimal("60"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.VERY_GOOD, false,
+                null, new BigDecimal("60"), BigDecimal.ZERO, ShippingEstimateKind.UNKNOWN, BigDecimal.ZERO, Condition.VERY_GOOD, false,
                 List.of(new AnalyzeListingItemCommand(edition.seriesTitle(), edition.editionName(), Set.of(1, 2, 3), null)),
                 List.of()));
     }

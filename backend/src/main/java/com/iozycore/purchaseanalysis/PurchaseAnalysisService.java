@@ -84,7 +84,8 @@ public class PurchaseAnalysisService {
     }
 
     public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description, BigDecimal askingPrice,
-                                         BigDecimal shippingFee, BigDecimal buyerProtectionFee, Condition condition,
+                                         BigDecimal shippingFee, com.iozycore.listing.ShippingEstimateKind shippingKind,
+                                         BigDecimal buyerProtectionFee, Condition condition,
                                          boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
                                          List<String> photoUrls) {
     }
@@ -129,7 +130,8 @@ public class PurchaseAnalysisService {
         }
 
         Listing listing = new Listing(UUID.randomUUID(), command.platform(), command.url(), command.rawTitle(),
-                command.description(), command.askingPrice(), command.shippingFee(), command.buyerProtectionFee(),
+                command.description(), command.askingPrice(), command.shippingFee(), command.shippingKind(),
+                command.buyerProtectionFee(),
                 command.condition(), command.conditionAppliesToContainer(), listingItems, command.photoUrls(),
                 java.time.Instant.now());
 

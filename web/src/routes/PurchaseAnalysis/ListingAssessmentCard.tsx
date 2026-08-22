@@ -62,7 +62,15 @@ function euros(v: number | null): string {
   return v === null ? '—' : `${v.toFixed(2)} €`
 }
 
-export function ListingAssessmentCard({ assessment }: { assessment: ListingAssessmentDto }) {
+export function ListingAssessmentCard({
+  assessment,
+  coutEstMinimum = false,
+}: {
+  assessment: ListingAssessmentDto
+  /** Vrai quand la livraison n'est qu'un « à partir de » : les coûts par élément
+   * héritent alors de cette réserve, et l'écran ne doit pas les donner pour fermes. */
+  coutEstMinimum?: boolean
+}) {
   const { collectionFit: fit, trust } = assessment
   const synthese = SYNTHESES[assessment.headline]
   const couleurSynthese =
@@ -93,6 +101,7 @@ export function ListingAssessmentCard({ assessment }: { assessment: ListingAsses
             </p>
             {fit.pricePerItem !== null && (
               <p className="text-sm text-textDim">
+                {coutEstMinimum && 'au moins '}
                 {euros(fit.pricePerItem)} / élément
                 {/* Le chiffre qui décide vraiment : sans les doublons, le prix
                     affiché flatte l'affaire. */}
@@ -120,6 +129,9 @@ export function ListingAssessmentCard({ assessment }: { assessment: ListingAsses
           Prix
         </span>
         <p className="text-sm font-semibold text-textPrimary">{PRIX[assessment.pricePosition]}</p>
+        {/* Dire sur QUOI porte la comparaison : le prix de l'article, hors
+            frais, comme les annonces auxquelles on le compare. */}
+        <p className="text-xs text-textDim">Comparé sur le prix de l'annonce, hors frais.</p>
         {assessment.pricePosition === 'REFERENCE_UNAVAILABLE' ? (
           <p className="text-xs text-textDim">
             Pas assez de prix relevés pour situer cette offre. Relever des prix depuis le détail par série rendra les

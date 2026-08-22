@@ -9,6 +9,7 @@ import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.purchaseanalysis.CollectionStatus;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
+import com.iozycore.listing.ShippingEstimateKind;
 import com.iozycore.purchaseanalysis.Condition;
 import com.iozycore.purchaseanalysis.EditionSuggestion;
 import com.iozycore.domain.catalog.EditionTier;
@@ -229,7 +230,7 @@ class PurchaseAnalysisPersistenceIntegrationTest {
                 "VIZBIG Edition", EditionTier.INTEGRAL, "Kodansha", 3, new BigDecimal("25"), false, false, null));
 
         AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Vagabond lot",
-                null, new BigDecimal("50"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.VERY_GOOD, false,
+                null, new BigDecimal("50"), BigDecimal.ZERO, ShippingEstimateKind.UNKNOWN, BigDecimal.ZERO, Condition.VERY_GOOD, false,
                 List.of(new AnalyzeListingItemCommand(edition.seriesTitle(), edition.editionName(),
                         Set.of(1, 2, 3), null)),
                 List.of());
@@ -365,7 +366,7 @@ class PurchaseAnalysisPersistenceIntegrationTest {
                 com.iozycore.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
 
         AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Lot avec doublons",
-                null, new BigDecimal("15"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.GOOD, false,
+                null, new BigDecimal("15"), BigDecimal.ZERO, ShippingEstimateKind.UNKNOWN, BigDecimal.ZERO, Condition.GOOD, false,
                 List.of(new AnalyzeListingItemCommand(seriesTitle, "Standard", Set.of(1, 2, 3), null)),
                 List.of());
 

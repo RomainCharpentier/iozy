@@ -99,7 +99,7 @@ class ListingSourceResolverTest {
     void delegue_au_provider_qui_couvre_l_url() {
         ListingSnapshot snapshot = new ListingSnapshot(ListingPlatform.VINTED,
                 "https://source-connue.test/items/1", "1", "Un lot", null, new BigDecimal("70"), "EUR",
-                null, null, List.of(), Instant.now(),
+                null, ShippingEstimateKind.UNKNOWN, null, List.of(), Instant.now(),
                 List.of(ListingSnapshot.ListingField.TITLE, ListingSnapshot.ListingField.PRICE));
         provider.reponse = ListingResolution.partial(snapshot);
 

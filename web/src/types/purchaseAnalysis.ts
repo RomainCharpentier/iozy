@@ -96,6 +96,8 @@ export interface AnalyzeListingRequest {
   description?: string
   askingPrice: number
   shippingFee?: number
+  /** Sans elle, le serveur suppose UNKNOWN - jamais un tarif ferme. */
+  shippingKind?: ShippingEstimateKind
   buyerProtectionFee?: number
   condition: Condition
   conditionAppliesToContainer: boolean
@@ -207,6 +209,7 @@ export interface ListingDto {
   platform: ListingPlatform
   url: string | null
   rawTitle: string
+  shippingKind: ShippingEstimateKind
   askingPrice: number
   shippingFee: number
   buyerProtectionFee: number
@@ -376,6 +379,15 @@ export type ListingResolutionStatus =
   | 'UNAVAILABLE'
 
 /** Les champs qu'une source peut rendre - `retrievedFields` dit lesquels ont RÉELLEMENT été lus. */
+/**
+ * Ce que vaut le montant de livraison lu sur l'annonce.
+ *
+ * `FROM` = « à partir de » : plusieurs modes existent et la source affiche le
+ * moins cher. Le total qui en découle est alors un MINIMUM, pas un coût
+ * facturé - et l'écran doit le dire.
+ */
+export type ShippingEstimateKind = 'FREE' | 'EXACT' | 'FROM' | 'UNKNOWN'
+
 export type ListingField =
   | 'TITLE'
   | 'DESCRIPTION'
@@ -396,6 +408,8 @@ export interface ListingPreviewDto {
   /** Frais de port annoncés - prix « à partir de » quand plusieurs modes de
    * livraison existent, et 0 quand elle est offerte. null = illisible. */
   shippingFee: number | null
+  /** Ce que ce montant vaut : offert, ferme, simple plancher, ou illisible. */
+  shippingKind: ShippingEstimateKind
   /** Protection acheteur réellement facturée (après remise éventuelle). */
   buyerProtectionFee: number | null
   imageUrls: string[]
