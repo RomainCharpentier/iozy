@@ -3,6 +3,7 @@ import type {
   AssessmentHeadline,
   ListingAssessmentDto,
   PricePosition,
+  ReferenceGap,
   ShippingEstimateKind,
   TrustLevel,
   TrustSignal,
@@ -58,6 +59,29 @@ const SIGNAUX: Record<TrustSignal, string> = {
 }
 
 const CONFIANCES: Record<string, string> = { HIGH: 'bonne', MEDIUM: 'moyenne', LOW: 'faible' }
+
+/**
+ * Ce qui manque, et donc quoi faire.
+ *
+ * « Référence insuffisante » tout court laisse sans prise. Dire QUEL relevé
+ * ajouter transforme un écran muet en écran utile - et c'est la seule chose
+ * qui rende la sévérité du filtrage acceptable : on refuse de comparer, mais
+ * on explique comment obtenir une comparaison.
+ */
+const MANQUES: Record<ReferenceGap, string | null> = {
+  NONE: null,
+  EDITION_NOT_IN_CATALOGUE:
+    "Cette édition n'est pas encore renseignée : complète sa fiche, puis relève un prix pour la situer.",
+  NO_OBSERVATION:
+    'Aucun prix relevé sur cette édition. Relève le prix de deux ou trois annonces de taille comparable pour que la prochaine analyse tranche.',
+  NO_COMPARABLE_SHAPE:
+    "Des prix existent pour cette édition, mais aucun sur un lot comparable — un tome seul et une intégrale ne se valent pas au tome. Relève un prix sur un lot de taille voisine.",
+  ONLY_STALE_OBSERVATIONS:
+    'Les prix relevés sur des lots comparables ont plus de deux ans : ils décrivent un autre marché. Un relevé récent suffirait.',
+  INCOMPLETE_LOT_COVERAGE:
+    "Une des séries du lot n'a pas de référence. Additionner les autres donnerait un repère trop bas, donc un lot faussement « trop cher ».",
+  NOT_RECORDED: "Analyse antérieure : la provenance de cette référence n'a pas été conservée.",
+}
 
 function euros(v: number | null): string {
   return v === null ? '—' : `${v.toFixed(2)} €`
@@ -143,8 +167,18 @@ export function ListingAssessmentCard({
         <p className="text-xs text-textDim">Comparé sur le prix de l'annonce, hors frais.</p>
         {assessment.pricePosition === 'REFERENCE_UNAVAILABLE' ? (
           <p className="text-xs text-textDim">
-            Pas assez de prix relevés pour situer cette offre. Relever des prix depuis le détail par série rendra les
-            prochaines analyses plus sûres.
+            {/* « Pas assez » et « rien du tout » ne se disent pas pareil : des
+                comparables existent parfois, en nombre insuffisant pour
+                trancher, et le dire évite de renvoyer l'utilisateur chercher
+                une donnée qu'il a déjà saisie. */}
+            {assessment.referenceConfidence === 'LOW'
+              ? `Seulement ${assessment.referenceSampleSize} annonce${
+                  assessment.referenceSampleSize > 1 ? 's' : ''
+                } comparable${assessment.referenceSampleSize > 1 ? 's' : ''}${
+                  assessment.referenceSampleSize > 1 ? ', et trop dispersées' : ''
+                } — pas de quoi situer ce prix. Un ou deux relevés de plus suffiraient.`
+              : (MANQUES[assessment.referenceGap] ??
+                'Pas assez de prix relevés comparables pour situer cette offre.')}
           </p>
         ) : (
           <p className="text-xs text-textDim">
@@ -153,9 +187,17 @@ export function ListingAssessmentCard({
               ` · ${assessment.deviationPercent > 0 ? '+' : ''}${assessment.deviationPercent} %`}
             {' · confiance '}
             {CONFIANCES[assessment.referenceConfidence] ?? assessment.referenceConfidence}
+            {/* La taille de l'échantillon décide de ce que vaut la médiane :
+                la cacher rendrait « confiance bonne » invérifiable. */}
+            {assessment.referenceSampleSize > 0 &&
+              ` · ${assessment.referenceSampleSize} annonce${assessment.referenceSampleSize > 1 ? 's' : ''} comparable${
+                assessment.referenceSampleSize > 1 ? 's' : ''
+              }`}
             {/* Dire d'où vient le chiffre, toujours : ce sont des prix relevés
                 dans IozyCore, pas des transactions réelles. */}
-            {' — construite à partir de tes prix relevés, pas de ventes conclues.'}
+            {assessment.referenceSource === 'OBSERVED_COMPARABLES'
+              ? ' — tes prix relevés sur des lots de même forme et de taille voisine, pas des ventes conclues.'
+              : ' — provenance non enregistrée pour cette analyse.'}
           </p>
         )}
       </section>

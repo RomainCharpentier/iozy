@@ -21,25 +21,59 @@ import java.math.BigDecimal;
  * <h2>Indépendant de Vinted</h2>
  * Construit à partir de nombres et de texte, quelle que soit leur provenance.
  * Une annonce saisie entièrement à la main produit la même évaluation.
+ *
+ * <h2>Deux bases, jamais échangées</h2>
+ * Le positionnement prix se calcule sur le <b>prix de l'annonce</b>, hors
+ * frais, parce que les comparables le sont aussi. Ce que le lot apporte
+ * ({@link CollectionFit}) se calcule sur le <b>coût d'acquisition</b>, frais
+ * compris, parce que c'est ce qu'on paie. La fabrique ci-dessous est le seul
+ * endroit où cette séparation se joue.
+ *
+ * @param referenceSampleSize comparables retenus derrière {@code referencePrice} - 0 quand il n'y en a pas
+ * @param referenceSource     d'où vient la référence, ou {@code NOT_RECORDED} pour une analyse antérieure
+ * @param referenceGap        ce qui manque quand il n'y a pas de référence, pour le dire utilement
  */
 public record ListingAssessment(CollectionFit collectionFit, PricePosition pricePosition,
-                                 BigDecimal referencePrice, ConfidenceLevel referenceConfidence,
-                                 Integer deviationPercent, ListingTrustAssessment trust, Headline headline) {
+                                 BigDecimal referencePrice, MarketReferenceConfidence referenceConfidence,
+                                 Integer deviationPercent, ListingTrustAssessment trust, Headline headline,
+                                 int referenceSampleSize, MarketReferenceSource referenceSource,
+                                 ReferenceGap referenceGap) {
+
+    public ListingAssessment {
+        // Analyses enregistrées avant que la provenance soit conservée : on dit
+        // qu'on l'ignore plutôt que de leur inventer une source après coup.
+        referenceConfidence = referenceConfidence == null ? MarketReferenceConfidence.UNAVAILABLE : referenceConfidence;
+        referenceSource = referenceSource == null ? MarketReferenceSource.NOT_RECORDED : referenceSource;
+        referenceGap = referenceGap == null ? ReferenceGap.NOT_RECORDED : referenceGap;
+    }
 
     /**
-     * Calcule la synthèse et la fige dans l'objet.
+     * Calcule le positionnement prix, la synthèse, et fige le tout.
      * <p>
-     * Composant réel plutôt que méthode dérivée : une analyse est persistée en
-     * JSONB, et un accesseur calculé se sérialiserait sans pouvoir se relire
+     * Composants réels plutôt que méthodes dérivées : une analyse est persistée
+     * en JSONB, et un accesseur calculé se sérialiserait sans pouvoir se relire
      * (piège déjà rencontré sur CollectionStatus). Le figer garantit en prime
      * qu'une analyse ancienne rendra toujours le verdict qu'elle a rendu ce
      * jour-là, même si la règle évolue ensuite - c'est bien un instantané.
+     *
+     * @param askingPrice le prix DE L'ANNONCE, hors frais. Jamais le coût
+     *                    d'acquisition : les comparables étant hors frais, lui
+     *                    passer le total renverserait le verdict.
      */
-    public static ListingAssessment of(CollectionFit collectionFit, PricePosition pricePosition,
-                                        BigDecimal referencePrice, ConfidenceLevel referenceConfidence,
-                                        Integer deviationPercent, ListingTrustAssessment trust) {
-        return new ListingAssessment(collectionFit, pricePosition, referencePrice, referenceConfidence,
-                deviationPercent, trust, synthese(collectionFit, pricePosition, trust));
+    public static ListingAssessment of(CollectionFit collectionFit, MarketReference reference,
+                                        BigDecimal askingPrice, ListingTrustAssessment trust) {
+        MarketReference ref = reference == null
+                ? MarketReference.unavailable(ReferenceGap.NO_OBSERVATION, 0)
+                : reference;
+        // Une référence inexploitable ne sort pas d'ici : ni comme prix affiché,
+        // ni comme écart en pourcentage. Un chiffre affiché est un chiffre auquel
+        // on croit.
+        BigDecimal prixReference = ref.isUsable() ? ref.price() : null;
+        PricePosition position = DealAssessmentPolicy.positionOf(askingPrice, ref);
+        return new ListingAssessment(collectionFit, position, prixReference, ref.confidence(),
+                DealAssessmentPolicy.deviationPercent(askingPrice, prixReference), trust,
+                synthese(collectionFit, position, trust),
+                ref.sampleSize(), ref.source(), ref.gap());
     }
 
     /** La conclusion mise en avant. Elle nomme d'abord ce qui décide : l'apport, puis le prix. */

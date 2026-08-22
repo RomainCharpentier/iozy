@@ -1,11 +1,15 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.listing.ShippingEstimateKind;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,10 +58,10 @@ class PriceSemanticsTest {
 
         // Comparé sur le PRIX DE L'ARTICLE : 10 contre 12 = sous la référence.
         PricePosition surPrixArticle = DealAssessmentPolicy.positionOf(
-                listing.askingPrice(), medianeComparable, ConfidenceLevel.HIGH);
+                listing.askingPrice(), medianeComparable, MarketReferenceConfidence.HIGH);
         // Comparé sur le coût d'acquisition, ce serait 14,03 contre 12 : « cher ».
         PricePosition surCoutAcquisition = DealAssessmentPolicy.positionOf(
-                listing.totalRealCost(), medianeComparable, ConfidenceLevel.HIGH);
+                listing.totalRealCost(), medianeComparable, MarketReferenceConfidence.HIGH);
 
         assertThat(surPrixArticle).isEqualTo(PricePosition.GOOD_PRICE);
         assertThat(surCoutAcquisition).isEqualTo(PricePosition.RATHER_EXPENSIVE);
@@ -222,5 +226,89 @@ class PriceSemanticsTest {
         assertThat(ShippingEstimateKind.EXACT.isLowerBound()).isFalse();
         assertThat(ShippingEstimateKind.UNKNOWN.hasAmount()).isFalse();
         assertThat(ShippingEstimateKind.FREE.hasAmount()).isTrue();
+    }
+
+    // ============ Le moteur entier, pas seulement la regle isolee ============
+
+    /**
+     * Les tests ci-dessus verrouillent la <i>regle</i>. Celui-ci verrouille le
+     * <i>cablage</i> : que le moteur passe bien le prix de l'annonce au
+     * positionnement marche, et bien le cout d'acquisition a l'apport
+     * collection. Une regle juste mal branchee produit exactement le meme
+     * chiffre faux.
+     */
+    @Test
+    void le_moteur_positionne_sur_le_prix_de_l_annonce_et_chiffre_l_apport_sur_le_cout_d_acquisition() {
+        MangaEdition edition = MangaEdition.create("Berserk", "Standard", EditionTier.STANDARD, "Glenat",
+                20, new BigDecimal("8.50"), false, false, null);
+        // Trois lots comparables a 5,00 EUR le tome : reference solide de 50 EUR
+        // pour les 10 tomes evalues.
+        List<MarketPriceObservation> comparables = List.of(
+                observation(edition, 8, "40.00"), observation(edition, 10, "50.00"),
+                observation(edition, 12, "60.00"));
+
+        ListingItem item = new ListingItem(new MangaSeries("Berserk", null), "Standard",
+                Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), null);
+        // 44 EUR d'annonce, 12 EUR de frais : le total depasse la reference, le
+        // prix de l'annonce non. Tout l'enjeu tient dans cet ecart.
+        Listing listing = new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot Berserk", null,
+                new BigDecimal("44"), new BigDecimal("10"), ShippingEstimateKind.EXACT, new BigDecimal("2"),
+                Condition.VERY_GOOD, false, List.of(item), List.of(), Instant.now());
+        assertThat(listing.totalRealCost()).isEqualByComparingTo("56.00");
+
+        PurchaseAnalysis analyse = new PurchaseAnalysisEngine().analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), comparables, Set.of())),
+                CollectorPreferences.defaults());
+        ListingAssessment assessment = analyse.assessment();
+
+        assertThat(assessment.referencePrice()).isEqualByComparingTo("50.00");
+        assertThat(assessment.referenceSampleSize()).isEqualTo(3);
+        assertThat(assessment.referenceSource()).isEqualTo(MarketReferenceSource.OBSERVED_COMPARABLES);
+
+        // 44 / 50 = 0,88 -> prix correct. Sur 56 / 50 = 1,12, ce serait
+        // "plutot cher" : deux verdicts opposes sur la meme annonce.
+        assertThat(assessment.pricePosition()).isEqualTo(PricePosition.FAIR_PRICE);
+        assertThat(DealAssessmentPolicy.positionOf(listing.totalRealCost(), new BigDecimal("50"),
+                MarketReferenceConfidence.HIGH)).isEqualTo(PricePosition.RATHER_EXPENSIVE);
+        assertThat(assessment.deviationPercent()).isEqualTo(-12);
+
+        // L'apport, lui, se chiffre bien sur les 56 EUR reellement engages.
+        assertThat(assessment.collectionFit().pricePerItem()).isEqualByComparingTo("5.60");
+        assertThat(assessment.collectionFit().pricePerItem()).isNotEqualByComparingTo("4.40");
+    }
+
+    @Test
+    void une_reference_inexploitable_ne_sort_ni_en_prix_ni_en_ecart() {
+        MangaEdition edition = MangaEdition.create("Platinum End", "Standard", EditionTier.STANDARD, "Kaze",
+                14, new BigDecimal("6.99"), false, false, null);
+        // Le cas Platinum End : un T.1 et deux lots de 4 face a une integrale.
+        List<MarketPriceObservation> incomparables = List.of(
+                observation(edition, 1, "8.00"), observation(edition, 4, "20.00"),
+                observation(edition, 4, "18.00"));
+
+        ListingItem item = new ListingItem(new MangaSeries("Platinum End", null), "Standard",
+                Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14), null);
+        Listing listing = new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot Platinum End", null,
+                new BigDecimal("60"), BigDecimal.ZERO, ShippingEstimateKind.FREE, BigDecimal.ZERO,
+                Condition.VERY_GOOD, false, List.of(item), List.of(), Instant.now());
+
+        ListingAssessment assessment = new PurchaseAnalysisEngine().analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), incomparables, Set.of())),
+                CollectorPreferences.defaults()).assessment();
+
+        // Aucun chiffre affiche : un prix a l'ecran est un prix auquel on croit.
+        assertThat(assessment.referencePrice()).isNull();
+        assertThat(assessment.deviationPercent()).isNull();
+        assertThat(assessment.pricePosition()).isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
+        assertThat(assessment.referenceConfidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
+        assertThat(assessment.referenceGap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
+        // Et pas de "prix nettement en dessous" tire d'une reference inexistante.
+        assertThat(assessment.trust().signals()).doesNotContain(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
+    }
+
+    /** Un lot de {@code tomes} tomes a partir du tome 1, releve il y a deux mois. */
+    private static MarketPriceObservation observation(MangaEdition edition, int tomes, String prix) {
+        return MarketPriceObservation.record_(edition.id(), new VolumeRange(1, tomes), new BigDecimal(prix),
+                ListingPlatform.VINTED, Condition.VERY_GOOD, LocalDate.now().minusMonths(2), null);
     }
 }

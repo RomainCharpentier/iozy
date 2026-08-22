@@ -287,28 +287,85 @@ doublons, il coûte **7 € le tome qui sert**. C'est
 Quand tout est déjà possédé, ce prix **n'existe pas** et n'est pas affiché :
 « 0 € le tome utile » ferait passer un lot inutile pour une aubaine.
 
-### Référence marché : d'où elle vient, et quand elle se tait
+### Référence marché : quand deux offres sont le même produit
 
 Elle est construite à partir des **prix relevés dans IozyCore**
-(`MarketPriceObservation`), pas d'une recherche externe de comparables. Deux
-raisons : Vinted n'expose pas de recherche publique automatisable sans passer
-par son API privée (exclu, voir §3), et une médiane tirée de comparables mal
-appariés — un tome seul, un lot de 4, une intégrale — produit un chiffre précis
-et faux.
+(`MarketPriceObservation`), pas d'une recherche externe de comparables : Vinted
+n'expose pas de recherche publique automatisable sans passer par son API privée
+(exclu, voir §3).
 
-La référence d'un **lot** est la somme des références par série. C'est une
-approximation, et sa confiance le dit :
+#### Une seule source produit une référence
 
-- elle vaut celle de la série **la moins bien documentée** — une référence n'est
-  pas plus solide que son maillon faible ;
-- elle ne dépasse **jamais `MEDIUM`** dès qu'un lot compte plusieurs séries ;
-- elle est **`null`** dès qu'une seule série n'a pas de référence : additionner
-  ce qu'on connaît en ignorant ce qu'on ignore donnerait un lot
-  systématiquement « trop cher ».
+Les prix relevés, et rien d'autre. Une **estimation IA** et un **prix neuf
+catalogue** restent utiles ailleurs — coût pour compléter, négociation, verdict
+global — mais aucune des deux ne devient « le marché ». Les afficher comme
+référence donnerait à une supposition l'autorité d'un constat : c'est
+exactement ce qui se produisait, une estimation de modèle de langage pouvant
+sortir en `referenceConfidence: HIGH` sur zéro observation réelle.
 
-Confiance `LOW` ⇒ `REFERENCE_UNAVAILABLE`. L'écran dit alors « référence
-insuffisante » plutôt que d'afficher un nombre rassurant, et aucune offre
-précise n'est recommandée.
+`MarketReferenceSource` : `OBSERVED_COMPARABLES`, `NONE`, ou `NOT_RECORDED`
+pour une analyse antérieure à cet enregistrement.
+
+#### Les règles d'appariement (`MarketComparableSelector`)
+
+| # | Règle | Pourquoi |
+|---|---|---|
+| 1 | **Même édition** (donc même série) | un relevé se rattache à une `MangaEdition` ; une Perfect ne compare pas avec une Standard |
+| 2 | **Même forme** (`LotShape`) | tome seul / lot partiel / intégrale sont trois produits, pas trois tailles |
+| 3 | **Taille voisine** pour les lots partiels : rapport ≤ 2 | un lot de 10 éclaire un lot de 14 ; un lot de 4, non |
+| 4 | **Moins de 24 mois** | au-delà, le relevé décrit un autre marché |
+
+`LotShape` se déduit du nombre de tomes et du total de l'édition :
+`SINGLE_VOLUME` (1), `COMPLETE_SET` (couvre l'édition), `PARTIAL_LOT` (le
+reste), `INDETERMINATE` (un relevé « sur l'édition entière » quand le total est
+inconnu — écarté, jamais deviné).
+
+**Pas** des règles, délibérément : l'**état** et la **plateforme** n'écartent
+aucun comparable. Ce sont des modificateurs de prix, pas des différences de
+produit, et filtrer dessus viderait des échantillons déjà petits. La dispersion
+qui en résulte est mesurée et fait baisser la confiance — la réserve est dite
+plutôt que le relevé jeté.
+
+#### Les niveaux (`MarketReferenceConfidence`)
+
+Le point de départ est l'échantillon ; chaque réserve fait descendre d'un cran.
+
+| Niveau | Quand | Positionne un prix ? |
+|---|---|---|
+| `HIGH` | ≥ 3 comparables, resserrés, récents | oui |
+| `MEDIUM` | 2 comparables, ou une réserve sur un échantillon solide | oui |
+| `LOW` | 1 seul comparable, ou dispersion > 60 %, ou tous vieux de plus d'un an | **non** |
+| `UNAVAILABLE` | aucun comparable retenu | **non** |
+
+Dégradations cumulatives : dispersion forte (−1), tous les comparables au-delà
+de 12 mois (−1), total de tomes de l'édition inconnu (plafond `MEDIUM`, car on
+ne peut alors pas affirmer qu'un lot n'est pas une intégrale). Un lot
+multi-séries ne dépasse jamais `MEDIUM`, et devient `UNAVAILABLE` dès qu'une
+seule série manque — additionner ce qu'on connaît en ignorant le reste donnerait
+un lot systématiquement « trop cher ».
+
+Sous `MEDIUM`, `referencePrice` et `deviationPercent` sortent à `null` : un
+chiffre affiché est un chiffre auquel on croit. Le signal de vigilance « prix
+nettement en dessous de la référence » ne se déclenche pas non plus — accuser
+une annonce sur la foi d'un repère qu'on refuse par ailleurs d'utiliser serait
+deux poids, deux mesures.
+
+#### Dire ce qui manque, pas seulement qu'on ne sait pas
+
+`ReferenceGap` nomme l'absence pour que l'écran conseille : `NO_OBSERVATION`,
+`NO_COMPARABLE_SHAPE` (des relevés existent, aucun sur un produit comparable),
+`ONLY_STALE_OBSERVATIONS`, `EDITION_NOT_IN_CATALOGUE`,
+`INCOMPLETE_LOT_COVERAGE`. `referenceSampleSize` et `examinedCount` permettent
+de distinguer « aucune donnée » de « 3 relevés, aucun comparable ».
+
+#### Le cas de référence
+
+*Platinum End 1-14* (intégrale, 14 tomes) face à un T.1 à 8 €, un lot 1-4 à
+20 € et un lot 7-10 à 18 €. L'ancien calcul les ramenait à 8,00 / 5,00 / 4,50 €
+le tome, en tirait une médiane de 5,00 € et une confiance `HIGH` (trois
+relevés), soit une référence de **70 €** présentée comme solide. Désormais : le
+T.1 sort par la forme, les deux lots de 4 par la taille, et le résultat est
+`UNAVAILABLE` / `NO_COMPARABLE_SHAPE`. Verrouillé par `MarketReferenceTest`.
 
 **Ce sont des prix demandés et relevés, jamais des transactions conclues.**
 IozyCore n'a aucune donnée de vente réelle, et l'interface le rappelle.

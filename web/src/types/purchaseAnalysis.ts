@@ -491,14 +491,43 @@ export type AssessmentHeadline =
  * Elles ne se compensent pas : un lot bradé mais entièrement en doublon reste
  * un mauvais achat à bon prix, et l'écran doit pouvoir le dire.
  */
+/**
+ * Ce que vaut la référence marché, l'absence comprise. Seuls HIGH et MEDIUM
+ * autorisent un positionnement prix : LOW dit « on a quelque chose, mais pas de
+ * quoi trancher », UNAVAILABLE qu'il n'y a rien.
+ */
+export type MarketReferenceConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNAVAILABLE'
+
+/**
+ * D'où vient la référence. Une seule source en produit une : les prix relevés
+ * dans IozyCore. Ni l'estimation IA ni le prix neuf catalogue ne deviennent
+ * « le marché » - ils restent utiles ailleurs (coût pour compléter, négociation,
+ * verdict global). `NOT_RECORDED` : analyse antérieure à cet enregistrement.
+ */
+export type MarketReferenceSource = 'OBSERVED_COMPARABLES' | 'NONE' | 'NOT_RECORDED'
+
+/** Ce qui manque pour qu'une référence existe - sert à dire quoi faire, pas seulement qu'on ne sait pas. */
+export type ReferenceGap =
+  | 'NONE'
+  | 'EDITION_NOT_IN_CATALOGUE'
+  | 'NO_OBSERVATION'
+  | 'NO_COMPARABLE_SHAPE'
+  | 'ONLY_STALE_OBSERVATIONS'
+  | 'INCOMPLETE_LOT_COVERAGE'
+  | 'NOT_RECORDED'
+
 export interface ListingAssessmentDto {
   collectionFit: CollectionFitDto
   pricePosition: PricePosition
-  /** null quand aucune référence assez fiable n'existe. */
+  /** null dès que la référence n'est pas exploitable - un chiffre affiché est un chiffre auquel on croit. */
   referencePrice: number | null
-  referenceConfidence: ConfidenceLevel
+  referenceConfidence: MarketReferenceConfidence
   /** Écart signé à la référence, en pourcentage. */
   deviationPercent: number | null
+  /** Annonces comparables retenues derrière `referencePrice` ; 0 quand il n'y en a pas. */
+  referenceSampleSize: number
+  referenceSource: MarketReferenceSource
+  referenceGap: ReferenceGap
   trust: ListingTrustAssessmentDto
   headline: AssessmentHeadline
 }
