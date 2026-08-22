@@ -140,7 +140,7 @@ public class VintedListingProvider implements ListingProvider {
                 // ramènent alors à la même adresse.
                 page.canonicalUrl() != null ? page.canonicalUrl() : fetched.finalUri().toString(),
                 page.externalId(), page.title(), page.description(), page.price(), page.currency(),
-                page.shippingFee(), page.buyerProtectionFee(),
+                page.shippingFee(), page.shippingKind(), page.buyerProtectionFee(),
                 page.imageUrls(), Instant.now(), retrieved);
 
         if (snapshot.isEmpty()) {

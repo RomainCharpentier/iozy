@@ -1,6 +1,7 @@
 package com.iozycore.listing.vinted;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.iozycore.listing.ShippingEstimateKind;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -73,6 +74,13 @@ final class VintedPageParser {
             "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"price\\\\\":\\{\\\\\"amount\\\\\":"
                     + "\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\"");
 
+    /**
+     * Plusieurs modes de livraison exposés : le montant affiché est alors le
+     * moins cher, donc un plancher et non un tarif.
+     */
+    private static final Pattern PLUSIEURS_MODES = Pattern.compile(
+            "\\\\\"areMultipleShippingOptionsAvailable\\\\\":true");
+
     /** Livraison annoncée gratuite : un vrai zéro, pas une absence de donnée. */
     private static final Pattern PORT_GRATUIT = Pattern.compile(
             "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"isFreeShipping\\\\\":true");
@@ -100,7 +108,7 @@ final class VintedPageParser {
 
     /** Ce que la page a livré - chaque champ indépendamment absent ou présent. */
     record ParsedPage(String title, String description, BigDecimal price, String currency,
-                       BigDecimal shippingFee, BigDecimal buyerProtectionFee,
+                       BigDecimal shippingFee, ShippingEstimateKind shippingKind, BigDecimal buyerProtectionFee,
                        String canonicalUrl, String externalId, List<String> imageUrls) {
     }
 
@@ -117,8 +125,9 @@ final class VintedPageParser {
             currency = priceMatcher.group(2);
         }
 
+        BigDecimal port = fraisDePort(html);
         return new ParsedPage(title, description, price, currency,
-                fraisDePort(html), montant(PROTECTION_ACHETEUR, html), canonicalUrl,
+                port, natureDuPort(html, port), montant(PROTECTION_ACHETEUR, html), canonicalUrl,
                 externalId(html, canonicalUrl, requestedUrl), images(html, maxImages));
     }
 
@@ -128,6 +137,25 @@ final class VintedPageParser {
             return BigDecimal.ZERO;
         }
         return montant(FRAIS_DE_PORT, html);
+    }
+
+    /**
+     * Ce que le montant de livraison vaut réellement.
+     * <p>
+     * L'ordre est délibéré : une livraison offerte est offerte, quels que soient
+     * les modes disponibles. Ensuite seulement on regarde s'il y a plusieurs
+     * options - auquel cas la page affiche le moins cher, et le montant n'est
+     * qu'un plancher. Un montant sans indication d'options multiples est traité
+     * comme ferme ; aucun montant du tout reste UNKNOWN, jamais zéro.
+     */
+    private static ShippingEstimateKind natureDuPort(String html, BigDecimal montant) {
+        if (PORT_GRATUIT.matcher(html).find()) {
+            return ShippingEstimateKind.FREE;
+        }
+        if (montant == null) {
+            return ShippingEstimateKind.UNKNOWN;
+        }
+        return PLUSIEURS_MODES.matcher(html).find() ? ShippingEstimateKind.FROM : ShippingEstimateKind.EXACT;
     }
 
     /** Le premier montant capturé par ce motif, ou null - jamais une valeur par défaut. */

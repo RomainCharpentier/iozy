@@ -60,7 +60,8 @@ public class PurchaseAnalysisController {
      */
     public record AnalyzeListingRequest(String platform, String url, String rawTitle, String description,
                                          BigDecimal askingPrice,
-                                         BigDecimal shippingFee, BigDecimal buyerProtectionFee, String condition,
+                                         BigDecimal shippingFee, String shippingKind,
+                                         BigDecimal buyerProtectionFee, String condition,
                                          boolean conditionAppliesToContainer, List<ListingItemRequest> items,
                                          List<String> photoUrls) {
     }
@@ -81,7 +82,13 @@ public class PurchaseAnalysisController {
                 .toList();
         AnalyzeListingCommand command = new AnalyzeListingCommand(
                 parseEnum(ListingPlatform.class, request.platform(), "platform"), request.url(), request.rawTitle(),
-                request.description(), request.askingPrice(), request.shippingFee(), request.buyerProtectionFee(),
+                request.description(), request.askingPrice(), request.shippingFee(),
+                // Nature absente = le client n'en sait rien : UNKNOWN plutot que
+                // de supposer un tarif ferme.
+                request.shippingKind() == null || request.shippingKind().isBlank()
+                        ? com.iozycore.listing.ShippingEstimateKind.UNKNOWN
+                        : parseEnum(com.iozycore.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
+                request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),
                 items, request.photoUrls());
         return service.analyze(command);

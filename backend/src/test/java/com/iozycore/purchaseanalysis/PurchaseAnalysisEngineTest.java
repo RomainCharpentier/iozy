@@ -3,6 +3,7 @@ package com.iozycore.purchaseanalysis;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.MangaEdition;
 
+import com.iozycore.listing.ShippingEstimateKind;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -26,7 +27,8 @@ class PurchaseAnalysisEngineTest {
     private static Listing listing(BigDecimal askingPrice, BigDecimal shippingFee, BigDecimal buyerProtectionFee,
                                     Condition condition, ListingItem... items) {
         return new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Test listing", null, askingPrice,
-                shippingFee, buyerProtectionFee, condition, false, List.of(items), List.of(), Instant.now());
+                shippingFee, ShippingEstimateKind.UNKNOWN, buyerProtectionFee, condition, false,
+                List.of(items), List.of(), Instant.now());
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
+import com.iozycore.listing.ShippingEstimateKind;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +24,8 @@ import java.util.UUID;
  *                                    volume - weighted more heavily by {@link VerdictScorer}
  */
 public record Listing(UUID id, ListingPlatform platform, String url, String rawTitle, String description,
-                       BigDecimal askingPrice, BigDecimal shippingFee, BigDecimal buyerProtectionFee,
+                       BigDecimal askingPrice, BigDecimal shippingFee, ShippingEstimateKind shippingKind,
+                       BigDecimal buyerProtectionFee,
                        Condition condition, boolean conditionAppliesToContainer,
                        List<ListingItem> items, List<String> photoUrls, Instant requestedAt) {
     public Listing {
@@ -32,14 +35,41 @@ public record Listing(UUID id, ListingPlatform platform, String url, String rawT
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Une annonce doit contenir au moins un lot");
         }
+        // Le zero par defaut reste, sinon le total serait incalculable - mais la
+        // NATURE, elle, n'est jamais supposee : une livraison illisible reste
+        // UNKNOWN, et l'ecran doit le dire plutot que de laisser croire a un
+        // port offert.
+        shippingKind = shippingKind == null
+                ? (shippingFee == null ? ShippingEstimateKind.UNKNOWN : ShippingEstimateKind.EXACT)
+                : shippingKind;
         shippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee;
         buyerProtectionFee = buyerProtectionFee == null ? BigDecimal.ZERO : buyerProtectionFee;
         items = List.copyOf(items);
         photoUrls = photoUrls == null ? List.of() : List.copyOf(photoUrls);
     }
 
-    /** {@code askingPrice + buyerProtectionFee + shippingFee} - never judge a listing on the displayed price alone. */
+    /**
+     * Ce que l'achat coûtera : article + protection + livraison.
+     * <p>
+     * <b>C'est un coût d'acquisition ESTIMÉ, pas un montant facturé.</b> Quand
+     * la livraison n'est qu'un plancher (plusieurs modes disponibles, voir
+     * {@link #shippingKind()}), ce total est lui-même un minimum -
+     * {@link #acquisitionCostIsLowerBound()} le dit, et l'interface doit le
+     * dire aussi. Le nom historique de ce champ dans les analyses déjà
+     * enregistrées est {@code totalRealCost} ; sa signification est celle-ci.
+     * <p>
+     * Ne jamais confondre avec {@link #askingPrice()} : c'est le prix de
+     * l'article seul qui se compare aux prix d'autres annonces, lesquels sont
+     * eux aussi hors frais. Comparer un total frais compris à des prix hors
+     * frais reviendrait à comparer deux grandeurs différentes.
+     */
     public BigDecimal totalRealCost() {
         return askingPrice.add(buyerProtectionFee).add(shippingFee);
+    }
+
+    /** Vrai quand le coût d'acquisition n'est qu'un minimum, la livraison étant un « à partir de ». */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean acquisitionCostIsLowerBound() {
+        return shippingKind == ShippingEstimateKind.FROM;
     }
 }

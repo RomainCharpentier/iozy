@@ -14,6 +14,7 @@ import {
   type Condition,
   type ListingPlatform,
   type ListingPreviewDto,
+  type ShippingEstimateKind,
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
@@ -83,6 +84,9 @@ export function PurchaseAnalysisPage() {
   // Photos lues sur l'annonce - conservées avec l'analyse enregistrée, et
   // retirables une à une avant de lancer le calcul.
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  // Ce que vaut le montant de port lu sur l'annonce. Une saisie manuelle vaut
+  // UNKNOWN : on ne peut pas affirmer qu'un montant tapé à la main est ferme.
+  const [shippingKind, setShippingKind] = useState<ShippingEstimateKind>('UNKNOWN')
   // Champs que l'utilisateur a modifiés lui-même : ce sont les seuls que le
   // pré-remplissage n'a pas le droit de toucher (voir appliquerPreview).
   const [saisisParUtilisateur, setSaisisParUtilisateur] = useState<Set<string>>(new Set())
@@ -125,6 +129,11 @@ export function PurchaseAnalysisPage() {
     // et donc le verdict trop favorable.
     if (preview.shippingFee !== null) {
       appliquer('shippingFee', 'les frais de port', shippingFee, String(preview.shippingFee), setShippingFee)
+      // La nature suit le montant : sans elle, « à partir de 2,83 € » se
+      // relirait comme un tarif ferme.
+      if (!saisisParUtilisateur.has('shippingFee') && !shippingFee.trim()) {
+        setShippingKind(preview.shippingKind)
+      }
     }
     if (preview.buyerProtectionFee !== null) {
       appliquer('buyerProtectionFee', 'la protection acheteur', buyerProtectionFee,
@@ -171,6 +180,7 @@ export function PurchaseAnalysisPage() {
         description: description.trim() || undefined,
         askingPrice: Number(askingPrice),
         shippingFee: shippingFee.trim() ? Number(shippingFee) : undefined,
+        shippingKind,
         buyerProtectionFee: buyerProtectionFee.trim() ? Number(buyerProtectionFee) : undefined,
         condition,
         conditionAppliesToContainer,
@@ -207,6 +217,7 @@ export function PurchaseAnalysisPage() {
     setRawTitle('')
     setDescription('')
     setPhotoUrls([])
+    setShippingKind('UNKNOWN')
     setSaisisParUtilisateur(new Set())
     setAskingPrice('')
     setShippingFee('')
@@ -306,6 +317,9 @@ export function PurchaseAnalysisPage() {
                 value={shippingFee}
                 onChange={(e) => {
                   marquerSaisi('shippingFee')
+                  // Un montant saisi à la main n'est ni « à partir de » ni
+                  // ferme : on ne prétend pas le savoir.
+                  setShippingKind('UNKNOWN')
                   setShippingFee(e.target.value)
                 }}
                 placeholder="0"

@@ -68,17 +68,45 @@ Constaté le 2026-08-21 sur une page publique `/items/<id>`.
 Les **frais** méritent trois précisions, parce qu'ils entrent directement dans
 le coût réel — et donc dans le verdict :
 
-- le port est un prix **« à partir de »** : quand plusieurs modes de livraison
-  existent (`areMultipleShippingOptionsAvailable`), la page annonce le moins
-  cher, et le montant réel peut être supérieur selon le point relais ;
-- une livraison annoncée gratuite (`isFreeShipping`) vaut **zéro**, pas
-  « inconnu » — la distinction évite de faire ressaisir un montant déjà donné ;
+Le montant seul ne suffit pas : c'est **ce qu'il vaut** qui compte, porté par
+`ShippingEstimateKind`.
+
+| Nature | Quand | Conséquence |
+|---|---|---|
+| `FREE` | `isFreeShipping` | zéro, un vrai zéro |
+| `FROM` | `areMultipleShippingOptionsAvailable` | plancher : le réel peut être supérieur selon le point relais |
+| `EXACT` | un montant, un seul mode | ferme, autant qu'on puisse l'affirmer avant paiement |
+| `UNKNOWN` | rien de lisible, ou saisie manuelle | **surtout pas zéro** — le supposer minorerait le coût |
+
+- une livraison annoncée gratuite vaut **zéro**, pas « inconnu » — la
+  distinction évite de faire ressaisir un montant déjà donné ;
 - la protection acheteur est lue sur `finalPrice`, **jamais** `originalPrice` :
   une remise peut s'appliquer, et c'est le montant facturé qui compte.
 
 Sans eux, le formulaire partait de 0 € de frais : sur une annonce à 10 €, le
-coût réel affiché était 10 € au lieu de 14,03 €, soit **40 % sous la réalité** —
-et tout verdict s'en trouvait trop favorable.
+total affiché était 10 € au lieu de 14,03 €, soit **40 % sous la réalité** — et
+tout verdict s'en trouvait trop favorable.
+
+#### Trois grandeurs, jamais confondues
+
+| Notion | Ce que c'est | À quoi elle sert |
+|---|---|---|
+| **Prix de l'annonce** | l'article seul, hors frais | se compare au **marché** |
+| **Coût d'acquisition estimé** | article + protection + livraison | se compare à **ce que ça t'apporte** |
+| **Référence marché** | prix demandés relevés, hors frais | sert de repère au premier |
+
+Le piège évité : les prix d'annonces comparables sont **hors frais**. Comparer
+14,03 € frais compris à une médiane de 12 € hors frais déclarerait « cher » une
+annonce qui ne l'est pas — deux grandeurs différentes. Le positionnement marché
+porte donc sur le **prix de l'article**, tandis que le coût par élément utile
+porte sur le **coût d'acquisition**. `PriceSemanticsTest` verrouille cette
+séparation : les deux bases y produisent volontairement des verdicts opposés.
+
+Et **« minimum » n'est pas « réel »** : quand la livraison n'est qu'un plancher,
+le total l'est aussi. L'écran affiche alors « Coût minimum estimé » et « au
+moins X € / élément », jamais « coût réel ». La sémantique est figée avec
+l'analyse : un « à partir de » enregistré aujourd'hui se relit « à partir de »
+demain.
 
 Deux couches, traitées différemment :
 

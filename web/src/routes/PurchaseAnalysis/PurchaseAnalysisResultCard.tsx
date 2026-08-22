@@ -12,6 +12,24 @@ const CONFIDENCE_LABELS = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Faible' } as
 
 const WARNING_ICONS: Record<WarningSeverity, typeof Info> = { INFO: Info, CAUTION: TriangleAlert, CRITICAL: CircleX }
 
+/**
+ * Dit ce que vaut le montant de livraison, plutôt que d'afficher un nombre nu.
+ * « 2,83 € » et « à partir de 2,83 € » ne racontent pas la même chose, et une
+ * livraison illisible ne doit surtout pas ressembler à une livraison offerte.
+ */
+function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
+  switch (listing.shippingKind) {
+    case 'FREE':
+      return 'offerte'
+    case 'FROM':
+      return `à partir de ${euros(listing.shippingFee)}`
+    case 'EXACT':
+      return euros(listing.shippingFee)
+    default:
+      return 'non communiquée'
+  }
+}
+
 function euros(value: number | null): string {
   return value === null ? 'Non calculable' : `${value.toFixed(2)} €`
 }
@@ -73,7 +91,12 @@ export function PurchaseAnalysisResultCard({
           son prix, ce qu'il faut verifier. Le score global du moteur reste
           en dessous - il juge l'affaire dans l'absolu, celui-ci la juge pour
           toi, et les deux ne repondent pas a la meme question. */}
-      {analysis.assessment && <ListingAssessmentCard assessment={analysis.assessment} />}
+      {analysis.assessment && (
+        <ListingAssessmentCard
+          assessment={analysis.assessment}
+          coutEstMinimum={listing.shippingKind === 'FROM'}
+        />
+      )}
 
       <div className="flex flex-col gap-1.5">
         <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
@@ -100,13 +123,20 @@ export function PurchaseAnalysisResultCard({
       )}
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-surface2 p-3 text-sm">
-        <span className="text-textDim">Prix affiché</span>
+        {/* Trois notions distinctes, et l'écran doit les tenir séparées : le
+            prix de l'annonce (celui qui se compare au marché, hors frais), les
+            frais connus, et ce que l'achat coûtera. Quand la livraison n'est
+            qu'un « à partir de », ce dernier total est un MINIMUM - l'appeler
+            « coût réel » laisserait croire à un montant facturé. */}
+        <span className="text-textDim">Prix de l'annonce</span>
         <span className="text-right text-textPrimary">{euros(listing.askingPrice)}</span>
-        <span className="text-textDim">Frais (port + protection)</span>
-        <span className="text-right text-textPrimary">
-          {euros(listing.shippingFee + listing.buyerProtectionFee)}
+        <span className="pl-3 text-xs text-textDim">Protection acheteur</span>
+        <span className="text-right text-xs text-textDim">{euros(listing.buyerProtectionFee)}</span>
+        <span className="pl-3 text-xs text-textDim">Livraison</span>
+        <span className="text-right text-xs text-textDim">{libelleLivraison(listing)}</span>
+        <span className="font-medium text-textPrimary">
+          {listing.shippingKind === 'FROM' ? 'Coût minimum estimé' : 'Coût d’acquisition estimé'}
         </span>
-        <span className="font-medium text-textPrimary">Coût réel estimé</span>
         <span className="text-right font-medium text-textPrimary">{euros(analysis.totalRealCost)}</span>
         <span className="text-textDim">Valeur neuve</span>
         <span className="text-right text-textPrimary">{euros(analysis.totalNewValue)}</span>
