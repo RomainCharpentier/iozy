@@ -156,6 +156,9 @@ export function PurchaseAnalysisPage() {
         platform,
         url: url.trim() || undefined,
         rawTitle: rawTitle.trim() || `Lot ${LISTING_PLATFORM_LABELS[platform]}`,
+        // La description alimente les points de vigilance (paiement hors
+        // plateforme, texte trop court). Elle etait saisie mais jamais envoyee.
+        description: description.trim() || undefined,
         askingPrice: Number(askingPrice),
         shippingFee: shippingFee.trim() ? Number(shippingFee) : undefined,
         buyerProtectionFee: buyerProtectionFee.trim() ? Number(buyerProtectionFee) : undefined,

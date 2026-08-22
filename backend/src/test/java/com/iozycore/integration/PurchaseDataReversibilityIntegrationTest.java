@@ -77,7 +77,7 @@ class PurchaseDataReversibilityIntegrationTest {
     private PurchaseAnalysis uneAnalyse(MangaEdition edition) {
         return service.analyze(new AnalyzeListingCommand(
                 ListingPlatform.VINTED, null, "Lot " + edition.seriesTitle(),
-                new BigDecimal("60"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.VERY_GOOD, false,
+                null, new BigDecimal("60"), BigDecimal.ZERO, BigDecimal.ZERO, Condition.VERY_GOOD, false,
                 List.of(new AnalyzeListingItemCommand(edition.seriesTitle(), edition.editionName(), Set.of(1, 2, 3), null)),
                 List.of()));
     }

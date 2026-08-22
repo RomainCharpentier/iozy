@@ -92,6 +92,8 @@ export interface AnalyzeListingRequest {
   platform: ListingPlatform
   url?: string
   rawTitle: string
+  /** Texte de l'annonce - alimente les points de vigilance. Absent, ils se taisent. */
+  description?: string
   askingPrice: number
   shippingFee?: number
   buyerProtectionFee?: number
@@ -302,6 +304,8 @@ export interface PurchaseAnalysisDto {
    * exclus - somme des DuplicateAnalysisDto.maxWorthwhilePrice de chaque série. Null tant
    * qu'au moins une série avec des tomes utiles n'a pas de prix/tome connu. */
   totalMaxWorthwhilePrice: number | null
+  /** Les trois dimensions de l\'annonce - voir ListingAssessmentDto. */
+  assessment: ListingAssessmentDto
 }
 
 export interface PurchaseAnalysisSummaryDto {
@@ -387,4 +391,82 @@ export interface ListingPreviewDto {
   retrievedAt: string | null
   /** Ce qui a été trouvé. Un champ absent d'ici n'est jamais deviné. */
   retrievedFields: ListingField[]
+}
+
+// --- Évaluation d'une annonce : trois dimensions, puis une synthèse ---
+
+/** Ce que le lot apporte à CETTE collection. */
+export type CollectionInterest =
+  | 'NOTHING_NEW'
+  | 'MOSTLY_DUPLICATES'
+  | 'PARTIALLY_USEFUL'
+  | 'HIGHLY_USEFUL'
+  | 'UNKNOWN'
+
+export interface CollectionFitDto {
+  detectedItemCount: number
+  ownedItemCount: number
+  missingItemCount: number
+  wishlistedItemCount: number
+  usefulItemCount: number
+  /** null quand le coût n'est pas calculable. */
+  pricePerItem: number | null
+  /** null quand rien n'est utile - on n'affiche alors pas « 0 € le tome utile ». */
+  pricePerUsefulItem: number | null
+  interest: CollectionInterest
+}
+
+/** Où se situe le prix. `REFERENCE_UNAVAILABLE` = on ne juge pas, faute de référence fiable. */
+export type PricePosition =
+  | 'VERY_GOOD_PRICE'
+  | 'GOOD_PRICE'
+  | 'FAIR_PRICE'
+  | 'RATHER_EXPENSIVE'
+  | 'TOO_EXPENSIVE'
+  | 'REFERENCE_UNAVAILABLE'
+
+export type TrustSignal =
+  | 'NO_PHOTO'
+  | 'VERY_FEW_PHOTOS'
+  | 'SHORT_DESCRIPTION'
+  | 'OFF_PLATFORM_PAYMENT_MENTION'
+  | 'PRICE_FAR_BELOW_REFERENCE'
+
+/** Paliers nommés, jamais une note sur 100 : IozyCore ne mesure pas une probabilité de fraude. */
+export type TrustLevel =
+  | 'NO_OBVIOUS_SIGNAL'
+  | 'A_FEW_THINGS_TO_CHECK'
+  | 'EXAMINE_CAREFULLY'
+  | 'CONCERNING'
+
+export interface ListingTrustAssessmentDto {
+  level: TrustLevel
+  signals: TrustSignal[]
+}
+
+export type AssessmentHeadline =
+  | 'NOTHING_NEW_FOR_YOU'
+  | 'LIMITED_INTEREST'
+  | 'GOOD_FOR_YOUR_COLLECTION'
+  | 'USEFUL_BUT_EXPENSIVE'
+  | 'USEFUL_PRICE_UNKNOWN'
+  | 'CHECK_BEFORE_BUYING'
+  | 'CONTENT_TO_CONFIRM'
+
+/**
+ * Les trois dimensions gardées distinctes, plus la synthèse.
+ *
+ * Elles ne se compensent pas : un lot bradé mais entièrement en doublon reste
+ * un mauvais achat à bon prix, et l'écran doit pouvoir le dire.
+ */
+export interface ListingAssessmentDto {
+  collectionFit: CollectionFitDto
+  pricePosition: PricePosition
+  /** null quand aucune référence assez fiable n'existe. */
+  referencePrice: number | null
+  referenceConfidence: ConfidenceLevel
+  /** Écart signé à la référence, en pourcentage. */
+  deviationPercent: number | null
+  trust: ListingTrustAssessmentDto
+  headline: AssessmentHeadline
 }

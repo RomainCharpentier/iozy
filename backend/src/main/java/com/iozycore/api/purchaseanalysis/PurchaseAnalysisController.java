@@ -53,7 +53,13 @@ public class PurchaseAnalysisController {
                                       String itemConditionOverride) {
     }
 
-    public record AnalyzeListingRequest(String platform, String url, String rawTitle, BigDecimal askingPrice,
+    /**
+     * @param description texte de l'annonce - facultatif, mais c'est lui qui alimente
+     *                    les points de vigilance (mention de paiement hors plateforme,
+     *                    description trop courte). Absent, ces signaux se taisent.
+     */
+    public record AnalyzeListingRequest(String platform, String url, String rawTitle, String description,
+                                         BigDecimal askingPrice,
                                          BigDecimal shippingFee, BigDecimal buyerProtectionFee, String condition,
                                          boolean conditionAppliesToContainer, List<ListingItemRequest> items,
                                          List<String> photoUrls) {
@@ -75,7 +81,7 @@ public class PurchaseAnalysisController {
                 .toList();
         AnalyzeListingCommand command = new AnalyzeListingCommand(
                 parseEnum(ListingPlatform.class, request.platform(), "platform"), request.url(), request.rawTitle(),
-                request.askingPrice(), request.shippingFee(), request.buyerProtectionFee(),
+                request.description(), request.askingPrice(), request.shippingFee(), request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),
                 items, request.photoUrls());
         return service.analyze(command);

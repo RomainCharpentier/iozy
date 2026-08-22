@@ -66,6 +66,15 @@ public class PurchaseAnalysisEngine {
     }
 
     public PurchaseAnalysis analyze(Listing listing, List<ItemContext> itemContexts, CollectorPreferences preferences) {
+        return analyze(listing, itemContexts, preferences, 0);
+    }
+
+    /**
+     * @param wishlistedCount elements du lot deja presents dans les envies - compte etabli par la couche
+     *                        application, qui seule connait la wishlist (le moteur reste un domaine pur)
+     */
+    public PurchaseAnalysis analyze(Listing listing, List<ItemContext> itemContexts,
+                                     CollectorPreferences preferences, int wishlistedCount) {
         List<ItemAnalysis> itemAnalyses = new ArrayList<>();
         List<Warning> listingWarnings = new ArrayList<>();
 
@@ -236,9 +245,86 @@ public class PurchaseAnalysisEngine {
 
         BigDecimal finalMaxWorthwhile = maxWorthwhileFullyKnown ? totalMaxWorthwhile : null;
 
+        // Les trois dimensions, calculees separement puis presentees ensemble
+        // (voir ListingAssessment) : ce que le lot apporte, ou se situe son prix,
+        // et ce qu'il faut verifier. Elles ne se compensent pas entre elles.
+        CollectionFit fit = CollectionFit.fromItemBreakdown(itemAnalyses, wishlistedCount, totalRealCost);
+        BigDecimal reference = referenceDeLot(itemAnalyses);
+        ConfidenceLevel referenceConfidence = confianceDeReference(itemAnalyses);
+        PricePosition position = DealAssessmentPolicy.positionOf(
+                listing.askingPrice(), reference, referenceConfidence);
+        ListingTrustAssessment trust = ListingTrustAssessment.assess(
+                listing.description(), listing.photoUrls().size(), listing.askingPrice(), reference);
+        ListingAssessment assessment = ListingAssessment.of(fit, position, reference, referenceConfidence,
+                DealAssessmentPolicy.deviationPercent(listing.askingPrice(), reference), trust);
+
         return new PurchaseAnalysis(UUID.randomUUID(), Instant.now(), listing, itemAnalyses, totalRealCost,
                 finalNewValue, totalSavingsAmount, discountPercent, negotiation, outcome.verdict(), outcome.score(),
-                outcome.factorBreakdown(), listingWarnings, outcome.overallConfidence(), finalMaxWorthwhile);
+                outcome.factorBreakdown(), listingWarnings, outcome.overallConfidence(), finalMaxWorthwhile,
+                assessment);
+    }
+
+    /**
+     * La reference marche du LOT : la somme des references par serie, quand
+     * chacune en a une. Construite a partir des elements faute de comparables
+     * lot-a-lot - l'UI doit donc dire d'ou elle vient, et sa confiance est
+     * plafonnee en consequence (voir confianceDeReference).
+     * <p>
+     * Rend null des qu'une seule serie n'a pas de reference : additionner ce
+     * qu'on connait en ignorant ce qu'on ignore produirait une reference
+     * systematiquement trop basse, donc un lot systematiquement "trop cher".
+     */
+    private BigDecimal referenceDeLot(List<ItemAnalysis> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (ItemAnalysis item : items) {
+            BigDecimal parTome = referenceParTome(item);
+            if (parTome == null) {
+                return null;
+            }
+            total = total.add(parTome.multiply(BigDecimal.valueOf(item.item().includedVolumes().size())));
+        }
+        return items.isEmpty() ? null : total;
+    }
+
+    /** Le prix observe l'emporte sur l'estime : une donnee relevee vaut mieux qu'un calcul. */
+    private BigDecimal referenceParTome(ItemAnalysis item) {
+        MarketPrice prix = item.marketPrice();
+        if (prix == null) {
+            return null;
+        }
+        if (prix.observedMedian() != null) {
+            return prix.observedMedian();
+        }
+        return prix.aiEstimatedPrice() != null ? prix.aiEstimatedPrice() : prix.theoreticalEstimate();
+    }
+
+    /**
+     * La confiance de la reference du lot, degradee deliberement.
+     * <p>
+     * Elle vaut celle de la serie la MOINS bien documentee - une reference n'est
+     * pas plus solide que son maillon faible. Et elle ne depasse jamais MEDIUM
+     * des que le lot compte plusieurs series : additionner des references
+     * unitaires pour juger un lot est une approximation, meme quand chaque
+     * terme est bien connu.
+     */
+    private ConfidenceLevel confianceDeReference(List<ItemAnalysis> items) {
+        if (items.isEmpty()) {
+            return ConfidenceLevel.LOW;
+        }
+        ConfidenceLevel pire = ConfidenceLevel.HIGH;
+        for (ItemAnalysis item : items) {
+            MarketPrice prix = item.marketPrice();
+            ConfidenceLevel c = prix == null ? ConfidenceLevel.LOW : prix.confidence();
+            if (c == ConfidenceLevel.LOW || pire == ConfidenceLevel.LOW) {
+                pire = ConfidenceLevel.LOW;
+            } else if (c == ConfidenceLevel.MEDIUM) {
+                pire = ConfidenceLevel.MEDIUM;
+            }
+        }
+        if (items.size() > 1 && pire == ConfidenceLevel.HIGH) {
+            return ConfidenceLevel.MEDIUM;
+        }
+        return pire;
     }
 
     /** Warns when a sibling edition of the same series outranks the matched one in the configured tier hierarchy (e.g. the Alice in Borderland case: owning a standard edition while a Perfect edition exists). */

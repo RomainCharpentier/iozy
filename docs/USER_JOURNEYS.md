@@ -511,6 +511,44 @@ IozyCore n'a pas de moteur de reconnaissance d'images (`Listing.photoUrls`
 existait en base sans aucun consommateur, et les deux usages de Gemini sont
 textuels). Le contenu du lot reste déclaré à la main.
 
+### 35 ter. Comprendre si l'annonce est intéressante POUR MOI
+*(2026-08-22 — voir `docs/LISTING_SOURCES.md` §8)*
+
+Le résultat d'une analyse répond désormais à **trois questions distinctes**,
+présentées dans l'ordre où elles décident, sans jamais être fondues :
+
+1. **Intérêt pour ta collection** — éléments détectés, déjà possédés, manquants,
+   dans les envies. Et surtout le chiffre différenciant : **prix par élément
+   réellement utile**. Un lot de 6 tomes à 30 € affiche 5 €/tome ; si un tome
+   est déjà possédé, il coûte **6 €/tome utile**. Quand tout est déjà possédé,
+   ce prix n'est pas affiché — « 0 € le tome utile » ferait passer un lot
+   inutile pour une aubaine.
+2. **Prix** — catégorie nommée (très bon prix → trop cher), avec la référence,
+   l'écart en pourcentage et sa confiance. Référence trop faible → « référence
+   insuffisante » et **aucune offre précise recommandée**, plutôt qu'un nombre
+   rassurant tiré de rien.
+3. **Points à vérifier** — photos absentes ou trop peu nombreuses, description
+   trop courte, mention de paiement hors plateforme, prix très bas. Quatre
+   paliers nommés, **jamais une note sur 100**.
+
+**Deux règles visibles à l'écran** : beaucoup de photos ne donne aucun bonus de
+confiance, et un prix très bas apparaît en vigilance **tout en restant un très
+bon prix** — les deux lectures coexistent, l'écran le dit.
+
+**Ce que l'analyse ne prétend pas** : la référence vient des **prix relevés dans
+IozyCore**, pas de ventes conclues ni d'une recherche de comparables externes.
+Pour un lot, c'est la somme des références par série — approximation dont la
+confiance est plafonnée, et nulle dès qu'une série manque.
+
+**Fonctionne sans Vinted** : une annonce entièrement saisie à la main produit
+exactement la même évaluation.
+
+**Écrans** : `ListingAssessmentCard`, `PurchaseAnalysisResultCard`
+**Backend** : `CollectionFit`, `PricePosition`, `DealAssessmentPolicy`,
+`ListingTrustAssessment`, `ListingAssessment`, `ListingTextParser`
+**Statut** : `COMPLET` — vérifié en direct (doublon détecté → 5 €/élément
+contre 6 €/élément utile ; mention PayPal/WhatsApp relevée).
+
 **Écrans** : `ListingUrlField`, `ListingPhotos`, `PurchaseAnalysisPage`
 **Backend** : `POST /listing-metadata/resolve`, `ListingSourceResolver`,
 `VintedListingProvider`, `ListingUrlGuard`

@@ -25,7 +25,7 @@ class PurchaseAnalysisEngineTest {
 
     private static Listing listing(BigDecimal askingPrice, BigDecimal shippingFee, BigDecimal buyerProtectionFee,
                                     Condition condition, ListingItem... items) {
-        return new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Test listing", askingPrice,
+        return new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Test listing", null, askingPrice,
                 shippingFee, buyerProtectionFee, condition, false, List.of(items), List.of(), Instant.now());
     }
 
