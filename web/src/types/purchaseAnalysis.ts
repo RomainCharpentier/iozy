@@ -380,13 +380,20 @@ export type ListingResolutionStatus =
 
 /** Les champs qu'une source peut rendre - `retrievedFields` dit lesquels ont RÉELLEMENT été lus. */
 /**
- * Ce que vaut le montant de livraison lu sur l'annonce.
+ * Ce que vaut le montant de livraison retenu pour l'annonce.
  *
  * `FROM` = « à partir de » : plusieurs modes existent et la source affiche le
  * moins cher. Le total qui en découle est alors un MINIMUM, pas un coût
  * facturé - et l'écran doit le dire.
+ *
+ * `ESTIMATED` = un montant utilisable mais non garanti, typiquement saisi par
+ * l'utilisateur. Il compte dans le coût, et l'écran ne doit surtout pas parler
+ * de livraison « non communiquée » : elle vient d'être communiquée.
+ *
+ * `UNKNOWN` = aucun montant. Le total est alors INCOMPLET : c'est un sous-total,
+ * pas un coût d'acquisition.
  */
-export type ShippingEstimateKind = 'FREE' | 'EXACT' | 'FROM' | 'UNKNOWN'
+export type ShippingEstimateKind = 'FREE' | 'EXACT' | 'FROM' | 'ESTIMATED' | 'UNKNOWN'
 
 export type ListingField =
   | 'TITLE'

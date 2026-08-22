@@ -83,10 +83,11 @@ public class PurchaseAnalysisController {
         AnalyzeListingCommand command = new AnalyzeListingCommand(
                 parseEnum(ListingPlatform.class, request.platform(), "platform"), request.url(), request.rawTitle(),
                 request.description(), request.askingPrice(), request.shippingFee(),
-                // Nature absente = le client n'en sait rien : UNKNOWN plutot que
-                // de supposer un tarif ferme.
+                // Nature absente = le client n'en sait rien : on ne tranche pas
+                // ici. Listing normalise (pas de montant -> UNKNOWN, un montant
+                // -> ESTIMATED), pour que la regle vive a un seul endroit.
                 request.shippingKind() == null || request.shippingKind().isBlank()
-                        ? com.iozycore.listing.ShippingEstimateKind.UNKNOWN
+                        ? null
                         : parseEnum(com.iozycore.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
                 request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),

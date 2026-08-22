@@ -57,6 +57,22 @@ VERDICTS = {
     "AVOID": "À ÉVITER",
 }
 
+# Ce que vaut le montant de livraison retenu. Un total qui n'inclut aucune
+# livraison n'est pas un coût d'acquisition, et un « à partir de » n'est pas un
+# tarif : le rapport doit nommer les trois cas différemment.
+LIVRAISON = {
+    "FREE": "offerte",
+    "EXACT": "{montant}",
+    "FROM": "à partir de {montant}",
+    "ESTIMATED": "{montant} estimés",
+    "UNKNOWN": "non communiquée",
+}
+
+TOTAUX = {
+    "FROM": "Coût min.",
+    "UNKNOWN": "Sous-total",
+}
+
 CONSEILS = {
     "NEGOTIATE": "négocier",
     "ACCEPTABLE_AS_IS": "acceptable tel quel",
@@ -122,8 +138,10 @@ def main() -> int:
     parseur.add_argument("--tomes", default="", help="tomes inclus, ex. 1-12 ou 1,3,5-9")
     parseur.add_argument("--etat", default="VERY_GOOD",
                          help="MINT_SEALED, LIKE_NEW, VERY_GOOD, GOOD, ACCEPTABLE, VISIBLE_DEFECTS")
-    parseur.add_argument("--port", type=float, default=0, help="frais de port en euros")
-    parseur.add_argument("--protection", type=float, default=0, help="frais de protection acheteur")
+    parseur.add_argument("--port", type=float, default=None,
+                         help="frais de port en euros (à défaut : ceux lus sur l'annonce)")
+    parseur.add_argument("--protection", type=float, default=None,
+                         help="frais de protection acheteur (à défaut : ceux lus sur l'annonce)")
     parseur.add_argument("--api", default=API_PAR_DEFAUT, help=f"base de l'API (défaut : {API_PAR_DEFAUT})")
     parseur.add_argument("--json", action="store_true", help="sortie brute, pour enchaîner un autre outil")
     args = parseur.parse_args()
@@ -161,6 +179,12 @@ def main() -> int:
         print("obtenir un verdict croisé avec ta collection.")
         return 0
 
+    port = args.port if args.port is not None else annonce.get("shippingFee")
+    nature_port = "ESTIMATED" if args.port is not None else (annonce.get("shippingKind") or "UNKNOWN")
+    if port is None:
+        nature_port = "UNKNOWN"
+    protection = args.protection if args.protection is not None else annonce.get("buyerProtectionFee")
+
     tomes = analyser_tomes(args.tomes)
     if not tomes:
         print("\n--tomes n'a produit aucun numéro exploitable (ex. attendu : 1-12).", file=sys.stderr)
@@ -171,8 +195,13 @@ def main() -> int:
         "url": annonce.get("url") or args.url,
         "rawTitle": annonce.get("title") or f"Lot {args.serie}",
         "askingPrice": prix,
-        "shippingFee": args.port,
-        "buyerProtectionFee": args.protection,
+        # Un port saisi à la main est une ESTIMATION : utilisable, mais pas un
+        # tarif constaté. Sans saisie, on garde ce que l'annonce disait - nature
+        # comprise -, et à défaut on reste explicitement ignorant plutôt que de
+        # compter un port à 0 qui rendrait le coût trop favorable.
+        "shippingFee": port,
+        "shippingKind": nature_port,
+        "buyerProtectionFee": protection,
         "condition": args.etat,
         "conditionAppliesToContainer": False,
         "items": [{"seriesTitle": args.serie, "editionName": args.edition, "includedVolumes": tomes}],
@@ -187,8 +216,11 @@ def main() -> int:
     print()
     print(f"  VERDICT     : {VERDICTS.get(analyse['verdict'], analyse['verdict'])} "
           f"({analyse['verdictScore']}/100, confiance {analyse['overallConfidence']})")
-    print(f"  Coût réel   : {euros(analyse['totalRealCost'])}   "
+    libelle_total = TOTAUX.get(nature_port, "Coût acq.")
+    print(f"  {libelle_total:<12}: {euros(analyse['totalRealCost'])}   "
           f"(valeur neuve {euros(analyse['totalNewValue'])})")
+    print(f"  Livraison   : "
+          + LIVRAISON.get(nature_port, "non communiquée").format(montant=euros(port)))
     if analyse.get("discountPercent") is not None:
         print(f"  Décote      : {analyse['discountPercent']:.0f} % vs neuf")
     print(f"  Conseil     : {CONSEILS.get(negociation['advice'], negociation['advice'])}")

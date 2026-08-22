@@ -131,12 +131,83 @@ class PriceSemanticsTest {
     @Test
     void une_nature_absente_ne_devient_jamais_une_livraison_offerte() {
         // Le piège : supposer FREE minorerait le coût sans que rien ne le signale.
-        Listing sansNature = new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot", null,
-                new BigDecimal("10"), null, null, new BigDecimal("1.20"), Condition.VERY_GOOD, false,
-                List.of(new ListingItem(new MangaSeries("Une serie", null), "Standard", java.util.Set.of(1), null)),
-                List.of(), Instant.now());
+        Listing sansNature = sansNature(null);
 
         assertThat(sansNature.shippingKind()).isEqualTo(ShippingEstimateKind.UNKNOWN);
+    }
+
+    /** Même annonce, nature volontairement omise : c'est le domaine qui tranche. */
+    private static Listing sansNature(BigDecimal port) {
+        return new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot", null,
+                new BigDecimal("10"), port, null, new BigDecimal("1.20"), Condition.VERY_GOOD, false,
+                List.of(new ListingItem(new MangaSeries("Une serie", null), "Standard", java.util.Set.of(1), null)),
+                List.of(), Instant.now());
+    }
+
+    // --------------------------------------- Un montant saisi n'est pas « inconnu »
+
+    @Test
+    void un_port_saisi_a_la_main_est_estime_compte_dans_le_cout_et_n_est_jamais_dit_non_communique() {
+        // Le cas exact du cahier des charges : 10 + 1,20 + 5,90 saisis.
+        Listing listing = annonce(new BigDecimal("10"), new BigDecimal("5.90"),
+                ShippingEstimateKind.ESTIMATED, new BigDecimal("1.20"));
+
+        assertThat(listing.shippingKind()).isEqualTo(ShippingEstimateKind.ESTIMATED);
+        assertThat(listing.totalRealCost()).isEqualByComparingTo("17.10");
+        // Ni un plancher (rien ne dit que ce sera plus cher), ni une absence :
+        // c'est ce dernier point qui interdit l'affichage « non communiquée ».
+        assertThat(listing.acquisitionCostIsLowerBound()).isFalse();
+        assertThat(listing.acquisitionCostIncludesShipping()).isTrue();
+        assertThat(listing.shippingKind().isEstimate()).isTrue();
+    }
+
+    @Test
+    void un_montant_recu_sans_nature_est_estime_pas_ferme() {
+        // Personne n'a affirmé que ce tarif était celui qui serait facturé :
+        // le nommer EXACT donnerait à un nombre reçu l'autorité d'un tarif lu.
+        assertThat(sansNature(new BigDecimal("5.90")).shippingKind())
+                .isEqualTo(ShippingEstimateKind.ESTIMATED);
+    }
+
+    @Test
+    void un_inconnu_ne_porte_jamais_un_montant_qui_entre_dans_le_calcul() {
+        // LA contradiction à rendre impossible : le total inclurait 5,90 pendant
+        // que l'écran annoncerait « livraison non communiquée ».
+        Listing contradictoire = annonce(new BigDecimal("10"), new BigDecimal("5.90"),
+                ShippingEstimateKind.UNKNOWN, new BigDecimal("1.20"));
+
+        assertThat(contradictoire.shippingKind()).isEqualTo(ShippingEstimateKind.ESTIMATED);
+        assertThat(contradictoire.totalRealCost()).isEqualByComparingTo("17.10");
+        // Autrement dit : aucune combinaison ne laisse UNKNOWN facturer quoi que
+        // ce soit. Cette normalisation répare aussi, à la relecture, les
+        // analyses enregistrées avant que ce cas ait un nom.
+        assertThat(contradictoire.shippingKind().hasAmount()).isTrue();
+    }
+
+    // ------------------------------------------- Coût partiellement connu
+
+    @Test
+    void une_livraison_inconnue_ne_produit_pas_un_cout_d_acquisition_complet() {
+        Listing listing = annonce(new BigDecimal("10"), null,
+                ShippingEstimateKind.UNKNOWN, new BigDecimal("1.20"));
+
+        // Le total reste calculable - c'est un sous-total connu, pas un coût
+        // d'acquisition : l'écran doit le nommer ainsi et dire ce qui manque.
+        assertThat(listing.totalRealCost()).isEqualByComparingTo("11.20");
+        assertThat(listing.acquisitionCostIncludesShipping()).isFalse();
+        assertThat(listing.acquisitionCostIsLowerBound()).isFalse();
+    }
+
+    @Test
+    void toutes_les_natures_porteuses_d_un_montant_contribuent_au_cout() {
+        for (ShippingEstimateKind nature : List.of(ShippingEstimateKind.FREE, ShippingEstimateKind.EXACT,
+                ShippingEstimateKind.FROM, ShippingEstimateKind.ESTIMATED)) {
+            assertThat(nature.hasAmount()).as(nature.name()).isTrue();
+        }
+        assertThat(ShippingEstimateKind.UNKNOWN.hasAmount()).isFalse();
+        // Seul FROM rend le total minimal : une estimation n'est pas un plancher.
+        assertThat(ShippingEstimateKind.ESTIMATED.isLowerBound()).isFalse();
+        assertThat(ShippingEstimateKind.FROM.isLowerBound()).isTrue();
     }
 
     @Test

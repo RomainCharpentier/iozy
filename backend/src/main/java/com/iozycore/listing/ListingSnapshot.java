@@ -30,7 +30,9 @@ import java.util.List;
  * @param shippingFee        montant de livraison lu, ou null s'il est illisible
  * @param shippingKind       ce que ce montant vaut réellement - offert, ferme, ou simple plancher
  *                           quand plusieurs modes de livraison existent. Sans lui, « 2,83 € » et
- *                           « à partir de 2,83 € » deviendraient indiscernables.
+ *                           « à partir de 2,83 € » deviendraient indiscernables. Un snapshot ne
+ *                           porte jamais {@link ShippingEstimateKind#ESTIMATED} : celui-là qualifie
+ *                           une saisie de l'utilisateur, pas une lecture de source.
  * @param buyerProtectionFee frais de protection acheteur, montant réellement facturé (après remise
  *                           éventuelle), pas le tarif affiché avant promotion
  * @param imageUrls  photos de l'annonce elle-même, dans l'ordre d'affichage - jamais les avatars ni les vignettes d'articles similaires

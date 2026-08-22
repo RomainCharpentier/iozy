@@ -252,6 +252,30 @@ class PurchaseAnalysisPersistenceIntegrationTest {
     }
 
     @Test
+    void un_port_saisi_a_la_main_se_relit_toujours_comme_une_estimation() {
+        // La lecture historique ne doit jamais promouvoir une saisie en tarif
+        // ferme : « 5,90 € estimés » aujourd'hui, « 5,90 € estimés » dans un an.
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Berserk " + UUID.randomUUID(),
+                "Standard", EditionTier.STANDARD, "Glenat", 41, new BigDecimal("8.50"), false, false, null));
+
+        AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Lot Berserk",
+                null, new BigDecimal("10"), new BigDecimal("5.90"), null, new BigDecimal("1.20"),
+                Condition.VERY_GOOD, false,
+                List.of(new AnalyzeListingItemCommand(edition.seriesTitle(), edition.editionName(), Set.of(1), null)),
+                List.of());
+
+        PurchaseAnalysis analysis = purchaseAnalysisService.analyze(command);
+        entityManager.flush();
+        entityManager.clear();
+
+        PurchaseAnalysis reloaded = purchaseAnalysisService.findAnalysisById(analysis.id()).orElseThrow();
+        assertThat(reloaded.listing().shippingKind()).isEqualTo(ShippingEstimateKind.ESTIMATED);
+        assertThat(reloaded.listing().totalRealCost()).isEqualByComparingTo("17.10");
+        assertThat(reloaded.listing().acquisitionCostIncludesShipping()).isTrue();
+        assertThat(reloaded.listing().acquisitionCostIsLowerBound()).isFalse();
+    }
+
+    @Test
     void computes_completeness_for_a_series_already_in_the_collection() {
         MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("My Home Hero " + UUID.randomUUID(),
                 "Standard", EditionTier.STANDARD, "Kodansha", 26, new BigDecimal("6.90"), false, false, null));
