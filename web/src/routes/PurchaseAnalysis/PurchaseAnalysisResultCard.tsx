@@ -14,8 +14,10 @@ const WARNING_ICONS: Record<WarningSeverity, typeof Info> = { INFO: Info, CAUTIO
 
 /**
  * Dit ce que vaut le montant de livraison, plutôt que d'afficher un nombre nu.
- * « 2,83 € » et « à partir de 2,83 € » ne racontent pas la même chose, et une
- * livraison illisible ne doit surtout pas ressembler à une livraison offerte.
+ * « 2,83 € » et « à partir de 2,83 € » ne racontent pas la même chose ; une
+ * livraison illisible ne doit surtout pas ressembler à une livraison offerte ;
+ * et un montant que l'utilisateur vient de saisir ne doit jamais s'afficher
+ * « non communiquée » - il vient précisément d'être communiqué.
  */
 function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
   switch (listing.shippingKind) {
@@ -25,9 +27,23 @@ function libelleLivraison(listing: PurchaseAnalysisDto['listing']): string {
       return `à partir de ${euros(listing.shippingFee)}`
     case 'EXACT':
       return euros(listing.shippingFee)
+    case 'ESTIMATED':
+      return `${euros(listing.shippingFee)} estimés`
     default:
       return 'non communiquée'
   }
+}
+
+/**
+ * Le nom du total, qui dit du même coup ce qui lui manque. Trois cas, trois
+ * noms : complet, minimal (livraison « à partir de »), ou partiel (aucune
+ * livraison connue). Appeler « coût d'acquisition » un total sans livraison
+ * ferait croire à un achat moins cher qu'il ne sera.
+ */
+function libelleTotal(kind: PurchaseAnalysisDto['listing']['shippingKind']): string {
+  if (kind === 'FROM') return 'Coût minimum estimé'
+  if (kind === 'UNKNOWN') return 'Sous-total connu'
+  return 'Coût d’acquisition estimé'
 }
 
 function euros(value: number | null): string {
@@ -92,10 +108,7 @@ export function PurchaseAnalysisResultCard({
           en dessous - il juge l'affaire dans l'absolu, celui-ci la juge pour
           toi, et les deux ne repondent pas a la meme question. */}
       {analysis.assessment && (
-        <ListingAssessmentCard
-          assessment={analysis.assessment}
-          coutEstMinimum={listing.shippingKind === 'FROM'}
-        />
+        <ListingAssessmentCard assessment={analysis.assessment} shippingKind={listing.shippingKind} />
       )}
 
       <div className="flex flex-col gap-1.5">
@@ -134,10 +147,13 @@ export function PurchaseAnalysisResultCard({
         <span className="text-right text-xs text-textDim">{euros(listing.buyerProtectionFee)}</span>
         <span className="pl-3 text-xs text-textDim">Livraison</span>
         <span className="text-right text-xs text-textDim">{libelleLivraison(listing)}</span>
-        <span className="font-medium text-textPrimary">
-          {listing.shippingKind === 'FROM' ? 'Coût minimum estimé' : 'Coût d’acquisition estimé'}
-        </span>
+        <span className="font-medium text-textPrimary">{libelleTotal(listing.shippingKind)}</span>
         <span className="text-right font-medium text-textPrimary">{euros(analysis.totalRealCost)}</span>
+        {listing.shippingKind === 'UNKNOWN' && (
+          /* Dire ce qui manque, à côté du chiffre : sinon 11,20 € se lit comme
+             le prix de l'achat alors qu'il faudra encore payer la livraison. */
+          <span className="col-span-2 text-xs text-warning">Livraison non incluse : ce total est incomplet.</span>
+        )}
         <span className="text-textDim">Valeur neuve</span>
         <span className="text-right text-textPrimary">{euros(analysis.totalNewValue)}</span>
         <span className="text-textDim">Décote vs neuf</span>

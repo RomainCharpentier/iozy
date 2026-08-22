@@ -71,12 +71,27 @@ le coût réel — et donc dans le verdict :
 Le montant seul ne suffit pas : c'est **ce qu'il vaut** qui compte, porté par
 `ShippingEstimateKind`.
 
-| Nature | Quand | Conséquence |
-|---|---|---|
-| `FREE` | `isFreeShipping` | zéro, un vrai zéro |
-| `FROM` | `areMultipleShippingOptionsAvailable` | plancher : le réel peut être supérieur selon le point relais |
-| `EXACT` | un montant, un seul mode | ferme, autant qu'on puisse l'affirmer avant paiement |
-| `UNKNOWN` | rien de lisible, ou saisie manuelle | **surtout pas zéro** — le supposer minorerait le coût |
+| Nature | Quand | Montant compté ? | Affichage |
+|---|---|---|---|
+| `FREE` | `isFreeShipping` | oui, zéro — un vrai zéro | « offerte » |
+| `EXACT` | un montant, un seul mode | oui, ferme autant qu'on puisse l'affirmer | « 2,83 € » |
+| `FROM` | `areMultipleShippingOptionsAvailable` | oui, mais **plancher** : le réel dépend du point relais | « à partir de 2,83 € » |
+| `ESTIMATED` | saisie de l'utilisateur, ou montant reçu sans nature | oui, sans garantie | « 5,90 € estimés » |
+| `UNKNOWN` | rien de lisible **et** aucun montant | **non** — surtout pas zéro | « non communiquée » |
+
+`ESTIMATED` existe pour une raison précise : sans lui, un port saisi à la main
+tombait dans `UNKNOWN`, donc l'écran annonçait « livraison non communiquée »
+juste après que l'utilisateur venait de la communiquer — tout en comptant le
+montant dans le coût. Deux situations différentes portaient le même nom :
+*aucun montant connu* et *montant connu mais non garanti*.
+
+D'où l'invariant, tenu dans le constructeur compact de `Listing` : **un
+`UNKNOWN` ne porte jamais de montant entrant dans un calcul**. Un montant reçu
+avec une nature absente devient `ESTIMATED` (jamais `EXACT` : personne n'a
+affirmé que ce tarif serait facturé), et une nature `UNKNOWN` accompagnée d'un
+montant est corrigée en `ESTIMATED` — ce qui répare aussi, à la relecture, les
+analyses enregistrées avant que ce cas ait un nom. Un snapshot de source ne
+porte jamais `ESTIMATED` : celui-là qualifie une saisie, pas une lecture.
 
 - une livraison annoncée gratuite vaut **zéro**, pas « inconnu » — la
   distinction évite de faire ressaisir un montant déjà donné ;
@@ -102,11 +117,19 @@ porte donc sur le **prix de l'article**, tandis que le coût par élément utile
 porte sur le **coût d'acquisition**. `PriceSemanticsTest` verrouille cette
 séparation : les deux bases y produisent volontairement des verdicts opposés.
 
-Et **« minimum » n'est pas « réel »** : quand la livraison n'est qu'un plancher,
-le total l'est aussi. L'écran affiche alors « Coût minimum estimé » et « au
-moins X € / élément », jamais « coût réel ». La sémantique est figée avec
-l'analyse : un « à partir de » enregistré aujourd'hui se relit « à partir de »
-demain.
+Et **« minimum » n'est pas « réel »**, ni « partiel » n'est « complet ». Le
+total change de nom selon ce que vaut la livraison :
+
+| Nature de la livraison | Nom du total | Coûts par élément |
+|---|---|---|
+| `FREE` / `EXACT` / `ESTIMATED` | Coût d'acquisition estimé | tels quels |
+| `FROM` | **Coût minimum estimé** | « au moins X € / élément » |
+| `UNKNOWN` | **Sous-total connu** + « livraison non incluse » | signalés comme sous-évalués |
+
+Jamais « coût réel » : aucun de ces montants n'est facturé. La sémantique est
+figée avec l'analyse — un « à partir de » ou un « estimé » enregistré
+aujourd'hui se relit à l'identique demain, et ne devient jamais rétroactivement
+un tarif ferme.
 
 Deux couches, traitées différemment :
 

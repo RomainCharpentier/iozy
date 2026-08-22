@@ -3,6 +3,7 @@ import type {
   AssessmentHeadline,
   ListingAssessmentDto,
   PricePosition,
+  ShippingEstimateKind,
   TrustLevel,
   TrustSignal,
 } from '../../types/purchaseAnalysis'
@@ -64,14 +65,17 @@ function euros(v: number | null): string {
 
 export function ListingAssessmentCard({
   assessment,
-  coutEstMinimum = false,
+  shippingKind = 'UNKNOWN',
 }: {
   assessment: ListingAssessmentDto
-  /** Vrai quand la livraison n'est qu'un « à partir de » : les coûts par élément
-   * héritent alors de cette réserve, et l'écran ne doit pas les donner pour fermes. */
-  coutEstMinimum?: boolean
+  /** Ce que vaut la livraison retenue. Les coûts par élément se calculent sur le
+   * coût d'acquisition : ils héritent donc de ses réserves - minimum quand le
+   * port est un « à partir de », incomplet quand aucun port n'est connu. */
+  shippingKind?: ShippingEstimateKind
 }) {
   const { collectionFit: fit, trust } = assessment
+  const coutEstMinimum = shippingKind === 'FROM'
+  const livraisonInconnue = shippingKind === 'UNKNOWN'
   const synthese = SYNTHESES[assessment.headline]
   const couleurSynthese =
     synthese.ton === 'bon' ? 'text-accentText' : synthese.ton === 'attention' ? 'text-warning' : 'text-textPrimary'
@@ -114,6 +118,11 @@ export function ListingAssessmentCard({
                   </>
                 )}
               </p>
+            )}
+            {/* Ces coûts se calculent sur le coût d'acquisition : sans livraison
+                connue, ils sont sous-évalués, et le taire les rendrait faux. */}
+            {fit.pricePerItem !== null && livraisonInconnue && (
+              <p className="text-xs text-textDim">Livraison non incluse : ces coûts sont sous-évalués.</p>
             )}
             {fit.interest === 'NOTHING_NEW' && (
               <p className="text-sm text-warning">Tu possèdes déjà tous les éléments identifiés.</p>

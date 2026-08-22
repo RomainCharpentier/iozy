@@ -318,8 +318,11 @@ export function PurchaseAnalysisPage() {
                 onChange={(e) => {
                   marquerSaisi('shippingFee')
                   // Un montant saisi à la main n'est ni « à partir de » ni
-                  // ferme : on ne prétend pas le savoir.
-                  setShippingKind('UNKNOWN')
+                  // ferme - mais il est CONNU. Le classer inconnu ferait dire
+                  // « livraison non communiquée » à l'écran juste après que
+                  // l'utilisateur l'a communiquée, tout en comptant le montant
+                  // dans le coût. Champ vidé : on redevient réellement ignorant.
+                  setShippingKind(e.target.value.trim() ? 'ESTIMATED' : 'UNKNOWN')
                   setShippingFee(e.target.value)
                 }}
                 placeholder="0"
