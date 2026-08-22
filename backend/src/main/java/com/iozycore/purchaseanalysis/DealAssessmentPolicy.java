@@ -27,13 +27,31 @@ public final class DealAssessmentPolicy {
     private static final BigDecimal PLUTOT_CHER = new BigDecimal("1.35");
 
     /**
+     * Situe le <b>prix de l'annonce</b> - hors frais, comme les annonces
+     * auxquelles on le compare. Ne jamais lui passer le coût d'acquisition :
+     * les comparables sont hors frais, et mélanger les deux bases renverse le
+     * verdict (voir {@code PriceSemanticsTest}).
+     * <p>
+     * Rend {@link PricePosition#REFERENCE_UNAVAILABLE} dès que la référence
+     * n'est pas exploitable - une seule question à poser, portée par la
+     * référence elle-même.
+     */
+    public static PricePosition positionOf(BigDecimal askingPrice, MarketReference reference) {
+        if (reference == null || !reference.isUsable()) {
+            return PricePosition.REFERENCE_UNAVAILABLE;
+        }
+        return positionOf(askingPrice, reference.price(), reference.confidence());
+    }
+
+    /**
      * Situe un prix. Rend {@link PricePosition#REFERENCE_UNAVAILABLE} dès que
      * la référence manque ou n'est pas assez sûre - jamais une catégorie tirée
      * d'une donnée qu'on sait fragile.
      */
-    public static PricePosition positionOf(BigDecimal askingPrice, BigDecimal reference, ConfidenceLevel confidence) {
+    public static PricePosition positionOf(BigDecimal askingPrice, BigDecimal reference,
+                                            MarketReferenceConfidence confidence) {
         if (askingPrice == null || reference == null || reference.signum() <= 0
-                || confidence == null || confidence == ConfidenceLevel.LOW) {
+                || confidence == null || !confidence.allowsPositioning()) {
             return PricePosition.REFERENCE_UNAVAILABLE;
         }
         BigDecimal ratio = askingPrice.divide(reference, 4, RoundingMode.HALF_UP);

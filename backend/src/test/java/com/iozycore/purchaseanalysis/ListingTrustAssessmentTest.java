@@ -99,7 +99,7 @@ class ListingTrustAssessmentTest {
         // Un signal modéré, pas un verdict de fraude - et surtout, le prix reste
         // évalué comme une très bonne affaire de son côté.
         assertThat(trust.level()).isEqualTo(TrustLevel.A_FEW_THINGS_TO_CHECK);
-        assertThat(DealAssessmentPolicy.positionOf(new BigDecimal("20"), new BigDecimal("75"), ConfidenceLevel.HIGH))
+        assertThat(DealAssessmentPolicy.positionOf(new BigDecimal("20"), new BigDecimal("75"), MarketReferenceConfidence.HIGH))
                 .isEqualTo(PricePosition.VERY_GOOD_PRICE);
     }
 

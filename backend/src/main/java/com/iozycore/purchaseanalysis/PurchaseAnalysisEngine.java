@@ -6,6 +6,7 @@ import com.iozycore.domain.catalog.MangaEdition;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -77,6 +78,10 @@ public class PurchaseAnalysisEngine {
                                      CollectorPreferences preferences, int wishlistedCount) {
         List<ItemAnalysis> itemAnalyses = new ArrayList<>();
         List<Warning> listingWarnings = new ArrayList<>();
+        // Lue une fois pour toute l'analyse : la fraicheur des comparables doit
+        // se juger a la meme date d'un bout a l'autre. Les regles qui s'en
+        // servent restent testables sans horloge, la date leur etant passee.
+        LocalDate today = LocalDate.now();
 
         BigDecimal totalNewValue = BigDecimal.ZERO;
         boolean newValueFullyKnown = true;
@@ -248,15 +253,18 @@ public class PurchaseAnalysisEngine {
         // Les trois dimensions, calculees separement puis presentees ensemble
         // (voir ListingAssessment) : ce que le lot apporte, ou se situe son prix,
         // et ce qu'il faut verifier. Elles ne se compensent pas entre elles.
+        // Ce que le lot apporte se juge sur le COUT D'ACQUISITION (c'est ce qu'on
+        // paie) ; le prix se juge sur le PRIX DE L'ANNONCE (c'est ce que valent
+        // les comparables, hors frais). Les deux bases ne s'echangent pas.
         CollectionFit fit = CollectionFit.fromItemBreakdown(itemAnalyses, wishlistedCount, totalRealCost);
-        BigDecimal reference = referenceDeLot(itemAnalyses);
-        ConfidenceLevel referenceConfidence = confianceDeReference(itemAnalyses);
-        PricePosition position = DealAssessmentPolicy.positionOf(
-                listing.askingPrice(), reference, referenceConfidence);
+        MarketReference reference = referenceDeLot(itemContexts, today);
+        // La vigilance "prix tres bas" ne se declenche que sur une reference
+        // exploitable : accuser une annonce sur la foi d'un repere qu'on refuse
+        // par ailleurs d'utiliser serait deux poids, deux mesures.
         ListingTrustAssessment trust = ListingTrustAssessment.assess(
-                listing.description(), listing.photoUrls().size(), listing.askingPrice(), reference);
-        ListingAssessment assessment = ListingAssessment.of(fit, position, reference, referenceConfidence,
-                DealAssessmentPolicy.deviationPercent(listing.askingPrice(), reference), trust);
+                listing.description(), listing.photoUrls().size(), listing.askingPrice(),
+                reference.isUsable() ? reference.price() : null);
+        ListingAssessment assessment = ListingAssessment.of(fit, reference, listing.askingPrice(), trust);
 
         return new PurchaseAnalysis(UUID.randomUUID(), Instant.now(), listing, itemAnalyses, totalRealCost,
                 finalNewValue, totalSavingsAmount, discountPercent, negotiation, outcome.verdict(), outcome.score(),
@@ -265,66 +273,28 @@ public class PurchaseAnalysisEngine {
     }
 
     /**
-     * La reference marche du LOT : la somme des references par serie, quand
-     * chacune en a une. Construite a partir des elements faute de comparables
-     * lot-a-lot - l'UI doit donc dire d'ou elle vient, et sa confiance est
-     * plafonnee en consequence (voir confianceDeReference).
+     * La reference marche du LOT, construite serie par serie a partir des seuls
+     * relevés structurellement comparables.
      * <p>
-     * Rend null des qu'une seule serie n'a pas de reference : additionner ce
-     * qu'on connait en ignorant ce qu'on ignore produirait une reference
-     * systematiquement trop basse, donc un lot systematiquement "trop cher".
+     * Trois refus assumes ici. Un : les relevés d'une autre forme de lot ne
+     * comptent pas - un tome seul ne dit rien du prix d'une intégrale
+     * ({@link MarketComparableSelector}). Deux : une estimation IA ou un prix
+     * neuf catalogue ne deviennent jamais « le marché » - ils restent utiles
+     * pour le cout de completion, la negociation et le verdict global, mais
+     * les afficher comme reference donnerait a une supposition l'autorite d'un
+     * constat. Trois : une seule serie sans reference suffit a rendre le lot
+     * entier indisponible, car sommer ce qu'on connait en ignorant le reste
+     * produirait une reference trop basse, donc un lot faussement « trop cher ».
      */
-    private BigDecimal referenceDeLot(List<ItemAnalysis> items) {
-        BigDecimal total = BigDecimal.ZERO;
-        for (ItemAnalysis item : items) {
-            BigDecimal parTome = referenceParTome(item);
-            if (parTome == null) {
-                return null;
-            }
-            total = total.add(parTome.multiply(BigDecimal.valueOf(item.item().includedVolumes().size())));
+    private MarketReference referenceDeLot(List<ItemContext> contexts, LocalDate today) {
+        List<MarketReference> parSerie = new ArrayList<>();
+        for (ItemContext ctx : contexts) {
+            int tomes = ctx.item().includedVolumes().size();
+            MarketComparableSelector.Selection selection = MarketComparableSelector.selectFor(
+                    ctx.matchedEdition(), tomes, ctx.observations(), today);
+            parSerie.add(MarketReference.fromComparables(ctx.matchedEdition(), tomes, selection, today));
         }
-        return items.isEmpty() ? null : total;
-    }
-
-    /** Le prix observe l'emporte sur l'estime : une donnee relevee vaut mieux qu'un calcul. */
-    private BigDecimal referenceParTome(ItemAnalysis item) {
-        MarketPrice prix = item.marketPrice();
-        if (prix == null) {
-            return null;
-        }
-        if (prix.observedMedian() != null) {
-            return prix.observedMedian();
-        }
-        return prix.aiEstimatedPrice() != null ? prix.aiEstimatedPrice() : prix.theoreticalEstimate();
-    }
-
-    /**
-     * La confiance de la reference du lot, degradee deliberement.
-     * <p>
-     * Elle vaut celle de la serie la MOINS bien documentee - une reference n'est
-     * pas plus solide que son maillon faible. Et elle ne depasse jamais MEDIUM
-     * des que le lot compte plusieurs series : additionner des references
-     * unitaires pour juger un lot est une approximation, meme quand chaque
-     * terme est bien connu.
-     */
-    private ConfidenceLevel confianceDeReference(List<ItemAnalysis> items) {
-        if (items.isEmpty()) {
-            return ConfidenceLevel.LOW;
-        }
-        ConfidenceLevel pire = ConfidenceLevel.HIGH;
-        for (ItemAnalysis item : items) {
-            MarketPrice prix = item.marketPrice();
-            ConfidenceLevel c = prix == null ? ConfidenceLevel.LOW : prix.confidence();
-            if (c == ConfidenceLevel.LOW || pire == ConfidenceLevel.LOW) {
-                pire = ConfidenceLevel.LOW;
-            } else if (c == ConfidenceLevel.MEDIUM) {
-                pire = ConfidenceLevel.MEDIUM;
-            }
-        }
-        if (items.size() > 1 && pire == ConfidenceLevel.HIGH) {
-            return ConfidenceLevel.MEDIUM;
-        }
-        return pire;
+        return MarketReference.sum(parSerie);
     }
 
     /** Warns when a sibling edition of the same series outranks the matched one in the configured tier hierarchy (e.g. the Alice in Borderland case: owning a standard edition while a Perfect edition exists). */
