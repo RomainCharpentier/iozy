@@ -30,7 +30,8 @@ class VintedPageParserTest {
             </head><body>
             <script>self.__next_f.push([1,"x:{\\"item\\":{\\"id\\":424242,\\"title\\":\\"Lot integrale\\"}"])</script>
             <script>self.__next_f.push([1,"y:{\\"price\\":{\\"amount\\":\\"70.0\\",\\"currency_code\\":\\"EUR\\"}}"])</script>
-            <script>self.__next_f.push([1,"z:{\\"shipping\\":{\\"price\\":{\\"amount\\":\\"4.99\\",\\"currencyCode\\":\\"EUR\\"}}}"])</script>
+            <script>self.__next_f.push([1,"z:{\\"shippingDetails\\":{\\"isPickupOnly\\":false,\\"isFreeShipping\\":false,\\"price\\":{\\"amount\\":\\"4.99\\",\\"currencyCode\\":\\"EUR\\"}}}"])</script>
+            <script>self.__next_f.push([1,"p:{\\"buyerProtection\\":{\\"originalPrice\\":{\\"amount\\":\\"2.40\\",\\"currencyCode\\":\\"EUR\\"},\\"finalPrice\\":{\\"amount\\":\\"1.20\\",\\"currencyCode\\":\\"EUR\\"}}}"])</script>
             <script>self.__next_f.push([1,"w:{\\"photos\\":[{\\"id\\":1,\\"is_main\\":true,\\"url\\":\\"https://images1.vinted.net/t/aaa/f800/1.webp\\",\\"thumbnails\\":[{\\"url\\":\\"https://images1.vinted.net/t/aaa/70x100/1.webp\\"}]},{\\"id\\":2,\\"is_main\\":false,\\"url\\":\\"https://images1.vinted.net/t/aaa/f800/2.webp\\",\\"thumbnails\\":[]}]}"])</script>
             </body></html>""";
 
@@ -71,6 +72,50 @@ class VintedPageParserTest {
         VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 1);
 
         assertThat(page.imageUrls()).hasSize(1);
+    }
+
+    @Test
+    void lit_les_frais_de_port_et_la_protection_acheteur() {
+        VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 12);
+
+        assertThat(page.shippingFee()).isEqualByComparingTo("4.99");
+        // finalPrice (1.20), jamais originalPrice (2.40) : une remise peut
+        // s'appliquer, et c'est le montant réellement facturé qui compte.
+        assertThat(page.buyerProtectionFee()).isEqualByComparingTo("1.20");
+    }
+
+    @Test
+    void une_livraison_gratuite_vaut_zero_pas_une_absence() {
+        String gratuit = """
+                <meta property="og:title" content="Lot port offert | Vinted"/>
+                <script>x:{\\"shippingDetails\\":{\\"isFreeShipping\\":true,\\"price\\":{\\"amount\\":\\"0.0\\",\\"currencyCode\\":\\"EUR\\"}}}</script>""";
+
+        // Un vrai zéro : le distinguer d'un frais illisible évite de faire
+        // saisir à la main un montant que l'annonce donne déjà.
+        assertThat(VintedPageParser.parse(gratuit, "https://www.vinted.fr/items/1", 12).shippingFee())
+                .isEqualByComparingTo("0");
+    }
+
+    @Test
+    void les_frais_ne_sont_pas_confondus_avec_le_prix_de_l_article() {
+        VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 12);
+
+        // Trois montants distincts dans la même page - les mélanger donnerait
+        // un coût réel faux, donc un verdict faux.
+        assertThat(page.price()).isEqualByComparingTo("70.0");
+        assertThat(page.shippingFee()).isEqualByComparingTo("4.99");
+        assertThat(page.buyerProtectionFee()).isEqualByComparingTo("1.20");
+    }
+
+    @Test
+    void des_frais_illisibles_restent_absents() {
+        String sansFrais = "<meta property=\"og:title\" content=\"Un lot | Vinted\"/>";
+
+        VintedPageParser.ParsedPage page = VintedPageParser.parse(sansFrais, "https://www.vinted.fr/items/1", 12);
+
+        // Ni zéro, ni valeur par défaut : l'utilisateur saisira.
+        assertThat(page.shippingFee()).isNull();
+        assertThat(page.buyerProtectionFee()).isNull();
     }
 
     @Test

@@ -179,6 +179,8 @@ function libellesChamps(preview: ListingPreviewDto): string[] {
     TITLE: 'titre',
     PRICE: 'prix',
     DESCRIPTION: 'description',
+    SHIPPING_FEE: 'frais de port',
+    BUYER_PROTECTION_FEE: 'protection acheteur',
     IMAGES: `${preview.imageUrls.length} photo${preview.imageUrls.length > 1 ? 's' : ''}`,
   }
   return preview.retrievedFields.map((champ) => libelles[champ] ?? champ)

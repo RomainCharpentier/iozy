@@ -84,6 +84,8 @@ class VintedListingProviderTest {
                 <meta property="og:description" content="Description du lot"/>
                 <meta property="og:url" content="https://www.vinted.fr/items/42-un-lot"/>
                 <script>x:{\\"price\\":{\\"amount\\":\\"70.0\\",\\"currency_code\\":\\"EUR\\"}}</script>
+                <script>s:{\\"shippingDetails\\":{\\"isFreeShipping\\":false,\\"price\\":{\\"amount\\":\\"4.99\\",\\"currencyCode\\":\\"EUR\\"}}}</script>
+                <script>b:{\\"buyerProtection\\":{\\"finalPrice\\":{\\"amount\\":\\"1.20\\",\\"currencyCode\\":\\"EUR\\"}}}</script>
                 <script>y:{\\"photos\\":[{\\"id\\":1,\\"is_main\\":true,\\"url\\":\\"https://images1.vinted.net/a/f800/1.webp\\"}]}</script>""");
 
         ListingResolution resolution = provider.resolve("https://www.vinted.fr/items/42");
@@ -95,7 +97,12 @@ class VintedListingProviderTest {
         assertThat(resolution.snapshot().imageUrls()).hasSize(1);
         assertThat(resolution.snapshot().retrievedFields())
                 .containsExactlyInAnyOrder(ListingField.TITLE, ListingField.DESCRIPTION,
-                        ListingField.PRICE, ListingField.IMAGES);
+                        ListingField.PRICE, ListingField.SHIPPING_FEE, ListingField.BUYER_PROTECTION_FEE,
+                        ListingField.IMAGES);
+        // Les frais annoncés par l'annonce : sans eux, le coût réel partirait
+        // de zéro et rendrait tout verdict trop favorable.
+        assertThat(resolution.snapshot().shippingFee()).isEqualByComparingTo("4.99");
+        assertThat(resolution.snapshot().buyerProtectionFee()).isEqualByComparingTo("1.20");
         // Le snapshot est daté : c'est un état à un instant T, pas un lien vivant.
         assertThat(resolution.snapshot().retrievedAt()).isNotNull();
         // L'URL canonique remplace celle qui a été collée.

@@ -26,12 +26,19 @@ import java.util.List;
  * être récupérés ni conservés.
  *
  * @param externalId identifiant de l'annonce chez la source, quand il est lisible - sert à reconnaître deux URL de la même annonce
- * @param price      prix affiché, hors frais de port et de protection acheteur (que le formulaire d'analyse tient séparés)
+ * @param price              prix affiché, hors frais - le formulaire d'analyse les tient séparés
+ * @param shippingFee        frais de port annoncés. C'est un prix <b>« à partir de »</b> : quand plusieurs
+ *                           modes de livraison existent, la source affiche le moins cher, et le montant
+ *                           réel peut être supérieur selon le point relais choisi. Zéro quand la livraison
+ *                           est annoncée gratuite - un vrai zéro, pas une absence.
+ * @param buyerProtectionFee frais de protection acheteur, montant réellement facturé (après remise
+ *                           éventuelle), pas le tarif affiché avant promotion
  * @param imageUrls  photos de l'annonce elle-même, dans l'ordre d'affichage - jamais les avatars ni les vignettes d'articles similaires
  */
 public record ListingSnapshot(ListingPlatform source, String sourceUrl, String externalId, String title,
-                               String description, BigDecimal price, String currency, List<String> imageUrls,
-                               Instant retrievedAt, List<ListingField> retrievedFields) {
+                               String description, BigDecimal price, String currency,
+                               BigDecimal shippingFee, BigDecimal buyerProtectionFee,
+                               List<String> imageUrls, Instant retrievedAt, List<ListingField> retrievedFields) {
 
     public ListingSnapshot {
         imageUrls = imageUrls == null ? List.of() : List.copyOf(imageUrls);
@@ -43,6 +50,9 @@ public record ListingSnapshot(ListingPlatform source, String sourceUrl, String e
         TITLE,
         DESCRIPTION,
         PRICE,
+        /** Frais de port - voir la réserve « à partir de » sur {@link ListingSnapshot#shippingFee()}. */
+        SHIPPING_FEE,
+        BUYER_PROTECTION_FEE,
         IMAGES
     }
 

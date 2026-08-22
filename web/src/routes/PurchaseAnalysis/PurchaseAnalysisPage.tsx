@@ -120,6 +120,16 @@ export function PurchaseAnalysisPage() {
     if (preview.description) {
       appliquer('description', 'la description', description, preview.description, setDescription)
     }
+    // Les frais sont annoncés par l'annonce elle-même : les laisser à saisir
+    // alors qu'ils sont lisibles rendait le coût réel faux par défaut (0 €),
+    // et donc le verdict trop favorable.
+    if (preview.shippingFee !== null) {
+      appliquer('shippingFee', 'les frais de port', shippingFee, String(preview.shippingFee), setShippingFee)
+    }
+    if (preview.buyerProtectionFee !== null) {
+      appliquer('buyerProtectionFee', 'la protection acheteur', buyerProtectionFee,
+        String(preview.buyerProtectionFee), setBuyerProtectionFee)
+    }
     // Les photos ne remplacent jamais une sélection en cours : elles s'ajoutent
     // à ce qui est déjà là, sans doublon.
     if (preview.imageUrls.length > 0) {
@@ -294,7 +304,10 @@ export function PurchaseAnalysisPage() {
                 min={0}
                 step="0.01"
                 value={shippingFee}
-                onChange={(e) => setShippingFee(e.target.value)}
+                onChange={(e) => {
+                  marquerSaisi('shippingFee')
+                  setShippingFee(e.target.value)
+                }}
                 placeholder="0"
                 className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
@@ -309,7 +322,10 @@ export function PurchaseAnalysisPage() {
                 min={0}
                 step="0.01"
                 value={buyerProtectionFee}
-                onChange={(e) => setBuyerProtectionFee(e.target.value)}
+                onChange={(e) => {
+                  marquerSaisi('buyerProtectionFee')
+                  setBuyerProtectionFee(e.target.value)
+                }}
                 placeholder="0"
                 className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
