@@ -129,6 +129,8 @@ public class VintedListingProvider implements ListingProvider {
         if (page.title() != null) retrieved.add(ListingField.TITLE);
         if (page.description() != null) retrieved.add(ListingField.DESCRIPTION);
         if (page.price() != null) retrieved.add(ListingField.PRICE);
+        if (page.shippingFee() != null) retrieved.add(ListingField.SHIPPING_FEE);
+        if (page.buyerProtectionFee() != null) retrieved.add(ListingField.BUYER_PROTECTION_FEE);
         if (!page.imageUrls().isEmpty()) retrieved.add(ListingField.IMAGES);
 
         ListingSnapshot snapshot = new ListingSnapshot(
@@ -138,6 +140,7 @@ public class VintedListingProvider implements ListingProvider {
                 // ramènent alors à la même adresse.
                 page.canonicalUrl() != null ? page.canonicalUrl() : fetched.finalUri().toString(),
                 page.externalId(), page.title(), page.description(), page.price(), page.currency(),
+                page.shippingFee(), page.buyerProtectionFee(),
                 page.imageUrls(), Instant.now(), retrieved);
 
         if (snapshot.isEmpty()) {

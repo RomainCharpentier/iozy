@@ -53,6 +53,7 @@ public class ListingMetadataController {
      */
     public record ListingPreviewResponse(String status, ListingPlatform source, String url, String externalId,
                                           String title, String description, BigDecimal price, String currency,
+                                          BigDecimal shippingFee, BigDecimal buyerProtectionFee,
                                           List<String> imageUrls, Instant retrievedAt,
                                           List<String> retrievedFields) {
 
@@ -60,11 +61,12 @@ public class ListingMetadataController {
             ListingSnapshot snapshot = resolution.snapshot();
             if (snapshot == null) {
                 return new ListingPreviewResponse(resolution.status().name(), resolution.source(), resolution.url(),
-                        null, null, null, null, null, List.of(), null, List.of());
+                        null, null, null, null, null, null, null, List.of(), null, List.of());
             }
             return new ListingPreviewResponse(
                     resolution.status().name(), snapshot.source(), snapshot.sourceUrl(), snapshot.externalId(),
                     snapshot.title(), snapshot.description(), snapshot.price(), snapshot.currency(),
+                    snapshot.shippingFee(), snapshot.buyerProtectionFee(),
                     snapshot.imageUrls(), snapshot.retrievedAt(),
                     snapshot.retrievedFields().stream().map(Enum::name).toList());
         }

@@ -376,7 +376,13 @@ export type ListingResolutionStatus =
   | 'UNAVAILABLE'
 
 /** Les champs qu'une source peut rendre - `retrievedFields` dit lesquels ont RÉELLEMENT été lus. */
-export type ListingField = 'TITLE' | 'DESCRIPTION' | 'PRICE' | 'IMAGES'
+export type ListingField =
+  | 'TITLE'
+  | 'DESCRIPTION'
+  | 'PRICE'
+  | 'SHIPPING_FEE'
+  | 'BUYER_PROTECTION_FEE'
+  | 'IMAGES'
 
 export interface ListingPreviewDto {
   status: ListingResolutionStatus
@@ -387,6 +393,11 @@ export interface ListingPreviewDto {
   description: string | null
   price: number | null
   currency: string | null
+  /** Frais de port annoncés - prix « à partir de » quand plusieurs modes de
+   * livraison existent, et 0 quand elle est offerte. null = illisible. */
+  shippingFee: number | null
+  /** Protection acheteur réellement facturée (après remise éventuelle). */
+  buyerProtectionFee: number | null
   imageUrls: string[]
   retrievedAt: string | null
   /** Ce qui a été trouvé. Un champ absent d'ici n'est jamais deviné. */

@@ -63,6 +63,29 @@ final class VintedPageParser {
             "\\\\\"price\\\\\":\\{\\\\\"amount\\\\\":\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\","
                     + "\\\\\"currency_code\\\\\":\\\\\"([A-Z]{3})\\\\\"");
 
+    /**
+     * Frais de port. Discriminé par {@code shippingDetails}, son propre bloc :
+     * le montant seul serait indiscernable du prix de l'article ou de la
+     * protection acheteur. La source annonce ici le mode de livraison le MOINS
+     * cher quand plusieurs existent - c'est donc un « à partir de ».
+     */
+    private static final Pattern FRAIS_DE_PORT = Pattern.compile(
+            "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"price\\\\\":\\{\\\\\"amount\\\\\":"
+                    + "\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\"");
+
+    /** Livraison annoncée gratuite : un vrai zéro, pas une absence de donnée. */
+    private static final Pattern PORT_GRATUIT = Pattern.compile(
+            "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"isFreeShipping\\\\\":true");
+
+    /**
+     * Protection acheteur : {@code finalPrice}, jamais {@code originalPrice} -
+     * une remise peut s'appliquer, et c'est le montant réellement facturé qui
+     * entre dans le coût réel.
+     */
+    private static final Pattern PROTECTION_ACHETEUR = Pattern.compile(
+            "\\\\\"buyerProtection\\\\\":\\{.{0,220}?\\\\\"finalPrice\\\\\":\\{\\\\\"amount\\\\\":"
+                    + "\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\"");
+
     /** {@code "id":123456789} au début du bloc de l'article. */
     private static final Pattern ITEM_ID = Pattern.compile("\\\\\"item\\\\\":\\{\\\\\"id\\\\\":([0-9]+)");
 
@@ -77,6 +100,7 @@ final class VintedPageParser {
 
     /** Ce que la page a livré - chaque champ indépendamment absent ou présent. */
     record ParsedPage(String title, String description, BigDecimal price, String currency,
+                       BigDecimal shippingFee, BigDecimal buyerProtectionFee,
                        String canonicalUrl, String externalId, List<String> imageUrls) {
     }
 
@@ -93,8 +117,23 @@ final class VintedPageParser {
             currency = priceMatcher.group(2);
         }
 
-        return new ParsedPage(title, description, price, currency, canonicalUrl,
+        return new ParsedPage(title, description, price, currency,
+                fraisDePort(html), montant(PROTECTION_ACHETEUR, html), canonicalUrl,
                 externalId(html, canonicalUrl, requestedUrl), images(html, maxImages));
+    }
+
+    /** Gratuit d'abord : sans ce test, une livraison offerte passerait pour un frais inconnu. */
+    private static BigDecimal fraisDePort(String html) {
+        if (PORT_GRATUIT.matcher(html).find()) {
+            return BigDecimal.ZERO;
+        }
+        return montant(FRAIS_DE_PORT, html);
+    }
+
+    /** Le premier montant capturé par ce motif, ou null - jamais une valeur par défaut. */
+    private static BigDecimal montant(Pattern motif, String html) {
+        Matcher m = motif.matcher(html);
+        return m.find() ? new BigDecimal(m.group(1)) : null;
     }
 
     /**

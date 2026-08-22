@@ -61,7 +61,24 @@ Constaté le 2026-08-21 sur une page publique `/items/<id>`.
 | URL canonique | `og:url` | **Haute** — idem |
 | Identifiant de l'annonce | données embarquées, sinon l'URL | Haute |
 | **Prix** | données embarquées uniquement | **Moyenne** |
+| **Frais de port** | données embarquées uniquement | **Moyenne** |
+| **Protection acheteur** | données embarquées uniquement | **Moyenne** |
 | **Photos (toutes)** | données embarquées uniquement | **Moyenne** |
+
+Les **frais** méritent trois précisions, parce qu'ils entrent directement dans
+le coût réel — et donc dans le verdict :
+
+- le port est un prix **« à partir de »** : quand plusieurs modes de livraison
+  existent (`areMultipleShippingOptionsAvailable`), la page annonce le moins
+  cher, et le montant réel peut être supérieur selon le point relais ;
+- une livraison annoncée gratuite (`isFreeShipping`) vaut **zéro**, pas
+  « inconnu » — la distinction évite de faire ressaisir un montant déjà donné ;
+- la protection acheteur est lue sur `finalPrice`, **jamais** `originalPrice` :
+  une remise peut s'appliquer, et c'est le montant facturé qui compte.
+
+Sans eux, le formulaire partait de 0 € de frais : sur une annonce à 10 €, le
+coût réel affiché était 10 € au lieu de 14,03 €, soit **40 % sous la réalité** —
+et tout verdict s'en trouvait trop favorable.
 
 Deux couches, traitées différemment :
 
@@ -78,7 +95,10 @@ Deux précautions concrètes dans `VintedPageParser` :
 
 - le prix de l'article se distingue des frais de port et de la protection
   acheteur par la casse de sa clé de devise (`currency_code` contre
-  `currencyCode`). Prendre « le premier prix trouvé » donnerait un coût faux ;
+  `currencyCode`). Prendre « le premier prix trouvé » donnerait un coût faux.
+  Les frais, eux, sont discriminés par leur bloc parent (`shippingDetails`,
+  `buyerProtection`) — trois montants voisins dans la même page, jamais
+  confondus ;
 - les photos de l'annonce sont isolées du tableau qui porte `is_main`, puis
   parsées en JSON. La page contient aussi l'avatar du vendeur et les vignettes
   d'articles similaires : ramasser toutes les images en ferait entrer.
