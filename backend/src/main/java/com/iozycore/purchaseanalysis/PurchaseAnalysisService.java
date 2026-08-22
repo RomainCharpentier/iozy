@@ -48,6 +48,7 @@ public class PurchaseAnalysisService {
     private final AiEditionAdvisor aiEditionAdvisor;
     private final AiMarketPriceAdvisor aiMarketPriceAdvisor;
     private final CollectionProgressService progressService;
+    private final com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -61,7 +62,8 @@ public class PurchaseAnalysisService {
                                     OwnershipRepository ownershipRepository,
                                     AiEditionAdvisor aiEditionAdvisor,
                                     AiMarketPriceAdvisor aiMarketPriceAdvisor,
-                                    CollectionProgressService progressService) {
+                                    CollectionProgressService progressService,
+                                    com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -69,6 +71,7 @@ public class PurchaseAnalysisService {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
+        this.wishlistEntryRepository = wishlistEntryRepository;
         this.aiEditionAdvisor = aiEditionAdvisor;
         this.aiMarketPriceAdvisor = aiMarketPriceAdvisor;
         this.progressService = progressService;
@@ -80,7 +83,7 @@ public class PurchaseAnalysisService {
                                              Condition itemConditionOverride) {
     }
 
-    public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, BigDecimal askingPrice,
+    public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description, BigDecimal askingPrice,
                                          BigDecimal shippingFee, BigDecimal buyerProtectionFee, Condition condition,
                                          boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
                                          List<String> photoUrls) {
@@ -126,12 +129,50 @@ public class PurchaseAnalysisService {
         }
 
         Listing listing = new Listing(UUID.randomUUID(), command.platform(), command.url(), command.rawTitle(),
-                command.askingPrice(), command.shippingFee(), command.buyerProtectionFee(), command.condition(),
-                command.conditionAppliesToContainer(), listingItems, command.photoUrls(), java.time.Instant.now());
+                command.description(), command.askingPrice(), command.shippingFee(), command.buyerProtectionFee(),
+                command.condition(), command.conditionAppliesToContainer(), listingItems, command.photoUrls(),
+                java.time.Instant.now());
 
         CollectorPreferences preferences = collectorPreferencesRepository.find();
-        PurchaseAnalysis analysis = engine.analyze(listing, itemContexts, preferences);
+        // Les envies sont lues ICI : le moteur reste un domaine pur, il recoit
+        // un nombre. Vouloir une oeuvre n'est pas la posseder - ce compte ne
+        // retire donc rien aux manquants, il qualifie leur interet.
+        PurchaseAnalysis analysis = engine.analyze(listing, itemContexts, preferences,
+                comptePresentDansLesEnvies(itemContexts));
         return purchaseAnalysisRepository.save(analysis);
+    }
+
+    /**
+     * Les tomes du lot qui manquent ET dont la série est déjà dans les envies.
+     * <p>
+     * La wishlist d'IozyCore porte sur l'ŒUVRE, pas sur le tome : « je cherche
+     * Vinland Saga », pas « je cherche le tome 7 ». On compte donc les tomes
+     * manquants des séries souhaitées - ce sont eux que ce lot vient combler,
+     * et c'est ce qui distingue un lot utile d'un lot activement recherché.
+     * <p>
+     * Ce compte ne retire rien aux manquants et n'en ajoute pas : vouloir n'est
+     * pas posséder, il qualifie leur intérêt sans changer leur nombre.
+     */
+    private int comptePresentDansLesEnvies(List<PurchaseAnalysisEngine.ItemContext> contextes) {
+        Set<UUID> souhaitees = wishlistEntryRepository.findAll().stream()
+                .map(com.iozycore.domain.wishlist.WishlistEntry::entityId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (souhaitees.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        for (PurchaseAnalysisEngine.ItemContext contexte : contextes) {
+            UUID entityId = contexte.item().series().knownEntityId();
+            if (entityId == null || !souhaitees.contains(entityId)) {
+                continue;
+            }
+            for (Integer tome : contexte.item().includedVolumes()) {
+                if (!contexte.alreadyOwnedVolumes().contains(tome)) {
+                    total++;
+                }
+            }
+        }
+        return total;
     }
 
     public List<PurchaseAnalysis> history() {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Copy, ExternalLink, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
 import { useWishlist } from '../../lib/useWishlist'
 import { VerdictBadge } from './VerdictBadge'
+import { ListingAssessmentCard } from './ListingAssessmentCard'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
 import { LISTING_PLATFORM_LABELS } from '../../types/purchaseAnalysis'
 import type { PurchaseAnalysisDto, WarningSeverity } from '../../types/purchaseAnalysis'
@@ -68,6 +69,12 @@ export function PurchaseAnalysisResultCard({
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
+      {/* Le verdict personnalise d'abord : ce que le lot t'apporte, ou se situe
+          son prix, ce qu'il faut verifier. Le score global du moteur reste
+          en dessous - il juge l'affaire dans l'absolu, celui-ci la juge pour
+          toi, et les deux ne repondent pas a la meme question. */}
+      {analysis.assessment && <ListingAssessmentCard assessment={analysis.assessment} />}
+
       <div className="flex flex-col gap-1.5">
         <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
         <p className="text-xs text-textDim">

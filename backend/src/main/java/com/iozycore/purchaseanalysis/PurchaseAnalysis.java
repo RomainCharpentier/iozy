@@ -30,7 +30,7 @@ public record PurchaseAnalysis(UUID id, Instant requestedAt, Listing listing, Li
                                 BigDecimal discountPercent, NegotiationRecommendation negotiation, Verdict verdict,
                                 int verdictScore, Map<VerdictFactor, FactorScore> factorBreakdown,
                                 List<Warning> warnings, ConfidenceLevel overallConfidence,
-                                BigDecimal totalMaxWorthwhilePrice) {
+                                BigDecimal totalMaxWorthwhilePrice, ListingAssessment assessment) {
     public PurchaseAnalysis {
         itemBreakdown = itemBreakdown == null ? List.of() : List.copyOf(itemBreakdown);
         factorBreakdown = factorBreakdown == null ? Map.of() : Map.copyOf(factorBreakdown);

@@ -185,3 +185,107 @@ contenu du lot reste donc déclaré à la main, comme avant.
 Ce qui est prêt pour ce jour-là : les photos arrivent jusqu'au brouillon, sont
 transmises à l'analyse et persistées avec elle. Il n'y aura qu'un consommateur à
 brancher.
+
+---
+
+## 8. Évaluer l'annonce : trois dimensions, jamais un score
+
+Lire l'annonce ne suffit pas — encore faut-il en dire quelque chose d'utile.
+L'évaluation répond à **trois questions distinctes**, et refuse de les fondre.
+
+| Dimension | Question | Classe |
+|---|---|---|
+| Intérêt collection | « qu'est-ce que ça m'apporte ? » | `CollectionFit` |
+| Prix | « ce prix se tient-il ? » | `PricePosition` + `DealAssessmentPolicy` |
+| Vigilance | « cette annonce est-elle nette ? » | `ListingTrustAssessment` |
+
+Puis `ListingAssessment` en tire une synthèse — sans effacer les trois.
+
+**Pourquoi les garder séparées.** Un lot bradé mais entièrement en doublon est
+un mauvais achat à bon prix. Un lot cher qui comble exactement les trous peut
+valoir la dépense. Un seul chiffre écraserait ces deux cas l'un sur l'autre,
+précisément là où il faut voir clair.
+
+### Le chiffre qui décide
+
+Un comparateur sait dire « 18 % sous la médiane ». Aucun ne sait dire « tu en
+as déjà quatre ». Un lot de 14 tomes à 70 € affiche 5 € le tome ; si 4 sont des
+doublons, il coûte **7 € le tome qui sert**. C'est
+`pricePerUsefulItem` — la métrique différenciante d'IozyCore.
+
+Quand tout est déjà possédé, ce prix **n'existe pas** et n'est pas affiché :
+« 0 € le tome utile » ferait passer un lot inutile pour une aubaine.
+
+### Référence marché : d'où elle vient, et quand elle se tait
+
+Elle est construite à partir des **prix relevés dans IozyCore**
+(`MarketPriceObservation`), pas d'une recherche externe de comparables. Deux
+raisons : Vinted n'expose pas de recherche publique automatisable sans passer
+par son API privée (exclu, voir §3), et une médiane tirée de comparables mal
+appariés — un tome seul, un lot de 4, une intégrale — produit un chiffre précis
+et faux.
+
+La référence d'un **lot** est la somme des références par série. C'est une
+approximation, et sa confiance le dit :
+
+- elle vaut celle de la série **la moins bien documentée** — une référence n'est
+  pas plus solide que son maillon faible ;
+- elle ne dépasse **jamais `MEDIUM`** dès qu'un lot compte plusieurs séries ;
+- elle est **`null`** dès qu'une seule série n'a pas de référence : additionner
+  ce qu'on connaît en ignorant ce qu'on ignore donnerait un lot
+  systématiquement « trop cher ».
+
+Confiance `LOW` ⇒ `REFERENCE_UNAVAILABLE`. L'écran dit alors « référence
+insuffisante » plutôt que d'afficher un nombre rassurant, et aucune offre
+précise n'est recommandée.
+
+**Ce sont des prix demandés et relevés, jamais des transactions conclues.**
+IozyCore n'a aucune donnée de vente réelle, et l'interface le rappelle.
+
+### Points de vigilance : des signaux, pas un verdict
+
+Détection déterministe et testable : photos absentes ou trop peu nombreuses,
+description trop courte, mentions de paiement ou de contact hors plateforme
+(PayPal, virement, WhatsApp, Telegram…), prix très inférieur à la référence.
+
+Quatre paliers nommés — `NO_OBVIOUS_SIGNAL`, `A_FEW_THINGS_TO_CHECK`,
+`EXAMINE_CAREFULLY`, `CONCERNING` — et **aucune note sur 100**. Un
+« confiance : 94/100 » suggérerait une probabilité mesurée ; IozyCore ne voit
+qu'un texte, un prix et des photos.
+
+Deux règles explicites :
+
+- **beaucoup de photos ne donne aucun bonus.** Transformer l'abondance en gage
+  de sérieux serait le raccourci qu'un vendeur malintentionné exploite ;
+- **un prix très bas n'est pas une arnaque.** Il apparaît en vigilance *et*
+  reste un très bon prix côté prix. Une excellente affaire existe réellement.
+
+Rien n'est lu sur le vendeur (note, ancienneté, ventes) : ces données exigent
+une session authentifiée.
+
+### Identifier le contenu depuis le texte
+
+`ListingTextParser` lit « tomes 1 à 14 », « 1-14 », « tomes 1,2,3,5 »,
+« tome 7 ». Règles écrites, pas un modèle.
+
+Il refuse plus souvent qu'il ne devine :
+
+- « lot manga divers 25 pièces » → **rien** (« 25 » est un nombre de pièces) ;
+- « intégrale complète » sans bornes → signalé, mais **aucun tome fabriqué** ;
+- une plage reconnue mais absurde (« 1 à 900 ») ou inversée → **rien**, sans
+  retomber sur une heuristique plus faible ;
+- des nombres isolés (année, prix) → jamais des tomes.
+
+Le résultat est une **proposition à confirmer**, jamais une vérité.
+
+### Photos : toujours pas de reconnaissance
+
+Inchangé (§7) : les photos sont récupérées, affichées et conservées comme
+**références externes**, jamais analysées — IozyCore n'a pas de moteur de
+vision. L'interface dit « photos récupérées », jamais « photos analysées ».
+
+### Indépendant de Vinted
+
+Toute cette évaluation travaille sur des nombres et du texte. Une annonce
+saisie entièrement à la main produit exactement la même analyse — la source ne
+fait que faire gagner de la saisie.

@@ -10,11 +10,18 @@ import java.util.UUID;
  * there is no automated URL scraping, see {@link PriceBasis} and the
  * data-source limitations documented on {@link PurchaseAnalysisEngine}).
  *
+ * @param description                 texte de l'annonce, tel qu'affiché au moment de l'analyse - lu par
+ *                                    {@link ListingTrustAssessment} pour repérer les points à vérifier,
+ *                                    et par {@link ListingTextParser} pour deviner le contenu du lot.
+ *                                    Nullable : une annonce peut n'en avoir aucune.
+ * @param photoUrls                   références EXTERNES vers les photos de la source, figées à l'instant
+ *                                    de l'analyse. Ce ne sont pas des copies : la plateforme peut les faire
+ *                                    expirer, et IozyCore n'en conserve aucune archive.
  * @param conditionAppliesToContainer true when {@link #condition()} describes a box/slipcase
  *                                    (e.g. a collector coffret) rather than a single standard
  *                                    volume - weighted more heavily by {@link VerdictScorer}
  */
-public record Listing(UUID id, ListingPlatform platform, String url, String rawTitle,
+public record Listing(UUID id, ListingPlatform platform, String url, String rawTitle, String description,
                        BigDecimal askingPrice, BigDecimal shippingFee, BigDecimal buyerProtectionFee,
                        Condition condition, boolean conditionAppliesToContainer,
                        List<ListingItem> items, List<String> photoUrls, Instant requestedAt) {
