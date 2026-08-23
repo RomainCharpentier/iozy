@@ -4,6 +4,7 @@ import com.iozycore.api.dto.TierListDtos.*;
 import com.iozycore.application.TierListService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.tierlist.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,15 +31,18 @@ public class TierListController {
     private final TierListItemRepository tierListItemRepository;
     private final EntityRankRepository entityRankRepository;
     private final EntityRepository entityRepository;
+    private final EntityTypeRepository entityTypeRepository;
     private final TierListService tierListService;
 
     public TierListController(TierListRepository tierListRepository, TierListItemRepository tierListItemRepository,
                                EntityRankRepository entityRankRepository, EntityRepository entityRepository,
+                                EntityTypeRepository entityTypeRepository,
                                TierListService tierListService) {
         this.tierListRepository = tierListRepository;
         this.tierListItemRepository = tierListItemRepository;
         this.entityRankRepository = entityRankRepository;
         this.entityRepository = entityRepository;
+        this.entityTypeRepository = entityTypeRepository;
         this.tierListService = tierListService;
     }
 
@@ -108,8 +112,17 @@ public class TierListController {
         }
         // entityTypeId null = liste transverse "toutes catégories" (voir TierList) -
         // rien à valider dans ce cas, il n'y a justement pas d'univers.
+        //
+        // Quand un univers EST demandé, il doit exister. L'appel précédent
+        // (findAllByType) prétendait le vérifier mais rend une liste vide pour
+        // un type inconnu : la contrainte de clé étrangère tranchait donc à sa
+        // place, et le client recevait « Cette donnée entre en conflit avec une
+        // donnée existante » - phrase fausse, puisque la donnée est absente et
+        // non conflictuelle. Même contrôle explicite que POST /entities/quick-add.
         if (request.entityTypeId() != null) {
-            entityRepository.findAllByType(request.entityTypeId()); // valide implicitement l'existence du type (liste vide sinon, pas d'exception)
+            entityTypeRepository.findById(request.entityTypeId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "EntityType inconnu : " + request.entityTypeId()));
         }
         TierList list = TierList.create(request.name(), request.entityTypeId(), request.activeRanks(), request.description());
         return toSummary(tierListRepository.save(list));

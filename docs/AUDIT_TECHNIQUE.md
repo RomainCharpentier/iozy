@@ -156,26 +156,60 @@ compte pas : il saute précisément l'endroit où les défauts survivent. **Ce
 chiffre ne doit plus être mélangé avec les tests unitaires ou directs des
 contrôleurs**, qui mesurent autre chose.
 
-#### Après la passe Ownership + Entity
+#### Progression
 
-| | avant | après |
-|---|---|---|
-| Contrôleurs sans couverture HTTP | 17/17 | **15/17** |
-| Endpoints sans couverture HTTP | 96/96 | **78/96** |
+| | départ | passe 1 | passe 2 |
+|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | **5/17** |
+| Endpoints couverts | 0/96 | 18/96 | **34/96** |
+| Contrôleurs restants | 17 | 15 | **12** |
+| Endpoints restants | 96 | 78 | **62** |
 
-`OwnershipController` (7/7) et `EntityController` (11/11) sont couverts, par
-`OwnershipHttpContractTest` et `EntityHttpContractTest`, adossés à
-`HttpContractTestBase` — même infrastructure que les tests d'intégration
-existants (Testcontainers PostgreSQL, `@SpringBootTest`, `@Transactional`),
-plus `@AutoConfigureMockMvc`. Le contexte étant celui de l'application,
-l'`ObjectMapper` et l'`ApiExceptionHandler` exercés sont ceux de production.
+**Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
+**Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
+`PublicShareController` (1/1).
+
+Tous adossés à `HttpContractTestBase` — même infrastructure que les tests
+d'intégration existants (Testcontainers PostgreSQL, `@SpringBootTest`,
+`@Transactional`), plus `@AutoConfigureMockMvc`. Le contexte étant celui de
+l'application, l'`ObjectMapper` et l'`ApiExceptionHandler` exercés sont ceux de
+production. Le conteneur y est un **singleton** et non un `@Container` : cette
+annotation lie le conteneur à une seule classe, alors que Spring réutilise son
+contexte en cache pour la suivante, qui héritait d'une `DataSource` morte.
+
+#### Le lot 2 a été choisi par risque, pas par volume
+
+`TierListController` concentre le plus de mutations non couvertes (7 sur 11
+routes) et orchestre trois agrégats ; il avait déjà été corrigé une fois sur le
+fond (« découpler le classement de la possession »).
+
+`PublicShareController` n'a qu'**un** endpoint, mais c'est le seul de
+l'application **accessible sans authentification**, et ses 219 lignes de
+filtrage de confidentialité vivent **dans le contrôleur** — il n'y a pas de
+service derrière sur lequel s'appuyer. C'est aussi la seule surface dont une
+régression est **irréversible** : ailleurs un défaut affiche un mauvais chiffre,
+ici il expose à un tiers ce que l'utilisateur avait fermé.
+
+`ShareController` gouverne le jeton qui commande le précédent. Les trois
+forment une seule question : *ce qui sort de l'application*.
 
 Ce qui est verrouillé au-delà des chemins nominaux : identifiant malformé,
 corps vide, JSON illisible, énumération invalide, champ obligatoire absent,
 ressource absente, et les conflits d'état (revendre un exemplaire déjà vendu,
 restaurer un exemplaire actif, renuméroter sur un numéro pris, supprimer une
-série encore possédée). Plus l'invariant produit : **une œuvre se lit et se
-supprime sans aucune possession**, et rien n'en fabrique au passage.
+série encore possédée).
+
+Plus trois invariants produit, chacun affirmé négativement — un test qui se
+contenterait d'un 200 passerait aussi avec la violation :
+
+- **Catalogue ≠ Collection** : une œuvre se lit et se supprime sans aucune
+  possession, et rien n'en fabrique au passage ;
+- **Classer ≠ posséder** : une œuvre jamais acquise se classe, sans qu'une
+  possession apparaisse ;
+- **Ce qui n'est pas partagé est absent** de la réponse publique — absent, et
+  non vide : une liste vide dirait « il n'a rien dans ses envies », ce qui est
+  déjà une information. Et le jeton, qui fait office de mot de passe, ne
+  reparaît jamais dans le corps servi au destinataire.
 
 #### Matrice exception → status, pour ces deux surfaces
 
@@ -217,6 +251,24 @@ build, sur une base isolée, y compris les cas qui demandent une ressource
 existante dans un état donné — qu'un probe contre la base réelle ne peut pas
 provoquer sans la modifier.
 
+**Passe 2** : **38 scénarios** sur Share, PublicShare et TierList —
+**0 réponse 500**. Y compris un jeton de partage de 300 caractères, un jeton
+contenant une apostrophe SQL et un jeton tentant une traversée de chemin.
+
+#### Un défaut trouvé par la passe 2
+
+`POST /api/tier-lists` avec un `entityTypeId` inexistant rendait **409** et le
+message « Cette donnée entre en conflit avec une donnée existante » — phrase
+fausse : la donnée est *absente*, pas conflictuelle. Le contrôleur appelait bien
+`entityRepository.findAllByType(...)` en guise de contrôle, mais cette méthode
+rend une liste vide pour un type inconnu et ne lève rien ; son propre
+commentaire l'admettait. La contrainte de clé étrangère tranchait donc à sa
+place, et son message générique remontait à l'écran.
+
+Corrigé en **400** par un `entityTypeRepository.findById(...)` explicite, même
+contrôle que `POST /entities/quick-add` — où le problème avait déjà été corrigé
+une fois, sans que le cas jumeau soit vu.
+
 #### Divergence OpenAPI corrigée
 
 Trois routes annonçaient un status faux dans le contrat publié :
@@ -233,15 +285,28 @@ c'est la **documentation** qui a été corrigée, par des annotations
 `@ApiResponse`. **Aucun changement d'exécution** : un client généré à partir du
 contrat attendait un corps qui n'arrive jamais.
 
-#### Reste ouvert
+Les 16 routes du lot 2 ont été vérifiées de la même façon : leur OpenAPI est
+**conforme**, ces contrôleurs déclarant leurs status par `@ResponseStatus`, que
+springdoc reprend correctement.
 
-15 contrôleurs, 78 endpoints. Par ordre de volume : `PurchaseAnalysisController`
-(18), `TierListController` (11), `InsightsController` (6),
-`EntityTypeController` (5), `MetadataController` (5),
-`RelationshipController` (5), `EditionUpgradeWishController` (4),
-`ExperienceController` (4), `LoanController` (4), `ShareController` (4),
-`TagController` (4), `WishlistController` (4), `ExportController` (2),
-`ListingMetadataController` (1), `PublicShareController` (1).
+#### Reste ouvert — 12 contrôleurs, 62 endpoints
+
+Classés par risque, non par volume :
+
+| Contrôleur | Endpoints | Mutations | Risque |
+|---|---|---|---|
+| `RelationshipController` | 5 | 3 | HIGH — lie deux entités, historique de 500 sur contraintes |
+| `ExperienceController` | 4 | 3 | HIGH — 7 `ResponseStatusException` pour 4 routes |
+| `WishlistController` | 4 | 2 | HIGH — corps à double forme (`entityId` ou `entityTypeId`+`title`) |
+| `EntityTypeController` | 5 | 3 | HIGH — racine du catalogue, suppression lourde de conséquences |
+| `TagController` | 4 | 3 | MEDIUM |
+| `LoanController` | 4 | 2 | MEDIUM |
+| `MetadataController` | 5 | 1 | MEDIUM — 12 exceptions, mais dépend d'intégrations externes |
+| `EditionUpgradeWishController` | 4 | 2 | MEDIUM |
+| `InsightsController` | 6 | 0 | LOW — lectures, services fortement couverts |
+| `ExportController` | 2 | 0 | LOW |
+| `PurchaseAnalysisController` | 18 | 8 | *hors périmètre* — surface la plus testée du dépôt côté domaine |
+| `ListingMetadataController` | 1 | 1 | *hors périmètre* — Vinted |
 
 Leurs services et domaines restent largement testés : ce qui manque est la
 frontière HTTP, pas la logique.
