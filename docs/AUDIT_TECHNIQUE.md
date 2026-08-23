@@ -22,7 +22,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 | docs | 5 | ~3 300 |
 
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
-`editionupgrade`, `share`, `loan`, `shared`) · **17 contrôleurs** ·
+`editionupgrade`, `share`, `shared`) · **16 contrôleurs** ·
 **96 endpoints** · **21 tables** · **27 routes web** · **458 tests**.
 
 Le rapport test/production est de **0,62 ligne de test par ligne de production**
@@ -121,7 +121,7 @@ donc rien ne se voit ; c'est un problème d'échelle, pas de justesse.
 C'est la même famille que les trois N+1 corrigés au Lot 33 ; celui-ci avait
 échappé.
 
-### C2 — couverture HTTP des contrôleurs · **PARTIELLEMENT TRAITÉ**
+### C2 — couverture HTTP des contrôleurs · **RISQUE TRAITÉ**
 
 #### Ce que la mesure initiale disait, et ce qu'elle sous-estimait
 
@@ -158,12 +158,17 @@ contrôleurs**, qui mesurent autre chose.
 
 #### Progression
 
-| | départ | p1 | p2 | p3 | p4 | p5 | p6 |
-|---|---|---|---|---|---|---|---|
-| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | 11/17 | 12/17 | **14/17** |
-| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | 60/96 | 78/96 | **84/96** |
-| Contrôleurs restants | 17 | 15 | 12 | 9 | 6 | 5 | **3** |
-| Endpoints restants | 96 | 78 | 62 | 49 | 36 | 18 | **12** |
+| | départ | p1 | p2 | p3 | p4 | p5 | p6 | p7 |
+|---|---|---|---|---|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | 11/17 | 12/17 | 14/17 | **15/16** |
+| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | 60/96 | 78/96 | 84/96 | **86/92** |
+| Contrôleurs restants | 17 | 15 | 12 | 9 | 6 | 5 | 3 | **1** |
+| Endpoints restants | 96 | 78 | 62 | 49 | 36 | 18 | 12 | **6** |
+
+Le dénominateur passe de 17 à 16 contrôleurs et de 96 à 92 endpoints à la
+passe 7 : `LoanController` et ses 4 routes ont été **supprimés**, pas couverts.
+Un dénominateur qui bouge doit s'expliquer, sans quoi le ratio s'améliore tout
+seul.
 
 **Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
 **Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
@@ -174,6 +179,8 @@ contrôleurs**, qui mesurent autre chose.
 `EditionUpgradeWishController` (4/4).
 **Passe 5** — `PurchaseAnalysisController` (18/18).
 **Passe 6** — `MetadataController` (5/5), `ListingMetadataController` (1/1).
+**Passe 7** — `ExportController` (2/2) ; `LoanController` supprimé ;
+`InsightsController` explicitement non couvert.
 
 #### Ce que la couverture HTTP a effectivement trouvé
 
@@ -490,29 +497,99 @@ annonce supprimée, plateforme non couverte ou lecture partielle sont des issues
 normales du parcours, distinguées par un champ `status`, pas par un code HTTP
 qui les confondrait toutes dans un bandeau rouge.
 
-#### Reste ouvert — 3 contrôleurs, 12 endpoints
+#### Le lot 7 : clore par décision, pas par ratio
 
-Aucun ne relève d'un simple « prochain lot » : chacun demande une décision
-préalable.
+Les douze endpoints restants ne se ressemblaient pas. Les couvrir tous aurait
+produit un beau 100 % et une fausse information : on n'aurait pas su lesquels
+méritaient d'exister. Chacun a donc été **tranché**, pas testé par défaut.
 
-| Contrôleur | Endpoints | Question à trancher avant de tester |
+**`LoanController` → SUPPRIMÉ.** Les prêts avaient été retirés de l'interface
+lors d'une passe antérieure, mais le backend gardait contrôleur, DTO, agrégat,
+repository, entité JPA, table et tests. Audit : **0 appel côté web**, **0 côté
+iOS**, aucun client généré, aucun script — et **0 ligne dans `loan`**. Aucune
+donnée à préserver, aucune fonctionnalité à soutenir.
+
+La dépendance qui rendait la décision nécessaire vivait dans
+`OwnershipDeletionService` : il refusait de supprimer une possession
+référencée par un prêt, pour qu'un historique ne pointe jamais vers une
+possession disparue. Cette garde n'a pas été *affaiblie* — elle est devenue
+**sans objet**, le concept qu'elle protégeait n'existant plus. Le retrait est
+affirmé par des tests plutôt que constaté plus tard :
+`OwnershipDeletionServiceTest` dit désormais explicitement qu'une possession
+se supprime sur demande, que la route reste idempotente, et que supprimer un
+exemplaire n'en touche aucun autre. `V5__loan.sql` n'est pas réécrite ;
+`V19__drop_loan.sql` la défait, avec un garde-fou qui **échoue bruyamment** si
+la table n'est pas vide — une migration destructrice ne doit jamais effacer en
+silence un historique que personne n'a exporté.
+
+**`ExportController` → COUVERT** (2/2). Le seul des trois à mériter des tests,
+pour une raison précise : `ExportCsvWriter` est déjà testé, mais le contrôleur
+fait lui-même deux choses que personne ne vérifiait — il construit l'en-tête
+`Content-Disposition` qui **nomme le fichier téléchargé**, et il assemble le
+ZIP à la main dans sa méthode. Les tests ajoutés **ouvrent réellement
+l'archive** et lisent un CSV à l'intérieur ; ils ne se contentent pas d'un
+`GET → 200`. L'export est la garantie anti-enfermement du produit
+(docs/CONCEPTION.md §19) : un export corrompu est un défaut grave et
+silencieux, exactement le genre qu'un status 200 ne révèle pas.
+
+**`InsightsController` → RISQUE ACCEPTÉ** (0/6). Six `GET`, **aucune
+mutation**, aucun corps de requête à désérialiser, un seul paramètre validé
+(`entityTypeCode`, déjà en 400 explicite). Les services derrière sont
+fortement couverts (`StatsServiceTest`, `DiscoveryServiceTest`,
+`CollectionProgressServiceTest`). Six tests « appeler la route, obtenir 200 »
+auraient amélioré le ratio sans protéger quoi que ce soit : sur une lecture
+sans écriture, le pire défaut est un écran vide, pas une donnée corrompue.
+C'est le seul trou assumé de la campagne, et il est nommé.
+
+#### Couverture brute ≠ risque restant
+
+Le chiffre seul ne raconte plus l'état du système. Les deux lectures :
+
+| Couverture HTTP brute | |
+|---|---|
+| Contrôleurs | **15 / 16** |
+| Endpoints | **86 / 92** |
+| Tests de contrat HTTP | **180**, en 9 classes |
+
+| Risque HTTP restant | Statut |
+|---|---|
+| Surfaces d'**écriture** actives | **aucune sans contrat HTTP** |
+| Intégrations externes (Metadata, Vinted) | couvertes, **sans réseau réel** |
+| `InsightsController` — 6 `GET`, 0 mutation | **risque accepté**, explicitement |
+| `LoanController` | **n'existe plus** |
+
+C2 est clos en **RISQUE TRAITÉ**, pas en « 100 % de couverture » — 6 endpoints
+restent sans test HTTP, et le dire est le seul moyen de garder le chiffre
+utile.
+
+#### Bilan de la campagne C2
+
+| | Départ | Arrivée |
 |---|---|---|
-| `LoanController` | 4 | **Statut produit.** Les prêts ont été retirés de l'interface utilisateur ; l'API reste exposée. Décider KEEP / DEPRECATE / REMOVE avant d'investir dans sa couverture |
-| `InsightsController` | 6 | Lectures pures, services fortement couverts — faible rendement |
-| `ExportController` | 2 | Idem, `ExportCsvWriter` déjà testé |
+| Contrôleurs avec couverture HTTP | 0 / 17 | **15 / 16** |
+| Endpoints avec couverture HTTP | 0 / 96 | **86 / 92** |
+| Tests de contrat HTTP | 0 | **180** |
+| Bugs de production trouvés | — | **6** |
 
-Les six lots livrés ont couvert **toutes les surfaces d'écriture**, y compris
-celles qui dépendent de sources externes. Ce qui reste est **8 endpoints de
-lecture pure** (Insights, Export), dont les services sont déjà couverts
-(`StatsServiceTest`, `DiscoveryServiceTest`, `CollectionProgressServiceTest`,
-`ExportCsvWriterTest`), et **4 endpoints en attente d'une décision produit** :
-`LoanController` n'est appelé ni par le web ni par iOS, mais
-`OwnershipDeletionService` refuse encore de supprimer une possession prêtée.
-Le supprimer sans trancher cette règle changerait un comportement observable —
-c'est une décision, pas un lot de tests.
+Racines des six défauts, et de deux familles voisines trouvées en chemin :
 
-Leurs services et domaines restent largement testés : ce qui manque est la
-frontière HTTP, pas la logique.
+| Racine | Occurrences | Ce qu'elle produisait |
+|---|---|---|
+| Contrainte de base de données utilisée comme validation | 4 | Un **409 « conflit »** là où la donnée était absente, pas conflictuelle |
+| `trim()` / déréférencement avant la garde `null` | 2 | Un **500** sur un champ obligatoire simplement oublié |
+| Status HTTP mal choisi pour le client réel | 1 | Un message d'erreur utile **effacé** avant l'écran (404 → 400) |
+| OpenAPI divergent du runtime | 4 routes | Contrat publié annonçant 200 pour un 204 — *documentation*, pas exécution |
+| Réseau réel accidentel dans un test | 1 | Un test d'isolation qui **partait sur Internet** pour prouver qu'il n'y allait pas |
+
+Les deux dernières lignes ne sont pas des bugs de production : une divergence
+de documentation et un défaut de test. Elles sont comptées séparément pour que
+le « 6 » reste un chiffre honnête.
+
+Ce que la campagne a réellement apporté n'est pas le ratio : c'est que **quatre
+gestes utilisateur ordinaires** — créer une tier list, dater une expérience,
+attacher un tag, enregistrer une édition — échouaient avec un message faux ou
+une erreur serveur, et qu'aucun des quelque 550 tests existants ne pouvait le
+voir, parce qu'ils appelaient les contrôleurs en Java plutôt que par HTTP.
 
 ### C3 — Quatre exports frontend morts · **mineur**
 

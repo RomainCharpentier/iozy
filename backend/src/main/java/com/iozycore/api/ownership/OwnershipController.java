@@ -85,9 +85,9 @@ public class OwnershipController {
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 
-    @Operation(summary = "Supprimer définitivement un exemplaire (bloqué si un prêt le référence encore) - "
-            + "contrairement à \"marquer vendu/perdu\" (changement de statut réversible), cette action est "
-            + "irréversible")
+    @Operation(summary = "Supprimer définitivement un exemplaire - contrairement à \"marquer vendu/perdu\" "
+            + "(changement de statut réversible), cette action est irréversible. Le Tome catalogué qu'il "
+            + "référence n'est jamais supprimé : seule la possession disparaît.")
     @ApiResponse(responseCode = "204", description = "Exemplaire supprimé - aucun corps. Idempotent : "
             + "un identifiant déjà supprimé ou inconnu rend également 204.")
     @DeleteMapping("/{id}")

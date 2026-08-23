@@ -19,7 +19,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Validates the EditionUpgradeWish persistence module (Flyway V6 + JPA) against a real PostgreSQL - mirrors LoanPersistenceIntegrationTest. */
+/** Validates the EditionUpgradeWish persistence module (Flyway V6 + JPA) against a real PostgreSQL. */
 @Testcontainers
 @SpringBootTest
 @Transactional

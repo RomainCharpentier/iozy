@@ -1,11 +1,8 @@
 package com.iozycore.application;
 
-import com.iozycore.domain.loan.Loan;
-import com.iozycore.domain.loan.LoanRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -17,16 +14,22 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
+/**
+ * Ce service refusait autrefois de supprimer une possession référencée par un
+ * prêt. Les prêts ayant été retirés du produit (voir {@code V19__drop_loan.sql}),
+ * il ne reste plus aucune garde - ce que ces tests affirment explicitement,
+ * pour qu'un retrait de règle reste un fait vérifié et non un oubli constaté
+ * plus tard.
+ */
 class OwnershipDeletionServiceTest {
 
     private final InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
-    private final InMemoryLoanRepository loanRepository = new InMemoryLoanRepository();
-    private final OwnershipDeletionService service = new OwnershipDeletionService(ownershipRepository, loanRepository);
+    private final OwnershipDeletionService service = new OwnershipDeletionService(ownershipRepository);
 
     @Test
-    void an_ownership_with_no_loan_is_deleted() {
+    void an_ownership_is_deleted_on_demand() {
         Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.NEW, LocalDate.now(), null);
         ownershipRepository.save(ownership);
 
@@ -36,17 +39,24 @@ class OwnershipDeletionServiceTest {
     }
 
     @Test
-    void an_ownership_referenced_by_a_loan_is_never_deleted() {
-        Ownership ownership = Ownership.acquire(UUID.randomUUID(), null, OwnershipCondition.NEW, LocalDate.now(), null);
-        ownershipRepository.save(ownership);
-        loanRepository.save(Loan.lend(ownership.id(), "Alex", LocalDate.now(), null));
+    void deleting_an_unknown_ownership_is_silent_because_the_route_is_idempotent() {
+        // DELETE /api/ownerships/{id} annonce 204 pour un identifiant inconnu ou
+        // déjà supprimé. Ce service ne doit donc jamais lever pour cette raison.
+        assertThatCode(() -> service.delete(UUID.randomUUID())).doesNotThrowAnyException();
+    }
 
-        assertThatThrownBy(() -> service.delete(ownership.id()))
-                .isInstanceOf(OwnershipDeletionNotAllowedException.class)
-                .hasMessageContaining("1 prêt");
+    @Test
+    void deleting_one_ownership_leaves_the_others_untouched() {
+        UUID entityId = UUID.randomUUID();
+        Ownership supprime = ownershipRepository.save(
+                Ownership.acquire(entityId, null, OwnershipCondition.NEW, LocalDate.now(), null));
+        Ownership conserve = ownershipRepository.save(
+                Ownership.acquire(entityId, null, OwnershipCondition.USED, LocalDate.now(), null));
 
-        // Jamais de suppression partielle : la garde bloque AVANT tout appel à ownershipRepository.deleteById.
-        assertThat(ownershipRepository.findById(ownership.id())).isPresent();
+        service.delete(supprime.id());
+
+        assertThat(ownershipRepository.findById(supprime.id())).isEmpty();
+        assertThat(ownershipRepository.findById(conserve.id())).isPresent();
     }
 
     private static class InMemoryOwnershipRepository implements OwnershipRepository {
@@ -81,31 +91,6 @@ class OwnershipDeletionServiceTest {
         @Override
         public void deleteById(UUID id) {
             store.remove(id);
-        }
-    }
-
-    private static class InMemoryLoanRepository implements LoanRepository {
-        private final Map<UUID, Loan> store = new HashMap<>();
-
-        @Override
-        public Loan save(Loan loan) {
-            store.put(loan.id(), loan);
-            return loan;
-        }
-
-        @Override
-        public Optional<Loan> findById(UUID id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Loan> findByOwnershipId(UUID ownershipId) {
-            return store.values().stream().filter(l -> l.ownershipId().equals(ownershipId)).toList();
-        }
-
-        @Override
-        public List<Loan> findAllActive() {
-            return store.values().stream().filter(l -> l.returnedAt().isEmpty()).toList();
         }
     }
 }

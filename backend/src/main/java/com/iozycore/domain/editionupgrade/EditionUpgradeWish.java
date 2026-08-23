@@ -18,7 +18,7 @@ import java.util.UUID;
  * un tome isolé.
  * <p>
  * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - même préparation que Ownership/WishlistEntry/Loan.
+ * multi-utilisateur n'existe) - même préparation que Ownership/WishlistEntry.
  */
 public class EditionUpgradeWish {
 
