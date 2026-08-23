@@ -8,6 +8,7 @@ import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.metadata.MetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -79,6 +80,9 @@ public class EntityTypeController {
     }
 
     @Operation(summary = "Supprimer un type (bloqué si des Entity de ce type existent encore)")
+    @ApiResponse(responseCode = "204", description = "Type supprimé - aucun corps. Idempotent : un "
+            + "identifiant inconnu rend également 204.")
+    @ApiResponse(responseCode = "409", description = "Des Entity de ce type existent encore - rien n'est modifié")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         entityTypeService.delete(id);

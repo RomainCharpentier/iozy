@@ -46,6 +46,14 @@ public class TagController {
     public void attachToEntity(@PathVariable UUID entityId, @PathVariable UUID tagId) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
+        // Le Tag aussi doit exister. Sans ce contrôle, seule la clé étrangère
+        // protégeait la table : le client recevait un 409 « Cette donnée entre
+        // en conflit avec une donnée existante » alors que le tag est ABSENT,
+        // pas conflictuel - et la ligne au-dessus rendait déjà, pour l'entité,
+        // le 404 que ce cas mérite tout autant.
+        if (tagRepository.findById(tagId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId);
+        }
         entity.addTag(tagId);
         entityRepository.save(entity);
     }

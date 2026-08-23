@@ -158,18 +158,38 @@ contrôleurs**, qui mesurent autre chose.
 
 #### Progression
 
-| | départ | passe 1 | passe 2 | passe 3 |
-|---|---|---|---|---|
-| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | **8/17** |
-| Endpoints couverts | 0/96 | 18/96 | 34/96 | **47/96** |
-| Contrôleurs restants | 17 | 15 | 12 | **9** |
-| Endpoints restants | 96 | 78 | 62 | **49** |
+| | départ | passe 1 | passe 2 | passe 3 | passe 4 |
+|---|---|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | **11/17** |
+| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | **60/96** |
+| Contrôleurs restants | 17 | 15 | 12 | 9 | **6** |
+| Endpoints restants | 96 | 78 | 62 | 49 | **36** |
 
 **Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
 **Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
 `PublicShareController` (1/1).
 **Passe 3** — `RelationshipController` (5/5), `ExperienceController` (4/4),
 `WishlistController` (4/4).
+**Passe 4** — `EntityTypeController` (5/5), `TagController` (4/4),
+`EditionUpgradeWishController` (4/4).
+
+#### Ce que la couverture HTTP a effectivement trouvé
+
+Quatre bugs de production, tous invisibles depuis un test appelant le
+contrôleur en Java, tous sur des gestes utilisateur ordinaires :
+
+| Passe | Symptôme | Cause |
+|---|---|---|
+| 2 | `POST /tier-lists` sur un univers inconnu → **409** « conflit » | contrôle d'existence qui ne validait rien ; la clé étrangère tranchait |
+| 3 | `POST /experiences` sans date → **409** « conflit » | colonne `NOT NULL` sans garde ; `PropertyValueException` d'Hibernate |
+| 4 | `POST /edition-upgrade-wishes` sans édition actuelle → **500** | `trim()` évalué comme ARGUMENT du constructeur, donc avant la garde |
+| 4 | attacher un tag inexistant → **409** « conflit » | tag non validé ; la clé étrangère tranchait |
+
+Trois des quatre partagent la même racine : **une contrainte de base de données
+laissée arbitre du contrat HTTP**. Le message générique du filet
+`DataIntegrityViolationException` (« Cette donnée entre en conflit avec une
+donnée existante ») est juste pour un vrai conflit, et faux dès qu'il attrape
+une référence absente ou un champ manquant.
 
 Tous adossés à `HttpContractTestBase` — même infrastructure que les tests
 d'intégration existants (Testcontainers PostgreSQL, `@SpringBootTest`,
@@ -208,6 +228,19 @@ vers une œuvre inconnue n'était protégée que par la clé étrangère de Post
 remontait en 500 avec la requête SQL. Les tests figent le 400 qui l'a remplacé
 sur les trois surfaces — le cas jumeau étant précisément ce qui se retrouve
 oublié, comme l'a confirmé le défaut trouvé sur les Tier Lists en passe 2.
+
+#### Le lot 4 : la configuration du catalogue
+
+`EntityTypeController`, `TagController` et `EditionUpgradeWishController`
+écrivent des données structurantes ou personnelles **sans aucune intégration
+externe**, et chacune référence quelque chose d'autre — un type référencé par
+des œuvres, un tag accroché à une œuvre, un souhait rattaché à une série.
+
+Le cas le plus lourd de conséquences y est le refus de supprimer un
+`EntityType` encore utilisé : c'est une racine du catalogue (Manga, Jeu vidéo,
+Jeu de société, Livre), et le supprimer effacerait une branche entière. Le test
+vérifie **l'état après la réponse** — un 409 qui laisserait la base à moitié
+modifiée serait pire qu'un 500 franc.
 
 Ce qui est verrouillé au-delà des chemins nominaux : identifiant malformé,
 corps vide, JSON illisible, énumération invalide, champ obligatoire absent,
@@ -276,6 +309,15 @@ contenant une apostrophe SQL et un jeton tentant une traversée de chemin.
 **Passe 3** : **40 scénarios** sur Relationship, Experience et Wishlist —
 **0 réponse 500**.
 
+**Passe 4** : **32 scénarios** sur EntityType, Tag et EditionUpgradeWish —
+**0 réponse 500** au premier passage. Le probe seul n'a cependant **pas suffi** :
+les deux défauts de cette passe exigeaient une ressource réelle dans un état
+précis (une entité existante avec un champ manquant, un tag absent sur une
+entité existante), que les identifiants inexistants du probe n'atteignaient
+jamais — les gardes en amont tiraient d'abord. C'est l'écriture des tests qui
+les a fait apparaître. Un probe mesure la robustesse des chemins d'erreur les
+plus courts ; il ne remplace pas des tests qui construisent l'état.
+
 #### Un défaut trouvé par la passe 3
 
 `POST /api/experiences` sans `occurredAt` rendait **409** et le message
@@ -326,26 +368,28 @@ Les 16 routes du lot 2 et les 13 du lot 3 ont été vérifiées de la même faç
 leur OpenAPI est **conforme**, ces contrôleurs déclarant leurs status par
 `@ResponseStatus`, que springdoc reprend correctement.
 
-#### Reste ouvert — 9 contrôleurs, 49 endpoints
+Le lot 4 a révélé une quatrième occurrence du même écart :
+`DELETE /api/entity-types/{id}` documenté 200 alors qu'il rend 204. Corrigé de
+la même façon, par annotation — le 409 du refus de suppression y est désormais
+documenté lui aussi.
 
-Classés par risque, non par volume :
+#### Reste ouvert — 6 contrôleurs, 36 endpoints
 
-| Contrôleur | Endpoints | Mutations | Risque |
-|---|---|---|---|
-| `EntityTypeController` | 5 | 3 | HIGH — racine du catalogue, suppression lourde de conséquences |
-| `TagController` | 4 | 3 | MEDIUM |
-| `LoanController` | 4 | 2 | MEDIUM |
-| `MetadataController` | 5 | 1 | MEDIUM — 12 exceptions, mais dépend d'intégrations externes |
-| `EditionUpgradeWishController` | 4 | 2 | MEDIUM |
-| `InsightsController` | 6 | 0 | LOW — lectures, services fortement couverts |
-| `ExportController` | 2 | 0 | LOW |
-| `PurchaseAnalysisController` | 18 | 8 | *hors périmètre* — surface la plus testée du dépôt côté domaine |
-| `ListingMetadataController` | 1 | 1 | *hors périmètre* — Vinted |
+Aucun ne relève d'un simple « prochain lot » : chacun demande une décision
+préalable.
 
-Hors les deux surfaces hors périmètre, il reste **30 endpoints** sur 7
-contrôleurs. Le prochain lot naturel est `EntityTypeController` + `TagController`
-+ `EditionUpgradeWishController` (13 endpoints) : la taxonomie du catalogue et
-ce qui s'y accroche.
+| Contrôleur | Endpoints | Question à trancher avant de tester |
+|---|---|---|
+| `MetadataController` | 5 | **Stratégie de stub.** Dépend de Google Books, MyAnimeList, IGDB. Aucun test ne doit faire d'appel réseau réel : passe dédiée, avec MockWebServer ou des beans de remplacement |
+| `LoanController` | 4 | **Statut produit.** Les prêts ont été retirés de l'interface utilisateur ; l'API reste exposée. Décider KEEP / DEPRECATE / REMOVE avant d'investir dans sa couverture |
+| `InsightsController` | 6 | Lectures pures, services fortement couverts — faible rendement |
+| `ExportController` | 2 | Idem, `ExportCsvWriter` déjà testé |
+| `PurchaseAnalysisController` | 18 | Couverture **fonctionnelle** massive (>150 tests domaine et intégration), couverture **HTTP formelle** nulle. À distinguer : la première protège le calcul, la seconde protègerait le contrat |
+| `ListingMetadataController` | 1 | Vinted, lié à la question du stub réseau |
+
+Les quatre lots livrés ont couvert **toutes les surfaces d'écriture sans
+dépendance externe**. Ce qui reste est soit une lecture à faible risque, soit
+une décision de produit ou d'infrastructure de test.
 
 Leurs services et domaines restent largement testés : ce qui manque est la
 frontière HTTP, pas la logique.
