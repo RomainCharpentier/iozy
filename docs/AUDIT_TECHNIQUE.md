@@ -158,16 +158,18 @@ contrôleurs**, qui mesurent autre chose.
 
 #### Progression
 
-| | départ | passe 1 | passe 2 |
-|---|---|---|---|
-| Contrôleurs couverts | 0/17 | 2/17 | **5/17** |
-| Endpoints couverts | 0/96 | 18/96 | **34/96** |
-| Contrôleurs restants | 17 | 15 | **12** |
-| Endpoints restants | 96 | 78 | **62** |
+| | départ | passe 1 | passe 2 | passe 3 |
+|---|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | **8/17** |
+| Endpoints couverts | 0/96 | 18/96 | 34/96 | **47/96** |
+| Contrôleurs restants | 17 | 15 | 12 | **9** |
+| Endpoints restants | 96 | 78 | 62 | **49** |
 
 **Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
 **Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
 `PublicShareController` (1/1).
+**Passe 3** — `RelationshipController` (5/5), `ExperienceController` (4/4),
+`WishlistController` (4/4).
 
 Tous adossés à `HttpContractTestBase` — même infrastructure que les tests
 d'intégration existants (Testcontainers PostgreSQL, `@SpringBootTest`,
@@ -193,6 +195,20 @@ ici il expose à un tiers ce que l'utilisateur avait fermé.
 `ShareController` gouverne le jeton qui commande le précédent. Les trois
 forment une seule question : *ce qui sort de l'application*.
 
+#### Le lot 3 : ce que l'utilisateur écrit lui-même
+
+`RelationshipController`, `ExperienceController` et `WishlistController` ne sont
+pas trois modules voisins par hasard : ce sont les trois endroits où
+l'utilisateur écrit quelque chose **qui n'existe nulle part ailleurs**. Une
+possession se rachète, un catalogue se re-télécharge ; une note de lecture, un
+lien qu'on a établi soi-même et une envie notée un soir, non.
+
+Ils partagent aussi le même défaut historique, corrigé au Lot 28 : une référence
+vers une œuvre inconnue n'était protégée que par la clé étrangère de Postgres et
+remontait en 500 avec la requête SQL. Les tests figent le 400 qui l'a remplacé
+sur les trois surfaces — le cas jumeau étant précisément ce qui se retrouve
+oublié, comme l'a confirmé le défaut trouvé sur les Tier Lists en passe 2.
+
 Ce qui est verrouillé au-delà des chemins nominaux : identifiant malformé,
 corps vide, JSON illisible, énumération invalide, champ obligatoire absent,
 ressource absente, et les conflits d'état (revendre un exemplaire déjà vendu,
@@ -209,7 +225,9 @@ contenterait d'un 200 passerait aussi avec la violation :
 - **Ce qui n'est pas partagé est absent** de la réponse publique — absent, et
   non vide : une liste vide dirait « il n'a rien dans ses envies », ce qui est
   déjà une information. Et le jeton, qui fait office de mot de passe, ne
-  reparaît jamais dans le corps servi au destinataire.
+  reparaît jamais dans le corps servi au destinataire ;
+- **Wishlist ≠ Ownership** : ajouter aux envies ne crée jamais de possession, et
+  une œuvre inconnue d'IozyCore y entre en créant sa seule fiche catalogue.
 
 #### Matrice exception → status, pour ces deux surfaces
 
@@ -255,6 +273,25 @@ provoquer sans la modifier.
 **0 réponse 500**. Y compris un jeton de partage de 300 caractères, un jeton
 contenant une apostrophe SQL et un jeton tentant une traversée de chemin.
 
+**Passe 3** : **40 scénarios** sur Relationship, Experience et Wishlist —
+**0 réponse 500**.
+
+#### Un défaut trouvé par la passe 3
+
+`POST /api/experiences` sans `occurredAt` rendait **409** et le message
+« Cette donnée entre en conflit avec une donnée existante ». Rien n'entrait en
+conflit : la colonne `occurred_at` est `NOT NULL` et aucune garde ne le
+vérifiait, donc le corps descendait jusqu'à Hibernate, dont la
+`PropertyValueException` tombait dans le filet générique des conflits de
+données. Enregistrer une lecture est un geste courant, et l'utilisateur ne
+pouvait pas deviner quel champ manquait.
+
+Corrigé **dans le domaine** (`Experience`) plutôt que dans le contrôleur, pour
+protéger tous les appelants — et surtout **sans déduire la date du jour** : on
+relit souvent une œuvre lue il y a des années, et inventer « aujourd'hui »
+fausserait silencieusement les statistiques annuelles. Même règle que pour un
+prix relevé (`MarketPriceObservation`).
+
 #### Un défaut trouvé par la passe 2
 
 `POST /api/tier-lists` avec un `entityTypeId` inexistant rendait **409** et le
@@ -285,19 +322,16 @@ c'est la **documentation** qui a été corrigée, par des annotations
 `@ApiResponse`. **Aucun changement d'exécution** : un client généré à partir du
 contrat attendait un corps qui n'arrive jamais.
 
-Les 16 routes du lot 2 ont été vérifiées de la même façon : leur OpenAPI est
-**conforme**, ces contrôleurs déclarant leurs status par `@ResponseStatus`, que
-springdoc reprend correctement.
+Les 16 routes du lot 2 et les 13 du lot 3 ont été vérifiées de la même façon :
+leur OpenAPI est **conforme**, ces contrôleurs déclarant leurs status par
+`@ResponseStatus`, que springdoc reprend correctement.
 
-#### Reste ouvert — 12 contrôleurs, 62 endpoints
+#### Reste ouvert — 9 contrôleurs, 49 endpoints
 
 Classés par risque, non par volume :
 
 | Contrôleur | Endpoints | Mutations | Risque |
 |---|---|---|---|
-| `RelationshipController` | 5 | 3 | HIGH — lie deux entités, historique de 500 sur contraintes |
-| `ExperienceController` | 4 | 3 | HIGH — 7 `ResponseStatusException` pour 4 routes |
-| `WishlistController` | 4 | 2 | HIGH — corps à double forme (`entityId` ou `entityTypeId`+`title`) |
 | `EntityTypeController` | 5 | 3 | HIGH — racine du catalogue, suppression lourde de conséquences |
 | `TagController` | 4 | 3 | MEDIUM |
 | `LoanController` | 4 | 2 | MEDIUM |
@@ -307,6 +341,11 @@ Classés par risque, non par volume :
 | `ExportController` | 2 | 0 | LOW |
 | `PurchaseAnalysisController` | 18 | 8 | *hors périmètre* — surface la plus testée du dépôt côté domaine |
 | `ListingMetadataController` | 1 | 1 | *hors périmètre* — Vinted |
+
+Hors les deux surfaces hors périmètre, il reste **30 endpoints** sur 7
+contrôleurs. Le prochain lot naturel est `EntityTypeController` + `TagController`
++ `EditionUpgradeWishController` (13 endpoints) : la taxonomie du catalogue et
+ce qui s'y accroche.
 
 Leurs services et domaines restent largement testés : ce qui manque est la
 frontière HTTP, pas la logique.
