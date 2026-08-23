@@ -88,9 +88,30 @@ public class VintedListingProvider implements ListingProvider {
         return ListingPlatform.VINTED;
     }
 
+    /**
+     * Le CDN d'images de Vinted, énuméré hôte par hôte pour la même raison que
+     * les domaines de pages : un motif « tout ce qui finit par vinted.net »
+     * accepterait {@code vinted.net.attaquant.example}. Les photos d'annonce y
+     * sont servies sous {@code imagesN.vinted.net}.
+     */
+    private static final Set<String> ALLOWED_IMAGE_HOSTS = buildAllowedImageHosts();
+
+    private static Set<String> buildAllowedImageHosts() {
+        Set<String> hosts = new LinkedHashSet<>();
+        for (int shard = 1; shard <= 12; shard++) {
+            hosts.add("images" + shard + ".vinted.net");
+        }
+        return Set.copyOf(hosts);
+    }
+
     @Override
     public Set<String> allowedHosts() {
         return ALLOWED_HOSTS;
+    }
+
+    @Override
+    public Set<String> allowedImageHosts() {
+        return ALLOWED_IMAGE_HOSTS;
     }
 
     /**

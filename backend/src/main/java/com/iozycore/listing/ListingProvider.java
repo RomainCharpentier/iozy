@@ -34,6 +34,23 @@ public interface ListingProvider {
     Set<String> allowedHosts();
 
     /**
+     * Hôtes exacts, en minuscules, depuis lesquels le serveur peut télécharger
+     * les <b>photos</b> d'une annonce de cette source - typiquement un CDN
+     * d'images, distinct des hôtes de pages.
+     * <p>
+     * Volontairement séparé de {@link #allowedHosts()} : lire une page HTML et
+     * télécharger un binaire ne présentent pas le même risque, et un provider
+     * doit pouvoir autoriser l'un sans l'autre. Le défaut est <b>vide</b> -
+     * un provider qui ne se prononce pas n'autorise aucun téléchargement
+     * d'image, plutôt que d'hériter d'une permission qu'il n'a pas demandée.
+     *
+     * @see com.iozycore.recognition.RecognitionImageFetcher
+     */
+    default Set<String> allowedImageHosts() {
+        return Set.of();
+    }
+
+    /**
      * Lit l'annonce, ou dit pourquoi elle n'a pas pu être lue.
      * <p>
      * Ne lève pas d'exception pour un échec attendu (annonce supprimée, source
