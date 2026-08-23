@@ -12,7 +12,7 @@ class RecognizedItemTest {
 
     private static RecognizedItem item(String titre, Integer tome, String edition, String ean,
                                         RecognitionConfidence confiance) {
-        return new RecognizedItem(titre, tome, edition, ean, confiance, List.of(), Set.of(0));
+        return RecognizedItem.fromVision(titre, tome, edition, ean, confiance, List.of(), Set.of(0));
     }
 
     @Test

@@ -35,9 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Aucun appel réseau, aucun appel IA : voir {@link FakeRecognitionProvider}.
  */
 @Import(FakeRecognitionProvider.class)
-class ImageRecognitionHttpContractTest extends HttpContractTestBase {
+class RecognitionHttpContractTest extends HttpContractTestBase {
 
-    private static final String ROUTE = "/api/image-recognition/analyze";
+    private static final String ROUTE = "/api/recognition/analyze";
 
     @Autowired
     private EntityRepository entityRepository;
@@ -51,12 +51,18 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
     @Autowired
     private OwnershipRepository ownershipRepository;
 
+    /** Une demande AVEC photos : c'est le seul chemin qui sollicite un moteur. */
     private Map<String, Object> corps(String declencheur, int photos) {
         List<String> urls = new ArrayList<>();
         for (int i = 0; i < photos; i++) {
             urls.add(FakeRecognitionProvider.photo(declencheur, i));
         }
-        return Map.of("imageUrls", urls, "listingTitle", "Lot de test", "entityTypeCode", "MANGA");
+        return Map.of("imageUrls", urls, "title", "Lot de test", "entityTypeCode", "MANGA");
+    }
+
+    /** Une demande SANS photos : texte seul, aucun moteur appelé. */
+    private Map<String, Object> texteSeul(String titre) {
+        return Map.of("title", titre, "entityTypeCode", "MANGA");
     }
 
     private Entity serieCataloguee(String titre) {
@@ -82,7 +88,7 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps("normal", 2))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("OK"))
+                .andExpect(jsonPath("$.visionStatus").value("OK"))
                 .andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.items[0].seriesTitle").value("Platinum End"))
                 .andExpect(jsonPath("$.items[0].catalogStatus").value("MATCHED"))
@@ -141,7 +147,7 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(corps(FakeRecognitionProvider.DECLENCHE_PARTIEL, 1))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PARTIAL"))
+                .andExpect(jsonPath("$.visionStatus").value("PARTIAL"))
                 .andExpect(jsonPath("$.unidentifiedCount").value(3));
     }
 
@@ -150,7 +156,7 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(corps(FakeRecognitionProvider.DECLENCHE_RIEN, 1))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("NOTHING_RECOGNIZED"))
+                .andExpect(jsonPath("$.visionStatus").value("NOTHING_RECOGNIZED"))
                 .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
@@ -212,7 +218,7 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(corps(FakeRecognitionProvider.DECLENCHE_PANNE, 1))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.visionStatus").value("UNAVAILABLE"))
                 .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
@@ -221,22 +227,135 @@ class ImageRecognitionHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(Map.of("imageUrls", List.of("https://attaquant.invalid/1.jpg")))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("NO_USABLE_IMAGE"))
+                .andExpect(jsonPath("$.visionStatus").value("NO_USABLE_IMAGE"))
                 .andExpect(jsonPath("$.analyzedImageCount").value(0))
                 .andExpect(jsonPath("$.requestedImageCount").value(1));
+    }
+
+    // ====================================================== Texte seul
+
+    @Test
+    void a_listing_title_alone_yields_proposals_without_any_photo() throws Exception {
+        Entity serie = serieCataloguee("Platinum End");
+        editionCataloguee(serie.id(), "Platinum End", "Standard", 14);
+
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Platinum End intégrale tomes 1 à 14"))))
+                .andExpect(status().isOk())
+                // Aucune photo demandée : ce n'est pas un échec de lecture,
+                // c'est l'absence de question.
+                .andExpect(jsonPath("$.visionStatus").doesNotExist())
+                .andExpect(jsonPath("$.items", hasSize(14)))
+                .andExpect(jsonPath("$.textItemCount").value(14))
+                .andExpect(jsonPath("$.requestedImageCount").value(0))
+                .andExpect(jsonPath("$.analyzedImageCount").value(0));
+    }
+
+    @Test
+    void a_text_only_request_never_calls_the_vision_engine() throws Exception {
+        // Le test le plus important de cette passe : une annonce bien rédigée
+        // est comprise sans le moindre appel payant.
+        int avant = FakeRecognitionProvider.appelsAuMoteur();
+
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Platinum End intégrale tomes 1 à 14"))))
+                .andExpect(status().isOk());
+
+        assertThat(FakeRecognitionProvider.appelsAuMoteur())
+                .as("aucun moteur de vision sollicité pour analyser du texte")
+                .isEqualTo(avant);
+    }
+
+    @Test
+    void a_text_proposal_says_it_comes_from_the_listing_not_from_a_photo() throws Exception {
+        Entity serie = serieCataloguee("Platinum End");
+        editionCataloguee(serie.id(), "Platinum End", "Standard", 14);
+
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Platinum End tomes 1 à 3"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].sources[0]").value("TEXT"))
+                // Le libellé parle de la donnée, jamais du fournisseur d'IA.
+                .andExpect(jsonPath("$.items[0].sourceLabels[0]").value("annonce"))
+                .andExpect(jsonPath("$.items[0].sourceImages", hasSize(0)))
+                .andExpect(jsonPath("$.items[0].editionHint").doesNotExist());
+    }
+
+    @Test
+    void a_vague_listing_yields_no_proposal_rather_than_an_invented_series() throws Exception {
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Beau lot de mangas divers"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(0)))
+                .andExpect(jsonPath("$.textItemCount").value(0));
+    }
+
+    // ====================================================== Texte + photos
+
+    @Test
+    void text_and_photos_produce_a_single_merged_list() throws Exception {
+        Entity serie = serieCataloguee("Platinum End");
+        editionCataloguee(serie.id(), "Platinum End", "Standard", 14);
+
+        Map<String, Object> corps = Map.of(
+                "title", "Platinum End tomes 1 à 3",
+                "imageUrls", List.of(FakeRecognitionProvider.photo("normal", 0)),
+                "entityTypeCode", "MANGA");
+
+        // Le faux moteur voit les tomes 1 et 2 en Standard. Le texte en annonce
+        // trois. Une seule liste en sort, pas deux.
+        mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visionStatus").value("OK"))
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.textItemCount").value(3));
+    }
+
+    @Test
+    void a_volume_announced_but_not_photographed_is_never_dropped() throws Exception {
+        Entity serie = serieCataloguee("Platinum End");
+        editionCataloguee(serie.id(), "Platinum End", "Standard", 14);
+
+        Map<String, Object> corps = Map.of(
+                "title", "Platinum End tomes 1 à 5",
+                "imageUrls", List.of(FakeRecognitionProvider.photo("normal", 0)),
+                "entityTypeCode", "MANGA");
+
+        // Une photo qui ne montre pas un livre ne prouve pas son absence.
+        mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(5)));
+    }
+
+    @Test
+    void a_broken_engine_leaves_the_text_proposals_standing() throws Exception {
+        Entity serie = serieCataloguee("Platinum End");
+        editionCataloguee(serie.id(), "Platinum End", "Standard", 14);
+
+        Map<String, Object> corps = Map.of(
+                "title", "Platinum End tomes 1 à 4",
+                "imageUrls", List.of(FakeRecognitionProvider.photo(FakeRecognitionProvider.DECLENCHE_PANNE, 0)),
+                "entityTypeCode", "MANGA");
+
+        mockMvc.perform(post(ROUTE).contentType("application/json").content(json(corps)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visionStatus").value("UNAVAILABLE"))
+                // Ce que le texte disait reste vrai même si le moteur tombe.
+                .andExpect(jsonPath("$.items", hasSize(4)));
     }
 
     // ====================================================== Corps invalide
 
     @Test
-    void no_image_at_all_is_a_400() throws Exception {
+    void a_request_with_neither_text_nor_photo_is_a_400() throws Exception {
+        // Il n'y a littéralement rien à analyser.
         mockMvc.perform(post(ROUTE).contentType("application/json")
                         .content(json(Map.of("imageUrls", List.of()))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void a_body_without_the_images_field_is_a_400() throws Exception {
+    void an_entirely_empty_body_is_a_400() throws Exception {
         mockMvc.perform(post(ROUTE).contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest());
     }
