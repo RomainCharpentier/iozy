@@ -437,12 +437,27 @@ la suite), plateforme, prix demandé, frais de port, frais de protection, état
 (et « l'état porte sur un coffret »), titre et description ; puis une ou
 plusieurs séries avec leur édition et leurs tomes (« 1-11 ») ; « Ajouter cette
 série au lot » pour un lot multi-séries ; **ANALYSER LE LOT**.
-**Résultat** : verdict et score, coût réel, valeur neuve, décote, offre
-conseillée / fourchette / prix maximum, détail par série (complétude, doublons,
-base de prix, avertissements).
+**Résultat** : le verdict personnalisé en trois dimensions séparées (ce que le
+lot apporte, où se situe son prix, ce qui mérite vigilance), puis le score
+global, le coût d'acquisition, la valeur neuve, la décote, l'offre conseillée /
+fourchette / prix maximum, et le détail par série (complétude, doublons, base
+de prix, avertissements). Une analyse enregistrée dont l'édition et la
+composition sont identifiées ajoute son **prix demandé** aux prix relevés de
+cette édition (voir 14 et `docs/LISTING_SOURCES.md`), sans notification ni
+changement d'écran.
+**Le total change de nom selon ce qu'on sait de la livraison** : « Coût
+d'acquisition estimé » quand elle est connue, « Coût minimum estimé » quand
+c'est un « à partir de », « Sous-total connu » assorti de « livraison non
+incluse » quand elle est inconnue. Jamais « coût réel » : aucun de ces montants
+n'est facturé.
 **Branches** : aucune donnée de prix → « Non calculable » plutôt qu'un chiffre
-inventé ; prix très au-dessus → conseil de passer son tour ; lot sans série →
-400 lisible.
+inventé ; référence marché insuffisante → l'écran dit ce qui manque plutôt
+qu'un prix ; prix très au-dessus → conseil de passer son tour ; lot sans série →
+400 lisible ; lot multi-séries ou édition non identifiée → l'analyse fonctionne
+normalement, seule la création automatique d'un prix relevé est refusée ;
+analyse antérieure aux règles actuelles → son verdict est conservé tel quel,
+mais son chiffre de référence est présenté comme « estimation utilisée lors de
+cette analyse », jamais comme un marché observé.
 **Écrans** : `PurchaseAnalysisPage`, `PurchaseAnalysisResultCard`,
 `SeriesBreakdownItem`, `VerdictBadge`
 **Backend** : `POST /purchase-analysis/analyze`

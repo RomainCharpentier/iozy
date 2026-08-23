@@ -42,8 +42,17 @@ public record Listing(UUID id, ListingPlatform platform, String url, String rawT
         // Nature absente mais montant present : personne n'a affirme que ce
         // tarif etait ferme, donc ESTIMATED. Attribuer EXACT donnerait a un
         // nombre recu la valeur d'un tarif constate.
+        //
+        // Un ZERO sans nature ne dit rien, en revanche : il ne se distingue pas
+        // d'un champ laisse vide. Le lire "0,00 EUR estimes" affirmerait qu'une
+        // livraison gratuite a ete constatee alors que personne ne l'a dite -
+        // une livraison reellement offerte arrive avec FREE. Ce cas concerne
+        // surtout la relecture des analyses anterieures a cette nature, dont le
+        // port valait zero par defaut.
         if (shippingKind == null) {
-            shippingKind = shippingFee == null ? ShippingEstimateKind.UNKNOWN : ShippingEstimateKind.ESTIMATED;
+            shippingKind = (shippingFee == null || shippingFee.signum() == 0)
+                    ? ShippingEstimateKind.UNKNOWN
+                    : ShippingEstimateKind.ESTIMATED;
         }
         // UNKNOWN portant un montant est une contradiction : le total
         // l'inclurait pendant que l'ecran annoncerait « non communiquee ».
