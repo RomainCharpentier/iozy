@@ -571,11 +571,17 @@ public class PurchaseAnalysisService {
         // Une Série fournie explicitement doit exister. Sans ce contrôle, seule la
         // contrainte de clé étrangère protégeait la table, et le client recevait
         // « Cette donnée entre en conflit avec une donnée existante » - alors que
-        // la Série est ABSENTE, pas conflictuelle. Même contrôle que sur les
-        // autres routes qui référencent une Entity depuis un corps de requête.
+        // la Série est ABSENTE, pas conflictuelle.
+        //
+        // 400 et non 404, comme les quatre autres routes qui référencent une
+        // œuvre depuis un CORPS de requête (/experiences, /wishlist,
+        // /relationships, /edition-upgrade-wishes). La ressource visée -
+        // POST /editions - existe bel et bien ; c'est la référence fournie qui
+        // est invalide. Et le client remplace le message de tout 404 par un
+        // repli générique : en 404, « Série introuvable » n'atteindrait jamais
+        // l'écran.
         if (entityId != null && entityRepository.findById(entityId).isEmpty()) {
-            throw new com.iozycore.domain.shared.ReferencedResourceNotFoundException(
-                    "Série introuvable : " + entityId);
+            throw new IllegalArgumentException("Série introuvable : " + entityId);
         }
         // Modèle catalogue cible (Série -> Édition -> Tome) : si cette série est déjà une Entity
         // connue, lie l'édition dès sa création plutôt que d'attendre une prochaine analyse.
