@@ -17,7 +17,7 @@ import {
   type ShippingEstimateKind,
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
-import { PhotoRecognitionPanel, type ElementConfirme } from './PhotoRecognitionPanel'
+import { ListingDetectionPanel, type ElementConfirme } from './ListingDetectionPanel'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 
 interface QueuedItem {
@@ -217,7 +217,7 @@ export function PurchaseAnalysisPage() {
 
   /**
    * Verse dans le brouillon les éléments que l'utilisateur vient de confirmer
-   * sur les photos.
+   * dans la liste détectée.
    *
    * Regroupe par série + édition : la reconnaissance rend un élément par tome,
    * alors que l'analyse raisonne en lots. Fusionne avec un lot déjà présent
@@ -439,9 +439,10 @@ export function PurchaseAnalysisPage() {
               imageUrls={photoUrls}
               onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
             />
-            <PhotoRecognitionPanel
+            <ListingDetectionPanel
+              title={rawTitle}
+              description={description}
               imageUrls={photoUrls}
-              listingTitle={rawTitle}
               onConfirm={confirmerElementsReconnus}
             />
           </div>
