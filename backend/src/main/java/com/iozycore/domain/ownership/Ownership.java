@@ -16,10 +16,12 @@ import java.util.UUID;
  * Entity (ou d'un Variant précis). Ne référence jamais une Experience
  * et sa suppression n'affecte jamais l'Entity qu'elle référence.
  * <p>
- * Prix d'acquisition ({@code purchasePrice}) et statut "prêté" (voir
- * com.iozycore.domain.loan.Loan) étaient explicitement hors périmètre du
- * MVP initial ("simplification demandée", voir docs/CONCEPTION.md §4) -
- * ajoutés depuis sur demande explicite. purchasePrice reste nullable et
+ * Prix d'acquisition ({@code purchasePrice}) était explicitement hors
+ * périmètre du MVP initial ("simplification demandée", voir
+ * docs/CONCEPTION.md §4) - ajouté depuis sur demande explicite. Le statut
+ * "prêté" a suivi le chemin inverse : ajouté puis retiré du produit, il n'a
+ * jamais vécu ici mais dans un agrégat séparé, supprimé avec la
+ * fonctionnalité (voir V19__drop_loan.sql). purchasePrice reste nullable et
  * n'est jamais deviné : une Ownership créée avant cette fonctionnalité, ou
  * simplement ajoutée sans prix, garde purchasePrice = null plutôt qu'une
  * valeur inventée (voir StatsService.computeCollectionValue, qui distingue

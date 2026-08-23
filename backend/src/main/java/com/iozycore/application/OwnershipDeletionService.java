@@ -1,44 +1,47 @@
 package com.iozycore.application;
 
-import com.iozycore.domain.loan.LoanRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
 /**
- * Traduit en couche application la règle de suppression d'une Ownership -
- * même patron que {@link EntityDeletionService} : le domaine Ownership ne
- * connaît pas le repository d'un autre agrégat (Loan), donc la règle est
- * orchestrée ici plutôt que dans l'agrégat Ownership lui-même.
+ * Supprime une Ownership - la couture d'application où vivent les règles de
+ * suppression d'un exemplaire, pendant symétrique de
+ * {@link EntityDeletionService}.
  * <p>
  * Contrairement à la suppression d'une Entity (bloquée tant qu'il existe la
  * moindre Ownership/Experience, jamais assouplie), supprimer UNE Ownership
  * précise est une action demandée explicitement par l'utilisateur (voir
  * "Supprimer cet exemplaire", OwnershipsSection côté web) - un exemplaire
  * ajouté par erreur, en double, ou qu'on ne souhaite plus tracer doit
- * pouvoir disparaître, contrairement à la fiche catalogue elle-même. Reste
- * bloquée seulement par un Loan existant (contrainte FK {@code
- * loan.ownership_id}, jamais assouplie celle-là) : un historique de prêt ne
- * doit jamais se retrouver à pointer vers une possession qui n'existe plus.
+ * pouvoir disparaître, contrairement à la fiche catalogue elle-même.
+ * <p>
+ * <b>Plus aucune garde depuis le retrait des prêts.</b> Ce service refusait
+ * la suppression d'une possession référencée par un {@code Loan}, pour
+ * qu'un historique de prêt ne pointe jamais vers une possession disparue.
+ * La fonctionnalité de prêt ayant été retirée du produit (voir
+ * {@code V19__drop_loan.sql}), cette règle n'avait plus d'objet : elle
+ * protégeait un concept qui n'existe plus, pas une donnée encore présente.
+ * <p>
+ * <b>Supprimer une Ownership ne supprime jamais le Tome catalogué</b> qu'elle
+ * référence : le Variant et l'Entity survivent, seule la possession
+ * disparaît. C'est l'invariant « Classer ≠ Posséder », affirmé par
+ * {@code OwnershipHttpContractTest.deletes_an_ownership_without_touching_its_variant}.
+ * <p>
+ * La suppression reste <b>idempotente</b> : un identifiant inconnu ou déjà
+ * supprimé ne lève rien, la route rend 204 dans tous les cas.
  */
 @Service
 public class OwnershipDeletionService {
 
     private final OwnershipRepository ownershipRepository;
-    private final LoanRepository loanRepository;
 
-    public OwnershipDeletionService(OwnershipRepository ownershipRepository, LoanRepository loanRepository) {
+    public OwnershipDeletionService(OwnershipRepository ownershipRepository) {
         this.ownershipRepository = ownershipRepository;
-        this.loanRepository = loanRepository;
     }
 
     public void delete(UUID ownershipId) {
-        long loanCount = loanRepository.findByOwnershipId(ownershipId).size();
-        if (loanCount > 0) {
-            throw new OwnershipDeletionNotAllowedException(ownershipId, loanCount);
-        }
         ownershipRepository.deleteById(ownershipId);
     }
 }

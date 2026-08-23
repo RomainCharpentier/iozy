@@ -30,7 +30,7 @@ import java.util.UUID;
  * TierListItem).
  * <p>
  * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - même préparation que Ownership/Loan.
+ * multi-utilisateur n'existe) - même préparation que Ownership.
  */
 public class TierList {
 

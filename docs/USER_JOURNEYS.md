@@ -212,17 +212,19 @@ prix alimente la valeur de collection. Vider le champ efface la donnée.
 **Backend** : `PATCH /ownerships/{id}/purchase-price`, `/note`
 **Statut** : `COMPLET`
 
-### 16. ~~Prêter un exemplaire~~ — retiré du produit (2026-08-21)
+### 16. ~~Prêter un exemplaire~~ — supprimé du produit (2026-08-23)
 La gestion des prêts ne fait plus partie du périmètre. « Prêter », « Marquer
-rendu » et l'écran `/loans` ont été retirés de l'interface.
+rendu » et l'écran `/loans` avaient été retirés de l'interface le 2026-08-21.
 **À savoir** : `/loans` n'était de toute façon **lié depuis aucun écran** — la
 page existait sans chemin d'accès, et la première version de cet audit la
 présentait à tort comme atteignable depuis Profil.
-**Backend laissé intact** : `LoanController`, le domaine et la table `loan`
-restent en place. `OwnershipDeletionService` s'en sert encore pour refuser la
-suppression d'un exemplaire encore prêté ; ce refus, s'il survenait, resterait
-affiché avec son message.
-**Statut** : `RETIRÉ`
+**Backend supprimé le 2026-08-23** : `LoanController`, les DTO, l'agrégat, le
+repository, l'entité JPA et la table `loan` n'existent plus (`V19__drop_loan.sql`,
+qui défait `V5__loan.sql` sans la réécrire). Vérifié avant suppression : aucun
+appel côté web, aucun côté iOS, aucun script, et **zéro ligne** dans la table.
+**Conséquence** : `OwnershipDeletionService` ne consulte plus rien — supprimer
+un exemplaire n'est plus refusable pour cause de prêt (voir §18).
+**Statut** : `SUPPRIMÉ`
 
 ### 17. Marquer un exemplaire vendu ou perdu
 **Étapes** : menu « … » ▸ « Marquer vendu » ou « Marquer perdu ».
@@ -237,7 +239,12 @@ avec sa pastille **Vendu** ou **Perdu**.
 
 ### 18. Supprimer définitivement un exemplaire
 **Étapes** : menu « … » ▸ « Supprimer cet exemplaire » → confirmation explicite.
-**Branches** : refusé en 409 lisible si un prêt le référence encore, même rendu.
+**Branches** : aucune — la suppression aboutit toujours (204), y compris sur un
+identifiant inconnu ou déjà supprimé : la route est **idempotente**. Le refus
+en 409 « exemplaire encore prêté » a disparu avec la fonctionnalité de prêt
+(voir §16).
+**Invariant** : supprimer un exemplaire **ne supprime jamais le tome catalogué**
+qu'il référence — le Variant et l'œuvre survivent (« Classer ≠ Posséder »).
 **Statut** : `COMPLET`
 
 ### 19. Corriger la jaquette d'un tome
@@ -324,8 +331,8 @@ relation vide → 400. Les deux suppressions sont idempotentes.
 ### 26. Supprimer la fiche d'une œuvre
 **Point de départ** : fiche ▸ Plus d'options ▸ « Supprimer cette fiche »
 **Branches** : bloqué en 409 lisible tant qu'il reste une possession, une
-expérience ou une édition de référence. Une œuvre ayant connu une lecture ou un
-prêt devient **définitivement indélébile**.
+expérience ou une édition de référence. Une œuvre ayant connu une lecture
+devient **définitivement indélébile**.
 **Statut** : `COMPLET` (le refus est le comportement voulu, et il est expliqué).
 
 ---
@@ -1075,7 +1082,6 @@ Vérifié en confrontant l'OpenAPI de l'application (`/v3/api-docs`) à l'intég
 | `GET /wishlist/lookup` | Vérifier avant achat si une œuvre est possédée ou déjà en envies | Couvert autrement par le bloc « Déjà dans IozyCore », qui distingue désormais possédé et seulement catalogué |
 | `GET /purchase-analysis/editions/search` | Lister toutes les éditions d'une série | Couvert par l'écran Éditions de référence |
 | `GET /entities?entityTypeId=` | Lister les œuvres d'un type | Remplacé par `/entities/search` |
-| `GET /loans?ownershipId=` | Historique des prêts d'un exemplaire, rendus compris | Seuls les prêts **actifs** sont exposés ; l'historique n'est visible nulle part |
 
 ---
 
