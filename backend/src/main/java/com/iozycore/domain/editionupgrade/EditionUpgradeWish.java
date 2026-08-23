@@ -38,7 +38,11 @@ public class EditionUpgradeWish {
         this.id = id;
         this.entityId = entityId;
         this.ownerId = ownerId;
-        this.currentEditionName = currentEditionName;
+        // Le trim se fait ICI, après la garde. Il vivait dans create(), où il
+        // s'exécutait comme ARGUMENT du constructeur, donc avant elle : un
+        // corps sans édition actuelle levait une NullPointerException et
+        // ressortait en 500, la garde ci-dessus n'étant jamais atteinte.
+        this.currentEditionName = currentEditionName.trim();
         this.desiredEditionName = desiredEditionName;
         this.note = note;
         this.addedAt = addedAt;
@@ -46,7 +50,7 @@ public class EditionUpgradeWish {
 
     public static EditionUpgradeWish create(UUID entityId, String currentEditionName, String desiredEditionName,
                                               String note) {
-        return new EditionUpgradeWish(UUID.randomUUID(), entityId, DefaultOwner.ID, currentEditionName.trim(),
+        return new EditionUpgradeWish(UUID.randomUUID(), entityId, DefaultOwner.ID, currentEditionName,
                 desiredEditionName, note, LocalDate.now());
     }
 
