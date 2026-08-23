@@ -3,6 +3,7 @@ package com.iozycore.api;
 import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.domain.shared.EntityTypeDeletionNotAllowedException;
 import com.iozycore.domain.shared.OwnershipDeletionNotAllowedException;
+import com.iozycore.domain.shared.ReferencedResourceNotFoundException;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(VariantDeletionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleVariantDeletionNotAllowed(VariantDeletionNotAllowedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Une écriture qui désigne une ressource absente : 404, et non le 409 que
+     * produisait la clé étrangère ni le 400 d'un argument invalide. La requête
+     * est bien formée, sa cible a disparu.
+     */
+    @ExceptionHandler(ReferencedResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleReferencedResourceNotFound(
+            ReferencedResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
