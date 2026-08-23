@@ -527,11 +527,87 @@ ne bouge pas — et « Voir l'annonce sur Vinted » reste affiché sur l'analyse
 passée, même si le lien ne mène plus nulle part. Aucune synchronisation, aucun
 suivi de prix.
 
-**Limite connue** : les photos récupérées sont affichées, retirables une à une
-et conservées avec l'analyse, mais **elles ne sont analysées par rien** —
-IozyCore n'a pas de moteur de reconnaissance d'images (`Listing.photoUrls`
-existait en base sans aucun consommateur, et les deux usages de Gemini sont
-textuels). Le contenu du lot reste déclaré à la main.
+**Les photos sont désormais lisibles** : voir 35 ter. Jusqu'au 2026-08-23,
+elles étaient affichées et conservées mais **analysées par rien** — seul leur
+nombre entrait dans les points de vigilance.
+
+### 35 ter. Reconnaître le contenu du lot depuis les photos
+*(2026-08-23 — voir `docs/IMAGE_RECOGNITION.md` pour l'architecture, la sécurité et les limites)*
+
+**Point de départ** : le bloc « Reconnaissance des photos », sous les photos
+récupérées de l'annonce.
+
+```
+annonce lue
+→ photos récupérées
+→ « Analyser les photos »   (geste explicite, jamais automatique)
+→ « Lecture de N photos… »
+→ candidats proposés, avec leur niveau de confiance et l'indice qui les justifie
+→ l'utilisateur coche, corrige un tome, choisit une édition, retire, complète
+→ « Confirmer N éléments »
+→ les éléments rejoignent le lot de l'analyse habituelle
+→ ANALYSER LE LOT (verdict, CollectionFit, doublons, manquants — inchangés)
+```
+
+**Déclenchement explicite, jamais au collage du lien.** L'appel est lent, il a
+un coût, et il envoie les images à un service externe : trois raisons de ne pas
+le faire dans le dos de l'utilisateur.
+
+**Ce que « Confirmer » veut dire** : « voilà ce que contient l'annonce ». Pas
+« j'ai acheté ces mangas ». **Aucun exemplaire n'est ajouté à la collection**,
+et la phrase est écrite sous le bouton. Aucune fiche catalogue, aucune édition,
+aucun tome n'est créé non plus : une reconnaissance ne devient jamais une
+donnée de catalogue toute seule.
+
+**Ce que l'écran distingue**, parce que confondre ces états serait mentir :
+
+| Affichage | Sens |
+|---|---|
+| « Confiance élevée » + série connue | Lu nettement, retrouvé au catalogue — seul cas pré-coché |
+| « Confiance moyenne » / « Piste incertaine » | Proposition à regarder, jamais pré-cochée |
+| « Édition à confirmer » | La série est connue, l'édition n'a pas été lue. Les éditions du catalogue sont proposées, **aucune n'est choisie d'office** |
+| « Reconnu, mais pas encore dans votre catalogue » | Rien n'a été créé ; le parcours d'ajout habituel reste à disposition |
+| « N éléments visibles mais non identifiés » | À ajouter à la main — sans quoi le lot paraîtrait plus petit qu'il n'est |
+| « Lu sur la photo : « … » » | L'écart entre la lecture et le titre du catalogue reste visible |
+| « Vu sur 3 photos (1, 2, 3) » | Le même tome vu plusieurs fois compte **une** fois, mais on voit d'où il vient |
+
+**L'utilisateur garde la main** : décocher, corriger le numéro de tome, choisir
+une autre édition, retirer une ligne, ajouter un élément que la reconnaissance
+a manqué. Une ligne cochée mais incomplète dit ce qui lui manque
+(« Choisissez l'édition pour pouvoir le confirmer ») plutôt que de disparaître
+silencieusement du compteur.
+
+**Branches**, toutes menant au formulaire manuel intact :
+- **aucun moteur configuré** → « La reconnaissance de photos n'est pas
+  configurée sur cette instance. Tout le reste de l'analyse fonctionne
+  normalement. » ;
+- **moteur indisponible** → « La reconnaissance n'a pas pu aboutir. Réessayez,
+  ou ajoutez les tomes à la main. » ;
+- **rien de lisible** → « Rien de lisible sur ces photos. » — ce n'est pas une
+  panne, et cela ne se réessaie pas ;
+- **aucune photo exploitable** → même issue, la saisie manuelle prend le relais.
+
+**Une panne de reconnaissance ne bloque jamais l'analyse.** C'est la règle du
+projet : l'IA améliore IozyCore, IozyCore ne dépend pas de l'IA.
+
+**Sécurité** : le serveur ne télécharge que des photos servies par un hôte
+qu'un provider déclare explicitement (liste distincte de celle des pages),
+HTTPS seul, refus des adresses internes, aucune redirection suivie, type MIME
+image vérifié, 8 photos, 3 Mo par photo, 12 Mo cumulés. Il n'existe aucun
+endpoint de récupération d'image arbitraire. Aucun cookie Vinted, aucune API
+privée.
+
+**Confidentialité** : le moteur retenu pour la V1 est externe — **les images
+sont envoyées au fournisseur**. Rien n'est archivé côté IozyCore, et aucun
+octet d'image n'entre dans les journaux.
+
+**Limite connue** : la V1 n'est validée que sur le **manga**. L'architecture
+accepte d'autres univers, mais le moteur décline poliment ce qui n'a pas été
+vérifié plutôt que de répondre au hasard.
+
+**Écrans** : `PhotoRecognitionPanel`, dans `PurchaseAnalysisPage`
+**Backend** : `POST /api/image-recognition/analyze`
+**Statut** : `COMPLET (Manga)`
 
 ### 35 ter. Comprendre si l'annonce est intéressante POUR MOI
 *(2026-08-22 — voir `docs/LISTING_SOURCES.md` §8)*

@@ -17,6 +17,7 @@ import {
   type ShippingEstimateKind,
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
+import { PhotoRecognitionPanel, type ElementConfirme } from './PhotoRecognitionPanel'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 
 interface QueuedItem {
@@ -214,6 +215,47 @@ export function PurchaseAnalysisPage() {
     setVolumesText('')
   }
 
+  /**
+   * Verse dans le brouillon les éléments que l'utilisateur vient de confirmer
+   * sur les photos.
+   *
+   * Regroupe par série + édition : la reconnaissance rend un élément par tome,
+   * alors que l'analyse raisonne en lots. Fusionne avec un lot déjà présent
+   * plutôt que d'en créer un doublon, et n'ajoute jamais deux fois le même
+   * tome — un tome vu sur trois photos a déjà été consolidé côté serveur, mais
+   * l'utilisateur peut aussi l'avoir saisi à la main juste avant.
+   */
+  function confirmerElementsReconnus(elements: ElementConfirme[]) {
+    if (elements.length === 0) return
+    setItems((prev) => {
+      const suivant = prev.map((item) => ({ ...item, includedVolumes: [...item.includedVolumes] }))
+      for (const element of elements) {
+        const existant = suivant.find(
+          (item) =>
+            item.seriesTitle.toLowerCase() === element.seriesTitle.toLowerCase() &&
+            item.editionName.toLowerCase() === element.editionName.toLowerCase(),
+        )
+        if (existant) {
+          if (!existant.includedVolumes.includes(element.volumeNumber)) {
+            existant.includedVolumes.push(element.volumeNumber)
+          }
+        } else {
+          suivant.push({
+            seriesTitle: element.seriesTitle,
+            editionName: element.editionName,
+            volumesText: String(element.volumeNumber),
+            includedVolumes: [element.volumeNumber],
+          })
+        }
+      }
+      // Tomes triés et texte reconstruit : le lot doit se relire simplement.
+      return suivant.map((item) => {
+        const tomes = [...item.includedVolumes].sort((a, b) => a - b)
+        return { ...item, includedVolumes: tomes, volumesText: tomes.join(', ') }
+      })
+    })
+  }
+
   function removeItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
@@ -396,6 +438,11 @@ export function PurchaseAnalysisPage() {
             <ListingPhotos
               imageUrls={photoUrls}
               onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
+            />
+            <PhotoRecognitionPanel
+              imageUrls={photoUrls}
+              listingTitle={rawTitle}
+              onConfirm={confirmerElementsReconnus}
             />
           </div>
         </section>
