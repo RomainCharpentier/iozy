@@ -93,6 +93,22 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
   const observations = query.data ?? []
   if (observations.length === 0) return null
 
+  // Une même annonce suivie dans le temps produit plusieurs relevés. Alignés
+  // sans distinction, ils se lisent comme plusieurs vendeurs - et c'est
+  // exactement l'illusion que le regroupement par annonce évite côté calcul.
+  // L'écran doit dire la même chose que le moteur.
+  const relevesParAnnonce = new Map<string, number>()
+  for (const observation of observations) {
+    if (observation.listingIdentity) {
+      relevesParAnnonce.set(
+        observation.listingIdentity,
+        (relevesParAnnonce.get(observation.listingIdentity) ?? 0) + 1,
+      )
+    }
+  }
+  const suitUneAnnonceDejaRelevee = (observation: MarketPriceObservationDto) =>
+    observation.listingIdentity !== null && (relevesParAnnonce.get(observation.listingIdentity) ?? 0) > 1
+
   return (
     <div className="flex flex-col gap-1 border-t border-surface2 pt-2">
       <span className="text-[11px] font-semibold tracking-wide text-textDim uppercase">
@@ -104,6 +120,9 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
       {observations.some((observation) => observation.origin === 'LISTING_ANALYSIS') && (
         <span className="text-[11px] text-textDim">
           Les annonces que tu analyses viennent s'ajouter ici, à leur prix affiché hors frais.
+          {relevesParAnnonce.size > 0 &&
+            Array.from(relevesParAnnonce.values()).some((n) => n > 1) &&
+            ' Les relevés d’une même annonce suivie dans le temps comptent pour une seule offre.'}
         </span>
       )}
       <ul className="flex flex-col gap-0.5">
@@ -115,6 +134,9 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
               {observationLabel(observation)}
               {' · '}
               {new Date(observation.observedAt).toLocaleDateString('fr-FR')}
+              {suitUneAnnonceDejaRelevee(observation) && (
+                <span className="text-textDim"> · même annonce</span>
+              )}
             </span>
             <button
               type="button"

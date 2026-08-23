@@ -139,7 +139,12 @@ export function SeriesBreakdownItem({
       <div className="flex items-center gap-1.5 text-xs">
         {marketPrice.basis === 'OBSERVED_MARKET' && (
           <span className="rounded-full bg-accent/15 px-2 py-0.5 text-accentText">
-            Prix observé sur {marketPrice.observationCount} annonce{marketPrice.observationCount > 1 ? 's' : ''}
+            {/* Ce compte est celui des RELEVÉS, pas des annonces : une même
+                offre suivie dans le temps y apparaît plusieurs fois. Le nombre
+                d'annonces indépendantes est celui de la section Prix, qui les
+                regroupe. Les appeler « annonces » ici gonflerait l'échantillon
+                aux yeux du lecteur. */}
+            Prix observé sur {marketPrice.observationCount} relevé{marketPrice.observationCount > 1 ? 's' : ''}
             {marketPrice.observedMedian !== null && ` · médiane ${marketPrice.observedMedian.toFixed(2)} €/tome`}
           </span>
         )}

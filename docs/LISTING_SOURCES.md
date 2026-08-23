@@ -79,6 +79,12 @@ Le montant seul ne suffit pas : c'est **ce qu'il vaut** qui compte, porté par
 | `ESTIMATED` | saisie de l'utilisateur, ou montant reçu sans nature | oui, sans garantie | « 5,90 € estimés » |
 | `UNKNOWN` | rien de lisible **et** aucun montant | **non** — surtout pas zéro | « non communiquée » |
 
+Un **zéro sans nature** vaut `UNKNOWN`, pas `ESTIMATED` : il ne se distingue pas
+d'un champ laissé vide, et le lire « 0,00 € estimés » affirmerait une livraison
+gratuite que personne n'a constatée — une livraison réellement offerte arrive
+avec `FREE`. Ce cas concerne surtout la relecture des analyses antérieures à
+cette nature, dont le port valait zéro par défaut.
+
 `ESTIMATED` existe pour une raison précise : sans lui, un port saisi à la main
 tombait dans `UNKNOWN`, donc l'écran annonçait « livraison non communiquée »
 juste après que l'utilisateur venait de la communiquer — tout en comptant le
@@ -462,6 +468,34 @@ sur celle-là.
 Les analyses déjà enregistrées ne sont **pas** converties en relevés. Certaines
 s'appuyaient sur une estimation IA, d'autres sur des références aujourd'hui
 invalides. Seuls les nouveaux flux alimentent le journal.
+
+Leur **affichage**, en revanche, ne ment plus. Une analyse dont la référence n'a
+pas `OBSERVED_COMPARABLES` pour source — le cas de toutes celles antérieures à
+ces règles — n'affiche plus « Référence X € · confiance bonne » mais
+« Estimation utilisée lors de cette analyse : X € … ce n'est pas un prix de
+marché observé ». Le verdict enregistré reste celui rendu ce jour-là : on
+corrige la façon de présenter la donnée, jamais la donnée ni le verdict.
+
+#### Compter des annonces, pas des lignes — partout
+
+`MarketPrice.observationCount`, affiché dans le détail par série, est un compte
+de **relevés** : il alimente le coût pour compléter et ne passe pas par le
+regroupement par annonce. Il se lit donc « Prix observé sur N relevés ». Le
+nombre d'**annonces** indépendantes est celui de la section Prix
+(`referenceSampleSize`), et lui seul. Dans « Éditions de référence », les
+relevés d'une même annonce suivie dans le temps portent la mention « même
+annonce » pour qu'ils ne se lisent pas comme plusieurs vendeurs.
+
+#### Ce que la négociation utilise
+
+Le moteur de négociation ne s'appuie **pas** sur `MarketReference` mais sur la
+*juste valeur* par série (`MarketPrice`), qui peut venir d'un prix observé,
+d'une estimation IA ou du prix neuf catalogue. Une offre chiffrée peut donc
+apparaître alors que la référence marché est `LOW` ou `UNAVAILABLE` : ce sont
+deux bases distinctes. La base employée est affichée sans ambiguïté dans le
+détail par série — « Prix observé sur N relevés », « Estimation IA — non
+vérifiée », « Estimation théorique » — et le texte de recommandation parle de
+« valeur estimée », jamais de prix de marché.
 
 ### Points de vigilance : des signaux, pas un verdict
 

@@ -135,7 +135,10 @@ export function ListingAssessmentCard({
                 {euros(fit.pricePerItem)} / élément
                 {/* Le chiffre qui décide vraiment : sans les doublons, le prix
                     affiché flatte l'affaire. */}
-                {fit.pricePerUsefulItem !== null && (
+                {/* Sans aucun doublon, les deux montants sont identiques :
+                    les afficher tous les deux n'apprend rien et noie le chiffre
+                    qui compte quand il y en a un. */}
+                {fit.pricePerUsefulItem !== null && fit.pricePerUsefulItem !== fit.pricePerItem && (
                   <>
                     {' · '}
                     <span className="font-semibold text-textPrimary">
@@ -173,16 +176,18 @@ export function ListingAssessmentCard({
                 comparables existent parfois, en nombre insuffisant pour
                 trancher, et le dire évite de renvoyer l'utilisateur chercher
                 une donnée qu'il a déjà saisie. */}
-            {assessment.referenceConfidence === 'LOW'
-              ? `Seulement ${assessment.referenceSampleSize} annonce${
+            {assessment.referenceConfidence === 'LOW' && assessment.referenceSampleSize > 0
+              ? `${assessment.referenceSampleSize} annonce${
                   assessment.referenceSampleSize > 1 ? 's' : ''
-                } comparable${assessment.referenceSampleSize > 1 ? 's' : ''}${
-                  assessment.referenceSampleSize > 1 ? ', et trop dispersées' : ''
-                } — pas de quoi situer ce prix. Un ou deux relevés de plus suffiraient.`
+                } comparable${assessment.referenceSampleSize > 1 ? 's' : ''} observée${
+                  assessment.referenceSampleSize > 1 ? 's' : ''
+                }${
+                  assessment.referenceSampleSize > 1 ? ', trop dispersées' : ''
+                } — référence insuffisante pour juger le prix. Un ou deux relevés de plus suffiraient.`
               : (MANQUES[assessment.referenceGap] ??
                 'Pas assez de prix relevés comparables pour situer cette offre.')}
           </p>
-        ) : (
+        ) : assessment.referenceSource === 'OBSERVED_COMPARABLES' ? (
           <p className="text-xs text-textDim">
             Référence {euros(assessment.referencePrice)}
             {assessment.deviationPercent !== null &&
@@ -190,16 +195,30 @@ export function ListingAssessmentCard({
             {' · confiance '}
             {CONFIANCES[assessment.referenceConfidence] ?? assessment.referenceConfidence}
             {/* La taille de l'échantillon décide de ce que vaut la médiane :
-                la cacher rendrait « confiance bonne » invérifiable. */}
+                la cacher rendrait « confiance bonne » invérifiable. Ce nombre
+                compte des ANNONCES distinctes, pas des relevés : une même offre
+                suivie plusieurs fois n'en vaut qu'une. */}
             {assessment.referenceSampleSize > 0 &&
               ` · ${assessment.referenceSampleSize} annonce${assessment.referenceSampleSize > 1 ? 's' : ''} comparable${
                 assessment.referenceSampleSize > 1 ? 's' : ''
               }`}
             {/* Dire d'où vient le chiffre, toujours : ce sont des prix relevés
                 dans IozyCore, pas des transactions réelles. */}
-            {assessment.referenceSource === 'OBSERVED_COMPARABLES'
-              ? ' — tes prix relevés sur des lots de même forme et de taille voisine, pas des ventes conclues.'
-              : ' — provenance non enregistrée pour cette analyse.'}
+            {' — tes prix relevés sur des lots de même forme et de taille voisine, pas des ventes conclues.'}
+          </p>
+        ) : (
+          /* Analyse antérieure aux règles actuelles. Son chiffre venait souvent
+             d'une estimation - parfois d'un modèle de langage - que rien ne
+             distinguait alors d'un marché observé. Le verdict enregistré reste
+             celui qui a été rendu ce jour-là : on ne réécrit pas le passé. Mais
+             on cesse de présenter ce chiffre comme une référence de marché, et
+             surtout de lui attribuer une « confiance bonne ». */
+          <p className="text-xs text-warning">
+            Estimation utilisée lors de cette analyse : {euros(assessment.referencePrice)}
+            {assessment.deviationPercent !== null &&
+              ` · ${assessment.deviationPercent > 0 ? '+' : ''}${assessment.deviationPercent} %`}
+            . Sa provenance n'était pas enregistrée à l'époque — ce n'est pas un prix de marché observé, et le
+            verdict ci-dessus est celui qui avait été rendu alors.
           </p>
         )}
       </section>

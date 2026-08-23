@@ -166,6 +166,21 @@ class PriceSemanticsTest {
     }
 
     @Test
+    void un_zero_sans_nature_reste_inconnu_et_ne_se_dit_jamais_estime() {
+        // Le cas des analyses anterieures a cette nature : le port valait zero
+        // par defaut, sans que personne n'ait rien constate. « 0,00 EUR
+        // estimes » affirmerait une livraison gratuite que nul n'a dite ; une
+        // livraison reellement offerte arrive avec FREE.
+        Listing relu = sansNature(BigDecimal.ZERO);
+
+        assertThat(relu.shippingKind()).isEqualTo(ShippingEstimateKind.UNKNOWN);
+        assertThat(relu.acquisitionCostIncludesShipping()).isFalse();
+        // FREE, lui, reste un vrai zero constate.
+        assertThat(annonce(new BigDecimal("10"), BigDecimal.ZERO, ShippingEstimateKind.FREE,
+                new BigDecimal("1.20")).acquisitionCostIncludesShipping()).isTrue();
+    }
+
+    @Test
     void un_montant_recu_sans_nature_est_estime_pas_ferme() {
         // Personne n'a affirmé que ce tarif était celui qui serait facturé :
         // le nommer EXACT donnerait à un nombre reçu l'autorité d'un tarif lu.
