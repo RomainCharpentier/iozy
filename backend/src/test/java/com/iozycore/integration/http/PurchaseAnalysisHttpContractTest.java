@@ -371,13 +371,19 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         // Découvert par cette passe : seule la clé étrangère protégeait
         // manga_edition.entity_id, et le client recevait « Cette donnée entre en
         // conflit avec une donnée existante » - alors que la Série est ABSENTE.
-        // 404 : la requête est bien formée, c'est sa cible qui n'existe pas.
+        //
+        // 400 et non 404 : la ressource visée (POST /editions) existe, c'est la
+        // référence fournie dans le CORPS qui est invalide - même convention que
+        // /experiences, /wishlist, /relationships et /edition-upgrade-wishes. Le
+        // message compte autant que le status : le client remplace celui de tout
+        // 404 par un repli générique, si bien qu'en 404 « Série introuvable »
+        // n'atteindrait jamais l'écran.
         mockMvc.perform(post(BASE + "/editions").contentType("application/json")
                         .content("{\"entityId\":\"" + ABSENT + "\",\"seriesTitle\":\"Une série\","
                                 + "\"editionName\":\"Standard\",\"editionTier\":\"STANDARD\","
                                 + "\"outOfPrint\":false,\"betterEditionAnnounced\":false}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").isNotEmpty());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("introuvable")));
 
         // Et rien n'a été écrit au passage.
         assertThat(mangaEditionRepository.findAll()).hasSize((int) avant);
