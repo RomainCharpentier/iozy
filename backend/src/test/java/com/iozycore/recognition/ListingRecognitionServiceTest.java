@@ -408,7 +408,10 @@ class ListingRecognitionServiceTest {
             if (rawTitle == null || rawTitle.isBlank()) {
                 throw new IllegalArgumentException("Le titre de la série est requis");
             }
-            String titre = rawTitle.trim();
+            // La doublure applique la MÊME normalisation que le vrai matcher :
+            // s'en dispenser la ferait diverger du comportement réel, et les
+            // tests vérifieraient alors une chose qui n'existe pas.
+            String titre = com.iozycore.purchaseanalysis.SeriesTitleNormalizer.normalize(rawTitle);
             return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
         }
     }

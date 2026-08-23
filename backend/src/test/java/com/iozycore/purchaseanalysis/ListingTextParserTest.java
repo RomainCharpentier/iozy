@@ -124,6 +124,14 @@ class ListingTextParserTest {
         assertThat(ListingTextParser.parse("Manga 2019 édition 20 euros", null).volumeNumbers()).isEmpty();
     }
 
+    @Test
+    void an_inclusive_range_counts_both_bounds() {
+        // « 6 à 10 » veut dire 6, 7, 8, 9 ET 10 : cinq tomes. Aucune règle ne
+        // doit se fonder sur un nombre annoncé ailleurs dans l'annonce.
+        assertThat(ListingTextParser.parse("Hell's Paradise tomes 6 à 10", null).volumeNumbers())
+                .containsExactly(6, 7, 8, 9, 10);
+    }
+
     // --------------------------------------------------------- Titre de série
 
     @Test

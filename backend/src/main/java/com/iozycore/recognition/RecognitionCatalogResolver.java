@@ -82,7 +82,13 @@ public class RecognitionCatalogResolver {
         if (serie.knownEntityId() == null) {
             // Reconnu, mais pas encore au catalogue. On le dit, on ne crée rien :
             // l'utilisateur a un parcours d'ajout, et c'est le sien.
-            return new ResolvedItem(item, CatalogStatus.NOT_IN_CATALOG, null, null, List.of(),
+            //
+            // Le titre retenu reste celui que SeriesMatcher a normalisé, pas le
+            // brut : « 🔥 Hell's Paradise » entrerait sinon tel quel dans le lot
+            // puis dans l'analyse enregistrée. La décoration du vendeur n'a pas
+            // à devenir le nom d'une œuvre - et le texte d'origine reste lisible
+            // dans seriesTitleAsRead.
+            return new ResolvedItem(item, CatalogStatus.NOT_IN_CATALOG, null, serie.title(), List.of(),
                     preselectable(item, CatalogStatus.NOT_IN_CATALOG));
         }
 

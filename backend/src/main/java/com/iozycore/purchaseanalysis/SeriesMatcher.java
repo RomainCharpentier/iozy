@@ -36,7 +36,13 @@ public class SeriesMatcher {
         if (rawTitle == null || rawTitle.isBlank()) {
             throw new IllegalArgumentException("Le titre de la série est requis");
         }
-        String trimmedTitle = rawTitle.trim();
+        // La décoration d'annonce est retirée ICI plutôt que chez chaque
+        // appelant : c'est le point de passage unique vers le catalogue, donc
+        // le seul endroit où une seconde normalisation ne risque pas d'en
+        // contredire une première. « 🔥 Hell's Paradise » et « Hell's Paradise »
+        // désignent la même œuvre, quelle que soit la source qui les propose -
+        // texte d'annonce, photo, ou saisie manuelle.
+        String trimmedTitle = SeriesTitleNormalizer.normalize(rawTitle);
         Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
         if (mangaType.isEmpty()) {
             return new MangaSeries(trimmedTitle, null);
