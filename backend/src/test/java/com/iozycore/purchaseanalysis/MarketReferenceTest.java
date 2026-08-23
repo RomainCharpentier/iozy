@@ -321,7 +321,7 @@ class MarketReferenceTest {
         assertThat(MarketReferenceConfidence.HIGH.allowsPositioning()).isTrue();
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new MarketReference(
-                        null, MarketReferenceConfidence.HIGH, 3, 3, MarketReferenceSource.OBSERVED_COMPARABLES,
+                        null, MarketReferenceConfidence.HIGH, 3, 3, 3, MarketReferenceSource.OBSERVED_COMPARABLES,
                         LotShape.PARTIAL_LOT, 10, AUJOURD_HUI, ReferenceGap.NONE))
                 .isInstanceOf(IllegalArgumentException.class);
     }

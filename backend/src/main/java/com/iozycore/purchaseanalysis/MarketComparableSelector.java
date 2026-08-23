@@ -4,7 +4,10 @@ import com.iozycore.domain.catalog.MangaEdition;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Décide si deux offres sont <b>le même produit</b>, avant de comparer leurs
@@ -30,6 +33,11 @@ import java.util.List;
  *       14 ; un lot de 4, non.</li>
  *   <li><b>Fraîcheur</b> : au-delà de {@value #ANCIENNETE_MAX_MOIS} mois, un
  *       relevé décrit un autre marché et sort.</li>
+ *   <li><b>Une annonce, un comparable</b> : les relevés issus d'une même
+ *       annonce sont regroupés, et seul le plus récent est retenu. Trois
+ *       analyses de la même URL, ce n'est pas trois vendeurs.</li>
+ *   <li><b>L'annonce en cours d'évaluation est exclue</b> : une offre ne se
+ *       compare pas à elle-même.</li>
  * </ol>
  *
  * <h2>Ce qui n'est délibérément pas une règle</h2>
@@ -67,7 +75,14 @@ public final class MarketComparableSelector {
      * @param examined nombre de relevés examinés : dire « 3 relevés existent, aucun comparable »
      *                 vaut mieux que « pas de données », qui serait faux
      */
-    public record Selection(List<MarketPriceObservation> retained, int examined, ReferenceGap gap) {
+    /**
+     * @param retained      un relevé par annonce - ce sont les comparables INDEPENDANTS
+     * @param examined      relevés examinés avant filtrage
+     * @param temporalCount relevés comparables avant regroupement par annonce : cinq relevés
+     *                      d'une même offre suivie dans le temps font toujours un comparable
+     */
+    public record Selection(List<MarketPriceObservation> retained, int examined, int temporalCount,
+                            ReferenceGap gap) {
         public Selection {
             retained = retained == null ? List.of() : List.copyOf(retained);
         }
@@ -85,22 +100,41 @@ public final class MarketComparableSelector {
      */
     public static Selection selectFor(MangaEdition edition, int targetVolumeCount,
                                        List<MarketPriceObservation> candidates, LocalDate today) {
+        return selectFor(edition, targetVolumeCount, candidates, today, null);
+    }
+
+    /**
+     * @param currentListing identité de l'annonce en cours d'évaluation, exclue de ses propres
+     *                       comparables ; {@code null} quand aucune annonce précise n'est évaluée
+     */
+    public static Selection selectFor(MangaEdition edition, int targetVolumeCount,
+                                       List<MarketPriceObservation> candidates, LocalDate today,
+                                       String currentListing) {
         if (edition == null) {
-            return new Selection(List.of(), 0, ReferenceGap.EDITION_NOT_IN_CATALOGUE);
+            return new Selection(List.of(), 0, 0, ReferenceGap.EDITION_NOT_IN_CATALOGUE);
         }
         if (candidates == null || candidates.isEmpty()) {
-            return new Selection(List.of(), 0, ReferenceGap.NO_OBSERVATION);
+            return new Selection(List.of(), 0, 0, ReferenceGap.NO_OBSERVATION);
         }
 
         LotShape formeCible = LotShape.of(targetVolumeCount, edition.totalVolumes());
         if (!formeCible.isComparable()) {
-            return new Selection(List.of(), candidates.size(), ReferenceGap.NO_COMPARABLE_SHAPE);
+            return new Selection(List.of(), candidates.size(), 0, ReferenceGap.NO_COMPARABLE_SHAPE);
         }
 
         List<MarketPriceObservation> memeProduit = new ArrayList<>();
         boolean ecarteUniquementParAge = false;
+        boolean seuleLAnnonceCourante = false;
 
         for (MarketPriceObservation observation : candidates) {
+            // Une annonce ne se compare pas a elle-meme. Le cas se produit des
+            // qu'on reanalyse une URL deja analysee : sans cette exclusion, la
+            // reference vaudrait le prix demande, et n'importe quelle annonce se
+            // dirait alors "au prix du marche" - le sien.
+            if (currentListing != null && currentListing.equals(observation.listingIdentity())) {
+                seuleLAnnonceCourante = true;
+                continue;
+            }
             int tomes = nombreDeTomes(observation, edition);
             LotShape forme = LotShape.of(tomes, edition.totalVolumes());
             if (forme != formeCible || !tailleCompatible(formeCible, tomes, targetVolumeCount)) {
@@ -116,11 +150,54 @@ public final class MarketComparableSelector {
         }
 
         if (memeProduit.isEmpty()) {
-            return new Selection(List.of(), candidates.size(),
-                    ecarteUniquementParAge ? ReferenceGap.ONLY_STALE_OBSERVATIONS : ReferenceGap.NO_COMPARABLE_SHAPE);
+            // Nommer la BONNE absence. « Aucun lot comparable » enverrait relever
+            // un prix de plus sur une annonce qu'on a déjà relevée ; ce qui
+            // manque ici, c'est une AUTRE offre.
+            return new Selection(List.of(), candidates.size(), 0, manqueA(ecarteUniquementParAge, seuleLAnnonceCourante));
         }
-        return new Selection(memeProduit, candidates.size(), ReferenceGap.NONE);
+        return new Selection(unParAnnonce(memeProduit), candidates.size(), memeProduit.size(), ReferenceGap.NONE);
     }
+
+    /**
+     * L'absence la plus précise que la sélection permette d'affirmer. L'ordre
+     * compte : si l'annonce courante a été écartée, c'est l'explication la plus
+     * proche de ce que voit l'utilisateur.
+     */
+    private static ReferenceGap manqueA(boolean ecarteParAge, boolean seuleLAnnonceCourante) {
+        if (seuleLAnnonceCourante) {
+            return ReferenceGap.ONLY_CURRENT_LISTING;
+        }
+        return ecarteParAge ? ReferenceGap.ONLY_STALE_OBSERVATIONS : ReferenceGap.NO_COMPARABLE_SHAPE;
+    }
+
+    /**
+     * Réduit les relevés à <b>un par annonce</b>, en gardant le plus récent.
+     *
+     * <h2>Le piège que ça supprime</h2>
+     * Une même annonce suivie dans le temps produit plusieurs relevés : c'est
+     * une information de prix utile, et elle reste en base. Mais un échantillon
+     * compte des <b>offres indépendantes</b>, pas des lignes. Sans ce
+     * regroupement, analyser cinq fois la même URL suffirait à décrocher une
+     * confiance HIGH sur un seul vendeur - un chiffre précis tiré d'une seule
+     * observation du marché.
+     * <p>
+     * Le plus récent l'emporte parce qu'il décrit l'état actuel de cette offre :
+     * une annonce passée de 70 à 60 EUR vaut 60 EUR aujourd'hui. À date égale,
+     * le relevé enregistré en dernier tranche.
+     */
+    private static List<MarketPriceObservation> unParAnnonce(List<MarketPriceObservation> observations) {
+        Map<String, MarketPriceObservation> parAnnonce = new LinkedHashMap<>();
+        for (MarketPriceObservation observation : observations) {
+            parAnnonce.merge(observation.comparableKey(), observation,
+                    (existant, candidat) -> PLUS_RECENT.compare(candidat, existant) > 0 ? candidat : existant);
+        }
+        return List.copyOf(parAnnonce.values());
+    }
+
+    /** Le relevé qui décrit le mieux l'état actuel d'une offre. */
+    private static final Comparator<MarketPriceObservation> PLUS_RECENT =
+            Comparator.comparing(MarketPriceObservation::observedAt)
+                    .thenComparing(MarketPriceObservation::createdAt);
 
     /**
      * Un relevé sans portée couvre l'édition entière : son nombre de tomes est

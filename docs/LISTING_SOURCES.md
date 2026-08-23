@@ -370,6 +370,99 @@ T.1 sort par la forme, les deux lots de 4 par la taille, et le résultat est
 **Ce sont des prix demandés et relevés, jamais des transactions conclues.**
 IozyCore n'a aucune donnée de vente réelle, et l'interface le rappelle.
 
+### D'où viennent les prix relevés
+
+Une référence saine mais toujours `UNAVAILABLE` n'aide personne. Les relevés ne
+pouvaient jusqu'ici naître que d'une saisie manuelle depuis la fiche d'une
+édition — un geste délibéré, rarement fait. L'usage normal de l'application les
+nourrit désormais aussi.
+
+#### Ce qui devient un relevé, et quand
+
+**Une annonce réellement analysée**, au moment où l'analyse est enregistrée —
+pas quand l'URL est collée. À ce stade l'utilisateur a corrigé la série, choisi
+l'édition et validé la composition : le relevé porte sur un produit confirmé
+plutôt que sur un brouillon.
+
+Le prix enregistré est **celui de l'annonce, hors frais**. Protection acheteur
+et livraison relèvent du coût d'acquisition de l'acheteur, pas de ce que vaut
+le produit : `10 €` sur une annonce à `14,03 €` frais compris.
+
+Quatre refus, tous silencieux — mieux vaut `NO_OBSERVATION` qu'un relevé mal
+rattaché :
+
+| Cas | Pourquoi rien n'est créé |
+|---|---|
+| Lot multi-séries | le prix couvre l'ensemble ; le répartir au prorata fabriquerait un prix que personne n'a demandé |
+| Édition non identifiée | « Lot manga divers » ne se rattache à aucun produit |
+| Composition inconnue | sans nombre de tomes, la forme du lot est indéterminable, donc le relevé incomparable |
+| Prix nul | rien à observer |
+
+Et deux interdits absolus : une **estimation IA** et un **prix neuf catalogue**
+ne deviennent jamais un relevé de marché. Le premier est une supposition, le
+second décrit un autre marché. Tous deux gardent leurs usages ailleurs — coût
+pour compléter, négociation, verdict global — sans jamais grossir l'échantillon.
+
+#### Provenance
+
+`MarketObservationOrigin` : `MANUAL_ENTRY` ou `LISTING_ANALYSIS`. Les deux
+valent autant comme comparables — ce sont des prix vus. La distinction sert à
+savoir ce qu'on regarde quand un chiffre surprend, pas à hiérarchiser. La
+colonne `source` existait depuis V4, écrite en dur et jamais relue : V18 la
+renomme `origin` et lui donne enfin un sens.
+
+S'y ajoutent `volume_count` (fait autorité sur la plage : un lot 1-4 + 7-10
+compte 8 tomes, pas 10), `listing_identity` et `source_url`.
+
+#### Identité d'une annonce, et déduplication
+
+`ListingIdentity`, par ordre de préférence :
+
+1. l'**identifiant de la source** — sur Vinted, lu dans la page, indépendant du
+   slug : deux liens vers la même annonce donnent le même identifiant ;
+2. sinon l'**URL normalisée** — hôte en minuscules, sans `www.`, sans
+   paramètres de suivi, sans ancre ni barre finale ;
+3. sinon **rien**. Une saisie manuelle n'a pas d'annonce derrière elle : chaque
+   relevé compte alors pour un comparable, ce qui est le sens même d'un relevé
+   saisi à la main. Aucune déduplication forte n'est possible dans ce cas, et
+   c'est assumé.
+
+À l'écriture : si le dernier relevé connu de cette annonce affichait **déjà ce
+prix**, rien n'est écrit — il ne s'est rien passé sur le marché. Un prix
+**différent** crée une ligne : une annonce passée de 70 à 60 € dit quelque
+chose.
+
+#### Un échantillon compte des vendeurs, pas des lignes
+
+C'est le point qui rend l'ingestion sûre. À la lecture, les relevés comparables
+sont **regroupés par identité d'annonce**, et seul le plus récent est retenu :
+il décrit l'état actuel de cette offre.
+
+| | Lignes en base | `temporalCount` | `sampleSize` |
+|---|---|---|---|
+| Une annonce suivie 5 fois | 5 | 5 | **1** |
+| Trois annonces distinctes | 3 | 3 | **3** |
+| A suivie 3 fois + B | 4 | 4 | **2** |
+
+`sampleSize` est donc le nombre d'**offres indépendantes**, et c'est lui qui
+détermine la confiance. Recharger une page ne fera jamais monter une référence
+à `HIGH`.
+
+#### Une annonce ne se compare pas à elle-même
+
+L'identité est établie **avant** le calcul et les relevés qui en proviennent
+sont écartés de sa propre référence. Sans quoi, dès la deuxième analyse d'une
+URL, la référence vaudrait le prix demandé et toute annonce se dirait « au prix
+du marché » — le sien. Quand c'était le seul comparable, l'absence est nommée
+`ONLY_CURRENT_LISTING` : il manque une **autre** offre, pas un relevé de plus
+sur celle-là.
+
+#### Historique non migré
+
+Les analyses déjà enregistrées ne sont **pas** converties en relevés. Certaines
+s'appuyaient sur une estimation IA, d'autres sur des références aujourd'hui
+invalides. Seuls les nouveaux flux alimentent le journal.
+
 ### Points de vigilance : des signaux, pas un verdict
 
 Détection déterministe et testable : photos absentes ou trop peu nombreuses,

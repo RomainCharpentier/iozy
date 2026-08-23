@@ -83,11 +83,28 @@ public class PurchaseAnalysisService {
                                              Condition itemConditionOverride) {
     }
 
+    /**
+     * @param externalListingId identifiant de l'annonce chez la source, quand la lecture du lien
+     *                          l'a donné. Sert uniquement à reconnaître deux analyses de la MEME
+     *                          annonce (voir {@link ListingIdentity}) - jamais affiché, jamais
+     *                          conservé dans l'analyse elle-même.
+     */
     public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description, BigDecimal askingPrice,
                                          BigDecimal shippingFee, com.iozycore.listing.ShippingEstimateKind shippingKind,
                                          BigDecimal buyerProtectionFee, Condition condition,
                                          boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
-                                         List<String> photoUrls) {
+                                         List<String> photoUrls, String externalListingId) {
+
+        /** Appelants qui n'ont pas d'identifiant de source - saisie entierement manuelle, et la plupart des tests. */
+        public AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description,
+                                      BigDecimal askingPrice, BigDecimal shippingFee,
+                                      com.iozycore.listing.ShippingEstimateKind shippingKind,
+                                      BigDecimal buyerProtectionFee, Condition condition,
+                                      boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
+                                      List<String> photoUrls) {
+            this(platform, url, rawTitle, description, askingPrice, shippingFee, shippingKind, buyerProtectionFee,
+                    condition, conditionAppliesToContainer, items, photoUrls, null);
+        }
     }
 
     @Transactional
@@ -139,9 +156,93 @@ public class PurchaseAnalysisService {
         // Les envies sont lues ICI : le moteur reste un domaine pur, il recoit
         // un nombre. Vouloir une oeuvre n'est pas la posseder - ce compte ne
         // retire donc rien aux manquants, il qualifie leur interet.
+        // L'identite est etablie AVANT le calcul : elle sert d'abord a exclure
+        // de la reference les releves issus de cette meme annonce, analysee une
+        // fois deja. Sans quoi une reanalyse se comparerait a son propre prix.
+        String identiteAnnonce = ListingIdentity.of(command.platform(), command.externalListingId(), command.url());
+
         PurchaseAnalysis analysis = engine.analyze(listing, itemContexts, preferences,
-                comptePresentDansLesEnvies(itemContexts));
-        return purchaseAnalysisRepository.save(analysis);
+                comptePresentDansLesEnvies(itemContexts), identiteAnnonce);
+        PurchaseAnalysis enregistree = purchaseAnalysisRepository.save(analysis);
+
+        // APRES seulement : le prix demande rejoint les releves de marche. Le
+        // moment compte - a ce stade l'utilisateur a corrige la serie, choisi
+        // l'edition et valide la composition, donc le releve porte sur un
+        // produit reellement identifie plutot que sur un brouillon.
+        releverLePrixDemande(enregistree, identiteAnnonce);
+        return enregistree;
+    }
+
+    /**
+     * Retient le prix demande d'une annonce analysee comme un prix de marche.
+     *
+     * <h2>Ce qui est enregistre, et ce qui ne l'est pas</h2>
+     * Le prix de l'annonce, <b>hors frais</b>. Protection acheteur et livraison
+     * appartiennent au cout d'acquisition de l'acheteur, pas a ce que vaut le
+     * produit : les inclure ici comparerait plus tard des annonces hors frais a
+     * des totaux frais compris.
+     *
+     * <h2>Quatre refus</h2>
+     * <ul>
+     *   <li><b>Lot multi-series</b> : le prix couvre l'ensemble, et le repartir
+     *       au prorata fabriquerait un prix que personne n'a jamais demande.</li>
+     *   <li><b>Edition non identifiee</b> : un releve doit se rattacher a un
+     *       produit. « Lot manga divers » ne produit rien - mieux vaut aucune
+     *       reference qu'une reference mal rattachee.</li>
+     *   <li><b>Composition inconnue</b> : sans nombre de tomes, la forme du lot
+     *       est indeterminable, donc le releve incomparable.</li>
+     *   <li><b>Prix nul</b> : rien a observer.</li>
+     * </ul>
+     * Ni estimation IA ni prix neuf catalogue n'arrivent jamais ici : cette
+     * methode ne lit que le prix demande de l'annonce.
+     */
+    private void releverLePrixDemande(PurchaseAnalysis analysis, String identiteAnnonce) {
+        Listing listing = analysis.listing();
+        if (analysis.itemBreakdown().size() != 1 || listing.askingPrice().signum() <= 0) {
+            return;
+        }
+        ItemAnalysis item = analysis.itemBreakdown().get(0);
+        MangaEdition edition = item.matchedEdition();
+        Set<Integer> tomes = item.item().includedVolumes();
+        if (edition == null || tomes.isEmpty()) {
+            return;
+        }
+        if (!LotShape.of(tomes.size(), edition.totalVolumes()).isComparable()) {
+            return;
+        }
+
+        LocalDate observeLe = LocalDate.ofInstant(analysis.requestedAt(), java.time.ZoneId.systemDefault());
+        // Rien de neuf a dire : la meme annonce, au meme prix, deja relevee. Une
+        // ligne de plus ne serait pas une observation supplementaire du marche.
+        if (identiteAnnonce != null && dejaReleveAuMemePrix(edition.id(), identiteAnnonce, listing.askingPrice())) {
+            return;
+        }
+
+        Condition etat = item.item().itemConditionOverride() != null
+                ? item.item().itemConditionOverride()
+                : listing.condition();
+        // La portee reste la plage couverte, pour l'affichage ; c'est
+        // volumeCount qui fait foi, un lot pouvant etre discontinu.
+        VolumeRange portee = new VolumeRange(java.util.Collections.min(tomes), java.util.Collections.max(tomes));
+        marketPriceObservationRepository.save(MarketPriceObservation.fromAnalyzedListing(
+                edition.id(), portee, tomes.size(), listing.askingPrice(), listing.platform(),
+                etat, observeLe, identiteAnnonce, listing.url()));
+    }
+
+    /**
+     * Vrai quand le dernier releve connu de cette annonce affichait deja ce
+     * prix. Un prix different, lui, est enregistre : une annonce passee de 70 a
+     * 60 EUR dit quelque chose du marche, et l'historique le conserve - sans
+     * pour autant compter pour deux vendeurs, le regroupement par annonce s'en
+     * chargeant a la lecture.
+     */
+    private boolean dejaReleveAuMemePrix(UUID editionId, String identiteAnnonce, BigDecimal prix) {
+        return marketPriceObservationRepository.findByEditionId(editionId).stream()
+                .filter(observation -> identiteAnnonce.equals(observation.listingIdentity()))
+                .max(java.util.Comparator.comparing(MarketPriceObservation::observedAt)
+                        .thenComparing(MarketPriceObservation::createdAt))
+                .filter(dernier -> dernier.observedPrice().compareTo(prix) == 0)
+                .isPresent();
     }
 
     /**

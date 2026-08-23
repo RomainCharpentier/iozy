@@ -27,13 +27,18 @@ import java.util.List;
  * marché » : voir {@link MarketReferenceSource}.
  *
  * @param price          référence pour le lot évalué entier, hors frais - {@code null} si indisponible
- * @param sampleSize     comparables RETENUS ; pour un lot multi-séries, celui de la série la moins documentée
+ * @param sampleSize     annonces comparables INDEPENDANTES ; pour un lot multi-séries, celui de la
+ *                       série la moins documentée. Jamais un nombre de lignes en base : cinq relevés
+ *                       d'une même offre suivie dans le temps font un comparable, pas cinq.
+ * @param temporalCount  relevés comparables avant regroupement par annonce - l'écart avec
+ *                       {@code sampleSize} dit combien d'offres ont été suivies plusieurs fois
  * @param examinedCount  relevés examinés avant filtrage - dire « 3 existent, 0 comparable » plutôt que « aucune donnée »
  * @param spreadPercent  écart haut/bas rapporté à la médiane, {@code null} sous deux comparables
  */
 public record MarketReference(BigDecimal price, MarketReferenceConfidence confidence, int sampleSize,
-                               int examinedCount, MarketReferenceSource source, LotShape comparedShape,
-                               Integer spreadPercent, LocalDate mostRecentObservation, ReferenceGap gap) {
+                               int temporalCount, int examinedCount, MarketReferenceSource source,
+                               LotShape comparedShape, Integer spreadPercent, LocalDate mostRecentObservation,
+                               ReferenceGap gap) {
 
     /** Au-delà, les comparables racontent des choses trop différentes pour qu'on en tire une médiane sûre. */
     static final int DISPERSION_FORTE_PERCENT = 60;
@@ -52,7 +57,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
 
     /** Aucune référence, et la raison exacte de son absence. */
     public static MarketReference unavailable(ReferenceGap gap, int examinedCount) {
-        return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, examinedCount,
+        return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, 0, examinedCount,
                 MarketReferenceSource.NONE, null, null, null, gap);
     }
 
@@ -99,8 +104,8 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
         BigDecimal prixDuLot = mediane.multiply(BigDecimal.valueOf(targetVolumeCount))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return new MarketReference(prixDuLot, confiance, parTome.size(), selection.examined(),
-                MarketReferenceSource.OBSERVED_COMPARABLES,
+        return new MarketReference(prixDuLot, confiance, parTome.size(), selection.temporalCount(),
+                selection.examined(), MarketReferenceSource.OBSERVED_COMPARABLES,
                 LotShape.of(targetVolumeCount, edition.totalVolumes()), dispersion, plusRecent, ReferenceGap.NONE);
     }
 
@@ -155,6 +160,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
         BigDecimal total = BigDecimal.ZERO;
         MarketReferenceConfidence pire = MarketReferenceConfidence.HIGH;
         int echantillonMin = Integer.MAX_VALUE;
+        int temporels = 0;
         int examines = 0;
         LotShape forme = parSerie.size() == 1 ? parSerie.get(0).comparedShape() : null;
         Integer dispersionMax = null;
@@ -162,9 +168,10 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
 
         for (MarketReference reference : parSerie) {
             examines += reference.examinedCount();
+            temporels += reference.temporalCount();
             if (reference.price() == null || !reference.confidence().allowsPositioning()) {
                 // Une série sans référence utilisable suffit à disqualifier le lot.
-                return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, examines,
+                return new MarketReference(null, MarketReferenceConfidence.UNAVAILABLE, 0, 0, examines,
                         MarketReferenceSource.NONE, null, null, null, ReferenceGap.INCOMPLETE_LOT_COVERAGE);
             }
             total = total.add(reference.price());
@@ -185,7 +192,7 @@ public record MarketReference(BigDecimal price, MarketReferenceConfidence confid
         MarketReferenceConfidence confiance = parSerie.size() > 1
                 ? pire.cappedAt(MarketReferenceConfidence.MEDIUM)
                 : pire;
-        return new MarketReference(total, confiance, echantillonMin, examines,
+        return new MarketReference(total, confiance, echantillonMin, temporels, examines,
                 MarketReferenceSource.OBSERVED_COMPARABLES, forme, dispersionMax, plusRecent, ReferenceGap.NONE);
     }
 

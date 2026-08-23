@@ -84,9 +84,12 @@ export function PurchaseAnalysisPage() {
   // Photos lues sur l'annonce - conservées avec l'analyse enregistrée, et
   // retirables une à une avant de lancer le calcul.
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
-  // Ce que vaut le montant de port lu sur l'annonce. Une saisie manuelle vaut
-  // UNKNOWN : on ne peut pas affirmer qu'un montant tapé à la main est ferme.
+  // Ce que vaut le montant de port retenu. Une saisie manuelle vaut ESTIMATED :
+  // le montant est connu sans être garanti - le classer inconnu ferait dire
+  // « livraison non communiquée » juste après que l'utilisateur l'a communiquée.
   const [shippingKind, setShippingKind] = useState<ShippingEstimateKind>('UNKNOWN')
+  // Identifiant de l'annonce chez la source, quand la lecture du lien l'a donné.
+  const [externalListingId, setExternalListingId] = useState('')
   // Champs que l'utilisateur a modifiés lui-même : ce sont les seuls que le
   // pré-remplissage n'a pas le droit de toucher (voir appliquerPreview).
   const [saisisParUtilisateur, setSaisisParUtilisateur] = useState<Set<string>>(new Set())
@@ -150,6 +153,9 @@ export function PurchaseAnalysisPage() {
       setPlatform(preview.source)
     }
     if (preview.url) setUrl(preview.url)
+    // Retenu tel quel : il ne s'affiche nulle part et n'entre dans aucun calcul.
+    // Il sert uniquement à reconnaître deux analyses de la même annonce.
+    setExternalListingId(preview.externalId ?? '')
     return { conserves }
   }
 
@@ -193,6 +199,7 @@ export function PurchaseAnalysisPage() {
         // l'instant où elle a été lue, et le reste même si le vendeur la
         // modifie ou la retire ensuite.
         photoUrls,
+        externalListingId: externalListingId.trim() || undefined,
       }),
   })
 

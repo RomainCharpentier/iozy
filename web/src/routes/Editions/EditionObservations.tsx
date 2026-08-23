@@ -18,9 +18,21 @@ function observationLabel(observation: MarketPriceObservationDto): string {
     ? `Tomes ${observation.scope.from}-${observation.scope.to}`
     : "L'édition entière"
   const etat = observation.observedCondition ? CONDITION_LABELS[observation.observedCondition] : null
-  return [portee, LISTING_PLATFORM_LABELS[observation.platform], etat]
-    .filter(Boolean)
-    .join(' · ')
+  return [portee, provenance(observation), etat].filter(Boolean).join(' · ')
+}
+
+/**
+ * D'où vient ce prix, en un mot.
+ *
+ * Un relevé manuel dit « Manuel » ; un relevé issu d'une annonce analysée dit
+ * la place de marché, qui est l'information utile - « Vinted » situe le prix,
+ * « issu d'une analyse » ne situe rien. La liste reste une liste de prix, pas
+ * un historique technique.
+ */
+function provenance(observation: MarketPriceObservationDto): string {
+  return observation.origin === 'MANUAL_ENTRY'
+    ? 'Manuel'
+    : LISTING_PLATFORM_LABELS[observation.platform]
 }
 
 /**
@@ -86,6 +98,14 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
       <span className="text-[11px] font-semibold tracking-wide text-textDim uppercase">
         Prix relevés ({observations.length})
       </span>
+      {/* Dit d'où la liste se remplit, une fois, plutôt qu'une notification
+          après chaque analyse - le geste est déjà fait, le rappeler à chaque
+          fois serait du bruit. */}
+      {observations.some((observation) => observation.origin === 'LISTING_ANALYSIS') && (
+        <span className="text-[11px] text-textDim">
+          Les annonces que tu analyses viennent s'ajouter ici, à leur prix affiché hors frais.
+        </span>
+      )}
       <ul className="flex flex-col gap-0.5">
         {observations.map((observation) => (
           <li key={observation.id} className="flex items-center gap-2 text-xs">

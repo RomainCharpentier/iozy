@@ -54,16 +54,20 @@ public class PurchaseAnalysisController {
     }
 
     /**
-     * @param description texte de l'annonce - facultatif, mais c'est lui qui alimente
-     *                    les points de vigilance (mention de paiement hors plateforme,
-     *                    description trop courte). Absent, ces signaux se taisent.
+     * @param description       texte de l'annonce - facultatif, mais c'est lui qui alimente
+     *                          les points de vigilance (mention de paiement hors plateforme,
+     *                          description trop courte). Absent, ces signaux se taisent.
+     * @param externalListingId identifiant rendu par la lecture du lien ({@code externalId} de
+     *                          l'aperçu). Facultatif : il ne change rien au calcul, il permet de
+     *                          reconnaître deux analyses de la même annonce et d'éviter qu'une
+     *                          offre se compare à elle-même ou compte pour plusieurs vendeurs.
      */
     public record AnalyzeListingRequest(String platform, String url, String rawTitle, String description,
                                          BigDecimal askingPrice,
                                          BigDecimal shippingFee, String shippingKind,
                                          BigDecimal buyerProtectionFee, String condition,
                                          boolean conditionAppliesToContainer, List<ListingItemRequest> items,
-                                         List<String> photoUrls) {
+                                         List<String> photoUrls, String externalListingId) {
     }
 
     @Operation(summary = "Analyze a listing (\"ANALYZE LOT\") - computes completeness, edition warnings, "
@@ -91,7 +95,10 @@ public class PurchaseAnalysisController {
                         : parseEnum(com.iozycore.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
                 request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),
-                items, request.photoUrls());
+                items, request.photoUrls(),
+                // Rendu par la lecture du lien ; sert uniquement a reconnaitre
+                // deux analyses de la meme annonce.
+                request.externalListingId());
         return service.analyze(command);
     }
 

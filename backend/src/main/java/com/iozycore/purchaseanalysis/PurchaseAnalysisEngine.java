@@ -70,12 +70,25 @@ public class PurchaseAnalysisEngine {
         return analyze(listing, itemContexts, preferences, 0);
     }
 
+    public PurchaseAnalysis analyze(Listing listing, List<ItemContext> itemContexts,
+                                     CollectorPreferences preferences, int wishlistedCount) {
+        return analyze(listing, itemContexts, preferences, wishlistedCount, null);
+    }
+
     /**
      * @param wishlistedCount elements du lot deja presents dans les envies - compte etabli par la couche
      *                        application, qui seule connait la wishlist (le moteur reste un domaine pur)
      */
+    /**
+     * @param currentListingIdentity identité de l'annonce évaluée (voir {@link ListingIdentity}).
+     *                               Les relevés issus de CETTE annonce sont écartés de sa propre
+     *                               référence : une offre déjà analysée une fois se comparerait
+     *                               sinon à son propre prix, et se dirait « au prix du marché ».
+     *                               {@code null} quand l'annonce n'a pas d'identité.
+     */
     public PurchaseAnalysis analyze(Listing listing, List<ItemContext> itemContexts,
-                                     CollectorPreferences preferences, int wishlistedCount) {
+                                     CollectorPreferences preferences, int wishlistedCount,
+                                     String currentListingIdentity) {
         List<ItemAnalysis> itemAnalyses = new ArrayList<>();
         List<Warning> listingWarnings = new ArrayList<>();
         // Lue une fois pour toute l'analyse : la fraicheur des comparables doit
@@ -257,7 +270,7 @@ public class PurchaseAnalysisEngine {
         // paie) ; le prix se juge sur le PRIX DE L'ANNONCE (c'est ce que valent
         // les comparables, hors frais). Les deux bases ne s'echangent pas.
         CollectionFit fit = CollectionFit.fromItemBreakdown(itemAnalyses, wishlistedCount, totalRealCost);
-        MarketReference reference = referenceDeLot(itemContexts, today);
+        MarketReference reference = referenceDeLot(itemContexts, today, currentListingIdentity);
         // La vigilance "prix tres bas" ne se declenche que sur une reference
         // exploitable : accuser une annonce sur la foi d'un repere qu'on refuse
         // par ailleurs d'utiliser serait deux poids, deux mesures.
@@ -286,12 +299,12 @@ public class PurchaseAnalysisEngine {
      * entier indisponible, car sommer ce qu'on connait en ignorant le reste
      * produirait une reference trop basse, donc un lot faussement « trop cher ».
      */
-    private MarketReference referenceDeLot(List<ItemContext> contexts, LocalDate today) {
+    private MarketReference referenceDeLot(List<ItemContext> contexts, LocalDate today, String currentListing) {
         List<MarketReference> parSerie = new ArrayList<>();
         for (ItemContext ctx : contexts) {
             int tomes = ctx.item().includedVolumes().size();
             MarketComparableSelector.Selection selection = MarketComparableSelector.selectFor(
-                    ctx.matchedEdition(), tomes, ctx.observations(), today);
+                    ctx.matchedEdition(), tomes, ctx.observations(), today, currentListing);
             parSerie.add(MarketReference.fromComparables(ctx.matchedEdition(), tomes, selection, today));
         }
         return MarketReference.sum(parSerie);

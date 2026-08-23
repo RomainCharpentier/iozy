@@ -78,6 +78,8 @@ const MANQUES: Record<ReferenceGap, string | null> = {
     "Des prix existent pour cette édition, mais aucun sur un lot comparable — un tome seul et une intégrale ne se valent pas au tome. Relève un prix sur un lot de taille voisine.",
   ONLY_STALE_OBSERVATIONS:
     'Les prix relevés sur des lots comparables ont plus de deux ans : ils décrivent un autre marché. Un relevé récent suffirait.',
+  ONLY_CURRENT_LISTING:
+    "Le seul prix comparable connu vient de cette annonce elle-même : elle ne peut pas servir de référence à sa propre évaluation. Il faut une autre offre du même type.",
   INCOMPLETE_LOT_COVERAGE:
     "Une des séries du lot n'a pas de référence. Additionner les autres donnerait un repère trop bas, donc un lot faussement « trop cher ».",
   NOT_RECORDED: "Analyse antérieure : la provenance de cette référence n'a pas été conservée.",
