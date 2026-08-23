@@ -121,10 +121,20 @@ public class PurchaseAnalysisEngine {
 
             List<Warning> editionWarnings = new ArrayList<>();
             if (edition == null) {
-                editionWarnings.add(new Warning(WarningSeverity.CAUTION,
-                        "L'édition \"" + item.editionNameRaw() + "\" de \"" + item.series().title()
-                                + "\" n'est pas encore renseignée - complète sa fiche pour une analyse complète.",
-                        ConfidenceLevel.LOW));
+                // Deux situations très différentes derrière une même absence de
+                // fiche : un nom d'édition a été donné mais reste inconnu du
+                // catalogue (on peut le créer), ou l'utilisateur a déclaré ne
+                // pas savoir (il n'y a rien à créer, il faut regarder l'annonce).
+                // Le même message pour les deux donnerait un conseil inapplicable.
+                editionWarnings.add(item.editionIsUnknown()
+                        ? new Warning(WarningSeverity.CAUTION,
+                                "L'édition de \"" + item.series().title() + "\" n'est pas précisée - "
+                                        + "la complétude et la valeur neuve ne peuvent pas être calculées.",
+                                ConfidenceLevel.LOW)
+                        : new Warning(WarningSeverity.CAUTION,
+                                "L'édition \"" + item.editionNameRaw() + "\" de \"" + item.series().title()
+                                        + "\" n'est pas encore renseignée - complète sa fiche pour une analyse complète.",
+                                ConfidenceLevel.LOW));
             }
 
             MarketPrice perVolumeMarketPrice = marketPriceCalculator.computePerVolume(edition, ctx.observations(), ctx.aiEstimate());
@@ -157,9 +167,13 @@ public class PurchaseAnalysisEngine {
                     costToCompleteFullyKnown = false;
                 }
             } else {
-                editionWarnings.add(new Warning(WarningSeverity.CAUTION,
-                        "Le nombre total de tomes de \"" + item.editionNameRaw() + "\" est inconnu - la complétude ne peut pas être calculée.",
-                        ConfidenceLevel.LOW));
+                // Édition non précisée : le premier avertissement l'a déjà dit,
+                // le répéter sous une autre forme ne renseigne personne.
+                if (!item.editionIsUnknown()) {
+                    editionWarnings.add(new Warning(WarningSeverity.CAUTION,
+                            "Le nombre total de tomes de \"" + item.editionNameRaw() + "\" est inconnu - la complétude ne peut pas être calculée.",
+                            ConfidenceLevel.LOW));
+                }
                 costToCompleteFullyKnown = false;
             }
 

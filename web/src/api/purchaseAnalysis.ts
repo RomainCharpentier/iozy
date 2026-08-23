@@ -146,3 +146,15 @@ export function deleteMarketObservation(id: string): Promise<void> {
 export function resolveListing(url: string): Promise<ListingPreviewDto> {
   return post<ListingPreviewDto>('/listing-metadata/resolve', { url })
 }
+
+/**
+ * Les éditions que le catalogue connaît pour cette série.
+ *
+ * Sert à ne plus faire deviner l'édition : plutôt qu'un champ libre où l'on
+ * tape « Standard » au hasard — étiquette qui peut correspondre par accident à
+ * une autre édition et fausser la référence marché — on propose ce qui existe
+ * réellement.
+ */
+export function searchEditionsForSeries(seriesTitle: string): Promise<MangaEditionDto[]> {
+  return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ seriesTitle })}`)
+}

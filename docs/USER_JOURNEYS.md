@@ -441,9 +441,20 @@ pendant qu'un menu est ouvert est ignoré ; Échap = Passer.
 achat, ou fiche ▸ « Évaluer une annonce de cette série » (série pré-remplie).
 **Étapes** : coller le lien de l'annonce si on l'a (voir 35 bis, qui pré-remplit
 la suite), plateforme, prix demandé, frais de port, frais de protection, état
-(et « l'état porte sur un coffret »), titre et description ; puis une ou
-plusieurs séries avec leur édition et leurs tomes (« 1-11 ») ; « Ajouter cette
-série au lot » pour un lot multi-séries ; **ANALYSER LE LOT**.
+(et « l'état porte sur un coffret »), titre et description ; puis une série
+avec son édition et ses tomes (« 1-11 ») ; **ANALYSER LE LOT**.
+**Le « + » n'est plus un passage obligé** *(2026-08-24)* : la série en cours de
+saisie compte dans le lot telle quelle. Le bouton ne sert qu'à en ajouter une
+**autre**, pour un lot multi-séries. Auparavant, remplir les trois champs puis
+viser « ANALYSER LE LOT » laissait le bouton grisé sans un mot d'explication —
+un cul-de-sac silencieux. Le bouton dit désormais ce qui lui manque.
+**L'édition ne se devine plus** *(2026-08-24)* : les éditions que le catalogue
+connaît pour cette série sont proposées d'un clic, et « Je ne sais pas » est
+toujours offert. C'était le seul endroit du produit où l'on obligeait à
+inventer — et une étiquette inventée pouvait correspondre **par accident** à
+une autre édition, faussant la référence marché sans que rien ne le signale.
+Déclarer son ignorance donne une analyse honnête : elle tourne, mais sans la
+complétude ni la valeur neuve, et le dit.
 **Résultat** : le verdict personnalisé en trois dimensions séparées (ce que le
 lot apporte, où se situe son prix, ce qui mérite vigilance), puis le score
 global, le coût d'acquisition, la valeur neuve, la décote, l'offre conseillée /
