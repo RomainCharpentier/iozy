@@ -31,6 +31,14 @@ public enum ReferenceGap {
     /** Des comparables existaient, mais tous trop anciens pour décrire le marché d'aujourd'hui. */
     ONLY_STALE_OBSERVATIONS,
 
+    /**
+     * Le seul relevé comparable vient de <b>cette annonce-ci</b>, relevée lors
+     * d'une analyse précédente. Elle est exclue de sa propre référence - sinon
+     * toute annonce réanalysée se dirait « au prix du marché », le sien. Il
+     * manque donc une autre offre, pas un autre relevé de celle-là.
+     */
+    ONLY_CURRENT_LISTING,
+
     /** Lot multi-séries dont au moins une série n'a pas de référence : la somme serait tronquée, donc trompeuse. */
     INCOMPLETE_LOT_COVERAGE,
 

@@ -103,6 +103,10 @@ export interface AnalyzeListingRequest {
   conditionAppliesToContainer: boolean
   items: ListingItemRequest[]
   photoUrls?: string[]
+  /** Identifiant rendu par la lecture du lien. Ne change rien au calcul : il permet
+   * de reconnaître deux analyses de la même annonce, pour qu'une offre ne se compare
+   * pas à elle-même et ne compte pas pour plusieurs vendeurs. */
+  externalListingId?: string
 }
 
 export interface CreateMangaEditionRequest {
@@ -167,6 +171,13 @@ export interface VolumeRangeDto {
   to: number
 }
 
+/**
+ * D'où vient un prix relevé. Ni une hiérarchie de fiabilité ni un niveau de
+ * confiance - les deux origines valent autant, ce sont des prix vus. Sert à
+ * savoir ce qu'on regarde quand un chiffre surprend.
+ */
+export type MarketObservationOrigin = 'MANUAL_ENTRY' | 'LISTING_ANALYSIS'
+
 export interface MarketPriceObservationDto {
   id: string
   mangaEditionId: string
@@ -177,6 +188,13 @@ export interface MarketPriceObservationDto {
   observedAt: string
   note: string | null
   createdAt: string
+  origin: MarketObservationOrigin
+  /** Tomes réellement concernés - fait autorité sur `scope`, un lot pouvant être discontinu. */
+  volumeCount: number | null
+  /** Identité de l'annonce d'origine ; null pour une saisie manuelle. Plusieurs relevés
+   * de même identité suivent UNE offre dans le temps, pas plusieurs vendeurs. */
+  listingIdentity: string | null
+  sourceUrl: string | null
 }
 
 export interface CollectorPreferencesDto {
@@ -513,6 +531,7 @@ export type ReferenceGap =
   | 'NO_OBSERVATION'
   | 'NO_COMPARABLE_SHAPE'
   | 'ONLY_STALE_OBSERVATIONS'
+  | 'ONLY_CURRENT_LISTING'
   | 'INCOMPLETE_LOT_COVERAGE'
   | 'NOT_RECORDED'
 

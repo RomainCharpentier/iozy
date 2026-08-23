@@ -41,8 +41,18 @@ public class MarketPriceObservationJpaEntity {
 
     private String note;
 
+    /** Voir V18 : ex-colonne `source`, écrite en dur et jamais relue, devenue l'origine réelle. */
     @Column(nullable = false)
-    private String source;
+    private String origin;
+
+    @Column(name = "volume_count")
+    private Integer volumeCount;
+
+    @Column(name = "listing_identity")
+    private String listingIdentity;
+
+    @Column(name = "source_url")
+    private String sourceUrl;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -54,7 +64,8 @@ public class MarketPriceObservationJpaEntity {
     public MarketPriceObservationJpaEntity(UUID id, UUID mangaEditionId, Integer volumeRangeStart,
                                             Integer volumeRangeEnd, BigDecimal observedPrice, String platform,
                                             String observedCondition, LocalDate observedAt, String note,
-                                            String source, Instant createdAt) {
+                                            String origin, Instant createdAt, Integer volumeCount,
+                                            String listingIdentity, String sourceUrl) {
         this.id = id;
         this.mangaEditionId = mangaEditionId;
         this.volumeRangeStart = volumeRangeStart;
@@ -64,7 +75,10 @@ public class MarketPriceObservationJpaEntity {
         this.observedCondition = observedCondition;
         this.observedAt = observedAt;
         this.note = note;
-        this.source = source;
+        this.origin = origin;
+        this.volumeCount = volumeCount;
+        this.listingIdentity = listingIdentity;
+        this.sourceUrl = sourceUrl;
         this.createdAt = createdAt;
     }
 
@@ -77,6 +91,12 @@ public class MarketPriceObservationJpaEntity {
     public String getObservedCondition() { return observedCondition; }
     public LocalDate getObservedAt() { return observedAt; }
     public String getNote() { return note; }
-    public String getSource() { return source; }
+    public String getOrigin() { return origin; }
+
+    public Integer getVolumeCount() { return volumeCount; }
+
+    public String getListingIdentity() { return listingIdentity; }
+
+    public String getSourceUrl() { return sourceUrl; }
     public Instant getCreatedAt() { return createdAt; }
 }
