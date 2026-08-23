@@ -18,6 +18,7 @@ import {
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
 import { ListingDetectionPanel, type ElementConfirme } from './ListingDetectionPanel'
+import { EditionPicker } from './EditionPicker'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 
 interface QueuedItem {
@@ -191,7 +192,7 @@ export function PurchaseAnalysisPage() {
         buyerProtectionFee: buyerProtectionFee.trim() ? Number(buyerProtectionFee) : undefined,
         condition,
         conditionAppliesToContainer,
-        items: items.map((item) => ({
+        items: itemsAAnalyser.map((item) => ({
           seriesTitle: item.seriesTitle,
           editionName: item.editionName,
           includedVolumes: item.includedVolumes,
@@ -277,7 +278,37 @@ export function PurchaseAnalysisPage() {
     setVolumesText('')
   }
 
-  const canAnalyze = items.length > 0 && !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
+  /**
+   * La ligne en cours de saisie, si elle est complète.
+   *
+   * Elle compte dans le lot sans qu'on ait à presser « + ». Auparavant, remplir
+   * Série / Édition / Tomes puis viser « ANALYSER LE LOT » laissait le bouton
+   * grisé sans un mot d'explication : le « + » était un passage obligé que rien
+   * n'annonçait. Il ne sert plus qu'à enchaîner une série SUPPLÉMENTAIRE.
+   */
+  const ligneEnCours: QueuedItem | null =
+    seriesTitle.trim() && editionName.trim() && parsedVolumes.length > 0
+      ? {
+          seriesTitle: seriesTitle.trim(),
+          editionName: editionName.trim(),
+          volumesText,
+          includedVolumes: parsedVolumes,
+        }
+      : null
+
+  const itemsAAnalyser = ligneEnCours ? [...items, ligneEnCours] : items
+
+  const prixRenseigne = !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
+  const canAnalyze = itemsAAnalyser.length > 0 && prixRenseigne
+
+  /** Ce qui manque pour lancer l'analyse - dit, plutôt que laissé à deviner. */
+  const raisonBlocage = canAnalyze
+    ? null
+    : !prixRenseigne && itemsAAnalyser.length === 0
+      ? 'Renseigne le prix demandé et au moins une série avec ses tomes.'
+      : !prixRenseigne
+        ? 'Renseigne le prix demandé.'
+        : 'Indique au moins une série, son édition et ses tomes.'
 
   if (analyzeMutation.isSuccess) {
     return (
@@ -478,7 +509,7 @@ export function PurchaseAnalysisPage() {
                 value={seriesTitle}
                 onChange={(e) => setSeriesTitle(e.target.value)}
                 placeholder="ex: 20th Century Boys"
-                className="w-full rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="min-h-11 w-full rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                 autoComplete="off"
               />
             </div>
@@ -486,13 +517,11 @@ export function PurchaseAnalysisPage() {
               <label className="text-xs text-textDim" htmlFor="itemEdition">
                 Édition
               </label>
-              <input
-                id="itemEdition"
+              <EditionPicker
+                inputId="itemEdition"
+                seriesTitle={seriesTitle}
                 value={editionName}
-                onChange={(e) => setEditionName(e.target.value)}
-                placeholder="ex: Perfect Edition"
-                className="w-full rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                autoComplete="off"
+                onChange={setEditionName}
               />
             </div>
             {/* Tomes + bouton restent groupés (jamais séparés par le wrap - le
@@ -507,7 +536,7 @@ export function PurchaseAnalysisPage() {
                   value={volumesText}
                   onChange={(e) => setVolumesText(e.target.value)}
                   placeholder="1-11"
-                  className="w-24 rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  className="min-h-11 w-24 rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
                   autoComplete="off"
                 />
               </div>
@@ -519,9 +548,9 @@ export function PurchaseAnalysisPage() {
                 // le title est le DERNIER recours de l'algorithme accname (et
                 // n'existe pas au doigt), il ne doit pas rester seul à nommer
                 // un bouton en icône seule - voir Lot 29.
-                aria-label="Ajouter cette série au lot"
-                title="Ajouter cette série au lot - pratique pour enchaîner plusieurs séries avant de valider"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
+                aria-label="Ajouter une autre série au lot"
+                title="Ajouter une AUTRE série au lot - celle en cours de saisie est déjà comptée"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
               >
                 <Plus size={16} />
               </button>
@@ -568,6 +597,13 @@ export function PurchaseAnalysisPage() {
         >
           {analyzeMutation.isPending ? 'Analyse...' : 'ANALYSER LE LOT'}
         </button>
+        {/* Un bouton principal grisé sans explication est un cul-de-sac : on
+            dit ce qui manque, plutôt que de laisser chercher. */}
+        {raisonBlocage && (
+          <p className="text-center text-xs text-textDim" role="status">
+            {raisonBlocage}
+          </p>
+        )}
       </div>
     </div>
   )
