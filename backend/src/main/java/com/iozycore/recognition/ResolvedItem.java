@@ -12,9 +12,11 @@ import java.util.UUID;
  * @param catalogStatus   voir {@link CatalogStatus}
  * @param entityId        la Série du catalogue, si elle a été retrouvée - {@code null} sinon.
  *                        Aucune Entity n'est créée ici, jamais.
- * @param catalogTitle    le titre <b>tel qu'il est écrit dans le catalogue</b>, qui fait foi
- *                        pour l'affichage - « Platinum End », même si la photo disait
- *                        « PLATINUM end ». Null si absent du catalogue.
+ * @param catalogTitle    le titre retenu pour l'affichage et pour le lot : celui du
+ *                        catalogue quand l'œuvre y figure - « Platinum End », même si la
+ *                        photo disait « PLATINUM end » - sinon le titre lu débarrassé de
+ *                        sa décoration d'annonce. Le texte d'origine reste dans
+ *                        {@code recognized.seriesTitleRaw()}.
  * @param editionOptions  les éditions connues de cette série, quand il faut en confirmer une.
  *                        Une proposition à choisir, jamais un choix déjà fait.
  * @param preselected     si l'écran doit pré-cocher cet élément - voir

@@ -293,6 +293,38 @@ class TextAndVisionMergeTest {
         assertThat(analyse.items()).hasSize(3);
     }
 
+    // =================================================== Décoration d'annonce
+
+    @Test
+    void a_decorated_listing_title_reaches_the_catalog_without_its_decoration() {
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("🔥 Platinum End tomes 1 à 3", null, null, RecognitionContext.forManga());
+
+        assertThat(analyse.items()).hasSize(3);
+        assertThat(analyse.items()).allSatisfy(item -> {
+            assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
+            assertThat(item.entityId()).isEqualTo(PLATINUM_END);
+        });
+    }
+
+    @Test
+    void the_decoration_never_becomes_the_name_of_a_work() {
+        // Même hors catalogue : « 🔥 Série inconnue » ne doit pas entrer tel
+        // quel dans le lot puis dans l'analyse enregistrée.
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("🔥 Serie hors catalogue tomes 1 à 2", null, null, RecognitionContext.forManga());
+
+        assertThat(analyse.items()).isNotEmpty();
+        assertThat(analyse.items()).allSatisfy(item -> {
+            assertThat(item.displayTitle()).doesNotContain("🔥");
+            // La provenance reste lisible : on n'efface pas ce que l'annonce disait.
+            assertThat(item.recognized().seriesTitleRaw()).contains("🔥");
+        });
+    }
+
     // =================================================== §22 — aucune création
 
     @Test
@@ -357,7 +389,10 @@ class TextAndVisionMergeTest {
             if (rawTitle == null || rawTitle.isBlank()) {
                 throw new IllegalArgumentException("Le titre de la série est requis");
             }
-            String titre = rawTitle.trim();
+            // La doublure applique la MÊME normalisation que le vrai matcher :
+            // s'en dispenser la ferait diverger du comportement réel, et les
+            // tests vérifieraient alors une chose qui n'existe pas.
+            String titre = com.iozycore.purchaseanalysis.SeriesTitleNormalizer.normalize(rawTitle);
             return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
         }
     }
