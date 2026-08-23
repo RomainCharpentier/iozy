@@ -7,6 +7,7 @@ import com.iozycore.application.OwnershipDeletionService;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -87,6 +88,8 @@ public class OwnershipController {
     @Operation(summary = "Supprimer définitivement un exemplaire (bloqué si un prêt le référence encore) - "
             + "contrairement à \"marquer vendu/perdu\" (changement de statut réversible), cette action est "
             + "irréversible")
+    @ApiResponse(responseCode = "204", description = "Exemplaire supprimé - aucun corps. Idempotent : "
+            + "un identifiant déjà supprimé ou inconnu rend également 204.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         ownershipDeletionService.delete(id);
