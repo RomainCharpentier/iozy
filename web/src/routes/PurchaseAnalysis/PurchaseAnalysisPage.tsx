@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Plus, X, History } from 'lucide-react'
+import { Plus, History } from 'lucide-react'
 import { analyzeListing } from '../../api/purchaseAnalysis'
 import { ListingUrlField, ListingPhotos } from './ListingUrlField'
 import { Chip } from '../../components/Chip'
@@ -19,6 +19,7 @@ import {
 import { EditionReferenceLookup } from './EditionReferenceLookup'
 import { ListingDetectionPanel, type ElementConfirme } from './ListingDetectionPanel'
 import { EditionPicker } from './EditionPicker'
+import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 
 interface QueuedItem {
@@ -255,7 +256,39 @@ export function PurchaseAnalysisPage() {
         return { ...item, includedVolumes: tomes, volumesText: tomes.join(', ') }
       })
     })
+
+    // Le retour visuel est traité par un effet, après le commit de React :
+    // appeler focus() ici viserait un nœud que le rendu suivant remplacera.
+    setElementsAJusteAjoutes(elements.length)
   }
+
+  /**
+   * Amène l'utilisateur au résultat quand des éléments viennent d'entrer dans
+   * le lot.
+   *
+   * Le changement principal est dans la page, pas dans un bandeau : plutôt
+   * qu'un toast qui disparaît, on montre l'endroit où les éléments sont allés.
+   * Rien ne bouge si la liste est déjà sous les yeux - un défilement gratuit
+   * désoriente plus qu'il n'aide.
+   */
+  const titreLotRef = useRef<HTMLHeadingElement>(null)
+  const [elementsAJusteAjoutes, setElementsAJusteAjoutes] = useState(0)
+  useEffect(() => {
+    if (elementsAJusteAjoutes === 0) return
+    const titre = titreLotRef.current
+    if (titre) {
+      const rect = titre.getBoundingClientRect()
+      if (rect.top < 0 || rect.bottom > window.innerHeight) {
+        const doux = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+        titre.scrollIntoView({ behavior: doux, block: 'center' })
+      }
+      // Le focus annonce l'arrivée aux lecteurs d'écran, que le défilement
+      // laisserait muets.
+      titre.focus({ preventScroll: true })
+    }
+    const minuteur = setTimeout(() => setElementsAJusteAjoutes(0), 4000)
+    return () => clearTimeout(minuteur)
+  }, [elementsAJusteAjoutes])
 
   function removeItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index))
@@ -297,6 +330,32 @@ export function PurchaseAnalysisPage() {
       : null
 
   const itemsAAnalyser = ligneEnCours ? [...items, ligneEnCours] : items
+
+  /**
+   * Le décompte parle en TOMES, pas en lignes.
+   *
+   * Le lot est modélisé par série + édition, avec un ensemble de tomes : « Hell's
+   * Paradise 6-10 » est UNE ligne. Annoncer « 1 élément » pour cinq livres
+   * serait exact du point de vue du modèle et faux du point de vue de
+   * l'acheteur, qui paie cinq tomes.
+   */
+  const nombreElementsDuLot = itemsAAnalyser.reduce((total, item) => total + item.includedVolumes.length, 0)
+
+  /**
+   * Vrai si ce tome est déjà dans le lot.
+   *
+   * Sert au panneau de détection à marquer « Ajouté au lot » plutôt que de
+   * laisser une proposition paraître en attente alors qu'elle est déjà prise
+   * en compte - et à empêcher de la confirmer une seconde fois.
+   */
+  function dejaDansLeLot(seriesTitle: string, editionName: string, volumeNumber: number): boolean {
+    return itemsAAnalyser.some(
+      (item) =>
+        item.seriesTitle.toLowerCase() === seriesTitle.toLowerCase() &&
+        item.editionName.toLowerCase() === editionName.toLowerCase() &&
+        item.includedVolumes.includes(volumeNumber),
+    )
+  }
 
   const prixRenseigne = !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
   const canAnalyze = itemsAAnalyser.length > 0 && prixRenseigne
@@ -470,12 +529,6 @@ export function PurchaseAnalysisPage() {
               imageUrls={photoUrls}
               onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
             />
-            <ListingDetectionPanel
-              title={rawTitle}
-              description={description}
-              imageUrls={photoUrls}
-              onConfirm={confirmerElementsReconnus}
-            />
           </div>
         </section>
 
@@ -496,8 +549,45 @@ export function PurchaseAnalysisPage() {
           </label>
         </section>
 
-        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
-          <h2 className="font-display text-sm font-semibold text-textPrimary">Contenu du lot</h2>
+        <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2
+              ref={titreLotRef}
+              tabIndex={-1}
+              className="font-display text-sm font-semibold text-textPrimary focus:outline-none"
+            >
+              Contenu du lot
+            </h2>
+            <span className="text-xs text-textDim">
+              {nombreElementsDuLot === 0
+                ? 'Aucun tome pour le moment'
+                : `${nombreElementsDuLot} tome${nombreElementsDuLot > 1 ? 's' : ''} · c'est cette liste qui sera analysée`}
+            </span>
+          </div>
+
+          {/* La liste canonique d'abord : c'est elle qui part à l'analyse. Les
+              propositions et le formulaire ne sont que deux façons de
+              l'alimenter - il n'existe pas deux lots parallèles. */}
+          {elementsAJusteAjoutes > 0 && (
+            <p className="rounded-lg bg-okTint px-3 py-2 text-xs font-medium text-ok" role="status">
+              {elementsAJusteAjoutes} élément{elementsAJusteAjoutes > 1 ? 's' : ''} ajouté
+              {elementsAJusteAjoutes > 1 ? 's' : ''} au lot.
+            </p>
+          )}
+
+          <LotContentList items={items} ligneEnCours={ligneEnCours} onRemove={removeItem} />
+
+          <ListingDetectionPanel
+            title={rawTitle}
+            description={description}
+            imageUrls={photoUrls}
+            dejaDansLeLot={dejaDansLeLot}
+            onConfirm={confirmerElementsReconnus}
+          />
+
+          <h3 className="font-display text-xs font-semibold uppercase tracking-wide text-textDim">
+            Ajouter manuellement
+          </h3>
 
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex min-w-[140px] flex-1 flex-col gap-1.5">
@@ -562,29 +652,6 @@ export function PurchaseAnalysisPage() {
             <EditionReferenceLookup seriesTitle={seriesTitle} editionName={editionName} onResolved={() => {}} />
           )}
 
-          {items.length > 0 && (
-            <ul className="flex flex-col gap-1.5">
-              {items.map((item, index) => (
-                <li
-                  key={`${item.seriesTitle}-${item.editionName}-${index}`}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary"
-                >
-                  <span>
-                    {item.seriesTitle} · {item.editionName} · {item.includedVolumes.length} tome
-                    {item.includedVolumes.length > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    aria-label={`Retirer ${item.seriesTitle} du lot`}
-                    className="text-textDim hover:text-textPrimary"
-                  >
-                    <X size={14} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </section>
 
         {analyzeMutation.isError && <ErrorBanner message={analyzeMutation.error.message} />}

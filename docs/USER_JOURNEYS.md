@@ -443,6 +443,16 @@ achat, ou fiche ▸ « Évaluer une annonce de cette série » (série pré-remp
 la suite), plateforme, prix demandé, frais de port, frais de protection, état
 (et « l'état porte sur un coffret »), titre et description ; puis une série
 avec son édition et ses tomes (« 1-11 ») ; **ANALYSER LE LOT**.
+**« Contenu du lot » est la liste qui part à l'analyse** *(2026-08-24)* : elle
+s'affiche en tête de la section, avec son décompte en tomes. Les propositions
+détectées et le formulaire manuel sont deux façons de l'alimenter, présentées
+**sous** elle — il n'existe pas deux lots parallèles. Confirmer des propositions
+affiche « N éléments ajoutés au lot », amène l'utilisateur à la liste si elle
+est hors champ, et marque les lignes concernées « Ajouté au lot » sans
+possibilité de les ajouter deux fois. Retirer un élément le rend de nouveau
+proposable. Une fois dans le lot, un tome détecté et un tome saisi à la main
+sont strictement la même ligne : la provenance a servi à décider, elle ne
+structure pas la liste finale.
 **Le « + » n'est plus un passage obligé** *(2026-08-24)* : la série en cours de
 saisie compte dans le lot telle quelle. Le bouton ne sert qu'à en ajouter une
 **autre**, pour un lot multi-séries. Auparavant, remplir les trois champs puis
