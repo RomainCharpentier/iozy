@@ -43,6 +43,21 @@ public class FakeRecognitionProvider {
     public static final String DECLENCHE_HORS_CATALOGUE = "hors-catalogue";
     public static final String DECLENCHE_EDITION_INCONNUE = "edition-inconnue";
 
+    /**
+     * Combien de fois un moteur de vision a réellement été sollicité.
+     * <p>
+     * Statique et partagé : c'est ce qui permet d'affirmer, depuis un test
+     * HTTP, qu'analyser du texte n'a déclenché <b>aucun</b> appel de moteur -
+     * l'invariant central de la V2, et celui qui coûte de l'argent quand il
+     * est violé.
+     */
+    private static final java.util.concurrent.atomic.AtomicInteger APPELS =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    public static int appelsAuMoteur() {
+        return APPELS.get();
+    }
+
     public static String photo(String declencheur, int index) {
         return "https://" + HOTE_PHOTOS + "/" + declencheur + "/" + index + ".jpg";
     }
@@ -88,6 +103,7 @@ public class FakeRecognitionProvider {
 
             @Override
             public RecognitionResult recognize(List<RecognitionImage> images, RecognitionContext context) {
+                APPELS.incrementAndGet();
                 String declencheur = images.isEmpty() ? "" : images.get(0).sourceUrl();
 
                 if (declencheur.contains(DECLENCHE_PANNE)) {
@@ -123,7 +139,7 @@ public class FakeRecognitionProvider {
 
             private RecognizedItem item(String titre, Integer tome, String edition,
                                          RecognitionConfidence confiance, Set<Integer> photos) {
-                return new RecognizedItem(titre, tome, edition, null, confiance,
+                return RecognizedItem.fromVision(titre, tome, edition, null, confiance,
                         List.of("lecture de test"), photos);
             }
         };

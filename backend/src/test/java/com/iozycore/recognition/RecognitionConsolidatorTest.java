@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RecognitionConsolidatorTest {
 
     private static RecognizedItem vu(String titre, Integer tome, RecognitionConfidence confiance, int... photos) {
-        return new RecognizedItem(titre, tome, null, null, confiance, List.of(), photosDe(photos));
+        return RecognizedItem.fromVision(titre, tome, null, null, confiance, List.of(), photosDe(photos));
     }
 
     private static Set<Integer> photosDe(int... photos) {
@@ -96,9 +96,9 @@ class RecognitionConsolidatorTest {
         // Une édition absente est une information manquante, pas une édition
         // différente : la compléter par la seule lecture disponible n'invente rien.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Vinland Saga", 7, null, null, RecognitionConfidence.MEDIUM,
+                RecognizedItem.fromVision("Vinland Saga", 7, null, null, RecognitionConfidence.MEDIUM,
                         List.of("« 07 » sur la tranche"), photosDe(0)),
-                new RecognizedItem("Vinland Saga", 7, "Standard", null, RecognitionConfidence.HIGH,
+                RecognizedItem.fromVision("Vinland Saga", 7, "Standard", null, RecognitionConfidence.HIGH,
                         List.of("mention Standard visible"), photosDe(1))));
 
         assertThat(consolides).hasSize(1);
@@ -111,8 +111,8 @@ class RecognitionConsolidatorTest {
     @Test
     void regle_A_works_whatever_the_order_the_photos_arrive_in() {
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Vinland Saga", 7, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
-                new RecognizedItem("Vinland Saga", 7, null, null, RecognitionConfidence.LOW, List.of(), photosDe(1))));
+                RecognizedItem.fromVision("Vinland Saga", 7, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
+                RecognizedItem.fromVision("Vinland Saga", 7, null, null, RecognitionConfidence.LOW, List.of(), photosDe(1))));
 
         assertThat(consolides).hasSize(1);
         assertThat(consolides.get(0).editionHint()).isEqualTo("Standard");
@@ -123,8 +123,8 @@ class RecognitionConsolidatorTest {
         // Les photos se contredisent : c'est à l'utilisateur de trancher, pas
         // au consolidateur de choisir un gagnant.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Death Note", 1, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
-                new RecognizedItem("Death Note", 1, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
+                RecognizedItem.fromVision("Death Note", 1, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
+                RecognizedItem.fromVision("Death Note", 1, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
 
         assertThat(consolides).hasSize(2);
         assertThat(consolides).extracting(RecognizedItem::editionHint)
@@ -136,8 +136,8 @@ class RecognitionConsolidatorTest {
         // Un seul candidat, et surtout AUCUNE édition inventée : l'écran devra
         // la faire confirmer.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Berserk", 3, null, null, RecognitionConfidence.MEDIUM, List.of(), photosDe(0)),
-                new RecognizedItem("Berserk", 3, null, null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
+                RecognizedItem.fromVision("Berserk", 3, null, null, RecognitionConfidence.MEDIUM, List.of(), photosDe(0)),
+                RecognizedItem.fromVision("Berserk", 3, null, null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
 
         assertThat(consolides).hasSize(1);
         assertThat(consolides.get(0).editionIsUnknown()).isTrue();
@@ -150,9 +150,9 @@ class RecognitionConsolidatorTest {
         // candidats. La troisième complète l'une des deux, elle n'en crée pas
         // une troisième et ne fusionne pas les deux premières.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Berserk", 3, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
-                new RecognizedItem("Berserk", 3, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1)),
-                new RecognizedItem("Berserk", 3, null, null, RecognitionConfidence.LOW, List.of(), photosDe(2))));
+                RecognizedItem.fromVision("Berserk", 3, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
+                RecognizedItem.fromVision("Berserk", 3, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1)),
+                RecognizedItem.fromVision("Berserk", 3, null, null, RecognitionConfidence.LOW, List.of(), photosDe(2))));
 
         assertThat(consolides).hasSize(2);
         assertThat(consolides).extracting(RecognizedItem::editionHint)
@@ -167,7 +167,7 @@ class RecognitionConsolidatorTest {
         // ordonné : l'écran affichait « vu sur les photos 3 et 1 ». L'ordre est
         // celui que l'utilisateur a sous les yeux, il ne peut pas être aléatoire.
         for (int essai = 0; essai < 50; essai++) {
-            RecognizedItem item = new RecognizedItem("Platinum End", 4, null, null,
+            RecognizedItem item = RecognizedItem.fromVision("Platinum End", 4, null, null,
                     RecognitionConfidence.HIGH, List.of(), photosDe(5, 0, 3, 1, 7, 2));
 
             assertThat(item.sourceImages()).containsExactly(0, 1, 2, 3, 5, 7);
@@ -188,8 +188,8 @@ class RecognitionConsolidatorTest {
     @Test
     void the_same_volume_in_two_editions_stays_two_items() {
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Death Note", 1, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
-                new RecognizedItem("Death Note", 1, "Black Edition", null, RecognitionConfidence.HIGH, List.of(), photosDe(0))));
+                RecognizedItem.fromVision("Death Note", 1, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
+                RecognizedItem.fromVision("Death Note", 1, "Black Edition", null, RecognitionConfidence.HIGH, List.of(), photosDe(0))));
 
         assertThat(consolides).hasSize(2);
     }
@@ -218,8 +218,8 @@ class RecognitionConsolidatorTest {
     @Test
     void merging_keeps_the_volume_number_read_on_the_clearer_photo() {
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
-                new RecognizedItem("Vinland Saga", 7, null, null, RecognitionConfidence.HIGH, List.of("« 07 » sur la tranche"), photosDe(0)),
-                new RecognizedItem("Vinland Saga", 7, "Standard", null, RecognitionConfidence.MEDIUM, List.of("titre visible"), photosDe(1))));
+                RecognizedItem.fromVision("Vinland Saga", 7, null, null, RecognitionConfidence.HIGH, List.of("« 07 » sur la tranche"), photosDe(0)),
+                RecognizedItem.fromVision("Vinland Saga", 7, "Standard", null, RecognitionConfidence.MEDIUM, List.of("titre visible"), photosDe(1))));
 
         assertThat(consolides).hasSize(1);
         assertThat(consolides.get(0).editionHint()).isEqualTo("Standard");

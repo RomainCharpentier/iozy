@@ -22,16 +22,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Deux invariants dominent cette classe, et ils tiennent tout le chantier :
  * <b>rien n'est jamais créé</b>, et <b>une panne de moteur ne bloque rien</b>.
  */
-class ImageRecognitionServiceTest {
+class ListingRecognitionServiceTest {
 
     private static final UUID PLATINUM_END = UUID.randomUUID();
 
     private final CatalogueDeTest catalogue = new CatalogueDeTest();
     private final EditionsDeTest editions = new EditionsDeTest();
 
-    private ImageRecognitionService service(ImageRecognitionProvider... moteurs) {
+    private ListingRecognitionService service(ImageRecognitionProvider... moteurs) {
         RecognitionCatalogResolver resolver = new RecognitionCatalogResolver(catalogue, editions);
-        return new ImageRecognitionService(new FetcherDeTest(), resolver, List.of(moteurs));
+        return new ListingRecognitionService(new FetcherDeTest(), resolver, List.of(moteurs));
     }
 
     private static RecognizedItem vu(String titre, Integer tome, String edition, RecognitionConfidence confiance,
@@ -40,7 +40,7 @@ class ImageRecognitionServiceTest {
         for (int photo : photos) {
             index.add(photo);
         }
-        return new RecognizedItem(titre, tome, edition, null, confiance, List.of(), index);
+        return RecognizedItem.fromVision(titre, tome, edition, null, confiance, List.of(), index);
     }
 
     // ====================================================== Le cas nominal
@@ -50,12 +50,12 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Platinum End", 4, "Standard", RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.OK);
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.OK);
         assertThat(analyse.items()).hasSize(1);
 
         ResolvedItem item = analyse.items().get(0);
@@ -70,12 +70,12 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Platinum End", 1, "Standard", RecognitionConfidence.HIGH, 0),
                         vu("Platinum End", 2, "Standard", RecognitionConfidence.HIGH, 0),
                         vu("Platinum End", 3, "Standard", RecognitionConfidence.MEDIUM, 1)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items()).hasSize(3);
         assertThat(analyse.items()).extracting(item -> item.recognized().volumeNumber())
@@ -89,12 +89,12 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Platinum End", 4, "Standard", RecognitionConfidence.MEDIUM, 0),
                         vu("Platinum End", 4, "Standard", RecognitionConfidence.HIGH, 1),
                         vu("Platinum End", 4, "Standard", RecognitionConfidence.LOW, 2)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items()).hasSize(1);
         assertThat(analyse.items().get(0).recognized().sourceImages()).containsExactly(0, 1, 2);
@@ -108,10 +108,10 @@ class ImageRecognitionServiceTest {
         editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
         editions.ajouter(PLATINUM_END, "Death Note", "Black Edition", 6);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Death Note", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         ResolvedItem item = analyse.items().get(0);
         assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
@@ -128,10 +128,10 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Death Note", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Death Note", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items().get(0).catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
     }
@@ -141,10 +141,10 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Death Note", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Death Note", "Black Edition", 6);
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Death Note", 1, "black  edition", RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items().get(0).catalogStatus()).isEqualTo(CatalogStatus.MATCHED);
     }
@@ -153,10 +153,10 @@ class ImageRecognitionServiceTest {
 
     @Test
     void something_recognized_but_absent_from_the_catalog_is_reported_never_created() {
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Série inconnue au bataillon", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         ResolvedItem item = analyse.items().get(0);
         assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.NOT_IN_CATALOG);
@@ -172,7 +172,7 @@ class ImageRecognitionServiceTest {
     void a_recognition_never_creates_an_entity_even_when_confidence_is_high() {
         service(FakeImageRecognitionProvider.rendant(RecognitionResult.recognized(List.of(
                 vu("Une autre série absente", 3, "Perfect", RecognitionConfidence.HIGH, 0)), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(catalogue.creations()).isZero();
     }
@@ -181,33 +181,33 @@ class ImageRecognitionServiceTest {
 
     @Test
     void unidentified_books_are_reported_so_the_lot_is_not_understated() {
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(
                         vu("Platinum End", 1, null, RecognitionConfidence.HIGH, 0)), 4)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.PARTIAL);
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.PARTIAL);
         assertThat(analyse.unidentifiedCount()).isEqualTo(4);
     }
 
     @Test
     void nothing_readable_is_not_the_same_as_a_broken_engine() {
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NOTHING_RECOGNIZED);
-        assertThat(analyse.status().worthRetrying()).isFalse();
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.NOTHING_RECOGNIZED);
+        assertThat(analyse.visionStatus().worthRetrying()).isFalse();
     }
 
     // ====================================================== Pannes
 
     @Test
     void no_engine_configured_is_a_normal_answer_not_a_failure() {
-        ImageRecognitionService.Analysis analyse = service()
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NO_ENGINE);
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.NO_ENGINE);
         assertThat(analyse.items()).isEmpty();
     }
 
@@ -221,8 +221,8 @@ class ImageRecognitionServiceTest {
         FakeImageRecognitionProvider allume = FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(vu("Platinum End", 1, "Standard", RecognitionConfidence.HIGH, 0)), 0));
 
-        ImageRecognitionService.Analysis analyse = service(eteint, allume)
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+        ListingRecognitionService.Analysis analyse = service(eteint, allume)
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(eteint.appels()).isZero();
         assertThat(allume.appels()).isEqualTo(1);
@@ -231,22 +231,24 @@ class ImageRecognitionServiceTest {
 
     @Test
     void an_engine_that_throws_never_breaks_the_journey() {
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.quiExplose())
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.quiExplose())
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.UNAVAILABLE);
-        assertThat(analyse.status().worthRetrying()).isTrue();
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.UNAVAILABLE);
+        assertThat(analyse.visionStatus().worthRetrying()).isTrue();
         assertThat(analyse.items()).isEmpty();
     }
 
     @Test
-    void no_photo_url_means_nothing_to_analyze_and_no_engine_call() {
+    void no_photo_url_means_a_text_only_request_and_no_engine_call() {
         FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
                 .rendant(RecognitionResult.recognized(List.of(), 0));
 
-        ImageRecognitionService.Analysis analyse = service(moteur).analyze(List.of(), RecognitionContext.forManga(null));
+        ListingRecognitionService.Analysis analyse = service(moteur).analyze(null, null, List.of(), RecognitionContext.forManga());
 
-        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NO_USABLE_IMAGE);
+        // V2 : aucune photo demandee n'est PAS un echec de lecture, c'est
+        // l'absence de question. visionStatus reste null, et le moteur dort.
+        assertThat(analyse.visionStatus()).isNull();
         assertThat(moteur.appels()).isZero();
     }
 
@@ -254,10 +256,10 @@ class ImageRecognitionServiceTest {
     void without_an_engine_no_photo_is_even_downloaded() {
         // Inutile de solliciter un CDN pour un résultat qu'on ne peut pas produire.
         FetcherEspion espion = new FetcherEspion();
-        ImageRecognitionService service = new ImageRecognitionService(
+        ListingRecognitionService service = new ListingRecognitionService(
                 espion, new RecognitionCatalogResolver(catalogue, editions), List.of());
 
-        service.analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+        service.analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(espion.appels()).isZero();
     }
@@ -267,12 +269,12 @@ class ImageRecognitionServiceTest {
     @Test
     void an_exact_identifier_outranks_a_visual_guess() {
         RecognizedItem visuel = vu("Platinum End", 1, null, RecognitionConfidence.HIGH, 0);
-        RecognizedItem avecEan = new RecognizedItem("Death Note", 1, null, "9782505000000",
+        RecognizedItem avecEan = RecognizedItem.fromVision("Death Note", 1, null, "9782505000000",
                 RecognitionConfidence.LOW, List.of(), Set.of(1));
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(visuel, avecEan), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         // Un code-barres correspond ou ne correspond pas ; un titre « ressemble ».
         assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
@@ -286,14 +288,14 @@ class ImageRecognitionServiceTest {
         catalogue.ajouterSerie("Death Note", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
 
-        RecognizedItem sansEan = new RecognizedItem("Death Note", 1, "Standard", null,
+        RecognizedItem sansEan = RecognizedItem.fromVision("Death Note", 1, "Standard", null,
                 RecognitionConfidence.MEDIUM, List.of(), Set.of(0));
-        RecognizedItem avecEan = new RecognizedItem("Death Note", 1, "Standard", "9782505000000",
+        RecognizedItem avecEan = RecognizedItem.fromVision("Death Note", 1, "Standard", "9782505000000",
                 RecognitionConfidence.LOW, List.of(), Set.of(1));
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(sansEan, avecEan), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items()).hasSize(1);
         assertThat(analyse.items().get(0).recognized().ean()).isEqualTo("9782505000000");
@@ -305,14 +307,14 @@ class ImageRecognitionServiceTest {
         // Confiance HIGH sur une lecture visuelle contre LOW sur un EAN :
         // l'identifiant exact passe quand même devant. Un code-barres
         // correspond ou ne correspond pas ; un titre « ressemble ».
-        RecognizedItem visuelTresSur = new RecognizedItem("Platinum End", 1, null, null,
+        RecognizedItem visuelTresSur = RecognizedItem.fromVision("Platinum End", 1, null, null,
                 RecognitionConfidence.HIGH, List.of(), Set.of(0));
-        RecognizedItem eanPeuSur = new RecognizedItem("Death Note", 1, null, "9782505000000",
+        RecognizedItem eanPeuSur = RecognizedItem.fromVision("Death Note", 1, null, "9782505000000",
                 RecognitionConfidence.LOW, List.of(), Set.of(1));
 
-        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
                 RecognitionResult.recognized(List.of(visuelTresSur, eanPeuSur), 0)))
-                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.items().get(0).recognized().seriesTitleRaw()).isEqualTo("Death Note");
         assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
@@ -325,10 +327,12 @@ class ImageRecognitionServiceTest {
         FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
                 .rendant(RecognitionResult.recognized(List.of(), 0));
 
-        service(moteur).analyze(List.of("https://exemple.invalid/1.jpg"),
-                RecognitionContext.forManga("Lot Platinum End tomes 1 à 14"));
+        service(moteur).analyze("Lot Platinum End tomes 1 à 14", null,
+                List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(moteur.dernierContexte().listingTitle()).isEqualTo("Lot Platinum End tomes 1 à 14");
+        // Le titre de l'annonce n'est PLUS transmis au moteur : il est lu
+        // localement, et un texte écrit par un tiers n'a rien à faire dans un
+        // prompt. Seul l'univers attendu voyage.
         assertThat(moteur.dernierContexte().isManga()).isTrue();
     }
 
@@ -337,7 +341,7 @@ class ImageRecognitionServiceTest {
         FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
                 .rendant(RecognitionResult.recognized(List.of(), 0));
 
-        service(moteur).analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+        service(moteur).analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(moteur.dernieresImages()).isNotEmpty();
         assertThat(moteur.dernieresImages().get(0).bytes()).isNotEmpty();

@@ -1,21 +1,28 @@
 package com.iozycore.recognition;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Un élément qu'un moteur croit voir sur une ou plusieurs photos - <b>avant</b>
- * toute confrontation au catalogue IozyCore.
+ * Un élément qu'IozyCore croit voir dans une annonce - <b>avant</b> toute
+ * confrontation au catalogue.
+ *
+ * <h2>Une seule forme, plusieurs sources</h2>
+ * Le même record décrit ce qui a été lu dans le titre, ce qui a été vu sur une
+ * photo, et ce qu'un code-barres a confirmé. C'est délibéré : deux modèles
+ * jumeaux (« TextCandidate », « VisionCandidate ») obligeraient à écrire deux
+ * fois la consolidation, et l'utilisateur, lui, ne voit qu'une liste.
  *
  * <h2>Du texte, pas encore une œuvre</h2>
  * {@code seriesTitleRaw} est ce qui a été lu, tel quel : « Platinum end »,
- * « PLATINUM END », « Platinum End vol.4 ». Le rapprochement avec une Entity
- * du catalogue vient plus tard et ailleurs (voir
- * {@link RecognitionCatalogResolver}). Mélanger les deux ferait entrer une
- * lecture approximative directement dans le catalogue.
+ * « PLATINUM END ». Le rapprochement avec une Entity du catalogue vient plus
+ * tard et ailleurs (voir {@link RecognitionCatalogResolver}). Mélanger les deux
+ * ferait entrer une lecture approximative directement dans le catalogue.
  *
  * <h2>Ce qui peut manquer, et doit pouvoir manquer</h2>
  * Un tome dont on lit le titre mais pas le numéro est un résultat utile.
@@ -24,15 +31,18 @@ import java.util.TreeSet;
  * plutôt que de choisir Black Edition au hasard.
  *
  * @param seriesTitleRaw  le titre lu, brut - jamais null ni vide
- * @param volumeNumber    le numéro de tome lu, ou {@code null} s'il n'est pas lisible
- * @param editionHint     un indice d'édition lu (« Perfect », « Black Edition »), ou {@code null}
- * @param ean             un code EAN/ISBN lu sur la photo, ou {@code null} - voir {@link #hasExactIdentifier()}
- * @param confidence      voir {@link RecognitionConfidence} - trois niveaux, jamais un pourcentage
- * @param evidence        pourquoi le moteur propose ça, en clair (« 04 visible sur la tranche ») - peut être vide
- * @param sourceImages    index des photos qui ont soutenu cette proposition, 0-based
+ * @param volumeNumber    le numéro de tome lu, ou {@code null} s'il n'est pas connu
+ * @param editionHint     un indice d'édition lu (« Perfect »), ou {@code null}
+ * @param ean             un code EAN/ISBN lu, ou {@code null} - voir {@link #hasExactIdentifier()}
+ * @param confidence      à quel point la LECTURE est sûre - voir {@link RecognitionConfidence}
+ * @param sources         comment on l'a su - voir {@link RecognitionSource}
+ * @param evidence        pourquoi cet élément est proposé, en clair - peut être vide
+ * @param sourceImages    index des photos qui l'ont soutenu, 0-based. <b>Vide</b> pour une
+ *                        proposition venue du seul texte : on ne lui invente pas une photo
  */
 public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String editionHint, String ean,
-                              RecognitionConfidence confidence, List<String> evidence, Set<Integer> sourceImages) {
+                              RecognitionConfidence confidence, Set<RecognitionSource> sources,
+                              List<String> evidence, Set<Integer> sourceImages) {
 
     /** Au-delà, c'est une lecture erronée, pas un tome - même borne que ListingTextParser. */
     public static final int NUMERO_DE_TOME_MAX = 300;
@@ -50,6 +60,15 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
             volumeNumber = null;
         }
         confidence = confidence == null ? RecognitionConfidence.LOW : confidence;
+        // Un EAN lu implique la source EAN, où qu'il ait été lu : c'est la
+        // présence de l'identifiant qui compte, pas qui l'a repéré.
+        Set<RecognitionSource> provenances = sources == null || sources.isEmpty()
+                ? EnumSet.of(RecognitionSource.VISION)
+                : EnumSet.copyOf(sources);
+        if (ean != null) {
+            provenances.add(RecognitionSource.EAN);
+        }
+        sources = Collections.unmodifiableSet(provenances);
         evidence = evidence == null ? List.of() : List.copyOf(evidence);
         // LinkedHashSet alimenté par un TreeSet, et non Set.copyOf : ce dernier
         // rend un Set NON ordonné, qui restituerait « vu sur les photos 3 et 1 ».
@@ -63,11 +82,29 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         return valeur == null || valeur.isBlank() ? null : valeur.trim();
     }
 
+    /** Une proposition venue du seul texte de l'annonce - sans photo derrière. */
+    public static RecognizedItem fromText(String seriesTitle, Integer volumeNumber, String evidence) {
+        return new RecognizedItem(seriesTitle, volumeNumber, null, null,
+                // Le texte a été lu par des règles écrites : la LECTURE est sûre.
+                // Que le vendeur possède réellement ce tome est une autre question,
+                // que porte la source TEXT et non la confiance.
+                RecognitionConfidence.HIGH, EnumSet.of(RecognitionSource.TEXT),
+                evidence == null ? List.of() : List.of(evidence), Set.of());
+    }
+
+    /** Une proposition venue d'une photo. */
+    public static RecognizedItem fromVision(String seriesTitle, Integer volumeNumber, String editionHint, String ean,
+                                             RecognitionConfidence confidence, List<String> evidence,
+                                             Set<Integer> sourceImages) {
+        return new RecognizedItem(seriesTitle, volumeNumber, editionHint, ean, confidence,
+                EnumSet.of(RecognitionSource.VISION), evidence, sourceImages);
+    }
+
     /**
      * Vrai quand un identifiant exact a été lu. Une lecture d'EAN ne se
      * « ressemble » pas : elle correspond ou non. C'est ce qui autorise le
      * service à préférer le pipeline code-barres existant à une supposition
-     * visuelle - voir {@link ImageRecognitionService}.
+     * visuelle - voir {@link ListingRecognitionService}.
      */
     public boolean hasExactIdentifier() {
         return ean != null;
@@ -78,21 +115,33 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         return editionHint == null;
     }
 
-    /** La même chose vue sur une autre photo - voir {@link RecognitionConsolidator}. */
+    /** La source la plus prioritaire de cet élément - voir {@link RecognitionSource#priority()}. */
+    public RecognitionSource strongestSource() {
+        return sources.stream().max(java.util.Comparator.comparingInt(RecognitionSource::priority))
+                .orElse(RecognitionSource.VISION);
+    }
+
+    /** La même chose sue par une autre source - voir {@link RecognitionConsolidator}. */
     RecognizedItem mergedWith(RecognizedItem autre) {
         Set<Integer> images = new TreeSet<>(sourceImages);
         images.addAll(autre.sourceImages());
 
-        List<String> raisons = new java.util.ArrayList<>(evidence);
+        List<String> raisons = new ArrayList<>(evidence);
         autre.evidence().stream().filter(raison -> !raisons.contains(raison)).forEach(raisons::add);
+
+        Set<RecognitionSource> provenances = EnumSet.copyOf(sources);
+        provenances.addAll(autre.sources());
 
         return new RecognizedItem(
                 seriesTitleRaw,
                 volumeNumber != null ? volumeNumber : autre.volumeNumber(),
+                // Une édition non lue est une information manquante, pas une
+                // édition différente : celle qui a été lue la complète.
                 editionHint != null ? editionHint : autre.editionHint(),
                 ean != null ? ean : autre.ean(),
-                // Deux photos qui montrent la même chose se confortent.
+                // Deux sources qui disent la même chose se confortent.
                 confidence.higherOf(autre.confidence()),
+                provenances,
                 raisons,
                 images);
     }

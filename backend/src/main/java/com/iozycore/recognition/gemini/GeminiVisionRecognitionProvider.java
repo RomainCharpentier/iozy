@@ -37,12 +37,18 @@ import java.util.Set;
  * d'images est plafonné, et pour laquelle aucun octet d'image n'apparaît dans
  * les journaux.
  *
- * <h2>Le prompt demande ce qui est visible</h2>
- * Le titre de l'annonce est transmis comme <b>indice de lecture</b>, jamais
- * comme réponse attendue. Un modèle à qui l'on annonce « lot de 14 tomes de
- * Platinum End » rendra volontiers quatorze tomes de Platinum End, qu'ils
- * soient sur les photos ou non - c'est le piège principal de cet exercice, et
- * la consigne le combat explicitement.
+ * <h2>Le prompt ne contient AUCUN texte d'annonce</h2>
+ * Rien de ce que le vendeur a écrit n'entre ici : ni titre, ni description.
+ * C'est à la fois une protection - un texte écrit par un tiers et concaténé
+ * dans un prompt peut en détourner les consignes - et une exigence de
+ * méthode : un modèle à qui l'on annonce « lot de 14 tomes de Platinum End »
+ * rendra volontiers quatorze tomes de Platinum End, qu'ils soient sur les
+ * photos ou non. Le texte est lu ailleurs, localement, par
+ * {@code ListingTextRecognizer} ; ce moteur ne répond qu'à « que voit-on sur
+ * ces images ? ».
+ * <p>
+ * Les seules entrées de ce provider sont donc des <b>octets d'image</b> et un
+ * code d'univers.
  */
 @Component
 public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider {
@@ -81,12 +87,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             - volumeNumber null est une bonne réponse quand le numéro n'est pas lisible. Ne le devine pas.
             - editionHint null est une bonne réponse. Ne choisis pas une édition parce qu'elle est courante.
             - confidence HIGH seulement si titre ET numéro sont nettement lisibles.
-            %s""";
-
-    private static final String INDICE_TITRE = """
-
-            Indice de lecture (l'annonce s'intitule "%s") : il peut t'aider à déchiffrer un titre flou. \
-            Il ne dit PAS ce qui est sur les photos - ne liste que ce que tu vois réellement.""";
+            - Rien ne t'est dit du contenu attendu : décris uniquement ce que tu vois.""";
 
     @Value("${gemini.api-key:}")
     private String apiKey;
@@ -127,7 +128,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                     .toList();
 
             HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model,
-                    prompt(images.size(), context), jointes, TIMEOUT);
+                    PROMPT.formatted(images.size()), jointes, TIMEOUT);
 
             if (response.statusCode() != 200) {
                 log.warn("Gemini vision ({}) a répondu {} pour {} photo(s) : {}",
@@ -150,13 +151,6 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
         }
     }
 
-    private String prompt(int imageCount, RecognitionContext context) {
-        String indice = context != null && context.listingTitle() != null
-                ? INDICE_TITRE.formatted(context.listingTitle())
-                : "";
-        return PROMPT.formatted(imageCount, indice);
-    }
-
     private RecognitionResult parse(String json) throws Exception {
         JsonNode root = objectMapper.readTree(json);
         List<RecognizedItem> items = new ArrayList<>();
@@ -168,7 +162,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                 // identifié gonflerait le lot d'une ligne vide.
                 continue;
             }
-            items.add(new RecognizedItem(
+            items.add(RecognizedItem.fromVision(
                     titre,
                     entier(node, "volumeNumber"),
                     texte(node, "editionHint"),
