@@ -52,6 +52,20 @@ public class Experience {
         if (rating != null && (rating < 0 || rating > 10)) {
             throw new IllegalArgumentException("La note doit être comprise entre 0 et 10");
         }
+        // Une expérience est un fait DATÉ : « j'ai lu ce tome » sans quand ne
+        // veut rien dire, et la colonne est NOT NULL. Sans cette garde, un corps
+        // sans date descendait jusqu'à Hibernate, dont la PropertyValueException
+        // ressortait en 409 « Cette donnée entre en conflit avec une donnée
+        // existante » - phrase absurde ici : rien n'entre en conflit, il manque
+        // un champ, et l'utilisateur ne pouvait pas savoir lequel.
+        //
+        // La date n'est surtout pas déduite d'aujourd'hui : on relit souvent une
+        // œuvre lue il y a des années, et inventer la date fausserait
+        // silencieusement les statistiques annuelles. Même règle que pour un
+        // prix relevé (voir MarketPriceObservation).
+        if (occurredAt == null) {
+            throw new IllegalArgumentException("Une expérience doit porter une date");
+        }
         this.id = id;
         this.entityId = entityId;
         this.variantId = variantId;
