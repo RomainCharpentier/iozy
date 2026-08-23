@@ -531,27 +531,47 @@ suivi de prix.
 elles étaient affichées et conservées mais **analysées par rien** — seul leur
 nombre entrait dans les points de vigilance.
 
-### 35 ter. Reconnaître le contenu du lot depuis les photos
-*(2026-08-23 — voir `docs/IMAGE_RECOGNITION.md` pour l'architecture, la sécurité et les limites)*
+### 35 ter. Détecter le contenu du lot
+*(2026-08-23 — voir `docs/LISTING_RECOGNITION.md` pour l'architecture, la sécurité et les limites)*
 
-**Point de départ** : le bloc « Reconnaissance des photos », sous les photos
-récupérées de l'annonce.
+**Point de départ** : le bloc « Éléments détectés », sous les informations de
+l'annonce.
 
 ```
-annonce lue
-→ photos récupérées
-→ « Analyser les photos »   (geste explicite, jamais automatique)
-→ « Lecture de N photos… »
-→ candidats proposés, avec leur niveau de confiance et l'indice qui les justifie
+annonce lue (titre, description, photos)
+→ le TEXTE est analysé aussitôt, localement et gratuitement
+→ « Éléments détectés » se remplit déjà
+→ [Analyser les photos]   (geste explicite, seulement s'il y a des photos)
+→ la MÊME liste s'enrichit : éditions précisées, tomes vus, éléments en plus
 → l'utilisateur coche, corrige un tome, choisit une édition, retire, complète
 → « Confirmer N éléments »
 → les éléments rejoignent le lot de l'analyse habituelle
 → ANALYSER LE LOT (verdict, CollectionFit, doublons, manquants — inchangés)
 ```
 
-**Déclenchement explicite, jamais au collage du lien.** L'appel est lent, il a
-un coût, et il envoie les images à un service externe : trois raisons de ne pas
-le faire dans le dos de l'utilisateur.
+**Le gratuit d'abord.** « Platinum End intégrale tomes 1 à 14 » est compris
+sans le moindre appel externe : des règles écrites suffisent. Payer un modèle
+pour retrouver ce que le vendeur a écrit noir sur blanc serait absurde.
+
+**Les photos, seulement sur clic.** L'appel est lent, il a un coût, et il
+envoie les images à un service externe : trois raisons de ne pas le faire dans
+le dos de l'utilisateur. Charger une annonce ne déclenche **jamais** d'appel
+payant.
+
+**Une seule liste.** Jamais « résultats du texte » d'un côté et « résultats des
+photos » de l'autre : les deux sources alimentent les mêmes propositions, et
+une ligne indique d'où elle vient (« annonce », « photos », « annonce +
+photos »). Le libellé parle de la donnée, jamais du fournisseur d'IA.
+
+**Les photos enrichissent, elles ne remplacent pas.** Si le titre annonce 14
+tomes et que les photos n'en montrent que 12, les deux derniers restent
+proposés : une photo qui ne montre pas un livre ne prouve pas son absence.
+Inversement, une photo qui lit « Perfect Edition » complète un tome dont le
+texte ne disait rien de l'édition.
+
+**Vos corrections ne sont jamais écrasées.** Corriger un tome, choisir une
+édition ou retirer une ligne survit à une nouvelle analyse — que celle-ci vienne
+d'une modification du titre ou d'un clic sur « Analyser les photos ».
 
 **Ce que « Confirmer » veut dire** : « voilà ce que contient l'annonce ». Pas
 « j'ai acheté ces mangas ». **Aucun exemplaire n'est ajouté à la collection**,
@@ -577,18 +597,22 @@ a manqué. Une ligne cochée mais incomplète dit ce qui lui manque
 (« Choisissez l'édition pour pouvoir le confirmer ») plutôt que de disparaître
 silencieusement du compteur.
 
-**Branches**, toutes menant au formulaire manuel intact :
-- **aucun moteur configuré** → « La reconnaissance de photos n'est pas
-  configurée sur cette instance. Tout le reste de l'analyse fonctionne
-  normalement. » ;
-- **moteur indisponible** → « La reconnaissance n'a pas pu aboutir. Réessayez,
-  ou ajoutez les tomes à la main. » ;
-- **rien de lisible** → « Rien de lisible sur ces photos. » — ce n'est pas une
-  panne, et cela ne se réessaie pas ;
-- **aucune photo exploitable** → même issue, la saisie manuelle prend le relais.
+**Branches**, toutes menant au formulaire manuel intact — et toutes laissant
+**les propositions du texte en place** :
+- **aucun moteur configuré** → « L'analyse des photos n'est pas configurée sur
+  cette instance. » ;
+- **moteur indisponible** → « L'analyse des photos n'a pas pu aboutir. Vous
+  pouvez réessayer. » ;
+- **rien de lisible sur les photos** → « Les photos n'ont rien ajouté de
+  lisible. » — ce n'est pas une panne, et cela ne se réessaie pas ;
+- **aucune photo exploitable** → même issue ;
+- **annonce vague** (« beau lot de mangas divers ») → aucune proposition plutôt
+  qu'une série inventée ; les photos ou la saisie manuelle prennent le relais ;
+- **annonce sans photo** → le texte suffit, le bouton n'apparaît même pas.
 
-**Une panne de reconnaissance ne bloque jamais l'analyse.** C'est la règle du
-projet : l'IA améliore IozyCore, IozyCore ne dépend pas de l'IA.
+**Une panne ne bloque jamais l'analyse.** C'est la règle du projet : l'IA
+améliore IozyCore, IozyCore ne dépend pas de l'IA — et depuis la V2, une
+annonce bien rédigée n'en a même pas besoin.
 
 **Sécurité** : le serveur ne télécharge que des photos servies par un hôte
 qu'un provider déclare explicitement (liste distincte de celle des pages),
@@ -605,8 +629,8 @@ octet d'image n'entre dans les journaux.
 accepte d'autres univers, mais le moteur décline poliment ce qui n'a pas été
 vérifié plutôt que de répondre au hasard.
 
-**Écrans** : `PhotoRecognitionPanel`, dans `PurchaseAnalysisPage`
-**Backend** : `POST /api/image-recognition/analyze`
+**Écrans** : `ListingDetectionPanel`, dans `PurchaseAnalysisPage`
+**Backend** : `POST /api/recognition/analyze`
 **Statut** : `COMPLET (Manga)`
 
 ### 35 ter. Comprendre si l'annonce est intéressante POUR MOI
