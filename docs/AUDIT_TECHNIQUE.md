@@ -158,12 +158,12 @@ contrôleurs**, qui mesurent autre chose.
 
 #### Progression
 
-| | départ | p1 | p2 | p3 | p4 | p5 |
-|---|---|---|---|---|---|---|
-| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | 11/17 | **12/17** |
-| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | 60/96 | **78/96** |
-| Contrôleurs restants | 17 | 15 | 12 | 9 | 6 | **5** |
-| Endpoints restants | 96 | 78 | 62 | 49 | 36 | **18** |
+| | départ | p1 | p2 | p3 | p4 | p5 | p6 |
+|---|---|---|---|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | 11/17 | 12/17 | **14/17** |
+| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | 60/96 | 78/96 | **84/96** |
+| Contrôleurs restants | 17 | 15 | 12 | 9 | 6 | 5 | **3** |
+| Endpoints restants | 96 | 78 | 62 | 49 | 36 | 18 | **12** |
 
 **Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
 **Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
@@ -173,10 +173,11 @@ contrôleurs**, qui mesurent autre chose.
 **Passe 4** — `EntityTypeController` (5/5), `TagController` (4/4),
 `EditionUpgradeWishController` (4/4).
 **Passe 5** — `PurchaseAnalysisController` (18/18).
+**Passe 6** — `MetadataController` (5/5), `ListingMetadataController` (1/1).
 
 #### Ce que la couverture HTTP a effectivement trouvé
 
-Quatre bugs de production, tous invisibles depuis un test appelant le
+Six bugs de production, tous invisibles depuis un test appelant le
 contrôleur en Java, tous sur des gestes utilisateur ordinaires :
 
 | Passe | Symptôme | Cause |
@@ -185,7 +186,6 @@ contrôleur en Java, tous sur des gestes utilisateur ordinaires :
 | 3 | `POST /experiences` sans date → **409** « conflit » | colonne `NOT NULL` sans garde ; `PropertyValueException` d'Hibernate |
 | 4 | `POST /edition-upgrade-wishes` sans édition actuelle → **500** | `trim()` évalué comme ARGUMENT du constructeur, donc avant la garde |
 | 4 | attacher un tag inexistant → **409** « conflit » | tag non validé ; la clé étrangère tranchait |
-| 4 | `POST /edition-upgrade-wishes` sans édition actuelle → **500** | `trim()` évalué comme ARGUMENT du constructeur, donc avant la garde |
 | 5 | `POST /analyze` **et** `POST /editions` sans titre de série → **500** | `SeriesMatcher.match()` appelait `trim()` sans garde — deux portes, une seule racine |
 | 5 | `POST /editions` vers une Série absente → **409** « conflit » | clé étrangère `manga_edition_entity_id_fkey` laissée arbitre |
 
@@ -305,22 +305,71 @@ et pas seulement par un status.
 Deux bugs de production y ont malgré tout été trouvés, tous deux invisibles
 depuis un test de domaine parce qu'ils vivent avant lui.
 
-#### Une exception de domaine pour « la cible a disparu »
+#### Ressource absente **désignée dans le corps** : 400, et pourquoi
 
-Le lot 5 a introduit `ReferencedResourceNotFoundException`, mappée en **404**.
-Sans elle, une écriture désignant une ressource absente n'avait que deux issues,
-toutes deux fausses : le **409** de la clé étrangère (rien n'entre en conflit) ou
-le **400** d'un argument invalide (la requête est bien formée, c'est sa cible
-qui n'existe plus). Elle vit dans le domaine, comme les quatre exceptions de
-suppression refusée : aucun service n'a besoin de connaître HTTP.
+Le lot 5 avait d'abord mappé ce cas en 404, via une exception de domaine dédiée.
+Le lot 6 est revenu à **400**, et l'exception a été retirée.
 
-**Réserve à connaître** : `web/src/api/client.ts` remplace le message serveur de
-tout 404 par un texte générique. Un « Série introuvable : … » n'atteint donc pas
-l'écran. C'est précisément la raison pour laquelle quatre routes sœurs
-(`/experiences`, `/wishlist`, `/relationships`, `/edition-upgrade-wishes`)
-rendent délibérément 400 pour ce même cas. Le choix du 404 ici est plus juste
-sémantiquement et moins informatif à l'écran ; les deux conventions coexistent
-et c'est un arbitrage assumé, pas un oubli.
+La raison n'est pas théorique — le 404 reste défendable en REST — elle est
+observable dans le client. `web/src/api/client.ts:61` :
+
+```ts
+const utile = raison && raison !== 'No message available' && response.status !== 404
+```
+
+Tout 404 voit **son message serveur remplacé** par un texte générique. Un
+« Série introuvable : *id* » renvoyé en 404 n'atteint donc jamais l'écran ; le
+même message renvoyé en 400 y arrive intact. Pour une référence portée par le
+**corps** de la requête, où l'utilisateur ne peut pas deviner lequel des champs
+est en cause, perdre ce message est une régression d'usage réelle.
+
+**Portée de la règle, à ne pas élargir** :
+
+| Cas | Status | Motif |
+|---|---|---|
+| Ressource **de l'URL** absente — `GET/PUT/DELETE /x/{id}` | **404** | La ressource adressée n'existe pas ; c'est le sens même du code |
+| Ressource **désignée dans le corps** absente — `entityId`, `tagId`… | **400** | Corps invalide ; le message nomme le champ fautif et doit survivre |
+
+Cette seconde ligne aligne `POST /purchase-analysis/editions` sur quatre routes
+sœurs qui rendaient déjà 400 dans ce cas (`/experiences`, `/wishlist`,
+`/relationships`, `/edition-upgrade-wishes`). **La politique globale des 404 est
+inchangée** : aucune route adressant une ressource par son URL n'a été touchée.
+
+#### Le lot 6 : tester une frontière qui parle au monde extérieur
+
+Ces six endpoints étaient les derniers non couverts pour une raison précise :
+ils dépendent de Jikan, Google Books, Open Library, BGG, IGDB et Vinted. Le
+lot 4 les avait laissés en notant « stratégie de stub à trancher ».
+
+La stratégie retenue **n'ajoute aucune infrastructure**. Les services
+n'injectent pas un fournisseur mais une **liste** de fournisseurs, chacun
+décidant par `supports(...)` s'il traite une demande. Cette liste est déjà la
+couture : cinq faux fournisseurs de vingt lignes, déclarés dans un
+`@TestConfiguration`, répondent à un univers de test (`ZZFAKE`) et à un hôte de
+test (`source-de-test.invalid`). Les vrais fournisseurs déclinent **par leur
+propre prédicat** — pas par une désactivation qu'il faudrait maintenir.
+
+Pas de MockWebServer ni de WireMock : le point à protéger est le passage HTTP
+**entrant**, pas le dialogue sortant. Un serveur simulé aurait ajouté une
+dépendance et un port à gérer pour tester ce que ces classes disent mieux.
+`@TestConfiguration` garantit par ailleurs qu'aucun scan de composants ni aucun
+profil applicatif ne peut charger ces faux hors des classes qui les importent.
+
+#### Le piège : un test qui viole l'invariant qu'il protège
+
+Un test devait prouver qu'un univers **sans aucun fournisseur** rend 404 plutôt
+qu'une erreur serveur. Il utilisait *Manga* comme univers « sans faux ».
+
+Or Manga est justement couvert par de **vrais** fournisseurs. Le test partait
+donc réellement sur le réseau — pour démontrer qu'il n'y allait pas. Il a
+d'ailleurs échoué en rendant 200 : Google Books avait répondu.
+
+Le correctif n'est pas de neutraliser les vrais fournisseurs, mais de créer un
+second univers de test (`ZZAUCUN`) qu'aucune implémentation, vraie ou fausse,
+ne prend en charge. La branche « personne ne répond » devient atteignable sans
+qu'une seule connexion s'ouvre. La leçon vaut au-delà de ce cas : **un test
+d'isolation réseau doit prouver son isolation, pas la supposer** — ici, c'est
+son propre échec qui l'a révélée.
 
 #### Probe HTTP live
 
@@ -349,6 +398,12 @@ contenant une apostrophe SQL et un jeton tentant une traversée de chemin.
 
 **Passe 3** : **40 scénarios** sur Relationship, Experience et Wishlist —
 **0 réponse 500**.
+
+**Passe 6** : **46 scénarios** sur les six endpoints du lot — **0 réponse 500**.
+Tous choisis pour être tranchés **avant** le moindre appel réseau (univers
+inconnu, paramètre requis vide, UUID malformé, URL hors liste blanche, corps
+cassé) : ces routes sont le seul endroit du projet où l'exhaustivité d'un probe
+live aurait un coût externe, et elle n'aurait rien prouvé de plus.
 
 **Passe 5**, en deux familles séparées — c'est l'apport méthodologique du lot :
 
@@ -428,23 +483,33 @@ Le lot 4 a révélé une quatrième occurrence du même écart :
 la même façon, par annotation — le 409 du refus de suppression y est désormais
 documenté lui aussi.
 
-#### Reste ouvert — 5 contrôleurs, 18 endpoints
+Les six routes du lot 6 sont **conformes** : toutes rendent un objet, dont
+springdoc déduit correctement 200. `POST /listing-metadata/resolve` documente en
+outre explicitement dans son `@Operation` pourquoi il répond **toujours** 200 —
+annonce supprimée, plateforme non couverte ou lecture partielle sont des issues
+normales du parcours, distinguées par un champ `status`, pas par un code HTTP
+qui les confondrait toutes dans un bandeau rouge.
+
+#### Reste ouvert — 3 contrôleurs, 12 endpoints
 
 Aucun ne relève d'un simple « prochain lot » : chacun demande une décision
 préalable.
 
 | Contrôleur | Endpoints | Question à trancher avant de tester |
 |---|---|---|
-| `MetadataController` | 5 | **Stratégie de stub.** Dépend de Google Books, MyAnimeList, IGDB. Aucun test ne doit faire d'appel réseau réel : passe dédiée, avec MockWebServer ou des beans de remplacement |
 | `LoanController` | 4 | **Statut produit.** Les prêts ont été retirés de l'interface utilisateur ; l'API reste exposée. Décider KEEP / DEPRECATE / REMOVE avant d'investir dans sa couverture |
 | `InsightsController` | 6 | Lectures pures, services fortement couverts — faible rendement |
 | `ExportController` | 2 | Idem, `ExportCsvWriter` déjà testé |
-| `ListingMetadataController` | 1 | Vinted, lié à la question du stub réseau |
 
-Les cinq lots livrés ont couvert **toutes les surfaces d'écriture sans
-dépendance externe**. Ce qui reste est soit une lecture à faible risque, soit
-une décision de produit ou d'infrastructure de test — aucun ne relève d'un
-« prochain lot » évident.
+Les six lots livrés ont couvert **toutes les surfaces d'écriture**, y compris
+celles qui dépendent de sources externes. Ce qui reste est **8 endpoints de
+lecture pure** (Insights, Export), dont les services sont déjà couverts
+(`StatsServiceTest`, `DiscoveryServiceTest`, `CollectionProgressServiceTest`,
+`ExportCsvWriterTest`), et **4 endpoints en attente d'une décision produit** :
+`LoanController` n'est appelé ni par le web ni par iOS, mais
+`OwnershipDeletionService` refuse encore de supprimer une possession prêtée.
+Le supprimer sans trancher cette règle changerait un comportement observable —
+c'est une décision, pas un lot de tests.
 
 Leurs services et domaines restent largement testés : ce qui manque est la
 frontière HTTP, pas la logique.
