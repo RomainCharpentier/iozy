@@ -1,0 +1,472 @@
+package com.iozycore.recognition;
+
+import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.purchaseanalysis.MangaSeries;
+import com.iozycore.purchaseanalysis.SeriesMatcher;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Le pipeline complet, avec un faux moteur : photos -> lecture -> consolidation
+ * -> catalogue -> propositions.
+ *
+ * <p>Deux invariants dominent cette classe, et ils tiennent tout le chantier :
+ * <b>rien n'est jamais créé</b>, et <b>une panne de moteur ne bloque rien</b>.
+ */
+class ImageRecognitionServiceTest {
+
+    private static final UUID PLATINUM_END = UUID.randomUUID();
+
+    private final CatalogueDeTest catalogue = new CatalogueDeTest();
+    private final EditionsDeTest editions = new EditionsDeTest();
+
+    private ImageRecognitionService service(ImageRecognitionProvider... moteurs) {
+        RecognitionCatalogResolver resolver = new RecognitionCatalogResolver(catalogue, editions);
+        return new ImageRecognitionService(new FetcherDeTest(), resolver, List.of(moteurs));
+    }
+
+    private static RecognizedItem vu(String titre, Integer tome, String edition, RecognitionConfidence confiance,
+                                      int... photos) {
+        Set<Integer> index = new java.util.TreeSet<>();
+        for (int photo : photos) {
+            index.add(photo);
+        }
+        return new RecognizedItem(titre, tome, edition, null, confiance, List.of(), index);
+    }
+
+    // ====================================================== Le cas nominal
+
+    @Test
+    void a_recognized_volume_of_a_known_series_is_matched_to_the_catalog() {
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Platinum End", 4, "Standard", RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.OK);
+        assertThat(analyse.items()).hasSize(1);
+
+        ResolvedItem item = analyse.items().get(0);
+        assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.MATCHED);
+        assertThat(item.entityId()).isEqualTo(PLATINUM_END);
+        assertThat(item.readyForAnalysis()).isTrue();
+        assertThat(item.preselected()).isTrue();
+    }
+
+    @Test
+    void several_volumes_of_one_series_come_back_as_several_items() {
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Platinum End", 1, "Standard", RecognitionConfidence.HIGH, 0),
+                        vu("Platinum End", 2, "Standard", RecognitionConfidence.HIGH, 0),
+                        vu("Platinum End", 3, "Standard", RecognitionConfidence.MEDIUM, 1)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items()).hasSize(3);
+        assertThat(analyse.items()).extracting(item -> item.recognized().volumeNumber())
+                .containsExactlyInAnyOrder(1, 2, 3);
+    }
+
+    // ====================================================== Doublons entre photos
+
+    @Test
+    void one_volume_seen_on_three_photos_is_counted_once() {
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Platinum End", 4, "Standard", RecognitionConfidence.MEDIUM, 0),
+                        vu("Platinum End", 4, "Standard", RecognitionConfidence.HIGH, 1),
+                        vu("Platinum End", 4, "Standard", RecognitionConfidence.LOW, 2)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items()).hasSize(1);
+        assertThat(analyse.items().get(0).recognized().sourceImages()).containsExactly(0, 1, 2);
+    }
+
+    // ====================================================== Ambiguïté d'édition
+
+    @Test
+    void an_unread_edition_is_asked_never_chosen() {
+        catalogue.ajouterSerie("Death Note", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
+        editions.ajouter(PLATINUM_END, "Death Note", "Black Edition", 6);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Death Note", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        ResolvedItem item = analyse.items().get(0);
+        assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
+        assertThat(item.recognized().editionHint()).as("aucune édition inventée").isNull();
+        assertThat(item.editionOptions()).extracting(ResolvedItem.EditionOption::editionName)
+                .containsExactly("Standard", "Black Edition");
+        assertThat(item.preselected()).as("un doute ne se pré-coche pas").isFalse();
+        assertThat(item.readyForAnalysis()).isFalse();
+    }
+
+    @Test
+    void a_single_known_edition_is_still_not_chosen_automatically() {
+        // Le catalogue peut ignorer une seconde édition que le lot contient.
+        catalogue.ajouterSerie("Death Note", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Death Note", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items().get(0).catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
+    }
+
+    @Test
+    void a_read_edition_matches_the_catalog_whatever_its_casing() {
+        catalogue.ajouterSerie("Death Note", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Death Note", "Black Edition", 6);
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Death Note", 1, "black  edition", RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items().get(0).catalogStatus()).isEqualTo(CatalogStatus.MATCHED);
+    }
+
+    // ====================================================== Hors catalogue
+
+    @Test
+    void something_recognized_but_absent_from_the_catalog_is_reported_never_created() {
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Série inconnue au bataillon", 1, null, RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        ResolvedItem item = analyse.items().get(0);
+        assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.NOT_IN_CATALOG);
+        assertThat(item.entityId()).isNull();
+        assertThat(item.displayTitle()).isEqualTo("Série inconnue au bataillon");
+
+        // L'invariant central du chantier.
+        assertThat(catalogue.creations()).as("aucune fiche créée par une reconnaissance").isZero();
+        assertThat(editions.creations()).as("aucune édition créée par une reconnaissance").isZero();
+    }
+
+    @Test
+    void a_recognition_never_creates_an_entity_even_when_confidence_is_high() {
+        service(FakeImageRecognitionProvider.rendant(RecognitionResult.recognized(List.of(
+                vu("Une autre série absente", 3, "Perfect", RecognitionConfidence.HIGH, 0)), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(catalogue.creations()).isZero();
+    }
+
+    // ====================================================== Non identifiés
+
+    @Test
+    void unidentified_books_are_reported_so_the_lot_is_not_understated() {
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(
+                        vu("Platinum End", 1, null, RecognitionConfidence.HIGH, 0)), 4)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.PARTIAL);
+        assertThat(analyse.unidentifiedCount()).isEqualTo(4);
+    }
+
+    @Test
+    void nothing_readable_is_not_the_same_as_a_broken_engine() {
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NOTHING_RECOGNIZED);
+        assertThat(analyse.status().worthRetrying()).isFalse();
+    }
+
+    // ====================================================== Pannes
+
+    @Test
+    void no_engine_configured_is_a_normal_answer_not_a_failure() {
+        ImageRecognitionService.Analysis analyse = service()
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NO_ENGINE);
+        assertThat(analyse.items()).isEmpty();
+    }
+
+    @Test
+    void an_unavailable_engine_is_skipped_in_favour_of_a_working_one() {
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        FakeImageRecognitionProvider eteint = FakeImageRecognitionProvider
+                .rendant(RecognitionResult.recognized(List.of(), 0)).indisponible();
+        FakeImageRecognitionProvider allume = FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(vu("Platinum End", 1, "Standard", RecognitionConfidence.HIGH, 0)), 0));
+
+        ImageRecognitionService.Analysis analyse = service(eteint, allume)
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(eteint.appels()).isZero();
+        assertThat(allume.appels()).isEqualTo(1);
+        assertThat(analyse.items()).hasSize(1);
+    }
+
+    @Test
+    void an_engine_that_throws_never_breaks_the_journey() {
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.quiExplose())
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.UNAVAILABLE);
+        assertThat(analyse.status().worthRetrying()).isTrue();
+        assertThat(analyse.items()).isEmpty();
+    }
+
+    @Test
+    void no_photo_url_means_nothing_to_analyze_and_no_engine_call() {
+        FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
+                .rendant(RecognitionResult.recognized(List.of(), 0));
+
+        ImageRecognitionService.Analysis analyse = service(moteur).analyze(List.of(), RecognitionContext.forManga(null));
+
+        assertThat(analyse.status()).isEqualTo(RecognitionStatus.NO_USABLE_IMAGE);
+        assertThat(moteur.appels()).isZero();
+    }
+
+    @Test
+    void without_an_engine_no_photo_is_even_downloaded() {
+        // Inutile de solliciter un CDN pour un résultat qu'on ne peut pas produire.
+        FetcherEspion espion = new FetcherEspion();
+        ImageRecognitionService service = new ImageRecognitionService(
+                espion, new RecognitionCatalogResolver(catalogue, editions), List.of());
+
+        service.analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(espion.appels()).isZero();
+    }
+
+    // ====================================================== Priorité EAN
+
+    @Test
+    void an_exact_identifier_outranks_a_visual_guess() {
+        RecognizedItem visuel = vu("Platinum End", 1, null, RecognitionConfidence.HIGH, 0);
+        RecognizedItem avecEan = new RecognizedItem("Death Note", 1, null, "9782505000000",
+                RecognitionConfidence.LOW, List.of(), Set.of(1));
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(visuel, avecEan), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        // Un code-barres correspond ou ne correspond pas ; un titre « ressemble ».
+        assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
+    }
+
+    @Test
+    void an_exact_identifier_survives_consolidation_and_reaches_the_catalog_phase() {
+        // La priorité déterministe ne doit pas se perdre en route : l'EAN lu sur
+        // une photo doit être encore là après fusion, pour que la résolution
+        // catalogue/metadata puisse s'en servir plutôt que du titre lu.
+        catalogue.ajouterSerie("Death Note", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
+
+        RecognizedItem sansEan = new RecognizedItem("Death Note", 1, "Standard", null,
+                RecognitionConfidence.MEDIUM, List.of(), Set.of(0));
+        RecognizedItem avecEan = new RecognizedItem("Death Note", 1, "Standard", "9782505000000",
+                RecognitionConfidence.LOW, List.of(), Set.of(1));
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(sansEan, avecEan), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items()).hasSize(1);
+        assertThat(analyse.items().get(0).recognized().ean()).isEqualTo("9782505000000");
+        assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
+    }
+
+    @Test
+    void a_weaker_visual_guess_never_outranks_an_exact_identifier() {
+        // Confiance HIGH sur une lecture visuelle contre LOW sur un EAN :
+        // l'identifiant exact passe quand même devant. Un code-barres
+        // correspond ou ne correspond pas ; un titre « ressemble ».
+        RecognizedItem visuelTresSur = new RecognizedItem("Platinum End", 1, null, null,
+                RecognitionConfidence.HIGH, List.of(), Set.of(0));
+        RecognizedItem eanPeuSur = new RecognizedItem("Death Note", 1, null, "9782505000000",
+                RecognitionConfidence.LOW, List.of(), Set.of(1));
+
+        ImageRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.recognized(List.of(visuelTresSur, eanPeuSur), 0)))
+                .analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(analyse.items().get(0).recognized().seriesTitleRaw()).isEqualTo("Death Note");
+        assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
+    }
+
+    // ====================================================== Contexte
+
+    @Test
+    void the_listing_title_reaches_the_engine_as_a_hint() {
+        FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
+                .rendant(RecognitionResult.recognized(List.of(), 0));
+
+        service(moteur).analyze(List.of("https://exemple.invalid/1.jpg"),
+                RecognitionContext.forManga("Lot Platinum End tomes 1 à 14"));
+
+        assertThat(moteur.dernierContexte().listingTitle()).isEqualTo("Lot Platinum End tomes 1 à 14");
+        assertThat(moteur.dernierContexte().isManga()).isTrue();
+    }
+
+    @Test
+    void the_engine_receives_bytes_never_urls() {
+        FakeImageRecognitionProvider moteur = FakeImageRecognitionProvider
+                .rendant(RecognitionResult.recognized(List.of(), 0));
+
+        service(moteur).analyze(List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga(null));
+
+        assertThat(moteur.dernieresImages()).isNotEmpty();
+        assertThat(moteur.dernieresImages().get(0).bytes()).isNotEmpty();
+    }
+
+    // ====================================================== Doublures
+
+    /** Rend une image factice pour chaque URL - la liste blanche est testée à part. */
+    private static class FetcherDeTest extends RecognitionImageFetcher {
+        FetcherDeTest() {
+            super(List.of());
+        }
+
+        @Override
+        public List<RecognitionImage> fetch(List<String> imageUrls) {
+            List<RecognitionImage> images = new ArrayList<>();
+            for (int i = 0; i < imageUrls.size(); i++) {
+                images.add(new RecognitionImage(i, imageUrls.get(i), new byte[] {1, 2, 3}, "image/jpeg"));
+            }
+            return images;
+        }
+    }
+
+    private static class FetcherEspion extends RecognitionImageFetcher {
+        private int appels;
+
+        FetcherEspion() {
+            super(List.of());
+        }
+
+        @Override
+        public List<RecognitionImage> fetch(List<String> imageUrls) {
+            appels++;
+            return List.of();
+        }
+
+        int appels() {
+            return appels;
+        }
+    }
+
+    /**
+     * Un SeriesMatcher de test qui compte les créations - il ne devrait jamais
+     * en compter une seule.
+     */
+    private static class CatalogueDeTest extends SeriesMatcher {
+        private final java.util.Map<String, UUID> series = new java.util.HashMap<>();
+        private int creations;
+
+        CatalogueDeTest() {
+            super(null, null);
+        }
+
+        void ajouterSerie(String titre, UUID id) {
+            series.put(titre.toLowerCase(java.util.Locale.ROOT), id);
+        }
+
+        int creations() {
+            return creations;
+        }
+
+        @Override
+        public MangaSeries match(String rawTitle) {
+            if (rawTitle == null || rawTitle.isBlank()) {
+                throw new IllegalArgumentException("Le titre de la série est requis");
+            }
+            String titre = rawTitle.trim();
+            return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
+        }
+    }
+
+    private static class EditionsDeTest implements MangaEditionRepository {
+        private final List<MangaEdition> editions = new ArrayList<>();
+        private int creations;
+
+        void ajouter(UUID entityId, String serie, String edition, Integer totalVolumes) {
+            editions.add(new MangaEdition(UUID.randomUUID(), entityId, serie, edition, EditionTier.STANDARD,
+                    null, totalVolumes, null, false, false, null, null, null, null));
+        }
+
+        int creations() {
+            return creations;
+        }
+
+        @Override
+        public MangaEdition save(MangaEdition edition) {
+            creations++;
+            editions.add(edition);
+            return edition;
+        }
+
+        @Override
+        public Optional<MangaEdition> findById(UUID id) {
+            return editions.stream().filter(e -> e.id().equals(id)).findFirst();
+        }
+
+        @Override
+        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
+            return editions.stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)
+                            && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
+            return editions.stream().filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)).toList();
+        }
+
+        @Override
+        public List<MangaEdition> findByEntityId(UUID entityId) {
+            return editions.stream().filter(e -> entityId.equals(e.entityId())).toList();
+        }
+
+        @Override
+        public List<MangaEdition> findAll() {
+            return List.copyOf(editions);
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            editions.removeIf(e -> e.id().equals(id));
+        }
+
+        @Override
+        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
+            return editions.stream()
+                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+    }
+}
