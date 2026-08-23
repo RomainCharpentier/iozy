@@ -568,6 +568,15 @@ public class PurchaseAnalysisService {
     public MangaEdition createEdition(UUID entityId, String seriesTitle, String editionName, EditionTier tier, String publisher,
                                        Integer totalVolumes, BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                        boolean betterEditionAnnounced, String betterEditionNote) {
+        // Une Série fournie explicitement doit exister. Sans ce contrôle, seule la
+        // contrainte de clé étrangère protégeait la table, et le client recevait
+        // « Cette donnée entre en conflit avec une donnée existante » - alors que
+        // la Série est ABSENTE, pas conflictuelle. Même contrôle que sur les
+        // autres routes qui référencent une Entity depuis un corps de requête.
+        if (entityId != null && entityRepository.findById(entityId).isEmpty()) {
+            throw new com.iozycore.domain.shared.ReferencedResourceNotFoundException(
+                    "Série introuvable : " + entityId);
+        }
         // Modèle catalogue cible (Série -> Édition -> Tome) : si cette série est déjà une Entity
         // connue, lie l'édition dès sa création plutôt que d'attendre une prochaine analyse.
         UUID linkedEntityId = entityId != null ? entityId : seriesMatcher.match(seriesTitle).knownEntityId();

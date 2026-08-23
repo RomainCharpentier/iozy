@@ -27,6 +27,15 @@ public class SeriesMatcher {
     }
 
     public MangaSeries match(String rawTitle) {
+        // Une série sans titre ne se rapproche de rien : ce n'est pas « aucune
+        // correspondance », c'est une entrée inexploitable. Sans cette garde,
+        // le trim() ci-dessous levait une NullPointerException rendue en 500 -
+        // par DEUX portes distinctes, toutes deux ouvertes à l'utilisateur :
+        // un lot d'analyse dont un élément n'a pas de série, et la création
+        // d'une édition sans titre de série.
+        if (rawTitle == null || rawTitle.isBlank()) {
+            throw new IllegalArgumentException("Le titre de la série est requis");
+        }
         String trimmedTitle = rawTitle.trim();
         Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
         if (mangaType.isEmpty()) {

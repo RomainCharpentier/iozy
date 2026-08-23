@@ -158,12 +158,12 @@ contrôleurs**, qui mesurent autre chose.
 
 #### Progression
 
-| | départ | passe 1 | passe 2 | passe 3 | passe 4 |
-|---|---|---|---|---|---|
-| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | **11/17** |
-| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | **60/96** |
-| Contrôleurs restants | 17 | 15 | 12 | 9 | **6** |
-| Endpoints restants | 96 | 78 | 62 | 49 | **36** |
+| | départ | p1 | p2 | p3 | p4 | p5 |
+|---|---|---|---|---|---|---|
+| Contrôleurs couverts | 0/17 | 2/17 | 5/17 | 8/17 | 11/17 | **12/17** |
+| Endpoints couverts | 0/96 | 18/96 | 34/96 | 47/96 | 60/96 | **78/96** |
+| Contrôleurs restants | 17 | 15 | 12 | 9 | 6 | **5** |
+| Endpoints restants | 96 | 78 | 62 | 49 | 36 | **18** |
 
 **Passe 1** — `OwnershipController` (7/7) et `EntityController` (11/11).
 **Passe 2** — `TierListController` (11/11), `ShareController` (4/4),
@@ -172,6 +172,7 @@ contrôleurs**, qui mesurent autre chose.
 `WishlistController` (4/4).
 **Passe 4** — `EntityTypeController` (5/5), `TagController` (4/4),
 `EditionUpgradeWishController` (4/4).
+**Passe 5** — `PurchaseAnalysisController` (18/18).
 
 #### Ce que la couverture HTTP a effectivement trouvé
 
@@ -184,9 +185,14 @@ contrôleur en Java, tous sur des gestes utilisateur ordinaires :
 | 3 | `POST /experiences` sans date → **409** « conflit » | colonne `NOT NULL` sans garde ; `PropertyValueException` d'Hibernate |
 | 4 | `POST /edition-upgrade-wishes` sans édition actuelle → **500** | `trim()` évalué comme ARGUMENT du constructeur, donc avant la garde |
 | 4 | attacher un tag inexistant → **409** « conflit » | tag non validé ; la clé étrangère tranchait |
+| 4 | `POST /edition-upgrade-wishes` sans édition actuelle → **500** | `trim()` évalué comme ARGUMENT du constructeur, donc avant la garde |
+| 5 | `POST /analyze` **et** `POST /editions` sans titre de série → **500** | `SeriesMatcher.match()` appelait `trim()` sans garde — deux portes, une seule racine |
+| 5 | `POST /editions` vers une Série absente → **409** « conflit » | clé étrangère `manga_edition_entity_id_fkey` laissée arbitre |
 
-Trois des quatre partagent la même racine : **une contrainte de base de données
-laissée arbitre du contrat HTTP**. Le message générique du filet
+Quatre des six partagent la même racine : **une contrainte de base de données
+laissée arbitre du contrat HTTP**. Deux autres partagent la seconde : **un
+`trim()` évalué avant la garde `null` censée le protéger** — une fois comme
+argument de constructeur, une fois en tête de méthode. Le message générique du filet
 `DataIntegrityViolationException` (« Cette donnée entre en conflit avec une
 donnée existante ») est juste pour un vrai conflit, et faux dès qu'il attrape
 une référence absente ou un champ manquant.
@@ -281,6 +287,41 @@ Spring pour `ResponseStatusException`. C'est une **convention existante**, pas
 une incohérence manifeste : elle est constatée et figée par les tests, pas
 corrigée au passage.
 
+#### Le lot 5 : PurchaseAnalysis, deux couvertures à ne pas confondre
+
+Cette surface avait déjà **plus de cent cinquante tests** de domaine et
+d'intégration — verdicts, médianes, comparabilité marché, sémantique de
+livraison, ingestion d'observations. Sa couverture **fonctionnelle** était la
+plus forte du dépôt ; sa couverture **formelle de la frontière HTTP** était
+nulle.
+
+Ce sont deux couches différentes, et la seconde ne remplace pas la première :
+les tests ajoutés ici ne rejouent aucun calcul. Ils protègent le passage —
+routage, désérialisation, liaison, traduction des exceptions — et surtout
+**l'absence d'effet partiel** : un lot dont un seul élément est invalide ne
+laisse rien en base, ce qui est désormais affirmé par un compteur avant/après
+et pas seulement par un status.
+
+Deux bugs de production y ont malgré tout été trouvés, tous deux invisibles
+depuis un test de domaine parce qu'ils vivent avant lui.
+
+#### Une exception de domaine pour « la cible a disparu »
+
+Le lot 5 a introduit `ReferencedResourceNotFoundException`, mappée en **404**.
+Sans elle, une écriture désignant une ressource absente n'avait que deux issues,
+toutes deux fausses : le **409** de la clé étrangère (rien n'entre en conflit) ou
+le **400** d'un argument invalide (la requête est bien formée, c'est sa cible
+qui n'existe plus). Elle vit dans le domaine, comme les quatre exceptions de
+suppression refusée : aucun service n'a besoin de connaître HTTP.
+
+**Réserve à connaître** : `web/src/api/client.ts` remplace le message serveur de
+tout 404 par un texte générique. Un « Série introuvable : … » n'atteint donc pas
+l'écran. C'est précisément la raison pour laquelle quatre routes sœurs
+(`/experiences`, `/wishlist`, `/relationships`, `/edition-upgrade-wishes`)
+rendent délibérément 400 pour ce même cas. Le choix du 404 ici est plus juste
+sémantiquement et moins informatif à l'écran ; les deux conventions coexistent
+et c'est un arbitrage assumé, pas un oubli.
+
 #### Probe HTTP live
 
 **39 scénarios ciblés** rejoués contre l'application en fonctionnement sur les
@@ -308,6 +349,20 @@ contenant une apostrophe SQL et un jeton tentant une traversée de chemin.
 
 **Passe 3** : **40 scénarios** sur Relationship, Experience et Wishlist —
 **0 réponse 500**.
+
+**Passe 5**, en deux familles séparées — c'est l'apport méthodologique du lot :
+
+| Famille | Scénarios | 500 avant | 500 après |
+|---|---|---|---|
+| Superficiel (id inconnu, corps vide, JSON cassé, enum invalide) | 47 | 1 | 0 |
+| Stateful (données réelles construites puis nettoyées) | 16 | 1 | 0 |
+
+Les deux familles ne trouvent pas les mêmes choses : le superficiel exerce les
+chemins d'erreur les plus courts, le stateful atteint ce qui vit **derrière les
+premières gardes**. Et ni l'un ni l'autre n'est une couverture — un probe
+constate un comportement à un instant, un test le rejoue à chaque build. Les
+lots 4 et 5 le démontrent : deux des quatre bugs récents n'étaient atteignables
+que par des tests construisant l'état.
 
 **Passe 4** : **32 scénarios** sur EntityType, Tag et EditionUpgradeWish —
 **0 réponse 500** au premier passage. Le probe seul n'a cependant **pas suffi** :
@@ -373,7 +428,7 @@ Le lot 4 a révélé une quatrième occurrence du même écart :
 la même façon, par annotation — le 409 du refus de suppression y est désormais
 documenté lui aussi.
 
-#### Reste ouvert — 6 contrôleurs, 36 endpoints
+#### Reste ouvert — 5 contrôleurs, 18 endpoints
 
 Aucun ne relève d'un simple « prochain lot » : chacun demande une décision
 préalable.
@@ -384,12 +439,12 @@ préalable.
 | `LoanController` | 4 | **Statut produit.** Les prêts ont été retirés de l'interface utilisateur ; l'API reste exposée. Décider KEEP / DEPRECATE / REMOVE avant d'investir dans sa couverture |
 | `InsightsController` | 6 | Lectures pures, services fortement couverts — faible rendement |
 | `ExportController` | 2 | Idem, `ExportCsvWriter` déjà testé |
-| `PurchaseAnalysisController` | 18 | Couverture **fonctionnelle** massive (>150 tests domaine et intégration), couverture **HTTP formelle** nulle. À distinguer : la première protège le calcul, la seconde protègerait le contrat |
 | `ListingMetadataController` | 1 | Vinted, lié à la question du stub réseau |
 
-Les quatre lots livrés ont couvert **toutes les surfaces d'écriture sans
+Les cinq lots livrés ont couvert **toutes les surfaces d'écriture sans
 dépendance externe**. Ce qui reste est soit une lecture à faible risque, soit
-une décision de produit ou d'infrastructure de test.
+une décision de produit ou d'infrastructure de test — aucun ne relève d'un
+« prochain lot » évident.
 
 Leurs services et domaines restent largement testés : ce qui manque est la
 frontière HTTP, pas la logique.
