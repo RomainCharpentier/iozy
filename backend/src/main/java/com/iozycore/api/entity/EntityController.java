@@ -11,6 +11,7 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -92,6 +93,9 @@ public class EntityController {
     }
 
     @Operation(summary = "Supprimer une Entity (bloqué si des Ownership/Experience existent encore)")
+    @ApiResponse(responseCode = "204", description = "Série supprimée - aucun corps. Idempotent : "
+            + "un identifiant inconnu rend également 204.")
+    @ApiResponse(responseCode = "409", description = "Des Ownership/Experience/Éditions la référencent encore")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         entityDeletionService.delete(id);
@@ -180,6 +184,9 @@ public class EntityController {
 
     @Operation(summary = "Supprimer un Tome (bloqué si des Ownership/Experience le référencent encore) - "
             + "n'affecte jamais la Série ni les autres tomes (modèle Série -> Édition -> Tome)")
+    @ApiResponse(responseCode = "204", description = "Tome supprimé - aucun corps")
+    @ApiResponse(responseCode = "404", description = "Série ou tome introuvable")
+    @ApiResponse(responseCode = "409", description = "Des Ownership/Experience le référencent encore")
     @DeleteMapping("/{entityId}/variants/{variantId}")
     public ResponseEntity<Void> deleteVariant(@PathVariable UUID entityId, @PathVariable UUID variantId) {
         try {
