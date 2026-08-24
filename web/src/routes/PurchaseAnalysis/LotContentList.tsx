@@ -39,8 +39,7 @@ export function LotContentList({
   if (items.length === 0 && !ligneEnCours) {
     return (
       <p className="rounded-lg bg-surface2 px-3 py-2 text-xs text-textDim">
-        Rien pour l'instant. Les éléments détectés que tu confirmes arrivent ici, et tu peux en ajouter
-        à la main juste en dessous.
+        Ce que tu confirmes arrive ici.
       </p>
     )
   }

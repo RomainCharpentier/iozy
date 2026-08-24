@@ -661,6 +661,49 @@ token n'a été ajouté, `--color-warning` tenant déjà AA comme texte sur les 
 fonds des deux thèmes (5,34 à 9,53) — les quatre usages pointent désormais
 dessus, comme les seize autres du dépôt.
 
+### C7 — « Évaluer un achat » : 2,2 écrans avant d'avoir rien saisi · **traité**
+
+Signalé à l'usage : l'écran est trop chargé. Mesuré sur un formulaire vierge, en
+375 px :
+
+| | Avant | Après |
+|---|---|---|
+| Hauteur | **2,2 écrans** | **1,3** |
+| Contrôles | **25** | **10** |
+| Champs de saisie | 10 | 4 |
+
+Le coupable n'était pas la quantité d'information mais le **moment** où elle
+s'affiche.
+
+**Le repli existait déjà, mais s'ouvrait après coup.** Les six champs
+techniques — plateforme, prix, port, protection, titre, description — se
+repliaient *dès qu'une URL avait été lue*. Ce qui ne réglait que la moitié du
+problème : sur un formulaire vierge, ils restaient tous ouverts. Or aucun n'est
+requis sauf le prix, et tous se remplissent seuls quand un lien est collé — le
+parcours prévu. Les garder ouverts au cas où faisait payer à tout le monde le
+confort du parcours manuel. Ils sont désormais **fermés d'entrée**, rouverts
+d'un tap.
+
+**Le résumé énumérait des absences.** Une fois replié sur un formulaire vide, il
+affichait « Annonce sans titre », « Prix non renseigné », « Port non
+communiqué » : trois reproches avant que l'utilisateur ait commencé. Il cède la
+place à une invitation, et ne reparaît qu'une fois qu'il a quelque chose à
+résumer.
+
+**L'état déclaré est replié sur sa valeur.** Six pastilles et une case à cocher
+coûtaient 244 px pour un champ dont le défaut convient huit fois sur dix. Le
+choix reste **lu** — « État déclaré : Très bon état » — donc vérifiable d'un
+coup d'œil : ce n'est pas l'information qui disparaît, seulement les six façons
+d'en changer.
+
+**Trois paragraphes explicatifs raccourcis**, dont deux écrits dans les passes
+précédentes de cette même session. Une explication utile une fois est du bruit
+les cent fois suivantes.
+
+Vérifié : le parcours au lien remplit tout et affiche un vrai résumé, la
+détection rend toujours ses cinq tomes, les six champs et les six pastilles
+reviennent d'un tap.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
