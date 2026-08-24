@@ -522,4 +522,44 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
         assertThat(ownershipRepository.findAll()).hasSize(possessionsAvant);
         assertThat(entityRepository.findAllByType(typeManga)).hasSize(seriesAvant);
     }
+
+    // ==================================================================
+    //  « 9 tomes de Naruto » - l'annonce dit combien, pas lesquels
+    // ==================================================================
+
+    @Test
+    void an_announced_count_is_reported_but_never_unrolled_into_volumes() throws Exception {
+        serieCataloguee("Naruto");
+
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("9 tomes de Naruto"))))
+                .andExpect(status().isOk())
+                // Aucune proposition : dérouler 1 à 9 fabriquerait un verdict
+                // d'achat calculé sur des tomes que personne n'a vus.
+                .andExpect(jsonPath("$.items", hasSize(0)))
+                .andExpect(jsonPath("$.textItemCount").value(0))
+                // Mais ce que l'annonce dit vraiment est conservé.
+                .andExpect(jsonPath("$.announcedVolumeCount").value(9))
+                .andExpect(jsonPath("$.announcedSeriesTitle").value("Naruto"));
+    }
+
+    @Test
+    void a_listing_that_names_its_volumes_carries_no_announced_count() throws Exception {
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Naruto tomes 1 à 9"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(9)))
+                // Sinon l'écran dirait « 9 tomes annoncés » à côté de neuf
+                // tomes déjà identifiés, comme si quelque chose manquait.
+                .andExpect(jsonPath("$.announcedVolumeCount").doesNotExist());
+    }
+
+    @Test
+    void a_count_without_an_identifiable_work_keeps_the_count_alone() throws Exception {
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Lot de 9 mangas"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.announcedVolumeCount").value(9))
+                .andExpect(jsonPath("$.announcedSeriesTitle").doesNotExist());
+    }
 }

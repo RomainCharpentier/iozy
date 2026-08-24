@@ -52,12 +52,51 @@ public final class ListingTextRecognizer {
      * n'existent pas.
      */
     public static List<RecognizedItem> recognize(String title, String description) {
+        return read(title, description).items();
+    }
+
+    /**
+     * Ce que le texte a livré : les propositions, <b>et</b> ce qu'il dit du lot
+     * sans permettre d'en proposer quoi que ce soit.
+     *
+     * <h2>« 9 tomes de Naruto »</h2>
+     * Cette annonce dit deux choses vraies - une série, et une taille - et une
+     * chose qu'elle ne dit pas : <b>lesquels</b>. Jusqu'ici tout était perdu :
+     * aucun numéro lisible, donc liste vide, donc écran muet.
+     *
+     * <p>Dérouler 1 à 9 aurait été le geste facile et le mauvais : le vendeur
+     * peut avoir les tomes 14 à 22, et un verdict d'achat calculé sur des tomes
+     * inventés serait faux avec l'aplomb d'un calcul. Ces deux faits sont donc
+     * rapportés <b>à côté</b> des propositions, jamais dedans - à l'écran de
+     * poser la seule question qui reste ouverte.
+     *
+     * @param items les propositions confirmables - vides quand rien n'est identifiable
+     * @param announcedVolumeCount combien de tomes l'annonce dit contenir sans dire lesquels,
+     *                             {@code null} sinon. Jamais renseigné en même temps que des {@code items}
+     * @param announcedSeriesTitle la série nommée par le titre quand seul le nombre manquait,
+     *                             {@code null} si le titre ne désigne aucune œuvre plausible
+     */
+    public record TextReading(List<RecognizedItem> items, Integer announcedVolumeCount,
+                              String announcedSeriesTitle) {
+
+        public TextReading {
+            items = items == null ? List.of() : List.copyOf(items);
+        }
+
+        static TextReading rien() {
+            return new TextReading(List.of(), null, null);
+        }
+    }
+
+    public static TextReading read(String title, String description) {
         ListingTextParser.Detection detection = ListingTextParser.parse(title, description);
 
         // Ni numéros lisibles, ni formulation exploitable : on se tait, et les
         // photos ou la saisie manuelle prennent le relais.
         if (!detection.hasVolumes()) {
-            return List.of();
+            return detection.hasAnnouncedCountOnly()
+                    ? nombreSeul(title, detection.announcedVolumeCount())
+                    : TextReading.rien();
         }
 
         String serie = ListingTextParser.probableSeriesTitle(title);
@@ -66,12 +105,12 @@ public final class ListingTextRecognizer {
             // « lot mangas 1 à 10 » ne dit pas DE QUOI il s'agit, et dix lignes
             // « mangas · tome N » n'aideraient personne - elles nuiraient même,
             // en fabriquant une série qui n'existe pas.
-            return List.of();
+            return TextReading.rien();
         }
 
         List<Integer> numeros = ListingTextParser.sorted(detection.volumeNumbers());
         if (numeros.size() > MAX_ELEMENTS) {
-            return List.of();
+            return TextReading.rien();
         }
 
         String raison = evidence(numeros);
@@ -82,7 +121,21 @@ public final class ListingTextRecognizer {
             // la compléteront.
             propositions.add(RecognizedItem.fromText(serie, numero, raison));
         }
-        return List.copyOf(propositions);
+        return new TextReading(propositions, null, null);
+    }
+
+    /**
+     * Le cas « l'annonce dit combien, pas lesquels ».
+     *
+     * <p>Aucune proposition n'est produite - il n'y a rien à cocher. Ce qui est
+     * rapporté est ce que l'annonce affirme réellement : une taille, et une
+     * série si le titre en nomme une. Si le titre ne désigne aucune œuvre
+     * plausible (« lot de 9 mangas »), le nombre est conservé seul : il reste
+     * vrai, et il servira à vérifier ce que l'utilisateur saisira.
+     */
+    private static TextReading nombreSeul(String title, Integer nombre) {
+        String serie = ListingTextParser.probableSeriesTitle(title);
+        return new TextReading(List.of(), nombre, estUnTitreDeSerie(serie) ? serie : null);
     }
 
     /**

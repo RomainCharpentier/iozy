@@ -66,6 +66,18 @@ export interface AnalyzeListingResponse {
   textItemCount: number
   analyzedImageCount: number
   requestedImageCount: number
+  /**
+   * Ce que l'annonce affirme contenir **sans dire lesquels** — « 9 tomes de
+   * Naruto ». `null` quand elle ne le dit pas, ou quand les numéros sont connus
+   * (ils font alors foi).
+   *
+   * Volontairement **hors de `items`** : dérouler 1 à 9 fabriquerait un verdict
+   * d'achat calculé sur des tomes que personne n'a vus — le vendeur peut avoir
+   * les tomes 14 à 22.
+   */
+  announcedVolumeCount: number | null
+  /** La série nommée dans ce cas, `null` si le titre n'en désigne aucune. */
+  announcedSeriesTitle: string | null
 }
 
 export interface AnalyzeListingRequest {

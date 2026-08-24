@@ -135,7 +135,8 @@ public class RecognitionController {
      */
     public record AnalyzeListingResponse(String visionStatus, List<RecognizedItemResponse> items,
                                           int unidentifiedCount, int notInCatalogCount, int textItemCount,
-                                          int analyzedImageCount, int requestedImageCount) {
+                                          int analyzedImageCount, int requestedImageCount,
+                                          Integer announcedVolumeCount, String announcedSeriesTitle) {
     }
 
     @Operation(summary = "Détecter les éléments d'une annonce. Le titre et la description sont TOUJOURS lus, "
@@ -246,6 +247,12 @@ public class RecognitionController {
                         .count(),
                 analyse.textItemCount(),
                 analyse.analyzedImageCount(),
-                analyse.requestedImageCount());
+                analyse.requestedImageCount(),
+                // « 9 tomes de Naruto » : ce que l'annonce affirme, sans dire
+                // lesquels. Rendu à côté des propositions et jamais dedans -
+                // dérouler 1 à 9 fabriquerait un verdict d'achat calculé sur
+                // des tomes que personne n'a vus.
+                analyse.announcedVolumeCount(),
+                analyse.announcedSeriesTitle());
     }
 }

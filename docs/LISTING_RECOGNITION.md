@@ -516,6 +516,60 @@ ressorti en `NOT_IN_CATALOG`, sans rien créer.
 ownership, wishlist, edition, observation, analyse : identiques avant/après) ;
 ni la clé d'API ni le moindre octet d'image n'apparaissent dans les journaux.
 
+## 8 ter. « 9 tomes de Naruto » : dire combien sans dire lesquels
+
+Une annonce sur trois donne un **décompte** et pas des **numéros**. Le texte
+dit deux choses vraies — une série, une taille — et tait la troisième :
+lesquels.
+
+Jusqu'ici tout était perdu. Le parser ne cherchait le chiffre qu'**après** le
+mot (« tome 9 »), jamais avant (« 9 tomes ») : aucune lecture, aucune
+proposition, écran muet. Et `probableSeriesTitle` rendait « 9 tomes de
+Naruto » tel quel, si bien que la série pourtant nommée noir sur blanc ne
+correspondait à rien au catalogue.
+
+### Ce qui n'a pas été fait, et pourquoi
+
+Dérouler 1 à 9 était le geste facile et le mauvais. **Le vendeur peut avoir les
+tomes 14 à 22.** Neuf propositions pré-cochées auraient l'apparence d'une
+lecture réussie, et le verdict d'achat — prix par tome, doublons, manquants —
+serait calculé sur des livres que personne n'a vus. Faux, mais avec l'aplomb
+d'un calcul.
+
+C'est la même règle que partout ailleurs ici : *rien n'est inventé*. Une
+information manquante reste manquante.
+
+### Ce qui est fait
+
+Le nombre et la série sont rapportés **à côté** des propositions, jamais
+dedans : `announcedVolumeCount` et `announcedSeriesTitle`, tous deux `null` dès
+qu'un tome est identifié — les numéros font foi, et deux sources pour la même
+grandeur finiraient par se contredire.
+
+L'écran en tire trois choses :
+
+| | |
+|---|---|
+| **Le fait** | « L'annonce indique 9 tomes de Naruto, sans dire lesquels » |
+| **Le raccourci** | Un bouton qui reprend la série lue et pose le curseur sur le champ « Tomes ». Ce champ n'est **pas** pré-rempli — ce serait inventer ce que le backend refuse d'inventer |
+| **Le filet** | « Le lot en contient 6 pour 9 annoncés ». Une note, jamais un blocage : l'utilisateur peut vouloir n'en retenir qu'une partie. Mais saisir 6 là où l'annonce en annonce 9 donne un **prix par tome flatteur**, donc un verdict trop favorable |
+
+Le fait et son raccourci disparaissent dès que le lot contient quelque chose :
+la question a trouvé preneur, et le bouton écraserait la série que
+l'utilisateur vient de saisir. Le décompte, lui, reste surveillé.
+
+### Les garde-fous du motif
+
+Le chiffre doit précéder un mot de support (`tomes`, `volumes`, `mangas`,
+`livres`, `bds`), ce qui laisse « 20th Century Boys » intact. Le connecteur est
+avalé des **deux** côtés — « 9 tomes **de** Naruto » le pose après, « Lot
+**de** 9 tomes Naruto » avant — sans quoi le titre gardait un « de » orphelin
+et le rapprochement catalogue échouait sur un mot de liaison. Un seul tome
+n'est pas un lot. Une formulation vague (« lot manga divers 25 mangas »)
+n'en livre aucun : elle empoisonne déjà tout ce qui l'entoure.
+
+---
+
 ## 9. Ce que ça ne couvre pas
 
 | | État |
@@ -523,6 +577,7 @@ ni la clé d'API ni le moindre octet d'image n'apparaissent dans les journaux.
 | **Manga** | Seul univers validé. Le provider décline poliment tout autre `entityTypeCode` plutôt que de répondre n'importe quoi |
 | Jeux vidéo, livres, jeux de société | Architecture prête, comportement **non validé** — donc non proposé |
 | Décodage de code-barres depuis les pixels | **Non fait.** La règle de priorité `EAN` existe et est testée, mais aucun producteur indépendant ne l'alimente : seul le moteur vision peut lire les chiffres aujourd'hui. Un décodeur local viendra remplir le même champ |
+| Décompte sans numéros (« 9 tomes de Naruto ») | **Traité** — voir §8 ter. Le nombre et la série sont lus et rapportés ; les numéros restent la seule chose que l'utilisateur (ou les photos) fournit |
 | Lots multi-séries dans le texte | `ListingTextParser` reste **mono-série** : « Death Note 1-3 + Bakuman 1-2 » ne rend qu'une série. Non dégradé par la V2, non amélioré non plus — en faire un analyseur de langage naturel serait un autre projet |
 | Édition lue dans le texte | Le parser n'en extrait pas. Ce sont les photos, le catalogue ou l'utilisateur qui la donnent |
 | Cache d'analyse | Non fait. Le texte est relu à chaque modification (débouncé) mais ne coûte rien ; les photos ne partent que sur un clic |

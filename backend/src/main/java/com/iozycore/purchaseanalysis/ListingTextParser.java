@@ -66,6 +66,25 @@ public final class ListingTextParser {
             "(?i)\\b" + PREFIXE_TOME + "\\s*(\\d{1,3})\\b");
 
     /**
+     * « 9 tomes », « 12 volumes », « 9 mangas » - le chiffre est <b>avant</b> le
+     * mot, et c'est toute la différence : il donne la <b>taille</b> du lot, pas
+     * l'identité des tomes.
+     *
+     * <p>« 9 tomes de Naruto » ne dit pas qu'il s'agit des tomes 1 à 9 : le
+     * vendeur peut très bien avoir les tomes 14 à 22. Ce nombre est donc lu et
+     * rapporté, <b>jamais déroulé en numéros</b> - inventer 1 à 9 fabriquerait
+     * un verdict d'achat calculé sur des tomes que personne n'a vus.
+     *
+     * <p>Le connecteur est avalé <b>des deux côtés</b> : « 9 tomes <b>de</b>
+     * Naruto » le pose après, « Lot <b>de</b> 9 tomes Naruto » le pose avant.
+     * Sans cela le titre probable gardait un « de » orphelin qu'aucune série ne
+     * porte, et le rapprochement catalogue échouait sur un mot de liaison.
+     */
+    private static final Pattern NOMBRE_DE_TOMES = Pattern.compile(
+            "(?i)(?:\\b(?:de|du|des|d')\\s+)?\\b(\\d{1,3})\\s*(?:tomes|volumes|mangas|livres|bds)\\b"
+                    + "(?:\\s+(?:de|du|des|d'))?");
+
+    /**
      * Les mentions commerciales d'une annonce, qui ne font pas partie du nom
      * d'une œuvre. Retirées comme <b>mots entiers</b> : « lot » disparaît de
      * « Lot Death Note », pas de « Camelot ».
@@ -99,15 +118,29 @@ public final class ListingTextParser {
      * @param volumeNumbers    numéros lus explicitement - vide quand le texte ne les donne pas
      * @param mentionsComplete l'annonce se dit « intégrale » / « série complète » sans donner les bornes
      * @param vague            formulation trop imprécise pour identifier quoi que ce soit
+     * @param announcedVolumeCount combien de tomes l'annonce dit contenir, <b>sans dire lesquels</b>
+     *                         (« 9 tomes de Naruto ») - {@code null} quand elle ne le dit pas.
+     *                         Renseigné <b>uniquement</b> à défaut de numéros : quand ceux-ci sont
+     *                         connus, leur nombre se compte, et deux sources pour la même grandeur
+     *                         finiraient par se contredire
      */
-    public record Detection(Set<Integer> volumeNumbers, boolean mentionsComplete, boolean vague) {
+    public record Detection(Set<Integer> volumeNumbers, boolean mentionsComplete, boolean vague,
+                            Integer announcedVolumeCount) {
 
         public Detection {
             volumeNumbers = volumeNumbers == null ? Set.of() : new TreeSet<>(volumeNumbers);
+            // Un nombre annoncé À CÔTÉ de numéros lus serait redondant au mieux,
+            // contradictoire au pire : les numéros font foi.
+            announcedVolumeCount = volumeNumbers.isEmpty() ? announcedVolumeCount : null;
         }
 
         public static Detection rien() {
-            return new Detection(Set.of(), false, false);
+            return new Detection(Set.of(), false, false, null);
+        }
+
+        /** Le texte dit combien, sans dire lesquels - la seule question qui reste ouverte. */
+        public boolean hasAnnouncedCountOnly() {
+            return volumeNumbers.isEmpty() && announcedVolumeCount != null;
         }
 
         public boolean hasVolumes() {
@@ -135,14 +168,42 @@ public final class ListingTextParser {
         if (vague) {
             // Une formulation vague empoisonne tout ce qui l'entoure : « lot manga
             // divers 25 pièces » ne décrit pas les tomes 25.
-            return new Detection(Set.of(), false, true);
+            return new Detection(Set.of(), false, true, null);
         }
 
         Set<Integer> depuisTitre = numeros(titre);
         Set<Integer> numeros = !depuisTitre.isEmpty() ? depuisTitre : numeros(texte);
         boolean complete = MENTION_INTEGRALE.matcher(titre).find() || MENTION_INTEGRALE.matcher(texte).find();
 
-        return new Detection(numeros, complete, false);
+        // Cherché seulement à défaut de numéros, et dans le titre d'abord :
+        // une description bavarde parle souvent d'autre chose que du lot.
+        Integer nombreAnnonce = numeros.isEmpty() ? premierNombreDeTomes(titre) : null;
+        if (nombreAnnonce == null && numeros.isEmpty()) {
+            nombreAnnonce = premierNombreDeTomes(texte);
+        }
+
+        return new Detection(numeros, complete, false, nombreAnnonce);
+    }
+
+    /**
+     * Le nombre de tomes annoncé, ou {@code null}.
+     *
+     * <p>Le <b>premier</b> seulement : « lot de 9 tomes, 3 séries » décrit neuf
+     * tomes, pas trois. Prendre le plus grand, ou les additionner, reviendrait
+     * à interpréter une phrase qu'on ne comprend pas.
+     */
+    private static Integer premierNombreDeTomes(String texte) {
+        if (texte == null || texte.isBlank()) {
+            return null;
+        }
+        Matcher m = NOMBRE_DE_TOMES.matcher(texte);
+        if (!m.find()) {
+            return null;
+        }
+        int n = Integer.parseInt(m.group(1));
+        // 1 tome n'est pas un lot, et au-delà du plafond des numéros ce n'est
+        // plus une taille de lot mais un autre nombre mal lu.
+        return n >= 2 && n <= NUMERO_DE_TOME_MAX ? n : null;
     }
 
     /**
@@ -264,6 +325,10 @@ public final class ListingTextParser {
         // ne pouvait reconstruire ce qui était détruit. Les chiffres et la
         // ponctuation appartiennent souvent à l'identité d'une œuvre.
         String reste = extraire(title).reste();
+        // « 9 tomes de Naruto » doit rendre « Naruto », pas « 9 tomes de Naruto » :
+        // sans ce retrait, aucun rapprochement catalogue n'était possible, et la
+        // série pourtant nommée noir sur blanc restait invisible.
+        reste = NOMBRE_DE_TOMES.matcher(reste).replaceAll(" ");
         reste = MOTS_COMMERCIAUX.matcher(reste).replaceAll(" ");
         reste = reste.replaceAll("\\s+", " ").trim();
         reste = SEPARATEURS_AUX_BORDS.matcher(reste).replaceAll("");

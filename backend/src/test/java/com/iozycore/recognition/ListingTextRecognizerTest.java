@@ -120,4 +120,66 @@ class ListingTextRecognizerTest {
         assertThat(ListingTextRecognizer.recognize("Lot tomes 1 à 900", null)).isEmpty();
         assertThat(ListingTextRecognizer.recognize("Platinum End tomes 14 à 3", null)).isEmpty();
     }
+
+    // ============================= « 9 tomes » : combien, mais pas lesquels
+
+    @Test
+    void an_announced_count_produces_no_proposal_at_all() {
+        // Le coeur du sujet. Dérouler 1 à 9 serait le geste facile et le
+        // mauvais : le vendeur peut avoir les tomes 14 à 22, et un verdict
+        // d'achat calculé sur des tomes inventés serait faux avec l'aplomb
+        // d'un calcul.
+        ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("9 tomes de Naruto", null);
+
+        assertThat(lecture.items()).isEmpty();
+        assertThat(lecture.announcedVolumeCount()).isEqualTo(9);
+        assertThat(lecture.announcedSeriesTitle()).isEqualTo("Naruto");
+    }
+
+    @Test
+    void the_series_is_named_even_though_no_volume_can_be_proposed() {
+        // Ce que l'annonce dit VRAIMENT est conservé : la série est nommée noir
+        // sur blanc, seuls les numéros manquent. La perdre obligerait
+        // l'utilisateur à retaper ce que le titre contenait déjà.
+        assertThat(ListingTextRecognizer.read("Lot de 12 tomes One Piece", null).announcedSeriesTitle())
+                .isEqualTo("One Piece");
+    }
+
+    @Test
+    void a_count_without_an_identifiable_work_keeps_the_count_and_drops_the_series() {
+        // « lot de 9 mangas » ne nomme aucune oeuvre. Le nombre reste vrai et
+        // servira à vérifier la saisie ; fabriquer une série « mangas »
+        // n'aiderait personne.
+        ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("Lot de 9 mangas", null);
+
+        assertThat(lecture.items()).isEmpty();
+        assertThat(lecture.announcedVolumeCount()).isEqualTo(9);
+        assertThat(lecture.announcedSeriesTitle()).isNull();
+    }
+
+    @Test
+    void explicit_volumes_leave_no_announced_count_behind() {
+        ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("Naruto tomes 1 à 9", null);
+
+        assertThat(lecture.items()).hasSize(9);
+        // Sinon l'écran afficherait « 9 tomes annoncés » à côté de neuf tomes
+        // déjà identifiés, comme si quelque chose manquait encore.
+        assertThat(lecture.announcedVolumeCount()).isNull();
+    }
+
+    @Test
+    void a_vague_listing_yields_neither_proposals_nor_a_count() {
+        ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("Lot manga divers 25 mangas", null);
+
+        assertThat(lecture.items()).isEmpty();
+        assertThat(lecture.announcedVolumeCount()).isNull();
+    }
+
+    @Test
+    void the_legacy_entry_point_still_answers_a_plain_list() {
+        // recognize() reste le chemin des appelants qui ne veulent que les
+        // propositions : la nouvelle lecture ne casse pas l'ancienne.
+        assertThat(ListingTextRecognizer.recognize("9 tomes de Naruto", null)).isEmpty();
+        assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1 à 3", null)).hasSize(3);
+    }
 }
