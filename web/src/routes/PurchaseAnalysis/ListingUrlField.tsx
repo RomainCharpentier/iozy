@@ -119,7 +119,7 @@ export function ListingUrlField({
           placeholder="https://www.vinted.fr/items/…"
           inputMode="url"
           autoComplete="off"
-          className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="min-h-11 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
         />
       </label>
 

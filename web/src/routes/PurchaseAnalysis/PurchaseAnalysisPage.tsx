@@ -18,7 +18,9 @@ import {
 } from '../../types/purchaseAnalysis'
 import { EditionReferenceLookup } from './EditionReferenceLookup'
 import { ListingDetectionPanel, type ElementConfirme } from './ListingDetectionPanel'
-import { EditionPicker } from './EditionPicker'
+import { EDITION_INCONNUE } from './EditionPicker'
+import { EditionStatusRow } from './EditionStatusRow'
+import { ListingSummaryCard } from './ListingSummaryCard'
 import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 
@@ -159,6 +161,12 @@ export function PurchaseAnalysisPage() {
     // Retenu tel quel : il ne s'affiche nulle part et n'entre dans aucun calcul.
     // Il sert uniquement à reconnaître deux analyses de la même annonce.
     setExternalListingId(preview.externalId ?? '')
+    // L'annonce a parlé : ses champs techniques se replient derrière un
+    // résumé. Ils restent corrigeables, mais ne barrent plus le chemin de
+    // celui qui n'a rien à corriger.
+    if (preview.retrievedFields.length > 0) {
+      setInfosDepliees(false)
+    }
     return { conserves }
   }
 
@@ -207,10 +215,15 @@ export function PurchaseAnalysisPage() {
   })
 
   function queueItem() {
-    if (!seriesTitle.trim() || !editionName.trim() || parsedVolumes.length === 0) return
+    if (!seriesTitle.trim() || parsedVolumes.length === 0) return
     setItems((prev) => [
       ...prev,
-      { seriesTitle: seriesTitle.trim(), editionName: editionName.trim(), volumesText, includedVolumes: parsedVolumes },
+      {
+        seriesTitle: seriesTitle.trim(),
+        editionName: editionName.trim() || EDITION_INCONNUE,
+        volumesText,
+        includedVolumes: parsedVolumes,
+      },
     ])
     setSeriesTitle('')
     setEditionName('')
@@ -271,6 +284,35 @@ export function PurchaseAnalysisPage() {
    * Rien ne bouge si la liste est déjà sous les yeux - un défilement gratuit
    * désoriente plus qu'il n'aide.
    */
+  /**
+   * Les champs techniques de l'annonce sont-ils dépliés ?
+   *
+   * Fermés dès qu'une URL a été lue avec succès : plateforme, prix, port,
+   * protection, titre et description sont alors déjà connus, et les laisser
+   * ouverts en permanence oblige à relire six champs avant d'arriver à la
+   * seule question qui compte - que contient ce lot.
+   */
+  const [infosDepliees, setInfosDepliees] = useState(true)
+
+  /**
+   * Le coût affiché sous le bouton, avec le nom que sa complétude autorise.
+   *
+   * Reprend la règle de {@code PurchaseAnalysisResultCard} plutôt que d'en
+   * inventer une : un port inconnu ne vaut jamais zéro, et appeler « coût
+   * total » un montant sans livraison ferait croire à un achat moins cher
+   * qu'il ne sera.
+   */
+  const recapitulatifCout = (() => {
+    const prix = Number(askingPrice)
+    if (!askingPrice.trim() || Number.isNaN(prix)) return null
+    const port = shippingFee.trim() ? Number(shippingFee) : 0
+    const protection = buyerProtectionFee.trim() ? Number(buyerProtectionFee) : 0
+    const total = (prix + port + protection).toFixed(2)
+    if (shippingKind === 'UNKNOWN') return `sous-total connu ${total} €`
+    if (shippingKind === 'FROM') return `coût minimum ${total} €`
+    return `coût estimé ${total} €`
+  })()
+
   const titreLotRef = useRef<HTMLHeadingElement>(null)
   const [elementsAJusteAjoutes, setElementsAJusteAjoutes] = useState(0)
   useEffect(() => {
@@ -320,10 +362,15 @@ export function PurchaseAnalysisPage() {
    * n'annonçait. Il ne sert plus qu'à enchaîner une série SUPPLÉMENTAIRE.
    */
   const ligneEnCours: QueuedItem | null =
-    seriesTitle.trim() && editionName.trim() && parsedVolumes.length > 0
+    seriesTitle.trim() && parsedVolumes.length > 0
       ? {
           seriesTitle: seriesTitle.trim(),
-          editionName: editionName.trim(),
+          // L'édition n'est plus une condition : ne pas la connaître est un
+          // état légitime, que le moteur sait traiter (complétude inconnue,
+          // valeur neuve indisponible). L'exiger obligeait à en inventer une -
+          // et une étiquette inventée peut correspondre PAR ACCIDENT à une
+          // autre édition, faussant la référence marché sans rien signaler.
+          editionName: editionName.trim() || EDITION_INCONNUE,
           volumesText,
           includedVolumes: parsedVolumes,
         }
@@ -360,14 +407,19 @@ export function PurchaseAnalysisPage() {
   const prixRenseigne = !!askingPrice.trim() && !Number.isNaN(Number(askingPrice))
   const canAnalyze = itemsAAnalyser.length > 0 && prixRenseigne
 
-  /** Ce qui manque pour lancer l'analyse - dit, plutôt que laissé à deviner. */
+  /**
+   * Ce qui manque pour évaluer - dit, plutôt que laissé à deviner.
+   *
+   * Ne parle JAMAIS d'édition : ne pas la connaître n'empêche pas d'évaluer un
+   * lot, et l'afficher comme un blocage relancerait l'obligation d'inventer.
+   */
   const raisonBlocage = canAnalyze
     ? null
     : !prixRenseigne && itemsAAnalyser.length === 0
       ? 'Renseigne le prix demandé et au moins une série avec ses tomes.'
       : !prixRenseigne
         ? 'Renseigne le prix demandé.'
-        : 'Indique au moins une série, son édition et ses tomes.'
+        : 'Ajoute au moins une série et ses tomes.'
 
   if (analyzeMutation.isSuccess) {
     return (
@@ -405,149 +457,158 @@ export function PurchaseAnalysisPage() {
       />
 
       <div className="flex flex-col gap-4">
-        <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
-          <h2 className="font-display text-sm font-semibold text-textPrimary">Annonce</h2>
+        {/* Progressive disclosure : quand l'annonce a été lue, ses champs
+            techniques se replient derrière un résumé. Six champs ouverts en
+            permanence obligeaient à tout relire avant d'arriver à la seule
+            question qui compte - que contient ce lot. */}
+        {infosDepliees ? (
+          <>
+                    <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
+                      <h2 className="font-display text-sm font-semibold text-textPrimary">Annonce</h2>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-textDim">Plateforme</span>
-            <div className="flex gap-2">
-              {LISTING_PLATFORMS.map((p) => (
-                <Chip
-                  key={p}
-                  label={LISTING_PLATFORM_LABELS[p]}
-                  isActive={platform === p}
-                  onClick={() => {
-                    marquerSaisi('platform')
-                    setPlatform(p)
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-textDim">Plateforme</span>
+                        <div className="flex gap-2">
+                          {LISTING_PLATFORMS.map((p) => (
+                            <Chip
+                              key={p}
+                              label={LISTING_PLATFORM_LABELS[p]}
+                              isActive={platform === p}
+                              onClick={() => {
+                                marquerSaisi('platform')
+                                setPlatform(p)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="askingPrice">
-                Prix demandé (€)
-              </label>
-              <input
-                id="askingPrice"
-                type="number"
-                min={0}
-                step="0.01"
-                value={askingPrice}
-                onChange={(e) => {
-                  marquerSaisi('askingPrice')
-                  setAskingPrice(e.target.value)
-                }}
-                placeholder="ex: 216"
-                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="shippingFee">
-                Frais de port (€)
-              </label>
-              <input
-                id="shippingFee"
-                type="number"
-                min={0}
-                step="0.01"
-                value={shippingFee}
-                onChange={(e) => {
-                  marquerSaisi('shippingFee')
-                  // Un montant saisi à la main n'est ni « à partir de » ni
-                  // ferme - mais il est CONNU. Le classer inconnu ferait dire
-                  // « livraison non communiquée » à l'écran juste après que
-                  // l'utilisateur l'a communiquée, tout en comptant le montant
-                  // dans le coût. Champ vidé : on redevient réellement ignorant.
-                  setShippingKind(e.target.value.trim() ? 'ESTIMATED' : 'UNKNOWN')
-                  setShippingFee(e.target.value)
-                }}
-                placeholder="0"
-                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-            <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="buyerProtectionFee">
-                Protection acheteur (€)
-              </label>
-              <input
-                id="buyerProtectionFee"
-                type="number"
-                min={0}
-                step="0.01"
-                value={buyerProtectionFee}
-                onChange={(e) => {
-                  marquerSaisi('buyerProtectionFee')
-                  setBuyerProtectionFee(e.target.value)
-                }}
-                placeholder="0"
-                className="w-full rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-          </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
+                          <label className="text-xs text-textDim" htmlFor="askingPrice">
+                            Prix demandé (€)
+                          </label>
+                          <input
+                            id="askingPrice"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={askingPrice}
+                            onChange={(e) => {
+                              marquerSaisi('askingPrice')
+                              setAskingPrice(e.target.value)
+                            }}
+                            placeholder="ex: 216"
+                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                          />
+                        </div>
+                        <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
+                          <label className="text-xs text-textDim" htmlFor="shippingFee">
+                            Frais de port (€)
+                          </label>
+                          <input
+                            id="shippingFee"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={shippingFee}
+                            onChange={(e) => {
+                              marquerSaisi('shippingFee')
+                              // Un montant saisi à la main n'est ni « à partir de » ni
+                              // ferme - mais il est CONNU. Le classer inconnu ferait dire
+                              // « livraison non communiquée » à l'écran juste après que
+                              // l'utilisateur l'a communiquée, tout en comptant le montant
+                              // dans le coût. Champ vidé : on redevient réellement ignorant.
+                              setShippingKind(e.target.value.trim() ? 'ESTIMATED' : 'UNKNOWN')
+                              setShippingFee(e.target.value)
+                            }}
+                            placeholder="0"
+                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                          />
+                        </div>
+                        <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
+                          <label className="text-xs text-textDim" htmlFor="buyerProtectionFee">
+                            Protection acheteur (€)
+                          </label>
+                          <input
+                            id="buyerProtectionFee"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={buyerProtectionFee}
+                            onChange={(e) => {
+                              marquerSaisi('buyerProtectionFee')
+                              setBuyerProtectionFee(e.target.value)
+                            }}
+                            placeholder="0"
+                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                          />
+                        </div>
+                      </div>
 
-          {/* Titre et description : pré-remplis quand l'annonce a pu être lue,
-              saisissables sinon. Affichés en permanence plutôt que repliés -
-              ils portent désormais du contenu récupéré, qu'il faut pouvoir
-              relire et corriger avant d'analyser. */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="rawTitle">
-                Titre de l'annonce
-              </label>
-              <input
-                id="rawTitle"
-                value={rawTitle}
-                onChange={(e) => {
-                  marquerSaisi('rawTitle')
-                  setRawTitle(e.target.value)
-                }}
-                placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="listingDescription">
-                Description de l'annonce (facultatif)
-              </label>
-              <textarea
-                id="listingDescription"
-                value={description}
-                onChange={(e) => {
-                  marquerSaisi('description')
-                  setDescription(e.target.value)
-                }}
-                rows={3}
-                placeholder="Ce que le vendeur décrit (état, tomes inclus, éditions…)"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-            <ListingPhotos
-              imageUrls={photoUrls}
-              onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
-            />
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
-          <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
-          <div className="flex flex-wrap gap-2">
-            {CONDITIONS.map((c) => (
-              <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
-            ))}
-          </div>
-          <label className="mt-1 flex items-center gap-1.5 text-xs text-textDim">
-            <input
-              type="checkbox"
-              checked={conditionAppliesToContainer}
-              onChange={(e) => setConditionAppliesToContainer(e.target.checked)}
-            />
-            Cet état concerne un coffret/boîtier (pèse plus lourd dans le verdict)
-          </label>
-        </section>
+                      {/* Titre et description : pré-remplis quand l'annonce a pu être lue,
+                          saisissables sinon. Affichés en permanence plutôt que repliés -
+                          ils portent désormais du contenu récupéré, qu'il faut pouvoir
+                          relire et corriger avant d'analyser. */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs text-textDim" htmlFor="rawTitle">
+                            Titre de l'annonce
+                          </label>
+                          <input
+                            id="rawTitle"
+                            value={rawTitle}
+                            onChange={(e) => {
+                              marquerSaisi('rawTitle')
+                              setRawTitle(e.target.value)
+                            }}
+                            placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
+                            className="min-h-11 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs text-textDim" htmlFor="listingDescription">
+                            Description de l'annonce (facultatif)
+                          </label>
+                          <textarea
+                            id="listingDescription"
+                            value={description}
+                            onChange={(e) => {
+                              marquerSaisi('description')
+                              setDescription(e.target.value)
+                            }}
+                            rows={3}
+                            placeholder="Ce que le vendeur décrit (état, tomes inclus, éditions…)"
+                            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                          />
+                        </div>
+                        <ListingPhotos
+                          imageUrls={photoUrls}
+                          onRemove={(imageUrl) => setPhotoUrls((prev) => prev.filter((u) => u !== imageUrl))}
+                        />
+                      </div>
+                    </section>
+            <button
+              type="button"
+              onClick={() => setInfosDepliees(false)}
+              className="min-h-11 self-start rounded-lg px-2 text-xs font-semibold text-accent underline underline-offset-2"
+            >
+              Replier les informations
+            </button>
+          </>
+        ) : (
+          <ListingSummaryCard
+            platform={platform}
+            rawTitle={rawTitle}
+            askingPrice={askingPrice}
+            shippingFee={shippingFee}
+            shippingKind={shippingKind}
+            buyerProtectionFee={buyerProtectionFee}
+            photoCount={photoUrls.length}
+            onEdit={() => setInfosDepliees(true)}
+          />
+        )}
 
         <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -603,17 +664,6 @@ export function PurchaseAnalysisPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="flex min-w-[140px] flex-1 flex-col gap-1.5">
-              <label className="text-xs text-textDim" htmlFor="itemEdition">
-                Édition
-              </label>
-              <EditionPicker
-                inputId="itemEdition"
-                seriesTitle={seriesTitle}
-                value={editionName}
-                onChange={setEditionName}
-              />
-            </div>
             {/* Tomes + bouton restent groupés (jamais séparés par le wrap - le
                 bouton valide la ligne entière, pas seulement ce champ) */}
             <div className="flex items-end gap-2">
@@ -633,36 +683,70 @@ export function PurchaseAnalysisPage() {
               <button
                 type="button"
                 onClick={queueItem}
-                disabled={!seriesTitle.trim() || !editionName.trim() || parsedVolumes.length === 0}
+                disabled={!seriesTitle.trim() || parsedVolumes.length === 0}
                 // aria-label court pour l'annonce, title long pour l'infobulle :
                 // le title est le DERNIER recours de l'algorithme accname (et
                 // n'existe pas au doigt), il ne doit pas rester seul à nommer
                 // un bouton en icône seule - voir Lot 29.
                 aria-label="Ajouter une autre série au lot"
                 title="Ajouter une AUTRE série au lot - celle en cours de saisie est déjà comptée"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface2 text-textPrimary disabled:opacity-50"
+                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-xs font-semibold text-textPrimary disabled:opacity-50"
               >
-                <Plus size={16} />
+                <Plus size={14} />
+                Autre série
               </button>
             </div>
           </div>
           <p className="text-xs text-textDim">Tomes : ex. "1-11" pour une plage, "1,3,5-9" pour plusieurs</p>
 
-          {seriesTitle.trim() && editionName.trim() && (
+          {/* L'édition vient APRÈS la série et les tomes, comme un résultat et
+              non comme une question : c'était la seule étape du produit où l'on
+              obligeait l'utilisateur à savoir - ou à inventer. */}
+          <EditionStatusRow seriesTitle={seriesTitle} value={editionName} onChange={setEditionName} />
+
+          {seriesTitle.trim() && editionName.trim() && editionName !== EDITION_INCONNUE && (
             <EditionReferenceLookup seriesTitle={seriesTitle} editionName={editionName} onResolved={() => {}} />
           )}
 
         </section>
 
+        <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+          <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
+          <div className="flex flex-wrap gap-2">
+            {CONDITIONS.map((c) => (
+              <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
+            ))}
+          </div>
+          <label className="mt-1 flex items-center gap-1.5 text-xs text-textDim">
+            <input
+              type="checkbox"
+              checked={conditionAppliesToContainer}
+              onChange={(e) => setConditionAppliesToContainer(e.target.checked)}
+            />
+            Cet état concerne un coffret/boîtier (pèse plus lourd dans le verdict)
+          </label>
+        </section>
+
         {analyzeMutation.isError && <ErrorBanner message={analyzeMutation.error.message} />}
+
+        {/* Le CTA porte ce qu'il va évaluer : le lien entre « Contenu du lot »
+            et le bouton devient visuel, plus seulement spatial. Le décompte est
+            en TOMES - c'est ce qu'on achète, pas le nombre de lignes du
+            modèle. */}
+        {nombreElementsDuLot > 0 && (
+          <p className="text-center text-xs text-textDim">
+            {nombreElementsDuLot} tome{nombreElementsDuLot > 1 ? 's' : ''}
+            {recapitulatifCout && ` · ${recapitulatifCout}`}
+          </p>
+        )}
 
         <button
           type="button"
           onClick={() => analyzeMutation.mutate()}
           disabled={!canAnalyze || analyzeMutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
-          {analyzeMutation.isPending ? 'Analyse...' : 'ANALYSER LE LOT'}
+          {analyzeMutation.isPending ? 'Évaluation…' : 'Évaluer ce lot'}
         </button>
         {/* Un bouton principal grisé sans explication est un cul-de-sac : on
             dit ce qui manque, plutôt que de laisser chercher. */}

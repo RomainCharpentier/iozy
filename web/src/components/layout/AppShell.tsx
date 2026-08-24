@@ -18,7 +18,7 @@ const NAV_BREAKPOINT_PX = 768
  * détail) ; `narrow` = tout le reste (formulaires, Paramètres, Profil...),
  * qui reste à la largeur de lecture d'origine - jamais demandé plus large et
  * souvent moins lisible étiré (champs de formulaire flottants, longues
- * listes de liens). `medium` n'est pas encore utilisé par un écran réel,
+ * listes de liens). `medium` sert à « Évaluer un achat »,
  * conservé pour un futur cas intermédiaire plutôt que d'ajouter une 4e valeur
  * arbitraire le jour où le besoin apparaît. */
 type ContentWidth = 'wide' | 'medium' | 'narrow'
@@ -53,6 +53,10 @@ function contentWidthFor(pathname: string): ContentWidth {
     pathname.startsWith('/tier-lists/')
   )
     return 'wide'
+  // « Évaluer un achat » n'est pas un formulaire de réglages : il porte un
+  // résumé d'annonce, une liste de tomes en pastilles et des propositions
+  // groupées, à l'étroit sur 672 px alors que l'écran est vide autour.
+  if (pathname.startsWith('/purchase-analysis')) return 'medium'
   return 'narrow'
 }
 

@@ -22,8 +22,11 @@ export function Chip({ label, isActive = false, onClick, count }: ChipProps) {
   )
 
   if (onClick) {
+    // Seule la variante CLIQUABLE porte la hauteur tactile : 28 px se rate au
+    // pouce, et un filtre manqué se paie en tapotements. La variante d'affichage
+    // (un tag, une édition) n'est pas une cible et resterait inutilement haute.
     return (
-      <button type="button" onClick={onClick} className={className}>
+      <button type="button" onClick={onClick} className={`min-h-11 ${className}`}>
         {content}
       </button>
     )
