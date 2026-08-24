@@ -282,6 +282,25 @@ a:hover {
   opacity: 0.85;
 }
 
+/* Le curseur main sur ce qui se clique.
+
+   Il venait gratuitement du Preflight de Tailwind v3, qui posait
+   `cursor: pointer` sur les boutons. La v4 a aligné son Preflight sur le
+   défaut du navigateur (`cursor: default`) : la montée de version a donc
+   retiré l'affordance de TOUS les boutons de l'application, en silence et
+   sans rien casser de visible. Les liens, eux, la tiennent du navigateur et
+   n'ont jamais été touchés - d'où un dépôt où la moitié des contrôles
+   changeait le curseur et l'autre non.
+
+   `:not(:disabled)` laisse la main à `not-allowed` ci-dessous. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="switch"]:not([aria-disabled="true"]),
+summary,
+label:has(input:not(:disabled)) {
+  cursor: pointer;
+}
+
 button:disabled {
   cursor: not-allowed;
 }
