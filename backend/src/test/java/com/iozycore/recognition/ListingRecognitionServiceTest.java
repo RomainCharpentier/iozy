@@ -29,9 +29,18 @@ class ListingRecognitionServiceTest {
     private final CatalogueDeTest catalogue = new CatalogueDeTest();
     private final EditionsDeTest editions = new EditionsDeTest();
 
+    /**
+     * Ces tests portent sur l'orchestration texte/vision. Un lecteur de
+     * codes-barres qui trouverait quelque chose sur les images de test
+     * ajouterait une source et brouillerait ce qu'ils mesurent - la chaîne
+     * code-barres a ses propres tests.
+     */
+    private static final BarcodeRecognizer SANS_CODE_BARRES =
+            new BarcodeRecognizer((ean, entityTypeCode) -> java.util.Optional.empty());
+
     private ListingRecognitionService service(ImageRecognitionProvider... moteurs) {
         RecognitionCatalogResolver resolver = new RecognitionCatalogResolver(catalogue, editions);
-        return new ListingRecognitionService(new FetcherDeTest(), resolver, List.of(moteurs));
+        return new ListingRecognitionService(new FetcherDeTest(), resolver, List.of(moteurs), SANS_CODE_BARRES);
     }
 
     private static RecognizedItem vu(String titre, Integer tome, String edition, RecognitionConfidence confiance,
@@ -253,15 +262,43 @@ class ListingRecognitionServiceTest {
     }
 
     @Test
-    void without_an_engine_no_photo_is_even_downloaded() {
-        // Inutile de solliciter un CDN pour un résultat qu'on ne peut pas produire.
+    void without_a_vision_engine_the_photos_are_STILL_read_for_barcodes() {
+        // Cet invariant a été INVERSÉ, et volontairement.
+        //
+        // Il disait « inutile de solliciter un CDN pour un résultat qu'on ne
+        // peut pas produire ». C'était vrai tant que seule la vision savait
+        // lire une photo. Depuis, les codes-barres se lisent en local et
+        // gratuitement : un lot photographié de dos peut être entièrement
+        // identifié sans le moindre moteur, et avec des identifiants EXACTS
+        // là où un modèle n'aurait produit que des suppositions.
+        //
+        // Ne pas télécharger reviendrait à refuser la meilleure des trois
+        // sources parce que la moins fiable est absente.
         FetcherEspion espion = new FetcherEspion();
         ListingRecognitionService service = new ListingRecognitionService(
-                espion, new RecognitionCatalogResolver(catalogue, editions), List.of());
+                espion, new RecognitionCatalogResolver(catalogue, editions), List.of(), SANS_CODE_BARRES);
 
         service.analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        assertThat(espion.appels()).isZero();
+        assertThat(espion.appels()).isEqualTo(1);
+    }
+
+    @Test
+    void without_a_vision_engine_the_status_still_says_the_vision_did_not_run() {
+        // NO_ENGINE décrit la VISION, pas l'analyse entière : l'écran doit
+        // continuer à dire qu'elle n'a pas tourné, même si les codes-barres
+        // ont donné quelque chose.
+        ListingRecognitionService service = new ListingRecognitionService(
+                new FetcherDeTest(), new RecognitionCatalogResolver(catalogue, editions),
+                List.of(), SANS_CODE_BARRES);
+
+        ListingRecognitionService.Analysis analyse = service.analyze(
+                "Platinum End tomes 1 à 3", null,
+                List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
+
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.NO_ENGINE);
+        // Et les propositions du texte tiennent toujours.
+        assertThat(analyse.items()).hasSize(3);
     }
 
     // ====================================================== Priorité EAN

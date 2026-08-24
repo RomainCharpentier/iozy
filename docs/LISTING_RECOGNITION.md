@@ -621,13 +621,88 @@ seul en fin de ligne.
 
 ---
 
+## 8 quinquies. Le code-barres : la source qui n'avait pas de producteur
+
+`RecognitionSource.EAN` existait depuis la V2 — priorité la plus haute, règles
+d'arbitrage écrites et testées. Mais **rien ne l'alimentait**. Seul le moteur de
+vision pouvait lire des chiffres, c'est-à-dire *deviner par modèle* une
+information imprimée pour être lue par machine. Le producteur indépendant
+manquait ; il existe désormais.
+
+### Pourquoi c'est la meilleure des trois sources
+
+Le texte annonce ce que le vendeur **dit**. La vision propose ce qu'un modèle
+**croit** voir. Le code-barres, lui, **désigne** un tirage précis — et il porte
+sa clé de contrôle, qui rejette d'elle-même les lectures approximatives. Ce
+n'est pas une lecture probable, c'est un identifiant : il correspond ou il ne
+correspond pas.
+
+### La chaîne, et ce qu'elle réutilise
+
+| Étape | Qui | Coût |
+|---|---|---|
+| Lire les EAN sur les pixels | `BarcodeImageDecoder` (ZXing, local) | **Aucun** — pas de réseau, pas de modèle |
+| Nommer le tirage | `BarcodeWorkLookup` → les providers de la page « Scanner » | Un appel, mis en cache |
+| En extraire série et tome | `ListingTextParser` | Aucun |
+
+La troisième ligne mérite d'être soulignée. Les bases bibliographiques ne
+rendent **pas** de numéro de tome structuré : elles écrivent « Naruto, Vol. 9 »
+dans un champ texte libre. Or « Naruto, Vol. 9 » et « Naruto tome 9 » posent
+exactement le même problème de lecture. Écrire une seconde extraction ici aurait
+garanti qu'elle diverge de la première — c'est déjà arrivé dans ce projet, avec
+des doubles de `SeriesMatcher` qui avaient dérivé du vrai.
+
+### L'IA cesse d'être une intention pour devenir un comportement
+
+Un invariant a été **inversé**, volontairement. Le service disait : sans moteur
+de vision, ne même pas télécharger les photos — « inutile de solliciter un CDN
+pour un résultat qu'on ne peut pas produire ».
+
+C'était vrai tant que seule la vision savait lire une photo. Ça ne l'est plus.
+Un lot photographié de dos peut être **entièrement identifié sans le moindre
+moteur**, avec des identifiants exacts là où un modèle n'aurait produit que des
+suppositions. Ne pas télécharger reviendrait à refuser la meilleure des trois
+sources parce que la moins fiable est absente.
+
+`visionStatus` reste `NO_ENGINE` dans ce cas : il décrit la **vision**, pas
+l'analyse entière, et l'écran doit continuer à dire qu'elle n'a pas tourné.
+
+### Ce qui est cherché, et ce qui ne l'est pas
+
+EAN-13 (dont relèvent tous les ISBN-13), EAN-8, UPC-A. **Pas de QR code** : sur
+une photo d'annonce, un QR mène à une page marchande, jamais à une œuvre.
+
+Deux passes par image : à l'endroit, puis **pivotée d'un quart de tour**. Sur
+une tranche de manga le code est imprimé verticalement, et un décodeur 1D balaie
+par lignes horizontales — sans la rotation il ne verrait rien. Et plusieurs
+codes par photo, car la photo la plus utile d'un lot est une pile vue de dos.
+
+### Se taire plutôt que broder
+
+Un EAN qu'aucune base ne connaît ne produit **rien**. Pas de ligne « EAN
+9782505011118 » à l'écran : elle n'apprendrait rien et donnerait l'illusion d'un
+tome identifié. Même chose pour un service en panne, un titre illisible, ou un
+titre qui décrit plusieurs tomes (« Naruto tomes 1 à 3 » désigne un coffret) —
+dans ce dernier cas la série est conservée **sans numéro**, choisir au hasard
+parmi trois étant pire que n'en donner aucun.
+
+### Un piège d'écran, corrigé au passage
+
+Une image de dos de tome ne montre souvent qu'un code-barres : le moteur de
+vision n'y voit rien, et rendait `NOTHING_RECOGNIZED`. L'écran affichait donc
+« Les photos n'ont rien ajouté de lisible » **juste au-dessus** d'un tome
+identifié par ces mêmes photos, avec un identifiant exact. Le message est
+désormais tu dès qu'une proposition porte la source `EAN` ou `VISION`.
+
+---
+
 ## 9. Ce que ça ne couvre pas
 
 | | État |
 |---|---|
 | **Manga** | Seul univers validé. Le provider décline poliment tout autre `entityTypeCode` plutôt que de répondre n'importe quoi |
 | Jeux vidéo, livres, jeux de société | Architecture prête, comportement **non validé** — donc non proposé |
-| Décodage de code-barres depuis les pixels | **Non fait.** La règle de priorité `EAN` existe et est testée, mais aucun producteur indépendant ne l'alimente : seul le moteur vision peut lire les chiffres aujourd'hui. Un décodeur local viendra remplir le même champ |
+| Décodage de code-barres depuis les pixels | **Fait** — voir §8 quinquies. `BarcodeImageDecoder` alimente la source `EAN` en local, sans réseau ni modèle |
 | Décompte sans numéros (« 9 tomes de Naruto ») | **Traité** — voir §8 ter. Le nombre et la série sont lus et rapportés ; les numéros restent la seule chose que l'utilisateur (ou les photos) fournit |
 | Lots multi-séries dans le texte | **Traité** — voir §8 quater. Un titre qui énumère plusieurs œuvres est lu segment par segment |
 | Édition lue dans le texte | Le parser n'en extrait pas. Ce sont les photos, le catalogue ou l'utilisateur qui la donnent |
@@ -667,8 +742,12 @@ démontrée.
 `RecognitionContext`, `ImageRecognitionProvider`, `ListingTextRecognizer`,
 `RecognitionConsolidator`, `CatalogStatus`, `ResolvedItem`,
 `RecognitionCatalogResolver`, `RecognitionImageFetcher`,
-`RecognitionImageLimits`, `UploadedImageReader`,
+`RecognitionImageLimits`, `UploadedImageReader`, `BarcodeImageDecoder`,
+`BarcodeRecognizer`, `BarcodeWorkLookup`,
 `ListingRecognitionService`, `gemini/GeminiVisionRecognitionProvider`.
+
+**Adaptateur** : `metadata/MetadataBarcodeWorkLookup` — branche la lecture de
+codes-barres sur les providers bibliographiques déjà utilisés par « Scanner ».
 
 **API** : `api/recognition/RecognitionController`.
 
