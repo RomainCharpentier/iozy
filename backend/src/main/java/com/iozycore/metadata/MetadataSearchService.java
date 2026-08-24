@@ -77,6 +77,22 @@ public class MetadataSearchService {
     // une série déjà en cache, vide ou non.
     private final TtlCache<String, List<MetadataCandidate>> searchCache = new TtlCache<>(Duration.ofMinutes(15), 300);
     private final TtlCache<String, MetadataCandidate> barcodeCache = new TtlCache<>(Duration.ofHours(24), 500);
+
+    /**
+     * Les codes-barres cherchés sans succès.
+     *
+     * <p>Un cache <b>séparé</b>, et à durée bien plus courte, parce qu'il ne
+     * mémorise pas la même nature de chose : « ce code désigne Naruto tome 9 »
+     * est une connaissance durable, « aucune base ne connaît ce code » est un
+     * état du monde qui change dès qu'un contributeur l'ajoute. Trente minutes
+     * couvrent la session pendant laquelle on relance une analyse sur les mêmes
+     * photos, sans rendre le catalogue aveugle à ses propres progrès.
+     *
+     * <p>Plus d'entrées que le cache des succès : sur une photo de pile, les
+     * EAN introuvables sont souvent les plus nombreux. Chacune ne pèse qu'une
+     * clé et un booléen.
+     */
+    private final TtlCache<String, Boolean> barcodeMissCache = new TtlCache<>(Duration.ofMinutes(30), 1000);
     private final TtlCache<String, String> frenchTitleCache = new TtlCache<>(Duration.ofHours(24), 500);
     // Cache mémoire "chaud" (évite un aller-retour base pour des recherches
     // rapprochées dans la même fenêtre) - le stockage durable, lui, est
@@ -155,21 +171,65 @@ public class MetadataSearchService {
         return new ArrayList<>(byTitle.values());
     }
 
-    /** Retourne le premier résultat trouvé par un provider compétent pour ce code-barres. */
+    /**
+     * Retourne le premier résultat trouvé par un provider compétent pour ce
+     * code-barres.
+     *
+     * <h2>Les échecs aussi sont mémorisés — et pas pour la même durée</h2>
+     * Seuls les succès l'étaient. Un EAN qu'aucune base n'indexe était donc
+     * réinterrogé <b>à chaque fois</b>, au prix fort : de 1,4 à 5,5 secondes
+     * mesurées par appel. La lecture des codes-barres sur les photos d'un lot
+     * a rendu ce trou coûteux — une pile de mangas peut porter une douzaine
+     * d'EAN dont plusieurs absents des bases, et l'utilisateur qui relance son
+     * analyse repayait l'attente entière.
+     *
+     * <p>Les deux durées diffèrent, et c'est le fond du sujet : <b>un succès
+     * est une connaissance, un échec est un état du monde</b>. « Ce code
+     * désigne Naruto tome 9 » reste vrai indéfiniment ({@code 24 h} ici, par
+     * prudence) ; « aucune base ne connaît ce code » peut cesser d'être vrai
+     * dès qu'un contributeur l'ajoute. Mémoriser un échec aussi longtemps
+     * qu'un succès rendrait le catalogue aveugle à ses propres progrès.
+     */
     public Optional<MetadataCandidate> lookupByBarcode(EntityType entityType, String barcode) {
         String cacheKey = entityType.id() + "|" + normalize(barcode);
         Optional<MetadataCandidate> cached = barcodeCache.get(cacheKey);
         if (cached.isPresent()) {
             return cached;
         }
+        if (barcodeMissCache.get(cacheKey).isPresent()) {
+            // Déjà cherché récemment, et introuvable. Inutile de refaire
+            // l'aller-retour pour obtenir la même réponse.
+            return Optional.empty();
+        }
 
-        Optional<MetadataCandidate> result = barcodeProviders.stream()
-                .filter(provider -> provider.supports(entityType))
-                .map(provider -> provider.lookup(barcode))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .findFirst();
-        result.ifPresent(candidate -> barcodeCache.put(cacheKey, candidate));
+        // Tous les providers compétents sont interrogés jusqu'au premier
+        // résultat - et l'on retient au passage si chacun a bien RÉPONDU.
+        Optional<MetadataCandidate> result = Optional.empty();
+        boolean tousOntRepondu = true;
+        for (BarcodeMetadataProvider provider : barcodeProviders) {
+            if (!provider.supports(entityType)) {
+                continue;
+            }
+            BarcodeLookup lookup = provider.lookupDetailed(barcode);
+            if (lookup.candidate() != null) {
+                result = Optional.of(lookup.candidate());
+                break;
+            }
+            tousOntRepondu &= lookup.conclusive();
+        }
+
+        if (result.isPresent()) {
+            barcodeCache.put(cacheKey, result.get());
+        } else if (tousOntRepondu) {
+            // Absence CONSTATÉE : toutes les bases compétentes ont répondu, et
+            // aucune ne connaît ce code. La reposer dans la demi-heure donnerait
+            // la même chose - autant l'éviter, chaque appel coûte des secondes.
+            //
+            // Une panne, elle, n'est jamais mémorisée : sinon le ré-essai de
+            // l'utilisateur rendrait l'échec en cache au lieu de retenter, et un
+            // incident d'une seconde se figerait pour trente minutes.
+            barcodeMissCache.put(cacheKey, Boolean.TRUE);
+        }
         return result;
     }
 

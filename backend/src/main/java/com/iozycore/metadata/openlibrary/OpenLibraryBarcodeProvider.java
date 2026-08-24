@@ -46,9 +46,22 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
 
     @Override
     public Optional<MetadataCandidate> lookup(String barcode) {
+        return lookupDetailed(barcode).candidateIfAny();
+    }
+
+    /**
+     * La même recherche, en distinguant « Open Library ne connaît pas cet
+     * ISBN » de « Open Library n'a pas répondu ».
+     *
+     * <p>Un {@code 200} avec un corps vide <b>est</b> une réponse : cette API
+     * rend un objet vide pour un ISBN inconnu. Un statut autre, un délai
+     * dépassé ou un corps illisible n'en sont pas.
+     */
+    @Override
+    public com.iozycore.metadata.BarcodeLookup lookupDetailed(String barcode) {
         String isbn = normalize(barcode);
         if (isbn.isEmpty()) {
-            return Optional.empty();
+            return com.iozycore.metadata.BarcodeLookup.unavailable();
         }
 
         try {
@@ -61,13 +74,15 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 log.warn("Open Library a répondu {} pour l'ISBN '{}'", response.statusCode(), isbn);
-                return Optional.empty();
+                return com.iozycore.metadata.BarcodeLookup.unavailable();
             }
 
-            return parse(response.body(), isbn);
+            return parse(response.body(), isbn)
+                    .map(com.iozycore.metadata.BarcodeLookup::found)
+                    .orElseGet(com.iozycore.metadata.BarcodeLookup::absent);
         } catch (Exception e) {
             log.warn("Échec du lookup Open Library pour '{}' : {}", isbn, e.getMessage());
-            return Optional.empty();
+            return com.iozycore.metadata.BarcodeLookup.unavailable();
         }
     }
 

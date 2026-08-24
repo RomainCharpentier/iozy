@@ -18,4 +18,17 @@ public interface BarcodeMetadataProvider {
 
     /** Ne doit jamais lever d'exception pour une panne réseau, voir implémentations. */
     Optional<MetadataCandidate> lookup(String barcode);
+
+    /**
+     * La même recherche, en disant <b>pourquoi</b> elle n'a rien rendu.
+     *
+     * <p>Un provider qui ne sait pas faire la différence garde ce défaut : il
+     * ne conclut jamais rien d'un vide, et rien ne sera mémorisé. C'est le
+     * comportement prudent, et celui d'avant.
+     *
+     * @see BarcodeLookup
+     */
+    default BarcodeLookup lookupDetailed(String barcode) {
+        return lookup(barcode).map(BarcodeLookup::found).orElseGet(BarcodeLookup::unavailable);
+    }
 }
