@@ -33,10 +33,12 @@ class EditionMentionTest {
     }
 
     @Test
-    void an_unknown_qualifier_is_accepted_only_after_an_accented_edition() {
-        // La construction française lève l'ambiguïté à elle seule : dans
-        // « édition Hokage », impossible de confondre l'œuvre et le tirage.
+    void an_unknown_qualifier_is_accepted_only_AFTER_the_word_edition() {
+        // Cette position leve l'ambiguite a elle seule : personne n'ecrit le nom
+        // de l'oeuvre apres le mot « edition ». L'accent n'y change rien - les
+        // vendeurs ecrivent « edition Hokage » aussi souvent qu'« edition ».
         assertThat(EditionMention.lire("Naruto édition Hokage").hint()).isEqualTo("Hokage Edition");
+        assertThat(EditionMention.lire("Naruto edition Hokage").hint()).isEqualTo("Hokage Edition");
 
         // Ailleurs, le qualifiant doit être reconnu. « Star » ne l'est pas, et
         // c'est un manque assumé : l'élément restera « édition à confirmer »,
