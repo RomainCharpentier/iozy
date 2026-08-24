@@ -55,16 +55,18 @@ public class MetadataBarcodeWorkLookup implements BarcodeWorkLookup {
             return Optional.empty();
         }
 
+        // Pas de capture de QuotaExceededException ici, et c'était une erreur de
+        // ma part que d'en écrire une : GoogleBooksBarcodeProvider l'avale déjà
+        // lui-même et rend vide, laissant Open Library - qui n'a pas de quota -
+        // prendre le relais. Le catch ne pouvait donc jamais s'exécuter, tout en
+        // laissant croire que ce cas se traitait ici.
         try {
             return metadataSearchService.lookupByBarcode(type.get(), ean.trim())
                     .map(MetadataCandidate::title)
                     .filter(titre -> titre != null && !titre.isBlank());
-        } catch (QuotaExceededException e) {
-            // Un quota atteint est une information, pas un incident : les autres
-            // sources de la reconnaissance continuent.
-            log.info("Quota atteint sur l'identification d'un code-barres");
-            return Optional.empty();
         } catch (RuntimeException e) {
+            // Le reste - réseau coupé, réponse illisible - est une identification
+            // en moins, jamais une analyse interrompue.
             log.info("Identification d'un code-barres indisponible : {}", e.getClass().getSimpleName());
             return Optional.empty();
         }

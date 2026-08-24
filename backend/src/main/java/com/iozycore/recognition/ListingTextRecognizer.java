@@ -16,12 +16,17 @@ import java.util.List;
  * vendeur a écrit noir sur blanc serait payer pour deviner une information
  * donnée.
  *
- * <h2>Cette classe ne parse rien elle-même</h2>
- * Tout le travail est déjà fait par {@link ListingTextParser}, écrit et testé
- * de longue date - mais qui, jusqu'à cette passe, n'était appelé par
- * <b>aucun code de production</b>. Ce fichier est l'adaptateur qui lui manquait :
- * il convertit sa {@code Detection} en {@link RecognizedItem}, rien de plus.
- * Le parser garde ses règles, ses bornes et ses tests.
+ * <h2>Le partage avec {@link ListingTextParser}</h2>
+ * Cette classe fut d'abord un simple adaptateur : le parser lisait, elle
+ * convertissait sa {@code Detection} en {@link RecognizedItem}, rien de plus.
+ * Elle a depuis pris une responsabilité, et une seule — <b>découper un titre
+ * qui énumère plusieurs œuvres</b> ({@code plusieursSeries}).
+ *
+ * <p>Ce découpage vit ici et non dans le parser parce qu'il ne lit rien : il
+ * <i>relit</i> chaque segment avec les règles du parser, inchangées. La
+ * frontière tient donc toujours, mais elle n'est plus « aucune logique ici » :
+ * elle est <b>« toute lecture d'un texte se fait dans le parser »</b>. Les
+ * numéros, les tomes, le titre probable et l'édition en viennent tous.
  *
  * <h2>Extraction n'est pas vérité</h2>
  * Les propositions rendues ici portent {@link RecognitionConfidence#HIGH}

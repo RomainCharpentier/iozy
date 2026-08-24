@@ -29,6 +29,8 @@ class BarcodeRecognizerTest {
 
     private static final String EAN_T9 = "9782505011118";
     private static final String EAN_T4 = "9782344029572";
+    private static final String EAN_T7 = "9782505078180";
+    private static final String EAN_T2 = "9782820343819";
 
     /** Ce qu'une base bibliographique rend : un titre libre, pas un tome structuré. */
     private static BarcodeWorkLookup lookup(Map<String, String> titresParCode) {
@@ -201,5 +203,77 @@ class BarcodeRecognizerTest {
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    // ============================================ Menees de front
+
+    @Test
+    void several_codes_are_identified_in_parallel_not_queued() {
+        // Mesure sur cette instance : 1,4 a 5,5 s par identification, et les
+        // echecs ne sont pas mis en cache. Douze codes en file sur une route
+        // SYNCHRONE, c'est une minute d'attente derriere un clic.
+        java.util.concurrent.atomic.AtomicInteger simultanees =
+                new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger maximum =
+                new java.util.concurrent.atomic.AtomicInteger();
+
+        BarcodeWorkLookup lent = (ean, code) -> {
+            maximum.accumulateAndGet(simultanees.incrementAndGet(), Math::max);
+            try {
+                Thread.sleep(120);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                simultanees.decrementAndGet();
+            }
+            return Optional.of("Naruto, Vol. 9");
+        };
+
+        long debut = System.nanoTime();
+        new BarcodeRecognizer(lent).recognize(List.of(
+                photoAvec(EAN_T9, 0), photoAvec(EAN_T4, 1), photoAvec(EAN_T7, 2), photoAvec(EAN_T2, 3)),
+                RecognitionContext.forManga());
+        long dureeMs = (System.nanoTime() - debut) / 1_000_000;
+
+        assertThat(maximum.get()).as("plusieurs identifications de front").isGreaterThan(1);
+        assertThat(dureeMs).as("quatre fois 120 ms en file feraient 480 ms").isLessThan(400);
+    }
+
+    @Test
+    void the_order_follows_the_photos_not_the_order_answers_come_back() {
+        // L'ordre suit celui des photos, donc celui que l'ecran affiche. Le
+        // rendre au gre des reponses ferait danser la liste d'une analyse a
+        // l'autre pour les memes photos.
+        BarcodeWorkLookup irregulier = (ean, code) -> {
+            try {
+                // Le PREMIER code repond en dernier.
+                Thread.sleep(EAN_T9.equals(ean) ? 150 : 10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return Optional.of(EAN_T9.equals(ean) ? "Naruto, Vol. 9" : "Bleach, Vol. 4");
+        };
+
+        List<RecognizedItem> propositions = new BarcodeRecognizer(irregulier).recognize(
+                List.of(photoAvec(EAN_T9, 0), photoAvec(EAN_T4, 1)), RecognitionContext.forManga());
+
+        assertThat(propositions).extracting(RecognizedItem::seriesTitleRaw)
+                .containsExactly("Naruto", "Bleach");
+    }
+
+    @Test
+    void a_single_code_needs_no_thread_pool() {
+        // Le cas le plus courant ne doit pas payer la mise en place d'un pool.
+        BarcodeRecognizer recognizer = new BarcodeRecognizer(lookup(Map.of(EAN_T9, "Naruto, Vol. 9")));
+
+        assertThat(recognizer.recognize(List.of(photoAvec(EAN_T9, 0)), RecognitionContext.forManga()))
+                .hasSize(1);
+    }
+
+    @Test
+    void at_most_twelve_codes_are_identified() {
+        // Chaque code coute un aller-retour vers une base externe, gratuite et
+        // partagee avec le scanner de la page « Scanner » et le client iOS.
+        assertThat(BarcodeRecognizer.MAX_CODES).isEqualTo(12);
     }
 }
