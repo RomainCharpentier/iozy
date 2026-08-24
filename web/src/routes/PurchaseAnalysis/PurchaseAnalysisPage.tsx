@@ -468,7 +468,7 @@ export function PurchaseAnalysisPage() {
 
                       <div className="flex flex-col gap-1.5">
                         <span className="text-xs text-textDim">Plateforme</span>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {LISTING_PLATFORMS.map((p) => (
                             <Chip
                               key={p}
