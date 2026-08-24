@@ -383,6 +383,12 @@ export interface NearCompleteSuggestionDto {
  *   second). Dans les deux cas on pré-remplit ce qui a été trouvé.
  * - `UNSUPPORTED_SOURCE` : plateforme pas encore prise en charge. L'URL est
  *   conservée, la saisie manuelle continue.
+ * - `SOURCE_BLOCKS_AUTOMATION` : plateforme RECONNUE, mais qui refuse la
+ *   lecture automatique (protection anti-robot). À ne pas confondre avec les
+ *   deux voisins : ce n'est ni « pas encore » (rien n'est en attente de
+ *   développement) ni « réessaie » (un nouvel essai échouera pareil). La
+ *   saisie manuelle n'est pas un repli temporaire, c'est le parcours pour
+ *   cette source.
  * - `LISTING_NOT_FOUND` : l'annonce n'existe plus.
  * - `UNAVAILABLE` : la source n'a rien livré d'exploitable.
  * - `INVALID_URL` : lien inexploitable (le formulaire l'attrape en local avant
@@ -393,6 +399,7 @@ export type ListingResolutionStatus =
   | 'PARTIAL'
   | 'INVALID_URL'
   | 'UNSUPPORTED_SOURCE'
+  | 'SOURCE_BLOCKS_AUTOMATION'
   | 'LISTING_NOT_FOUND'
   | 'UNAVAILABLE'
 
