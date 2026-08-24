@@ -52,25 +52,17 @@ public class RecognitionImageFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(RecognitionImageFetcher.class);
 
-    /**
-     * Au-delà, l'analyse coûte plus qu'elle ne rapporte : un lot se lit sur ses
-     * premières photos, et chaque image supplémentaire est un appel de plus au
-     * moteur. Aligné sur le plafond de photos que le provider Vinted remonte.
-     */
-    public static final int MAX_IMAGES = 8;
-
-    /** Une photo d'annonce dépasse rarement 2 Mo ; au-delà c'est autre chose. */
-    public static final int MAX_BYTES_PER_IMAGE = 3 * 1024 * 1024;
-
-    /** Plafond cumulé : huit images de 3 Mo tiendraient en mémoire, mais rien ne justifie 24 Mo. */
-    public static final int MAX_TOTAL_BYTES = 12 * 1024 * 1024;
+    // Les bornes sont énoncées une seule fois, dans RecognitionImageLimits :
+    // l'envoi direct par l'utilisateur les applique aussi, et deux copies
+    // finiraient par diverger.
+    private static final int MAX_IMAGES = RecognitionImageLimits.MAX_IMAGES;
+    private static final int MAX_BYTES_PER_IMAGE = RecognitionImageLimits.MAX_BYTES_PER_IMAGE;
+    private static final int MAX_TOTAL_BYTES = RecognitionImageLimits.MAX_TOTAL_BYTES;
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
 
-    /** Ce que les moteurs savent lire, et ce que les CDN d'annonces servent. */
-    private static final Set<String> ACCEPTED_MEDIA_TYPES =
-            Set.of("image/jpeg", "image/png", "image/webp");
+    private static final Set<String> ACCEPTED_MEDIA_TYPES = RecognitionImageLimits.ACCEPTED_MEDIA_TYPES;
 
     private final HttpClient httpClient;
     private final Set<String> allowedImageHosts;

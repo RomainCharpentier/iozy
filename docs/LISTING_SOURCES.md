@@ -282,25 +282,46 @@ parcours — la saisie manuelle est le chemin normal, pas un repli dégradé.
 
 ---
 
-## 7. Limite connue : les photos ne nourrissent aucune reconnaissance
+## 7. Les photos, et les deux façons d'en obtenir
 
-Les photos de l'annonce sont récupérées, affichées, retirables une à une, et
-conservées avec l'analyse. Elles **ne sont pas analysées** — pour une raison
-technique simple : **IozyCore n'a pas de moteur de reconnaissance d'images**.
+Cette section a longtemps dit « les photos ne nourrissent aucune
+reconnaissance ». Ce n'est plus vrai : le moteur existe
+(voir [LISTING_RECOGNITION.md](LISTING_RECOGNITION.md)), et il a **deux
+entrées**.
 
-Constaté à l'audit : `Listing.photoUrls` existait déjà en base et dans l'API,
-mais aucun code ne le lisait et le frontend ne l'envoyait même pas. Les deux
-usages de Gemini (suggestion d'édition, estimation de prix) sont **textuels** et
-ne reçoivent aucune image.
+### Porte 1 — les photos récupérées de l'annonce
 
-Identifier des tomes sur une photo demanderait un moteur multimodal complet,
-avec sa déduplication entre photos d'un même lot et sa validation par
-l'utilisateur : c'est une fonctionnalité à part entière, pas un branchement. Le
-contenu du lot reste donc déclaré à la main, comme avant.
+Quand une source est lue automatiquement (Vinted), ses photos arrivent dans le
+`ListingSnapshot`, s'affichent, sont retirables une à une, et partent à
+l'analyse **sur un clic** — jamais au chargement. Le serveur les télécharge
+lui-même, ce qui impose une liste blanche d'hôtes et tout l'appareil décrit en
+§4.
 
-Ce qui est prêt pour ce jour-là : les photos arrivent jusqu'au brouillon, sont
-transmises à l'analyse et persistées avec elle. Il n'y aura qu'un consommateur à
-brancher.
+### Porte 2 — les photos envoyées par l'utilisateur
+
+La première porte suppose que les photos soient **joignables depuis le
+serveur**. Trois situations courantes ne le permettent pas :
+
+| Situation | Pourquoi la porte 1 échoue |
+|---|---|
+| Leboncoin | La plateforme refuse la lecture automatique (§2). Ses photos sont derrière la même protection |
+| Annonce « mangas en tout genre » | Le texte ne nomme aucune série : les photos sont la **seule** source, et elles sont inaccessibles |
+| Étagère photographiée chez soi | Ce n'est l'annonce de personne — il n'y a pas d'URL du tout |
+
+Dans les trois cas, l'utilisateur a les images sous les yeux. Il lui manquait le
+moyen de les donner : c'est `POST /api/recognition/analyze-photos`, en
+`multipart`.
+
+Cette porte **ne joint rien** : aucune URL n'est reçue, donc aucune n'est
+jointe. Elle applique les mêmes bornes (8 images, 3 Mo, 12 Mo cumulés) et une
+vérification supplémentaire — le **type MIME est constaté sur les octets**, pas
+cru sur parole.
+
+### Ce que cela ne change pas
+
+Le lien de l'annonce reste conservé, la plateforme reste enregistrée, et rien
+n'est écrit sans confirmation. Envoyer des photos **est** le consentement : il
+n'existe aucun chemin par lequel charger un écran déclenche un appel de moteur.
 
 ---
 

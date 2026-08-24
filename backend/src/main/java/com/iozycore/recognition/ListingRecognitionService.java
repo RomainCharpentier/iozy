@@ -100,8 +100,50 @@ public class ListingRecognitionService {
             return terminer(depuisTexte, RecognitionStatus.NO_ENGINE, depuisTexte.size(), 0, 0, demandees);
         }
 
-        List<RecognitionImage> images = fetcher.fetch(imageUrls);
-        if (images.isEmpty()) {
+        return avecPhotos(depuisTexte, fetcher.fetch(imageUrls), moteur, context, demandees);
+    }
+
+    /**
+     * Le même parcours, à partir de photos <b>déjà en mémoire</b> - celles que
+     * l'utilisateur a envoyées lui-même.
+     *
+     * <h2>Pourquoi une seconde entrée plutôt qu'un paramètre de plus</h2>
+     * Les deux chemins diffèrent sur un point qui n'est pas un détail : celui-ci
+     * ne connaît <b>aucune URL</b>. Rien à joindre, donc rien à autoriser, donc
+     * pas de liste blanche à franchir. Faire cohabiter les deux dans une seule
+     * signature obligerait à écrire « si l'un est fourni, alors l'autre est
+     * ignoré » - une règle qu'on finit toujours par lire de travers.
+     *
+     * <p>Tout ce qui suit la récupération est en revanche <b>strictement le
+     * même code</b> : consolidation, arbitrage, résolution catalogue. Une photo
+     * envoyée n'est pas mieux crue qu'une photo d'annonce.
+     *
+     * @param photos les images déjà lues et validées par {@link UploadedImageReader} ;
+     *               vide signifie « texte seulement »
+     * @param requestedImageCount ce que l'utilisateur a envoyé, y compris ce qui
+     *                            a été écarté - l'écran doit pouvoir dire l'écart
+     */
+    public Analysis analyzeUploadedPhotos(String title, String description, List<RecognitionImage> photos,
+                                          RecognitionContext context, int requestedImageCount) {
+        List<RecognizedItem> depuisTexte = ListingTextRecognizer.recognize(title, description);
+
+        if (requestedImageCount == 0) {
+            return terminer(depuisTexte, null, depuisTexte.size(), 0, 0, 0);
+        }
+
+        ImageRecognitionProvider moteur = premierMoteurDisponible();
+        if (moteur == null) {
+            return terminer(depuisTexte, RecognitionStatus.NO_ENGINE, depuisTexte.size(), 0, 0,
+                    requestedImageCount);
+        }
+
+        return avecPhotos(depuisTexte, photos, moteur, context, requestedImageCount);
+    }
+
+    /** D'ici à la fin, l'origine des octets ne change plus rien. */
+    private Analysis avecPhotos(List<RecognizedItem> depuisTexte, List<RecognitionImage> images,
+                                ImageRecognitionProvider moteur, RecognitionContext context, int demandees) {
+        if (images == null || images.isEmpty()) {
             return terminer(depuisTexte, RecognitionStatus.NO_USABLE_IMAGE, depuisTexte.size(), 0, 0, demandees);
         }
 

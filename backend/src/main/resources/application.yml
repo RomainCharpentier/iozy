@@ -12,6 +12,16 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      # Alignés sur RecognitionImageLimits (3 Mo par photo, 12 Mo cumulés).
+      # Sans ces deux lignes, Spring refuse à 1 Mo par fichier : la borne du
+      # code ne serait jamais atteinte, et l'utilisateur recevrait une erreur
+      # de framework au lieu du message qui lui dit quoi faire.
+      max-file-size: 3MB
+      # Un peu au-dessus du cumul : le multipart transporte aussi les champs
+      # texte et ses propres délimiteurs.
+      max-request-size: 13MB
 
 server:
   port: 8080

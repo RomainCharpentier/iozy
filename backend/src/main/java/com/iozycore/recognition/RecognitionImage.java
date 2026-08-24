@@ -15,7 +15,10 @@ package com.iozycore.recognition;
  * fichier que personne ne surveille.
  *
  * @param index      position 0-based dans la demande, celle que l'écran affiche
- * @param sourceUrl  d'où elle vient - conservée pour l'affichage, jamais rejointe par un moteur
+ * @param sourceUrl  d'où elle vient - conservée pour l'affichage, jamais rejointe par un
+ *                   moteur. <b>{@code null}</b> pour une photo envoyée par l'utilisateur :
+ *                   elle ne vient d'aucune adresse, et lui en inventer une laisserait croire
+ *                   qu'on pourrait y retourner
  * @param bytes      le contenu, borné par le fetcher
  * @param mediaType  type MIME constaté, déjà validé
  */

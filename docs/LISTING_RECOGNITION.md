@@ -301,6 +301,32 @@ métadonnées cloud, `localhost`, plages privées, HTTP simple, hôte qui
 **Aucun cookie Vinted, aucune API privée, aucun contournement anti-bot** — les
 photos viennent exclusivement du `ListingSnapshot` déjà récupéré proprement.
 
+### La seconde porte : les photos envoyées par l'utilisateur
+
+`UploadedImageReader` reçoit des octets déjà là, transmis en `multipart` par le
+navigateur. Elle **ne connaît ni URL, ni `HttpClient`, ni liste blanche** — il
+n'existe donc aucune adresse qu'un appelant pourrait faire joindre au serveur.
+La question du SSRF ne s'y pose pas : elle est *absente*, pas atténuée. C'est
+pourquoi cette porte est plus simple que le fetcher, et non plus risquée.
+
+Ce qui remplace la liste blanche : **les mêmes bornes exactement** — 8 images,
+3 Mo chacune, 12 Mo cumulés — énoncées une seule fois dans
+`RecognitionImageLimits`, que les deux portes appliquent. Deux copies auraient
+fini par diverger, et la porte oubliée serait devenue la porte à forcer.
+
+Plus une vérification que le fetcher n'a pas à faire : **le type MIME est
+constaté sur les octets**, jamais lu dans l'en-tête. Un CDN qui annonce
+`image/jpeg` engage sa responsabilité ; un fichier venu d'un téléphone n'annonce
+que ce que le client a bien voulu écrire, et ces octets partent ensuite vers un
+moteur externe. `RecognitionImageLimits.sniff()` reconnaît les signatures JPEG,
+PNG et WebP ; tout le reste est écarté — sans casser le lot, une photo refusée
+est une photo en moins.
+
+Les limites `multipart` de Spring sont alignées sur ces bornes
+(`application.yml`) : sans cela le framework refuserait à 1 Mo par fichier, la
+borne du code ne serait jamais atteinte, et l'utilisateur recevrait une erreur
+de framework au lieu du message qui lui dit quoi faire.
+
 ### Le texte de l'annonce n'entre plus dans le prompt
 
 La V1 transmettait le titre de l'annonce au moteur comme « indice de lecture ».
@@ -410,6 +436,34 @@ pas un échec mais une absence de question.
 `400` seulement pour : ni texte ni photo, corps cassé, **plus de 8 images**
 — refusé explicitement plutôt que tronqué en silence.
 
+### `POST /api/recognition/analyze-photos`
+
+La même chose, à partir de photos **envoyées** plutôt que récupérées. En
+`multipart` : `photos` (jusqu'à 8 fichiers), plus `title`, `description` et
+`entityTypeCode` en champs texte facultatifs.
+
+Pourquoi une seconde route plutôt qu'un paramètre de plus : les deux chemins
+diffèrent sur un point qui n'est pas un détail — celui-ci ne connaît **aucune
+URL**. Rien à joindre, donc rien à autoriser. Les faire cohabiter dans une
+seule signature obligerait à écrire « si l'un est fourni, alors l'autre est
+ignoré », une règle qu'on finit toujours par lire de travers. Tout ce qui suit
+la récupération est en revanche **strictement le même code** : consolidation,
+arbitrage, résolution catalogue. Une photo envoyée n'est pas mieux crue qu'une
+photo d'annonce.
+
+**Multipart, pas du base64 dans le JSON** : encoder trois photos en base64 les
+gonflerait d'un tiers et ferait transiter une chaîne de plusieurs mégaoctets à
+parser d'un bloc en mémoire. Le multipart se lit en flux et se borne en cours
+de lecture.
+
+**Même enveloppe de réponse** que `/analyze` — l'écran n'a pas deux lectures
+selon l'origine des photos. `requestedImageCount` reste le nombre **envoyé** :
+c'est son écart avec `analyzedImageCount` qui permet de dire « 2 photos sur 5
+étaient illisibles » plutôt que de faire disparaître les trois autres.
+
+`400` seulement pour : aucune photo, ou plus de 8. Un fichier qui n'est pas une
+image n'est pas un `400` — il est écarté, et le reste du lot passe.
+
 ### Synchrone, et c'est suffisant
 
 Quelques secondes pour 3 à 8 photos : une requête synchrone avec un indicateur
@@ -474,6 +528,21 @@ ni la clé d'API ni le moindre octet d'image n'apparaissent dans les journaux.
 | Cache d'analyse | Non fait. Le texte est relu à chaque modification (débouncé) mais ne coûte rien ; les photos ne partent que sur un clic |
 | Persistance des candidats non confirmés | **Volontairement absente.** L'analyse enregistrée conserve les éléments **confirmés** ; garder les propositions rejetées et leurs sources gonflerait le JSONB sans usage après confirmation |
 
+### Ce que la porte d'envoi a débloqué
+
+Le moteur n'avait qu'une entrée : des URLs sur des hôtes en liste blanche.
+IozyCore était donc **aveugle** dès que les photos n'étaient pas joignables,
+alors que le moteur savait parfaitement les traiter :
+
+| Situation | Avant | Maintenant |
+|---|---|---|
+| Plateforme qui refuse la lecture automatique (Leboncoin) | Aucune photo atteignable, aucune analyse possible | L'utilisateur envoie les siennes |
+| Annonce « mangas en tout genre » | Le texte ne nomme aucune série, les photos étaient la seule source — inaccessible | Les photos deviennent la source |
+| Étagère photographiée chez soi | Hors sujet : ce n'est l'annonce de personne | Analysable comme n'importe quel lot |
+
+Dans les trois cas l'utilisateur avait les images sous les yeux ; il lui
+manquait seulement le moyen de les donner.
+
 ### Suivi possible
 
 Afficher, quand le texte décrit déjà précisément le lot, ce que l'analyse des
@@ -492,6 +561,7 @@ démontrée.
 `RecognitionContext`, `ImageRecognitionProvider`, `ListingTextRecognizer`,
 `RecognitionConsolidator`, `CatalogStatus`, `ResolvedItem`,
 `RecognitionCatalogResolver`, `RecognitionImageFetcher`,
+`RecognitionImageLimits`, `UploadedImageReader`,
 `ListingRecognitionService`, `gemini/GeminiVisionRecognitionProvider`.
 
 **API** : `api/recognition/RecognitionController`.

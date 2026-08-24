@@ -73,7 +73,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
     headers: {
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      // Surtout PAS sur un FormData : le navigateur doit poser lui-même
+      // `multipart/form-data; boundary=…`, et l'écraser par `application/json`
+      // rendrait le corps illisible côté serveur (415, sans indice).
+      ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...init?.headers,
     },
   })
@@ -98,6 +101,15 @@ export function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 
 export function post<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined })
+}
+
+/**
+ * POST d'un formulaire multipart - le seul cas où l'on envoie autre chose que
+ * du JSON : des fichiers. En base64 dans un corps JSON, trois photos gonflent
+ * d'un tiers et se parsent d'un bloc en mémoire.
+ */
+export function postForm<T>(path: string, form: FormData): Promise<T> {
+  return request<T>(path, { method: 'POST', body: form })
 }
 
 export function patch<T>(path: string, body?: unknown): Promise<T> {

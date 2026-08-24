@@ -3,16 +3,22 @@ package com.iozycore.api.recognition;
 import com.iozycore.recognition.CatalogStatus;
 import com.iozycore.recognition.ListingRecognitionService;
 import com.iozycore.recognition.RecognitionContext;
-import com.iozycore.recognition.RecognitionImageFetcher;
+import com.iozycore.recognition.RecognitionImage;
+import com.iozycore.recognition.RecognitionImageLimits;
 import com.iozycore.recognition.RecognitionSource;
 import com.iozycore.recognition.ResolvedItem;
+import com.iozycore.recognition.UploadedImageReader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -60,9 +66,11 @@ import java.util.UUID;
 public class RecognitionController {
 
     private final ListingRecognitionService service;
+    private final UploadedImageReader uploadedImageReader;
 
-    public RecognitionController(ListingRecognitionService service) {
+    public RecognitionController(ListingRecognitionService service, UploadedImageReader uploadedImageReader) {
         this.service = service;
+        this.uploadedImageReader = uploadedImageReader;
     }
 
     /**
@@ -149,17 +157,86 @@ public class RecognitionController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Un titre, une description ou au moins une photo est requis");
         }
-        if (!sansPhoto && request.imageUrls().size() > RecognitionImageFetcher.MAX_IMAGES) {
+        if (!sansPhoto && request.imageUrls().size() > RecognitionImageLimits.MAX_IMAGES) {
             // Borne dite explicitement plutôt que silencieusement tronquée :
             // l'appelant doit savoir que sa demande n'a pas été traitée en entier.
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Trop de photos : %d au maximum".formatted(RecognitionImageFetcher.MAX_IMAGES));
+                    "Trop de photos : %d au maximum".formatted(RecognitionImageLimits.MAX_IMAGES));
         }
 
         ListingRecognitionService.Analysis analyse = service.analyze(
                 request.title(), request.description(), request.imageUrls(),
                 new RecognitionContext(request.entityTypeCode()));
 
+        return repondre(analyse);
+    }
+
+    /**
+     * Analyse des photos <b>envoyées par l'utilisateur</b>, plutôt que
+     * récupérées d'une annonce.
+     *
+     * <h2>Ce que cette route débloque</h2>
+     * Le moteur de vision n'avait qu'une porte : des URLs sur des hôtes en
+     * liste blanche. IozyCore était donc aveugle dès que les photos n'étaient
+     * pas joignables - une plateforme qui refuse les robots, une annonce dont
+     * le texte ne nomme aucune série, une étagère photographiée chez soi.
+     * Dans tous ces cas l'utilisateur a les images ; il lui manquait le moyen
+     * de les donner.
+     *
+     * <h2>Multipart, pas du base64 dans le JSON</h2>
+     * Encoder trois photos en base64 les gonflerait d'un tiers et ferait
+     * transiter 16 Mo de chaîne de caractères dans un corps JSON, à parser
+     * d'un bloc en mémoire. Le multipart se lit en flux et se borne en cours
+     * de lecture.
+     *
+     * <h2>Envoyer, c'est consentir</h2>
+     * Comme pour {@code imageUrls}, la présence de photos <b>est</b> le
+     * déclencheur : aucun chemin ne fait partir d'image sans un geste explicite.
+     *
+     * @param photos      les images ; huit au maximum, 3 Mo chacune. Le type est
+     *                    constaté sur les octets, pas sur l'en-tête déclaré
+     * @param title       titre saisi - lu localement, jamais transmis à un moteur
+     * @param description description saisie - idem
+     */
+    @Operation(summary = "Détecter les éléments d'un lot à partir de photos ENVOYÉES par l'utilisateur. "
+            + "Sert quand les photos ne sont pas récupérables : plateforme qui refuse la lecture "
+            + "automatique, annonce sans texte exploitable, ou simple photo d'étagère. Aucune URL n'est "
+            + "reçue ni jointe. Le titre et la description restent facultatifs et lus localement. "
+            + "Répond toujours 200 sauf requête invalide, avec le même visionStatus que /analyze. "
+            + "N'écrit RIEN.")
+    @PostMapping(value = "/analyze-photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AnalyzeListingResponse analyzeUploadedPhotos(
+            @RequestPart("photos") List<MultipartFile> photos,
+            // @RequestParam et non @RequestPart : sur une String, @RequestPart
+            // exige un Content-Type sur la partie, que le FormData d'un
+            // navigateur ne pose pas - la requête échouerait en 415.
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "entityTypeCode", required = false) String entityTypeCode) {
+
+        if (photos == null || photos.isEmpty() || photos.stream().allMatch(MultipartFile::isEmpty)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins une photo est requise");
+        }
+        if (photos.size() > RecognitionImageLimits.MAX_IMAGES) {
+            // Dit plutôt que tronqué en silence : l'appelant doit savoir que sa
+            // demande n'a pas été traitée en entier.
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Trop de photos : %d au maximum".formatted(RecognitionImageLimits.MAX_IMAGES));
+        }
+
+        UploadedImageReader.Intake intake = uploadedImageReader.read(photos);
+        List<RecognitionImage> images = intake.images();
+
+        // requestedImageCount reste le nombre ENVOYÉ : c'est l'écart avec
+        // analyzedImageCount qui permet de dire « 2 photos sur 5 étaient
+        // illisibles » plutôt que de faire disparaître les trois autres.
+        ListingRecognitionService.Analysis analyse = service.analyzeUploadedPhotos(
+                title, description, images, new RecognitionContext(entityTypeCode), photos.size());
+
+        return repondre(analyse);
+    }
+
+    private static AnalyzeListingResponse repondre(ListingRecognitionService.Analysis analyse) {
         return new AnalyzeListingResponse(
                 analyse.visionStatus() == null ? null : analyse.visionStatus().name(),
                 analyse.items().stream().map(RecognizedItemResponse::from).toList(),

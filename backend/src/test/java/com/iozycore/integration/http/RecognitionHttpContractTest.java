@@ -8,11 +8,13 @@ import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.recognition.RecognitionImageFetcher;
+import com.iozycore.recognition.RecognitionImageLimits;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -363,7 +366,7 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
     @Test
     void too_many_images_is_refused_explicitly_rather_than_silently_truncated() throws Exception {
         List<String> trop = new ArrayList<>();
-        for (int i = 0; i <= RecognitionImageFetcher.MAX_IMAGES; i++) {
+        for (int i = 0; i <= RecognitionImageLimits.MAX_IMAGES; i++) {
             trop.add(FakeRecognitionProvider.photo("normal", i));
         }
 
@@ -393,5 +396,130 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                         .content(json(Map.of("imageUrls", List.of(FakeRecognitionProvider.photo("normal", 0)),
                                 "entityTypeCode", "UNIVERS_QUI_N_EXISTE_PAS"))))
                 .andExpect(status().isOk());
+    }
+
+    // ==================================================================
+    //  Photos ENVOYÉES par l'utilisateur - /analyze-photos
+    // ==================================================================
+    //
+    //  L'autre porte du moteur. Elle existe parce qu'une plateforme qui refuse
+    //  la lecture automatique (Leboncoin), une annonce dont le texte ne nomme
+    //  aucune série (« mangas en tout genre ») et une étagère photographiée
+    //  chez soi ont un point commun : les photos existent, mais aucune URL
+    //  n'est joignable. Ce que ces tests protègent, c'est qu'elle applique les
+    //  MÊMES règles que l'autre - sans en hériter la surface réseau.
+
+    private static final String ROUTE_PHOTOS = "/api/recognition/analyze-photos";
+
+    /** Un JPEG réel dont les octets portent le mot-clé attendu par le faux moteur. */
+    private static MockMultipartFile photoEnvoyee(String declencheur) {
+        byte[] mot = declencheur.getBytes(StandardCharsets.ISO_8859_1);
+        byte[] octets = new byte[Math.max(64, mot.length + 16)];
+        octets[0] = (byte) 0xFF;
+        octets[1] = (byte) 0xD8;
+        octets[2] = (byte) 0xFF;
+        octets[3] = (byte) 0xE0;
+        System.arraycopy(mot, 0, octets, 16, mot.length);
+        return new MockMultipartFile("photos", "lot.jpg", "image/jpeg", octets);
+    }
+
+    @Test
+    void uploaded_photos_are_analyzed_and_answer_the_same_shape_as_the_url_route() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal")).param("entityTypeCode", "MANGA"))
+                .andExpect(status().isOk())
+                // Même enveloppe exactement : l'écran ne doit pas avoir deux
+                // lectures de réponse selon l'origine des photos.
+                .andExpect(jsonPath("$.visionStatus").exists())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.requestedImageCount").value(1))
+                .andExpect(jsonPath("$.analyzedImageCount").value(1));
+    }
+
+    @Test
+    void uploaded_photos_work_with_NO_text_at_all() throws Exception {
+        // Le cas « mangas en tout genre » : le titre n'apprend rien, les photos
+        // sont la seule source. La route ne doit pas exiger de texte.
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.textItemCount").value(0));
+    }
+
+    @Test
+    void the_text_is_still_read_locally_alongside_uploaded_photos() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal"))
+                        .param("title", "Naruto tomes 1 à 3")
+                        .param("entityTypeCode", "MANGA"))
+                .andExpect(status().isOk())
+                // Les deux sources sont consolidées ensemble, exactement comme
+                // sur l'autre route - pas deux listes renvoyées côte à côte.
+                .andExpect(jsonPath("$.textItemCount").value(3));
+    }
+
+    @Test
+    void a_file_that_is_not_an_image_is_dropped_but_the_request_still_answers_200() throws Exception {
+        MockMultipartFile faux = new MockMultipartFile("photos", "innocent.jpg", "image/jpeg",
+                "#!/bin/sh".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(faux))
+                .andExpect(status().isOk())
+                // Envoyée mais pas analysée : l'écart est dit, pas masqué.
+                .andExpect(jsonPath("$.requestedImageCount").value(1))
+                .andExpect(jsonPath("$.analyzedImageCount").value(0))
+                .andExpect(jsonPath("$.visionStatus").value("NO_USABLE_IMAGE"));
+    }
+
+    @Test
+    void sending_no_photo_at_all_is_a_400() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).param("title", "Un lot"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void more_than_the_cap_is_refused_rather_than_silently_truncated() throws Exception {
+        var requete = multipart(ROUTE_PHOTOS);
+        for (int i = 0; i <= RecognitionImageLimits.MAX_IMAGES; i++) {
+            requete = requete.file(photoEnvoyee("normal"));
+        }
+
+        mockMvc.perform(requete).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void an_engine_failure_on_uploaded_photos_is_still_a_200() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee(FakeRecognitionProvider.DECLENCHE_PANNE)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visionStatus").value("UNAVAILABLE"));
+    }
+
+    @Test
+    void nothing_readable_on_uploaded_photos_is_not_an_error_either() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee(FakeRecognitionProvider.DECLENCHE_RIEN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visionStatus").value("NOTHING_RECOGNIZED"));
+    }
+
+    @Test
+    void an_unknown_entity_type_does_not_crash_the_upload_route_either() throws Exception {
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee("normal"))
+                        .param("entityTypeCode", "UNIVERS_QUI_N_EXISTE_PAS"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void the_upload_route_writes_nothing() throws Exception {
+        // On compte les séries de l'univers manga : c'est là qu'une fiche
+        // serait créée si la route se mettait à « compléter » le catalogue.
+        java.util.UUID typeManga = serieCataloguee("Une série témoin").entityTypeId();
+        int possessionsAvant = ownershipRepository.findAll().size();
+        int seriesAvant = entityRepository.findAllByType(typeManga).size();
+
+        mockMvc.perform(multipart(ROUTE_PHOTOS).file(photoEnvoyee(FakeRecognitionProvider.DECLENCHE_HORS_CATALOGUE))
+                        .param("title", "Naruto tomes 1 à 5")
+                        .param("entityTypeCode", "MANGA"))
+                .andExpect(status().isOk());
+
+        // Proposer n'est pas posséder, et lire n'est pas cataloguer.
+        assertThat(ownershipRepository.findAll()).hasSize(possessionsAvant);
+        assertThat(entityRepository.findAllByType(typeManga)).hasSize(seriesAvant);
     }
 }
