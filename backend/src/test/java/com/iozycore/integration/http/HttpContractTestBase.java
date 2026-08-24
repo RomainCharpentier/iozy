@@ -1,14 +1,11 @@
 package com.iozycore.integration.http;
 
+import com.iozycore.integration.PostgresIntegrationTest;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * Socle des tests de <b>contrat HTTP</b> : la pile web réelle, pas une méthode
@@ -39,43 +36,17 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * ne doit donc plus interroger la base ensuite - il vérifie le status et le
  * corps, ce qui est justement l'objet de ces tests.
  */
-@SpringBootTest
+/**
+ * <h2>Le conteneur et le contexte viennent de {@link PostgresIntegrationTest}</h2>
+ * Ce socle déclarait autrefois son propre {@code PostgreSQLContainer}, partagé
+ * entre ses seules classes. C'était déjà la bonne idée, mais appliquée à un
+ * tiers de la suite : quatorze autres classes en démarraient chacune un.
+ * Le conteneur, le {@code @DynamicPropertySource} et {@code @SpringBootTest}
+ * remontent donc d'un cran, et ce socle n'ajoute plus que ce qui lui est
+ * propre - {@code MockMvc}.
+ */
 @AutoConfigureMockMvc
-@Transactional
-public abstract class HttpContractTestBase {
-
-    /**
-     * Conteneur unique pour toutes les classes qui héritent de ce socle,
-     * démarré une fois et jamais arrêté explicitement.
-     *
-     * <h2>Pourquoi pas {@code @Container}</h2>
-     * L'annotation lie le cycle de vie du conteneur à UNE classe de test : il
-     * est arrêté dès qu'elle finit. Or Spring met son contexte en cache et le
-     * réutilise pour la classe suivante - laquelle se retrouve donc avec une
-     * DataSource pointant vers un conteneur mort ({@code This connection has
-     * been closed}). Le problème est réel : la deuxième classe HTTP échouait
-     * entièrement.
-     * <p>
-     * Un conteneur statique partagé vit aussi longtemps que la JVM de test,
-     * exactement comme le contexte Spring qui s'y adosse. Docker le nettoie à
-     * la fin du processus. Les classes qui déclarent leur propre conteneur
-     * ailleurs dans la suite restent valides : chacune possède le sien.
-     */
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    static {
-        POSTGRES.start();
-    }
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+public abstract class HttpContractTestBase extends PostgresIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;

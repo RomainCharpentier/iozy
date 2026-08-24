@@ -5,15 +5,8 @@ import com.iozycore.api.purchaseanalysis.PurchaseAnalysisController.UpdateCollec
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Map;
@@ -32,23 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * méthode - une trace technique offerte à l'appelant, sans rien lui dire
  * d'utile.
  */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class CollectorPreferencesRequestIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private PurchaseAnalysisController controller;

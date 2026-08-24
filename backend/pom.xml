@@ -19,6 +19,24 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+            Compilation : javac décide seul de ce qui est périmé.
+
+            Le nom trompe. « incrementalCompilation » à true - le défaut de
+            maven-compiler-plugin - ne veut pas dire « ne recompiler que ce qui
+            a changé » : il veut dire « si QUELQUE CHOSE a changé, tout
+            recompiler ». Et sa détection se trompe volontiers quand les
+            sources vivent sur un montage lié (le cas ici : le projet est monté
+            depuis Windows dans le conteneur Maven), si bien qu'elle conclut
+            toujours au changement.
+
+            Mesuré sur cette machine : `mvn -o test-compile` sans rien avoir
+            modifié prenait 51 s, deux fois de suite. À false, javac fait la
+            vraie comparaison fichier par fichier : 15 s, et 15 s à vide.
+            Trente-six secondes rendues à CHAQUE invocation, tests compris.
+        -->
+        <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
     </properties>
 
     <!--

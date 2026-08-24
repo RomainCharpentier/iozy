@@ -644,6 +644,88 @@ peint** — seules ses feuilles comptent. Mesuré correctement : zéro échec.
 
 ---
 
+## 4 bis. La suite de tests : 948 tests, et où passait le temps
+
+Une suite lente ne se contente pas d'être pénible : on finit par ne plus la
+lancer, et c'est là qu'elle cesse de protéger. Voici la mesure et ce qu'elle a
+donné.
+
+### La mesure d'abord
+
+| | Classes | Temps cumulé |
+|---|---|---|
+| Tests unitaires | 77 | **3,3 s** |
+| Tests d'intégration | 29 | **341,6 s** |
+
+Tout le temps était d'un seul côté, et **réparti presque uniformément** : à peu
+près 13 s par classe d'intégration. Une régularité pareille ne décrit pas du
+travail utile — elle décrit un coût fixe payé encore et encore.
+
+### Le coupable : quinze bases pour une suite
+
+Quinze classes déclaraient chacune **leur propre** `PostgreSQLContainer` avec
+son propre `@DynamicPropertySource`. Chacune démarrait donc un Postgres et
+rejouait Flyway V1→V19.
+
+Mais le vrai coût était ailleurs, et il est contre-intuitif : Spring met les
+contextes de test en cache, **et la clé de ce cache inclut les valeurs des
+propriétés**. Quinze conteneurs, c'est quinze URLs JDBC, donc quinze clés, donc
+**zéro réutilisation**. Un cache présent, configuré, et qui ne servait jamais.
+
+Un socle commun — `PostgresIntegrationTest` — porte désormais le conteneur, le
+`@DynamicPropertySource` et `@SpringBootTest`. Résultat : **seules quatre
+classes dépassent encore 5 s**, et ce sont exactement les quatre constructions
+de contexte restantes (le contexte de base, celui des tests HTTP avec
+`MockMvc`, et les deux qui importent des faux providers). Tout le reste est
+passé sous la seconde.
+
+### Le coupable suivant : Maven recompilait tout, à chaque fois
+
+Une fois les tests rapides, le plancher est devenu visible : **52 s avant le
+moindre test**. La décomposition est sans appel — `mvn -o test-compile` sans
+avoir rien modifié prenait **51 s, deux fois de suite**.
+
+En cause, un nom trompeur. `maven.compiler.useIncrementalCompilation` à `true`
+— le défaut — ne signifie pas « ne recompiler que ce qui a changé » mais **« si
+quelque chose a changé, tout recompiler »**. Et sa détection se trompe
+volontiers quand les sources vivent sur un montage lié, ce qui est le cas ici
+(projet Windows monté dans un conteneur Maven) : elle concluait toujours au
+changement.
+
+À `false`, javac fait la vraie comparaison fichier par fichier : **15 s**, et
+15 s à vide. C'est le réglage le plus rentable de cette passe, parce qu'il est
+payé à *chaque* invocation.
+
+### Le parallélisme, en dernier et pour peu
+
+Les classes s'exécutent en parallèle (`junit-platform.properties`), le grain
+étant la **classe** et non la méthode : deux méthodes d'une même classe ne
+tournent jamais ensemble. Gain mesuré : **12 s**. Modeste, parce qu'il ne reste
+plus grand-chose à paralléliser une fois le cache de contexte réparé — ce qui
+est une bonne nouvelle déguisée en déception.
+
+Ce que cela exige des tests, et qui n'est pas négociable : `@Transactional` sur
+chaque méthode, aucun état statique mutable partagé, et **une classe qui compte
+des lignes compte un écart, jamais un total absolu**.
+
+### Le bilan
+
+| | |
+|---|---|
+| Suite complète, avant la passe compilation | 142 s |
+| Suite complète, après | **95 s** |
+| Plancher sans compilation (`-o surefire:test`) | **4 s** |
+
+Le dernier chiffre est celui qui change la façon de travailler : quand les
+classes sont déjà compilées, relancer un sous-ensemble de tests coûte quatre
+secondes, pas cinquante-deux.
+
+```bash
+mvn -o surefire:test -Dtest='ListingTextParserTest'
+```
+
+---
+
 ## 5. Ce que cet audit n'a pas couvert
 
 - la qualité interne et les tests du client iOS (seule sa surface d'API a été vérifiée) ;
