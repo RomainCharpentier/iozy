@@ -374,7 +374,22 @@ export function ListingDetectionPanel({
   )
 
   const analysePhotosFaite = resultat?.visionStatus != null
-  const messageVision = resultat?.visionStatus ? MESSAGES_VISION[resultat.visionStatus] : ''
+  /**
+   * Les photos ont-elles apporté quelque chose, par un moyen ou par un autre ?
+   *
+   * Un code-barres lu sur une photo est une proposition venue de la photo, même
+   * quand le moteur de vision n'a rien vu — et c'est un cas courant, une image
+   * de dos de manga ne montrant qu'un code. Sans cette distinction, l'écran
+   * affichait « Les photos n'ont rien ajouté de lisible » juste au-dessus d'un
+   * tome identifié par ces mêmes photos, avec un identifiant exact.
+   */
+  const photosOntApporte = (resultat?.items ?? []).some((item) =>
+    item.sources.some((source) => source === 'EAN' || source === 'VISION'),
+  )
+  const messageVision =
+    resultat?.visionStatus && !(resultat.visionStatus === 'NOTHING_RECOGNIZED' && photosOntApporte)
+      ? MESSAGES_VISION[resultat.visionStatus]
+      : ''
 
   // Le serveur ne renvoie ce nombre que tant que la question reste ouverte : dès
   // qu'un tome est identifié, il disparaît de lui-même. Rien à arbitrer ici.

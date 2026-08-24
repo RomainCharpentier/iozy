@@ -54,13 +54,16 @@ public class ListingRecognitionService {
     private final RecognitionImageFetcher fetcher;
     private final RecognitionCatalogResolver catalogResolver;
     private final List<ImageRecognitionProvider> providers;
+    private final BarcodeRecognizer barcodeRecognizer;
 
     public ListingRecognitionService(RecognitionImageFetcher fetcher,
                                       RecognitionCatalogResolver catalogResolver,
-                                      List<ImageRecognitionProvider> providers) {
+                                      List<ImageRecognitionProvider> providers,
+                                      BarcodeRecognizer barcodeRecognizer) {
         this.fetcher = fetcher;
         this.catalogResolver = catalogResolver;
         this.providers = providers == null ? List.of() : providers;
+        this.barcodeRecognizer = barcodeRecognizer;
     }
 
     /**
@@ -97,15 +100,9 @@ public class ListingRecognitionService {
             return terminer(texte.items(), texte, null, 0, 0, 0);
         }
 
-        ImageRecognitionProvider moteur = premierMoteurDisponible();
-        if (moteur == null) {
-            // Aucun moteur : on ne télécharge même pas les photos. Inutile de
-            // solliciter un CDN pour un résultat qu'on ne peut pas produire -
-            // et les propositions du texte restent, elles.
-            return terminer(texte.items(), texte, RecognitionStatus.NO_ENGINE, 0, 0, demandees);
-        }
-
-        return avecPhotos(texte, fetcher.fetch(imageUrls), moteur, context, demandees);
+        // Les photos sont récupérées même sans moteur de vision : les
+        // code-barres, eux, se lisent en local et gratuitement.
+        return avecPhotos(texte, fetcher.fetch(imageUrls), premierMoteurDisponible(), context, demandees);
     }
 
     /**
@@ -136,31 +133,54 @@ public class ListingRecognitionService {
             return terminer(texte.items(), texte, null, 0, 0, 0);
         }
 
-        ImageRecognitionProvider moteur = premierMoteurDisponible();
-        if (moteur == null) {
-            return terminer(texte.items(), texte, RecognitionStatus.NO_ENGINE, 0, 0,
-                    requestedImageCount);
-        }
-
-        return avecPhotos(texte, photos, moteur, context, requestedImageCount);
+        return avecPhotos(texte, photos, premierMoteurDisponible(), context, requestedImageCount);
     }
 
-    /** D'ici à la fin, l'origine des octets ne change plus rien. */
+    /**
+     * D'ici à la fin, l'origine des octets ne change plus rien.
+     *
+     * <h2>Les codes-barres d'abord, et même sans moteur</h2>
+     * {@code moteur} peut être {@code null} : aucun moteur de vision n'est
+     * configuré. Ce n'est plus une raison de ne rien faire des photos, car les
+     * codes-barres se lisent <b>en local et gratuitement</b>. C'est le moment
+     * où « l'IA n'est jamais obligatoire » cesse d'être une intention pour
+     * devenir un comportement — sur un lot photographié de dos, la lecture des
+     * EAN peut suffire à tout identifier, avec des identifiants exacts là où un
+     * modèle n'aurait produit que des suppositions.
+     */
     private Analysis avecPhotos(ListingTextRecognizer.TextReading texte, List<RecognitionImage> images,
                                 ImageRecognitionProvider moteur, RecognitionContext context, int demandees) {
         if (images == null || images.isEmpty()) {
             return terminer(texte.items(), texte, RecognitionStatus.NO_USABLE_IMAGE, 0, 0, demandees);
         }
 
-        RecognitionResult vu = lireSansJamaisCasser(moteur, images, context);
-        if (vu.status() == RecognitionStatus.UNAVAILABLE) {
-            // Le moteur a échoué : ce que le texte disait reste vrai.
-            return terminer(texte.items(), texte, RecognitionStatus.UNAVAILABLE, 0, images.size(), demandees);
+        List<RecognizedItem> depuisCodes = barcodeRecognizer.recognize(images, context);
+
+        if (moteur == null) {
+            // NO_ENGINE reste le statut : il décrit la VISION, et l'écran doit
+            // continuer à dire qu'elle n'a pas tourné. Mais les propositions du
+            // texte et des codes-barres, elles, sont bien là.
+            return terminer(avec(texte.items(), depuisCodes), texte, RecognitionStatus.NO_ENGINE,
+                    0, images.size(), demandees);
         }
 
-        List<RecognizedItem> tout = new ArrayList<>(texte.items());
+        RecognitionResult vu = lireSansJamaisCasser(moteur, images, context);
+        if (vu.status() == RecognitionStatus.UNAVAILABLE) {
+            // Le moteur a échoué : ce que le texte disait reste vrai, et ce que
+            // les codes-barres ont donné aussi.
+            return terminer(avec(texte.items(), depuisCodes), texte, RecognitionStatus.UNAVAILABLE,
+                    0, images.size(), demandees);
+        }
+
+        List<RecognizedItem> tout = avec(texte.items(), depuisCodes);
         tout.addAll(vu.items());
         return terminer(tout, texte, vu.status(), vu.unidentifiedCount(), images.size(), demandees);
+    }
+
+    private static List<RecognizedItem> avec(List<RecognizedItem> premiers, List<RecognizedItem> seconds) {
+        List<RecognizedItem> tout = new ArrayList<>(premiers);
+        tout.addAll(seconds);
+        return tout;
     }
 
     /** Consolidation, arbitrage, puis catalogue - le même chemin quelles que soient les sources. */

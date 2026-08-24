@@ -101,6 +101,26 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
     }
 
     /**
+     * Une proposition venue d'un <b>code-barres lu sur une photo</b>.
+     *
+     * <p>Toujours {@link RecognitionConfidence#HIGH}, et c'est la seule source
+     * pour laquelle ce soit littéralement vrai : un EAN porte sa clé de
+     * contrôle, il correspond ou il ne correspond pas. Le texte annonce ce que
+     * le vendeur <i>dit</i>, la vision propose ce qu'un modèle <i>croit</i>
+     * voir ; le code-barres désigne un tirage précis.
+     *
+     * <p>{@code sourceImages} est conservé : l'écran doit pouvoir dire sur
+     * quelle photo le code a été trouvé, exactement comme pour la vision.
+     */
+    public static RecognizedItem fromEan(String seriesTitle, Integer volumeNumber, String ean,
+                                          String evidence, Set<Integer> sourceImages) {
+        return new RecognizedItem(seriesTitle, volumeNumber, null, ean,
+                RecognitionConfidence.HIGH, EnumSet.of(RecognitionSource.EAN),
+                evidence == null ? List.of() : List.of(evidence),
+                sourceImages == null ? Set.of() : sourceImages);
+    }
+
+    /**
      * Vrai quand un identifiant exact a été lu. Une lecture d'EAN ne se
      * « ressemble » pas : elle correspond ou non. C'est ce qui autorise le
      * service à préférer le pipeline code-barres existant à une supposition

@@ -32,9 +32,18 @@ class TextAndVisionMergeTest {
     private final CatalogueDeTest catalogue = new CatalogueDeTest();
     private final EditionsDeTest editions = new EditionsDeTest();
 
+    /**
+     * Ces tests portent sur la fusion TEXTE + VISION. Un lecteur de codes-barres
+     * qui trouverait quelque chose sur les images de test ajouterait une
+     * troisième source et brouillerait précisément ce qu'ils mesurent - d'où ce
+     * lecteur qui ne lit rien. La chaîne code-barres a ses propres tests.
+     */
+    private static final BarcodeRecognizer SANS_CODE_BARRES =
+            new BarcodeRecognizer((ean, entityTypeCode) -> java.util.Optional.empty());
+
     private ListingRecognitionService service(ImageRecognitionProvider... moteurs) {
         return new ListingRecognitionService(new FetcherDeTest(),
-                new RecognitionCatalogResolver(catalogue, editions), List.of(moteurs));
+                new RecognitionCatalogResolver(catalogue, editions), List.of(moteurs), SANS_CODE_BARRES);
     }
 
     private static RecognizedItem vu(String titre, Integer tome, String edition, int... photos) {
@@ -284,7 +293,8 @@ class TextAndVisionMergeTest {
 
         ListingRecognitionService service = new ListingRecognitionService(
                 new FetcherVide(), new RecognitionCatalogResolver(catalogue, editions),
-                List.of(FakeImageRecognitionProvider.rendant(RecognitionResult.recognized(List.of(), 0))));
+                List.of(FakeImageRecognitionProvider.rendant(RecognitionResult.recognized(List.of(), 0))),
+                SANS_CODE_BARRES);
 
         ListingRecognitionService.Analysis analyse = service
                 .analyze("Platinum End tomes 1 à 3", null, unePhoto(), RecognitionContext.forManga());

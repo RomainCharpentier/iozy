@@ -76,6 +76,25 @@
             <version>2.6.0</version>
         </dependency>
 
+        <!--
+            Lecture des codes-barres sur les photos, en local.
+
+            `core` seul, délibérément : `zxing:javase` n'apporte qu'un
+            LuminanceSource pour BufferedImage - une trentaine de lignes - au
+            prix de deux dépendances transitives (jcommander, jai-imageio) dont
+            ce projet n'a aucun usage. La conversion est écrite dans
+            BarcodeImageDecoder.
+
+            Aucun appel réseau, aucun modèle, aucun euro : un EAN se lit avec
+            des règles, comme le texte d'une annonce. C'est ce qui permet à la
+            reconnaissance de fonctionner même sans moteur de vision configuré.
+        -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
