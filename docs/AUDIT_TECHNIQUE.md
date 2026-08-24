@@ -696,24 +696,30 @@ changement.
 15 s à vide. C'est le réglage le plus rentable de cette passe, parce qu'il est
 payé à *chaque* invocation.
 
-### Le parallélisme, en dernier et pour peu
+### Le parallélisme, essayé puis retiré
 
-Les classes s'exécutent en parallèle (`junit-platform.properties`), le grain
-étant la **classe** et non la méthode : deux méthodes d'une même classe ne
-tournent jamais ensemble. Gain mesuré : **12 s**. Modeste, parce qu'il ne reste
-plus grand-chose à paralléliser une fois le cache de contexte réparé — ce qui
-est une bonne nouvelle déguisée en déception.
+Les classes ont été exécutées en parallèle un temps (`junit-platform.properties`),
+au grain de la **classe** et non de la méthode. Gain mesuré : **12 s**. Modeste,
+parce qu'il ne reste plus grand-chose à paralléliser une fois le cache de
+contexte réparé.
 
-Ce que cela exige des tests, et qui n'est pas négociable : `@Transactional` sur
-chaque méthode, aucun état statique mutable partagé, et **une classe qui compte
-des lignes compte un écart, jamais un total absolu**.
+Il a été **retiré**, pour une raison qui n'était pas prévue : Surefire
+mésattribue ses décomptes quand les classes tournent en parallèle. Deux classes
+de dix tests étaient rapportées « 19 » et « 1 ». Le total restait juste, et un
+échec restait nommé correctement — mais des décomptes par classe faux rendent
+tout raisonnement sur la couverture suspect, et ce sont ces chiffres qu'on lit
+pour se rassurer.
+
+Douze secondes ne valent pas un rapport auquel on ne peut plus se fier. Les
+vrais gains — 260 s sur le cache de contexte, 36 s sur la compilation — ne
+dépendaient de toute façon pas de lui.
 
 ### Le bilan
 
 | | |
 |---|---|
 | Suite complète, avant la passe compilation | 142 s |
-| Suite complète, après | **95 s** |
+| Suite complète, après | **~107 s** (95 s avec le parallélisme, retiré depuis) |
 | Plancher sans compilation (`-o surefire:test`) | **4 s** |
 
 Le dernier chiffre est celui qui change la façon de travailler : quand les
