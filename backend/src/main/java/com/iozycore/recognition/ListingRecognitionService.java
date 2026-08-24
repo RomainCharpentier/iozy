@@ -70,9 +70,14 @@ public class ListingRecognitionService {
      *                      photo n'a été demandée - à ne pas confondre avec un échec
      * @param textItemCount combien de propositions le seul texte a produites, avant
      *                      consolidation : sert à dire « l'annonce en décrit déjà N »
+     * @param announcedVolumeCount ce que l'annonce affirme contenir SANS dire lesquels
+     *                      (« 9 tomes de Naruto ») - null sinon. Jamais accompagné d'items :
+     *                      quand les numéros sont connus, ils font foi
+     * @param announcedSeriesTitle la série nommée dans ce cas, null si le titre n'en désigne aucune
      */
     public record Analysis(RecognitionStatus visionStatus, List<ResolvedItem> items, int unidentifiedCount,
-                            int textItemCount, int analyzedImageCount, int requestedImageCount) {
+                            int textItemCount, int analyzedImageCount, int requestedImageCount,
+                            Integer announcedVolumeCount, String announcedSeriesTitle) {
 
         public Analysis {
             items = items == null ? List.of() : List.copyOf(items);
@@ -84,12 +89,12 @@ public class ListingRecognitionService {
      *                  seulement », et alors <b>aucun moteur n'est appelé</b>
      */
     public Analysis analyze(String title, String description, List<String> imageUrls, RecognitionContext context) {
-        List<RecognizedItem> depuisTexte = ListingTextRecognizer.recognize(title, description);
+        ListingTextRecognizer.TextReading texte = ListingTextRecognizer.read(title, description);
 
         int demandees = imageUrls == null ? 0 : imageUrls.size();
         if (demandees == 0) {
             // Chemin sans la moindre dépendance externe : ni CDN, ni moteur.
-            return terminer(depuisTexte, null, depuisTexte.size(), 0, 0, 0);
+            return terminer(texte.items(), texte, null, 0, 0, 0);
         }
 
         ImageRecognitionProvider moteur = premierMoteurDisponible();
@@ -97,10 +102,10 @@ public class ListingRecognitionService {
             // Aucun moteur : on ne télécharge même pas les photos. Inutile de
             // solliciter un CDN pour un résultat qu'on ne peut pas produire -
             // et les propositions du texte restent, elles.
-            return terminer(depuisTexte, RecognitionStatus.NO_ENGINE, depuisTexte.size(), 0, 0, demandees);
+            return terminer(texte.items(), texte, RecognitionStatus.NO_ENGINE, 0, 0, demandees);
         }
 
-        return avecPhotos(depuisTexte, fetcher.fetch(imageUrls), moteur, context, demandees);
+        return avecPhotos(texte, fetcher.fetch(imageUrls), moteur, context, demandees);
     }
 
     /**
@@ -125,46 +130,56 @@ public class ListingRecognitionService {
      */
     public Analysis analyzeUploadedPhotos(String title, String description, List<RecognitionImage> photos,
                                           RecognitionContext context, int requestedImageCount) {
-        List<RecognizedItem> depuisTexte = ListingTextRecognizer.recognize(title, description);
+        ListingTextRecognizer.TextReading texte = ListingTextRecognizer.read(title, description);
 
         if (requestedImageCount == 0) {
-            return terminer(depuisTexte, null, depuisTexte.size(), 0, 0, 0);
+            return terminer(texte.items(), texte, null, 0, 0, 0);
         }
 
         ImageRecognitionProvider moteur = premierMoteurDisponible();
         if (moteur == null) {
-            return terminer(depuisTexte, RecognitionStatus.NO_ENGINE, depuisTexte.size(), 0, 0,
+            return terminer(texte.items(), texte, RecognitionStatus.NO_ENGINE, 0, 0,
                     requestedImageCount);
         }
 
-        return avecPhotos(depuisTexte, photos, moteur, context, requestedImageCount);
+        return avecPhotos(texte, photos, moteur, context, requestedImageCount);
     }
 
     /** D'ici à la fin, l'origine des octets ne change plus rien. */
-    private Analysis avecPhotos(List<RecognizedItem> depuisTexte, List<RecognitionImage> images,
+    private Analysis avecPhotos(ListingTextRecognizer.TextReading texte, List<RecognitionImage> images,
                                 ImageRecognitionProvider moteur, RecognitionContext context, int demandees) {
         if (images == null || images.isEmpty()) {
-            return terminer(depuisTexte, RecognitionStatus.NO_USABLE_IMAGE, depuisTexte.size(), 0, 0, demandees);
+            return terminer(texte.items(), texte, RecognitionStatus.NO_USABLE_IMAGE, 0, 0, demandees);
         }
 
         RecognitionResult vu = lireSansJamaisCasser(moteur, images, context);
         if (vu.status() == RecognitionStatus.UNAVAILABLE) {
             // Le moteur a échoué : ce que le texte disait reste vrai.
-            return terminer(depuisTexte, RecognitionStatus.UNAVAILABLE, depuisTexte.size(),
-                    0, images.size(), demandees);
+            return terminer(texte.items(), texte, RecognitionStatus.UNAVAILABLE, 0, images.size(), demandees);
         }
 
-        List<RecognizedItem> tout = new ArrayList<>(depuisTexte);
+        List<RecognizedItem> tout = new ArrayList<>(texte.items());
         tout.addAll(vu.items());
-        return terminer(tout, vu.status(), depuisTexte.size(), vu.unidentifiedCount(), images.size(), demandees);
+        return terminer(tout, texte, vu.status(), vu.unidentifiedCount(), images.size(), demandees);
     }
 
     /** Consolidation, arbitrage, puis catalogue - le même chemin quelles que soient les sources. */
-    private Analysis terminer(List<RecognizedItem> bruts, RecognitionStatus visionStatus, int depuisTexte,
+    private Analysis terminer(List<RecognizedItem> bruts, ListingTextRecognizer.TextReading texte,
+                               RecognitionStatus visionStatus,
                                int nonIdentifies, int imagesLues, int imagesDemandees) {
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(bruts);
         List<ResolvedItem> resolus = catalogResolver.resolve(prioriser(consolides));
-        return new Analysis(visionStatus, resolus, nonIdentifies, depuisTexte, imagesLues, imagesDemandees);
+
+        // Le nombre annoncé ne survit PAS à une identification réussie : si les
+        // photos ont fini par nommer les tomes, « l'annonce en annonce 9 » n'est
+        // plus une question ouverte, et l'afficher encore ferait douter d'un
+        // résultat désormais complet.
+        boolean questionEncoreOuverte = resolus.isEmpty() && texte.announcedVolumeCount() != null;
+
+        return new Analysis(visionStatus, resolus, nonIdentifies, texte.items().size(),
+                imagesLues, imagesDemandees,
+                questionEncoreOuverte ? texte.announcedVolumeCount() : null,
+                questionEncoreOuverte ? texte.announcedSeriesTitle() : null);
     }
 
     private ImageRecognitionProvider premierMoteurDisponible() {

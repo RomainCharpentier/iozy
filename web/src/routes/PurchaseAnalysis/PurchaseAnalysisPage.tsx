@@ -395,6 +395,27 @@ export function PurchaseAnalysisPage() {
    * laisser une proposition paraître en attente alors qu'elle est déjà prise
    * en compte - et à empêcher de la confirmer une seconde fois.
    */
+  /**
+   * L'annonce nomme une série mais pas ses tomes (« 9 tomes de Naruto ») :
+   * on reprend le nom lu et on met le curseur sur la seule case encore vide.
+   * Le champ « Tomes » n'est PAS pré-rempli - déduire « 1-9 » d'un simple
+   * décompte inventerait précisément ce que le backend refuse d'inventer.
+   */
+  function prefillSerieAnnoncee(titre: string) {
+    setSeriesTitle(titre)
+    // Après le rendu, sinon le focus part sur un champ que React n'a pas
+    // encore réconcilié (constaté sur la confirmation d'éléments, Lot 31).
+    setPrefillDemande(true)
+  }
+
+  const [prefillDemande, setPrefillDemande] = useState(false)
+  const champTomesRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!prefillDemande) return
+    champTomesRef.current?.focus()
+    setPrefillDemande(false)
+  }, [prefillDemande])
+
   function dejaDansLeLot(seriesTitle: string, editionName: string, volumeNumber: number): boolean {
     return itemsAAnalyser.some(
       (item) =>
@@ -644,6 +665,11 @@ export function PurchaseAnalysisPage() {
             imageUrls={photoUrls}
             dejaDansLeLot={dejaDansLeLot}
             onConfirm={confirmerElementsReconnus}
+            onPrefillSeries={prefillSerieAnnoncee}
+            // nombreElementsDuLot inclut la ligne en cours de saisie : c'est
+            // elle qu'on veut confronter au nombre annoncé, pas seulement les
+            // lignes déjà validées d'un clic sur « Autre série ».
+            tomesDansLeLot={nombreElementsDuLot}
           />
 
           <h3 className="font-display text-xs font-semibold uppercase tracking-wide text-textDim">
@@ -673,6 +699,7 @@ export function PurchaseAnalysisPage() {
                 </label>
                 <input
                   id="itemVolumes"
+                  ref={champTomesRef}
                   value={volumesText}
                   onChange={(e) => setVolumesText(e.target.value)}
                   placeholder="1-11"

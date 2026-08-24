@@ -115,10 +115,24 @@ export function ListingDetectionPanel({
   imageUrls,
   dejaDansLeLot,
   onConfirm,
+  onPrefillSeries,
+  tomesDansLeLot,
 }: {
   title: string
   description: string
   imageUrls: string[]
+  /**
+   * Reprend la main sur la saisie manuelle quand l'annonce nomme une série sans
+   * dire quels tomes. Sans cela on renverrait l'utilisateur retaper « Naruto »,
+   * un mot que le titre contenait déjà et qu'IozyCore a lu.
+   */
+  onPrefillSeries: (seriesTitle: string) => void
+  /**
+   * Combien de tomes le lot contient déjà. Sert uniquement à confronter la
+   * saisie au nombre annoncé : un lot saisi incomplet donne un prix par tome
+   * flatteur, et donc un verdict d'achat trop favorable.
+   */
+  tomesDansLeLot: number
   /**
    * Ce tome est-il déjà dans le contenu du lot ? Une proposition déjà versée
    * s'affiche cochée et inerte, plutôt que de paraître en attente.
@@ -362,6 +376,11 @@ export function ListingDetectionPanel({
   const analysePhotosFaite = resultat?.visionStatus != null
   const messageVision = resultat?.visionStatus ? MESSAGES_VISION[resultat.visionStatus] : ''
 
+  // Le serveur ne renvoie ce nombre que tant que la question reste ouverte : dès
+  // qu'un tome est identifié, il disparaît de lui-même. Rien à arbitrer ici.
+  const nombreAnnonce = resultat?.announcedVolumeCount ?? null
+  const serieAnnoncee = resultat?.announcedSeriesTitle ?? null
+
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-surface2 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -442,7 +461,62 @@ export function ListingDetectionPanel({
         </p>
       )}
 
-      {resultat && groupes.length === 0 && !mutation.isPending && (
+      {/* « 9 tomes de Naruto » : l'annonce dit combien, pas lesquels.
+          Rien n'est proposé - le vendeur peut avoir les tomes 14 à 22, et
+          cocher 1 à 9 d'office donnerait un verdict faux avec l'aplomb d'un
+          calcul. On dit ce qu'on sait, et on pose la seule question ouverte.
+
+          Retiré dès que le lot contient quelque chose : la question a trouvé
+          preneur, et le bouton de pré-remplissage écraserait alors la série
+          que l'utilisateur vient de saisir. Le décompte, lui, reste surveillé
+          juste en dessous. */}
+      {nombreAnnonce !== null && tomesDansLeLot === 0 && (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-surface px-2.5 py-2">
+          <p className="flex items-start gap-1.5 text-xs text-textPrimary">
+            <HelpCircle size={13} className="mt-0.5 shrink-0" />
+            <span>
+              L'annonce indique <strong>{nombreAnnonce} tomes</strong>
+              {serieAnnoncee ? (
+                <>
+                  {' '}
+                  de <strong>{serieAnnoncee}</strong>
+                </>
+              ) : null}
+              , sans dire lesquels.
+            </span>
+          </p>
+          <p className="text-xs text-textDim">
+            {serieAnnoncee
+              ? 'Précisez les tomes ci-dessous, ou envoyez les photos : elles le disent souvent mieux que le texte.'
+              : "Aucune série n'est nommée. Envoyez les photos, ou saisissez le lot à la main."}
+          </p>
+          {serieAnnoncee && (
+            <button
+              type="button"
+              onClick={() => onPrefillSeries(serieAnnoncee)}
+              className="flex min-h-11 items-center gap-1.5 self-start rounded-lg bg-surface2 px-3 text-sm font-semibold text-textPrimary"
+            >
+              Renseigner les tomes de {serieAnnoncee}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Le filet que ce nombre rend possible. Une note, jamais un blocage :
+          l'utilisateur peut délibérément ne retenir qu'une partie du lot. Mais
+          saisir 6 tomes là où l'annonce en annonce 9 donne un prix par tome
+          flatteur, donc un verdict trop favorable - et ça, il doit le voir. */}
+      {nombreAnnonce !== null && tomesDansLeLot > 0 && tomesDansLeLot !== nombreAnnonce && (
+        <p className="flex items-start gap-1.5 text-xs text-textDim" role="status">
+          <AlertCircle size={13} className="mt-0.5 shrink-0" />
+          Le lot en contient {tomesDansLeLot} pour {nombreAnnonce} annoncés
+          {tomesDansLeLot < nombreAnnonce
+            ? " — le prix par tome sera calculé sur ce que tu as saisi."
+            : " — vérifie que tu n'en as pas ajouté en trop."}
+        </p>
+      )}
+
+      {resultat && groupes.length === 0 && !mutation.isPending && nombreAnnonce === null && (
         <p className="text-xs text-textDim">
           Rien n'a pu être détecté automatiquement. Ajoutez les tomes à la main juste en dessous.
         </p>

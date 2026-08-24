@@ -147,6 +147,74 @@ class ListingTextParserTest {
         assertThat(ListingTextParser.probableSeriesTitle(null)).isEmpty();
     }
 
+
+    // ------------------------------------- « 9 tomes » : combien, pas lesquels
+
+    @Test
+    void lit_le_nombre_de_tomes_annonce_sans_inventer_leurs_numeros() {
+        ListingTextParser.Detection d = ListingTextParser.parse("9 tomes de Naruto", null);
+
+        // Le fond du sujet : le vendeur peut avoir les tomes 14 à 22. Dérouler
+        // 1 à 9 fabriquerait un verdict d'achat calculé sur des tomes que
+        // personne n'a vus.
+        assertThat(d.announcedVolumeCount()).isEqualTo(9);
+        assertThat(d.volumeNumbers()).isEmpty();
+        assertThat(d.hasAnnouncedCountOnly()).isTrue();
+    }
+
+    @Test
+    void reconnait_les_formulations_courantes_du_nombre() {
+        assertThat(ListingTextParser.parse("Lot de 9 tomes Naruto", null).announcedVolumeCount()).isEqualTo(9);
+        assertThat(ListingTextParser.parse("Naruto 9 tomes", null).announcedVolumeCount()).isEqualTo(9);
+        assertThat(ListingTextParser.parse("12 volumes de One Piece", null).announcedVolumeCount()).isEqualTo(12);
+        assertThat(ListingTextParser.parse("Naruto - lot de 9 mangas", null).announcedVolumeCount()).isEqualTo(9);
+    }
+
+    @Test
+    void des_numeros_lus_font_toujours_foi_sur_un_nombre_annonce() {
+        // « Naruto tomes 1 à 9 » donne les deux lectures possibles ; garder les
+        // deux ferait afficher « 9 tomes annoncés » à côté de neuf tomes déjà
+        // identifiés, comme si quelque chose manquait encore.
+        ListingTextParser.Detection d = ListingTextParser.parse("Naruto tomes 1 à 9", null);
+
+        assertThat(d.volumeNumbers()).containsExactlyElementsOf(nombres(1, 9));
+        assertThat(d.announcedVolumeCount()).isNull();
+        assertThat(d.hasAnnouncedCountOnly()).isFalse();
+    }
+
+    @Test
+    void un_seul_tome_n_est_pas_un_lot() {
+        assertThat(ListingTextParser.parse("1 tome de Naruto", null).announcedVolumeCount()).isNull();
+    }
+
+    @Test
+    void une_formulation_vague_ne_livre_aucun_nombre_non_plus() {
+        // « lot manga divers 25 pièces » ne décrit ni les tomes 25, ni un lot
+        // de 25 tomes identifiables : la formulation empoisonne tout.
+        ListingTextParser.Detection d = ListingTextParser.parse("Lot manga divers 25 mangas", null);
+
+        assertThat(d.vague()).isTrue();
+        assertThat(d.announcedVolumeCount()).isNull();
+    }
+
+    @Test
+    void le_nombre_annonce_est_retire_du_titre_de_serie() {
+        // Sans ce retrait, « 9 tomes de Naruto » ne pouvait correspondre à
+        // aucune série du catalogue, et l'œuvre pourtant nommée restait invisible.
+        assertThat(ListingTextParser.probableSeriesTitle("9 tomes de Naruto")).isEqualTo("Naruto");
+        assertThat(ListingTextParser.probableSeriesTitle("Lot de 9 tomes Naruto")).isEqualTo("Naruto");
+        assertThat(ListingTextParser.probableSeriesTitle("12 volumes de One Piece")).isEqualTo("One Piece");
+    }
+
+    @Test
+    void un_titre_dont_le_chiffre_appartient_a_l_oeuvre_n_est_pas_ampute() {
+        // Le motif exige un mot de support APRÈS le chiffre : « 20th Century
+        // Boys » et « 3 mètres au-dessus du ciel » gardent le leur.
+        assertThat(ListingTextParser.probableSeriesTitle("20th Century Boys tomes 1 à 3"))
+                .isEqualTo("20th Century Boys");
+        assertThat(ListingTextParser.parse("20th Century Boys", null).announcedVolumeCount()).isNull();
+    }
+
     private static java.util.List<Integer> nombres(int de, int a) {
         return java.util.stream.IntStream.rangeClosed(de, a).boxed().toList();
     }
