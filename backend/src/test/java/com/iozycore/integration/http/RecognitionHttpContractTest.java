@@ -562,4 +562,45 @@ class RecognitionHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.announcedVolumeCount").value(9))
                 .andExpect(jsonPath("$.announcedSeriesTitle").doesNotExist());
     }
+
+    // ==================================================================
+    //  Lots enumerant PLUSIEURS series
+    // ==================================================================
+
+    @Test
+    void two_series_in_one_title_produce_two_series_and_the_right_total() throws Exception {
+        // Avant : trois tomes sous une serie nommee « Death Note + Bakuman ».
+        // Deux livres disparaissaient du decompte, et le prix par tome en
+        // ressortait flatteur - donc un verdict d'achat trop favorable.
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Death Note 1-3 + Bakuman 1-2"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.textItemCount").value(5))
+                .andExpect(jsonPath("$.items[?(@.seriesTitleAsRead == 'Death Note')]", hasSize(3)))
+                .andExpect(jsonPath("$.items[?(@.seriesTitleAsRead == 'Bakuman')]", hasSize(2)));
+    }
+
+    @Test
+    void a_volume_list_is_still_not_mistaken_for_a_list_of_series() throws Exception {
+        // La virgule separe aussi des tomes : « tomes 1, 2, 4 ». Le decoupage
+        // ne doit pas s'y declencher, sinon la lecture qui marchait casse.
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Platinum End tomes 1, 2, 4"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[?(@.seriesTitleAsRead == 'Platinum End')]", hasSize(3)));
+    }
+
+    @Test
+    void a_trailing_separator_no_longer_pollutes_the_series_title() throws Exception {
+        // « Naruto 1-3 + TBE » rendait « Naruto + », que le catalogue ne
+        // pouvait pas rapprocher : un appariement perdu sur un signe de
+        // ponctuation reste seul en bout de ligne.
+        mockMvc.perform(post(ROUTE).contentType("application/json")
+                        .content(json(texteSeul("Naruto 1-3 + TBE"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[?(@.seriesTitleAsRead == 'Naruto')]", hasSize(3)));
+    }
 }

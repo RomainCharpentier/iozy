@@ -98,8 +98,14 @@ public final class ListingTextParser {
      * Rognés aux extrémités seulement : « Hell's Paradise – » perd son tiret,
      * « Kaguya-sama: Love Is War » garde le sien, et un « - » au milieu d'un
      * titre n'est jamais touché faute de pouvoir prouver qu'il sépare.
+     *
+     * <p>{@code +} et {@code &} y figurent depuis qu'un titre comme « Naruto
+     * 1-3 + TBE » ressortait en « Naruto <b>+</b> » : une chaîne qu'aucune
+     * série du catalogue ne porte, donc un rapprochement perdu sur un signe de
+     * ponctuation resté seul en bout de ligne.
      */
-    private static final Pattern SEPARATEURS_AUX_BORDS = Pattern.compile("^[\\s\\-–—|:;,/]+|[\\s\\-–—|:;,/]+$");
+    private static final Pattern SEPARATEURS_AUX_BORDS =
+            Pattern.compile("^[\\s\\-–—|:;,/+&]+|[\\s\\-–—|:;,/+&]+$");
 
     /** Annonce un ensemble sans en donner les bornes : on le note, on n'en déduit pas de numéros. */
     private static final Pattern MENTION_INTEGRALE = Pattern.compile(

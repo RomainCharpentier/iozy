@@ -89,6 +89,14 @@ public final class ListingTextRecognizer {
     }
 
     public static TextReading read(String title, String description) {
+        // Un titre qui énumère PLUSIEURS séries se lit segment par segment.
+        // Tenté d'abord, et abandonné sans bruit s'il ne tient pas : voir
+        // plusieursSeries.
+        List<RecognizedItem> multi = plusieursSeries(title);
+        if (!multi.isEmpty()) {
+            return new TextReading(multi, null, null);
+        }
+
         ListingTextParser.Detection detection = ListingTextParser.parse(title, description);
 
         // Ni numéros lisibles, ni formulation exploitable : on se tait, et les
@@ -122,6 +130,84 @@ public final class ListingTextRecognizer {
             propositions.add(RecognizedItem.fromText(serie, numero, raison));
         }
         return new TextReading(propositions, null, null);
+    }
+
+    /**
+     * Les séparateurs qu'une annonce pose <b>entre deux œuvres</b>.
+     *
+     * <p>Le tiret en est délibérément absent : il sépare des tomes bien plus
+     * souvent que des séries (« 1-3 »), et il appartient à des titres entiers
+     * (« Kaguya-sama »). Découper dessus casserait plus qu'il ne réparerait.
+     */
+    private static final java.util.regex.Pattern SEPARATEURS_DE_SERIES =
+            java.util.regex.Pattern.compile("(?i)\\s*(?:\\+|,|;|/|&|\\bet\\b)\\s*");
+
+    /** Au-delà, ce n'est plus une énumération d'œuvres mais une liste de courses. */
+    private static final int MAX_SERIES = 8;
+
+    /**
+     * Les propositions d'un titre qui énumère <b>plusieurs</b> séries.
+     *
+     * <h2>Ce qui se passait avant</h2>
+     * « Death Note 1-3 + Bakuman 1-2 » ne rendait pas « une série sur deux » :
+     * il rendait <b>trois tomes attribués à une série nommée « Death Note +
+     * Bakuman »</b>. Deux dégâts d'un coup - un titre qui ne correspondra
+     * jamais au catalogue, et surtout <b>deux livres disparus</b> du décompte,
+     * les tomes 1-2 de Bakuman ayant été fondus dans la plage 1-3. Un lot de
+     * cinq livres compté cinq fois moins cher au tome donne un prix par tome
+     * flatteur, donc un verdict d'achat trop favorable.
+     *
+     * <h2>La règle, volontairement timide</h2>
+     * Le titre est découpé, chaque segment relu par les règles <b>déjà
+     * écrites</b>, et la lecture multi-séries n'est retenue que si <b>au moins
+     * deux</b> segments livrent chacun une série plausible <i>et</i> ses
+     * propres tomes. Sinon on rend une liste vide et l'appelant reprend le
+     * chemin d'avant, à l'identique.
+     *
+     * <p>Cette exigence de deux segments valides est ce qui rend le découpage
+     * sans danger. Les séparateurs servent aussi <b>à l'intérieur</b> d'une
+     * lecture normale - « tomes 1, 2, 4 » est une liste, « 1/5 » une plage,
+     * « Jojo's Bizarre Adventure, Part 4 » un titre - mais aucun de ces cas ne
+     * produit deux segments portant chacun une œuvre et des tomes. Ils
+     * retombent donc tous sur le comportement existant.
+     */
+    private static List<RecognizedItem> plusieursSeries(String title) {
+        if (title == null || title.isBlank()) {
+            return List.of();
+        }
+        String[] segments = SEPARATEURS_DE_SERIES.split(title);
+        if (segments.length < 2 || segments.length > MAX_SERIES * 2) {
+            return List.of();
+        }
+
+        // Chaque segment est relu SEUL : ses tomes n'appartiennent qu'à lui,
+        // ce qui est exactement ce que la lecture globale ne savait pas faire.
+        List<RecognizedItem> propositions = new ArrayList<>();
+        int seriesValides = 0;
+        for (String segment : segments) {
+            ListingTextParser.Detection lu = ListingTextParser.parse(segment, null);
+            if (!lu.hasVolumes()) {
+                continue;
+            }
+            String serie = ListingTextParser.probableSeriesTitle(segment);
+            if (!estUnTitreDeSerie(serie)) {
+                continue;
+            }
+
+            List<Integer> numeros = ListingTextParser.sorted(lu.volumeNumbers());
+            String raison = evidence(numeros);
+            for (Integer numero : numeros) {
+                propositions.add(RecognizedItem.fromText(serie, numero, raison));
+            }
+            seriesValides++;
+        }
+
+        // Une seule série reconnue ne prouve pas qu'il y en avait plusieurs :
+        // le séparateur jouait alors un autre rôle. On ne touche à rien.
+        if (seriesValides < 2 || propositions.size() > MAX_ELEMENTS) {
+            return List.of();
+        }
+        return List.copyOf(propositions);
     }
 
     /**
