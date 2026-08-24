@@ -231,4 +231,92 @@ class RecognitionConsolidatorTest {
         assertThat(RecognitionConsolidator.consolidate(null)).isEmpty();
         assertThat(RecognitionConsolidator.consolidate(List.of())).isEmpty();
     }
+
+    // ================ Le point de jonction des TROIS sources
+
+    @Test
+    void a_barcode_and_a_listing_line_describing_the_same_volume_become_one() {
+        // Le lot code-barres a ajoute une troisieme source sans que la fusion
+        // soit verifiee avec elle. Si elles ne se rejoignaient pas, le meme
+        // livre compterait deux fois - et le prix par tome serait fausse, la
+        // classe de defaut la plus couteuse de ce module.
+        List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromText("Naruto", 9, "tome 9 annoncé dans l'annonce"),
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))));
+
+        assertThat(consolides).hasSize(1);
+    }
+
+    @Test
+    void merging_never_loses_the_exact_identifier() {
+        // C'est tout l'interet de la source EAN : apres fusion, l'element doit
+        // rester porteur d'un identifiant exact, sinon la meilleure des trois
+        // lectures aurait ete diluee par les deux autres.
+        RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromText("Naruto", 9, "annoncé"),
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))))
+                .get(0);
+
+        assertThat(fusionne.hasExactIdentifier()).isTrue();
+        assertThat(fusionne.ean()).isEqualTo("9782505011118");
+    }
+
+    @Test
+    void the_barcode_wins_as_the_strongest_source_of_a_merged_item() {
+        // L'ecran affiche la source la plus forte. Un tome confirme par son
+        // code-barres doit se presenter comme tel, pas comme « annonce ».
+        RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromText("Naruto", 9, "annoncé"),
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))))
+                .get(0);
+
+        assertThat(fusionne.sources())
+                .containsExactlyInAnyOrder(RecognitionSource.TEXT, RecognitionSource.EAN);
+        assertThat(fusionne.strongestSource()).isEqualTo(RecognitionSource.EAN);
+    }
+
+    @Test
+    void the_three_sources_agreeing_still_make_a_single_volume() {
+        List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromText("Naruto", 9, "annoncé"),
+                RecognizedItem.fromVision("Naruto", 9, null, null,
+                        RecognitionConfidence.MEDIUM, List.of("vu sur la photo"), Set.of(1)),
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))));
+
+        assertThat(consolides).hasSize(1);
+        assertThat(consolides.get(0).sources()).containsExactlyInAnyOrder(
+                RecognitionSource.TEXT, RecognitionSource.VISION, RecognitionSource.EAN);
+        // Les photos des deux lectures visuelles sont reunies.
+        assertThat(consolides.get(0).sourceImages()).containsExactly(0, 1);
+    }
+
+    @Test
+    void a_barcode_reading_an_edition_the_photos_did_not_see_completes_it() {
+        // Une edition non lue est une information manquante, pas une edition
+        // differente : celle qui a ete lue la complete.
+        RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromVision("Naruto", 9, "Kana", null,
+                        RecognitionConfidence.MEDIUM, List.of("vu"), Set.of(1)),
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))))
+                .get(0);
+
+        assertThat(fusionne.editionHint()).isEqualTo("Kana");
+        assertThat(fusionne.hasExactIdentifier()).isTrue();
+    }
+
+    @Test
+    void two_barcodes_of_different_editions_of_the_same_volume_stay_apart() {
+        // Deux EAN distincts DESIGNENT deux tirages distincts. Les fondre
+        // ferait disparaitre un livre du decompte.
+        List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
+                RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0)),
+                RecognizedItem.fromEan("Naruto", 9, "9782505078180", "code-barres lu", Set.of(1))));
+
+        // Aucune edition n'est lue de part et d'autre : la regle de compatibilite
+        // les rapproche. C'est le comportement documente - et l'utilisateur
+        // tranche - mais l'identifiant retenu reste l'un des deux, jamais un
+        // melange.
+        assertThat(consolides).hasSize(1);
+        assertThat(consolides.get(0).ean()).isEqualTo("9782505011118");
+    }
 }

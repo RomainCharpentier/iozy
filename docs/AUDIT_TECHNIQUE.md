@@ -591,31 +591,41 @@ attacher un tag, enregistrer une édition — échouaient avec un message faux o
 une erreur serveur, et qu'aucun des quelque 550 tests existants ne pouvait le
 voir, parce qu'ils appelaient les contrôleurs en Java plutôt que par HTTP.
 
-### C3 — Quatre exports frontend morts · **mineur**
+### C3 — Quatre exports frontend morts · **traité**
 
-| Fichier | Export | Remarque |
+| Fichier | Export | Sort |
 |---|---|---|
-| `lib/editionGroups.ts` | `hasMixedEditions` | aucun appelant |
-| `types/entityTypes.ts` | `findEntityTypeByCode` | aucun appelant, **et sa javadoc affirme des usages qui n'existent pas** (« lookup code-barres, import BGG, sections de découverte ») |
-| `types/entityTypes.ts` | `OWNERSHIP_STATUS_LABELS` | aucun appelant |
-| `types/purchaseAnalysis.ts` | `VERDICT_FACTOR_LABELS` | aucun appelant — le détail par facteur n'est jamais affiché, seul son *nombre* l'est |
+| `lib/editionGroups.ts` | `hasMixedEditions` | Supprimé. `resolveEditionView` réexprimait déjà la règle en ligne ; son commentaire, qui renvoyait à la fonction, la formule désormais lui-même |
+| `types/entityTypes.ts` | `findEntityTypeByCode` | Supprimé — avec sa javadoc, qui décrivait des usages inexistants |
+| `types/entityTypes.ts` | `OWNERSHIP_STATUS_LABELS` | Supprimé, ainsi que sa mention dans l'en-tête du fichier |
+| `types/purchaseAnalysis.ts` | `VERDICT_FACTOR_LABELS` | Supprimé — seul le *nombre* de facteurs est affiché, jamais leur détail |
 
-Le cas gênant est le deuxième : un commentaire qui décrit des usages
-imaginaires coûte plus cher qu'une fonction morte silencieuse.
+Le cas gênant était le deuxième : un commentaire qui décrit des usages
+imaginaires coûte plus cher qu'une fonction morte silencieuse. Il partait avec
+la fonction ; l'import d'`EntityTypeDto` devenu orphelin aussi.
 
 *(Les ~35 autres « exports orphelins » détectés sont des faux positifs : des
 types composés à l'intérieur de leur propre fichier.)*
 
-### C4 — Le client iOS a douze jours de retard · **à décider**
+### C4 — Le client iOS reste en arrière · **à décider**
 
 Dernier commit le 2026-08-10. Il couvre 8 écrans et ignore entièrement :
 Tier Lists, Analyse d'achat, lecture d'annonce, partage, envies d'amélioration.
 Son dossier `Wishlist/` n'appelle que `/wishlist/lookup` — il sait dire si une
 œuvre est souhaitée, pas en ajouter ni en lister.
 
+**Vérifié depuis** : aucun des endpoints modifiés par les passes de
+reconnaissance n'est appelé par iOS. Il consomme `entities`, `entity-types`,
+`metadata`, `tags`, `relationships`, `experiences`, `ownerships` et
+`insights` — tous inchangés. Le client n'est donc **pas cassé**, seulement en
+retrait : envoi de photos, lecture de codes-barres et lecture d'édition
+n'existent que côté web.
+
 Ce n'est pas un défaut : rien ne dit que l'iOS doit suivre le web pas à pas.
 Mais l'écart grandit à chaque passe, et il vaut mieux le nommer que le
-découvrir.
+découvrir. À noter pour qui s'y attellera : la chaîne de reconnaissance est
+entièrement côté serveur, et le client iOS scanne déjà des codes-barres — le
+rapprochement demanderait moins de travail qu'il n'y paraît.
 
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
