@@ -704,6 +704,32 @@ Vérifié : le parcours au lien remplit tout et affiche un vrai résumé, la
 détection rend toujours ses cinq tomes, les six champs et les six pastilles
 reviennent d'un tap.
 
+### C8 — Aucun bouton ne changeait le curseur · **traité**
+
+Signalé à l'usage — « le cœur dans la barre ne change pas le pointeur ». Le
+symptôme désignait un bouton ; la cause les concernait **tous**.
+
+Tailwind v3 posait `cursor: pointer` sur les boutons via son Preflight. La v4 a
+aligné le sien sur le défaut du navigateur (`cursor: default`). La montée de
+version a donc retiré l'affordance de **tous les `<button>` de
+l'application**, en silence, sans rien casser de visible et sans qu'aucun test
+puisse le voir. Les liens, eux, tiennent la leur du navigateur : d'où un dépôt
+où la moitié des contrôles changeait le curseur et l'autre non — exactement ce
+qui rend le défaut difficile à nommer quand on le vit.
+
+La règle est posée une fois dans `index.css`, aux côtés du `button:disabled {
+cursor: not-allowed }` qui, lui, avait bien été écrit à la main — preuve que le
+sujet avait été pensé, et que seule la gratuité de la v3 avait masqué le trou.
+
+**Vérifié sur les 12 routes** : plus aucun contrôle avec le mauvais curseur.
+
+**Le reste de la famille est sain**, contrôlé dans la foulée plutôt que
+supposé : l'anneau de focus clavier apparaît bien (2 px accent, offset 2 px,
+`:focus-visible`), les modales se ferment à Échap et piègent le focus via le
+hook partagé `useModalA11y`, les boutons désactivés portent `not-allowed` et
+une opacité réduite. Les huit `onClick` posés sur des `<div>` sont tous des
+voiles de modale — un motif légitime, doublé du clavier par le hook.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
