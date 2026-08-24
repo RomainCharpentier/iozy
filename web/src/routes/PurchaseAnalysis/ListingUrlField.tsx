@@ -31,6 +31,11 @@ function estUneUrlPlausible(valeur: string): boolean {
 const MESSAGES_ECHEC: Record<string, string> = {
   UNSUPPORTED_SOURCE:
     "Cette plateforme n'est pas encore récupérée automatiquement. Tu peux analyser l'annonce en complétant les champs à la main — le lien est conservé.",
+  // Dire « pas encore » ici ferait attendre une fonctionnalité qui ne viendra
+  // pas ainsi : la plateforme se protège contre les robots, et la contourner
+  // n'est pas une option. Autant l'annoncer franchement.
+  SOURCE_BLOCKS_AUTOMATION:
+    "Cette plateforme bloque la lecture automatique de ses annonces : le contenu doit être saisi à la main — le lien est conservé. Astuce : copie le titre de l'annonce dans « Titre de l'annonce », les tomes y sont souvent détectés tout seuls.",
   LISTING_NOT_FOUND:
     "Cette annonce n'est plus accessible. Tu peux quand même l'analyser en complétant les champs à la main.",
   UNAVAILABLE:
@@ -79,9 +84,13 @@ export function ListingUrlField({
     onSuccess: (resultat, aResoudre) => {
       dejaResolues.current.set(aResoudre, resultat)
       setPreview(resultat)
-      if (resultat.retrievedFields.length > 0) {
-        setConserves(onResolved(resultat).conserves)
-      }
+      // Appliqué même quand RIEN n'a été lu : la plateforme reconnue est un
+      // fait constaté, pas une donnée extraite. Sans cela, un lien Leboncoin
+      // laissait « Vinted » sélectionné, et l'analyse s'enregistrait sous la
+      // mauvaise plateforme - laquelle alimente ensuite les prix relevés.
+      // appliquerPreview garde déjà chaque champ un par un : lui passer une
+      // lecture vide ne remplit rien d'autre.
+      setConserves(onResolved(resultat).conserves)
     },
   })
 

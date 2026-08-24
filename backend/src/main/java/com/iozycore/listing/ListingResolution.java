@@ -30,6 +30,22 @@ public record ListingResolution(Status status, ListingPlatform source, String ur
         INVALID_URL,
         /** URL valide mais aucune source connue ne la couvre - le parcours manuel continue, l'URL est conservée. */
         UNSUPPORTED_SOURCE,
+        /**
+         * Source <b>reconnue</b>, mais qui refuse la lecture automatique.
+         *
+         * <p>À distinguer de {@link #UNSUPPORTED_SOURCE} (« personne ne couvre
+         * cette URL », donc un support viendra peut-être) et de
+         * {@link #UNAVAILABLE} (« ça n'a pas marché cette fois », donc
+         * réessayer a du sens). Ici, ni l'un ni l'autre : la plateforme se
+         * protège contre les robots, et aucune quantité de code ne changera
+         * cela sans franchir une ligne que ce projet ne franchit pas - pas de
+         * cookie utilisateur, pas d'API privée, pas de contournement anti-bot.
+         *
+         * <p>Le dire explicitement évite de laisser croire à une
+         * fonctionnalité « pas encore » livrée : la saisie manuelle n'est pas
+         * un repli temporaire, c'est le parcours pour cette source.
+         */
+        SOURCE_BLOCKS_AUTOMATION,
         /** L'annonce n'existe plus, ou n'a jamais existé. */
         LISTING_NOT_FOUND,
         /** La source n'a rien livré d'exploitable : blocage, panne, page illisible. Réessayer plus tard peut marcher. */

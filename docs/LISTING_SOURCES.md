@@ -37,10 +37,41 @@ ListingHttpFetcher         un GET borné, redirections revalidées une par une
 ListingSnapshot            forme normalisée, indépendante de la plateforme
 ```
 
-Ajouter Leboncoin demain = publier un second `ListingProvider`. Spring l'injecte
+Ajouter une plateforme = publier un second `ListingProvider`. Spring l'injecte
 dans la liste du résolveur ; ni le résolveur, ni le contrôleur, ni le frontend
 ne changent. Rien de spécifique à une plateforme ne vit en dehors de son
 provider — pas de `if (url.contains("vinted"))` ailleurs.
+
+### Leboncoin : reconnu, volontairement pas lu *(constaté le 2026-08-24)*
+
+`LeboncoinListingProvider` existe, mais **ne lit rien**. Ses pages d'annonce
+sont protégées par DataDome :
+
+| Ce que reçoit… | Résultat |
+|---|---|
+| Une requête serveur sans navigateur — le profil exact de `ListingHttpFetcher` | **HTTP 403**, 771 octets, `captcha-delivery.com` |
+| Un navigateur automatisé | Page d'interstitiel, texte vide, `og:image` servi par `img.datadome.co/captcha/…` |
+| JSON-LD / microdonnées | **aucun** |
+
+Passer outre supposerait un cookie de session, une API privée, un maquillage de
+navigateur ou la résolution d'un CAPTCHA. Ce sont des lignes que ce projet ne
+franchit pas, et une protection anti-robot est une volonté explicite de
+l'éditeur — pas un obstacle technique à contourner.
+
+Le provider se contente donc de **reconnaître** la source et de rendre
+`SOURCE_BLOCKS_AUTOMATION`. Deux garanties par construction : `supports()`
+compare l'hôte exact (`leboncoin.fr.attaquant.example` n'est pas Leboncoin), et
+`allowedHosts()` rend un ensemble **vide** — ce provider n'autorise le serveur à
+joindre aucun hôte, donc même un bug d'appel ne pourrait émettre de requête.
+
+Le gain est un message honnête : « cette plateforme bloque la lecture
+automatique » plutôt que « pas encore récupérée automatiquement », qui faisait
+attendre une fonctionnalité impossible en l'état. La plateforme est
+pré-sélectionnée, et l'écran suggère de coller le titre de l'annonce — la
+détection texte y retrouve souvent la série et les tomes.
+
+Si Leboncoin publiait une API ou levait la protection, cette classe devient un
+vrai provider sans qu'aucun appelant ne bouge.
 
 **Endpoint** : `POST /api/listing-metadata/resolve`, corps `{"url": "..."}`.
 Répond **toujours 200** ; c'est le champ `status` qui distingue les issues
@@ -216,9 +247,17 @@ Un hôte qui ne résout pas est traité comme suspect, pas comme inoffensif.
 | `SUCCESS` | Tout ce que la source sait livrer a été lu | Pré-remplit |
 | `PARTIAL` | Une partie seulement | Pré-remplit ce qui existe, dit ce qui manque |
 | `UNSUPPORTED_SOURCE` | Aucune source ne couvre cette URL | Saisie manuelle, **lien conservé** |
+| `SOURCE_BLOCKS_AUTOMATION` | Source **reconnue**, mais qui refuse la lecture automatique | Saisie manuelle, plateforme pré-sélectionnée, **lien conservé** |
 | `LISTING_NOT_FOUND` | Annonce supprimée ou inexistante | Saisie manuelle |
 | `UNAVAILABLE` | Blocage, panne, page illisible | Saisie manuelle |
 | `INVALID_URL` | Lien inexploitable | Dit en local, sans appel serveur |
+
+**Trois refus, trois sens différents.** `UNSUPPORTED_SOURCE` se lit « personne
+ne couvre cette URL » — un support viendra peut-être. `UNAVAILABLE` se lit
+« ça n'a pas marché cette fois » — réessayer a du sens.
+`SOURCE_BLOCKS_AUTOMATION` ne dit ni l'un ni l'autre : la plateforme est connue,
+elle se protège contre les robots, et aucun nouvel essai ne changera cela. Les
+confondre ferait attendre une fonctionnalité qui ne viendra pas.
 
 **Un résultat partiel est un succès.** Titre et prix lus mais photos illisibles :
 c'est de la saisie en moins, pas une erreur. Aucun de ces cas ne bloque le
