@@ -131,7 +131,11 @@ export function AddVolumeSection({
       </div>
 
       <div className="flex items-end gap-2">
-        <div className="flex flex-1 flex-col gap-1.5">
+        {/* min-w-0 : sans lui, ces colonnes gardent min-width:auto et ne peuvent
+        pas descendre sous la largeur intrinsèque de leur champ (~175 px chacun).
+        Deux champs côte à côte imposaient alors 510 px, et l'écran débordait
+        horizontalement sur un téléphone. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <label className="text-sm text-textDim" htmlFor="addVolumeNumber">
             Tome n°
           </label>
@@ -146,7 +150,7 @@ export function AddVolumeSection({
             className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
           />
         </div>
-        <div className="flex flex-[2] flex-col gap-1.5">
+        <div className="flex min-w-0 flex-[2] flex-col gap-1.5">
           <label className="text-sm text-textDim" htmlFor="addVolumeEdition">
             Édition
           </label>
