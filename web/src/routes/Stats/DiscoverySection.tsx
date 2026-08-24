@@ -28,7 +28,7 @@ export function DiscoverySection() {
           <button
             type="button"
             onClick={() => setTriggered(true)}
-            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-textDim hover:text-textPrimary"
+            className="flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3 text-sm font-medium text-textDim hover:text-textPrimary"
           >
             <Sparkles size={16} />
             Voir des suggestions

@@ -125,7 +125,7 @@ function QuestionButton({
       type="button"
       onClick={onClick}
       aria-expanded={isOpen}
-      className={`flex min-h-10 items-center gap-2 rounded-xl px-3.5 text-left text-sm font-semibold transition-colors ${
+      className={`flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-left text-sm font-semibold transition-colors ${
         isOpen ? 'bg-accent text-accentInk' : 'bg-surface text-textPrimary shadow-token-sm'
       }`}
     >

@@ -198,7 +198,7 @@ export function ScanPage() {
           <button
             type="submit"
             disabled={!manualCode.trim() || processing || !!pending}
-            className="shrink-0 rounded-lg bg-surface2 px-4 py-2 text-sm font-semibold text-textPrimary disabled:opacity-50"
+            className="flex min-h-11 shrink-0 items-center rounded-lg bg-surface2 px-4 text-sm font-semibold text-textPrimary disabled:opacity-50"
           >
             {processing ? 'Recherche...' : 'Chercher'}
           </button>

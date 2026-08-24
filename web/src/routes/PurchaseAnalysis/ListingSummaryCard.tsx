@@ -93,7 +93,7 @@ export function ListingSummaryCard({
         )}
         {shippingKind === 'FREE' && <span className="text-xs text-textDim">Port offert</span>}
         {shippingKind === 'UNKNOWN' && (
-          <span className="text-xs text-warningText">Port non communiqué</span>
+          <span className="text-xs text-warning">Port non communiqué</span>
         )}
         {protection !== null && protection > 0 && (
           <span className="text-xs text-textDim">+ {euros(protection)} de protection acheteur</span>

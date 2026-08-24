@@ -143,7 +143,7 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
               onClick={() => deleteMutation.mutate(observation)}
               disabled={deleteMutation.isPending}
               aria-label={`Supprimer le prix relevé de ${observation.observedPrice.toFixed(2)} € pour ${editionName}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText disabled:opacity-50"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText disabled:opacity-50"
             >
               <Trash2 size={13} />
             </button>

@@ -42,7 +42,7 @@ export function DiscoverOpportunitiesPreview() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Ce qui te concerne</h2>
-        <button type="button" onClick={() => navigate('/suggestions')} className="min-h-9 text-sm font-semibold text-accentText">
+        <button type="button" onClick={() => navigate('/suggestions')} className="min-h-11 text-sm font-semibold text-accentText">
           Tout voir
         </button>
       </div>

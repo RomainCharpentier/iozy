@@ -147,7 +147,7 @@ export function EntityInfoSection({
           <button
             type="button"
             onClick={startEditing}
-            className="flex min-h-9 items-center gap-1.5 text-sm font-semibold text-accentText"
+            className="flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accentText"
           >
             <Pencil size={14} />
             {filled.length > 0 ? 'Modifier' : 'Renseigner'}

@@ -94,15 +94,24 @@ export function SettingsPage() {
           aria-checked={theme === 'dark'}
           aria-label="Thème sombre"
           onClick={toggleTheme}
-          className={`relative h-[26px] w-11 shrink-0 rounded-full p-0.5 transition-colors ${
-            theme === 'dark' ? 'bg-accent' : 'bg-surface2'
-          }`}
+          // Le bouton fait 44 px de haut, le rail en garde 26 : la cible
+          // tactile grandit sans que l'interrupteur grossisse. Un rail de
+          // 44 px aurait l'air d'un bouton, pas d'un interrupteur - alors que
+          // 26 px se rate au pouce, et rater celui-ci change le thème de
+          // l'application.
+          className="flex h-11 shrink-0 items-center"
         >
           <span
-            className={`block h-[20px] w-[20px] rounded-full bg-white shadow-token-sm transition-transform ${
-              theme === 'dark' ? 'translate-x-[20px]' : 'translate-x-0'
+            className={`relative flex h-[26px] w-11 rounded-full p-0.5 transition-colors ${
+              theme === 'dark' ? 'bg-accent' : 'bg-surface2'
             }`}
-          />
+          >
+            <span
+              className={`block h-[20px] w-[20px] rounded-full bg-white shadow-token-sm transition-transform ${
+                theme === 'dark' ? 'translate-x-[20px]' : 'translate-x-0'
+              }`}
+            />
+          </span>
         </button>
       </section>
 

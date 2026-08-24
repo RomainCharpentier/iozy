@@ -86,7 +86,7 @@ export function CategoryPage() {
         type="button"
         onClick={() => setFiltersOpen(true)}
         aria-expanded={filtersOpen}
-        className={`flex w-fit min-h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
+        className={`flex w-fit min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
           status !== 'ALL' ? 'border-transparent bg-accentTint text-accentText' : 'border-fieldBorder text-textDim hover:bg-rowHover'
         }`}
       >

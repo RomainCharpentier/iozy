@@ -97,7 +97,7 @@ export function EditionsPage() {
                         créée depuis "Évaluer un achat" pour une série pas
                         encore possédée n'a nulle part où mener. */}
                     {edition.entityId && (
-                      <Link to={`/entity/${edition.entityId}`} className="text-xs font-semibold text-accentText">
+                      <Link to={`/entity/${edition.entityId}`} className="inline-flex min-h-11 items-center text-xs font-semibold text-accentText">
                         Voir la série
                       </Link>
                     )}
@@ -105,7 +105,7 @@ export function EditionsPage() {
                       type="button"
                       onClick={() => setConfirmingId(confirmingId === edition.id ? null : edition.id)}
                       aria-label={`Supprimer l'édition ${edition.editionName}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText"
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText"
                     >
                       <Trash2 size={15} />
                     </button>

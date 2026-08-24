@@ -71,7 +71,7 @@ export function AnalysisHistoryPage() {
                 type="button"
                 onClick={() => setConfirmingId(confirmingId === analysis.id ? null : analysis.id)}
                 aria-label={`Supprimer l'analyse ${analysis.listingTitle}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText"
               >
                 <Trash2 size={15} />
               </button>
