@@ -36,13 +36,6 @@ export function groupVariantsByEdition(variants: VariantDto[]): EditionGroup[] {
     .sort((a, b) => b.volumeNumbers.length - a.volumeNumbers.length)
 }
 
-/** true seulement s'il existe 2+ éditions NOMMÉES distinctes - le groupe ""
- * (tomes sans édition précisée) ne compte jamais comme une édition en soi,
- * pour ne pas signaler à tort un mélange sur une simple absence de saisie. */
-export function hasMixedEditions(groups: EditionGroup[]): boolean {
-  return groups.filter((g) => g.edition !== '').length >= 2
-}
-
 /**
  * Vue à afficher pour la fiche série (voir TomesGridSection, audit UX "fiche
  * série trop technique") : une seule édition NOMMÉE plus quelques tomes sans
@@ -53,7 +46,9 @@ export function hasMixedEditions(groups: EditionGroup[]): boolean {
  * "Sans édition précisée" / "18" côte à côte) au profit d'un "Kana" unique
  * couvrant tous les tomes connus de la série.
  * <p>
- * Dès qu'il existe 2+ éditions NOMMÉES (voir hasMixedEditions), l'ambiguïté
+ * Dès qu'il existe 2+ éditions NOMMÉES — le groupe "" ne comptant jamais
+ * comme une édition, pour ne pas signaler un mélange sur une simple absence
+ * de saisie —, l'ambiguïté
  * est réelle - à laquelle des deux rattacher un tome sans édition précisée ?
  * - rien n'est fusionné dans ce cas : chaque groupe, "" compris, reste
  * sélectionnable séparément plutôt que de deviner.

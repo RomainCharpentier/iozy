@@ -56,19 +56,6 @@ export type VerdictFactor =
   | 'NEW_EDITION_RISK'
   | 'RARITY'
 
-export const VERDICT_FACTOR_LABELS: Record<VerdictFactor, string> = {
-  FINAL_PRICE_VS_FAIR_VALUE: 'Prix final vs juste valeur',
-  RETAIL_DISCOUNT: 'Décote vs neuf',
-  REAL_MARKET_ALIGNMENT: 'Alignement marché réel',
-  CONDITION: 'État',
-  COMPLETENESS: 'Complétude',
-  AVAILABILITY: 'Disponibilité',
-  EDITION_QUALITY: "Qualité d'édition",
-  COST_TO_COMPLETE: 'Coût pour compléter',
-  NEW_EDITION_RISK: 'Risque nouvelle édition',
-  RARITY: 'Rareté',
-}
-
 export type NegotiationAdvice = 'NEGOTIATE' | 'ACCEPTABLE_AS_IS' | 'SKIP_LISTING'
 
 export type PriceBasis = 'OBSERVED_MARKET' | 'AI_ESTIMATED' | 'THEORETICAL_ONLY'
