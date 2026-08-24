@@ -122,12 +122,13 @@ public final class ListingTextRecognizer {
         }
 
         String raison = evidence(numeros);
+        // L'édition que le titre nomme, s'il en nomme une. Toujours un simple
+        // indice : le catalogue dira s'il connaît cette édition pour cette
+        // série, et rien n'est supposé quand le titre se tait.
+        String edition = ListingTextParser.probableEdition(title);
         List<RecognizedItem> propositions = new ArrayList<>(numeros.size());
         for (Integer numero : numeros) {
-            // Pas d'édition : le parser n'en lit pas, et en supposer une serait
-            // exactement ce que ce projet refuse. Les photos ou l'utilisateur
-            // la compléteront.
-            propositions.add(RecognizedItem.fromText(serie, numero, raison));
+            propositions.add(RecognizedItem.fromText(serie, numero, edition, raison));
         }
         return new TextReading(propositions, null, null);
     }
@@ -196,8 +197,11 @@ public final class ListingTextRecognizer {
 
             List<Integer> numeros = ListingTextParser.sorted(lu.volumeNumbers());
             String raison = evidence(numeros);
+            // Par segment : dans « Naruto Perfect Edition 1-3 + Bleach 1-2 »,
+            // l'édition n'appartient qu'à la première série.
+            String edition = ListingTextParser.probableEdition(segment);
             for (Integer numero : numeros) {
-                propositions.add(RecognizedItem.fromText(serie, numero, raison));
+                propositions.add(RecognizedItem.fromText(serie, numero, edition, raison));
             }
             seriesValides++;
         }

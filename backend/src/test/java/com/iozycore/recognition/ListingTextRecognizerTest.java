@@ -101,9 +101,11 @@ class ListingTextRecognizerTest {
     }
 
     @Test
-    void an_edition_is_never_guessed_from_the_text() {
-        // Le parser ne lit pas d'édition ; en supposer une serait exactement ce
-        // que ce projet refuse.
+    void an_edition_is_never_INVENTED_from_the_text() {
+        // Ce test disait « jamais devinée », ce qui n'est plus la règle : le
+        // parser lit désormais l'édition quand le titre la NOMME. Ce qu'il ne
+        // fait toujours pas, et ne fera pas, c'est en supposer une quand le
+        // titre se tait - « Death Note tomes 1 à 6 » n'en nomme aucune.
         assertThat(ListingTextRecognizer.recognize("Death Note tomes 1 à 6", null))
                 .allSatisfy(item -> assertThat(item.editionIsUnknown()).isTrue());
     }
@@ -268,5 +270,55 @@ class ListingTextRecognizerTest {
         // valide, donc la lecture normale reprend la main.
         assertThat(ListingTextRecognizer.recognize("Naruto 1-3 + TBE", null))
                 .extracting(RecognizedItem::seriesTitleRaw).containsOnly("Naruto");
+    }
+
+    // ================================ L'edition nommee dans le titre
+
+    @Test
+    void naming_the_edition_no_longer_destroys_the_series() {
+        // Le vrai degat d'avant : « Naruto Perfect Edition » ressortait comme
+        // une SERIE de ce nom, que le catalogue ne connait pas - alors que
+        // « Naruto » seul retrouvait sa fiche. Nommer l'edition, ce que les
+        // vendeurs font sans cesse, faisait perdre la serie.
+        List<RecognizedItem> propositions =
+                ListingTextRecognizer.recognize("Naruto Perfect Edition tomes 1 à 3", null);
+
+        assertThat(propositions).hasSize(3);
+        assertThat(propositions).extracting(RecognizedItem::seriesTitleRaw).containsOnly("Naruto");
+    }
+
+    @Test
+    void the_edition_is_carried_as_a_hint_on_every_volume() {
+        List<RecognizedItem> propositions =
+                ListingTextRecognizer.recognize("Naruto Perfect Edition tomes 1 à 3", null);
+
+        // L'edition est une propriete de la SERIE : les trois tomes la portent.
+        assertThat(propositions).extracting(RecognizedItem::editionHint)
+                .containsOnly("Perfect Edition");
+    }
+
+    @Test
+    void a_title_that_names_no_edition_leaves_it_unknown() {
+        // Rien n'est suppose. Une edition absente reste absente.
+        assertThat(ListingTextRecognizer.recognize("Naruto tomes 1 à 3", null))
+                .extracting(RecognizedItem::editionHint).containsOnlyNulls();
+    }
+
+    @Test
+    void in_a_multi_series_lot_the_edition_belongs_only_to_its_own_series() {
+        List<RecognizedItem> propositions = ListingTextRecognizer.recognize(
+                "Naruto Perfect Edition 1-2 + Bleach 1-2", null);
+
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Naruto"))
+                .extracting(RecognizedItem::editionHint).containsOnly("Perfect Edition");
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Bleach"))
+                .extracting(RecognizedItem::editionHint).containsOnlyNulls();
+    }
+
+    @Test
+    void a_series_whose_name_looks_like_a_tier_keeps_its_name() {
+        // « Black Butler » n'est pas une edition « Black » de « Butler ».
+        assertThat(ListingTextRecognizer.recognize("Black Butler tomes 1 à 3", null))
+                .extracting(RecognizedItem::seriesTitleRaw).containsOnly("Black Butler");
     }
 }

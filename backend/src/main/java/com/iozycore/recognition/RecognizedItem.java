@@ -84,7 +84,20 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
 
     /** Une proposition venue du seul texte de l'annonce - sans photo derrière. */
     public static RecognizedItem fromText(String seriesTitle, Integer volumeNumber, String evidence) {
-        return new RecognizedItem(seriesTitle, volumeNumber, null, null,
+        return fromText(seriesTitle, volumeNumber, null, evidence);
+    }
+
+    /**
+     * Une proposition venue du texte, avec l'édition que ce texte nomme.
+     *
+     * <p>{@code editionHint} reste un <b>indice</b> : « Perfect Edition » lu
+     * dans un titre ne prouve pas que le catalogue connaisse cette édition pour
+     * cette série. C'est {@code RecognitionCatalogResolver} qui tranche, et
+     * l'élément reste « édition à confirmer » s'il ne reconnaît rien.
+     */
+    public static RecognizedItem fromText(String seriesTitle, Integer volumeNumber, String editionHint,
+                                           String evidence) {
+        return new RecognizedItem(seriesTitle, volumeNumber, editionHint, null,
                 // Le texte a été lu par des règles écrites : la LECTURE est sûre.
                 // Que le vendeur possède réellement ce tome est une autre question,
                 // que porte la source TEXT et non la confiance.
