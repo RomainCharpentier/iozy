@@ -98,6 +98,49 @@ class SeriesMatcherTest {
         assertThat(matcher.match("🔥 Boruto").title()).isEqualTo("Boruto");
     }
 
+    // ====================================================== Bout en bout : annonce -> catalogue
+
+    @Test
+    void a_listing_whose_title_contains_a_number_finds_its_catalogued_series() {
+        UUID century = catalogue.ajouter("20th Century Boys");
+
+        String titre = ListingTextParser.probableSeriesTitle("20th Century Boys tomes 1 à 4");
+
+        assertThat(matcher.match(titre).knownEntityId()).isEqualTo(century);
+        assertThat(catalogue.creations()).isZero();
+    }
+
+    @Test
+    void a_listing_whose_title_contains_punctuation_finds_its_catalogued_series() {
+        UUID kaguya = catalogue.ajouter("Kaguya-sama: Love Is War");
+
+        String titre = ListingTextParser.probableSeriesTitle("Kaguya-sama: Love Is War - Tomes 1 à 3");
+
+        assertThat(matcher.match(titre).knownEntityId()).isEqualTo(kaguya);
+        assertThat(catalogue.creations()).isZero();
+    }
+
+    @Test
+    void a_dotted_and_hyphenated_title_finds_its_catalogued_series() {
+        UUID dgrayman = catalogue.ajouter("D.Gray-man");
+
+        String titre = ListingTextParser.probableSeriesTitle("D.Gray-man tomes 1 à 3");
+
+        assertThat(matcher.match(titre).knownEntityId()).isEqualTo(dgrayman);
+        assertThat(catalogue.creations()).isZero();
+    }
+
+    @Test
+    void a_decorated_listing_with_a_numeric_title_still_finds_its_series() {
+        // Les deux couches se complètent : le parser isole le titre du lot, le
+        // normaliseur retire la décoration périphérique.
+        UUID century = catalogue.ajouter("20th Century Boys");
+
+        String titre = ListingTextParser.probableSeriesTitle("🔥 20th Century Boys – Tomes 1 à 4");
+
+        assertThat(matcher.match(titre).knownEntityId()).isEqualTo(century);
+    }
+
     // ====================================================== Bords
 
     @Test
