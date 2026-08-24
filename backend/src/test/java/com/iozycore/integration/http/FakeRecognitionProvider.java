@@ -87,6 +87,21 @@ public class FakeRecognitionProvider {
         };
     }
 
+    /**
+     * Ce qui pilote la réponse du faux moteur.
+     *
+     * <p>Une photo <b>récupérée</b> d'une annonce porte son URL, et le mot-clé y
+     * est écrit. Une photo <b>envoyée</b> par l'utilisateur n'a pas d'adresse -
+     * c'est justement le point de cette porte - donc le mot-clé est alors lu
+     * dans ses octets. Sans ce repli, le faux moteur lèverait un NPE sur tout
+     * envoi direct : une supposition de test qui ne tient plus.
+     */
+    private static String declencheurDe(RecognitionImage image) {
+        return image.sourceUrl() != null
+                ? image.sourceUrl()
+                : new String(image.bytes(), java.nio.charset.StandardCharsets.ISO_8859_1);
+    }
+
     @Bean
     @Primary
     ImageRecognitionProvider fauxMoteurDeReconnaissance() {
@@ -104,7 +119,7 @@ public class FakeRecognitionProvider {
             @Override
             public RecognitionResult recognize(List<RecognitionImage> images, RecognitionContext context) {
                 APPELS.incrementAndGet();
-                String declencheur = images.isEmpty() ? "" : images.get(0).sourceUrl();
+                String declencheur = images.isEmpty() ? "" : declencheurDe(images.get(0));
 
                 if (declencheur.contains(DECLENCHE_PANNE)) {
                     return RecognitionResult.unavailable();

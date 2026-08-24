@@ -35,7 +35,7 @@ const MESSAGES_ECHEC: Record<string, string> = {
   // pas ainsi : la plateforme se protège contre les robots, et la contourner
   // n'est pas une option. Autant l'annoncer franchement.
   SOURCE_BLOCKS_AUTOMATION:
-    "Cette plateforme bloque la lecture automatique de ses annonces : le contenu doit être saisi à la main — le lien est conservé. Astuce : copie le titre de l'annonce dans « Titre de l'annonce », les tomes y sont souvent détectés tout seuls.",
+    "Cette plateforme bloque la lecture automatique de ses annonces — le lien est conservé. Deux façons d'avancer vite : colle le titre de l'annonce dans « Titre de l'annonce », les tomes y sont souvent détectés tout seuls ; et enregistre ses photos pour les envoyer via « Envoyer mes photos », plus bas.",
   LISTING_NOT_FOUND:
     "Cette annonce n'est plus accessible. Tu peux quand même l'analyser en complétant les champs à la main.",
   UNAVAILABLE:

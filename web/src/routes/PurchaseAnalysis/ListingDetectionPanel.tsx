@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Sparkles, Check, X, AlertCircle, HelpCircle } from 'lucide-react'
-import { analyzeListing } from '../../api/listingRecognition'
+import { Sparkles, Check, X, AlertCircle, HelpCircle, ImagePlus } from 'lucide-react'
+import {
+  analyzeListing,
+  analyzeUploadedPhotos,
+  MAX_OCTETS_PAR_PHOTO,
+  MAX_PHOTOS_ENVOYEES,
+} from '../../api/listingRecognition'
 import type {
   AnalyzeListingResponse,
   EditionOptionDto,
@@ -139,6 +144,59 @@ export function ListingDetectionPanel({
     onSuccess: (reponse) => setResultat(reponse),
   })
 
+  /**
+   * Les photos que l'utilisateur fournit lui-même.
+   *
+   * Chemin volontairement séparé de `mutation` : celle-ci part d'URLs que le
+   * serveur va chercher, celle-là de fichiers déjà entre les mains du
+   * navigateur. Les confondre obligerait à écrire « si l'un, alors pas
+   * l'autre » — une règle qu'on finit toujours par lire de travers.
+   */
+  const [refusees, setRefusees] = useState<string | null>(null)
+  const champFichiers = useRef<HTMLInputElement | null>(null)
+
+  const envoiPhotos = useMutation({
+    mutationFn: (fichiers: File[]) =>
+      analyzeUploadedPhotos(fichiers, {
+        title: title.trim() || undefined,
+        description: description.trim() || undefined,
+        entityTypeCode: 'MANGA',
+      }),
+    onSuccess: (reponse) => setResultat(reponse),
+  })
+
+  const choisirPhotos = (liste: FileList | null) => {
+    setRefusees(null)
+    if (!liste || liste.length === 0) return
+
+    // Filtré ICI plutôt que de laisser le serveur refuser : dire « cette photo
+    // fait 8 Mo » au moment du choix évite un aller-retour et une erreur qui
+    // ne nommerait pas le fichier fautif.
+    const tous = Array.from(liste)
+    const tropLourdes = tous.filter((f) => f.size > MAX_OCTETS_PAR_PHOTO)
+    const retenues = tous.filter((f) => f.size <= MAX_OCTETS_PAR_PHOTO).slice(0, MAX_PHOTOS_ENVOYEES)
+
+    const raisons: string[] = []
+    if (tropLourdes.length > 0) {
+      raisons.push(
+        `${tropLourdes.length} photo${tropLourdes.length > 1 ? 's' : ''} de plus de 3 Mo ${
+          tropLourdes.length > 1 ? 'ont' : 'a'
+        } été écartée${tropLourdes.length > 1 ? 's' : ''}`,
+      )
+    }
+    if (tous.length - tropLourdes.length > MAX_PHOTOS_ENVOYEES) {
+      raisons.push(`seules les ${MAX_PHOTOS_ENVOYEES} premières sont analysées`)
+    }
+    setRefusees(raisons.length > 0 ? `${raisons.join(', ')}.` : null)
+
+    // Le champ est vidé pour que rechoisir le MÊME fichier relance bien une
+    // analyse : sans cela, l'événement `change` ne se déclenche pas.
+    if (champFichiers.current) champFichiers.current.value = ''
+    if (retenues.length > 0) envoiPhotos.mutate(retenues)
+  }
+
+  const enCours = mutation.isPending || envoiPhotos.isPending
+
   const { mutate } = mutation
   const analyserTexte = useCallback(() => mutate(false), [mutate])
 
@@ -156,7 +214,53 @@ export function ListingDetectionPanel({
     return () => clearTimeout(minuteur)
   }, [texte, title, description, analyserTexte])
 
-  if (!resultat && !mutation.isPending) return null
+  /**
+   * Rien à montrer encore — mais l'envoi de photos doit rester atteignable.
+   *
+   * Le panneau complet ne s'ouvre qu'une fois qu'il a quelque chose à proposer :
+   * il avait déjà été jugé trop encombrant, et un en-tête vide en haut d'un
+   * formulaire vierge n'apprend rien. Le cacher entièrement fermait pourtant la
+   * porte dans le seul cas où elle sert vraiment : une annonce sans texte
+   * exploitable, ou une plateforme dont les photos ne sont pas récupérables.
+   * D'où cette version d'une ligne — le geste, sans le décor.
+   */
+  if (!resultat && !enCours) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={() => champFichiers.current?.click()}
+          className="flex min-h-11 items-center gap-1.5 self-start rounded-lg bg-surface px-3.5 text-sm font-semibold text-textPrimary"
+        >
+          <ImagePlus size={14} />
+          Envoyer mes photos
+        </button>
+        <span className="text-xs text-textDim">
+          IozyCore y lit les séries et les tomes, puis vous confirmez. Utile quand l'annonce ne
+          nomme rien ou que ses photos ne sont pas récupérables.
+        </span>
+        {refusees && (
+          <span className="text-xs text-textDim" role="status">
+            {refusees}
+          </span>
+        )}
+        {envoiPhotos.isError && (
+          <span className="text-xs text-dangerText" role="alert">
+            La détection a échoué. Vous pouvez ajouter les tomes à la main juste en dessous.
+          </span>
+        )}
+        <input
+          ref={champFichiers}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          onChange={(e) => choisirPhotos(e.target.files)}
+          className="hidden"
+          aria-label="Choisir des photos du lot à analyser"
+        />
+      </div>
+    )
+  }
 
   const lignes: Ligne[] = (resultat?.items ?? [])
     .map((item) => ({ item, cle: identite(item) }))
@@ -271,26 +375,61 @@ export function ListingDetectionPanel({
                 : 'Tout ce qui a été détecté est déjà dans le lot.'}
           </span>
         </div>
-        {imageUrls.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {imageUrls.length > 0 && (
+            <button
+              type="button"
+              onClick={() => mutation.mutate(true)}
+              disabled={enCours}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accentText disabled:opacity-50"
+            >
+              <Sparkles size={14} />
+              {mutation.isPending ? 'Analyse…' : analysePhotosFaite ? 'Relancer les photos' : 'Analyser les photos'}
+            </button>
+          )}
+
+          {/* Toujours proposé, MÊME sans photo récupérée - c'est précisément ce
+              cas qui était aveugle : une plateforme qui refuse la lecture
+              automatique, ou une annonce dont le texte ne nomme aucune série.
+              Discret quand des photos ont été récupérées, principal sinon. */}
           <button
             type="button"
-            onClick={() => mutation.mutate(true)}
-            disabled={mutation.isPending}
-            className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accentText disabled:opacity-50"
+            onClick={() => champFichiers.current?.click()}
+            disabled={enCours}
+            className={`flex min-h-11 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold disabled:opacity-50 ${
+              imageUrls.length > 0
+                ? 'bg-surface text-textPrimary'
+                : 'bg-accent text-accentText'
+            }`}
           >
-            <Sparkles size={14} />
-            {mutation.isPending ? 'Analyse…' : analysePhotosFaite ? 'Relancer les photos' : 'Analyser les photos'}
+            <ImagePlus size={14} />
+            {envoiPhotos.isPending ? 'Analyse…' : 'Envoyer mes photos'}
           </button>
-        )}
+          <input
+            ref={champFichiers}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(e) => choisirPhotos(e.target.files)}
+            className="hidden"
+            aria-label="Choisir des photos du lot à analyser"
+          />
+        </div>
       </div>
 
-      {mutation.isPending && (
+      {enCours && (
         <p className="text-xs text-textDim" role="status">
           Lecture en cours…
         </p>
       )}
 
-      {mutation.isError && (
+      {refusees && (
+        <p className="text-xs text-textDim" role="status">
+          {refusees}
+        </p>
+      )}
+
+      {(mutation.isError || envoiPhotos.isError) && (
         <p className="text-xs text-dangerText" role="alert">
           La détection a échoué. Vous pouvez ajouter les tomes à la main juste en dessous.
         </p>
