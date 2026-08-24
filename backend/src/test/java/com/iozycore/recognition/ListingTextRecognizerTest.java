@@ -182,4 +182,91 @@ class ListingTextRecognizerTest {
         assertThat(ListingTextRecognizer.recognize("9 tomes de Naruto", null)).isEmpty();
         assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1 à 3", null)).hasSize(3);
     }
+
+    // ================================ Lots enumerant PLUSIEURS series
+
+    @Test
+    void two_series_in_one_title_are_read_as_two_series() {
+        // Avant : trois tomes attribues a une serie nommee « Death Note +
+        // Bakuman ». Deux livres disparaissaient du decompte - les tomes 1-2 de
+        // Bakuman, fondus dans la plage 1-3 - et le lot ressortait moins cher
+        // au tome qu'il ne l'etait.
+        List<RecognizedItem> propositions = ListingTextRecognizer.recognize("Death Note 1-3 + Bakuman 1-2", null);
+
+        assertThat(propositions).hasSize(5);
+        assertThat(propositions).extracting(RecognizedItem::seriesTitleRaw)
+                .containsOnly("Death Note", "Bakuman");
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Bakuman"))
+                .extracting(RecognizedItem::volumeNumber).containsExactlyInAnyOrder(1, 2);
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Death Note"))
+                .extracting(RecognizedItem::volumeNumber).containsExactlyInAnyOrder(1, 2, 3);
+    }
+
+    @Test
+    void the_usual_separators_all_work() {
+        assertThat(ListingTextRecognizer.recognize("Lot Naruto tomes 1 à 5 et Bleach tomes 1 à 3", null))
+                .hasSize(8);
+        assertThat(ListingTextRecognizer.recognize("One Piece 1-3, Naruto 1-2", null)).hasSize(5);
+        assertThat(ListingTextRecognizer.recognize("Death Note tome 1 / Bakuman tome 4", null)).hasSize(2);
+    }
+
+    @Test
+    void volumes_never_leak_from_one_series_to_the_other() {
+        // Le fond du sujet : chaque segment est relu SEUL, ses tomes ne sont
+        // qu'a lui. « Death Note tome 1 / Bakuman tome 4 » disait avant que le
+        // lot contenait un Death Note 4 - un livre qui n'y est pas.
+        List<RecognizedItem> propositions =
+                ListingTextRecognizer.recognize("Death Note tome 1 / Bakuman tome 4", null);
+
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Death Note"))
+                .extracting(RecognizedItem::volumeNumber).containsExactly(1);
+        assertThat(propositions).filteredOn(i -> i.seriesTitleRaw().equals("Bakuman"))
+                .extracting(RecognizedItem::volumeNumber).containsExactly(4);
+    }
+
+    // ---- Le garde-fou : ces separateurs servent AUSSI a autre chose
+
+    @Test
+    void a_comma_separated_list_of_volumes_is_not_a_list_of_series() {
+        // « tomes 1, 2, 4 » : le decoupage donnerait « tomes 1 », « 2 », « 4 »,
+        // dont aucun ne porte d'oeuvre. Une seule serie valide, donc on ne
+        // touche a rien.
+        assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1, 2, 4", null))
+                .extracting(RecognizedItem::volumeNumber).containsExactly(1, 2, 4);
+    }
+
+    @Test
+    void a_slash_used_as_a_range_still_reads_as_a_range() {
+        assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1/5", null)).hasSize(5);
+    }
+
+    @Test
+    void a_title_that_merely_contains_a_separator_is_left_alone() {
+        // « Jojo's Bizarre Adventure, Part 4 » : le second segment ne porte
+        // aucun tome, donc une seule serie valide, donc comportement inchange.
+        List<RecognizedItem> propositions =
+                ListingTextRecognizer.recognize("Jojo's Bizarre Adventure, Part 4 tomes 1 à 3", null);
+
+        // Trois tomes d'UNE seule oeuvre - « Part 4 » appartient au nom de
+        // l'oeuvre, pas a une seconde serie. Ce qui compte est qu'il n'y en ait
+        // qu'une, pas la facon exacte dont le titre est nettoye.
+        assertThat(propositions).hasSize(3);
+        assertThat(propositions).extracting(RecognizedItem::seriesTitleRaw).hasSize(3);
+        assertThat(propositions.stream().map(RecognizedItem::seriesTitleRaw).distinct().toList()).hasSize(1);
+    }
+
+    @Test
+    void a_single_series_title_is_never_split() {
+        assertThat(ListingTextRecognizer.recognize("Platinum End intégrale tomes 1 à 14", null)).hasSize(14);
+        assertThat(ListingTextRecognizer.recognize("20th Century Boys tomes 1 à 3", null))
+                .extracting(RecognizedItem::seriesTitleRaw).containsOnly("20th Century Boys");
+    }
+
+    @Test
+    void a_segment_without_an_identifiable_work_does_not_make_a_second_series() {
+        // « Naruto 1-3 + TBE » : « TBE » n'est pas une oeuvre. Une seule serie
+        // valide, donc la lecture normale reprend la main.
+        assertThat(ListingTextRecognizer.recognize("Naruto 1-3 + TBE", null))
+                .extracting(RecognizedItem::seriesTitleRaw).containsOnly("Naruto");
+    }
 }

@@ -570,6 +570,57 @@ n'en livre aucun : elle empoisonne déjà tout ce qui l'entoure.
 
 ---
 
+## 8 quater. « Death Note 1-3 + Bakuman 1-2 » : plusieurs œuvres, un seul titre
+
+### Ce n'était pas une lacune, c'était un faux
+
+La documentation disait « mono-série : ne rend qu'une série ». La mesure disait
+autre chose : **trois tomes attribués à une série nommée « Death Note +
+Bakuman »**. Deux dégâts d'un coup.
+
+Un titre bâtard, d'abord, qu'aucune fiche du catalogue ne porte : tout le lot
+ressortait en `NOT_IN_CATALOG`, y compris la série parfaitement connue.
+
+Et surtout **deux livres disparus**. Les tomes 1-2 de Bakuman avaient été fondus
+dans la plage 1-3 de Death Note — l'union de deux ensembles de numéros lus dans
+un texte commun. Un lot de cinq livres compté trois donne un prix par tome
+flatteur, donc un verdict d'achat trop favorable. Même classe de dégât que le
+décompte non vérifié du §8 ter, et pour la même raison : *une grandeur fausse
+qui a l'apparence d'un calcul*.
+
+### La règle, volontairement timide
+
+Le titre est découpé sur `+`, `,`, `;`, `/`, `&` et « et ». Chaque segment est
+relu par les règles **déjà écrites** — même parser, mêmes bornes, mêmes tests.
+Puis un seul verrou :
+
+> La lecture multi-séries n'est retenue que si **au moins deux** segments
+> livrent chacun une série plausible **et** ses propres tomes. Sinon, liste
+> vide, et le chemin d'avant reprend la main à l'identique.
+
+Cette exigence est ce qui rend le découpage sans danger, car **ces séparateurs
+servent aussi à l'intérieur d'une lecture normale** :
+
+| Titre | Ce que le découpage donnerait | Verdict |
+|---|---|---|
+| `Platinum End tomes 1, 2, 4` | « tomes 1 », « 2 », « 4 » | Aucun segment ne porte d'œuvre → 0 série valide → **repli** |
+| `Platinum End tomes 1/5` | « tomes 1 », « 5 » | Idem → **repli**, la plage 1-5 est lue comme avant |
+| `Jojo's Bizarre Adventure, Part 4 tomes 1 à 3` | « Jojo's… », « Part 4 tomes 1 à 3 » | Le premier n'a pas de tomes → 1 série valide → **repli** |
+| `Naruto 1-3 + TBE` | « Naruto 1-3 », « TBE » | « TBE » n'est pas une œuvre → 1 série valide → **repli** |
+
+Le tiret est délibérément **absent** des séparateurs : il sépare des tomes bien
+plus souvent que des séries (« 1-3 »), et il appartient à des titres entiers
+(« Kaguya-sama »).
+
+### Un défaut voisin, corrigé au passage
+
+« Naruto 1-3 + TBE » rendait la série **« Naruto + »**. `SEPARATEURS_AUX_BORDS`
+rognait les tirets, deux-points et virgules en bout de titre, mais pas le `+`
+ni le `&` — un appariement catalogue perdu sur un signe de ponctuation resté
+seul en fin de ligne.
+
+---
+
 ## 9. Ce que ça ne couvre pas
 
 | | État |
@@ -578,7 +629,7 @@ n'en livre aucun : elle empoisonne déjà tout ce qui l'entoure.
 | Jeux vidéo, livres, jeux de société | Architecture prête, comportement **non validé** — donc non proposé |
 | Décodage de code-barres depuis les pixels | **Non fait.** La règle de priorité `EAN` existe et est testée, mais aucun producteur indépendant ne l'alimente : seul le moteur vision peut lire les chiffres aujourd'hui. Un décodeur local viendra remplir le même champ |
 | Décompte sans numéros (« 9 tomes de Naruto ») | **Traité** — voir §8 ter. Le nombre et la série sont lus et rapportés ; les numéros restent la seule chose que l'utilisateur (ou les photos) fournit |
-| Lots multi-séries dans le texte | `ListingTextParser` reste **mono-série** : « Death Note 1-3 + Bakuman 1-2 » ne rend qu'une série. Non dégradé par la V2, non amélioré non plus — en faire un analyseur de langage naturel serait un autre projet |
+| Lots multi-séries dans le texte | **Traité** — voir §8 quater. Un titre qui énumère plusieurs œuvres est lu segment par segment |
 | Édition lue dans le texte | Le parser n'en extrait pas. Ce sont les photos, le catalogue ou l'utilisateur qui la donnent |
 | Cache d'analyse | Non fait. Le texte est relu à chaque modification (débouncé) mais ne coûte rien ; les photos ne partent que sur un clic |
 | Persistance des candidats non confirmés | **Volontairement absente.** L'analyse enregistrée conserve les éléments **confirmés** ; garder les propositions rejetées et leurs sources gonflerait le JSONB sans usage après confirmation |
