@@ -513,4 +513,91 @@ class ListingRecognitionServiceTest {
                     .findFirst();
         }
     }
+
+    // ================== L'edition lue dans le texte, face au catalogue
+
+    @Test
+    void an_edition_named_in_the_title_matches_the_catalog_even_worded_differently() {
+        // Le catalogue nomme cette edition « Kana » ; l'annonce ecrit « edition
+        // Kana ». Comparer les libelles bruts faisait echouer le rapprochement,
+        // et un element parfaitement identifie repassait en « edition a
+        // confirmer » - avec la case a cocher en moins.
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("Platinum End edition Standard tomes 1 à 3", null, null,
+                        RecognitionContext.forManga());
+
+        assertThat(analyse.items()).hasSize(3);
+        assertThat(analyse.items()).allSatisfy(item ->
+                assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.MATCHED));
+    }
+
+    @Test
+    void the_catalog_label_wins_over_what_the_listing_wrote() {
+        // L'annonce ecrit « edition Kana », le catalogue dit « Kana ». Garder ce
+        // qui a ete lu ferait entrer « Kana Edition » dans le lot, puis dans
+        // l'analyse enregistree, puis dans les prix releves - un nom que le
+        // catalogue ne porte pas et qui ne se rapprocherait plus de rien.
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Kana", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("Platinum End edition Kana tomes 1 à 3", null, null, RecognitionContext.forManga());
+
+        assertThat(analyse.items()).allSatisfy(item -> {
+            assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.MATCHED);
+            assertThat(item.recognized().editionHint()).isEqualTo("Kana");
+        });
+    }
+
+    @Test
+    void the_loose_match_works_the_other_way_round_too() {
+        // L'inverse : le catalogue porte « Perfect Edition », l'annonce ecrit
+        // seulement « Perfect ».
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Perfect Edition", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("Platinum End Perfect tomes 1 à 3", null, null, RecognitionContext.forManga());
+
+        assertThat(analyse.items()).allSatisfy(item ->
+                assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.MATCHED));
+    }
+
+    @Test
+    void an_ambiguous_loose_match_is_no_match_at_all() {
+        // Le catalogue porte deux orthographes du meme rang. L'annonce ecrit
+        // « Deluxe » seul : aucune des deux ne correspond EXACTEMENT, et le
+        // repli en trouve deux. Choisir pour l'utilisateur serait deviner.
+        //
+        // Le repli n'est atteint que la : partout ailleurs le match exact
+        // tranche d'abord, ce qui est precisement ce qu'on veut.
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Deluxe Edition", 14);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Édition Deluxe", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("Platinum End Deluxe tomes 1 à 3", null, null, RecognitionContext.forManga());
+
+        assertThat(analyse.items()).allSatisfy(item ->
+                assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM));
+    }
+
+    @Test
+    void naming_the_edition_no_longer_loses_the_series() {
+        // Le degat d'origine : « Platinum End Perfect Edition » ressortait comme
+        // une SERIE de ce nom, donc hors catalogue, alors que « Platinum End »
+        // seul retrouvait sa fiche.
+        catalogue.ajouterSerie("Platinum End", PLATINUM_END);
+        editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
+
+        ListingRecognitionService.Analysis analyse = service()
+                .analyze("Platinum End Perfect Edition tomes 1 à 3", null, null,
+                        RecognitionContext.forManga());
+
+        assertThat(analyse.items()).allSatisfy(item ->
+                assertThat(item.catalogStatus()).isNotEqualTo(CatalogStatus.NOT_IN_CATALOG));
+    }
 }

@@ -301,6 +301,23 @@ public final class ListingTextParser {
         return numeros;
     }
 
+    /**
+     * L'édition nommée dans ce titre, ou {@code null}.
+     *
+     * <p>Lue <b>après</b> retrait des expressions de tomes, sinon « tomes 1 à 3
+     * edition » ferait passer « 3 » pour le nom d'une édition.
+     *
+     * <p>Ce n'est qu'un indice : c'est le catalogue qui dira s'il correspond à
+     * une édition réellement connue de la série.
+     */
+    public static String probableEdition(String title) {
+        if (title == null || title.isBlank()) {
+            return null;
+        }
+        String sansTomes = NOMBRE_DE_TOMES.matcher(extraire(title).reste()).replaceAll(" ");
+        return EditionMention.lire(sansTomes).hint();
+    }
+
     private static void ajouterSiValide(Set<Integer> numeros, String brut) {
         if (!brut.matches("\\d{1,3}")) {
             return;
@@ -335,6 +352,11 @@ public final class ListingTextParser {
         // sans ce retrait, aucun rapprochement catalogue n'était possible, et la
         // série pourtant nommée noir sur blanc restait invisible.
         reste = NOMBRE_DE_TOMES.matcher(reste).replaceAll(" ");
+        // Même raisonnement pour l'édition : « Naruto Perfect Edition » sortait
+        // comme une SÉRIE de ce nom, que le catalogue ne connaît pas - alors que
+        // « Naruto » seul retrouvait sa fiche. Nommer l'édition, ce que les
+        // vendeurs font sans cesse, faisait perdre la série.
+        reste = EditionMention.lire(reste).reste();
         reste = MOTS_COMMERCIAUX.matcher(reste).replaceAll(" ");
         reste = reste.replaceAll("\\s+", " ").trim();
         reste = SEPARATEURS_AUX_BORDS.matcher(reste).replaceAll("");

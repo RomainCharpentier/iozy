@@ -696,6 +696,86 @@ désormais tu dès qu'une proposition porte la source `EAN` ou `VISION`.
 
 ---
 
+## 8 sexies. L'édition nommée dans le titre
+
+### Ne pas la lire ne coûtait pas que l'édition
+
+Le parser ignorait l'édition : elle restait donc **collée au titre**. « Naruto
+Perfect Edition » ressortait comme une <b>série de ce nom</b> — introuvable au
+catalogue — là où « Naruto » seul retrouvait sa fiche et ses éditions.
+
+| Titre | Série trouvée | Statut |
+|---|---|---|
+| `Naruto tomes 1 à 3` | Naruto | `EDITION_TO_CONFIRM` |
+| `Naruto Perfect Edition tomes 1 à 3` | *Naruto Perfect Edition* | **`NOT_IN_CATALOG`** |
+
+Mentionner l'édition — ce que les vendeurs font constamment — faisait donc
+**perdre la série**. Le manque d'une information en détruisait une autre.
+
+### Une liste, et pourquoi elle est inévitable
+
+La première tentative pariait sur le mot « édition » pour qualifier son voisin,
+sans liste à tenir. Elle lisait « Death Note edition » comme une édition
+**« Note »** : rien dans la phrase ne dit lequel des deux mots est l'œuvre.
+
+Le qualifiant doit donc être **reconnu** — sauf à une position, quand il *suit*
+le mot « édition ». Là l'ambiguïté disparaît, car personne n'écrit le nom de
+l'œuvre après ce mot : « édition Hokage » se lit tout seul.
+
+| Forme | Exemple | Reconnu ? |
+|---|---|---|
+| Qualifiant connu + « edition » | `Naruto Perfect Edition` | Oui |
+| « édition » + n'importe quel mot | `Naruto édition Hokage` | Oui |
+| Rang employé seul | `Naruto Perfect` | Oui |
+| Qualifiant inconnu + « edition » | `Dragon Ball Star Edition` | **Non** — assumé |
+| Série en deux mots + « edition » | `Death Note edition` | **Non** |
+
+Manquer une édition laisse l'élément en « édition à confirmer », exactement
+comme avant. En inventer une ferait chercher au catalogue une chose qui n'y est
+pas, et ferait passer pour douteux un élément parfaitement identifié. Le premier
+défaut est réparable d'un clic, le second se propage.
+
+### Deux mots qui ne sont pas des éditions
+
+**« Black »** n'est pas un rang employé seul : *Black Butler*, *Black Clover*,
+*Black Lagoon* sont des séries. Chaque mot ajouté à la liste est un mot qui
+cesse d'appartenir aux titres d'œuvres.
+
+**« Intégrale »** non plus, et l'absence est instructive : ce mot porte déjà un
+sens ici — `MENTION_INTEGRALE` en fait un signal de *complétude*. L'avoir traité
+comme une édition a été rejeté par un test existant : sur « Platinum End
+intégrale tomes 1 à 14 », le texte proposait quatorze tomes en « Intégrale »
+pendant que les photos en voyaient douze en « Standard », et la consolidation —
+qui refuse à juste titre de fondre deux éditions différentes — rendait
+**vingt-six** tomes pour un lot de quatorze. Il reste accepté accolé au mot
+« édition » : « édition intégrale » nomme bien un tirage.
+
+### Le catalogue a le dernier mot, sur le rapprochement et sur le nom
+
+Le mot « edition » n'est pas discriminant, et les deux côtés ne le portent pas
+toujours : le catalogue nomme une édition « Kana » quand l'annonce écrit
+« édition Kana » ; il nomme « Perfect Edition » ce que l'annonce appelle
+« Perfect ». La comparaison exacte échouait dans les deux sens. Un **repli**
+compare donc les libellés privés du mot « edition » — et ne conclut que s'il
+trouve **une seule** correspondance, deux orthographes voisines au catalogue
+étant un cas où choisir serait deviner.
+
+Quand le rapprochement aboutit, c'est le **libellé du catalogue** qui est
+retenu, pas celui lu. Garder « Kana Edition » l'aurait fait entrer dans le lot,
+puis dans l'analyse enregistrée, puis dans les prix relevés — un nom d'édition
+que le catalogue ne porte pas, et qui ne se rapprocherait plus de rien. Le texte
+d'origine reste lisible dans `seriesTitleAsRead`.
+
+### Ce que ça change à l'écran
+
+« Naruto édition Kana tomes 1 à 3 » passe de *série inconnue, édition à saisir*
+à **trois tomes pré-cochés, édition « Kana » reconnue, un bouton**. C'est
+exactement le frottement signalé plusieurs lots plus tôt — « devoir renseigner
+les versions manuellement » — traité cette fois à la lecture et non à
+l'affichage.
+
+---
+
 ## 9. Ce que ça ne couvre pas
 
 | | État |
@@ -705,7 +785,7 @@ désormais tu dès qu'une proposition porte la source `EAN` ou `VISION`.
 | Décodage de code-barres depuis les pixels | **Fait** — voir §8 quinquies. `BarcodeImageDecoder` alimente la source `EAN` en local, sans réseau ni modèle |
 | Décompte sans numéros (« 9 tomes de Naruto ») | **Traité** — voir §8 ter. Le nombre et la série sont lus et rapportés ; les numéros restent la seule chose que l'utilisateur (ou les photos) fournit |
 | Lots multi-séries dans le texte | **Traité** — voir §8 quater. Un titre qui énumère plusieurs œuvres est lu segment par segment |
-| Édition lue dans le texte | Le parser n'en extrait pas. Ce sont les photos, le catalogue ou l'utilisateur qui la donnent |
+| Édition lue dans le texte | **Traité** — voir §8 sexies. Le titre est lu quand il nomme l'édition ; rien n'est supposé quand il se tait |
 | Cache d'analyse | Non fait. Le texte est relu à chaque modification (débouncé) mais ne coûte rien ; les photos ne partent que sur un clic |
 | Persistance des candidats non confirmés | **Volontairement absente.** L'analyse enregistrée conserve les éléments **confirmés** ; garder les propositions rejetées et leurs sources gonflerait le JSONB sans usage après confirmation |
 
@@ -751,8 +831,11 @@ codes-barres sur les providers bibliographiques déjà utilisés par « Scanner 
 
 **API** : `api/recognition/RecognitionController`.
 
-**Réutilisé sans modification** : `ListingTextParser` (ses règles, ses bornes,
-ses tests), `SeriesMatcher` (résolution catalogue déterministe),
+**Lecture du texte** (`backend/src/main/java/com/iozycore/purchaseanalysis/`) :
+`ListingTextParser`, `EditionMention`, `SeriesTitleNormalizer`.
+
+**Réutilisé sans modification** : `SeriesMatcher` (résolution catalogue
+déterministe), `SeriesMatcher` (résolution catalogue déterministe),
 `ListingUrlGuard`.
 
 **Modifiés** : `ListingProvider` (+`allowedImageHosts()`, méthode par défaut

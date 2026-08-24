@@ -107,8 +107,26 @@ public class RecognitionCatalogResolver {
                         .toList()
                 : List.of();
 
-        return new ResolvedItem(item, statut, serie.knownEntityId(), catalogTitle(serie, editions),
-                options, preselectable(item, statut));
+        // Quand le catalogue a reconnu l'édition, c'est SON libellé qui fait foi.
+        //
+        // L'annonce écrit « édition Kana », le catalogue dit « Kana ». Garder ce
+        // qui a été lu ferait entrer « Kana Edition » dans le lot, puis dans
+        // l'analyse enregistrée, puis dans les prix relevés - un nom d'édition
+        // que le catalogue ne porte pas, et qui ne se rapprocherait plus de rien.
+        // Le texte d'origine reste lisible dans seriesTitleAsRead.
+        RecognizedItem retenu = exacte
+                .map(edition -> avecEdition(item, edition.editionName()))
+                .orElse(item);
+
+        return new ResolvedItem(retenu, statut, serie.knownEntityId(), catalogTitle(serie, editions),
+                options, preselectable(retenu, statut));
+    }
+
+    private static RecognizedItem avecEdition(RecognizedItem item, String editionName) {
+        return editionName == null || editionName.equals(item.editionHint())
+                ? item
+                : new RecognizedItem(item.seriesTitleRaw(), item.volumeNumber(), editionName, item.ean(),
+                        item.confidence(), item.sources(), item.evidence(), item.sourceImages());
     }
 
     /**
@@ -121,9 +139,37 @@ public class RecognitionCatalogResolver {
             return Optional.empty();
         }
         String lue = RecognitionConsolidator.normaliser(item.editionHint());
-        return editions.stream()
+
+        Optional<MangaEdition> exacte = editions.stream()
                 .filter(e -> RecognitionConsolidator.normaliser(e.editionName()).equals(lue))
                 .findFirst();
+        if (exacte.isPresent()) {
+            return exacte;
+        }
+
+        // Repli : le mot « edition » lui-même n'est pas discriminant, et les deux
+        // côtés ne le portent pas toujours. Le catalogue nomme une édition
+        // « Kana » quand l'annonce écrit « édition Kana » ; il en nomme une
+        // « Perfect Edition » quand l'annonce écrit « Naruto Perfect ». Comparer
+        // les libellés bruts faisait échouer les deux, et un élément
+        // parfaitement identifié repassait en « édition à confirmer ».
+        String noyauLu = sansLeMotEdition(lue);
+        if (noyauLu.isBlank()) {
+            return Optional.empty();
+        }
+        List<MangaEdition> approchantes = editions.stream()
+                .filter(e -> sansLeMotEdition(RecognitionConsolidator.normaliser(e.editionName()))
+                        .equals(noyauLu))
+                .toList();
+
+        // Une seule, sinon rien : si le catalogue portait à la fois « Perfect »
+        // et « Perfect Edition », choisir pour l'utilisateur serait deviner.
+        return approchantes.size() == 1 ? Optional.of(approchantes.get(0)) : Optional.empty();
+    }
+
+    /** Le libellé privé du mot « edition », déjà normalisé (sans accents, minuscules). */
+    private static String sansLeMotEdition(String normalise) {
+        return normalise.replaceAll("\\bedition[s]?\\b", " ").replaceAll("\\s+", " ").trim();
     }
 
     /** Le titre du catalogue fait foi ; les éditions le portent aussi, on prend le premier connu. */
