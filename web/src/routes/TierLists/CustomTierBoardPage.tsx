@@ -118,7 +118,7 @@ export function CustomTierBoardPage() {
             <button
               type="button"
               onClick={() => quickRank.start(unranked)}
-              className="flex min-h-10 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm"
+              className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm"
             >
               <Zap size={15} />
               Classer rapidement ({unranked.length})
@@ -127,7 +127,7 @@ export function CustomTierBoardPage() {
           <button
             type="button"
             onClick={() => setAddingItems(true)}
-            className="flex min-h-10 items-center gap-2 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
+            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
           >
             <Plus size={15} />
             Ajouter

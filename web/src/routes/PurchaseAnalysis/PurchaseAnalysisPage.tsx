@@ -447,7 +447,7 @@ export function PurchaseAnalysisPage() {
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-2">
           <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
-          <Link to="/purchase-analysis/history" className="flex items-center gap-1.5 text-xs text-textDim underline">
+          <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
             <History size={13} />
             Historique
           </Link>
@@ -461,7 +461,7 @@ export function PurchaseAnalysisPage() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
         <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
-        <Link to="/purchase-analysis/history" className="flex items-center gap-1.5 text-xs text-textDim underline">
+        <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
           <History size={13} />
           Historique
         </Link>

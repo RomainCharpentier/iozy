@@ -75,7 +75,7 @@ export function GeneralTierBoardPage() {
           <button
             type="button"
             onClick={() => quickRank.start(boardQuery.data.unranked)}
-            className="ml-auto flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
+            className="ml-auto flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
           >
             <Zap size={15} />
             Classer rapidement ({boardQuery.data.unranked.length})

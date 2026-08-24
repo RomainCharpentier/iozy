@@ -91,7 +91,7 @@ export function ScanActionMenu({
             type="button"
             onClick={onSkip}
             aria-label="Fermer sans rien faire"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-rowHover"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-rowHover"
           >
             <X size={16} />
           </button>

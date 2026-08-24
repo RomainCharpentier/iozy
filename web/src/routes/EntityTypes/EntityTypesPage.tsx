@@ -44,7 +44,7 @@ export function EntityTypesPage() {
         <button
           type="button"
           onClick={() => navigate('/types/new')}
-          className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accentInk"
+          className="flex min-h-11 items-center gap-1.5 rounded-full bg-accent px-3 text-sm font-semibold text-accentInk"
         >
           <Plus size={16} />
           Nouveau type
@@ -64,7 +64,7 @@ export function EntityTypesPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/types/${type.id}/edit`)}
-                className="flex-1 text-left"
+                className="flex min-h-11 flex-1 flex-col justify-center text-left"
               >
                 <p className="text-sm font-medium text-textPrimary">{type.label}</p>
                 <p className="text-xs text-textDim">{type.code}</p>
@@ -75,7 +75,7 @@ export function EntityTypesPage() {
                 disabled={deleteMutation.isPending}
                 aria-label={`Supprimer le type ${type.label}`}
                 title={`Supprimer le type ${type.label}`}
-                className="shrink-0 rounded-lg p-2 text-textDim hover:text-dangerText disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-textDim hover:text-dangerText disabled:opacity-50"
               >
                 <Trash2 size={16} />
               </button>

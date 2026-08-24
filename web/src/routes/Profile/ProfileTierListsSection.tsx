@@ -48,7 +48,7 @@ export function ProfileTierListsSection() {
     <div className="mt-3 rounded-2xl border border-surface2 bg-surface p-4 shadow-token-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-textPrimary">Mes Tier Lists</h2>
-        <Link to="/tier-lists" className="min-h-9 text-xs font-semibold text-accentText">
+        <Link to="/tier-lists" className="min-h-11 text-xs font-semibold text-accentText">
           Tout voir
         </Link>
       </div>

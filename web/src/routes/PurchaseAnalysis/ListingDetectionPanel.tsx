@@ -46,7 +46,7 @@ const LIBELLES_CONFIANCE: Record<RecognitionConfidence, string> = {
 const COULEURS_CONFIANCE: Record<RecognitionConfidence, string> = {
   HIGH: 'text-ok',
   MEDIUM: 'text-textDim',
-  LOW: 'text-warningText',
+  LOW: 'text-warning',
 }
 
 const RANG_CONFIANCE: Record<RecognitionConfidence, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
@@ -618,7 +618,7 @@ function GroupeSerie({
               {LIBELLES_CONFIANCE[groupe.confiance]}
             </span>
             {groupe.catalogStatus === 'NOT_IN_CATALOG' && (
-              <span className="text-warningText">pas encore dans votre catalogue</span>
+              <span className="text-warning">pas encore dans votre catalogue</span>
             )}
           </span>
         </div>
@@ -714,7 +714,7 @@ function GroupeSerie({
       {/* Dit seulement quand ça bloque vraiment : une pastille cochée qui ne
           compte pas au compteur se lit comme un bug. */}
       {aDesTomesCoches && !editionChoisie && (
-        <p className="text-xs text-warningText" role="status">
+        <p className="text-xs text-warning" role="status">
           Choisissez l'édition pour pouvoir ajouter ces tomes au lot.
         </p>
       )}

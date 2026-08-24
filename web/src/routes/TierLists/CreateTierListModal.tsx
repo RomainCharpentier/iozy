@@ -81,7 +81,7 @@ export function CreateTierListModal({
           <h2 id="create-tier-list-title" className="font-display text-base font-semibold text-textPrimary">
             Nouvelle Tier List
           </h2>
-          <button type="button" onClick={onClose} aria-label="Fermer" className="flex h-8 w-8 items-center justify-center rounded-full text-textDim hover:bg-rowHover">
+          <button type="button" onClick={onClose} aria-label="Fermer" className="flex h-11 w-11 items-center justify-center rounded-full text-textDim hover:bg-rowHover">
             <X size={16} />
           </button>
         </div>

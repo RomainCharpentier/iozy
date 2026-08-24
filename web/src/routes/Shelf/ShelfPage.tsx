@@ -169,7 +169,7 @@ export function ShelfPage() {
           type="button"
           onClick={() => setFiltersOpen(true)}
           aria-expanded={filtersOpen}
-          className={`flex min-h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
+          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
             status !== 'ALL' ? 'border-transparent bg-accentTint text-accentText' : 'border-fieldBorder text-textDim hover:bg-rowHover'
           }`}
         >
@@ -184,7 +184,7 @@ export function ShelfPage() {
         <button
           type="button"
           onClick={() => navigate('/stats')}
-          className="flex min-h-10 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+          className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
         >
           <BarChart3 size={15} />
           Valeur
@@ -196,7 +196,7 @@ export function ShelfPage() {
         <button
           type="button"
           onClick={() => navigate('/purchase-analysis')}
-          className="flex min-h-10 items-center gap-2 rounded-xl border border-fieldBorder px-3.5 text-sm font-semibold text-textDim transition-colors hover:bg-rowHover"
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-fieldBorder px-3.5 text-sm font-semibold text-textDim transition-colors hover:bg-rowHover"
         >
           <Scale size={15} />
           Évaluer un achat
@@ -204,7 +204,7 @@ export function ShelfPage() {
         <button
           type="button"
           onClick={() => navigate('/import-bgg')}
-          className="flex min-h-10 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+          className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
         >
           <Download size={15} />
           Import
@@ -217,7 +217,7 @@ export function ShelfPage() {
           // sinon son nom accessible du seul title, jamais annoncé au toucher.
           aria-label="Plus d'outils"
           aria-expanded={hubMenuOpen}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fieldBorder text-textDim transition-colors hover:bg-rowHover"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-fieldBorder text-textDim transition-colors hover:bg-rowHover"
         >
           <MoreHorizontal size={16} />
         </button>
@@ -282,7 +282,7 @@ export function ShelfPage() {
                 type="button"
                 onClick={() => setHubMenuOpen(false)}
                 aria-label="Fermer"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-textDim hover:bg-rowHover"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-textDim hover:bg-rowHover"
               >
                 <X size={16} />
               </button>

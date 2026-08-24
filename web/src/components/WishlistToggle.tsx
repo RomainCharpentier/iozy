@@ -41,7 +41,7 @@ export function WishlistToggle({
   const taille =
     variant === 'inline'
       ? 'rounded-lg px-2 py-1 text-xs'
-      : 'min-h-10 rounded-xl px-3 text-sm'
+      : 'min-h-11 rounded-xl px-3 text-sm'
   const couleur = dedans
     ? 'bg-accentTint text-accentText hover:bg-accent/25'
     : 'text-textDim hover:bg-rowHover hover:text-textPrimary'

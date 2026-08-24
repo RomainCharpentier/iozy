@@ -213,7 +213,7 @@ export function SearchPage() {
           <button
             type="button"
             onClick={() => setShowBarcodeLookup(true)}
-            className="flex w-fit items-center gap-1.5 text-xs text-textDim underline"
+            className="flex min-h-11 w-fit items-center gap-1.5 text-xs text-textDim underline"
           >
             <ScanBarcode size={13} />
             Scanner un code-barres / ISBN

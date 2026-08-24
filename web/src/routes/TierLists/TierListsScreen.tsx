@@ -74,7 +74,7 @@ export function TierListsScreen() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button type="button" onClick={() => navigate('/discover')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      <button type="button" onClick={() => navigate('/discover')} className="flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
         <ArrowLeft size={15} />
         Découvrir
       </button>
@@ -113,7 +113,7 @@ export function TierListsScreen() {
               <button
                 type="button"
                 onClick={() => setCreatingFor({ id: entityType.id })}
-                className="text-xs font-semibold text-accentText"
+                className="inline-flex min-h-11 items-center text-xs font-semibold text-accentText"
               >
                 + Nouvelle liste
               </button>
@@ -181,7 +181,7 @@ export function TierListsScreen() {
               <span className="h-[11px] w-[11px] shrink-0 rounded-full bg-lineStrong" />
               <h2 className="font-display text-base font-semibold text-textPrimary">Toutes catégories</h2>
             </div>
-            <button type="button" onClick={() => setCreatingFor({ id: null })} className="text-xs font-semibold text-accentText">
+            <button type="button" onClick={() => setCreatingFor({ id: null })} className="inline-flex min-h-11 items-center text-xs font-semibold text-accentText">
               + Nouvelle liste
             </button>
           </div>

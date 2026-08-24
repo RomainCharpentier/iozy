@@ -59,7 +59,7 @@ export function CollectionFilters({
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-textDim hover:bg-rowHover hover:text-textPrimary"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-textDim hover:bg-rowHover hover:text-textPrimary"
           >
             <X size={16} />
           </button>

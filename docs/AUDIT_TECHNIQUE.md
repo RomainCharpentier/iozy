@@ -627,6 +627,40 @@ découvrir. À noter pour qui s'y attellera : la chaîne de reconnaissance est
 entièrement côté serveur, et le client iOS scanne déjà des codes-barres — le
 rapprochement demanderait moins de travail qu'il n'y paraît.
 
+### C6 — Cibles tactiles et un token fantôme · **traité**
+
+Balayage automatisé des 17 routes en 375 px puis 320 px, mesurant pour chacune
+le débordement horizontal, la taille des cibles, les noms accessibles, les
+étiquettes de champs et les `alt` d'images.
+
+**La base était saine** : aucun débordement, aucun bouton sans nom accessible,
+aucun champ sans étiquette, aucune image sans `alt`. Un seul défaut, mais
+systématique.
+
+**Les cibles tactiles.** Le dépôt applique 44 px à 41 endroits — c'est sa
+convention. Trente-cinq contrôles y dérogeaient, répartis en trois familles :
+
+| Famille | Exemple | Mesure |
+|---|---|---|
+| Liens-boutons d'en-tête | « Historique », « Voir la série » | 16 à 20 px de haut |
+| Boutons-icônes | « Supprimer l'analyse », « Fermer » | 32 × 32 |
+| Boutons `min-h-9` / `min-h-10` | « Tout voir », « Chercher » | 36 à 40 px |
+
+Les plus gênants n'étaient pas les plus petits mais les **destructifs** : quatre
+suppressions (analyse, édition, prix relevé, type) tenaient dans 32 × 32.
+
+L'interrupteur de thème demandait un autre traitement : son rail fait 26 px, et
+l'agrandir lui donnerait l'air d'un bouton. C'est la **zone tactile** qui passe
+à 44 px, le rail restant à 26.
+
+**Un token qui n'existait pas.** `text-warningText` était utilisé à quatre
+endroits — quatre avertissements rendus en couleur de texte ordinaire. La
+palette porte bien une famille `warning`/`warningTint`/`warningInk`, mais pas de
+`warningText` : la classe avait été écrite par analogie avec `dangerText`. Aucun
+token n'a été ajouté, `--color-warning` tenant déjà AA comme texte sur les trois
+fonds des deux thèmes (5,34 à 9,53) — les quatre usages pointent désormais
+dessus, comme les seize autres du dépôt.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
