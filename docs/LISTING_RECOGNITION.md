@@ -719,8 +719,41 @@ accélérer celle-ci.
 L'ordre des propositions suit celui des **photos**, pas celui des réponses :
 sinon la liste danserait d'une analyse à l'autre pour les mêmes images.
 
-**Reste à faire** : mettre en cache les échecs. Un EAN absent des bases est
-re-interrogé à chaque analyse, au prix fort.
+### Les absences aussi sont mémorisées — mais pas les pannes
+
+Seuls les succès l'étaient. Un EAN qu'aucune base n'indexe était réinterrogé à
+chaque analyse, au prix fort.
+
+La correction naïve — « mettre les vides en cache » — aurait cassé une garantie
+déjà protégée par un test : *ne pas cacher un échec pour qu'un ré-essai puisse
+réussir*, avec en commentaire « panne réseau simulée ». Et ce test avait raison.
+Il existe **deux vides qui ne se ressemblent pas** :
+
+| | Ce que ça veut dire | Mémorisable ? |
+|---|---|---|
+| **Absent** | La base a répondu, elle ne connaît pas ce code | Oui — 30 min |
+| **Indisponible** | Réseau, délai, quota : pas de réponse du tout | **Jamais** |
+
+Les providers connaissaient déjà la différence — leur code porte un
+`// ISBN inconnu de X` distinct des blocs d'exception — mais le type de retour
+l'effaçait. `BarcodeLookup` la rend explicite, et l'absence n'est mémorisée que
+si **toutes** les bases compétentes se sont prononcées : « Google Books ne
+connaît pas ce code » ne conclut rien tant qu'Open Library n'a pas pu répondre.
+
+Un provider qui ne sait pas faire la distinction garde le comportement prudent
+d'avant : son vide n'est jamais concluant.
+
+Mesuré en production, sur un code dont l'absence est constatée :
+
+| | |
+|---|---|
+| Premier appel | ~1 s |
+| Appels suivants | **6 ms** |
+
+Et les deux durées de cache diffèrent parce qu'elles ne mémorisent pas la même
+nature de chose : **un succès est une connaissance** (24 h), **une absence est
+un état du monde** (30 min) qui cesse d'être vrai dès qu'un contributeur ajoute
+le livre.
 
 ### Se taire plutôt que broder
 

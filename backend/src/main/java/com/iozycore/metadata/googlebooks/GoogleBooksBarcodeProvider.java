@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.BarcodeMetadataProvider;
 import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.metadata.BarcodeLookup;
 import com.iozycore.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,23 +67,41 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
 
     @Override
     public Optional<MetadataCandidate> lookup(String barcode) {
+        return lookupDetailed(barcode).candidateIfAny();
+    }
+
+    /**
+     * La même recherche, en distinguant « Google Books ne connaît pas cet
+     * ISBN » de « Google Books n'a pas répondu ».
+     *
+     * <p>La différence n'était pas dite, alors qu'elle était connue ici : les
+     * deux cas rendaient {@code Optional.empty()}. Le service peut désormais
+     * mémoriser une absence <b>constatée</b> sans jamais mémoriser une panne.
+     */
+    @Override
+    public BarcodeLookup lookupDetailed(String barcode) {
         String isbn = normalize(barcode);
         if (isbn.isEmpty()) {
-            return Optional.empty();
+            // Rien à chercher : ce n'est ni une absence constatée ni une panne.
+            return BarcodeLookup.unavailable();
         }
 
         try {
             String body = httpClient.get(LOOKUP_URL.formatted(isbn));
             if (body == null) {
-                return Optional.empty();
+                return BarcodeLookup.unavailable();
             }
-            return parse(body, isbn);
+            Optional<MetadataCandidate> trouve = parse(body, isbn);
+            // Le corps a été lu jusqu'au bout : que Google connaisse ou non cet
+            // ISBN, il a bel et bien répondu.
+            return trouve.map(BarcodeLookup::found)
+                    .orElseGet(BarcodeLookup::absent);
         } catch (QuotaExceededException e) {
             log.warn("Quota Google Books dépassé pour l'ISBN '{}' - Open Library prend le relais", isbn);
-            return Optional.empty();
+            return BarcodeLookup.unavailable();
         } catch (Exception e) {
             log.warn("Échec du lookup Google Books pour '{}' : {}", isbn, e.getMessage());
-            return Optional.empty();
+            return BarcodeLookup.unavailable();
         }
     }
 

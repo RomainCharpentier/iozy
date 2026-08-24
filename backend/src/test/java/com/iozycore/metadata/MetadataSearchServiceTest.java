@@ -152,6 +152,78 @@ class MetadataSearchServiceTest {
         assertThat(provider.callCount).isEqualTo(2); // pas de cache hit après l'échec
     }
 
+    // ============ Absence CONSTATEE vs panne : deux vides differents
+
+    @Test
+    void caches_a_barcode_the_databases_answered_they_do_not_know() {
+        // Depuis que les photos d'un lot livrent une douzaine d'EAN d'un coup -
+        // et qu'une identification prend de 1,4 a 5,5 s - reinterroger a chaque
+        // analyse un code dont on SAIT qu'il est introuvable coute cher pour
+        // rien.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        CountingAbsentBarcodeProvider provider = new CountingAbsentBarcodeProvider();
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(provider), repository, List.of(), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        assertThat(service.lookupByBarcode(MANGA, "9780000000000")).isEmpty();
+        assertThat(service.lookupByBarcode(MANGA, "9780000000000")).isEmpty();
+
+        assertThat(provider.callCount).as("une absence constatee se memorise").isEqualTo(1);
+    }
+
+    @Test
+    void a_provider_that_could_not_answer_is_asked_again() {
+        // Le pendant, et le plus important des deux : memoriser une PANNE
+        // rendrait l'echec en cache au lieu de retenter, et un incident d'une
+        // seconde se figerait pour une demi-heure.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        CountingUnavailableBarcodeProvider provider = new CountingUnavailableBarcodeProvider();
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(provider), repository, List.of(), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        service.lookupByBarcode(MANGA, "9780000000000");
+        service.lookupByBarcode(MANGA, "9780000000000");
+
+        assertThat(provider.callCount).as("une panne ne se memorise jamais").isEqualTo(2);
+    }
+
+    @Test
+    void one_database_in_failure_is_enough_to_refuse_caching_the_absence() {
+        // « Google Books ne connait pas ce code » ne dit rien tant qu'Open
+        // Library n'a pas pu repondre : la conclusion demande que TOUTES les
+        // bases competentes se soient prononcees.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        CountingAbsentBarcodeProvider repond = new CountingAbsentBarcodeProvider();
+        CountingUnavailableBarcodeProvider muet = new CountingUnavailableBarcodeProvider();
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(repond, muet), repository, List.of(), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        service.lookupByBarcode(MANGA, "9780000000000");
+        service.lookupByBarcode(MANGA, "9780000000000");
+
+        assertThat(repond.callCount).isEqualTo(2);
+        assertThat(muet.callCount).isEqualTo(2);
+    }
+
+    @Test
+    void a_provider_that_cannot_tell_the_difference_is_treated_as_a_failure() {
+        // Le defaut de l'interface : sans lookupDetailed, un vide n'est jamais
+        // concluant. C'est le comportement prudent, et celui d'avant.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of());
+        SilentBarcodeProvider muet = new SilentBarcodeProvider();
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(muet), repository, List.of(), List.of(),
+                new FakeVolumeSearchCacheRepository());
+
+        service.lookupByBarcode(MANGA, "9780000000000");
+        service.lookupByBarcode(MANGA, "9780000000000");
+
+        assertThat(muet.callCount).isEqualTo(2);
+    }
+
     @Test
     void does_not_cache_a_failed_french_title_lookup_so_a_later_retry_can_still_succeed() {
         FakeEntityRepository repository = new FakeEntityRepository(List.of());
@@ -682,6 +754,67 @@ class MetadataSearchServiceTest {
 
     /** Simule une panne réseau transitoire (empty) au premier appel, puis un
      * vrai résultat ensuite - vérifie qu'un échec n'est jamais mis en cache. */
+    /**
+     * Ne rend qu'un Optional vide, sans jamais dire pourquoi - comme le faisaient
+     * tous les providers avant cette passe.
+     */
+    private static final class SilentBarcodeProvider implements BarcodeMetadataProvider {
+        int callCount = 0;
+
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public Optional<MetadataCandidate> lookup(String barcode) {
+            callCount++;
+            return Optional.empty();
+        }
+    }
+
+    /** Repond, et ne connait pas le code : une absence CONSTATEE. */
+    private static final class CountingAbsentBarcodeProvider implements BarcodeMetadataProvider {
+        int callCount = 0;
+
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public Optional<MetadataCandidate> lookup(String barcode) {
+            return lookupDetailed(barcode).candidateIfAny();
+        }
+
+        @Override
+        public BarcodeLookup lookupDetailed(String barcode) {
+            callCount++;
+            return BarcodeLookup.absent();
+        }
+    }
+
+    /** N'a pas pu repondre : reseau, delai, quota. */
+    private static final class CountingUnavailableBarcodeProvider implements BarcodeMetadataProvider {
+        int callCount = 0;
+
+        @Override
+        public boolean supports(EntityType entityType) {
+            return true;
+        }
+
+        @Override
+        public Optional<MetadataCandidate> lookup(String barcode) {
+            return lookupDetailed(barcode).candidateIfAny();
+        }
+
+        @Override
+        public BarcodeLookup lookupDetailed(String barcode) {
+            callCount++;
+            return BarcodeLookup.unavailable();
+        }
+    }
+
     private static final class StatefulBarcodeProvider implements BarcodeMetadataProvider {
         private final MetadataCandidate result;
         int callCount = 0;
