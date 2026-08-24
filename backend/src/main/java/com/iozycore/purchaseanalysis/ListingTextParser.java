@@ -40,16 +40,47 @@ public final class ListingTextParser {
      */
     private static final int NUMERO_DE_TOME_MAX = 300;
 
-    /** « tome 1 à 14 », « tomes 1 a 14 », « 1 à 14 », « du 1 au 14 » */
-    private static final Pattern PLAGE_EN_LETTRES = Pattern.compile(
-            "(?:tomes?|volumes?|vol\\.?|t\\.?)?\\s*(?:du\\s*)?(\\d{1,3})\\s*(?:à|a|au|-|–|/)\\s*(\\d{1,3})");
+    /** Ce qui annonce un numéro de tome : « tome », « tomes », « volume », « vol. », « t. », « T ». */
+    private static final String PREFIXE_TOME = "(?:tomes?|volumes?|vol\\.?|t\\.?)";
 
-    /** « tomes 1, 2, 3, 5 » - la liste doit être introduite, sinon tout nombre du texte serait un tome. */
+    /**
+     * « tome 1 à 14 », « 1 à 14 », « du 1 au 14 », « T1 à T6 », « 1-6 ».
+     * <p>
+     * Le préfixe est accepté <b>des deux côtés</b> : « T1 à T6 » est aussi
+     * courant que « tomes 1 à 6 », et sans cela le « T6 » restait collé au
+     * titre.
+     */
+    private static final Pattern PLAGE_EN_LETTRES = Pattern.compile(
+            "(?i)\\b" + PREFIXE_TOME + "?\\s*(?:du\\s*)?(\\d{1,3})\\s*(?:à|a|au|-|–|/)\\s*"
+                    + PREFIXE_TOME + "?\\s*(\\d{1,3})\\b");
+
+    /**
+     * « tomes 1, 2, 3, 5 », « tomes 1 et 2 » - la liste doit être introduite,
+     * sinon tout nombre du texte serait un tome.
+     */
     private static final Pattern LISTE_INTRODUITE = Pattern.compile(
-            "(?:tomes?|volumes?|vol\\.?|t\\.?)\\s*((?:\\d{1,3}\\s*[,+&]\\s*)+\\d{1,3})");
+            "(?i)\\b" + PREFIXE_TOME + "\\s*((?:\\d{1,3}\\s*(?:,|\\+|&|et)\\s*)+\\d{1,3})\\b");
 
     /** « tome 7 » seul. */
-    private static final Pattern TOME_UNIQUE = Pattern.compile("(?:tomes?|volumes?|vol\\.?|t\\.?)\\s*(\\d{1,3})\\b");
+    private static final Pattern TOME_UNIQUE = Pattern.compile(
+            "(?i)\\b" + PREFIXE_TOME + "\\s*(\\d{1,3})\\b");
+
+    /**
+     * Les mentions commerciales d'une annonce, qui ne font pas partie du nom
+     * d'une œuvre. Retirées comme <b>mots entiers</b> : « lot » disparaît de
+     * « Lot Death Note », pas de « Camelot ».
+     */
+    private static final Pattern MOTS_COMMERCIAUX = Pattern.compile(
+            "(?i)\\b(?:int[ée]grale|s[ée]rie compl[èe]te|collection compl[èe]te|lot complet|coffret|lot"
+                    + "|neuf|comme neuf|tbe|be)\\b");
+
+    /**
+     * Les séparateurs qu'une annonce pose <b>autour</b> de ses informations.
+     * Rognés aux extrémités seulement : « Hell's Paradise – » perd son tiret,
+     * « Kaguya-sama: Love Is War » garde le sien, et un « - » au milieu d'un
+     * titre n'est jamais touché faute de pouvoir prouver qu'il sépare.
+     */
+    private static final Pattern SEPARATEURS_AUX_BORDS = Pattern.compile("^[\\s\\-–—|:;,/]+|[\\s\\-–—|:;,/]+$");
 
     /** Annonce un ensemble sans en donner les bornes : on le note, on n'en déduit pas de numéros. */
     private static final Pattern MENTION_INTEGRALE = Pattern.compile(
@@ -115,29 +146,56 @@ public final class ListingTextParser {
     }
 
     /**
+     * Ce qu'un texte dit des tomes, <b>et</b> ce qu'il en reste une fois ces
+     * expressions retirées.
+     *
+     * <p>Rendre les deux ensemble est tout l'intérêt : le titre probable
+     * s'obtient en enlevant <b>exactement le segment reconnu</b>, jamais en
+     * supprimant tous les chiffres et toute la ponctuation. « 20th Century
+     * Boys tomes 1 à 5 » perd « tomes 1 à 5 » et garde son « 20 ».
+     *
+     * @param numeros les tomes lus - vide si le texte n'en décrit aucun
+     * @param reste   le texte privé des expressions de tomes reconnues
+     */
+    record ExpressionsDeTomes(Set<Integer> numeros, String reste) {
+    }
+
+    /**
      * Les numéros d'un texte, par ordre de fiabilité décroissante : une plage
      * explicite, sinon une liste introduite par « tomes », sinon des tomes
      * cités un à un. On ne descend au niveau suivant que si le précédent n'a
      * rien donné - mélanger les trois ferait entrer des nombres qui ne sont pas
      * des tomes (année, prix, nombre de pièces).
      */
-    private static Set<Integer> numeros(String texte) {
-        if (texte.isBlank()) {
-            return Set.of();
+    static ExpressionsDeTomes extraire(String texte) {
+        if (texte == null || texte.isBlank()) {
+            return new ExpressionsDeTomes(Set.of(), "");
         }
         // Une plage RECONNUE mais rejetée (bornes absurdes, ordre inversé) arrête
         // tout : le texte décrit clairement un intervalle qu'on n'a pas su lire.
         // Sans ce garde, « tomes 1 à 900 » retombait sur l'heuristique du tome
         // isolé et rendait [1] - un lot d'un seul tome là où l'annonce en
         // annonce des centaines, donc un prix par tome et un verdict faux.
+        //
+        // Le segment reste retiré du titre dans tous les cas : il décrit bien
+        // des tomes, même mal formés.
         if (PLAGE_EN_LETTRES.matcher(texte).find()) {
-            return depuisPlages(texte);
+            return new ExpressionsDeTomes(depuisPlages(texte),
+                    PLAGE_EN_LETTRES.matcher(texte).replaceAll(" "));
         }
         Set<Integer> listes = depuisListes(texte);
         if (!listes.isEmpty()) {
-            return listes;
+            return new ExpressionsDeTomes(listes, LISTE_INTRODUITE.matcher(texte).replaceAll(" "));
         }
-        return depuisTomesIsoles(texte);
+        Set<Integer> isoles = depuisTomesIsoles(texte);
+        if (!isoles.isEmpty()) {
+            return new ExpressionsDeTomes(isoles, TOME_UNIQUE.matcher(texte).replaceAll(" "));
+        }
+        return new ExpressionsDeTomes(Set.of(), texte);
+    }
+
+    private static Set<Integer> numeros(String texte) {
+        return extraire(texte).numeros();
     }
 
     private static Set<Integer> depuisPlages(String texte) {
@@ -160,7 +218,7 @@ public final class ListingTextParser {
         Set<Integer> numeros = new TreeSet<>();
         Matcher m = LISTE_INTRODUITE.matcher(texte);
         while (m.find()) {
-            for (String morceau : m.group(1).split("[,+&]")) {
+            for (String morceau : m.group(1).split("(?i)\\s*(?:,|\\+|&|et)\\s*")) {
                 ajouterSiValide(numeros, morceau.trim());
             }
         }
@@ -196,14 +254,20 @@ public final class ListingTextParser {
         if (title == null || title.isBlank()) {
             return "";
         }
-        String reste = title
-                .replaceAll("(?i)\\b(?:tomes?|volumes?|vol\\.?|t\\.?)\\s*\\d{1,3}(?:\\s*(?:à|a|au|-|–|/)\\s*\\d{1,3})?", " ")
-                .replaceAll("(?i)\\b(?:int[ée]grale|s[ée]rie compl[èe]te|collection compl[èe]te|lot complet|coffret|lot|neuf|comme neuf|tbe|be)\\b", " ")
-                .replaceAll("\\d+", " ")
-                .replaceAll("[,;:/\\-–|]+", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-        return reste;
+        // Retirer SEULEMENT ce qui a été reconnu comme expression de tomes, puis
+        // les mentions commerciales, puis les séparateurs des bords.
+        //
+        // Cette méthode supprimait auparavant TOUS les chiffres et TOUTE la
+        // ponctuation avant d'espérer que le reste soit le titre. « 20th Century
+        // Boys » y devenait « th Century Boys », « Kaguya-sama: Love Is War »
+        // devenait « Kaguya sama Love Is War », et aucune normalisation en aval
+        // ne pouvait reconstruire ce qui était détruit. Les chiffres et la
+        // ponctuation appartiennent souvent à l'identité d'une œuvre.
+        String reste = extraire(title).reste();
+        reste = MOTS_COMMERCIAUX.matcher(reste).replaceAll(" ");
+        reste = reste.replaceAll("\\s+", " ").trim();
+        reste = SEPARATEURS_AUX_BORDS.matcher(reste).replaceAll("");
+        return reste.replaceAll("\\s+", " ").trim();
     }
 
     private static String normaliser(String valeur) {
