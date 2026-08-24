@@ -183,6 +183,39 @@ class ListingTextParserTest {
     }
 
     @Test
+    void la_longueur_de_l_oeuvre_n_est_pas_la_taille_du_lot() {
+        // Constate sur une vraie annonce Vinted : « Manga Your evil past -
+        // Seinen thriller - Serie en 14 tomes », pour un lot qui en contenait
+        // SIX. L'ecran annoncait « 14 tomes, sans dire lesquels », puis
+        // reprochait a l'utilisateur d'en avoir saisi trop peu : une phrase
+        // parfaitement honnete du vendeur devenait un reproche.
+        ListingTextParser.Detection d = ListingTextParser.parse(
+                "Manga Your evil past - Seinen thriller",
+                "Manga Your evil past - Seinen thriller - Série en 14 tomes");
+
+        assertThat(d.announcedVolumeCount()).isNull();
+        assertThat(d.hasAnnouncedCountOnly()).isFalse();
+    }
+
+    @Test
+    void les_autres_facons_de_decrire_l_oeuvre_sont_ecartees_aussi() {
+        assertThat(ListingTextParser.parse("Naruto", "Collection complète en 72 tomes")
+                .announcedVolumeCount()).isNull();
+        assertThat(ListingTextParser.parse("Naruto", "Saga de 72 tomes")
+                .announcedVolumeCount()).isNull();
+    }
+
+    @Test
+    void une_taille_de_lot_reste_lue_meme_apres_une_mention_de_l_oeuvre() {
+        // « Serie en 14 tomes » decrit l'oeuvre ; « je vends 6 tomes » decrit la
+        // vente. La premiere ne doit pas faire rater la seconde.
+        ListingTextParser.Detection d = ListingTextParser.parse(
+                "Your evil past", "Série en 14 tomes. Je vends 6 tomes.");
+
+        assertThat(d.announcedVolumeCount()).isEqualTo(6);
+    }
+
+    @Test
     void un_seul_tome_n_est_pas_un_lot() {
         assertThat(ListingTextParser.parse("1 tome de Naruto", null).announcedVolumeCount()).isNull();
     }

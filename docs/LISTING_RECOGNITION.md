@@ -558,6 +558,23 @@ Le fait et son raccourci disparaissent dès que le lot contient quelque chose :
 la question a trouvé preneur, et le bouton écraserait la série que
 l'utilisateur vient de saisir. Le décompte, lui, reste surveillé.
 
+### La longueur de l'œuvre n'est pas la taille du lot
+
+Constaté sur une vraie annonce Vinted, et invisible sur des exemples inventés :
+
+> « Manga Your evil past - Seinen thriller — **Série en 14 tomes** »
+
+Le lot en contenait **six**. IozyCore annonçait « l'annonce indique 14 tomes,
+sans dire lesquels », puis — grâce au filet de sécurité — reprochait à
+l'utilisateur d'en avoir saisi trop peu. Une phrase parfaitement honnête du
+vendeur se retournait contre lui.
+
+« Série en 14 tomes » dit la *longueur de l'œuvre* ; « lot de 9 tomes » dit la
+*taille de la vente*. Les deux se ressemblent et ne veulent pas dire la même
+chose. Un nombre précédé de « série », « collection », « saga » ou « œuvre »
+est donc écarté — et la lecture **continue**, car la même annonce peut donner
+ensuite la vraie taille du lot (« Série en 14 tomes. Je vends 6 tomes. »).
+
 ### Les garde-fous du motif
 
 Le chiffre doit précéder un mot de support (`tomes`, `volumes`, `mangas`,

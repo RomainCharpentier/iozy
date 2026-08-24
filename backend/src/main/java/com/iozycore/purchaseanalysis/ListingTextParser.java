@@ -192,6 +192,22 @@ public final class ListingTextParser {
     }
 
     /**
+     * Ce qui, juste avant un nombre de tomes, décrit <b>l'œuvre</b> et non le lot.
+     *
+     * <p>Constaté sur une vraie annonce : « Manga Your evil past - Seinen
+     * thriller — <b>Série en 14 tomes</b> », pour un lot qui en contenait
+     * <b>six</b>. Sans ce garde, l'écran annonçait « l'annonce indique 14 tomes,
+     * sans dire lesquels », puis reprochait à l'utilisateur d'en avoir saisi
+     * trop peu. Une phrase parfaitement honnête du vendeur devenait un reproche.
+     *
+     * <p>« Série en 14 tomes » dit la <i>longueur de l'œuvre</i> ; « lot de 9
+     * tomes » dit la <i>taille de la vente</i>. Les deux se ressemblent et ne
+     * veulent pas dire la même chose.
+     */
+    private static final Pattern DECRIT_L_OEUVRE_PAS_LE_LOT = Pattern.compile(
+            "(?i)\\b(?:s[ée]ries?|collections?|sagas?|œuvres?|oeuvres?)\\b[^.;!?]{0,20}$");
+
+    /**
      * Le nombre de tomes annoncé, ou {@code null}.
      *
      * <p>Le <b>premier</b> seulement : « lot de 9 tomes, 3 séries » décrit neuf
@@ -203,13 +219,18 @@ public final class ListingTextParser {
             return null;
         }
         Matcher m = NOMBRE_DE_TOMES.matcher(texte);
-        if (!m.find()) {
-            return null;
+        while (m.find()) {
+            if (DECRIT_L_OEUVRE_PAS_LE_LOT.matcher(texte.substring(0, m.start())).find()) {
+                // Ce nombre-là décrit l'œuvre, pas la vente. On poursuit la
+                // lecture : la même annonce peut donner ensuite la taille du lot.
+                continue;
+            }
+            int n = Integer.parseInt(m.group(1));
+            // 1 tome n'est pas un lot, et au-delà du plafond des numéros ce
+            // n'est plus une taille de lot mais un autre nombre mal lu.
+            return n >= 2 && n <= NUMERO_DE_TOME_MAX ? n : null;
         }
-        int n = Integer.parseInt(m.group(1));
-        // 1 tome n'est pas un lot, et au-delà du plafond des numéros ce n'est
-        // plus une taille de lot mais un autre nombre mal lu.
-        return n >= 2 && n <= NUMERO_DE_TOME_MAX ? n : null;
+        return null;
     }
 
     /**
