@@ -16,14 +16,7 @@ import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,23 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * à l'affichage ne serait pas une barrière de confidentialité - le backend en
  * est une.
  */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class SharedSpaceIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private ShareController shareController;

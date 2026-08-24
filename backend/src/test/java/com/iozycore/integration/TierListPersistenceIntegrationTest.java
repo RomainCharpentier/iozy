@@ -6,13 +6,6 @@ import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.tierlist.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -21,23 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Valide le module de persistance Tier Lists (Flyway V12 + JPA) contre un vrai PostgreSQL - mirrors EditionUpgradeWishPersistenceIntegrationTest. */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class TierListPersistenceIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+class TierListPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private TierListRepository tierListRepository;

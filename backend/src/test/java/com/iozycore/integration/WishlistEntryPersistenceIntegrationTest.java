@@ -10,13 +10,7 @@ import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -27,23 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 /** Validates the WishlistEntry persistence module against a real PostgreSQL - mirrors
  * EditionUpgradeWishPersistenceIntegrationTest. Focused on the retrait ("Retirer de la wishlist") flow :
  * round-trip, idempotence de deleteById, et absence de tout effet de bord sur le catalogue/la collection. */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class WishlistEntryPersistenceIntegrationTest {
+class WishlistEntryPersistenceIntegrationTest extends PostgresIntegrationTest {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
 
     @Autowired
     private WishlistEntryRepository wishlistEntryRepository;

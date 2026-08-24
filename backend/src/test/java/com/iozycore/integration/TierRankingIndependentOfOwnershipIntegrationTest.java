@@ -13,13 +13,6 @@ import com.iozycore.domain.tierlist.EntityRankRepository;
 import com.iozycore.domain.tierlist.Rank;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -46,23 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * questions distinctes - sinon cette file serait noyée sous les œuvres
  * seulement mises en envies.
  */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class TierRankingIndependentOfOwnershipIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+class TierRankingIndependentOfOwnershipIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private TierListController tierListController;

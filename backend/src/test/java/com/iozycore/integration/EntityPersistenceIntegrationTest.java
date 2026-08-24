@@ -21,13 +21,7 @@ import com.iozycore.purchaseanalysis.MarketPriceObservation;
 import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -52,23 +46,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * autres (constaté : le filtre par tag remontait aussi une Entity créée
  * par une méthode précédente).
  */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class EntityPersistenceIntegrationTest {
+class EntityPersistenceIntegrationTest extends PostgresIntegrationTest {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
 
     @Autowired
     private EntityRepository entityRepository;

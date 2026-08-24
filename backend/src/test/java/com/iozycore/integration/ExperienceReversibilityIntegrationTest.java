@@ -9,14 +9,7 @@ import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -39,23 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * le tome concerné restent immuables - se tromper de tome, c'est avoir
  * enregistré une AUTRE expérience.
  */
-@Testcontainers
-@SpringBootTest
-@Transactional
-class ExperienceReversibilityIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("iozycore_test")
-            .withUsername("iozycore")
-            .withPassword("iozycore");
-
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
+class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private ExperienceController experienceController;
@@ -68,7 +45,6 @@ class ExperienceReversibilityIntegrationTest {
     private UUID uneOeuvre(String prefixe) {
         return entityRepository.save(Entity.create(MANGA, prefixe + " " + UUID.randomUUID())).id();
     }
-
 
     @Test
     void une_experience_peut_etre_creee_relue_modifiee_puis_supprimee() {
