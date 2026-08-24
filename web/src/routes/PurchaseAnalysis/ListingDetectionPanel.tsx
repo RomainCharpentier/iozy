@@ -250,8 +250,7 @@ export function ListingDetectionPanel({
           Envoyer mes photos
         </button>
         <span className="text-xs text-textDim">
-          IozyCore y lit les séries et les tomes, puis vous confirmez. Utile quand l'annonce ne
-          nomme rien ou que ses photos ne sont pas récupérables.
+          IozyCore y lit les séries et les tomes, puis vous confirmez.
         </span>
         {refusees && (
           <span className="text-xs text-textDim" role="status">

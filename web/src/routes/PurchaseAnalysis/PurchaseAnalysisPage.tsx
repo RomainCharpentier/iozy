@@ -287,12 +287,26 @@ export function PurchaseAnalysisPage() {
   /**
    * Les champs techniques de l'annonce sont-ils dépliés ?
    *
-   * Fermés dès qu'une URL a été lue avec succès : plateforme, prix, port,
-   * protection, titre et description sont alors déjà connus, et les laisser
-   * ouverts en permanence oblige à relire six champs avant d'arriver à la
-   * seule question qui compte - que contient ce lot.
+   * <b>Fermés d'entrée</b>, et rouverts sur demande. Ils l'étaient auparavant
+   * dès qu'une URL avait été lue - ce qui ne réglait que la moitié du
+   * problème : sur un formulaire vierge, les six champs restaient ouverts et
+   * l'écran faisait 2,2 hauteurs d'écran pour 25 contrôles, avant que
+   * l'utilisateur ait rien saisi.
+   *
+   * <p>Or aucun de ces six champs n'est requis sauf le prix, et tous sont
+   * remplis automatiquement dès qu'un lien est collé - le parcours prévu. Les
+   * garder ouverts au cas où faisait payer à tout le monde le confort du
+   * parcours manuel.
    */
-  const [infosDepliees, setInfosDepliees] = useState(true)
+  const [infosDepliees, setInfosDepliees] = useState(false)
+
+  /** L'état déclaré est-il ouvert ? Fermé d'entrée : il a un défaut sensé. */
+  const [etatDeplie, setEtatDeplie] = useState(false)
+
+  /** Rien de l'annonce n'a encore été saisi ni lu - le tout premier écran. */
+  const rienDeSaisi =
+    !rawTitle.trim() && !askingPrice.trim() && !shippingFee.trim()
+    && !buyerProtectionFee.trim() && !description.trim() && photoUrls.length === 0
 
   /**
    * Le coût affiché sous le bouton, avec le nom que sa complétude autorise.
@@ -467,8 +481,7 @@ export function PurchaseAnalysisPage() {
         </Link>
       </div>
       <p className="text-sm text-textDim">
-        Colle le lien d'une annonce Vinted pour en récupérer le titre, le prix, la description et les photos — ou
-        renseigne tout à la main. Ce qui n'a pas pu être lu reste simplement à compléter.
+        Colle le lien d'une annonce, ou renseigne le lot à la main.
       </p>
 
       <ListingUrlField
@@ -618,6 +631,22 @@ export function PurchaseAnalysisPage() {
               Replier les informations
             </button>
           </>
+        ) : rienDeSaisi ? (
+          /* Rien n'a encore été saisi : le résumé énumérerait trois absences
+             - « Annonce sans titre », « Prix non renseigné », « Port non
+             communiqué » - avant même que l'utilisateur ait commencé. Ce
+             n'est pas un résumé, c'est un reproche. Une invitation à la
+             place. */
+          <button
+            type="button"
+            onClick={() => setInfosDepliees(true)}
+            className="flex min-h-11 items-center justify-between gap-2 rounded-xl bg-surface px-3 text-left"
+          >
+            <span className="text-sm text-textDim">
+              Prix, frais de port, titre… <span className="text-textPrimary">à renseigner</span>
+            </span>
+            <Plus size={16} className="shrink-0 text-accentText" />
+          </button>
         ) : (
           <ListingSummaryCard
             platform={platform}
@@ -737,21 +766,44 @@ export function PurchaseAnalysisPage() {
 
         </section>
 
+        {/* Replié sur sa valeur : ce champ a un défaut sensé (« Très bon
+            état »), et six pastilles plus une case à cocher coûtaient 244 px
+            à quelqu'un qui, huit fois sur dix, ne les touchera pas. Le nom du
+            choix reste lu, donc vérifiable d'un coup d'œil - ce n'est pas
+            l'information qui disparaît, seulement les six façons d'en changer. */}
         <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
-          <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
-          <div className="flex flex-wrap gap-2">
-            {CONDITIONS.map((c) => (
-              <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
-            ))}
-          </div>
-          <label className="mt-1 flex items-center gap-1.5 text-xs text-textDim">
-            <input
-              type="checkbox"
-              checked={conditionAppliesToContainer}
-              onChange={(e) => setConditionAppliesToContainer(e.target.checked)}
-            />
-            Cet état concerne un coffret/boîtier (pèse plus lourd dans le verdict)
-          </label>
+          {etatDeplie ? (
+            <>
+              <h2 className="font-display text-sm font-semibold text-textPrimary">État déclaré</h2>
+              <div className="flex flex-wrap gap-2">
+                {CONDITIONS.map((c) => (
+                  <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c}
+                        onClick={() => setCondition(c)} />
+                ))}
+              </div>
+              <label className="mt-1 flex items-center gap-1.5 text-xs text-textDim">
+                <input
+                  type="checkbox"
+                  checked={conditionAppliesToContainer}
+                  onChange={(e) => setConditionAppliesToContainer(e.target.checked)}
+                />
+                Cet état concerne un coffret/boîtier (pèse plus lourd dans le verdict)
+              </label>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEtatDeplie(true)}
+              className="flex min-h-11 items-center justify-between gap-2 text-left"
+            >
+              <span className="text-sm text-textDim">
+                État déclaré :{' '}
+                <span className="font-medium text-textPrimary">{CONDITION_LABELS[condition]}</span>
+                {conditionAppliesToContainer && <span className="text-textDim"> · coffret</span>}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-accentText underline">Modifier</span>
+            </button>
+          )}
         </section>
 
         {analyzeMutation.isError && <ErrorBanner message={analyzeMutation.error.message} />}
