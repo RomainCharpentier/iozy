@@ -694,6 +694,34 @@ une tranche de manga le code est imprimé verticalement, et un décodeur 1D bala
 par lignes horizontales — sans la rotation il ne verrait rien. Et plusieurs
 codes par photo, car la photo la plus utile d'un lot est une pile vue de dos.
 
+### Le coût caché : l'identification, pas le décodage
+
+Le décodage est gratuit et instantané. L'identification ne l'est pas, et la
+mesure sur cette instance est sans appel :
+
+| | |
+|---|---|
+| Latence d'une identification | **1,4 à 5,5 s** |
+| Échecs mis en cache | **non** — seuls les succès le sont |
+| Codes possibles sur une photo de pile | jusqu'à 12 |
+
+Douze identifications à la file, sur une route **synchrone**, c'est près d'une
+minute d'attente derrière un clic, sans que rien à l'écran n'en dise la raison.
+
+Elles sont donc menées **quatre de front**. Rien ne s'y opposait : elles sont
+indépendantes et le cache est un `ConcurrentHashMap`. Pourquoi quatre et pas
+douze : ces bases sont gratuites et **partagées** — Google Books tourne sur un
+quota anonyme mondial « fréquemment épuisé », et la page « Scanner » comme le
+client iOS tapent au même endroit. Lâcher douze requêtes simultanées pour
+gagner quelques secondes reviendrait à dégrader une autre fonctionnalité pour
+accélérer celle-ci.
+
+L'ordre des propositions suit celui des **photos**, pas celui des réponses :
+sinon la liste danserait d'une analyse à l'autre pour les mêmes images.
+
+**Reste à faire** : mettre en cache les échecs. Un EAN absent des bases est
+re-interrogé à chaque analyse, au prix fort.
+
 ### Se taire plutôt que broder
 
 Un EAN qu'aucune base ne connaît ne produit **rien**. Pas de ligne « EAN
