@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Scale } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getNearCompleteSuggestions } from '../../api/purchaseAnalysis'
 import { searchEntities } from '../../api/entities'
@@ -83,6 +84,18 @@ export function DiscoverOpportunitiesPreview() {
           </button>
         ))}
       </div>
+
+      {/* Le pendant naturel des opportunités : elles disent ce qu'il manque,
+          ceci permet de juger une annonce trouvée ailleurs. Discret - la même
+          route que « Évaluer un achat », pas une fonctionnalité de plus. */}
+      <button
+        type="button"
+        onClick={() => navigate('/purchase-analysis')}
+        className="flex min-h-11 items-center gap-1.5 self-start rounded-lg px-2 text-xs font-semibold text-accent underline underline-offset-2"
+      >
+        <Scale size={13} />
+        Évaluer une annonce
+      </button>
     </div>
   )
 }

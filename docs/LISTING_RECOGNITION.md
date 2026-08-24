@@ -33,6 +33,36 @@ Ce que les photos servaient jusqu'ici : **leur nombre, et rien d'autre**.
 « aucune photo » ou « très peu de photos pour un lot ». Elles n'étaient jamais
 ouvertes.
 
+### Extraction ciblée : retirer les tomes sans casser le titre
+
+Le parser procédait par **suppression globale** : tous les chiffres, toute la
+ponctuation, puis « le reste doit être le titre ». « 20th Century Boys »
+devenait « th Century Boys », « Kaguya-sama: Love Is War » devenait « Kaguya
+sama Love Is War », et aucune normalisation en aval ne pouvait reconstruire ce
+qui était détruit à la source.
+
+Or les chiffres et la ponctuation appartiennent souvent à l'identité d'une
+œuvre : `86`, `7 Seeds`, `009 Re:Cyborg`, `K-ON!`, `D.Gray-man`,
+`Fate/stay night`.
+
+La méthode s'inverse : on **reconnaît l'expression de tomes** et on retire
+*exactement ce segment*, rien d'autre. Puis les mentions commerciales (mot
+entier), puis les séparateurs **aux bords seulement** — c'est ce qui distingue
+le tiret de « Hell's Paradise – Tomes 6 à 10 » de celui de « Kaguya-sama » :
+sa position, pas sa nature.
+
+| Annonce | Titre | Tomes |
+|---|---|---|
+| `20th Century Boys tomes 1 à 5` | `20th Century Boys` | 1–5 |
+| `Kaguya-sama: Love Is War - Tomes 1 à 3` | `Kaguya-sama: Love Is War` | 1–3 |
+| `86 tome 3` | `86` | 3 |
+| `Hell's Paradise – Tomes 6 à 10` | `Hell's Paradise` | 6–10 |
+| `Death Note T1 à T6` | `Death Note` | 1–6 |
+| `Lot manga 20 tomes` | *(aucune proposition)* | — |
+
+Le préfixe de tome est désormais accepté **des deux côtés** d'une plage
+(« T1 à T6 »), et « et » compte comme séparateur de liste (« tomes 1 et 2 »).
+
 ### Le texte de l'annonce : une brique écrite, testée, et longtemps morte
 
 L'audit de la V1 avait relevé que `ListingTextParser` — 217 lignes, une
@@ -439,7 +469,7 @@ ni la clé d'API ni le moindre octet d'image n'apparaissent dans les journaux.
 | **Manga** | Seul univers validé. Le provider décline poliment tout autre `entityTypeCode` plutôt que de répondre n'importe quoi |
 | Jeux vidéo, livres, jeux de société | Architecture prête, comportement **non validé** — donc non proposé |
 | Décodage de code-barres depuis les pixels | **Non fait.** La règle de priorité `EAN` existe et est testée, mais aucun producteur indépendant ne l'alimente : seul le moteur vision peut lire les chiffres aujourd'hui. Un décodeur local viendra remplir le même champ |
-| Lots multi-séries dans le texte | `ListingTextParser` est **mono-série** : « Death Note 1-3 + Bakuman 1-2 » ne rend qu'une série. Non dégradé par la V2, non amélioré non plus — en faire un analyseur de langage naturel serait un autre projet |
+| Lots multi-séries dans le texte | `ListingTextParser` reste **mono-série** : « Death Note 1-3 + Bakuman 1-2 » ne rend qu'une série. Non dégradé par la V2, non amélioré non plus — en faire un analyseur de langage naturel serait un autre projet |
 | Édition lue dans le texte | Le parser n'en extrait pas. Ce sont les photos, le catalogue ou l'utilisateur qui la donnent |
 | Cache d'analyse | Non fait. Le texte est relu à chaque modification (débouncé) mais ne coûte rien ; les photos ne partent que sur un clic |
 | Persistance des candidats non confirmés | **Volontairement absente.** L'analyse enregistrée conserve les éléments **confirmés** ; garder les propositions rejetées et leurs sources gonflerait le JSONB sans usage après confirmation |

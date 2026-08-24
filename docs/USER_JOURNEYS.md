@@ -437,12 +437,36 @@ pendant qu'un menu est ouvert est ignoré ; Échap = Passer.
 ## 6. Parcours — Analyse d'achat
 
 ### 35. Analyser une annonce d'occasion
-**Point de départ** : Rechercher ▸ Évaluer une annonce, Profil ▸ Évaluer un
-achat, ou fiche ▸ « Évaluer une annonce de cette série » (série pré-remplie).
-**Étapes** : coller le lien de l'annonce si on l'a (voir 35 bis, qui pré-remplit
-la suite), plateforme, prix demandé, frais de port, frais de protection, état
-(et « l'état porte sur un coffret »), titre et description ; puis une série
-avec son édition et ses tomes (« 1-11 ») ; **ANALYSER LE LOT**.
+**Point de départ** : Ma collection ▸ « Évaluer un achat », Découvrir ▸
+Opportunités ▸ « Évaluer une annonce », Rechercher, Profil, ou fiche ▸
+« Évaluer une annonce de cette série » (série pré-remplie).
+**Étapes** *(refondues le 2026-08-24)* :
+
+```
+je colle une annonce (ou je saisis à la main)
+↓
+IozyCore récupère ce qu'il peut          → carte résumé, pas un formulaire
+↓
+IozyCore détecte ce qu'il peut           → Contenu du lot déjà pré-rempli
+↓
+je corrige uniquement ce qui manque
+↓
+Évaluer ce lot
+```
+
+**L'annonce lue devient un résumé, pas six champs ouverts.** Plateforme, prix,
+port, protection, titre et description sont déjà connus : ils s'affichent en
+trois lignes avec le coût total, derrière un bouton « Modifier ». Sans URL, le
+formulaire manuel s'affiche normalement — c'est le même écran, pas un mode
+dégradé.
+**La plateforme n'est plus à choisir** quand l'URL la désigne : elle est
+constatée. Les boutons Vinted / Leboncoin / Rakuten / Autre ne servent qu'à la
+saisie manuelle ou à une correction explicite.
+**L'ordre suit l'usage** : source → résumé de l'annonce → **contenu du lot** →
+état déclaré → évaluer. L'état déclaré coupait auparavant l'annonce de ce qui
+est réellement acheté.
+**Le bouton porte ce qu'il va évaluer** : « 5 tomes · coût minimum 51,73 € »
+juste au-dessus d'« Évaluer ce lot ».
 **« Contenu du lot » est la liste qui part à l'analyse** *(2026-08-24)* : elle
 s'affiche en tête de la section, avec son décompte en tomes. Les propositions
 détectées et le formulaire manuel sont deux façons de l'alimenter, présentées
@@ -458,9 +482,20 @@ saisie compte dans le lot telle quelle. Le bouton ne sert qu'à en ajouter une
 **autre**, pour un lot multi-séries. Auparavant, remplir les trois champs puis
 viser « ANALYSER LE LOT » laissait le bouton grisé sans un mot d'explication —
 un cul-de-sac silencieux. Le bouton dit désormais ce qui lui manque.
-**L'édition ne se devine plus** *(2026-08-24)* : les éditions que le catalogue
-connaît pour cette série sont proposées d'un clic, et « Je ne sais pas » est
-toujours offert. C'était le seul endroit du produit où l'on obligeait à
+**L'édition n'est plus une question posée à l'utilisateur** *(2026-08-24)* :
+elle ne figure plus dans le formulaire, entre la série et les tomes. L'ordre
+s'inverse — on saisit **série** et **tomes**, puis IozyCore cherche l'édition et
+affiche ce qu'il a trouvé, sous la ligne :
+
+| État | Affichage |
+|---|---|
+| Une seule édition connue | « Édition · Black Édition » + **Modifier** — retenue pour de bon, pas seulement affichée |
+| Plusieurs candidates | « Édition à confirmer », proposées sans qu'aucune soit choisie d'office |
+| Rien au catalogue | « Édition · non déterminée » + **Préciser** — l'analyse reste possible |
+
+**L'édition ne bloque jamais l'évaluation**, et le message de blocage ne la
+mentionne jamais. Les éditions du catalogue restent proposées d'un clic, et
+« Je ne sais pas » est toujours offert. C'était le seul endroit du produit où l'on obligeait à
 inventer — et une étiquette inventée pouvait correspondre **par accident** à
 une autre édition, faussant la référence marché sans que rien ne le signale.
 Déclarer son ignorance donne une analyse honnête : elle tourne, mais sans la

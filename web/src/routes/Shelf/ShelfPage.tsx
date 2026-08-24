@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, Scale, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { mergeVariantAttributes, searchEntities } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
@@ -188,6 +188,18 @@ export function ShelfPage() {
         >
           <BarChart3 size={15} />
           Valeur
+        </button>
+        {/* « Évaluer un achat » n'était atteignable que sous Rechercher ou
+            Profil : trop loin pour une action qu'on déclenche en tenant son
+            téléphone devant une annonce. Visible ici, mais secondaire - la
+            bibliothèque reste dominante. */}
+        <button
+          type="button"
+          onClick={() => navigate('/purchase-analysis')}
+          className="flex min-h-10 items-center gap-2 rounded-xl border border-fieldBorder px-3.5 text-sm font-semibold text-textDim transition-colors hover:bg-rowHover"
+        >
+          <Scale size={15} />
+          Évaluer un achat
         </button>
         <button
           type="button"
