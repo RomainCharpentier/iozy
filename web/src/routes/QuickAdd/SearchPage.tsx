@@ -16,6 +16,7 @@ import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import { BarcodeLookupField } from './BarcodeLookupField'
 import type { DraftLocationState } from './draftState'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -236,7 +237,7 @@ export function SearchPage() {
                   className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5"
                 >
                   <button type="button" onClick={() => goToEntity(entity)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-                    <span className="flex-1 truncate text-sm font-medium text-textPrimary">{entity.title}</span>
+                    <TexteCoupe texte={entity.title} className="flex-1 truncate text-sm font-medium text-textPrimary" />
                     {/* Deux états bien distincts : possédée, ou seulement
                         connue (fiche existante sans aucun exemplaire - typique
                         d'une œuvre mise en envies). */}
@@ -298,9 +299,11 @@ export function SearchPage() {
                     <span className="h-16 w-11 shrink-0 rounded bg-surface2" />
                   )}
                   <div className="flex min-w-0 flex-col">
-                    <div className="truncate text-sm font-medium text-textPrimary">
-                      {candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
-                    </div>
+                    <TexteCoupe
+                      as="div"
+                      texte={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
+                      className="truncate text-sm font-medium text-textPrimary"
+                    />
                     <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
                   </div>
                 </button>

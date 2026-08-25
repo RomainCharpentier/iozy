@@ -16,6 +16,7 @@ import { creatorFrom } from '../../lib/creatorInfo'
 import { isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
 import type { DraftLocationState } from './draftState'
 import type { VolumeCandidateDto } from '../../types/api'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 interface QuickAddOutcome {
   addedCount: number
@@ -251,8 +252,8 @@ export function AddDraftPage() {
           <span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h1 className="truncate font-display text-xl font-bold text-textPrimary">{title || '…'}</h1>
-          {pickedAuthor && <p className="truncate text-sm text-textDim">{pickedAuthor}</p>}
+          <TexteCoupe as="h1" texte={title || '…'} className="truncate font-display text-xl font-bold text-textPrimary" />
+          {pickedAuthor && <TexteCoupe as="p" texte={pickedAuthor} className="truncate text-sm text-textDim" />}
           {isTranslating && (
             <p className="flex items-center gap-1.5 text-xs text-textDim">
               <Loader2 size={11} className="animate-spin" />

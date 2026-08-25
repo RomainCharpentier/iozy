@@ -11,6 +11,7 @@ import { CreateTierListModal } from './CreateTierListModal'
 import { TierBadge } from './TierBadge'
 import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
@@ -162,7 +163,7 @@ export function TierListsScreen() {
                     to={`/tier-lists/${list.id}`}
                     className="flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
                   >
-                    <span className="truncate text-sm font-semibold text-textPrimary">{list.name}</span>
+                    <TexteCoupe texte={list.name} className="truncate text-sm font-semibold text-textPrimary" />
                     <span className="shrink-0 text-xs text-textDim">
                       {list.rankedCount}/{list.itemCount}
                     </span>
@@ -194,7 +195,7 @@ export function TierListsScreen() {
                   to={`/tier-lists/${list.id}`}
                   className="flex items-center justify-between gap-3 rounded-xl p-2.5 transition-colors hover:bg-rowHover"
                 >
-                  <span className="truncate text-sm font-semibold text-textPrimary">{list.name}</span>
+                  <TexteCoupe texte={list.name} className="truncate text-sm font-semibold text-textPrimary" />
                   <span className="shrink-0 text-xs text-textDim">
                     {list.rankedCount}/{list.itemCount}
                   </span>

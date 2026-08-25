@@ -6,6 +6,7 @@ import { getGeneralBoard, listTierLists } from '../../api/tierLists'
 import { queryKeys } from '../../lib/queryKeys'
 import { boardCounts, flatRankedCovers } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * "Mes Tier Lists" sur Profil (voir DS v1.1 §44 écran Profil) : une rangée
@@ -68,7 +69,7 @@ export function ProfileTierListsSection() {
                 ),
               )}
             </span>
-            <span className="min-w-0 flex-1 truncate text-sm text-textPrimary">{entityType.label}</span>
+            <TexteCoupe texte={entityType.label} className="min-w-0 flex-1 truncate text-sm text-textPrimary" />
             <span className="shrink-0 text-xs font-semibold text-textDim">
               {counts.ranked} classé{counts.ranked > 1 ? 's' : ''}
             </span>
@@ -81,7 +82,7 @@ export function ProfileTierListsSection() {
             to={`/tier-lists/${list.id}`}
             className="flex min-h-12 items-center gap-3 rounded-xl px-1.5 transition-colors hover:bg-rowHover"
           >
-            <span className="min-w-0 flex-1 truncate text-sm text-textPrimary">{list.name}</span>
+            <TexteCoupe texte={list.name} className="min-w-0 flex-1 truncate text-sm text-textPrimary" />
             <span className="shrink-0 text-xs font-semibold text-textDim">
               {list.itemCount} élément{list.itemCount > 1 ? 's' : ''}
             </span>

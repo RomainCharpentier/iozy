@@ -15,6 +15,7 @@ import type {
   RecognizedItemDto,
 } from '../../types/listingRecognition'
 import { EDITION_INCONNUE } from './EditionPicker'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * « Éléments détectés » : les propositions à vérifier avant de les verser dans
@@ -609,7 +610,7 @@ function GroupeSerie({
     <div className="flex flex-col gap-1.5 rounded-lg bg-surface p-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-medium text-textPrimary">{groupe.seriesTitle}</span>
+          <TexteCoupe texte={groupe.seriesTitle} className="truncate text-sm font-medium text-textPrimary" />
           <span className="flex flex-wrap items-center gap-x-2 text-xs">
             {/* La provenance parle de la donnée, jamais du fournisseur d'IA. */}
             <span className="text-textDim">{groupe.sourceLabels.join(' + ')}</span>

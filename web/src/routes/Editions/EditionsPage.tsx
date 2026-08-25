@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EditionObservations } from './EditionObservations'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * "Éditions de référence" - la seule vue d'ensemble du référentiel
@@ -81,7 +82,7 @@ export function EditionsPage() {
               <div key={edition.id} className="flex flex-col gap-1.5 rounded-xl p-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-textPrimary">{edition.editionName}</p>
+                    <TexteCoupe as="p" texte={edition.editionName} className="truncate text-sm font-semibold text-textPrimary" />
                     <p className="text-xs text-textDim">
                       {[
                         edition.totalVolumes !== null ? `${edition.totalVolumes} tomes` : 'Nombre de tomes inconnu',

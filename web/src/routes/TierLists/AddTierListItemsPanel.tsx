@@ -9,6 +9,7 @@ import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isOwned, ownedVariantIds } from '../Shelf/ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * Ajout d'œuvres à une Tier List personnalisée - étape explicite obligatoire
@@ -128,7 +129,7 @@ export function AddTierListItemsPanel({
                       </span>
                     )}
                   </span>
-                  <span className="truncate text-xs font-medium text-textPrimary">{entity.title}</span>
+                  <TexteCoupe texte={entity.title} className="truncate text-xs font-medium text-textPrimary" />
                 </button>
               )
             })}

@@ -9,6 +9,7 @@ import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { RELATIONSHIP_TYPE_PRESETS, relationshipTypeLabel } from '../../types/entityTypes'
 import type { RelationshipDto } from '../../types/api'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * Une relation, telle qu'elle existe vraiment : une œuvre liée, un TYPE, et un
@@ -85,7 +86,7 @@ export function RelationshipRow({
             <span className="h-14 w-10 shrink-0 rounded bg-surface2" />
           )}
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate font-medium text-textPrimary">{otherTitle}</span>
+            <TexteCoupe texte={otherTitle} className="truncate font-medium text-textPrimary" />
             <span className="flex items-center gap-1 text-xs text-textDim">
               {/* Le sens est porté par la flèche ET par les mots : une flèche
                   seule laisse deviner qui adapte qui. */}

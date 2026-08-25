@@ -13,6 +13,7 @@ import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
 import type { DraftLocationState } from '../QuickAdd/draftState'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { MetadataCandidateDto } from '../../types/api'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 interface ScanEntry {
   code: string
@@ -27,6 +28,25 @@ interface ScanEntry {
   // signal que formatAddResultMessage dans QuickAddPage.tsx, resté silencieux
   // ici jusqu'ici : le résultat de quickAdd() n'était même pas lu).
   alreadyOwned?: boolean
+}
+
+/** Ce qu'une ligne de scan raconte, en une phrase.
+ *
+ * Écrit ici plutôt qu'en quatre conditions dans le JSX : le texte devient une
+ * chaîne, donc quelque chose qu'on peut proposer en entier quand la ligne est
+ * trop étroite pour l'afficher (voir TexteCoupe). */
+function libelleEntree(entry: ScanEntry): string {
+  const nom = entry.title ?? entry.code
+  switch (entry.status) {
+    case 'added':
+      return nom
+    case 'skipped':
+      return `${nom} - passé`
+    case 'not-found':
+      return `Rien trouvé pour ${entry.code}`
+    case 'error':
+      return `Échec de la recherche pour ${entry.code}`
+  }
 }
 
 /** Best-effort, jamais autoritaire : le lookup par code-barres (voir
@@ -230,12 +250,7 @@ export function ScanPage() {
               {entry.status === 'skipped' && <SkipForward size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
-              <span className="min-w-0 flex-1 truncate text-textPrimary">
-                {entry.status === 'added' && (entry.title ?? entry.code)}
-                {entry.status === 'skipped' && `${entry.title ?? entry.code} - passé`}
-                {entry.status === 'not-found' && `Rien trouvé pour ${entry.code}`}
-                {entry.status === 'error' && `Échec de la recherche pour ${entry.code}`}
-              </span>
+              <TexteCoupe texte={libelleEntree(entry)} className="min-w-0 flex-1 truncate text-textPrimary" />
               {entry.volumeNumber !== undefined && (
                 <span className="shrink-0 text-xs text-textDim">
                   Tome {entry.volumeNumber}

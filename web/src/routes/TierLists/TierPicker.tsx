@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { TierBadge } from './TierBadge'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { RANKS, type Rank } from '../../types/tierList'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * Popover desktop / bottom sheet mobile - même pattern responsive déjà
@@ -92,9 +93,11 @@ export function TierPicker({
             <span className="h-11 w-8 shrink-0 rounded bg-surface2" />
           )}
           <span className="flex min-w-0 flex-1 flex-col">
-            <span id="tier-picker-title" className="truncate font-display text-sm font-semibold text-textPrimary">
-              {title}
-            </span>
+            <TexteCoupe
+              id="tier-picker-title"
+              texte={title}
+              className="truncate font-display text-sm font-semibold text-textPrimary"
+            />
             {progress && (
               <span className="text-xs text-textDim">
                 Classement rapide · {progress.current} / {progress.total}
