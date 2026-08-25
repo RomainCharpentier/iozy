@@ -16,7 +16,7 @@ const ONGLETS: { cle: OngletFiche; libelle: string; icone: typeof Info }[] = [
  * La barre d'onglets de la fiche - sous 1100px uniquement.
  *
  * <h2>Pourquoi seulement en petit</h2>
- * Au-delà de 1100px la fiche a deux colonnes et montre tout à la fois : des
+ * Au-delà de 900px la fiche a deux colonnes et montre tout à la fois : des
  * onglets n'y cacheraient que ce qu'il y a la place d'afficher. En dessous, la
  * fiche d'une série faisait 2081px de haut - six écrans de téléphone à
  * dérouler pour atteindre ses relations. Trois panneaux courts valent mieux
@@ -37,7 +37,7 @@ export function OngletsFiche({
   onChange: (onglet: OngletFiche) => void
 }) {
   return (
-    <div className="flex gap-1 rounded-xl bg-surface2 p-1 min-[1100px]:hidden">
+    <div className="flex gap-1 rounded-xl bg-surface2 p-1 min-[900px]:hidden">
       {ONGLETS.map(({ cle, libelle, icone: Icone }) => {
         const estActif = cle === actif
         return (

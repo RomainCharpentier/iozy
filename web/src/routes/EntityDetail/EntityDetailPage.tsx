@@ -177,7 +177,7 @@ export function EntityDetailPage() {
    */
   const classePanneau = (nom: OngletFiche) => {
     if (!grilleDeTomes) return 'flex flex-col gap-6'
-    return onglet === nom ? 'flex flex-col gap-6' : 'hidden flex-col gap-6 min-[1100px]:flex'
+    return onglet === nom ? 'flex flex-col gap-6' : 'hidden flex-col gap-6 min-[900px]:flex'
   }
 
   /**
@@ -213,7 +213,34 @@ export function EntityDetailPage() {
           de la jaquette grandit. Remplace l'ancienne bannière horizontale
           h-40 décorative, qui ne permettait pas de reconnaître la jaquette
           (recadrée en fond, jamais montrée entière). */}
-      <div className="flex items-start gap-4 sm:gap-6 md:grid md:grid-cols-[200px_minmax(0,520px)] md:gap-8">
+      {/* Une TROISIÈME colonne au-delà de 1100px. Sans elle, le hero
+          s'arrêtait à 790px dans un conteneur de 1206 : plus de 400px de vide
+          sur toute la hauteur du bloc, en haut de page, là où l'œil arrive
+          d'abord. Le plafond de 560px sur la colonne d'identité est justifié -
+          une barre de progression étirée serait absurde - mais il fallait
+          alors donner un emploi à ce qui reste, pas le laisser blanc.
+
+          Ce qui va à droite, ce sont les ACTIONS : évaluer une annonce,
+          ajouter aux envies. Le bloc d'identité garde ce qui décrit (titre,
+          auteur, type, progression), la troisième colonne prend ce qu'on peut
+          faire. C'est aussi ce qui raccourcit le hero, ces actions
+          l'allongeaient par le bas. */}
+      {/* Flex et non grille, après une fausse piste qui vaut d'être écrite :
+          la version à trois pistes était bien posée sur l'élément et la media
+          query bien active, mais les tuiles restaient à deux. Cause réelle -
+          `md:grid-cols-A` et `min-[1100px]:grid-cols-B` s'appliquent TOUS LES
+          DEUX au-delà de 1100px, et c'est l'ordre source qui tranche, pas la
+          largeur du point de bascule. Deux utilitaires qui se disputent la
+          même propriété sur des paliers imbriqués : à éviter. En flex, aucune
+          concurrence - la ligne se remplit, et ce qui ne tient pas passe
+          dessous.
+
+          Le tout est enveloppé pour que la jaquette et l'identité restent
+          solidaires : c'est un seul bloc qui côtoie les actions, pas deux
+          éléments qui pourraient se retrouver séparés par un retour à la
+          ligne. */}
+      <div className="flex flex-wrap items-start gap-4 sm:gap-6 md:gap-8">
+        <div className="flex min-w-0 items-start gap-4 sm:gap-6 md:gap-8 md:max-w-[792px] md:flex-1">
         <div
           className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36 md:w-[200px]"
           style={montrerCouverture ? undefined : { background: gradientFor(entity.title) }}
@@ -240,7 +267,7 @@ export function EntityDetailPage() {
         </div>
         {/* hero-content : max-width 560px (voir ci-dessus) - important, pas
             1fr/flex-1 sans plafond jusqu'à la largeur du container large. */}
-        <div className="flex min-w-0 flex-col gap-3 md:max-w-[560px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:max-w-[560px]">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5">
               <h1 className="font-display text-2xl font-bold text-textPrimary sm:text-3xl">{entity.title}</h1>
@@ -274,17 +301,29 @@ export function EntityDetailPage() {
               même emplacement conceptuel ("état personnel" du bloc Identité),
               pas de grille de tomes pour ces types donc pas de progression à
               afficher à la place. */}
+          {isManga && activeEditionGroup && (
+            <EditionProgressSection
+              entityId={entityId}
+              entityTitle={entity.title}
+              variants={entity.variants}
+              ownerships={ownerships}
+              displayGroups={editionGroups}
+              activeGroup={activeEditionGroup}
+              onSelectEdition={setActiveEdition}
+            />
+          )}
+        </div>
+        </div>
+
+        {/* ---------- Ce qu'on peut FAIRE ----------
+            `w-full` tant qu'on est sous 1100px : le bloc occupe une ligne
+            entière et passe donc sous la jaquette, comme aujourd'hui. Au-delà,
+            il reprend une largeur naturelle et absorbe ce qui reste de la
+            ligne - ces quatre cents pixels qui restaient blancs en haut de
+            page. */}
+        <div className="flex w-full flex-col gap-3 min-[1100px]:ml-auto min-[1100px]:w-auto min-[1100px]:max-w-[420px] min-[1100px]:min-w-[260px]">
           {isManga && activeEditionGroup ? (
             <>
-              <EditionProgressSection
-                entityId={entityId}
-                entityTitle={entity.title}
-                variants={entity.variants}
-                ownerships={ownerships}
-                displayGroups={editionGroups}
-                activeGroup={activeEditionGroup}
-                onSelectEdition={setActiveEdition}
-              />
               {/* Point d'entrée contextuel vers Analyse d'achat (voir la
                   maquette V1.2, evalFromHere). Libellé et sous-titre
                   explicites : "Évaluer une annonce" seul, posé au milieu
@@ -295,7 +334,7 @@ export function EntityDetailPage() {
                   d'analyse (voir PurchaseAnalysisPage, location.state - même
                   mécanisme que SearchPage -> AddDraftPage), ce qui rend le
                   libellé littéralement vrai plutôt qu'à moitié tenu. */}
-              <div className="flex w-fit flex-col gap-1">
+              <div className="flex w-fit max-w-[420px] flex-col gap-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -411,7 +450,7 @@ export function EntityDetailPage() {
           atteindre des choses qui tiennent côte à côte.
 
           Même point de bascule et même idiome que DiscoverPage, qui fait déjà
-          exactement ça (min-[1100px]:grid + items-start). Une différence
+          exactement ça (min-[900px]:grid + items-start). Une différence
           assumée : minmax(0, …) plutôt que « 1.65fr » nu. Une piste « 1.65fr »
           vaut minmax(auto, 1.65fr), donc plancher au CONTENU - c'est ce
           plancher-là qui, sur DiscoverTierPreview, faisait défiler toute la
@@ -421,7 +460,7 @@ export function EntityDetailPage() {
           type personnalisé, série seulement en envies) : sinon la gauche
           serait vide et la droite porterait tout. */}
       {grilleDeTomes && (
-        <div ref={barreOngletsRef} className="mt-6 min-[1100px]:hidden">
+        <div ref={barreOngletsRef} className="mt-6 min-[900px]:hidden">
           <OngletsFiche actif={onglet} onChange={changerDOnglet} />
         </div>
       )}
@@ -439,7 +478,7 @@ export function EntityDetailPage() {
             validée) - une vraie séparation visuelle, pas la même respiration
             que le reste de la page. */}
         {grilleDeTomes && (
-          <div className={classePanneau('tomes') + ' min-[1100px]:mt-6'}>
+          <div className={classePanneau('tomes') + ' min-[900px]:mt-6'}>
             <TomesGridSection
               entityId={entityId}
               entityTypeId={entity.entityTypeId}
@@ -465,8 +504,8 @@ export function EntityDetailPage() {
         <div
           className={
             grilleDeTomes
-              ? 'contents min-[1100px]:grid min-[1100px]:grid-cols-2 min-[1100px]:gap-6'
-              : 'flex flex-col gap-6 min-[1100px]:grid min-[1100px]:grid-cols-2 min-[1100px]:gap-6'
+              ? 'contents min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:gap-6'
+              : 'flex flex-col gap-6 min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:gap-6'
           }
         >
           {/* ---------- Mon avis : ce que J'EN PENSE ---------- */}
