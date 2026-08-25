@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
 import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
+import { useScrollToTopOnNavigation } from './lib/useScrollToTop'
 
 /**
  * Charge une page à la demande, à partir d'un export NOMMÉ.
@@ -85,7 +86,11 @@ export default function App() {
   // Posé ICI et non dans AppShell : la page de partage public vit hors du
   // shell, et gardait donc le titre de la page précédente - « Manga ·
   // IozyCore » sur un espace partagé. App couvre les deux branches.
-  useDocumentTitleFromHeading(useLocation().pathname)
+  const { pathname } = useLocation()
+  useDocumentTitleFromHeading(pathname)
+  // Posé ici pour la même raison : App couvre les deux branches de routage, y
+  // compris la page de partage public qui vit hors du shell.
+  useScrollToTopOnNavigation(pathname)
 
   return (
     <Suspense fallback={<EnAttente />}>
