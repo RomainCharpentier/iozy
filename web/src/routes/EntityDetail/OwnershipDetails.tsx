@@ -4,7 +4,7 @@ import { MoreHorizontal } from 'lucide-react'
 import { deleteOwnership, markLost, markSold, restoreOwnership, updateNote, updatePurchasePrice } from '../../api/ownerships'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { useToast } from '../../components/Toast'
+import { useToast } from '../../lib/toast'
 import { CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import type { OwnershipResponse } from '../../types/api'
 

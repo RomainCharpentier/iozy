@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addToWishlist, listWishlist, removeFromWishlist, type WishlistTarget } from '../api/wishlist'
-import { useToast } from '../components/Toast'
+import { useToast } from './toast'
 import { queryKeys } from './queryKeys'
 
 /**

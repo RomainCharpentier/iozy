@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { searchEditionsForSeries } from '../../api/purchaseAnalysis'
 import { EditionPicker, EDITION_INCONNUE } from './EditionPicker'
@@ -47,7 +47,14 @@ export function EditionStatusRow({
     staleTime: 5 * 60 * 1000,
   })
 
-  const connues = editionsQuery.data ?? []
+  /**
+   * Mémorisé, et pas seulement pour faire taire le linter : `?? []` fabrique
+   * un tableau NEUF à chaque rendu tant que la requête n'a pas répondu, si
+   * bien que l'effet ci-dessous se réexécutait à chaque rendu. Il en sortait
+   * aussitôt - une liste vide n'a jamais une seule édition - donc rien ne
+   * cassait, mais la dépendance mentait sur ce qui la fait changer.
+   */
+  const connues = useMemo(() => editionsQuery.data ?? [], [editionsQuery.data])
 
   /**
    * Une édition unique au catalogue est adoptée pour de bon, pas seulement

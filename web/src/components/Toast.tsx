@@ -1,17 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-
-interface ToastAction {
-  label: string
-  onAction: () => void
-}
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ToastContext, type ToastAction } from '../lib/toast'
 
 interface ToastState {
   id: number
   message: string
   action?: ToastAction
 }
-
-const ToastContext = createContext<((message: string, action?: ToastAction) => void) | null>(null)
 
 const AUTO_DISMISS_MS = 6000
 
@@ -67,7 +61,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 toast.action?.onAction()
                 setToast(null)
               }}
-              className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-accentText underline"
+              // 44 px comme partout ailleurs. Ce bouton n'apparaît jamais dans
+              // un balayage automatique - le toast n'est dans le DOM que
+              // quelques secondes - et il portait encore py-1.5, soit 34 px.
+              className="flex min-h-11 shrink-0 items-center rounded-lg px-2.5 text-sm font-semibold text-accentText underline"
             >
               {toast.action.label}
             </button>
@@ -76,11 +73,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       )}
     </ToastContext.Provider>
   )
-}
-
-/** Affiche un message bref. Hors d'un ToastProvider, ne fait rien plutôt que de
- * lever - un retour visuel manquant ne doit jamais casser une écriture qui,
- * elle, a réussi. */
-export function useToast() {
-  return useContext(ToastContext) ?? (() => {})
 }
