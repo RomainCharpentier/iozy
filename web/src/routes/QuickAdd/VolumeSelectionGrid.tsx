@@ -2,13 +2,7 @@ import { useState } from 'react'
 import { Check, CheckCheck } from 'lucide-react'
 import { Chip } from '../../components/Chip'
 import type { VolumeCandidateDto } from '../../types/api'
-
-/** Clé stable identifiant un tome dans le Set de sélection - une même série
- * peut avoir plusieurs éditions avec chacune un tome numéro 1, la clé doit
- * donc combiner édition + numéro, jamais le numéro seul. */
-export function volumeKey(v: Pick<VolumeCandidateDto, 'edition' | 'volumeNumber'>): string {
-  return `${v.edition}|${v.volumeNumber}`
-}
+import { volumeKey } from '../../lib/volumeKey'
 
 /**
  * Sélection visuelle des tomes possédés par jaquette (façon Mangacollec) :

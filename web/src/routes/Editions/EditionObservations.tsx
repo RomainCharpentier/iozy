@@ -6,7 +6,7 @@ import {
   recordMarketObservation,
 } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
-import { useToast } from '../../components/Toast'
+import { useToast } from '../../lib/toast'
 import { ErrorBanner } from '../../components/ErrorBanner'
 // Libellés déjà définis pour l'analyse d'achat - les redéfinir ici ferait
 // diverger deux vocabulaires qui décrivent la même chose.
