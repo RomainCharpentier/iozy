@@ -18,14 +18,22 @@ export function EntityTypesPage() {
   const queryClient = useQueryClient()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  /** Le type dont la suppression attend confirmation - même idiome que
+   * EditionsPage : un panneau en ligne, sous la ligne concernée, plutôt qu'un
+   * window.confirm arraché au thème de l'application. */
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const deleteMutation = useMutation({
     mutationFn: deleteEntityType,
     onSuccess: () => {
       setErrorMessage(null)
+      setConfirmingId(null)
       queryClient.invalidateQueries({ queryKey: queryKeys.entityTypes.all })
     },
     onError: (error, id) => {
+      // Le panneau se referme : le message d'erreur vit en haut de page, il
+      // resterait caché derrière une confirmation encore ouverte.
+      setConfirmingId(null)
       const type = entityTypesQuery.data?.find((t) => t.id === id)
       if (error instanceof ApiError && error.status === 409) {
         setErrorMessage(
@@ -70,26 +78,57 @@ export function EntityTypesPage() {
         {(entityTypesQuery.data ?? []).map((type) => {
           const Icon = iconFor(type.code)
           return (
-            <li key={type.id} className="flex items-center gap-3 rounded-xl bg-surface p-3">
-              <Icon size={20} className="shrink-0 text-accentText" />
-              <button
-                type="button"
-                onClick={() => navigate(`/types/${type.id}/edit`)}
-                className="flex min-h-11 flex-1 flex-col justify-center text-left"
-              >
-                <p className="text-sm font-medium text-textPrimary">{type.label}</p>
-                <p className="text-xs text-textDim">{type.code}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteMutation.mutate(type.id)}
-                disabled={deleteMutation.isPending}
-                aria-label={`Supprimer le type ${type.label}`}
-                title={`Supprimer le type ${type.label}`}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-textDim hover:text-dangerText disabled:opacity-50"
-              >
-                <Trash2 size={16} />
-              </button>
+            <li key={type.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3">
+              <div className="flex items-center gap-3">
+                <Icon size={20} className="shrink-0 text-accentText" />
+                <button
+                  type="button"
+                  onClick={() => navigate(`/types/${type.id}/edit`)}
+                  className="flex min-h-11 flex-1 flex-col justify-center text-left"
+                >
+                  <p className="text-sm font-medium text-textPrimary">{type.label}</p>
+                  <p className="text-xs text-textDim">{type.code}</p>
+                </button>
+                {/* Ouvre la confirmation, ne supprime plus directement : la
+                    corbeille est à un doigt du bouton d'édition qui occupe
+                    toute la ligne, et une suppression partait au premier clic
+                    sans rien demander ni rien laisser annuler. */}
+                <button
+                  type="button"
+                  onClick={() => setConfirmingId(confirmingId === type.id ? null : type.id)}
+                  aria-expanded={confirmingId === type.id}
+                  aria-label={`Supprimer le type ${type.label}`}
+                  title={`Supprimer le type ${type.label}`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-textDim hover:bg-dangerTint hover:text-dangerText"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              {confirmingId === type.id && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-dangerTint p-2.5">
+                  <p className="flex-1 text-xs text-textPrimary">
+                    Supprimer « {type.label} » ? Sa couleur, son icône, ses champs personnalisés et ses types
+                    d'expérience seront perdus. Un type encore utilisé par des éléments de ta collection ne peut pas
+                    être supprimé.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate(type.id)}
+                    disabled={deleteMutation.isPending}
+                    className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-dangerInk disabled:opacity-50"
+                  >
+                    Confirmer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(null)}
+                    className="rounded-lg px-2 py-1.5 text-xs text-textDim"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              )}
             </li>
           )
         })}
