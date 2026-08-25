@@ -466,6 +466,7 @@ export function EntityDetailPage() {
         variants={entity.variants}
         relationshipsFrom={relFromQuery.data ?? []}
         relationshipsTo={relToQuery.data ?? []}
+        enDeuxColonnes={grilleDeTomes}
       />
         </div>
       </div>
