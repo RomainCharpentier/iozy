@@ -789,6 +789,35 @@ hook partagé `useModalA11y`, les boutons désactivés portent `not-allowed` et
 une opacité réduite. Les huit `onClick` posés sur des `<div>` sont tous des
 voiles de modale — un motif légitime, doublé du clavier par le hook.
 
+### C9 — Le contraste est bon, et rien ne le gardait · **traité**
+
+Balayage étendu à ce qui n'avait jamais été regardé : **1280 px** (les mises en
+page `md:` n'avaient jamais été rendues) et le **thème clair**. Les deux sont
+conformes — aucun débordement, aucune cible sous 44 px, aucun mauvais curseur.
+
+Le contraste, lui, se calcule sans navigateur. Résultat sur **116 combinaisons**
+(16 couleurs de texte × 3 fonds, les encres posées sur remplissage, les sept
+pastilles de rang — le tout dans les deux thèmes) : **aucune sous 4.5:1**. Les
+dizaines de commentaires d'`index.css` qui racontent des teintes assombries d'un
+cheveu pour passer AA décrivent un travail réel et abouti.
+
+Mais rien ne le gardait. Un token ajouté demain pouvait le défaire en silence —
+et c'est déjà arrivé dans l'autre sens : `text-warningText` a été écrit pendant
+des mois sans que le token existe (§C6). D'où `npm run check:contrast`, un
+script Node **sans aucune dépendance** : le dépôt web n'a pas de lanceur de
+tests, et en introduire un pour cette seule vérification aurait été
+disproportionné.
+
+Le script porte une connaissance que le CSS ne dit pas : **une couleur est un
+texte ou un remplissage**, et le seuil ne se calcule pas pareil. Les
+`--color-rank-*` en sont l'exemple — des pastilles sur lesquelles on écrit une
+lettre. Les tester comme du texte sur le fond de la page a d'abord produit un
+faux positif (`rank-a` à 4,32), corrigé en lisant `TierBadge.tsx`.
+
+**Le contrôle sait échouer**, ce qui a été vérifié plutôt que supposé : une
+teinte éclaircie sort en code 1 avec les trois fonds fautifs nommés, un token
+renommé sort en code 2.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
