@@ -1,75 +1,134 @@
-import { Route, Routes } from 'react-router-dom'
+import { Suspense, lazy, type ComponentType } from 'react'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
-import { SearchPage } from './routes/QuickAdd/SearchPage'
-import { AddDraftPage } from './routes/QuickAdd/AddDraftPage'
-import { EntityDetailPage } from './routes/EntityDetail/EntityDetailPage'
-import { WishlistPage } from './routes/Wishlist/WishlistPage'
-import { StatsPage } from './routes/Stats/StatsPage'
-import { EntityTypesPage } from './routes/EntityTypes/EntityTypesPage'
-import { EntityTypeFormPage } from './routes/EntityTypes/EntityTypeFormPage'
-import { SettingsPage } from './routes/Settings/SettingsPage'
-import { PurchaseAnalysisPage } from './routes/PurchaseAnalysis/PurchaseAnalysisPage'
-import { ProfilePage } from './routes/Profile/ProfilePage'
-import { ImportBggPage } from './routes/Profile/ImportBggPage'
-import { AdministrationPage } from './routes/Profile/AdministrationPage'
-import { EditionUpgradesPage } from './routes/EditionUpgrades/EditionUpgradesPage'
-import { SuggestionsPage } from './routes/Suggestions/SuggestionsPage'
-import { CollectionRecapPage } from './routes/Recap/CollectionRecapPage'
-import { ScanPage } from './routes/Scan/ScanPage'
-import { AnalysisHistoryPage } from './routes/PurchaseAnalysis/AnalysisHistoryPage'
-import { AnalysisHistoryDetailPage } from './routes/PurchaseAnalysis/AnalysisHistoryDetailPage'
-import { DiscoverPage } from './routes/Discover/DiscoverPage'
-import { CategoryPage } from './routes/Shelf/CategoryPage'
-import { GeneralTierBoardPage } from './routes/TierLists/GeneralTierBoardPage'
-import { CustomTierBoardPage } from './routes/TierLists/CustomTierBoardPage'
-import { TierListsScreen } from './routes/TierLists/TierListsScreen'
-import { SharedSpacePage } from './routes/Share/SharedSpacePage'
-import { EditionsPage } from './routes/Editions/EditionsPage'
+import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
+
+/**
+ * Charge une page à la demande, à partir d'un export NOMMÉ.
+ *
+ * `React.lazy` attend un module dont l'export est `default` ; toutes les pages
+ * de ce dépôt exportent leur composant par son nom, ce qui se lit bien mieux à
+ * l'import. Ce petit adaptateur évite d'avoir à changer vingt-six fichiers
+ * pour satisfaire une contrainte d'API.
+ */
+function page<M extends Record<string, unknown>, K extends keyof M>(
+  charger: () => Promise<M>,
+  nom: K,
+) {
+  return lazy(() => charger().then((m) => ({ default: m[nom] as ComponentType })))
+}
+
+// Chargées à la demande. Seul ShelfPage reste dans le lot initial : c'est la
+// page d'accueil, et la charger en différé ne ferait qu'ajouter une attente
+// là où il n'y a rien à économiser.
+const SearchPage = page(() => import('./routes/QuickAdd/SearchPage'), 'SearchPage')
+const AddDraftPage = page(() => import('./routes/QuickAdd/AddDraftPage'), 'AddDraftPage')
+const EntityDetailPage = page(() => import('./routes/EntityDetail/EntityDetailPage'), 'EntityDetailPage')
+const DiscoverPage = page(() => import('./routes/Discover/DiscoverPage'), 'DiscoverPage')
+const TierListsScreen = page(() => import('./routes/TierLists/TierListsScreen'), 'TierListsScreen')
+const GeneralTierBoardPage = page(() => import('./routes/TierLists/GeneralTierBoardPage'), 'GeneralTierBoardPage')
+const CustomTierBoardPage = page(() => import('./routes/TierLists/CustomTierBoardPage'), 'CustomTierBoardPage')
+const CategoryPage = page(() => import('./routes/Shelf/CategoryPage'), 'CategoryPage')
+const PurchaseAnalysisPage = page(() => import('./routes/PurchaseAnalysis/PurchaseAnalysisPage'), 'PurchaseAnalysisPage')
+const AnalysisHistoryPage = page(() => import('./routes/PurchaseAnalysis/AnalysisHistoryPage'), 'AnalysisHistoryPage')
+const AnalysisHistoryDetailPage = page(
+  () => import('./routes/PurchaseAnalysis/AnalysisHistoryDetailPage'), 'AnalysisHistoryDetailPage')
+const ProfilePage = page(() => import('./routes/Profile/ProfilePage'), 'ProfilePage')
+const ImportBggPage = page(() => import('./routes/Profile/ImportBggPage'), 'ImportBggPage')
+const AdministrationPage = page(() => import('./routes/Profile/AdministrationPage'), 'AdministrationPage')
+const EditionUpgradesPage = page(() => import('./routes/EditionUpgrades/EditionUpgradesPage'), 'EditionUpgradesPage')
+const SuggestionsPage = page(() => import('./routes/Suggestions/SuggestionsPage'), 'SuggestionsPage')
+const CollectionRecapPage = page(() => import('./routes/Recap/CollectionRecapPage'), 'CollectionRecapPage')
+const ScanPage = page(() => import('./routes/Scan/ScanPage'), 'ScanPage')
+const WishlistPage = page(() => import('./routes/Wishlist/WishlistPage'), 'WishlistPage')
+const StatsPage = page(() => import('./routes/Stats/StatsPage'), 'StatsPage')
+const EditionsPage = page(() => import('./routes/Editions/EditionsPage'), 'EditionsPage')
+const EntityTypesPage = page(() => import('./routes/EntityTypes/EntityTypesPage'), 'EntityTypesPage')
+const SettingsPage = page(() => import('./routes/Settings/SettingsPage'), 'SettingsPage')
+const SharedSpacePage = page(() => import('./routes/Share/SharedSpacePage'), 'SharedSpacePage')
+
+/**
+ * EntityTypeFormPage prend une prop : `lazy` rend un composant, pas un
+ * élément, donc la prop se passe normalement à l'usage.
+ */
+const EntityTypeFormPage = lazy(() =>
+  import('./routes/EntityTypes/EntityTypeFormPage').then((m) => ({ default: m.EntityTypeFormPage })),
+)
+
+/**
+ * Ce qui s'affiche pendant qu'une page arrive.
+ *
+ * Volontairement muet - pas de « Chargement… », pas d'animation. Sur une
+ * connexion normale un lot de route arrive en quelques dizaines de
+ * millisecondes : un mot qui apparaît puis disparaît aussitôt se lit comme un
+ * clignotement, pas comme une information. La hauteur réservée évite que le
+ * pied de page ne remonte puis redescende.
+ */
+function EnAttente() {
+  return <div className="min-h-[50vh]" aria-hidden="true" />
+}
 
 /** La route /public/share/:token vit hors AppShell (voir SharedSpacePage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de
  * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
- * naviguer. Tout le reste de l'app reste dans AppShell, inchangé. */
+ * naviguer. Tout le reste de l'app reste dans AppShell, inchangé.
+ *
+ * <p><b>Les pages sont chargées à la demande</b> depuis ce fichier. Tout
+ * partait auparavant dans un lot unique de 580 Ko : quelqu'un qui ouvre « Ma
+ * collection » téléchargeait la fiche d'une œuvre, l'analyse d'achat, les Tier
+ * Lists et l'administration avant de voir sa première jaquette. Les deux plus
+ * gros écrans - fiche d'œuvre et analyse d'achat - pèsent à eux seuls plus de
+ * la moitié du code de routes, et ni l'un ni l'autre n'est la page d'accueil.
+ */
 export default function App() {
+  // Posé ICI et non dans AppShell : la page de partage public vit hors du
+  // shell, et gardait donc le titre de la page précédente - « Manga ·
+  // IozyCore » sur un espace partagé. App couvre les deux branches.
+  useDocumentTitleFromHeading(useLocation().pathname)
+
   return (
-    <Routes>
-      <Route path="/public/share/:token" element={<SharedSpacePage />} />
-      <Route
-        path="/*"
-        element={
-          <AppShell>
-            <Routes>
-              <Route path="/" element={<ShelfPage />} />
-              <Route path="/add" element={<SearchPage />} />
-              <Route path="/add/draft" element={<AddDraftPage />} />
-              <Route path="/entity/:id" element={<EntityDetailPage />} />
-              <Route path="/discover" element={<DiscoverPage />} />
-              <Route path="/tier-lists" element={<TierListsScreen />} />
-              <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
-              <Route path="/tier-lists/:id" element={<CustomTierBoardPage />} />
-              <Route path="/collection/:entityTypeId" element={<CategoryPage />} />
-              <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
-              <Route path="/purchase-analysis/history" element={<AnalysisHistoryPage />} />
-              <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/import-bgg" element={<ImportBggPage />} />
-              <Route path="/administration" element={<AdministrationPage />} />
-              <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
-              <Route path="/suggestions" element={<SuggestionsPage />} />
-              <Route path="/recap" element={<CollectionRecapPage />} />
-              <Route path="/scan" element={<ScanPage />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              <Route path="/stats" element={<StatsPage />} />
-              <Route path="/editions" element={<EditionsPage />} />
-              <Route path="/types" element={<EntityTypesPage />} />
-              <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
-              <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
-          </AppShell>
-        }
-      />
-    </Routes>
+    <Suspense fallback={<EnAttente />}>
+      <Routes>
+        <Route path="/public/share/:token" element={<SharedSpacePage />} />
+        <Route
+          path="/*"
+          element={
+            <AppShell>
+              <Suspense fallback={<EnAttente />}>
+                <Routes>
+                  <Route path="/" element={<ShelfPage />} />
+                  <Route path="/add" element={<SearchPage />} />
+                  <Route path="/add/draft" element={<AddDraftPage />} />
+                  <Route path="/entity/:id" element={<EntityDetailPage />} />
+                  <Route path="/discover" element={<DiscoverPage />} />
+                  <Route path="/tier-lists" element={<TierListsScreen />} />
+                  <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
+                  <Route path="/tier-lists/:id" element={<CustomTierBoardPage />} />
+                  <Route path="/collection/:entityTypeId" element={<CategoryPage />} />
+                  <Route path="/purchase-analysis" element={<PurchaseAnalysisPage />} />
+                  <Route path="/purchase-analysis/history" element={<AnalysisHistoryPage />} />
+                  <Route path="/purchase-analysis/history/:id" element={<AnalysisHistoryDetailPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/import-bgg" element={<ImportBggPage />} />
+                  <Route path="/administration" element={<AdministrationPage />} />
+                  <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
+                  <Route path="/suggestions" element={<SuggestionsPage />} />
+                  <Route path="/recap" element={<CollectionRecapPage />} />
+                  <Route path="/scan" element={<ScanPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/stats" element={<StatsPage />} />
+                  <Route path="/editions" element={<EditionsPage />} />
+                  <Route path="/types" element={<EntityTypesPage />} />
+                  <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
+                  <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </Suspense>
+            </AppShell>
+          }
+        />
+      </Routes>
+    </Suspense>
   )
 }

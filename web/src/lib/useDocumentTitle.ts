@@ -41,7 +41,11 @@ export function useDocumentTitleFromHeading(pathname: string): void {
       document.title = propre ? `${propre} · ${BASE}` : BASE
     }
 
-    const lire = () => document.querySelector('main h1')?.textContent
+    // `main h1` d'abord, puis n'importe quel `h1` : la page de partage public
+    // vit hors du shell et n'a pas de `<main>`. Sans ce repli elle gardait le
+    // titre de base alors qu'elle affiche bien un titre.
+    const lire = () =>
+      (document.querySelector('main h1') ?? document.querySelector('h1'))?.textContent
 
     const immediat = lire()
     if (immediat?.trim()) {
@@ -53,7 +57,8 @@ export function useDocumentTitleFromHeading(pathname: string): void {
     // laisser celui de la page précédente, qui serait faux.
     appliquer(null)
 
-    const cible = document.querySelector('main')
+    // Même repli pour l'observation : sans `<main>`, on surveille le corps.
+    const cible = document.querySelector('main') ?? document.body
     if (!cible) return
 
     const observateur = new MutationObserver(() => {
