@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 const MAX_PREVIEW = 3
 
@@ -65,11 +66,11 @@ export function DiscoverOpportunitiesPreview() {
             onClick={() => navigate(`/entity/${s.entityId}`)}
             className="flex w-full items-center gap-3 rounded-2xl border border-surface2 bg-surface p-3 text-left shadow-token-sm transition-transform hover:-translate-y-0.5"
           >
-            {coverByEntityId.get(s.entityId) ? (
-              <img src={coverByEntityId.get(s.entityId)!} alt="" className="h-[58px] w-10 shrink-0 rounded-md object-cover" />
-            ) : (
-              <span className="h-[58px] w-10 shrink-0 rounded-md bg-surface2" />
-            )}
+            <Jaquette
+              src={coverByEntityId.get(s.entityId)}
+              className="h-[58px] w-10 shrink-0 rounded-md object-cover"
+              repli={<span className="h-[58px] w-10 shrink-0 rounded-md bg-surface2" />}
+            />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <TexteCoupe texte={s.seriesTitle} className="truncate text-sm font-semibold text-textPrimary" />
               <TexteCoupe texte={s.editionName} className="truncate text-xs text-textDim" />

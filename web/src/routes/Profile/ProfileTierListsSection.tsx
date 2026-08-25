@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { boardCounts, flatRankedCovers } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * "Mes Tier Lists" sur Profil (voir DS v1.1 §44 écran Profil) : une rangée
@@ -61,13 +62,14 @@ export function ProfileTierListsSection() {
             className="flex min-h-12 items-center gap-3 rounded-xl px-1.5 transition-colors hover:bg-rowHover"
           >
             <span className="flex shrink-0 gap-0.5">
-              {covers.map((cover, i) =>
-                cover ? (
-                  <img key={i} src={cover} alt="" className="h-6 w-4 rounded-[3px] object-cover" />
-                ) : (
-                  <span key={i} className="h-6 w-4 rounded-[3px] bg-surface2" />
-                ),
-              )}
+              {covers.map((cover, i) => (
+                <Jaquette
+                  key={i}
+                  src={cover}
+                  className="h-6 w-4 rounded-[3px] object-cover"
+                  repli={<span className="h-6 w-4 rounded-[3px] bg-surface2" />}
+                />
+              ))}
             </span>
             <TexteCoupe texte={entityType.label} className="min-w-0 flex-1 truncate text-sm text-textPrimary" />
             <span className="shrink-0 text-xs font-semibold text-textDim">

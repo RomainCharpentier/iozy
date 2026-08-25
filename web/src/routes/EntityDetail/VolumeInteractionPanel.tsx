@@ -12,6 +12,7 @@ import { OwnershipDetails } from './OwnershipDetails'
 import { VariantNumberEditor } from './VariantNumberEditor'
 import type { TomeTile } from './TomesGridSection'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
+import { Jaquette } from '../../components/Jaquette'
 
 /** Correction de la jaquette du TOME (Variant) - jamais mélangée avec "Ma
  * copie" (voir OwnershipDetails) : la jaquette appartient au catalogue, pas
@@ -174,13 +175,15 @@ export function VolumeInteractionPanel({
         className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl md:inset-x-auto md:right-0 md:top-16 md:bottom-0 md:max-h-none md:w-[min(420px,90vw)] md:rounded-none md:rounded-l-2xl md:border-l md:border-surface2"
       >
         <div className="flex items-start gap-3 border-b border-surface2 p-4">
-          {coverUrl ? (
-            <img src={coverUrl} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" />
-          ) : (
-            <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-lg bg-surface2 font-display text-lg font-semibold text-textDim">
-              {activeTile.volumeNumber}
-            </div>
-          )}
+          <Jaquette
+            src={coverUrl}
+            className="h-24 w-16 shrink-0 rounded-lg object-cover"
+            repli={
+              <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-lg bg-surface2 font-display text-lg font-semibold text-textDim">
+                {activeTile.volumeNumber}
+              </div>
+            }
+          />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
             <h2 className="font-display text-lg font-bold text-textPrimary">Tome {activeTile.volumeNumber}</h2>
             {editionName && <p className="text-sm text-textDim">{editionName}</p>}

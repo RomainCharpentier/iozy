@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TierBadge } from './TierBadge'
 import { RANKS, type Rank, type TierListEntryDto } from '../../types/tierList'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Board de classement, présentation pure - partagé entre le classement
@@ -119,13 +120,15 @@ export function TierBoard({
                     draggedEntry?.entityId === entry.entityId ? 'opacity-40' : ''
                   }`}
                 >
-                  {entry.coverImageUrl ? (
-                    <img src={entry.coverImageUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
-                      {entry.title}
-                    </span>
-                  )}
+                  <Jaquette
+                    src={entry.coverImageUrl}
+                    className="h-full w-full object-cover"
+                    repli={
+                      <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
+                        {entry.title}
+                      </span>
+                    }
+                  />
                 </button>
               ))}
             </div>
@@ -161,13 +164,15 @@ export function TierBoard({
                   draggedEntry?.entityId === entry.entityId ? 'opacity-40' : ''
                 }`}
               >
-                {entry.coverImageUrl ? (
-                  <img src={entry.coverImageUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
-                    {entry.title}
-                  </span>
-                )}
+                <Jaquette
+                  src={entry.coverImageUrl}
+                  className="h-full w-full object-cover"
+                  repli={
+                    <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
+                      {entry.title}
+                    </span>
+                  }
+                />
               </button>
             ))}
           </div>

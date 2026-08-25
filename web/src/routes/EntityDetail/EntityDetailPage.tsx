@@ -64,6 +64,13 @@ export function EntityDetailPage() {
   // (règle des Hooks), même si sa valeur ne prend son sens qu'une fois
   // `entity` chargée.
   const [activeEdition, setActiveEdition] = useState<string | null>(null)
+  // La jaquette la plus visible de l'application n'avait aucun filet : une URL
+  // qui ne repond plus laissait 112 x 168 pixels de vide, sans meme un fond
+  // derriere. Le degrade existait pourtant deja, juste en dessous - il ne
+  // servait qu'au cas "pas de jaquette du tout". Meme forme que CoverTile.
+  // On memorise l'URL fautive et non un booleen : sinon, corriger la couverture
+  // laisserait le degrade affiche pour la nouvelle, qui n'a jamais echoue.
+  const [couvertureEnEchec, setCouvertureEnEchec] = useState<string | null>(null)
 
   // 5 requêtes indépendantes déclenchées en parallèle (React Query émet
   // chaque useQuery dès le rendu, pas de chaînage séquentiel) - même
@@ -125,6 +132,7 @@ export function EntityDetailPage() {
   const experiences = experiencesQuery.data ?? []
 
   const coverImageUrl = coverImageUrlFrom(entity.attributes)
+  const montrerCouverture = !!coverImageUrl && coverImageUrl !== couvertureEnEchec
   // mangaka (Manga) ou studio (Jeu vidéo) - voir creatorInfo.ts. Rien pour
   // Jeu de société tant qu'aucune source ne fournit réellement cette donnée.
   const author = creatorFrom(entity.attributes)
@@ -154,9 +162,16 @@ export function EntityDetailPage() {
       <div className="flex items-start gap-4 sm:gap-6 md:grid md:grid-cols-[200px_minmax(0,520px)] md:gap-8">
         <div
           className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl sm:w-36 md:w-[200px]"
-          style={coverImageUrl ? undefined : { background: gradientFor(entity.title) }}
+          style={montrerCouverture ? undefined : { background: gradientFor(entity.title) }}
         >
-          {coverImageUrl && <img src={coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+          {montrerCouverture && (
+            <img
+              src={coverImageUrl}
+              alt=""
+              onError={() => setCouvertureEnEchec(coverImageUrl)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
           <button
             type="button"
             onClick={() => {

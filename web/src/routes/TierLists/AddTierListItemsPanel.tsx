@@ -10,6 +10,7 @@ import { isOwned, ownedVariantIds } from '../Shelf/ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Ajout d'œuvres à une Tier List personnalisée - étape explicite obligatoire
@@ -116,13 +117,15 @@ export function AddTierListItemsPanel({
                   className="flex flex-col gap-1.5 text-left"
                 >
                   <span className={`relative aspect-[2/3] overflow-hidden rounded-lg ring-2 transition-colors ${checked ? 'ring-accent' : 'ring-transparent'}`}>
-                    {cover ? (
-                      <img src={cover} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center bg-surface2 px-1 text-center text-[10px] text-textDim">
-                        {entity.title}
-                      </span>
-                    )}
+                    <Jaquette
+                      src={cover}
+                      className="h-full w-full object-cover"
+                      repli={
+                        <span className="flex h-full w-full items-center justify-center bg-surface2 px-1 text-center text-[10px] text-textDim">
+                          {entity.title}
+                        </span>
+                      }
+                    />
                     {checked && (
                       <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk">
                         <Check size={12} strokeWidth={3} />
