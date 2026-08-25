@@ -723,6 +723,35 @@ sujet avait été pensé, et que seule la gratuité de la v3 avait masqué le tr
 
 **Vérifié sur les 12 routes** : plus aucun contrôle avec le mauvais curseur.
 
+#### Et le survol disait le contraire de ce qu'il voulait dire
+
+Suggestion faite dans la foulée — « si on changeait la couleur au survol ? ».
+Elle touchait un défaut plus profond que l'esthétique.
+
+Le survol global posait `opacity: 0.85`. Or **`disabled` s'écrit `opacity-50`**
+dans tout le dépôt : l'application disait « moins opaque » à la fois pour « tu
+peux interagir » et pour « tu ne peux pas », et ne les distinguait que par la
+*quantité*. Survoler un bouton le faisait pâlir — le geste exact qui doit le
+faire avancer. S'y ajoutait un cumul : une centaine de contrôles déclarent déjà
+leur propre survol (`hover:bg-rowHover` ×30, `hover:text-textPrimary` ×29), et
+l'opacité globale se posait par-dessus, si bien qu'ils changeaient de couleur
+**et** pâlissaient.
+
+Le remplaçant est `filter: brightness()`, et le choix mérite d'être expliqué :
+toute propriété **unique** finit par écraser celle d'un composant. Un voile en
+`background-image` — la première tentative — aurait effacé le dégradé de
+l'avatar de profil ; un `box-shadow: inset` aurait effacé les vingt-six
+`shadow-token-*` du dépôt. `filter` n'entre en collision avec rien, n'étant
+utilisé nulle part ailleurs, et agit sur le rendu entier : un fond plein
+s'assombrit, un dégradé s'assombrit sans se défaire, un bouton sans fond voit
+son texte foncer.
+
+Le sens s'inverse avec le thème — `0.93` en clair, `1.18` en sombre — et
+`filter` a été ajouté à la liste des transitions, sans quoi il aurait été le
+seul changement d'état instantané de l'application. Vérifié aussi qu'aucun
+contrôle ne contient de descendant `position: fixed`, que `filter` aurait
+recadré.
+
 **Le reste de la famille est sain**, contrôlé dans la foulée plutôt que
 supposé : l'anneau de focus clavier apparaît bien (2 px accent, offset 2 px,
 `:focus-visible`), les modales se ferment à Échap et piègent le focus via le

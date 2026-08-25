@@ -274,12 +274,42 @@ body {
    `focus:outline-none` était déjà posé, sans indicateur de remplacement. */
 button, a, input, textarea, select {
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
-    opacity 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    opacity 150ms ease, box-shadow 150ms ease, transform 150ms ease, filter 150ms ease;
+}
+
+/* Le survol change la COULEUR, il ne baisse plus l'opacité.
+
+   L'ancienne règle posait `opacity: 0.85`. Deux défauts, dont un de fond :
+
+   - `disabled` s'écrit `opacity-50` dans tout le dépôt. L'application disait
+     donc « moins opaque » à la fois pour « tu peux interagir » et pour « tu ne
+     peux pas », et ne les distinguait que par la QUANTITÉ. Survoler un bouton
+     le faisait légèrement pâlir - le geste exact qui doit le faire avancer ;
+   - une centaine de contrôles déclarent déjà leur propre survol
+     (`hover:bg-rowHover`, `hover:text-textPrimary`…). L'opacité globale se
+     cumulait par-dessus, si bien qu'ils changeaient de couleur ET pâlissaient.
+
+   Pourquoi `filter` et pas un voile de fond. Toute propriété UNIQUE finit par
+   écraser celle d'un composant : un voile en `background-image` aurait effacé
+   le dégradé de l'avatar de profil, un `box-shadow: inset` aurait effacé les
+   vingt-six `shadow-token-*` du dépôt. `filter` n'entre en collision avec
+   rien - il n'est utilisé nulle part ailleurs - et agit sur le rendu ENTIER :
+   un fond plein s'assombrit, un dégradé s'assombrit sans se défaire, et un
+   bouton sans fond voit son texte foncer, ce qui reste un signal.
+
+   Le sens s'inverse avec le thème : assombrir sur fond clair, éclaircir sur
+   fond sombre. Un seul facteur, deux valeurs. */
+:root {
+  --hover-brightness: 0.93;
+}
+
+[data-theme="dark"] {
+  --hover-brightness: 1.18;
 }
 
 button:not(:disabled):hover,
 a:hover {
-  opacity: 0.85;
+  filter: brightness(var(--hover-brightness));
 }
 
 /* Le curseur main sur ce qui se clique.
