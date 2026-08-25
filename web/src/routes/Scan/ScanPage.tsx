@@ -49,6 +49,13 @@ function libelleEntree(entry: ScanEntry): string {
   }
 }
 
+/** Le titre de l'écran, défini une seule fois : il est rendu dans les trois
+ * états de la page (chargement, pas de type Manga, écran normal) et deux
+ * copies du même h1 finiraient par diverger. */
+function TitreScan() {
+  return <h1 className="font-display text-2xl font-bold text-textPrimary">Scan rapide</h1>
+}
+
 /** Best-effort, jamais autoritaire : le lookup par code-barres (voir
  * BarcodeLookupField) ne renvoie pas de volumeNumber structuré - les
  * providers ISBN (Google Books/Open Library) mettent parfois "Tome N" ou
@@ -160,15 +167,26 @@ export function ScanPage() {
     setPending(null)
   }
 
-  if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
-
-  if (!mangaType) {
-    return <p className="text-textDim">Aucun type "Manga" configuré - le scan par code-barres n'a de sens que pour des mangas.</p>
+  // Le titre reste dans les deux impasses ci-dessous. Une page qui remplace
+  // TOUT son contenu par une ligne de texte perd son h1 - donc le titre de son
+  // onglet, que useDocumentTitle lit dessus, et son seul repère de structure
+  // pour un lecteur d'écran.
+  if (entityTypesQuery.isLoading || !mangaType) {
+    return (
+      <div className="flex flex-col gap-4">
+        <TitreScan />
+        <p className="text-textDim">
+          {entityTypesQuery.isLoading
+            ? 'Chargement...'
+            : 'Aucun type "Manga" configuré - le scan par code-barres n\'a de sens que pour des mangas.'}
+        </p>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Scan rapide</h1>
+      <TitreScan />
       <p className="text-sm text-textDim">
         Pointe la caméra sur le code-barres de chaque tome, à la suite. Chaque tome reconnu ouvre un menu qui te
         demande quoi en faire - rien n'est enregistré sans toi. Le numéro de tome est déduit du titre quand c'est

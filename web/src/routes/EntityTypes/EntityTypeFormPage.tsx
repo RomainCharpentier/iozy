@@ -117,8 +117,18 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
     mutation.mutate()
   }
 
+  // Le retour anticipé est le bon choix ici - rendre le formulaire pendant le
+  // chargement montrerait des champs vides qui se rempliraient sous les doigts
+  // de qui a commencé à taper. Mais le titre, lui, reste : sans h1 la page perd
+  // le titre de son onglet (useDocumentTitle le lit dessus) et son repère de
+  // structure. Ce cas n'existe qu'en mode édition, d'où le titre en dur.
   if (mode === 'edit' && entityTypesQuery.isLoading) {
-    return <p className="text-textDim">Chargement...</p>
+    return (
+      <div className="flex flex-col gap-5">
+        <h1 className="font-display text-2xl font-bold text-textPrimary">Modifier le type</h1>
+        <p className="text-textDim">Chargement...</p>
+      </div>
+    )
   }
 
   return (
