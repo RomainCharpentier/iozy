@@ -944,6 +944,32 @@ fausse erreur à chaque frappe. Il est ré-émis tel quel.
 Vérifié dans les deux sens : le message français remplace bien l'anglais quand
 l'API tombe, et la page se remplit normalement dès qu'elle revient.
 
+### C14 — Deux écrans vides sans rien dire · **traité**
+
+Recensement des vingt-deux pages qui rendent une liste : lesquelles prévoient
+le cas où elle est vide ? Cinq n'avaient rien. Trois sont des **faux
+positifs** — `DiscoverPage`, `ProfilePage` et `AdministrationPage` itèrent sur
+des constantes (`TABS`, `LINKS`), jamais sur des données. Restaient deux cas
+réels, tous deux vérifiés en simulant une réponse vide plutôt qu'en supprimant
+des données.
+
+**« Gérer les types », sans aucun type** — un titre, un bouton, et rien entre
+les deux. Une page qui a l'air inachevée plutôt que vide, et le cas est
+atteignable : les trois types de départ se suppriment. Elle explique désormais
+ce qu'est un type et invite à en créer un.
+
+**« Statistiques », sans répartition par type** — l'intertitre « Par type »
+s'affichait seul, avec rien sous lui. Un intertitre orphelin se lit comme un
+chargement qui n'a jamais abouti. La section voisine, « Tags les plus
+utilisés », était *déjà* gardée par `.length > 0` : le défaut n'était pas un
+oubli de principe mais une incohérence entre deux sections du même fichier. La
+même garde s'applique maintenant aux deux.
+
+*Note de méthode* : une observation antérieure — « /suggestions n'affiche
+qu'un titre et un paragraphe » — s'est révélée être un artefact de mon propre
+test de panne réseau, pas un défaut. La page a bien un état vide. Vérifier
+avant de corriger a évité une correction inutile.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,

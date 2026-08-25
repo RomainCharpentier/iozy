@@ -37,6 +37,11 @@ export function StatsPage() {
 
           <CollectionTimelineSection />
 
+          {/* Gardée comme sa voisine « Tags les plus utilisés » juste en dessous :
+              sans cela, le titre « Par type » s'affichait seul, avec rien sous
+              lui. Un intertitre orphelin se lit comme un chargement qui n'a
+              jamais abouti. */}
+          {statsQuery.data.byType.length > 0 && (
           <section className="flex flex-col gap-2">
             <h2 className="font-display text-lg font-semibold text-textPrimary">Par type</h2>
             <ul className="flex flex-col gap-2">
@@ -59,6 +64,7 @@ export function StatsPage() {
               ))}
             </ul>
           </section>
+          )}
 
           {statsQuery.data.topTags.length > 0 && (
             <section className="flex flex-col gap-2">
