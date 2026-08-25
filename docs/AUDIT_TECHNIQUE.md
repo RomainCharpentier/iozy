@@ -746,11 +746,31 @@ utilisé nulle part ailleurs, et agit sur le rendu entier : un fond plein
 s'assombrit, un dégradé s'assombrit sans se défaire, un bouton sans fond voit
 son texte foncer.
 
-Le sens s'inverse avec le thème — `0.93` en clair, `1.18` en sombre — et
-`filter` a été ajouté à la liste des transitions, sans quoi il aurait été le
-seul changement d'état instantané de l'application. Vérifié aussi qu'aucun
-contrôle ne contient de descendant `position: fixed`, que `filter` aurait
-recadré.
+Le sens s'inverse avec le thème, et `filter` a été ajouté à la liste des
+transitions, sans quoi il aurait été le seul changement d'état instantané de
+l'application. Vérifié aussi qu'aucun contrôle ne contient de descendant
+`position: fixed`, que `filter` aurait recadré.
+
+**Une seconde passe a été nécessaire** : l'effet ne se voyait pas assez. La
+mesure a dit pourquoi — sur l'accueil, **seize contrôles sur dix-neuf n'ont
+aucun fond**. Ce sont des boutons de barre, des liens d'en-tête, des icônes :
+`filter` n'y peint que le texte, déjà presque noir. L'effet marchait sur les
+trois boutons pleins et manquait les seize autres.
+
+D'où un second effet, réservé à cette famille : un **fond** au survol,
+`--color-hoverSurface`, posé en `@layer base` à dessein. Les utilitaires
+Tailwind vivent dans une couche supérieure et l'emportent, si bien qu'un bouton
+plein garde sa couleur ; un bouton sans fond n'a aucun utilitaire à opposer et
+reçoit celui-ci. Le tri se fait seul, sans lister qui a un fond et qui n'en a
+pas — vérifié dans le CSS **compilé**, la règle atterrissant bien dans `base`,
+juste après le Preflight.
+
+*Réserve* : le rendu du survol n'a pas pu être constaté dans cette session — le
+panneau navigateur ne composant pas d'images, `:hover` ne se déclenche pas et
+les styles calculés y sont inertes (un `filter: brightness(0.5)` posé en inline
+y calcule `brightness(1)`). Les deux réglages sont des tokens nommés,
+`--color-hoverSurface` et `--hover-brightness`, précisément pour rester
+ajustables à l'œil.
 
 **Le reste de la famille est sain**, contrôlé dans la foulée plutôt que
 supposé : l'anneau de focus clavier apparaît bien (2 px accent, offset 2 px,
