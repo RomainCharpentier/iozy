@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom'
 import { DesktopHeader } from './DesktopHeader'
 import { MobileHeader } from './MobileHeader'
 import { TabBar } from './TabBar'
-import { useDocumentTitleFromHeading } from '../../lib/useDocumentTitle'
 
 /** Point de bascule unique entre navigation mobile (TabBar, en bas, fixed) et
  * navigation desktop (DesktopHeader, en haut, sticky) - voir TabBar.tsx
@@ -70,11 +69,6 @@ function contentWidthFor(pathname: string): ContentWidth {
  * grand espace vide artificiel. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
-
-  // Le titre du document suit celui de la page - c'est aussi ce qui permet à
-  // un lecteur d'écran d'annoncer une navigation, qui autrement passe
-  // inaperçue dans une application à page unique.
-  useDocumentTitleFromHeading(pathname)
   const width = contentWidthFor(pathname)
   return (
     <div className="min-h-screen bg-background">

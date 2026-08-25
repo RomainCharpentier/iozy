@@ -875,6 +875,42 @@ pour une clé absente **comme** pour une clé à `null`, et ne pouvait donc pas
 dire lequel des deux est le contrat. `value(nullValue())` le dit. Vérifié en
 faisant volontairement rendre une liste vide : deux tests tombent.
 
+### C12 — Tout partait dans un lot unique de 580 Ko · **traité**
+
+Aucune route n'était chargée à la demande : ouvrir « Ma collection » faisait
+télécharger la fiche d'une œuvre, l'analyse d'achat, les Tier Lists et
+l'administration avant la première jaquette. Les deux plus gros écrans — fiche
+d'œuvre (169 Ko de source) et analyse d'achat (148 Ko) — pèsent à eux seuls
+plus de la moitié du code de routes, et **ni l'un ni l'autre n'est la page
+d'accueil**.
+
+| | Avant | Après |
+|---|---|---|
+| Lot initial | 580 Ko | **286 Ko** |
+| Ce qui voyage (gzip) | 154 Ko | **89 Ko** |
+| Nombre de lots | 1 | 62 |
+
+Seule `ShelfPage` reste dans le lot initial : c'est la page d'accueil, et la
+différer n'économiserait rien tout en ajoutant une attente.
+
+Un petit adaptateur permet de garder les **exports nommés** des vingt-six
+pages : `React.lazy` attend un `default`, et changer vingt-six fichiers pour
+satisfaire une contrainte d'API aurait été le mauvais sens du compromis.
+
+L'attente est **muette** — pas de « Chargement… ». Un lot arrive en quelques
+dizaines de millisecondes : un mot qui apparaît puis disparaît se lit comme un
+clignotement, pas comme une information. Seule une hauteur est réservée, pour
+que le pied de page ne remonte pas puis redescende.
+
+**Les vingt-six routes ont été visitées une à une**, y compris les dynamiques
+et le partage public : c'est le risque propre au chargement différé, où un nom
+d'export erroné ne se voit qu'à la navigation.
+
+Un défaut du §C10 est ressorti au passage : le titre du document était posé
+depuis `AppShell`, alors que la page de partage vit **hors** du shell — elle
+gardait donc le titre de la page précédente. Le hook remonte dans `App`, qui
+couvre les deux branches, et son sélecteur accepte un `h1` sans `<main>`.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
