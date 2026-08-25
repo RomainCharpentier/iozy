@@ -315,22 +315,34 @@ button, a, input, textarea, select {
   --hover-brightness: 1.25;
 }
 
-/* Deux effets, parce que les contrôles se répartissent en deux familles.
+/* Un fond au survol, mais seulement sur ce qui a DÉJÀ une forme de surface.
 
-   Sur l'accueil, SEIZE contrôles sur DIX-NEUF n'ont aucun fond : ce sont des
-   boutons de barre, des liens d'en-tête, des icônes. `filter` n'y peint que le
-   texte - déjà presque noir - et le survol s'y voyait à peine. C'était le
-   défaut : l'effet marchait sur les trois boutons pleins et manquait les
-   seize autres.
+   Le raisonnement s'est fait en deux temps, le second corrigeant le premier.
 
-   D'où un fond, posé en `@layer base` À DESSEIN. Les utilitaires Tailwind
-   (`bg-accent`, `bg-surface`…) vivent dans une couche supérieure : ils
-   l'emportent, et un bouton plein garde donc sa couleur. Un bouton sans fond,
-   lui, n'a aucun utilitaire à opposer - il reçoit celui-ci. Le tri se fait
-   tout seul, sans lister qui a un fond et qui n'en a pas. */
+   D'abord le constat : sur l'accueil, seize contrôles sur dix-neuf n'ont aucun
+   fond - boutons de barre, liens d'en-tête, icônes. `filter` n'y peint que le
+   texte, déjà presque noir, et le survol s'y voyait à peine. D'où l'idée de
+   leur en donner un.
+
+   Puis le défaut de cette idée : appliquée à TOUS, elle dessinait un rectangle
+   collé aux lettres du titre « IozyCore » - un lien de texte nu, sans marge ni
+   rayon. Ce qui ressemble à un survol sur un bouton ressemble à une erreur sur
+   un mot.
+
+   `[class*="rounded"]` trie les deux cas, et le tri a été vérifié : sur les
+   dix-neuf contrôles de l'accueil, la présence de la classe prédit exactement
+   celle d'un rayon calculé, sans exception. Ce qui est arrondi est traité
+   comme une surface et reçoit un fond ; ce qui ne l'est pas est du texte, et
+   garde le seul assombrissement - complété, là où il le faut, par les survols
+   que les composants déclarent eux-mêmes (`hover:-translate-y-0.5` sur les
+   cartes, `hover:text-textPrimary` sur les onglets).
+
+   `@layer base` À DESSEIN : les utilitaires Tailwind vivent dans une couche
+   supérieure, donc un bouton déjà rempli (`bg-accent`) garde sa couleur, et
+   seul un bouton arrondi SANS remplissage reçoit ce fond. */
 @layer base {
-  button:not(:disabled):hover,
-  a:hover {
+  button:not(:disabled)[class*="rounded"]:hover,
+  a[class*="rounded"]:hover {
     background-color: var(--color-hoverSurface);
   }
 }

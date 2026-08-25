@@ -757,8 +757,18 @@ aucun fond**. Ce sont des boutons de barre, des liens d'en-tête, des icônes :
 `filter` n'y peint que le texte, déjà presque noir. L'effet marchait sur les
 trois boutons pleins et manquait les seize autres.
 
-D'où un second effet, réservé à cette famille : un **fond** au survol,
-`--color-hoverSurface`, posé en `@layer base` à dessein. Les utilitaires
+D'où un second effet : un **fond** au survol, `--color-hoverSurface`, posé en
+`@layer base` à dessein.
+
+**Appliqué à tous, il était laid.** Signalé aussitôt : sur le titre
+« IozyCore » — un lien de texte nu, sans marge ni rayon — il dessinait un
+rectangle collé aux lettres. Ce qui ressemble à un survol sur un bouton
+ressemble à une erreur sur un mot. Le fond est donc réservé à ce qui a **déjà
+une forme de surface**, via `[class*="rounded"]` : sur les dix-neuf contrôles
+de l'accueil, la présence de cette classe prédit exactement celle d'un rayon
+calculé, sans exception. Les onze autres — le logo, les cartes, les onglets —
+gardent le seul assombrissement, qui porte chez eux sur une vignette ou une
+icône, pas sur du texte nu. Les utilitaires
 Tailwind vivent dans une couche supérieure et l'emportent, si bien qu'un bouton
 plein garde sa couleur ; un bouton sans fond n'a aucun utilitaire à opposer et
 reçoit celui-ci. Le tri se fait seul, sans lister qui a un fond et qui n'en a
