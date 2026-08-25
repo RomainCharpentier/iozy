@@ -137,6 +137,9 @@ export function EntityDetailPage() {
   // Jeu de société tant qu'aucune source ne fournit réellement cette donnée.
   const author = creatorFrom(entity.attributes)
   const activeOwnership = ownerships.find((o) => o.status === 'OWNED')
+  // Une grille de tomes n'a de sens que pour une serie manga dont une edition
+  // est affichee. C'est aussi elle qui decide s'il y a matiere a deux colonnes.
+  const grilleDeTomes = isManga && !!activeEditionGroup
   const bestExperience = experiences.reduce<(typeof experiences)[number] | null>((best, exp) => {
     if (exp.rating === null) return best
     if (!best || (best.rating ?? -1) < exp.rating) return exp
@@ -347,17 +350,45 @@ export function EntityDetailPage() {
       )}
       {editingCover && coverMutation.isError && <ErrorBanner message={coverMutation.error.message} />}
 
-      {/* "Mes tomes" - hors du bloc Identité, séparée visuellement (voir la
-          maquette validée : margin-top généreux). Réservée au Manga :
-          volumeNumber/édition n'ont de sens que pour un tome (voir
-          QuickAddService côté backend). */}
-      {isManga && activeEditionGroup && (
-        // mt-6 en plus du gap-6 déjà porté par le conteneur racine (voir plus
-        // bas) = 48px au total entre le hero et "Mes tomes" (cible 40-48px,
-        // voir la maquette validée) - une vraie séparation visuelle, pas la
-        // même respiration que le reste de la page.
-        <div className="mt-6">
-          <TomesGridSection
+      {/* Deux colonnes au-delà de 1100px : à gauche ce qu'on CONSULTE (la
+          grille des tomes), à droite ce qu'on RENSEIGNE (classement,
+          informations, tags, expériences, relations).
+
+          Rien n'est retiré, rien n'est replié de plus - c'est le même contenu
+          sur deux axes au lieu d'un. Le conteneur de cette page monte à
+          1600px, et une seule colonne le traversait : l'œil descendait pour
+          atteindre des choses qui tiennent côte à côte.
+
+          Même point de bascule et même idiome que DiscoverPage, qui fait déjà
+          exactement ça (min-[1100px]:grid + items-start). Une différence
+          assumée : minmax(0, …) plutôt que « 1.65fr » nu. Une piste « 1.65fr »
+          vaut minmax(auto, 1.65fr), donc plancher au CONTENU - c'est ce
+          plancher-là qui, sur DiscoverTierPreview, faisait défiler toute la
+          page dès qu'un titre en « truncate » s'y trouvait.
+
+          Une seule colonne quand il n'y a pas de grille de tomes (jeu vidéo,
+          type personnalisé, série seulement en envies) : sinon la gauche
+          serait vide et la droite porterait tout. */}
+      <div
+        className={
+          grilleDeTomes
+            ? 'flex flex-col gap-6 min-[1100px]:grid min-[1100px]:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] min-[1100px]:items-start min-[1100px]:gap-8'
+            : 'flex flex-col gap-6'
+        }
+      >
+        {/* "Mes tomes" - hors du bloc Identité, séparée visuellement (voir la
+            maquette validée : margin-top généreux). Réservée au Manga :
+            volumeNumber/édition n'ont de sens que pour un tome (voir
+            QuickAddService côté backend).
+
+            mt-6 en plus du gap-6 déjà porté par le conteneur racine = 48px au
+            total entre le hero et "Mes tomes" (cible 40-48px, voir la maquette
+            validée) - une vraie séparation visuelle, pas la même respiration
+            que le reste de la page. La colonne de droite porte le même mt-6 en
+            deux colonnes, pour que les deux partent de la même ligne. */}
+        {grilleDeTomes && (
+          <div className="mt-6">
+            <TomesGridSection
             entityId={entityId}
             entityTypeId={entity.entityTypeId}
             entityTypeLabel={entityType?.label ?? null}
@@ -368,9 +399,14 @@ export function EntityDetailPage() {
             experiences={experiences}
             activeGroup={activeEditionGroup}
           />
-        </div>
-      )}
+          </div>
+        )}
 
+        {/* Le mt-6 n'a de raison d'être qu'en deux colonnes, pour aligner les
+            deux têtes de colonne. En une seule colonne il ajouterait 24px
+            devant « Mes classements » sur les fiches sans grille de tomes,
+            sans que rien ne le justifie. */}
+        <div className={grilleDeTomes ? 'flex flex-col gap-6 min-[1100px]:mt-6' : 'flex flex-col gap-6'}>
       {/* "Mes classements" pour toutes les autres fiches. La grille de tomes
           la porte déjà pour une série manga dont une édition est affichée
           (voir TomesGridSection, qui la place avant "À propos" comme le veut
@@ -383,7 +419,7 @@ export function EntityDetailPage() {
           backend sait depuis toujours classer n'importe quelle Entity, sans
           exiger la moindre possession. Un classement dit ce qu'on pense d'une
           œuvre, pas ce qu'on possède. */}
-      {!(isManga && activeEditionGroup) && (
+      {!grilleDeTomes && (
         <TierSummarySection
           entityId={entityId}
           entityTitle={entity.title}
@@ -431,6 +467,8 @@ export function EntityDetailPage() {
         relationshipsFrom={relFromQuery.data ?? []}
         relationshipsTo={relToQuery.data ?? []}
       />
+        </div>
+      </div>
     </div>
   )
 }
