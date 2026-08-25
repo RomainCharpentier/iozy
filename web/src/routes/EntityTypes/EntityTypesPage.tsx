@@ -55,6 +55,17 @@ export function EntityTypesPage() {
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
       {entityTypesQuery.isLoading && <p className="text-textDim">Chargement...</p>}
 
+      {/* Sans ça, quelqu'un qui a supprimé ses types voyait un titre, un bouton,
+          et rien entre les deux - une page qui a l'air inachevée plutôt que
+          vide. Le cas est atteignable : les trois types de départ se
+          suppriment. */}
+      {entityTypesQuery.isSuccess && entityTypesQuery.data.length === 0 && (
+        <p className="text-textDim">
+          Aucun type pour l'instant. Un type, c'est ce que tu collectionnes — manga, jeu vidéo, jeu de
+          société — et c'est lui qui décide des champs d'une fiche. Crée-en un pour commencer.
+        </p>
+      )}
+
       <ul className="flex flex-col gap-2">
         {(entityTypesQuery.data ?? []).map((type) => {
           const Icon = iconFor(type.code)
