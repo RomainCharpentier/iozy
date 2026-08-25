@@ -177,10 +177,17 @@ class ShareHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/public/share/{token}", jeton))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.collection").exists())
-                // ABSENTE, et non vide : une liste vide dirait « il n'a rien
-                // dans ses envies », ce qui est une information en soi.
-                .andExpect(jsonPath("$.wishlist").doesNotExist())
-                .andExpect(jsonPath("$.tierLists").doesNotExist());
+                // NULLE, et surtout pas une liste vide : « [] » dirait « il n'a
+                // rien dans ses envies », ce qui est une information en soi,
+                // alors que null dit « tu n'y as pas accès ».
+                //
+                // `doesNotExist()` ne suffisait pas à le dire : il est vrai
+                // aussi bien pour une clé absente que pour une clé à null, et
+                // le fil porte bel et bien « "tierLists":null ». L'assertion
+                // avait donc l'air de vérifier la forme sans le faire. Celle-ci
+                // échoue si la valeur devient une liste, vide comprise.
+                .andExpect(jsonPath("$.wishlist").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.tierLists").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
@@ -191,7 +198,7 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(get("/api/public/share/{token}", jeton))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.collection").doesNotExist())
+                .andExpect(jsonPath("$.collection").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$.wishlist").exists());
     }
 
@@ -205,7 +212,7 @@ class ShareHttpContractTest extends HttpContractTestBase {
         String sansTierLists = jetonAvecSections(true, true, false);
         mockMvc.perform(get("/api/public/share/{token}", sansTierLists))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tierLists").doesNotExist());
+                .andExpect(jsonPath("$.tierLists").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

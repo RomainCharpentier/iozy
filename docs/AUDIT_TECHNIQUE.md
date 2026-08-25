@@ -842,6 +842,39 @@ Un `MutationObserver` attend le `h1` des pages qui chargent leurs données
 d'abord, se débranche dès qu'il l'a trouvé, et abandonne après cinq secondes
 plutôt que d'observer indéfiniment.
 
+### C11 — Le partage public tient ses promesses, sauf une phrase · **traité**
+
+La route `/api/public/share/{token}` est **la seule de l'application conçue
+pour être ouverte par quelqu'un d'autre que le propriétaire**, et elle n'avait
+jamais été vérifiée en marche. Trois garanties annoncées, mesurées une à une.
+
+**Le jeton fait office de mot de passe** — vérifié. Jeton inconnu, UUID nul,
+vide, tentative de traversée (`../../api/entities`) : tous rendent un `404` au
+message générique « Lien introuvable », sans jamais laisser deviner qu'un jeton
+a existé.
+
+**Rien ne sort au-delà du nécessaire** — vérifié. Un élément partagé porte
+exactement `title`, `coverImageUrl`, `editions`, `ownedVolumeCount`,
+`totalVolumes`. Aucun identifiant, aucun prix, aucune date d'acquisition,
+aucune analyse.
+
+**Les sections non partagées ne figurent pas dans la réponse** — *faux*, et
+c'est la seule chose à corriger. Le fil porte bien `"tierLists":null`. La
+garantie de fond tient (la section n'est pas calculée, aucune donnée ne sort),
+mais la phrase promettait une absence que le format ne réalise pas.
+
+Trois écrits se contredisaient : le javadoc du contrôleur disait « ne figurent
+pas », le DTO disait « absentes (null) », et le test disait `doesNotExist()`.
+Ils disent désormais tous la même chose — `null`, jamais `[]`, parce que la
+nuance porte de l'information : `[]` dirait « partagée, mais il n'a rien
+dedans », un fait sur la personne, là où `null` dit seulement « tu n'y as pas
+accès ».
+
+L'assertion du test a été renforcée en conséquence : `doesNotExist()` est vrai
+pour une clé absente **comme** pour une clé à `null`, et ne pouvait donc pas
+dire lequel des deux est le contrat. `value(nullValue())` le dit. Vérifié en
+faisant volontairement rendre une liste vide : deux tests tombent.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,

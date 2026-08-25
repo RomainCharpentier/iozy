@@ -43,9 +43,17 @@ import java.util.stream.Collectors;
  *
  * <h2>Le filtrage est ici, pas dans le client</h2>
  * Les sections non partagées ne sont pas masquées à l'affichage : elles ne
- * sont pas calculées et ne figurent pas dans la réponse. Un visiteur qui
- * inspecte le réseau ne trouve pas de collection cachée dans un partage
- * d'envies. Et rien ne sort jamais des œuvres au-delà du titre, de la jaquette,
+ * sont <b>pas calculées</b>, et la réponse porte {@code null} à leur place. Un
+ * visiteur qui inspecte le réseau ne trouve pas de collection cachée dans un
+ * partage d'envies.
+ *
+ * <p>{@code null} et non une liste vide, et la nuance porte de l'information :
+ * {@code []} dirait « partagée, mais il n'a rien dedans », ce qui est un fait
+ * sur la personne ; {@code null} dit seulement « tu n'y as pas accès ». Cette
+ * phrase affirmait auparavant que la clé ne figurait pas du tout dans la
+ * réponse - c'était faux, le fil porte bien {@code "tierLists":null}, et le
+ * test qui semblait le vérifier utilisait {@code doesNotExist()}, vrai pour
+ * les deux formes à la fois. Et rien ne sort jamais des œuvres au-delà du titre, de la jaquette,
  * des éditions possédées et de la progression - voir {@code ShareDtos} pour la
  * liste de ce qui est délibérément absent.
  *
@@ -91,7 +99,8 @@ public class PublicShareController {
     }
 
     @Operation(summary = "Espace partagé en lecture seule via un jeton. 404 si le lien n'existe pas ou a été "
-            + "supprimé. Une section non partagée est ABSENTE de la réponse (null), pas vide.")
+            + "supprimé. Une section non partagée vaut null dans la réponse, jamais une liste vide : "
+            + "[] dirait « partagée mais rien dedans », null dit « pas d'accès ».")
     @GetMapping("/{token}")
     public SharedSpaceResponse shared(@PathVariable String token) {
         ShareSettings settings = shareSettingsRepository.findByToken(token)
