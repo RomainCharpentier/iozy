@@ -9,6 +9,7 @@ import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
 import { TierBadge } from '../TierLists/TierBadge'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import type { TierListDto } from '../../types/tierList'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
@@ -80,7 +81,14 @@ export function DiscoverTierPreview() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* grid-cols-1 n'est pas décoratif. Sans lui, la grille n'a aucune
+          colonne déclarée sous 640px : la piste implicite se dimensionne alors
+          sur le CONTENU, et le titre en `truncate` (donc nowrap) lui impose sa
+          largeur entière au lieu d'être coupé. Un type nommé un peu longuement
+          poussait la carte à 706px dans une fenêtre de 375 et faisait défiler
+          toute la page horizontalement. `grid-cols-1` vaut
+          repeat(1, minmax(0, 1fr)) : la piste ne peut plus dépasser. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {previewedUniverses.map(({ entityType, board, counts }) => {
           const visual = getEntityTypeVisual(entityType)
           const preview = boardPreviewRows(board, 3, 4)
@@ -95,7 +103,7 @@ export function DiscoverTierPreview() {
                 <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px]" style={{ background: visual.tint }}>
                   <visual.icon size={16} style={{ color: visual.color }} />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-textPrimary">{entityType.label}</span>
+                <TexteCoupe texte={entityType.label} className="min-w-0 flex-1 truncate text-[15px] font-semibold text-textPrimary" />
                 <ChevronRight size={16} className="shrink-0 text-textDim" />
               </span>
               {preview.length > 0 ? (
@@ -135,7 +143,7 @@ export function DiscoverTierPreview() {
               onClick={() => navigate(`/tier-lists/${list.id}`)}
               className="flex min-w-[210px] flex-1 items-center gap-2.5 rounded-2xl border border-surface2 bg-surface px-3.5 py-2.5 text-left transition-transform hover:-translate-y-0.5"
             >
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-textPrimary">{list.name}</span>
+              <TexteCoupe texte={list.name} className="min-w-0 flex-1 truncate text-sm font-semibold text-textPrimary" />
               <span className="shrink-0 text-xs text-textDim">
                 {list.rankedCount}/{list.itemCount}
               </span>

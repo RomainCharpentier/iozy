@@ -1,5 +1,6 @@
 import { Pencil } from 'lucide-react'
 import { LISTING_PLATFORM_LABELS, type ListingPlatform, type ShippingEstimateKind } from '../../types/purchaseAnalysis'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * Ce qu'IozyCore a compris de l'annonce, en quelques lignes.
@@ -68,9 +69,11 @@ export function ListingSummaryCard({
             {LISTING_PLATFORM_LABELS[platform]}
             {photoCount > 0 && ` · ${photoCount} photo${photoCount > 1 ? 's' : ''}`}
           </span>
-          <h2 className="truncate font-display text-sm font-semibold text-textPrimary">
-            {rawTitle.trim() || 'Annonce sans titre'}
-          </h2>
+          <TexteCoupe
+            as="h2"
+            texte={rawTitle.trim() || 'Annonce sans titre'}
+            className="truncate font-display text-sm font-semibold text-textPrimary"
+          />
         </div>
         <button
           type="button"

@@ -7,6 +7,7 @@ import { ApiError } from '../../api/client'
 import { TierBadge } from '../TierLists/TierBadge'
 import { RANKS, type Rank } from '../../types/tierList'
 import type { SharedCollectionItemDto, SharedTierBoardDto, SharedWishlistItemDto } from '../../types/share'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 /**
  * L'espace partagé, vu par quelqu'un qui n'a pas de compte.
@@ -221,9 +222,7 @@ function CarteOeuvre({
           </span>
         )}
       </div>
-      <p className="truncate text-sm font-semibold text-textPrimary" title={title}>
-        {title}
-      </p>
+      <TexteCoupe as="p" texte={title} className="truncate text-sm font-semibold text-textPrimary" />
       {sousTitre && <p className="text-xs text-textDim">{sousTitre}</p>}
     </div>
   )

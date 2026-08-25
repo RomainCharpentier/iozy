@@ -6,6 +6,7 @@ import { searchEntities } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { TexteCoupe } from '../../components/TexteCoupe'
 
 const MAX_PREVIEW = 3
 
@@ -70,8 +71,8 @@ export function DiscoverOpportunitiesPreview() {
               <span className="h-[58px] w-10 shrink-0 rounded-md bg-surface2" />
             )}
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-sm font-semibold text-textPrimary">{s.seriesTitle}</span>
-              <span className="truncate text-xs text-textDim">{s.editionName}</span>
+              <TexteCoupe texte={s.seriesTitle} className="truncate text-sm font-semibold text-textPrimary" />
+              <TexteCoupe texte={s.editionName} className="truncate text-xs text-textDim" />
               {/* La raison, toujours écrite : sinon c'est une page de promos. */}
               <span className="text-xs font-semibold text-accentText">
                 {s.missingCount} tome{s.missingCount > 1 ? 's' : ''} manquant{s.missingCount > 1 ? 's' : ''} pour compléter

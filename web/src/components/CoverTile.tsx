@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { gradientFor } from '../theme/gradient'
+import { TexteCoupe } from './TexteCoupe'
 
 interface CoverTileProps {
   title: string
@@ -90,8 +91,8 @@ export function CoverTile({
       {/* Espacement littéral demandé : cadre -> 8px -> titre -> 4px ->
           sous-titre -> 6px -> badge de type. */}
       <div className="mt-2 flex min-w-0 flex-col">
-        <span className="line-clamp-2 text-sm font-semibold text-textPrimary">{title}</span>
-        {subtitle && <span className="mt-1 line-clamp-1 text-xs text-textDim">{subtitle}</span>}
+        <TexteCoupe texte={title} className="line-clamp-2 text-sm font-semibold text-textPrimary" />
+        {subtitle && <TexteCoupe texte={subtitle} className="mt-1 line-clamp-1 text-xs text-textDim" />}
         {typeLabel && (
           <span className="mt-1.5 w-fit rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-textDim">
             {typeLabel}
