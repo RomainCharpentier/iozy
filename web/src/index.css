@@ -89,6 +89,11 @@
   --color-softBtn: rgb(35 30 26 / 6%);
   --color-softPress: rgb(35 30 26 / 13%);
   --color-rowHover: rgb(35 30 26 / 4%);
+  /* Le fond qu'un contrôle SANS fond prend au survol. Nettement plus marqué
+     que rowHover, calibré pour une rangée entière : ici la surface est petite
+     - un bouton de barre, un lien d'en-tête - et un voile de 4 % y passe
+     inaperçu. */
+  --color-hoverSurface: rgb(35 30 26 / 10%);
   --color-handle: rgb(35 30 26 / 20%);
   --color-scrim: rgb(35 30 26 / 38%);
 
@@ -238,6 +243,9 @@
   --color-softBtn: rgb(244 238 231 / 9%);
   --color-softPress: rgb(244 238 231 / 19%);
   --color-rowHover: rgb(244 238 231 / 6%);
+  /* 14 % et non 10 % : un voile clair sur fond sombre se voit moins qu'un
+     voile foncé sur fond clair, à opacité égale. */
+  --color-hoverSurface: rgb(244 238 231 / 14%);
   --color-handle: rgb(244 238 231 / 24%);
   --color-scrim: rgb(0 0 0 / 60%);
 
@@ -300,13 +308,36 @@ button, a, input, textarea, select {
    Le sens s'inverse avec le thème : assombrir sur fond clair, éclaircir sur
    fond sombre. Un seul facteur, deux valeurs. */
 :root {
-  --hover-brightness: 0.93;
+  --hover-brightness: 0.90;
 }
 
 [data-theme="dark"] {
-  --hover-brightness: 1.18;
+  --hover-brightness: 1.25;
 }
 
+/* Deux effets, parce que les contrôles se répartissent en deux familles.
+
+   Sur l'accueil, SEIZE contrôles sur DIX-NEUF n'ont aucun fond : ce sont des
+   boutons de barre, des liens d'en-tête, des icônes. `filter` n'y peint que le
+   texte - déjà presque noir - et le survol s'y voyait à peine. C'était le
+   défaut : l'effet marchait sur les trois boutons pleins et manquait les
+   seize autres.
+
+   D'où un fond, posé en `@layer base` À DESSEIN. Les utilitaires Tailwind
+   (`bg-accent`, `bg-surface`…) vivent dans une couche supérieure : ils
+   l'emportent, et un bouton plein garde donc sa couleur. Un bouton sans fond,
+   lui, n'a aucun utilitaire à opposer - il reçoit celui-ci. Le tri se fait
+   tout seul, sans lister qui a un fond et qui n'en a pas. */
+@layer base {
+  button:not(:disabled):hover,
+  a:hover {
+    background-color: var(--color-hoverSurface);
+  }
+}
+
+/* Hors couche, donc appliqué à tous : c'est ce qui fait réagir les boutons
+   pleins et les dégradés, que la règle ci-dessus laisse volontairement
+   intacts. */
 button:not(:disabled):hover,
 a:hover {
   filter: brightness(var(--hover-brightness));
