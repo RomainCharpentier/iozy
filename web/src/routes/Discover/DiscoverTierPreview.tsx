@@ -10,6 +10,7 @@ import { TierBadge } from '../TierLists/TierBadge'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
@@ -112,13 +113,14 @@ export function DiscoverTierPreview() {
                     <span key={row.rank} className="flex items-center gap-1.5">
                       <TierBadge rank={row.rank} size="compact" />
                       <span className="flex gap-1">
-                        {row.covers.map((cover, i) =>
-                          cover ? (
-                            <img key={i} src={cover} alt="" className="h-[22px] w-4 shrink-0 rounded object-cover" />
-                          ) : (
-                            <span key={i} className="h-[22px] w-4 shrink-0 rounded bg-surface2" />
-                          ),
-                        )}
+                        {row.covers.map((cover, i) => (
+                          <Jaquette
+                            key={i}
+                            src={cover}
+                            className="h-[22px] w-4 shrink-0 rounded object-cover"
+                            repli={<span className="h-[22px] w-4 shrink-0 rounded bg-surface2" />}
+                          />
+                        ))}
                       </span>
                     </span>
                   ))}

@@ -17,6 +17,7 @@ import { isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../..
 import type { DraftLocationState } from './draftState'
 import type { VolumeCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 interface QuickAddOutcome {
   addedCount: number
@@ -246,11 +247,11 @@ export function AddDraftPage() {
       </button>
 
       <div className="flex items-center gap-3">
-        {pickedCoverUrl ? (
-          <img src={pickedCoverUrl} alt="" className="h-20 w-14 shrink-0 rounded-lg object-cover" />
-        ) : (
-          <span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />
-        )}
+        <Jaquette
+          src={pickedCoverUrl}
+          className="h-20 w-14 shrink-0 rounded-lg object-cover"
+          repli={<span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />}
+        />
         <div className="flex min-w-0 flex-col gap-0.5">
           <TexteCoupe as="h1" texte={title || '…'} className="truncate font-display text-xl font-bold text-textPrimary" />
           {pickedAuthor && <TexteCoupe as="p" texte={pickedAuthor} className="truncate text-sm text-textDim" />}

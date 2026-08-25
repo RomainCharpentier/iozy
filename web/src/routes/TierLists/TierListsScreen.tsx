@@ -12,6 +12,7 @@ import { TierBadge } from './TierBadge'
 import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
@@ -146,13 +147,14 @@ export function TierListsScreen() {
                       <div key={row.rank} className="flex items-center gap-2">
                         <TierBadge rank={row.rank} size="compact" />
                         <div className="flex gap-1">
-                          {row.covers.map((cover, i) =>
-                            cover ? (
-                              <img key={i} src={cover} alt="" className="h-8 w-6 shrink-0 rounded object-cover" />
-                            ) : (
-                              <span key={i} className="h-8 w-6 shrink-0 rounded bg-surface2" />
-                            ),
-                          )}
+                          {row.covers.map((cover, i) => (
+                            <Jaquette
+                              key={i}
+                              src={cover}
+                              className="h-8 w-6 shrink-0 rounded object-cover"
+                              repli={<span className="h-8 w-6 shrink-0 rounded bg-surface2" />}
+                            />
+                          ))}
                         </div>
                       </div>
                     ))}

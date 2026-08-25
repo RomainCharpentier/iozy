@@ -3,6 +3,7 @@ import { useModalA11y } from '../../lib/useModalA11y'
 import { WishlistToggle } from '../../components/WishlistToggle'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
+import { Jaquette } from '../../components/Jaquette'
 
 /** Ce qu'un scan vient d'identifier, avant toute écriture. */
 export interface ScanCandidate {
@@ -69,11 +70,11 @@ export function ScanActionMenu({
         className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-1/2 md:left-1/2 md:bottom-auto md:w-[360px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-surface2"
       >
         <div className="flex items-start gap-3 border-b border-surface2 p-4">
-          {candidate.imageUrl ? (
-            <img src={candidate.imageUrl} alt="" className="h-20 w-14 shrink-0 rounded-lg object-cover" />
-          ) : (
-            <span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />
-          )}
+          <Jaquette
+            src={candidate.imageUrl}
+            className="h-20 w-14 shrink-0 rounded-lg object-cover"
+            repli={<span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />}
+          />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span id="scan-action-title" className="font-display text-sm font-semibold text-textPrimary">
               {candidate.title}

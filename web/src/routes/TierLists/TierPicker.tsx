@@ -4,6 +4,7 @@ import { TierBadge } from './TierBadge'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { RANKS, type Rank } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Popover desktop / bottom sheet mobile - même pattern responsive déjà
@@ -87,11 +88,11 @@ export function TierPicker({
         className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-2xl bg-surface shadow-token-elevated md:inset-x-auto md:top-1/2 md:right-auto md:left-1/2 md:bottom-auto md:w-[320px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-surface2"
       >
         <div className="flex items-center gap-3 border-b border-surface2 p-4">
-          {coverImageUrl ? (
-            <img src={coverImageUrl} alt="" className="h-11 w-8 shrink-0 rounded object-cover" />
-          ) : (
-            <span className="h-11 w-8 shrink-0 rounded bg-surface2" />
-          )}
+          <Jaquette
+            src={coverImageUrl}
+            className="h-11 w-8 shrink-0 rounded object-cover"
+            repli={<span className="h-11 w-8 shrink-0 rounded bg-surface2" />}
+          />
           <span className="flex min-w-0 flex-1 flex-col">
             <TexteCoupe
               id="tier-picker-title"

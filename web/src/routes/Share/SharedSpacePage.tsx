@@ -8,6 +8,7 @@ import { TierBadge } from '../TierLists/TierBadge'
 import { RANKS, type Rank } from '../../types/tierList'
 import type { SharedCollectionItemDto, SharedTierBoardDto, SharedWishlistItemDto } from '../../types/share'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * L'espace partagé, vu par quelqu'un qui n'a pas de compte.
@@ -214,13 +215,16 @@ function CarteOeuvre({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface2">
-        {coverImageUrl ? (
-          <img src={coverImageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-textDim">
-            {title}
-          </span>
-        )}
+        <Jaquette
+          src={coverImageUrl}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          repli={
+            <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-textDim">
+              {title}
+            </span>
+          }
+        />
       </div>
       <TexteCoupe as="p" texte={title} className="truncate text-sm font-semibold text-textPrimary" />
       {sousTitre && <p className="text-xs text-textDim">{sousTitre}</p>}
@@ -248,13 +252,16 @@ function TableauClassement({ board }: { board: SharedTierBoardDto }) {
                   title={item.title}
                   className="aspect-[2/3] w-11 shrink-0 overflow-hidden rounded-lg"
                 >
-                  {item.coverImageUrl ? (
-                    <img src={item.coverImageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
-                      {item.title}
-                    </span>
-                  )}
+                  <Jaquette
+                    src={item.coverImageUrl}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    repli={
+                      <span className="flex h-full w-full items-center justify-center bg-surface2 px-0.5 text-center text-[10px] text-textDim">
+                        {item.title}
+                      </span>
+                    }
+                  />
                 </span>
               ))}
             </div>

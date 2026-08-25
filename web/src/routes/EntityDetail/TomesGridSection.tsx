@@ -11,6 +11,7 @@ import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierSummarySection } from './TierSummarySection'
 import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../types/api'
+import { Jaquette } from '../../components/Jaquette'
 
 export interface TomeTile {
   volumeNumber: number
@@ -114,15 +115,15 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
         owned ? 'bg-surface2' : 'bg-surface2/50'
       } ${isActive ? 'ring-2 ring-accent' : ''}`}
     >
-      {coverUrl ? (
-        // Catalogué mais manquant : vraie jaquette, atténuée modérément - reste
-        // identifiable (voir "ne rends pas l'image tellement sombre qu'elle
-        // devient illisible"), plus de grayscale (désature en plus de l'opacité,
-        // rendait le tome encore moins reconnaissable qu'une simple atténuation).
-        <img src={coverUrl} alt="" className={`absolute inset-0 h-full w-full object-cover ${owned ? '' : 'opacity-55'}`} />
-      ) : (
-        <span className="font-display text-base font-semibold text-textPrimary">{tile.volumeNumber}</span>
-      )}
+      {/* Catalogué mais manquant : vraie jaquette, atténuée modérément - reste
+          identifiable (voir "ne rends pas l'image tellement sombre qu'elle
+          devient illisible"), plus de grayscale (désature en plus de l'opacité,
+          rendait le tome encore moins reconnaissable qu'une simple atténuation). */}
+      <Jaquette
+        src={coverUrl}
+        className={`absolute inset-0 h-full w-full object-cover ${owned ? '' : 'opacity-55'}`}
+        repli={<span className="font-display text-base font-semibold text-textPrimary">{tile.volumeNumber}</span>}
+      />
       {owned ? (
         <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk">
           <Check size={11} strokeWidth={3} />

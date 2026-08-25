@@ -17,6 +17,7 @@ import { BarcodeLookupField } from './BarcodeLookupField'
 import type { DraftLocationState } from './draftState'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -293,11 +294,11 @@ export function SearchPage() {
                   onClick={() => goToDraft(candidate)}
                   className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
-                  {candidate.imageUrl ? (
-                    <img src={candidate.imageUrl} alt="" className="h-16 w-11 shrink-0 rounded object-cover" />
-                  ) : (
-                    <span className="h-16 w-11 shrink-0 rounded bg-surface2" />
-                  )}
+                  <Jaquette
+                    src={candidate.imageUrl}
+                    className="h-16 w-11 shrink-0 rounded object-cover"
+                    repli={<span className="h-16 w-11 shrink-0 rounded bg-surface2" />}
+                  />
                   <div className="flex min-w-0 flex-col">
                     <TexteCoupe
                       as="div"

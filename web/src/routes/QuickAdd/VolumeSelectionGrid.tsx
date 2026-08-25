@@ -3,6 +3,7 @@ import { Check, CheckCheck } from 'lucide-react'
 import { Chip } from '../../components/Chip'
 import type { VolumeCandidateDto } from '../../types/api'
 import { volumeKey } from '../../lib/volumeKey'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Sélection visuelle des tomes possédés par jaquette (façon Mangacollec) :
@@ -75,17 +76,15 @@ export function VolumeSelectionGrid({
                 isSelected ? 'ring-accent' : 'ring-transparent'
               }`}
             >
-              {volume.imageUrl ? (
-                <img
-                  src={volume.imageUrl}
-                  alt=""
-                  className={`h-full w-full object-cover ${volume.alreadyOwned ? 'opacity-60' : ''}`}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-surface2 text-xs text-textDim">
-                  T. {volume.volumeNumber}
-                </div>
-              )}
+              <Jaquette
+                src={volume.imageUrl}
+                className={`h-full w-full object-cover ${volume.alreadyOwned ? 'opacity-60' : ''}`}
+                repli={
+                  <div className="flex h-full w-full items-center justify-center bg-surface2 text-xs text-textDim">
+                    T. {volume.volumeNumber}
+                  </div>
+                }
+              />
               <span className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center text-[10px] font-semibold text-white">
                 {volume.volumeNumber}
               </span>

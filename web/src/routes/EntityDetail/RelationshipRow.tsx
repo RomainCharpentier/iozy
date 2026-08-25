@@ -10,6 +10,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { RELATIONSHIP_TYPE_PRESETS, relationshipTypeLabel } from '../../types/entityTypes'
 import type { RelationshipDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Une relation, telle qu'elle existe vraiment : une œuvre liée, un TYPE, et un
@@ -80,11 +81,11 @@ export function RelationshipRow({
           onClick={() => navigate(`/entity/${otherId}`)}
           className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
         >
-          {cover ? (
-            <img src={cover} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />
-          ) : (
-            <span className="h-14 w-10 shrink-0 rounded bg-surface2" />
-          )}
+          <Jaquette
+            src={cover}
+            className="h-14 w-10 shrink-0 rounded object-cover"
+            repli={<span className="h-14 w-10 shrink-0 rounded bg-surface2" />}
+          />
           <span className="flex min-w-0 flex-col gap-0.5">
             <TexteCoupe texte={otherTitle} className="truncate font-medium text-textPrimary" />
             <span className="flex items-center gap-1 text-xs text-textDim">
