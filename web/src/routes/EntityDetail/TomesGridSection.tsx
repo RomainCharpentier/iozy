@@ -112,7 +112,7 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
       // Sélection = tuile ↔ panneau ouvert (voir VolumeInteractionPanel) :
       // anneau accent discret, jamais un gros effet - juste de quoi
       // reconnaître quelle carte a ouvert le panneau actuellement affiché.
-      className={`relative flex aspect-[2/3] flex-col items-center justify-center overflow-hidden rounded-lg text-left transition ${
+      className={`relative flex aspect-[2/3] w-full max-w-[168px] flex-col items-center justify-center overflow-hidden rounded-lg text-left transition ${
         owned ? 'bg-surface2' : 'bg-surface2/50'
       } ${isActive ? 'ring-2 ring-accent' : ''}`}
     >
@@ -225,7 +225,16 @@ export function TomesGridSection({
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
+      {/* La grille et l'Assistant se partagent une rangee des 900px.
+          Deux raisons, l'une de fond, l'autre mesuree. De fond : l'Assistant
+          repond a des questions SUR cette collection - « que me manque-t-il »,
+          « ou en suis-je » - il appartient donc a « Mes tomes », pas a une
+          bande separee dessous. Mesuree : en pleine largeur, une serie de six
+          tomes laissait 644px de vide a sa droite, et l'Assistant une bande
+          presque entierement blanche juste en dessous. Deux trous qui se
+          bouchent l'un l'autre. */}
+      <div className="flex flex-col gap-8 min-[900px]:grid min-[900px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[900px]:items-start min-[900px]:gap-8">
+      <section className="@container flex flex-col gap-3">
         {/* "Mes tomes" est la zone principale de la fiche (voir la maquette
             validée) - titre explicite, colonnes qui exploitent le container
             élargi (voir AppShell) sans revenir à l'ancien extrême illisible
@@ -237,9 +246,29 @@ export function TomesGridSection({
             165px et DEUX rangées, soit 503px de grille. Dix colonnes les font
             tenir sur UNE rangée - 196px - avec des tuiles de 131px, encore
             plus larges que les 98px qu'elles avaient en deux colonnes. Plus de
-            largeur doit servir à montrer plus de tomes, pas à les agrandir. */}
+            largeur doit servir à montrer plus de tomes, pas à les agrandir.
+
+            Plus aucun compte de colonnes au-dela du mobile : `auto-fit` en
+            pose autant que la largeur en autorise, entre 96 et 140px. C'est ce
+            qui rend cette grille indifferente a l'endroit ou on la met - elle
+            a deja vecu dans une colonne aux deux tiers, puis en pleine
+            largeur, et a chaque demenagement son compte de colonnes cale sur
+            la FENETRE devenait faux : tuiles de 165px sur deux rangees ici, de
+            71px la. Et `auto-fit` fait mieux qu'etre juste : il replie les
+            pistes vides, donc six tomes remplissent leur rangee au lieu de la
+            laisser a moitie blanche.
+
+            Le maximum est `1fr` et non une valeur fixe : avec un plafond en
+            pixels, auto-fit ne remplit pas - mesure, cinq pistes de 140px dans
+            832 disponibles, et le sixieme tome renvoye a la ligne pour rien.
+            C est la tuile qui plafonne (max-w-168px), pour qu une serie de deux
+            tomes ne les affiche pas en format affiche.
+
+            Les quatre colonnes fixes restent en dessous de @md : sur un
+            telephone, un minimum de 96px ne laisserait passer que trois
+            jaquettes par rangee la ou quatre tiennent. */}
         <h2 className="font-display text-lg font-semibold text-textPrimary">Mes tomes</h2>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12">
+        <div className="grid grid-cols-4 gap-2 @md:grid-cols-[repeat(auto-fit,minmax(96px,1fr))]">
           {visibleTiles.map((tile) =>
             tile.status === 'virtualMissing' ? (
               <VirtualVolumeCard
@@ -290,7 +319,7 @@ export function TomesGridSection({
         experiences={experiences}
         activeGroup={activeGroup}
       />
-
+      </div>
 
       {/* Surface contextuelle unique (voir la refonte demandée) - remplace
           l'ancien rendu de AddVolumeSection/OwnershipsSection plus bas dans

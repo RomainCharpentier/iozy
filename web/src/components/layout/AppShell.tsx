@@ -18,10 +18,18 @@ const NAV_BREAKPOINT_PX = 768
  * détail) ; `narrow` = tout le reste (formulaires, Paramètres, Profil...),
  * qui reste à la largeur de lecture d'origine - jamais demandé plus large et
  * souvent moins lisible étiré (champs de formulaire flottants, longues
- * listes de liens). `medium` sert à « Évaluer un achat »,
- * conservé pour un futur cas intermédiaire plutôt que d'ajouter une 4e valeur
- * arbitraire le jour où le besoin apparaît. */
-type ContentWidth = 'wide' | 'medium' | 'narrow'
+ * listes de liens). `medium` sert à « Évaluer un achat ».
+ *
+ * `detail` est la 4e valeur que le commentaire précédent gardait en réserve
+ * « le jour où le besoin apparaît ». Il est apparu, et sur preuve : une
+ * capture de la fiche d'une œuvre montre le contenu tassé à gauche et le côté
+ * droit blanc sur trois rangées d'affilée - la rangée de tomes s'arrête à
+ * mi-largeur, l'Assistant aussi, et le hero garde un trou en son milieu. Une
+ * fiche n'a tout simplement pas de quoi remplir 1600px : son bloc d'identité
+ * plafonne à 792px et ses actions à 420px, soit 1244px de contenu réel.
+ * Marges extérieures plus larges plutôt que trous intérieurs - les premières
+ * se lisent comme une mise en page, les seconds comme un défaut. */
+type ContentWidth = 'wide' | 'detail' | 'medium' | 'narrow'
 
 /** Classes complètes et littérales (jamais un nombre interpolé dans un
  * template string) : Tailwind scanne le CODE SOURCE statiquement pour savoir
@@ -35,6 +43,7 @@ type ContentWidth = 'wide' | 'medium' | 'narrow'
  * = pleine largeur + 16px de marge fixe (voir la refonte layout demandée). */
 const CONTAINER_CLASS: Record<ContentWidth, string> = {
   wide: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,1600px)] md:px-0',
+  detail: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,1280px)] md:px-0',
   medium: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,960px)] md:px-0',
   narrow: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,672px)] md:px-0',
 }
@@ -44,9 +53,10 @@ const CONTAINER_CLASS: Record<ContentWidth, string> = {
  * deux derniers tant que leur propre mise en page n'est pas retravaillée
  * (voir EntityDetailPage - hors périmètre pour l'instant). */
 function contentWidthFor(pathname: string): ContentWidth {
+  // La fiche d'une œuvre a sa propre largeur - voir `detail` ci-dessus.
+  if (pathname.startsWith('/entity/')) return 'detail'
   if (
     pathname === '/' ||
-    pathname.startsWith('/entity/') ||
     pathname.startsWith('/discover') ||
     pathname.startsWith('/collection/') ||
     pathname === '/tier-lists' ||
