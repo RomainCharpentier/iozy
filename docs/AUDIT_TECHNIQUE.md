@@ -911,6 +911,39 @@ depuis `AppShell`, alors que la page de partage vit **hors** du shell — elle
 gardait donc le titre de la page précédente. Le hook remonte dans `App`, qui
 couvre les deux branches, et son sélecteur accepte un `h1` sans `<main>`.
 
+### C13 — « Failed to fetch » en pleine interface française · **traité**
+
+Deux surfaces jamais examinées, vérifiées ici.
+
+**La frontière `md:` (768 px)** — l'`AppShell` affirme que les deux navigations
+« ne sont jamais visibles en même temps, sans dépendre d'un état JS ».
+Vérifié de part et d'autre : à 767 px, barre du bas et en-tête mobile (57 px) ;
+à 768 px, en-tête bureau seul (64 px), aucune barre. Ni chevauchement ni trou.
+
+**Ce que l'écran dit quand l'API ne répond pas** — jamais regardé jusqu'ici, et
+c'est là qu'était le défaut. Sur « Bilan annuel », serveur coupé :
+
+> Failed to fetch
+
+Le message interne du navigateur, en anglais, au milieu d'une interface
+entièrement française. La cause est instructive : `client.ts` traduit déjà les
+statuts HTTP (`MESSAGES_PAR_STATUT`) précisément pour éviter d'afficher
+« Not Found » brut — mais cette traduction suppose une **réponse**. Une panne
+réseau, un serveur éteint ou un DNS muet font rejeter `fetch` *avant* toute
+réponse : le cas passait entre les mailles du filet déjà tendu.
+
+Il est désormais rattrapé à la source, avec une phrase qui dit quoi faire :
+« Impossible de joindre IozyCore. Vérifie que le serveur est démarré, puis
+réessaie. »
+
+Une nuance a demandé attention : **une annulation n'est pas une panne**.
+TanStack Query annule les requêtes devenues obsolètes (recherche débouncée), et
+traiter cet `AbortError` comme un serveur injoignable aurait fait clignoter une
+fausse erreur à chaque frappe. Il est ré-émis tel quel.
+
+Vérifié dans les deux sens : le message français remplace bien l'anglais quand
+l'API tombe, et la page se remplit normalement dès qu'elle revient.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,

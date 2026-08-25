@@ -69,17 +69,43 @@ async function extractErrorMessage(response: Response): Promise<string> {
   return MESSAGES_PAR_STATUT[response.status] ?? `Erreur ${response.status}`
 }
 
+/**
+ * Ce qui s'affiche quand la requête n'a même pas pu partir.
+ *
+ * `fetch` rejette avec un `TypeError: Failed to fetch` - serveur éteint, réseau
+ * coupé, DNS muet, CORS refusé. Ce message est celui du NAVIGATEUR : anglais,
+ * technique, et il s'affichait tel quel au milieu d'une interface entièrement
+ * en français (constaté sur « Bilan annuel », qui rendait « Failed to fetch »
+ * là où l'écran attendait un bilan).
+ *
+ * La traduction des statuts HTTP existait déjà (voir MESSAGES_PAR_STATUT), mais
+ * elle suppose une RÉPONSE. Ici il n'y en a aucune : le cas passait entre les
+ * mailles.
+ */
+const MESSAGE_HORS_LIGNE =
+  "Impossible de joindre IozyCore. Vérifie que le serveur est démarré, puis réessaie."
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    ...init,
-    headers: {
-      // Surtout PAS sur un FormData : le navigateur doit poser lui-même
-      // `multipart/form-data; boundary=…`, et l'écraser par `application/json`
-      // rendrait le corps illisible côté serveur (415, sans indice).
-      ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
-  })
+  let response: Response
+  try {
+    response = await fetch(`/api${path}`, {
+      ...init,
+      headers: {
+        // Surtout PAS sur un FormData : le navigateur doit poser lui-même
+        // `multipart/form-data; boundary=…`, et l'écraser par `application/json`
+        // rendrait le corps illisible côté serveur (415, sans indice).
+        ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+        ...init?.headers,
+      },
+    })
+  } catch (cause) {
+    // Une annulation n'est PAS une panne : TanStack Query annule les requêtes
+    // devenues obsolètes (recherche débouncée), et transformer cela en « serveur
+    // injoignable » ferait clignoter une fausse erreur à chaque frappe.
+    if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
+    // 0 : aucune réponse n'a été reçue, il n'y a pas de statut à rapporter.
+    throw new ApiError(0, MESSAGE_HORS_LIGNE)
+  }
 
   if (!response.ok) {
     throw new ApiError(response.status, await extractErrorMessage(response))
