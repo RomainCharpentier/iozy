@@ -818,6 +818,30 @@ faux positif (`rank-a` à 4,32), corrigé en lisant `TierBadge.tsx`.
 teinte éclaircie sort en code 1 avec les trois fonds fautifs nommés, un token
 renommé sort en code 2.
 
+### C10 — Les dix-sept routes portaient le même titre · **traité**
+
+Constaté en balayant : chaque route affiche un `<h1>` distinct, et **toutes
+avaient pour titre de document « IozyCore »**. Trois conséquences, dont une
+d'accessibilité :
+
+- l'historique du navigateur devenait illisible — dix entrées identiques ne
+  permettent de revenir nulle part ;
+- un onglet gardé ouvert ne disait pas sur quoi ;
+- **une navigation SPA n'annonce rien** à un lecteur d'écran : la page ne se
+  recharge pas, il n'y a donc aucun événement à annoncer. Mettre à jour le
+  titre est le remède conventionnel.
+
+Le titre est **dérivé du `h1`** plutôt que déclaré dans une table
+« route → libellé ». Ce dépôt s'est déjà fait mordre plusieurs fois par deux
+listes qui divergent, et le `h1` *est* le titre de la page au sens sémantique.
+Bénéfice inattendu : les routes dynamiques suivent gratuitement — la fiche
+d'une série affiche « Naruto · IozyCore » sans qu'aucune table ne connaisse le
+catalogue.
+
+Un `MutationObserver` attend le `h1` des pages qui chargent leurs données
+d'abord, se débranche dès qu'il l'a trouvé, et abandonne après cinq secondes
+plutôt que d'observer indéfiniment.
+
 ### C5 — Deux références mortes dans la documentation · **mineur**
 
 `DESIGN_MIGRATION_V1.2.md` cite `LoansPage` et `PublicCollectionController`,
