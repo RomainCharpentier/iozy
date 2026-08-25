@@ -25,6 +25,10 @@ function codeFromLabel(label: string): string {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toUpperCase()
+    // Les ligatures ne se décomposent pas en NFD : sans cette ligne, « Œuvres »
+    // donnait le code « UVRES », la lettre initiale simplement avalée.
+    .replace(/Œ/g, 'OE')
+    .replace(/Æ/g, 'AE')
     .replace(/[^A-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
 }
@@ -89,6 +93,23 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
       navigate('/types')
     },
   })
+
+  /**
+   * Ce qui manque pour créer le type - dit, plutôt que laissé à deviner.
+   *
+   * Même principe que `raisonBlocage` dans PurchaseAnalysisPage, qui le
+   * formule ainsi : un bouton principal grisé sans explication est un
+   * cul-de-sac. Il manquait ici, et le cas y est nettement plus retors : le
+   * code se DÉDUIT du label, et codeFromLabel ne garde que [A-Z0-9]. Un label
+   * en japonais, en cyrillique ou fait de symboles produit donc un code vide -
+   * l'écran montre alors un label bien rempli, un champ Code vide qu'on n'a
+   * jamais touché, et un bouton mort. Vérifié : « 漫画 » donne exactement ça.
+   */
+  const raisonBlocage = !label.trim()
+    ? 'Donne un label à ce type : c’est le nom que tu liras dans l’application.'
+    : !code.trim()
+      ? `Le code n’a pas pu être déduit de « ${label.trim()} » : il n’accepte que des lettres sans accent et des chiffres. Écris-le à la main.`
+      : null
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -246,6 +267,11 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
         >
           {mutation.isPending ? 'Enregistrement...' : mode === 'create' ? 'Créer' : 'Enregistrer'}
         </button>
+        {raisonBlocage && (
+          <p className="text-xs text-textDim" role="status">
+            {raisonBlocage}
+          </p>
+        )}
       </form>
     </div>
   )
