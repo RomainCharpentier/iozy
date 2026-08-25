@@ -55,12 +55,17 @@ export function TierListsScreen() {
     queryFn: () => listTierLists(null),
   })
 
-  if (entityTypesQuery.isError) return <ErrorBanner message={entityTypesQuery.error.message} />
-  if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
-
-  const stillLoading =
-    boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading) || crossUniverseQuery.isLoading
-  if (stillLoading) return <p className="text-textDim">Chargement...</p>
+  // Pas de retour anticipé : l'écran garde son titre pendant qu'il charge.
+  // Le remplacer entièrement par « Chargement... » lui faisait perdre son h1,
+  // donc AUSSI le titre de son onglet (voir useDocumentTitle, qui lit le h1) -
+  // l'onglet retombait sur « IozyCore » - et son seul repère de structure pour
+  // un lecteur d'écran. Statistiques et Envies gardent déjà le leur : c'est
+  // cette forme-là qui est majoritaire dans l'application.
+  const chargement =
+    entityTypesQuery.isLoading ||
+    boardQueries.some((q) => q.isLoading) ||
+    listsQueries.some((q) => q.isLoading) ||
+    crossUniverseQuery.isLoading
 
   const sections = entityTypes
     .map((entityType, i) => ({
@@ -94,7 +99,13 @@ export function TierListsScreen() {
         )}
       </div>
 
-      {sections.length === 0 && (
+      {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
+      {chargement && <p className="text-textDim">Chargement...</p>}
+
+      {/* `!chargement` en garde : sans lui, l'état vide clignoterait à chaque
+          ouverture, le temps que les données arrivent - « Rien à classer »
+          affiché à quelqu'un qui a justement des choses à classer. */}
+      {!chargement && sections.length === 0 && (
         <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
           <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
           <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
