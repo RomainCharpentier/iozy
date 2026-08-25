@@ -9,7 +9,6 @@ import { AssistantSection } from './AssistantSection'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
 import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
-import { TierSummarySection } from './TierSummarySection'
 import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../types/api'
 import { Jaquette } from '../../components/Jaquette'
 
@@ -22,8 +21,10 @@ export interface TomeTile {
 // Aperçu pour les séries longues (voir Naruto, 72 tomes) : au lieu de
 // rendre les N tuiles d'un coup, n'en montre qu'un aperçu compact par
 // défaut (environ 1 ligne desktop large / 1-2 lignes mobile - 8 tuiles
-// tombe pile sur 1 ligne à xl:grid-cols-8 tout en restant 2 lignes à
-// grid-cols-4 mobile). Pas de seuil pile sur PREVIEW_TILE_COUNT : en
+// tenaient pile sur 1 ligne quand l'échelle plafonnait à xl:grid-cols-8, et
+// y tiennent toujours depuis qu'elle monte à 10 puis 12, avec de la place
+// pour les possédés situés plus loin ; 2 lignes à grid-cols-4 sur mobile,
+// inchangé). Pas de seuil pile sur PREVIEW_TILE_COUNT : en
 // dessous de LONG_SERIES_THRESHOLD, "Voir tout (N)" ne masquerait qu'une
 // poignée de tuiles - pas utile pour l'utilisateur, voir "no backend
 // pagination" (pur découpage de la liste déjà en mémoire, rien de plus).
@@ -159,9 +160,7 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
 export function TomesGridSection({
   entityId,
   entityTypeId,
-  entityTypeLabel,
   entityTitle,
-  entityAttributes,
   variants,
   ownerships,
   experiences,
@@ -177,12 +176,10 @@ export function TomesGridSection({
   // Uniquement pour la ligne "{type} — général" de Mes classements (voir
   // TierSummarySection) - null tant que EntityDetailPage n'a pas fini de
   // résoudre les types (jamais bloquant, juste un intitulé générique en repli).
-  entityTypeLabel: string | null
   entityTitle: string
   // Uniquement pour "Statut" dans "À propos" (voir isSeriesOngoing) - le
   // reste de cette section lit déjà ses propres données (editionInfo/
   // completenessQuery), jamais besoin du sac d'attributs complet ailleurs ici.
-  entityAttributes: Record<string, unknown>
   variants: VariantDto[]
   ownerships: OwnershipResponse[]
   // Uniquement pour l'Assistant ("Où en suis-je dans mes lectures ?", voir
@@ -232,9 +229,17 @@ export function TomesGridSection({
         {/* "Mes tomes" est la zone principale de la fiche (voir la maquette
             validée) - titre explicite, colonnes qui exploitent le container
             élargi (voir AppShell) sans revenir à l'ancien extrême illisible
-            (10 colonnes fixes). */}
+            (10 colonnes FIXES, à toutes les largeurs - ce que l'échelle
+            ci-dessous n'est pas).
+
+            Comptes relevés vers le haut le jour où cette section a pris toute
+            la largeur de la page : à 1425px, 8 colonnes donnaient des tuiles de
+            165px et DEUX rangées, soit 503px de grille. Dix colonnes les font
+            tenir sur UNE rangée - 196px - avec des tuiles de 131px, encore
+            plus larges que les 98px qu'elles avaient en deux colonnes. Plus de
+            largeur doit servir à montrer plus de tomes, pas à les agrandir. */}
         <h2 className="font-display text-lg font-semibold text-textPrimary">Mes tomes</h2>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12">
           {visibleTiles.map((tile) =>
             tile.status === 'virtualMissing' ? (
               <VirtualVolumeCard
@@ -272,17 +277,6 @@ export function TomesGridSection({
             édition hors de ce qui est déjà catalogué. */}
         <AddVolumeSection entityId={entityId} entityTypeId={entityTypeId} title={entityTitle} />
       </section>
-
-      {/* "Mes classements" : section à part entière AVANT "À propos" (voir la
-          maquette V1.2, §30 dans le fichier source - "son propre panneau,
-          pour garder l'ordre fixe"). Vrai contenu Tier Lists (voir
-          TierSummarySection ci-dessus, Lot 7). */}
-      <TierSummarySection
-        entityId={entityId}
-        entityTitle={entityTitle}
-        entityTypeLabel={entityTypeLabel}
-        coverImageUrl={coverImageUrlFrom(entityAttributes)}
-      />
 
       {/* "Assistant" : questions fixes à réponse calculée, entre "Mes
           classements" et "À propos" - emplacement de la maquette V1.2 (voir

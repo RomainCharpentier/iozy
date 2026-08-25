@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Pencil, Scale } from 'lucide-react'
@@ -20,7 +20,11 @@ import { groupVariantsByEdition, resolveEditionView } from '../../lib/editionGro
 import { EditionProgressSection } from './EditionProgressSection'
 import { TomesGridSection } from './TomesGridSection'
 import { TierSummarySection } from './TierSummarySection'
-import { MoreOptionsSection } from './MoreOptionsSection'
+import { TagsSection } from './TagsSection'
+import { ExperiencesSection } from './ExperiencesSection'
+import { RelationshipsSection } from './RelationshipsSection'
+import { DeleteEntitySection } from './DeleteEntitySection'
+import { OngletsFiche, type OngletFiche } from './OngletsFiche'
 import { EntityInfoSection } from './EntityInfoSection'
 
 export function EntityDetailPage() {
@@ -71,6 +75,18 @@ export function EntityDetailPage() {
   // On memorise l'URL fautive et non un booleen : sinon, corriger la couverture
   // laisserait le degrade affiche pour la nouvelle, qui n'a jamais echoue.
   const [couvertureEnEchec, setCouvertureEnEchec] = useState<string | null>(null)
+  /**
+   * Le panneau visible sous 1100px. Au-delà, les trois coexistent en deux
+   * colonnes et cette valeur ne sert plus à rien - d'où des classes qui
+   * rétablissent l'affichage à partir du point de bascule.
+   *
+   * Un état local plutôt que l'URL : c'est une façon de regarder la même
+   * fiche, pas une destination. Mettre l'onglet dans l'URL ferait de chaque
+   * changement d'angle une entrée d'historique, et le bouton Retour ne
+   * ramènerait plus à l'écran précédent mais à l'onglet précédent.
+   */
+  const [onglet, setOnglet] = useState<OngletFiche>('tomes')
+  const barreOngletsRef = useRef<HTMLDivElement>(null)
 
   // 5 requêtes indépendantes déclenchées en parallèle (React Query émet
   // chaque useQuery dès le rendu, pas de chaînage séquentiel) - même
@@ -140,6 +156,41 @@ export function EntityDetailPage() {
   // Une grille de tomes n'a de sens que pour une serie manga dont une edition
   // est affichee. C'est aussi elle qui decide s'il y a matiere a deux colonnes.
   const grilleDeTomes = isManga && !!activeEditionGroup
+
+  /**
+   * Les deux panneaux secondaires sont des CARTES, pas des colonnes nues.
+   *
+   * C'est ce qui règle le défaut de la version précédente : deux colonnes
+   * empilées ont des hauteurs qui dépendent des données (mesuré : 566px contre
+   * 799px sur une même fiche), et l'écart se lit comme un trou. Posées dans
+   * une grille, deux cartes s'étirent à la hauteur de leur RANGÉE - même
+   * hauteur, quel que soit leur contenu. Et un fond propre découpe la page en
+   * blocs que l'œil saisit d'un coup, au lieu de sept titres de même poids
+   * alignés sur le même fond.
+   */
+  const CARTE = 'rounded-2xl border border-surface2 bg-surface p-4 shadow-token-sm'
+
+  /**
+   * Classes d'un panneau. Écrites en toutes lettres et jamais interpolées :
+   * Tailwind scanne le code source, une classe construite dynamiquement ne
+   * serait jamais générée (voir AppShell.CONTAINER_CLASS pour le même écueil).
+   */
+  const classePanneau = (nom: OngletFiche) => {
+    if (!grilleDeTomes) return 'flex flex-col gap-6'
+    return onglet === nom ? 'flex flex-col gap-6' : 'hidden flex-col gap-6 min-[1100px]:flex'
+  }
+
+  /**
+   * Changer d'onglet depuis le bas d'un panneau long déposerait ailleurs au
+   * hasard - le navigateur garde la position, et le panneau d'arrivée est
+   * souvent plus court. On ne remonte QUE si la barre est sortie par le haut :
+   * remonter alors qu'elle est déjà visible serait un sursaut gratuit.
+   */
+  function changerDOnglet(suivant: OngletFiche) {
+    setOnglet(suivant)
+    const barre = barreOngletsRef.current
+    if (barre && barre.getBoundingClientRect().top < 0) barre.scrollIntoView({ block: 'start' })
+  }
   const bestExperience = experiences.reduce<(typeof experiences)[number] | null>((best, exp) => {
     if (exp.rating === null) return best
     if (!best || (best.rating ?? -1) < exp.rating) return exp
@@ -369,44 +420,57 @@ export function EntityDetailPage() {
           Une seule colonne quand il n'y a pas de grille de tomes (jeu vidéo,
           type personnalisé, série seulement en envies) : sinon la gauche
           serait vide et la droite porterait tout. */}
-      <div
-        className={
-          grilleDeTomes
-            ? 'flex flex-col gap-6 min-[1100px]:grid min-[1100px]:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] min-[1100px]:items-start min-[1100px]:gap-8'
-            : 'flex flex-col gap-6'
-        }
-      >
-        {/* "Mes tomes" - hors du bloc Identité, séparée visuellement (voir la
-            maquette validée : margin-top généreux). Réservée au Manga :
-            volumeNumber/édition n'ont de sens que pour un tome (voir
-            QuickAddService côté backend).
+      {grilleDeTomes && (
+        <div ref={barreOngletsRef} className="mt-6 min-[1100px]:hidden">
+          <OngletsFiche actif={onglet} onChange={changerDOnglet} />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-6">
+        {/* "Mes tomes" prend TOUTE la largeur, et non plus les deux tiers
+            gauches. C'est la zone principale de la fiche : lui donner le
+            container entier, c'est plus de tomes par rangée donc moins de
+            rangées - et c'est la seule chose de cette page qui gagne
+            réellement à s'étaler. Elle reste sur le fond de page, sans carte :
+            c'est le sujet, pas un encadré.
 
             mt-6 en plus du gap-6 déjà porté par le conteneur racine = 48px au
             total entre le hero et "Mes tomes" (cible 40-48px, voir la maquette
             validée) - une vraie séparation visuelle, pas la même respiration
-            que le reste de la page. La colonne de droite porte le même mt-6 en
-            deux colonnes, pour que les deux partent de la même ligne. */}
+            que le reste de la page. */}
         {grilleDeTomes && (
-          <div className="mt-6">
+          <div className={classePanneau('tomes') + ' min-[1100px]:mt-6'}>
             <TomesGridSection
-            entityId={entityId}
-            entityTypeId={entity.entityTypeId}
-            entityTypeLabel={entityType?.label ?? null}
-            entityTitle={entity.title}
-            entityAttributes={entity.attributes}
-            variants={entity.variants}
-            ownerships={ownerships}
-            experiences={experiences}
-            activeGroup={activeEditionGroup}
-          />
+              entityId={entityId}
+              entityTypeId={entity.entityTypeId}
+              entityTitle={entity.title}
+              variants={entity.variants}
+              ownerships={ownerships}
+              experiences={experiences}
+              activeGroup={activeEditionGroup}
+            />
           </div>
         )}
 
-        {/* Le mt-6 n'a de raison d'être qu'en deux colonnes, pour aligner les
-            deux têtes de colonne. En une seule colonne il ajouterait 24px
-            devant « Mes classements » sur les fiches sans grille de tomes,
-            sans que rien ne le justifie. */}
-        <div className={grilleDeTomes ? 'flex flex-col gap-6 min-[1100px]:mt-6' : 'flex flex-col gap-6'}>
+        {/* Les deux panneaux secondaires, côte à côte à partir de 1100px.
+            Pas de items-start ici, à dessein : l'étirement par défaut d'une
+            grille leur donne la hauteur de leur rangée, donc la MÊME hauteur.
+            C'est exactement ce que les deux colonnes empilées ne savaient pas
+            faire.
+
+            display:contents en petit : ce conteneur n'existe que pour les
+            ranger côte à côte en grand. En dessous il doit s'effacer, sinon il
+            imposerait son gap entre deux panneaux dont un seul est visible -
+            un vide de 24px sous chaque onglet. */}
+        <div
+          className={
+            grilleDeTomes
+              ? 'contents min-[1100px]:grid min-[1100px]:grid-cols-2 min-[1100px]:gap-6'
+              : 'flex flex-col gap-6 min-[1100px]:grid min-[1100px]:grid-cols-2 min-[1100px]:gap-6'
+          }
+        >
+          {/* ---------- Mon avis : ce que J'EN PENSE ---------- */}
+          <div className={classePanneau('avis') + ' ' + CARTE}>
       {/* "Mes classements" pour toutes les autres fiches. La grille de tomes
           la porte déjà pour une série manga dont une édition est affichée
           (voir TomesGridSection, qui la place avant "À propos" comme le veut
@@ -419,14 +483,28 @@ export function EntityDetailPage() {
           backend sait depuis toujours classer n'importe quelle Entity, sans
           exiger la moindre possession. Un classement dit ce qu'on pense d'une
           œuvre, pas ce qu'on possède. */}
-      {!grilleDeTomes && (
-        <TierSummarySection
-          entityId={entityId}
-          entityTitle={entity.title}
-          entityTypeLabel={entityType?.label ?? null}
-          coverImageUrl={coverImageUrlFrom(entity.attributes)}
-        />
-      )}
+            <TierSummarySection
+              entityId={entityId}
+              entityTitle={entity.title}
+              entityTypeLabel={entityType?.label ?? null}
+              coverImageUrl={coverImageUrlFrom(entity.attributes)}
+            />
+
+            {/* Une Expérience ne dépend d'aucune Possession - c'est l'un des
+                invariants du modèle. Elle vit donc avec le classement et les
+                tags, sous « ce que j'en pense », jamais sous « ce que j'ai ». */}
+            <ExperiencesSection
+              entityId={entityId}
+              experiences={experiences}
+              allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
+              variants={entity.variants}
+            />
+
+            <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data ?? []} />
+          </div>
+
+          {/* ---------- L'œuvre : ce QU'ELLE EST ---------- */}
+          <div className={classePanneau('oeuvre') + ' ' + CARTE}>
 
       {/* "Informations" : les attributs de l'œuvre, affichés ET modifiables,
           pour TOUS les types - un jeu ou un type personnalisé n'affichait
@@ -451,23 +529,21 @@ export function EntityDetailPage() {
         }
       />
 
-      {/* Tags/Expériences/Relations/Suppression : rien de tout ça ne répond
-          aux 6 questions centrales de cette fiche (quelle série, quelle
-          édition, combien de tomes, combien possédés, lesquels manquent,
-          comment en ajouter un) - voir MoreOptionsSection. Repliées derrière
-          un seul clic plutôt que d'occuper une place permanente. */}
-      <MoreOptionsSection
-        entityId={entityId}
-        entityTitle={entity.title}
-        attachedTagIds={entity.tagIds}
-        allTags={tagsQuery.data ?? []}
-        experiences={experiences}
-        allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
-        variants={entity.variants}
-        relationshipsFrom={relFromQuery.data ?? []}
-        relationshipsTo={relToQuery.data ?? []}
-        enDeuxColonnes={grilleDeTomes}
-      />
+            {/* Une relation est un fait de catalogue - « ceci adapte cela » -
+                pas un avis ni une possession. */}
+            <RelationshipsSection
+              entityId={entityId}
+              relationshipsFrom={relFromQuery.data ?? []}
+              relationshipsTo={relToQuery.data ?? []}
+            />
+
+            {/* Dernière ligne du dernier panneau, derrière sa propre
+                confirmation et sous sa bordure : une action destructive n'est
+                pas cachée, elle est simplement au bout. */}
+            <div className="flex flex-col gap-2 border-t border-danger/20 pt-3">
+              <DeleteEntitySection entityId={entityId} entityTitle={entity.title} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
