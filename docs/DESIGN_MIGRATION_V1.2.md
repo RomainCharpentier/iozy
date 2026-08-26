@@ -80,6 +80,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 30. Un retour vers l'écran d'où l'on vient, sur la fiche — **fait** — voir ci-dessous
 31. Consulter n'écrit plus rien : l'aperçu d'une œuvre, et l'ajout comme seule écriture — **fait** — voir ci-dessous
 32. L'ajout depuis l'aperçu, testé de bout en bout — un bug trouvé — **fait** — voir ci-dessous
+33. Plus de « 2/? » : un ratio sans dénominateur — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -838,6 +839,50 @@ de l'édition (une recherche approfondie en trouve davantage). L'écrire comme
 `totalVolumes` empoisonnerait le moteur de complétude, qui sert ensuite à dire
 ce qui manque et combien il en coûte. La correction d'édition (le crayon,
 `EditionCorrectionSection`) reste la façon de le renseigner.
+
+### Lot 33 — un ratio dont le dénominateur est inconnu n'est pas un ratio
+
+Signalé au Lot 32 comme « conséquence assumée », puis demandé en correction :
+une fiche fraîchement créée affichait « **2/?** » et « Éditeur et nombre de
+tomes non renseignés ».
+
+#### Ce qui n'a PAS changé, et pourquoi
+
+Le nombre de tomes d'une édition reste inconnu tant qu'il n'est pas renseigné
+(voir `MangaEdition`). Le déduire du nombre de tomes qu'une recherche a
+RAMENÉS serait faux : c'est ce que le fournisseur a trouvé ce jour-là, pas le
+total de l'édition — une recherche approfondie en trouve davantage. Et cette
+valeur alimente ensuite le moteur de complétude, qui dit ce qui manque et ce
+qu'il en coûte : l'empoisonner se paierait bien au-delà de cet affichage.
+
+#### Ce qui change
+
+- **« 2/? » devient « 2 tomes »**. Un ratio dont le dénominateur est inconnu se
+  lit comme une donnée manquante, alors que le numérateur, lui, est
+  parfaitement su. On affiche ce qu'on a, sans la barre oblique qui promet une
+  comparaison impossible. Le texte pour lecteur d'écran suivait déjà cette
+  règle (« 1 tome possédé », sans « sur X ») - c'est l'affichage qui était en
+  retard.
+- **« Éditeur et nombre de tomes non renseignés » devient « Édition à
+  renseigner »**. Le premier énonçait un manque ; le second dit qu'on peut le
+  combler - le crayon de correction est juste à côté, dans « L'œuvre ».
+
+#### Vérifications
+
+Quatre contrôles web verts. Les trois états de la carte, en direct :
+
+| Ce qu'on sait | La carte affiche |
+|---|---|
+| Éditeur + total (Death Note, Black Édition) | `Kana · 6 tomes` / `1/6` |
+| Éditeur seul, total inconnu | `Kana` / `1 tome` |
+| Rien | `Édition à renseigner` / `1 tome` |
+
+Les deux derniers états n'existent pas dans les données réelles : forcés en
+réécrivant à la volée les réponses `/completeness` et
+`/purchase-analysis/editions`, sans rien toucher en base (recette du Lot
+« navigateur de test »). `window.fetch` restauré, page rechargée, données
+réelles revenues (`Kana · 6 tomes`, `1/6`) et collection intacte à 8 œuvres.
+Plus aucun `/?` nulle part.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
