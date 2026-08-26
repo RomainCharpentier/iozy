@@ -79,6 +79,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 29. `/add/draft` supprimé : on ouvre la fiche d'une œuvre qu'on ne possède pas — **fait** — voir ci-dessous
 30. Un retour vers l'écran d'où l'on vient, sur la fiche — **fait** — voir ci-dessous
 31. Consulter n'écrit plus rien : l'aperçu d'une œuvre, et l'ajout comme seule écriture — **fait** — voir ci-dessous
+32. L'ajout depuis l'aperçu, testé de bout en bout — un bug trouvé — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -779,6 +780,64 @@ verts. En direct, la preuve qui compte :
   « 1 tome possédé sur 6 ».
 - Aucun débordement horizontal sur les deux écrans à 1265px.
 - **L'ajout n'a pas été déclenché** : il ne se défait pas (voir Lot 29).
+
+### Lot 32 — l'ajout depuis l'aperçu, testé pour de bon
+
+Les deux lots précédents s'étaient arrêtés au bord : « l'écriture n'a pas été
+déclenchée, un ajout ne se défait pas ». C'était faux, et il suffisait de lire
+le code pour le savoir — une Ownership **se supprime**
+(`DELETE /api/ownerships/{id}`), un Tome aussi, et `VariantDeletionService`
+enchaîne la cascade : Tome retiré → Édition supprimée si plus aucun Tome ne la
+référence (et si aucune observation de marché ne la retient) → Série supprimée
+si elle n'a plus aucun Tome. L'ajout est donc parfaitement réversible, et il
+n'y avait aucune raison de ne pas le vérifier.
+
+#### Le bug trouvé
+
+Premier essai, aperçu ouvert **directement par son URL** : deux tomes ajoutés,
+fiche créée… avec `attributes: {}`. Ni jaquette, ni mangaka, ni malId, ni
+année — alors que l'aperçu les affiche.
+
+Cause : la grille de tomes ne dépend que du TITRE, alors que le hero et les
+attributs dépendent de la recherche de métadonnées. Ouvert par URL (sans le
+candidat en raccourci), l'écran peut donc proposer ses tomes **avant** de
+connaître l'œuvre. Cliquer à cet instant recopie un sac vide sur l'Entity que
+`quickAdd` crée — et une fiche sans jaquette ni auteur est pénible à rattraper
+ensuite, puisque plus rien ne redéclenche la recherche.
+
+Correction : `attributsEnCours` retient le bouton d'ajout tant que la
+recherche n'a pas répondu, et la barre dit pourquoi. Uniquement en aperçu
+ouvert à froid : avec le candidat en raccourci, ou sur une fiche existante,
+les attributs sont connus d'emblée et rien n'est retenu.
+
+#### Vérifications
+
+Quatre contrôles web verts. Le parcours complet, deux fois :
+
+1. **Avant correction**, aperçu ouvert par URL → fiche créée aux attributs
+   vides. Défaut reproduit, puis nettoyé par la cascade.
+2. **Après correction**, parcours réel (recherche → clic sur « Boruto » →
+   deux tomes cochés → ajout) : redirection vers `/entity/0017b2e5…`,
+   fiche portant **les neuf attributs** (`coverImageUrl`, `malId`, `mangaka`,
+   `mediaType`, `seriesStatus`, `startYear`, `titleEnglish`, `titleJapanese`,
+   `titleRomaji`), deux Tomes « Tome 2/3 — Naruto Next Generations », deux
+   Ownership `OWNED`/`NEW` rattachées chacune à son Tome, et le hero affichant
+   « Masashi Kishimoto · En cours · Depuis 2023 ».
+
+**État restauré à l'identique** après chaque essai : possessions supprimées,
+Tomes supprimés, cascade jusqu'à la Série (`GET /api/entities/{id}` → 404,
+`search?q=Boruto` → `[]`). Collection finale vérifiée : les 8 œuvres d'origine,
+inchangées.
+
+#### Une conséquence assumée
+
+La fiche fraîchement créée affiche « Éditeur et nombre de tomes non
+renseignés » et « 2/? ». L'aperçu connaissait pourtant 14 candidats dans cette
+édition — mais ce nombre est ce que la recherche a RAMENÉ, pas le total réel
+de l'édition (une recherche approfondie en trouve davantage). L'écrire comme
+`totalVolumes` empoisonnerait le moteur de complétude, qui sert ensuite à dire
+ce qui manque et combien il en coûte. La correction d'édition (le crayon,
+`EditionCorrectionSection`) reste la façon de le renseigner.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -2217,6 +2276,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- L'ajout d'un tome EST réversible, contrairement à ce que deux lots ont affirmé : `DELETE /api/ownerships/{id}`, puis `DELETE /api/entities/{id}/variants/{id}`, et `VariantDeletionService` cascade jusqu'à supprimer l'Édition orpheline puis la Série vide. Vérifier un chemin d'écriture en direct est donc possible - lire la règle de suppression avant de renoncer (Lot 32).
+- Un écran dont une partie ne dépend que d'un identifiant faible (ici le titre) peut devenir actionnable AVANT que le reste de ses données soit chargé. L'aperçu proposait ses tomes avant de connaître l'œuvre, et l'ajout persistait un sac d'attributs vide. Retenir l'action, pas seulement afficher un chargement (Lot 32).
 - Un hook qui doit alimenter deux endroits d'une même page (ici les cartes d'édition dans le hero, la grille dans le corps) renvoie DEUX nœuds ; il ne remonte jamais un morceau à l'appelant par un rappel pendant le rendu - c'est modifier l'état d'un composant pendant le rendu d'un autre, et React le refuse (Lot 31).
 - Distinguer les deux usages de `location.state` : une DÉPENDANCE (l'écran n'existe pas sans lui - l'ancien `/add/draft`, cassé au F5) et un RACCOURCI (il évite une requête, son absence ne coûte rien - l'aperçu du Lot 31). Le second est légitime, le premier presque jamais : mettre l'identité dans l'URL.
 - `candidateDisplayTitle` compose « Titre (Autre titre) » pour une LISTE ; ce qu'on persiste est toujours `resolvePrimaryTitle` (Lot 29). Deux chemins d'écriture s'étaient trompés, dont un depuis longtemps - et l'erreur ne se voit qu'au moment où un second chemin résout la même œuvre par son titre, et crée un doublon.

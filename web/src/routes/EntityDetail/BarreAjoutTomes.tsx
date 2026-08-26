@@ -27,6 +27,7 @@ export function BarreAjoutTomes({
   onPrix,
   onAjouter,
   enCours,
+  attente,
   erreur,
   onToutDeselectionner,
 }: {
@@ -37,6 +38,12 @@ export function BarreAjoutTomes({
   onPrix: (prix: string) => void
   onAjouter: () => void
   enCours: boolean
+  /** Les informations de l'œuvre ne sont pas encore connues. Ajouter
+   *  maintenant créerait une fiche sans jaquette ni auteur - constaté en
+   *  direct : deux tomes ajoutés depuis un aperçu ouvert par URL, dont la
+   *  recherche de métadonnées n'avait pas encore répondu, ont donné une œuvre
+   *  aux attributs vides. */
+  attente: boolean
   erreur: string | null
   onToutDeselectionner: () => void
 }) {
@@ -83,7 +90,7 @@ export function BarreAjoutTomes({
         <button
           type="button"
           onClick={onAjouter}
-          disabled={enCours}
+          disabled={enCours || attente}
           className="flex min-h-12 items-center gap-2.5 rounded-[14px] bg-accent px-5 text-sm font-semibold text-accentInk shadow-token-accent transition-transform hover:-translate-y-px disabled:opacity-50"
         >
           {enCours ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
@@ -91,6 +98,11 @@ export function BarreAjoutTomes({
         </button>
       </div>
 
+      {attente && (
+        <p className="text-[13px] text-textDim">
+          Informations de l'œuvre en cours de chargement — encore un instant avant de pouvoir ajouter.
+        </p>
+      )}
       {erreur && <ErrorBanner message={erreur} />}
     </div>
   )
