@@ -75,6 +75,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 25. Fiche d'une œuvre restructurée d'après la maquette v4, et en-têtes de tous les écrans harmonisés — **fait**, puis **remplacé au Lot 26** (mauvaise planche suivie) — voir ci-dessous
 26. Fiche refaite d'après la BONNE planche (« multi-éditions »), et « édition suivie » devenue une vraie donnée — **fait** — voir ci-dessous
 27. « Envies d'amélioration » retirée de l'interface : livrée mais sans conséquence — **fait** — voir ci-dessous
+28. Une seule grille de tomes pour la fiche et l'ajout — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -519,6 +520,84 @@ donc sa suite reste celle du Lot 26. En direct : plus aucune référence à
 `EditionUpgrade` dans `web/src`, la fiche intacte sans le lien, Profil réduit
 à trois entrées réelles (Évaluer un achat / Bilan annuel / Paramètres), et
 `/edition-upgrades` comme `/nimporte-quoi` affichent la page de repli.
+
+### Lot 28 — une seule grille de tomes, deux modes
+
+Question de l'utilisateur : « on devrait mutualiser avec /add/draft non ? ».
+
+#### Ce que la comparaison a donné
+
+| | Fiche `GrilleTomes` | Ajout `VolumeSelectionGrid` |
+|---|---|---|
+| Donnée | `TomeTile` (Variant + Ownership + complétude) | `VolumeCandidateDto` (recherche externe, pas encore en base) |
+| État | possédé / catalogué manquant / purement déduit | sélectionné **×** déjà possédé (deux axes) |
+| Le clic | ouvre le panneau du tome | coche / décoche |
+| Multi-sélection | non | c'est tout l'objet de l'écran |
+| Filtres | Tous / Manquants / Possédés | aucun |
+| Forme | `aspect-2/3`, auto-fill 78px | `h-24 w-16` fixe, flex-wrap |
+
+Ma première lecture concluait « coquille commune, grilles séparées » : deux
+gestes différents, donc risque de fausse factorisation à jeux de props
+disjoints. **Décision utilisateur : fusionner pour de vrai.** Et en écrivant
+le composant, l'objection tombe d'elle-même — la liste des props communes est
+entière, et une SEULE prop (`onEnvies`) est propre à un mode.
+
+#### Le point de rencontre
+
+`components/GrilleVolumes.tsx` définit ce qu'une grille a besoin de savoir
+d'un tome, et rien de plus : `{ cle, numero, jaquetteUrl, possede, actif }`.
+Chaque écran traduit sa propre donnée vers cette forme (une dizaine de lignes
+d'adaptateur de chaque côté).
+
+Deux choix qui font tenir l'ensemble :
+
+- **`actif` couvre les deux sens.** Sur la fiche, c'est le tome dont le
+  panneau est ouvert ; à l'ajout, c'est le tome coché. Deux significations,
+  un seul état visuel — donc pas de `tomeActif` d'un côté et `selectedKeys`
+  de l'autre dans la même signature.
+- **La distinction « catalogué manquant » / « purement déduit » ne survit pas
+  à la traduction**, et c'est voulu : elle ne change rien à ce qu'on VOIT
+  (les deux sont des trous). Elle continue d'exister là où elle compte, au
+  moment d'agir sur le tome — un tome catalogué se rattache, un tome déduit
+  doit d'abord être créé (voir `VolumeInteractionPanel`).
+
+Le `mode` ne fait varier que trois choses, toutes visibles au même endroit :
+la sémantique ARIA du bouton (`aria-pressed` en sélection, simple bouton en
+navigation), les badges de coin, et les actions au survol.
+
+#### Une règle d'atténuation qui dépend du mode
+
+En **navigation**, un tome manquant est désaturé et pâle : c'est
+l'atténuation qui fait voir les trous d'une collection, elle EST
+l'information. En **sélection**, un tome déjà possédé reste net — le cocher
+est parfaitement légitime (c'est un deuxième exemplaire, voir
+`formatAddResultMessage`), et le pâlir laisserait croire qu'il est
+indisponible. Même composant, deux règles, chacune justifiée par ce que
+l'écran demande de faire.
+
+Les deux badges de coin restent distincts pour la même raison : « déjà
+possédé » (vert, à gauche) et « coché » (accent, à droite) peuvent coexister,
+jamais un seul badge à double sens.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` verts. En direct, sur les deux
+écrans :
+
+- **Fiche** (Death Note) : 6 tuiles, filtre « Manquants » → 5, tuile 78×117,
+  `aria-label` « Voir le tome 1 », pas d'`aria-pressed`, le clic ouvre bien le
+  panneau. Naruto : **72 tuiles** rendues d'un coup, aucun débordement.
+- **Ajout** (`/add/draft`, Boruto — titre absent de la collection, rien
+  validé) : chips d'édition conservés, filtres présents, `aria-pressed`
+  false → true → false, badge de coche, tuile 78×117 puis 87×131 dans une
+  colonne plus étroite — c'est `auto-fill` qui étire les pistes, le ratio 2/3
+  est tenu dans les deux cas.
+- Branche « déjà possédé » en sélection forcée par une réponse `/metadata/volumes`
+  réécrite à la volée (recette du Lot « navigateur de test ») : 3 tuiles au
+  badge vert, `aria-label` « Tome 3, déjà possédé », **non atténuées** — la
+  règle ci-dessus est bien celle qui s'applique. Aucune donnée réelle touchée,
+  `window.fetch` restauré.
+- Aucun débordement horizontal sur les deux écrans à 1265px.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -1957,6 +2036,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Avant de conclure « ces deux composants ne se factorisent pas », écrire la signature commune : au Lot 28 j'ai d'abord recommandé de ne partager que la coquille d'une tuile, et la fusion complète s'est révélée propre - une seule prop (`onEnvies`) est propre à un mode, tout le reste est commun. Le bon test n'est pas « les gestes diffèrent-ils ? » mais « la liste de props commune est-elle entière ? ».
 - Avant de retirer une fonctionnalité qui « ne sert à rien », TRACER ses lecteurs réels (`grep -rln` sur le dépôt du domaine, en excluant son propre paquet) : au Lot 27, `EditionUpgradeWish` n'était lu que par sa propre page et l'export, alors que `WishlistEntry` l'est par quatre modules dont Analyse d'achat. La comparaison chiffrée tranche mieux qu'une impression, et distingue « inutile » de « pas encore branché ».
 - Retirer une route sans page de repli laisse un `<main>` VIDE, pas une erreur : l'application n'avait aucun `Route path="*"` avant le Lot 27. Vérifier ce point à chaque suppression d'écran.
 - **Le nom d'un fichier de maquette n'est pas une date** (Lot 26) : `Fiche série - IozyCore v4.dc.html` n'était PAS la planche à suivre, malgré son « v4 » - c'est `Fiche série - Naruto (multi-éditions).dc.html`. Toutes les dates de fichier d'un zip d'export sont identiques (heure d'export), donc rien dans le zip ne dit laquelle fait foi. Quand un handoff contient plusieurs planches du même écran, DEMANDER avant d'écrire une ligne : ici la mauvaise supposition a coûté une refonte complète.
