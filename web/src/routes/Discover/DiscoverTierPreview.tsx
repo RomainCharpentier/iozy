@@ -11,6 +11,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
@@ -73,7 +74,7 @@ export function DiscoverTierPreview() {
 
   if (universes.length === 0 && allCustomLists.length === 0) {
     return (
-      <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
+      <div className={`${CLASSE_CARTE} text-center`}>
         <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
         <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
       </div>

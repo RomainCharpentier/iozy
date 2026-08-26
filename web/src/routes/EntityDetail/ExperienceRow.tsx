@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Star } from 'lucide-react'
 import { deleteExperience, recordExperience, updateExperience } from '../../api/experiences'
 import { queryKeys } from '../../lib/queryKeys'
 import { useToast } from '../../lib/toast'
@@ -92,25 +92,34 @@ export function ExperienceRow({
   const variantSuffix = variant ? ` · ${variantLabel(variant)}` : ''
 
   return (
-    <li className="rounded-xl bg-surface p-3 text-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-textPrimary">
-            {experience.experienceType}
-            {variantSuffix}
-            {experience.rating !== null && ` · ★ ${experience.rating}/10`}
-          </p>
-          {experience.comment && <p className="text-textDim">{experience.comment}</p>}
-        </div>
+    // Une rangée, pas un pavé : le TYPE en pastille à gauche, ce que
+    // l'expérience concerne au milieu, la note à droite (maquette v4). Le
+    // commentaire passe sous cette ligne - il est facultatif et souvent long,
+    // il ne doit pas déformer la rangée quand il existe.
+    <li className="rounded-[15px] bg-background px-4 py-3 text-sm">
+      <div className="flex items-center gap-3.5">
+        <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-[11.5px] font-medium text-accentText">
+          {experience.experienceType}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[14.5px] text-textPrimary">
+          {variant ? variantLabel(variant) : 'Toute la série'}
+        </span>
+        {experience.rating !== null && (
+          <span className="flex shrink-0 items-center gap-1.5 font-display text-[14.5px] font-bold text-textPrimary">
+            <Star size={13} className="fill-accent text-accent" />
+            {experience.rating}/10
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label={`Actions sur l'expérience ${experience.experienceType}${variantSuffix}`}
-          className="shrink-0 rounded-full p-1 text-textDim hover:bg-surface2 hover:text-textPrimary"
+          className="shrink-0 rounded-lg p-1.5 text-faint hover:text-textPrimary"
         >
-          <MoreHorizontal size={18} />
+          <MoreHorizontal size={16} />
         </button>
       </div>
+      {experience.comment && <p className="mt-1.5 text-textDim">{experience.comment}</p>}
 
       {menuOpen && !editing && (
         <div className="mt-2 flex flex-col gap-1 border-t border-surface2 pt-2">

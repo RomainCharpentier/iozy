@@ -8,6 +8,7 @@ import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 const MAX_PREVIEW = 3
 
@@ -53,7 +54,7 @@ export function DiscoverOpportunitiesPreview() {
       {suggestionsQuery.isLoading && <p className="text-sm text-textDim">Chargement...</p>}
 
       {suggestionsQuery.isSuccess && suggestions.length === 0 && (
-        <div className="rounded-2xl border border-surface2 bg-surface p-5">
+        <div className={CLASSE_CARTE}>
           <p className="text-sm font-semibold text-textPrimary">Aucune opportunité pertinente pour le moment.</p>
         </div>
       )}

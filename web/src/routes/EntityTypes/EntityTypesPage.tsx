@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ApiError } from '../../api/client'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { iconFor } from '../../theme/icon'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** Éditeur de types dynamique : liste des catégories de la collection (les
  * 3 types MVP historiques + tout type créé par l'utilisateur). Accessible
@@ -47,17 +48,20 @@ export function EntityTypesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Gérer les types</h1>
-        <button
-          type="button"
-          onClick={() => navigate('/types/new')}
-          className="flex min-h-11 items-center gap-1.5 rounded-full bg-accent px-3 text-sm font-semibold text-accentInk"
-        >
-          <Plus size={16} />
-          Nouveau type
-        </button>
-      </div>
+      <EnTeteSection
+        niveau={1}
+        titre="Gérer les types"
+        action={
+          <button
+            type="button"
+            onClick={() => navigate('/types/new')}
+            className="flex min-h-11 items-center gap-2 rounded-[14px] bg-accent px-4 text-sm font-semibold text-accentInk"
+          >
+            <Plus size={16} />
+            Nouveau type
+          </button>
+        }
+      />
 
       {errorMessage && <ErrorBanner message={errorMessage} />}
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}

@@ -14,6 +14,7 @@ import type { DraftLocationState } from '../QuickAdd/draftState'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 interface ScanEntry {
   code: string
@@ -53,7 +54,7 @@ function libelleEntree(entry: ScanEntry): string {
  * états de la page (chargement, pas de type Manga, écran normal) et deux
  * copies du même h1 finiraient par diverger. */
 function TitreScan() {
-  return <h1 className="font-display text-2xl font-bold text-textPrimary">Scan rapide</h1>
+  return <EnTeteSection niveau={1} titre="Scan rapide" />
 }
 
 /** Best-effort, jamais autoritaire : le lookup par code-barres (voir

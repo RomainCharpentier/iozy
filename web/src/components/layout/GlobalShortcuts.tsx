@@ -28,7 +28,7 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
         onClick={() => navigate('/wishlist')}
         title="Mes envies"
         aria-label={count > 0 ? `Mes envies, ${count}` : 'Mes envies'}
-        className={`relative flex ${size} items-center justify-center rounded-xl text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary`}
+        className={`relative flex ${size} items-center justify-center rounded-xl bg-softBtn text-textDim transition-colors hover:bg-softPress hover:text-textPrimary`}
       >
         <Heart size={20} />
         {count > 0 && (
@@ -41,7 +41,7 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
         to="/profile"
         title="Mon profil"
         aria-label="Mon profil"
-        className={`flex ${avatarSize} shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-surface2 to-accentTint font-display text-xs font-bold text-textPrimary`}
+        className={`flex ${avatarSize} shrink-0 items-center justify-center rounded-xl bg-surface font-display text-xs font-semibold text-textDim shadow-token-sm`}
       >
         IO
       </Link>

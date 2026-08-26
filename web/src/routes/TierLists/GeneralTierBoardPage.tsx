@@ -68,7 +68,7 @@ export function GeneralTierBoardPage() {
 
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />
-        <h1 className="font-display text-2xl font-bold text-textPrimary">
+        <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">
           {entityType ? `Classement général · ${entityType.label}` : '…'}
         </h1>
         {boardQuery.data && boardQuery.data.unranked.length > 0 && (

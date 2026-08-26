@@ -38,13 +38,19 @@ export function AddVolumeSection({
   entityId,
   entityTypeId,
   title,
+  ouvert,
+  onFermer,
 }: {
   entityId: string
   entityTypeId: string
   title: string
+  /** Ouvert/fermé décidé par « Mes tomes » : la maquette v4 place le
+   *  déclencheur « Ajouter un tome » dans l'en-tête de la section, pas sous la
+   *  grille - le formulaire, lui, reste ici, sous les tuiles qu'il complète. */
+  ouvert: boolean
+  onFermer: () => void
 }) {
   const queryClient = useQueryClient()
-  const [expanded, setExpanded] = useState(false)
   const [condition, setCondition] = useState<Condition>('NEW')
   const [volumeNumber, setVolumeNumber] = useState('')
   const [edition, setEdition] = useState('')
@@ -94,7 +100,7 @@ export function AddVolumeSection({
       setEdition('')
       setPurchasePrice('')
       setManualVolumes([])
-      setExpanded(false)
+      onFermer()
     },
   })
 
@@ -109,13 +115,7 @@ export function AddVolumeSection({
     setManualVolumes((prev) => prev.filter((_, i) => i !== index))
   }
 
-  if (!expanded) {
-    return (
-      <button type="button" onClick={() => setExpanded(true)} className="w-fit text-sm text-accentText underline">
-        + Ajouter un tome
-      </button>
-    )
-  }
+  if (!ouvert) return null
 
   return (
     <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
@@ -231,7 +231,7 @@ export function AddVolumeSection({
         <button
           type="button"
           onClick={() => {
-            setExpanded(false)
+            onFermer()
             setVolumeNumber('')
             setEdition('')
             setPurchasePrice('')

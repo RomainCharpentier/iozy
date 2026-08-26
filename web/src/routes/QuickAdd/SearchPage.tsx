@@ -18,6 +18,7 @@ import type { DraftLocationState } from './draftState'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -154,7 +155,7 @@ export function SearchPage() {
     <div className="flex flex-col gap-5">
       {/* "Rechercher" (maquette V1.2 §420) - seul point d'entrée pour ajouter
           à la collection (voir §24 du brief). */}
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Rechercher</h1>
+      <EnTeteSection niveau={1} titre="Rechercher" />
 
       <div className="flex flex-wrap gap-2">
         <Link

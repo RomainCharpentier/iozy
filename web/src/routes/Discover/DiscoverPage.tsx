@@ -3,6 +3,7 @@ import { Bell, ListOrdered, Sparkles } from 'lucide-react'
 import { DiscoverTierPreview } from './DiscoverTierPreview'
 import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
 import { DiscoverReleasesPanel } from './DiscoverReleasesPanel'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 type DiscoverTab = 'tiers' | 'opps' | 'releases'
 
@@ -26,7 +27,7 @@ export function DiscoverPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Découvrir</h1>
+      <EnTeteSection niveau={1} titre="Découvrir" />
 
       <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (

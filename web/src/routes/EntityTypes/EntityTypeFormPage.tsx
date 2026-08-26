@@ -6,6 +6,7 @@ import { listEntityTypes, createEntityType, updateEntityType } from '../../api/e
 import { queryKeys } from '../../lib/queryKeys'
 import { UNIVERSE_ASPECTS, UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '../../lib/entityTypeVisuals'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 interface EntityTypeFormPageProps {
   mode: 'create' | 'edit'
@@ -125,7 +126,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
   if (mode === 'edit' && entityTypesQuery.isLoading) {
     return (
       <div className="flex flex-col gap-5">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Modifier le type</h1>
+        <EnTeteSection niveau={1} titre="Modifier le type" />
         <p className="text-textDim">Chargement...</p>
       </div>
     )
@@ -133,9 +134,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">
-        {mode === 'create' ? 'Nouveau type' : 'Modifier le type'}
-      </h1>
+      <EnTeteSection niveau={1} titre={mode === 'create' ? 'Nouveau type' : 'Modifier le type'} />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-3">

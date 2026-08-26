@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { searchEntities } from '../../api/entities'
 import { createRelationship } from '../../api/relationships'
@@ -46,13 +47,25 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
   const suggestions = (suggestionsQuery.data ?? []).filter((e) => e.id !== entityId)
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Relations</h2>
-        <button type="button" onClick={() => setFormOpen((v) => !v)} className="text-sm font-medium text-accentText">
-          Ajouter une relation
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Relations</h3>
+        <button
+          type="button"
+          onClick={() => setFormOpen((v) => !v)}
+          aria-expanded={formOpen}
+          className="flex items-center gap-1.5 text-[13.5px] font-medium text-accentText"
+        >
+          <Plus size={14} />
+          Ajouter
         </button>
       </div>
+
+      {/* Dire de quoi il s'agit plutôt que de laisser un blanc : « relation »
+          ne se devine pas, les exemples si. */}
+      {relationshipsFrom.length === 0 && relationshipsTo.length === 0 && !formOpen && (
+        <p className="text-[13.5px] text-faint">Aucune relation enregistrée — adaptation, suite, spin-off…</p>
+      )}
 
       {/* Les deux sens dans une seule liste, chacun explicitement étiqueté :
           une rangée de jaquettes les fondait ensemble et taisait le type,
@@ -89,7 +102,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
               relationshipType: customType.trim() || relationshipType,
             })
           }}
-          className="flex flex-col gap-3 rounded-xl bg-surface p-3"
+          className="flex flex-col gap-3 rounded-[15px] bg-background p-4"
         >
           <div className="relative flex flex-col gap-1.5">
             <input

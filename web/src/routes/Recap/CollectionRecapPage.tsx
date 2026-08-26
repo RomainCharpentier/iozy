@@ -105,7 +105,7 @@ export function CollectionRecapPage() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Bilan annuel</h1>
+        <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">Bilan annuel</h1>
         <select
           aria-label="Année du bilan"
           value={year}

@@ -18,6 +18,7 @@ const EMPTY_EDITIONS: MangaEditionDto[] = []
 import { CollectionFilters } from './CollectionFilters'
 import { ownedVariantIds, isOwned } from './ownership'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 const EMPTY_ENTITIES: EntityResponse[] = []
 const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
@@ -76,7 +77,7 @@ export function CategoryPage() {
 
       <div className="flex items-center gap-2.5">
         <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />
-        <h1 className="font-display text-2xl font-bold" style={{ color: entityType ? visual.color : undefined }}>
+        <h1 className="font-display text-2xl font-bold tracking-[-0.025em]" style={{ color: entityType ? visual.color : undefined }}>
           {entityType?.label ?? '…'}
         </h1>
         <span className="text-sm text-faint">{tiles.length}</span>
@@ -104,7 +105,7 @@ export function CategoryPage() {
       {isLoading && <p className="text-textDim">Chargement...</p>}
 
       {!isLoading && entitiesQuery.isSuccess && tiles.length === 0 && (
-        <div className="rounded-2xl border border-surface2 bg-surface p-6">
+        <div className={CLASSE_CARTE}>
           <p className="font-display text-base font-semibold text-textPrimary">Aucune série ne correspond à ces filtres.</p>
           <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
             Réinitialiser les filtres

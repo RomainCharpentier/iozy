@@ -41,10 +41,15 @@ export function WishlistToggle({
   const taille =
     variant === 'inline'
       ? 'rounded-lg px-2 py-1 text-xs'
-      : 'min-h-11 rounded-xl px-3 text-sm'
+      : 'min-h-12 rounded-[14px] px-4 text-sm'
+  // Hors d'une ligne de liste, c'est une VRAIE action secondaire, avec sa
+  // propre surface (maquette v4) : posé nu à côté d'un bouton plein, il ne se
+  // lisait plus comme un bouton du tout - juste comme du texte gris.
   const couleur = dedans
     ? 'bg-accentTint text-accentText hover:bg-accent/25'
-    : 'text-textDim hover:bg-rowHover hover:text-textPrimary'
+    : variant === 'inline'
+      ? 'text-textDim hover:bg-rowHover hover:text-textPrimary'
+      : 'bg-softBtn text-textPrimary hover:bg-softPress'
 
   async function basculer() {
     if (entry && idConnu) {

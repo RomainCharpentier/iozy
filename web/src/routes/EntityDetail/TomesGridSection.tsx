@@ -5,12 +5,14 @@ import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
-import { AssistantSection } from './AssistantSection'
+import { TuileTome, PastilleJeLAi } from './TuileTome'
 import { VirtualVolumeCard } from './VirtualVolumeCard'
 import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
-import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../types/api'
+import type { OwnershipResponse, VariantDto } from '../../types/api'
 import { Jaquette } from '../../components/Jaquette'
+import { Chip } from '../../components/Chip'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 export interface TomeTile {
   volumeNumber: number
@@ -105,57 +107,53 @@ function TomeTileView({ tile, isActive, onClick }: { tile: TomeTile; isActive: b
   const coverUrl = tile.variant ? coverImageUrlFrom(tile.variant.attributes) : null
   const owned = tile.status === 'owned'
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={owned ? `Voir le tome ${tile.volumeNumber}` : `Ajouter le tome ${tile.volumeNumber}`}
-      // Sélection = tuile ↔ panneau ouvert (voir VolumeInteractionPanel) :
-      // anneau accent discret, jamais un gros effet - juste de quoi
-      // reconnaître quelle carte a ouvert le panneau actuellement affiché.
-      className={`relative flex aspect-[2/3] w-full max-w-[168px] flex-col items-center justify-center overflow-hidden rounded-lg text-left transition ${
-        owned ? 'bg-surface2' : 'bg-surface2/50'
-      } ${isActive ? 'ring-2 ring-accent' : ''}`}
-    >
+    <TuileTome numero={tile.volumeNumber} etat={owned ? 'owned' : 'missing'} isActive={isActive} onClick={onClick}>
       {/* Catalogué mais manquant : vraie jaquette, atténuée modérément - reste
           identifiable (voir "ne rends pas l'image tellement sombre qu'elle
           devient illisible"), plus de grayscale (désature en plus de l'opacité,
           rendait le tome encore moins reconnaissable qu'une simple atténuation). */}
       <Jaquette
         src={coverUrl}
-        className={`absolute inset-0 h-full w-full object-cover ${owned ? '' : 'opacity-55'}`}
-        repli={<span className="font-display text-base font-semibold text-textPrimary">{tile.volumeNumber}</span>}
+        className={`absolute inset-0 h-full w-full object-cover ${owned ? '' : 'opacity-40'}`}
+        repli={
+          <span className="font-display text-2xl font-bold text-handle">
+            {String(tile.volumeNumber).padStart(2, '0')}
+          </span>
+        }
       />
       {owned ? (
-        <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk">
-          <Check size={11} strokeWidth={3} />
+        <span className="absolute top-2.5 right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accentInk shadow-token-md">
+          <Check size={13} strokeWidth={3} />
         </span>
       ) : (
-        <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/55 py-0.5 text-[10px] font-medium text-textPrimary">
-          <Plus size={9} />
-          {coverUrl && tile.volumeNumber}
+        <span className="relative">
+          <PastilleJeLAi />
         </span>
       )}
-    </button>
+    </TuileTome>
   )
 }
 
 /**
- * "Mes tomes" + "À propos" - la grille elle-même, qui occupe le plus de
- * place, et les métadonnées secondaires en dessous (voir la maquette
- * validée : hors du bloc Identité, contrairement à la progression/édition -
- * voir EditionProgressSection, qui lit la même `activeGroup` juste à côté
- * dans le hero). Remplace l'ancien SeriesCompletenessSection (statistiques
- * texte) par une vue directement inspirée de Manga Collec : le possédé/
- * manquant se voit tome par tome, jamais caché dans un compteur ("5
- * manquants" ne dit pas LESQUELS).
+ * « Mes tomes » : la grille de l'édition affichée, le choix d'édition qui la
+ * commande, et les deux parcours d'ajout (contextuel au clic d'une tuile,
+ * manuel depuis l'en-tête).
+ * <p>
+ * Vue directement inspirée de Manga Collec : le possédé/manquant se voit tome
+ * par tome, jamais caché dans un compteur (« 5 manquants » ne dit pas
+ * LESQUELS). Depuis la maquette v4, chaque tuile porte aussi sa légende - son
+ * numéro et son état en toutes lettres - sous la jaquette (voir TuileTome).
  * <p>
  * Interaction Tome : UNE seule source de vérité (`activeVolumeNumber`),
- * jamais plusieurs états indépendants (voir l'ancien showAddVolume/
- * selectedVolumeForAdd/highlightedVariantId - remplacés). Le tome
- * sélectionné est recalculé (`activeTile`) à CHAQUE rendu à partir des
- * tuiles fraîchement construites, jamais stocké séparément : après un ajout
- * réussi, la tuile passe seule de "manquant" à "possédé" sans code de
- * transition dédié, voir VolumeInteractionPanel.
+ * jamais plusieurs états indépendants. Le tome sélectionné est recalculé
+ * (`activeTile`) à CHAQUE rendu à partir des tuiles fraîchement construites,
+ * jamais stocké séparément : après un ajout réussi, la tuile passe seule de
+ * « manquant » à « possédé » sans code de transition dédié, voir
+ * VolumeInteractionPanel.
+ * <p>
+ * L'Assistant a quitté cette section pour la barre de sections (voir
+ * AssistantSection) : ses questions portent sur la série entière, pas sur la
+ * grille.
  */
 export function TomesGridSection({
   entityId,
@@ -163,8 +161,9 @@ export function TomesGridSection({
   entityTitle,
   variants,
   ownerships,
-  experiences,
   activeGroup,
+  displayGroups,
+  onSelectEdition,
 }: {
   // Voir migration "Série -> Édition par ID" - préféré à entityTitle pour
   // toute relation persistante avec MangaEdition, immunisé contre un
@@ -182,17 +181,24 @@ export function TomesGridSection({
   // completenessQuery), jamais besoin du sac d'attributs complet ailleurs ici.
   variants: VariantDto[]
   ownerships: OwnershipResponse[]
-  // Uniquement pour l'Assistant ("Où en suis-je dans mes lectures ?", voir
-  // AssistantSection) - déjà chargées par EntityDetailPage pour la section
-  // Expériences, jamais une requête de plus.
-  experiences: ExperienceResponse[]
-  // Décidée par le parent (EntityDetailPage), partagée avec
-  // EditionProgressSection - les deux doivent réagir au même changement
-  // d'édition sélectionnée, voir EntityDetailPage.activeGroup.
+  // Décidée par le parent (EntityDetailPage), qui l'utilise aussi pour
+  // l'anneau de progression du hero et le résumé de la barre de sections -
+  // tous doivent réagir au même changement d'édition sélectionnée.
   activeGroup: EditionGroup
+  // Toutes les éditions affichables de la série (voir resolveEditionView) :
+  // les pastilles de choix vivent ICI et non plus dans le hero. Une édition
+  // ne change que la GRILLE - la choisir à côté des tomes qu'elle réordonne,
+  // plutôt qu'en haut de page à côté du titre, c'est montrer ce qu'elle
+  // commande.
+  displayGroups: EditionGroup[]
+  onSelectEdition: (edition: string) => void
 }) {
   const [activeVolumeNumber, setActiveVolumeNumber] = useState<number | null>(null)
   const [showAllTomes, setShowAllTomes] = useState(false)
+  // Le formulaire d'ajout manuel est OUVERT d'ici : la maquette v4 pose son
+  // déclencheur dans l'en-tête de la section, alors que le formulaire, lui,
+  // reste sous les tuiles qu'il complète (voir AddVolumeSection).
+  const [ajoutOuvert, setAjoutOuvert] = useState(false)
 
   // Édition changée pendant qu'un panneau est ouvert : ferme plutôt que de
   // risquer un tome sélectionné qui n'appartient plus à l'édition affichée
@@ -204,13 +210,14 @@ export function TomesGridSection({
   useEffect(() => {
     setActiveVolumeNumber(null)
     setShowAllTomes(false)
+    setAjoutOuvert(false)
   }, [activeGroup.edition, entityId])
 
   const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions)
 
-  // Mêmes clés de cache que EditionProgressSection (voir ce composant) -
-  // React Query partage la requête entre les deux, jamais un double appel
-  // réseau réel pour la même édition active.
+  // Mêmes clés de cache que EntityDetailPage et l'Assistant - React Query
+  // partage la requête entre eux, jamais un double appel réseau réel pour la
+  // même édition active.
   const completenessQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, activeGroup.edition, owned),
     queryFn: () => getCompleteness(entityTitle, activeGroup.edition, owned, activeGroup.volumeNumbers, entityId),
@@ -223,103 +230,111 @@ export function TomesGridSection({
   const isLongSeries = tiles.length > LONG_SERIES_THRESHOLD
   const visibleTiles = showAllTomes ? tiles : buildPreviewTiles(tiles)
 
+  const manquants = totalVolumes !== null ? Math.max(totalVolumes - owned.length, 0) : null
+  const nomEdition = activeGroup.edition || 'Édition non précisée'
+  const resume =
+    manquants === null
+      ? `${nomEdition} · ${owned.length} tome${owned.length > 1 ? 's' : ''} possédé${owned.length > 1 ? 's' : ''}`
+      : `${nomEdition} · ${owned.length} tome${owned.length > 1 ? 's' : ''} possédé${owned.length > 1 ? 's' : ''}, ${manquants} manquant${manquants > 1 ? 's' : ''}`
+
   return (
-    <div className="flex flex-col gap-8">
-      {/* La grille et l'Assistant se partagent une rangee des 900px.
-          Deux raisons, l'une de fond, l'autre mesuree. De fond : l'Assistant
-          repond a des questions SUR cette collection - « que me manque-t-il »,
-          « ou en suis-je » - il appartient donc a « Mes tomes », pas a une
-          bande separee dessous. Mesuree : en pleine largeur, une serie de six
-          tomes laissait 644px de vide a sa droite, et l'Assistant une bande
-          presque entierement blanche juste en dessous. Deux trous qui se
-          bouchent l'un l'autre. */}
-      <div className="flex flex-col gap-8 min-[900px]:grid min-[900px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[900px]:items-start min-[900px]:gap-8">
-      <section className="@container flex flex-col gap-3">
-        {/* "Mes tomes" est la zone principale de la fiche (voir la maquette
-            validée) - titre explicite, colonnes qui exploitent le container
-            élargi (voir AppShell) sans revenir à l'ancien extrême illisible
-            (10 colonnes FIXES, à toutes les largeurs - ce que l'échelle
-            ci-dessous n'est pas).
-
-            Comptes relevés vers le haut le jour où cette section a pris toute
-            la largeur de la page : à 1425px, 8 colonnes donnaient des tuiles de
-            165px et DEUX rangées, soit 503px de grille. Dix colonnes les font
-            tenir sur UNE rangée - 196px - avec des tuiles de 131px, encore
-            plus larges que les 98px qu'elles avaient en deux colonnes. Plus de
-            largeur doit servir à montrer plus de tomes, pas à les agrandir.
-
-            Plus aucun compte de colonnes au-dela du mobile : `auto-fit` en
-            pose autant que la largeur en autorise, entre 96 et 140px. C'est ce
-            qui rend cette grille indifferente a l'endroit ou on la met - elle
-            a deja vecu dans une colonne aux deux tiers, puis en pleine
-            largeur, et a chaque demenagement son compte de colonnes cale sur
-            la FENETRE devenait faux : tuiles de 165px sur deux rangees ici, de
-            71px la. Et `auto-fit` fait mieux qu'etre juste : il replie les
-            pistes vides, donc six tomes remplissent leur rangee au lieu de la
-            laisser a moitie blanche.
-
-            Le maximum est `1fr` et non une valeur fixe : avec un plafond en
-            pixels, auto-fit ne remplit pas - mesure, cinq pistes de 140px dans
-            832 disponibles, et le sixieme tome renvoye a la ligne pour rien.
-            C est la tuile qui plafonne (max-w-168px), pour qu une serie de deux
-            tomes ne les affiche pas en format affiche.
-
-            Les quatre colonnes fixes restent en dessous de @md : sur un
-            telephone, un minimum de 96px ne laisserait passer que trois
-            jaquettes par rangee la ou quatre tiennent. */}
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Mes tomes</h2>
-        <div className="grid grid-cols-4 gap-2 @md:grid-cols-[repeat(auto-fit,minmax(96px,1fr))]">
-          {visibleTiles.map((tile) =>
-            tile.status === 'virtualMissing' ? (
-              <VirtualVolumeCard
-                key={tile.volumeNumber}
-                volumeNumber={tile.volumeNumber}
-                isActive={tile.volumeNumber === activeVolumeNumber}
-                onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
-              />
-            ) : (
-              <TomeTileView
-                key={tile.volumeNumber}
-                tile={tile}
-                isActive={tile.volumeNumber === activeVolumeNumber}
-                onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
-              />
-            ),
-          )}
-        </div>
-        {/* Aperçu pour série longue (voir buildPreviewTiles) - jamais de
-            pagination backend, juste le même tableau `tiles` déjà en
-            mémoire, tronqué ou non. */}
-        {isLongSeries && (
+    <div className="@container flex flex-col gap-5">
+      <EnTeteSection
+        titre="Mes tomes"
+        sousTitre={resume}
+        action={
           <button
             type="button"
-            onClick={() => setShowAllTomes((v) => !v)}
-            className="w-fit text-sm text-accentText underline"
+            onClick={() => setAjoutOuvert((ouvert) => !ouvert)}
+            aria-expanded={ajoutOuvert}
+            className="flex min-h-11 items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
           >
-            {showAllTomes ? 'Réduire' : `Voir tout (${tiles.length})`}
+            <Plus size={15} />
+            Ajouter un tome
           </button>
-        )}
-        {/* Parcours manuel (voir AddVolumeSection) - reste sous Mes tomes,
-            styling secondaire : ne devrait plus être nécessaire pour un tome
-            déjà visible dans la grille ci-dessus (voir le parcours
-            contextuel, VolumeInteractionPanel), seulement pour un numéro/une
-            édition hors de ce qui est déjà catalogué. */}
-        <AddVolumeSection entityId={entityId} entityTypeId={entityTypeId} title={entityTitle} />
-      </section>
-
-      {/* "Assistant" : questions fixes à réponse calculée, entre "Mes
-          classements" et "À propos" - emplacement de la maquette V1.2 (voir
-          AssistantSection pour ce qui est répondable et ce qui ne l'est
-          pas). */}
-      <AssistantSection
-        entityId={entityId}
-        entityTitle={entityTitle}
-        variants={variants}
-        ownerships={ownerships}
-        experiences={experiences}
-        activeGroup={activeGroup}
+        }
       />
+
+      {/* Le choix d'édition, seulement quand il y a un choix réel : une série
+          à une seule édition n'a rien à sélectionner, et une rangée d'une
+          pastille unique ressemblerait à un filtre inerte. */}
+      {displayGroups.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {displayGroups.map((groupe) => (
+            <Chip
+              key={groupe.edition || '(non précisée)'}
+              label={groupe.edition || 'Non précisée'}
+              isActive={groupe.edition === activeGroup.edition}
+              onClick={() => onSelectEdition(groupe.edition)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Plus aucun compte de colonnes au-dela du mobile : `auto-fit` en pose
+          autant que la largeur en autorise, a partir de 110px (les tuiles
+          portent desormais une legende de deux lignes sous la jaquette, un
+          minimum de 96px y coupait « Dans ma collection » a chaque fois).
+          C'est ce qui rend cette grille indifferente a l'endroit ou on la met -
+          elle a deja vecu dans une colonne aux deux tiers, puis en pleine
+          largeur, et a chaque demenagement son compte de colonnes cale sur la
+          FENETRE devenait faux : tuiles de 165px sur deux rangees ici, de 71px
+          la. Et `auto-fit` fait mieux qu'etre juste : il replie les pistes
+          vides, donc six tomes remplissent leur rangee au lieu de la laisser a
+          moitie blanche.
+
+          Le maximum est `1fr` et non une valeur fixe : avec un plafond en
+          pixels, auto-fit ne remplit pas - mesure, cinq pistes de 140px dans
+          832 disponibles, et le sixieme tome renvoye a la ligne pour rien.
+          C'est la tuile qui plafonne (max-w-168px), pour qu'une serie de deux
+          tomes ne les affiche pas en format affiche.
+
+          Les trois colonnes fixes restent en dessous de @md : sur un telephone,
+          quatre jaquettes par rangee ne laissaient pas la place a la legende. */}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-4 @md:grid-cols-[repeat(auto-fit,minmax(110px,1fr))] @md:gap-5">
+        {visibleTiles.map((tile) =>
+          tile.status === 'virtualMissing' ? (
+            <VirtualVolumeCard
+              key={tile.volumeNumber}
+              volumeNumber={tile.volumeNumber}
+              isActive={tile.volumeNumber === activeVolumeNumber}
+              onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
+            />
+          ) : (
+            <TomeTileView
+              key={tile.volumeNumber}
+              tile={tile}
+              isActive={tile.volumeNumber === activeVolumeNumber}
+              onClick={() => setActiveVolumeNumber(tile.volumeNumber)}
+            />
+          ),
+        )}
       </div>
+
+      {/* Aperçu pour série longue (voir buildPreviewTiles) - jamais de
+          pagination backend, juste le même tableau `tiles` déjà en mémoire,
+          tronqué ou non. */}
+      {isLongSeries && (
+        <button
+          type="button"
+          onClick={() => setShowAllTomes((v) => !v)}
+          className="w-fit text-sm font-medium text-accentText underline"
+        >
+          {showAllTomes ? 'Réduire' : `Voir tout (${tiles.length})`}
+        </button>
+      )}
+
+      {/* Parcours manuel (voir AddVolumeSection) : ne devrait plus être
+          nécessaire pour un tome déjà visible dans la grille ci-dessus (voir
+          le parcours contextuel, VolumeInteractionPanel), seulement pour un
+          numéro ou une édition hors de ce qui est déjà catalogué. */}
+      <AddVolumeSection
+        entityId={entityId}
+        entityTypeId={entityTypeId}
+        title={entityTitle}
+        ouvert={ajoutOuvert}
+        onFermer={() => setAjoutOuvert(false)}
+      />
 
       {/* Surface contextuelle unique (voir la refonte demandée) - remplace
           l'ancien rendu de AddVolumeSection/OwnershipsSection plus bas dans

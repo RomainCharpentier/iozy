@@ -21,6 +21,8 @@ const EMPTY_EDITIONS: MangaEditionDto[] = []
 import { isOwned, ownedVariantIds } from './ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
+import { EnTeteSection } from '../../components/EnTeteSection'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
 // serait recréé à chaque render et invaliderait la mémoïsation.
@@ -154,11 +156,16 @@ export function ShelfPage() {
 
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Ma collection</h1>
-      <p className="mt-1.5 text-sm text-textDim">
-        {totalOwned} titre{totalOwned > 1 ? 's' : ''} possédé{totalOwned > 1 ? 's' : ''}
-        {addedThisMonthCount > 0 && ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
-      </p>
+      <EnTeteSection
+        niveau={1}
+        titre="Ma collection"
+        sousTitre={
+          <>
+            {totalOwned} titre{totalOwned > 1 ? 's' : ''} possédé{totalOwned > 1 ? 's' : ''}
+            {addedThisMonthCount > 0 && ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
+          </>
+        }
+      />
 
       {/* Toolbar calme : une seule entrée Filtres (badge si actif), deux
           raccourcis visibles, le reste dans "Plus d'outils" (voir la
@@ -239,7 +246,7 @@ export function ShelfPage() {
       {isLoading && <p className="mt-6 text-textDim">Chargement...</p>}
 
       {!isLoading && entitiesQuery.isSuccess && sections.length === 0 && (
-        <div className="mt-6 rounded-2xl border border-surface2 bg-surface p-6">
+        <div className={`mt-6 ${CLASSE_CARTE}`}>
           <p className="font-display text-base font-semibold text-textPrimary">
             {status !== 'ALL' ? 'Aucune série ne correspond à ces filtres.' : 'Rien ici pour l\'instant.'}
           </p>
