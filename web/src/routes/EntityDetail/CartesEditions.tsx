@@ -38,20 +38,28 @@ export function CartesEditions({
   onAjouterEdition,
   modeEdition,
   onBasculerMode,
+  sensProgression = 'possession',
 }: {
   editions: EditionAffichee[]
   editionAffichee: string
-  /** null quand l'utilisateur n'a encore rien déclaré. */
-  editionSuivie: string | null
+  /** null quand l'utilisateur n'a encore rien déclaré, et sur l'écran d'ajout
+   *  où l'œuvre n'existe pas encore : on ne suit pas une édition d'une série
+   *  qu'on n'a pas. */
+  editionSuivie?: string | null
   onAfficher: (nom: string) => void
-  onSuivre: (nom: string) => void
-  onNePlusSuivre: () => void
-  onAjouterEdition: () => void
+  onSuivre?: (nom: string) => void
+  onNePlusSuivre?: () => void
+  onAjouterEdition?: () => void
   /** Le mode « pinceau » de la maquette : au repos la fiche se lit, en mode
    *  édition elle montre ses points d'ajout. Évite de saupoudrer la page de
-   *  boutons « + » qu'on ne cherche que rarement. */
-  modeEdition: boolean
-  onBasculerMode: () => void
+   *  boutons « + » qu'on ne cherche que rarement. Absent des écrans qui n'ont
+   *  rien à modifier - le pinceau disparaît alors au lieu de rester inerte. */
+  modeEdition?: boolean
+  onBasculerMode?: () => void
+  /** Ce que la jauge d'une carte COMPTE. Sur la fiche, des tomes possédés ;
+   *  à l'ajout, des tomes cochés. Même dessin, deux sens - et le sens doit
+   *  être dit au lecteur d'écran, à qui « 3/27 » ne suffit pas. */
+  sensProgression?: 'possession' | 'selection'
 }) {
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-[18px]">
@@ -59,29 +67,31 @@ export function CartesEditions({
         <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">
           Éditions · {editions.length}
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onBasculerMode}
-            aria-pressed={modeEdition}
-            title={modeEdition ? 'Terminer les modifications' : 'Modifier cette fiche'}
-            className={`flex h-[34px] w-[34px] items-center justify-center rounded-[10px] transition-colors ${
-              modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim'
-            }`}
-          >
-            <Pencil size={15} />
-          </button>
-          {modeEdition && (
+        {onBasculerMode && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onAjouterEdition}
-              title="Ajouter une édition"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-dashed border-lineStrong text-textDim hover:border-accent hover:text-accentText"
+              onClick={onBasculerMode}
+              aria-pressed={modeEdition}
+              title={modeEdition ? 'Terminer les modifications' : 'Modifier cette fiche'}
+              className={`flex h-[34px] w-[34px] items-center justify-center rounded-[10px] transition-colors ${
+                modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim'
+              }`}
             >
-              <Plus size={15} />
+              <Pencil size={15} />
             </button>
-          )}
-        </div>
+            {modeEdition && onAjouterEdition && (
+              <button
+                type="button"
+                onClick={onAjouterEdition}
+                title="Ajouter une édition"
+                className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-dashed border-lineStrong text-textDim hover:border-accent hover:text-accentText"
+              >
+                <Plus size={15} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(210px,1fr))]">
@@ -138,7 +148,15 @@ export function CartesEditions({
                       edition.possedes > 0 ? 'text-accentText' : 'text-faint'
                     }`}
                   >
-                    {edition.possedes}/{edition.total ?? '?'}
+                    <span aria-hidden="true">
+                      {edition.possedes}/{edition.total ?? '?'}
+                    </span>
+                    <span className="sr-only">
+                      {edition.possedes} tome{edition.possedes > 1 ? 's' : ''}{' '}
+                      {sensProgression === 'selection' ? 'sélectionné' : 'possédé'}
+                      {edition.possedes > 1 ? 's' : ''}
+                      {edition.total !== null ? ` sur ${edition.total}` : ''}
+                    </span>
                   </span>
                 </span>
               </button>
@@ -146,7 +164,7 @@ export function CartesEditions({
               {/* « Suivre » n'a de sens que sur une édition NOMMÉE : le groupe
                   des tomes sans édition précisée n'est pas une édition qu'on
                   peut collectionner, c'est le fourre-tout de ce qu'on ignore. */}
-              {modeEdition && edition.nom !== '' && (
+              {modeEdition && onSuivre && onNePlusSuivre && edition.nom !== '' && (
                 suivie ? (
                   <button
                     type="button"
