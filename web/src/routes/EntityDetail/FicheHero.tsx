@@ -1,245 +1,174 @@
 import type { ReactNode } from 'react'
-import { Pencil, Star } from 'lucide-react'
+import { Heart, Scale } from 'lucide-react'
 import { Jaquette } from '../../components/Jaquette'
-import { TierBadge } from '../TierLists/TierBadge'
-import type { Rank } from '../../types/tierList'
+import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '../../components/layout/AppShell'
+import { tonDe } from '../../lib/useTeinteJaquette'
 
 /**
- * Le haut de la fiche d'une œuvre, d'après la maquette v4.
+ * Le haut de la fiche, d'après la maquette « Fiche série - multi-éditions » :
+ * une bande qui traverse tout l'écran, teintée par la jaquette de la série.
  *
- * <h2>Ce que ce bloc répond, et dans quel ordre</h2>
- * « Qu'est-ce que c'est ? » (pastilles, titre, auteur), puis « où j'en suis ? »
- * (l'anneau de progression et les trois relevés : mon rang, ma note, l'édition
- * suivie), puis « qu'est-ce que je peux faire ? » (les actions). La version
- * précédente mélangeait les trois : la progression vivait dans une colonne
- * centrale plafonnée à 560px, les actions dans une troisième colonne apparue
- * pour combler un vide, et le rang n'était visible qu'après avoir déroulé la
- * moitié de la page.
+ * <h2>Pleine largeur, pour de vrai</h2>
+ * La bande sort de la colonne de contenu par la grille de page
+ * (`col-span-full`, voir AppShell) et non par un `100vw` - qui compterait la
+ * barre de défilement et ferait déborder la page de quinze pixels. Son
+ * contenu, lui, revient à la largeur exacte du reste de la page, sans quoi le
+ * titre serait décalé par rapport à la grille de tomes juste dessous.
  *
- * <h2>Trois relevés, pas trois modules</h2>
- * Rang, note et édition sont ici en LECTURE seule : chacun a déjà son endroit
- * pour être modifié (« Mon suivi » pour les deux premiers, la barre d'édition
- * de « Mes tomes » et le crayon accroché au nom de l'édition pour la
- * dernière). Les répéter en pleine interface de saisie ferait de l'en-tête un
- * formulaire ; les taire obligerait à ouvrir une section pour savoir ce qu'on
- * pense d'une série qu'on a sous les yeux.
- *
- * <h2>Le fond</h2>
- * Un panneau arrondi, pas la bande pleine largeur de la maquette : le contenu
- * de l'application vit dans un conteneur centré (voir AppShell), et en sortir
- * demanderait un `100vw` - qui compte la barre de défilement, et rouvre
- * exactement la classe de débordement horizontal corrigée au Lot 10. Le
- * dégradé et les deux halos sont conservés, en tokens, donc réactifs au thème.
+ * <h2>La teinte</h2>
+ * Deux couches de dégradés tirées de la couleur moyenne de la jaquette (voir
+ * useTeinteJaquette) : chaque série a son ambiance sans qu'on saisisse quoi
+ * que ce soit. Quand la jaquette refuse d'être lue - hôte externe sans CORS,
+ * cas fréquent - c'est le terracotta de la marque qui sert, et la bande reste
+ * exactement celle de la maquette.
  */
 export function FicheHero({
+  teinte,
+  kicker,
   titre,
-  onModifierTitre,
   auteur,
+  statut,
+  annees,
   couvertureUrl,
   repliCouverture,
-  onModifierCouverture,
-  pastilles,
-  progression,
-  rang,
-  rangLibelle,
-  note,
-  edition,
-  actions,
-  aide,
-  complements,
+  onCouverture,
+  onEvaluer,
+  actionEnvies,
+  editions,
 }: {
+  teinte: [number, number, number]
+  /** Le type de collection en petites capitales au-dessus du titre. */
+  kicker: string | null
   titre: string
-  onModifierTitre: () => void
   auteur: string | null
+  /** « Terminée » / « En cours », avec sa pastille de couleur. null si le
+   *  statut n'est pas connu - on ne l'invente pas. */
+  statut: { libelle: string; couleur: string } | null
+  annees: string | null
   couvertureUrl: string | null
-  /** Ce qui s'affiche quand la jaquette manque ou ne répond plus (voir
-   *  Jaquette, qui gère l'échec de chargement lui-même). */
   repliCouverture: ReactNode
-  onModifierCouverture: () => void
-  /** Type de collection, statut de publication, année : déjà mises en forme
-   *  par la page, seule à savoir ce qui est réellement connu. */
-  pastilles: ReactNode
-  /** null quand la notion de tome n'existe pas pour ce type. L'anneau, lui,
-   *  n'apparaît que si le total de l'édition est connu : jamais un anneau à
-   *  0 % qui ferait croire à une collection vide alors qu'on ignore le total. */
-  progression: { possedes: number; total: number | null } | null
-  rang: Rank | null
-  /** L'univers dans lequel ce rang est posé (« Manga »), accolé à la pastille. */
-  rangLibelle: string | null
-  note: number | null
-  edition: { nom: string; total: number | null; correction: ReactNode } | null
-  actions: ReactNode
-  /** La phrase qui explique l'action principale. Elle existait déjà sous
-   *  « Évaluer une annonce » avant la v4, et la maquette la garde : posée au
-   *  milieu d'une fiche de série possédée, cette action ne dit ni de quelle
-   *  annonce il s'agit, ni ce que la série vient y faire. */
-  aide?: ReactNode
-  /** Ce qui pend sous les actions et peut se déplier (avertissements
-   *  d'édition, « je cherche une meilleure édition ») : hors de la rangée
-   *  d'actions, pour qu'un formulaire ouvert ne la disloque pas. */
-  complements?: ReactNode
+  onCouverture: () => void
+  /** null pour un type sans notion d'annonce à évaluer. */
+  onEvaluer: (() => void) | null
+  actionEnvies: ReactNode
+  /** La rangée « ÉDITIONS · n » (voir CartesEditions), absente pour un type
+   *  qui n'a pas d'éditions. */
+  editions: ReactNode
 }) {
-  const pourcentage =
-    progression && progression.total !== null && progression.total > 0
-      ? Math.round((progression.possedes / progression.total) * 100)
-      : null
-  const manquants =
-    progression && progression.total !== null ? Math.max(progression.total - progression.possedes, 0) : null
-
-  const releves = [
-    rang !== null ? (
-      // La pastille SEULE ne dit pas dans quoi on est classé : « B » ne veut
-      // rien dire tant qu'on ne sait pas « B en Manga ». La maquette accole
-      // toujours l'univers à la lettre.
-      <Releve key="rang" libelle="Mon rang">
-        <span className="flex items-center gap-2">
-          <TierBadge rank={rang} size="compact" />
-          {rangLibelle && <span className="text-sm font-medium text-textPrimary">{rangLibelle}</span>}
-        </span>
-      </Releve>
-    ) : null,
-    note !== null ? (
-      <Releve key="note" libelle="Ma note">
-        <span className="flex items-center gap-1.5">
-          <Star size={15} className="fill-accent text-accent" />
-          <span className="font-display text-base font-bold text-textPrimary">
-            {note}
-            <span className="font-body font-normal text-faint">/10</span>
-          </span>
-        </span>
-      </Releve>
-    ) : null,
-    edition ? (
-      <Releve key="edition" libelle="Édition suivie">
-        <span className="flex items-center gap-1.5 text-sm font-medium text-textPrimary">
-          {edition.nom}
-          {edition.total !== null ? ` · ${edition.total} t.` : ''}
-          {edition.correction}
-        </span>
-      </Releve>
-    ) : null,
-  ].filter((releve) => releve !== null)
-
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface2 to-background px-4 py-6 sm:px-7 sm:py-8">
-      {/* Les deux halos de la maquette, en tokens plutôt qu'en hexadécimal :
-          ils doivent pâlir avec le thème sombre, sans quoi un voile terracotta
-          à 14 % vire au brun sur un fond presque noir. */}
+    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative -mt-6`}>
+      {/* Les deux couches de la maquette, dans l'ordre : le dégradé vertical
+          qui pose l'ambiance, puis le lavis radial qui la casse pour qu'elle
+          ne ressemble pas à un aplat. `-z-10` et non `z-0` : elles doivent
+          passer DERRIÈRE le contenu sans lui imposer un contexte
+          d'empilement, sinon le panneau d'un tome ouvert plus bas passerait
+          dessous. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[660px]"
         style={{
           background:
-            'radial-gradient(60% 70% at 22% 20%, var(--color-accentTint) 0%, transparent 62%),' +
-            ' radial-gradient(50% 60% at 85% 10%, var(--color-universeVioletTint) 0%, transparent 60%)',
+            `linear-gradient(178deg, ${tonDe(teinte, 34, 0.2)} 0%, ${tonDe(teinte, 20, 0.3)} 26%,` +
+            ` ${tonDe(teinte, 9, 0.45)} 58%, ${tonDe(teinte, 0)} 100%),` +
+            ' linear-gradient(180deg, var(--color-surface2) 0%, var(--color-background) 100%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
+        style={{
+          background:
+            `radial-gradient(72% 62% at 8% -4%, ${tonDe(teinte, 30, 0.12)} 0%, ${tonDe(teinte, 0, 0.12)} 62%),` +
+            ` radial-gradient(56% 54% at 96% 2%, ${tonDe(teinte, 16, 0.4)} 0%, ${tonDe(teinte, 0, 0.4)} 58%)`,
         }}
       />
 
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8 md:gap-11">
-        <div className="relative aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-[20px] shadow-token-elevated sm:w-40 md:w-[236px]">
+      <div className={`${CLASSE_CONTENU_BANDE} flex flex-wrap items-start gap-5 pt-6 md:gap-9`}>
+        <button
+          type="button"
+          onClick={onCouverture}
+          aria-label="Modifier la couverture de la série"
+          className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated"
+        >
           <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
-          <button
-            type="button"
-            onClick={onModifierCouverture}
-            aria-label="Modifier la couverture de la série"
-            className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-scrim text-white"
-          >
-            <Pencil size={13} />
-          </button>
-        </div>
+        </button>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-5">
-          {pastilles ? <div className="flex flex-wrap items-center gap-2">{pastilles}</div> : null}
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-start gap-2.5">
-              {/* Un clamp plus prudent que les 46-68px de la maquette : elle
-                  n'affiche que « Death Note », et cette application a déjà eu
-                  à encaisser des titres de série de plus de soixante
-                  caractères (voir « tenir le choc des titres longs »). */}
-              <h1 className="min-w-0 font-display text-[clamp(1.75rem,4.6vw,2.85rem)] leading-[1.05] font-bold tracking-[-0.04em] break-words text-textPrimary">
+        <div className="flex min-w-[280px] flex-1 flex-col gap-5">
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div className="flex min-w-0 flex-col gap-[7px]">
+              {kicker && (
+                <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">{kicker}</span>
+              )}
+              <h1 className="font-display text-[clamp(1.9rem,4.4vw,3.125rem)] leading-[1.06] font-semibold tracking-[-0.045em] break-words text-textPrimary">
                 {titre}
               </h1>
-              <button
-                type="button"
-                onClick={onModifierTitre}
-                aria-label="Modifier le nom de la série"
-                className="mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-softBtn text-textDim"
-              >
-                <Pencil size={14} />
-              </button>
+              {auteur && <span className="text-[15px] text-textDim">{auteur}</span>}
+              {(statut || annees) && (
+                <div className="flex flex-wrap items-center gap-4 text-[13.5px]">
+                  {statut && (
+                    <span className="inline-flex items-center gap-[7px] font-medium" style={{ color: statut.couleur }}>
+                      <span
+                        aria-hidden="true"
+                        className="h-[7px] w-[7px] rounded-full"
+                        style={{ background: statut.couleur }}
+                      />
+                      {statut.libelle}
+                    </span>
+                  )}
+                  {annees && <span className="text-faint">{annees}</span>}
+                </div>
+              )}
             </div>
-            {auteur ? (
-              <p className="text-base text-textDim">
-                par <span className="font-semibold text-textPrimary">{auteur}</span>
-              </p>
-            ) : null}
+
+            <div className="flex shrink-0 items-center gap-2">
+              {onEvaluer && (
+                <button
+                  type="button"
+                  onClick={onEvaluer}
+                  className="flex items-center gap-2.5 rounded-xl bg-accent px-4 py-[11px] text-sm font-semibold whitespace-nowrap text-accentInk shadow-token-accent transition-transform hover:-translate-y-px"
+                >
+                  <Scale size={16} />
+                  Évaluer
+                </button>
+              )}
+              {actionEnvies}
+            </div>
           </div>
 
-          {progression || releves.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
-              {progression ? (
-                <div className="flex items-center gap-4">
-                  {pourcentage !== null && (
-                    <div
-                      className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-full"
-                      style={{
-                        background: `conic-gradient(var(--color-accent) 0turn ${pourcentage / 100}turn, var(--color-line) ${pourcentage / 100}turn 1turn)`,
-                      }}
-                    >
-                      <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-surface font-display text-[17px] font-bold text-textPrimary shadow-token-sm">
-                        {pourcentage}%
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-0.5">
-                    <p className="font-display text-xl font-bold text-textPrimary">
-                      {progression.possedes}
-                      <span className="font-body font-normal text-faint">
-                        {progression.total !== null
-                          ? ` / ${progression.total} tomes`
-                          : ` tome${progression.possedes > 1 ? 's' : ''} possédé${progression.possedes > 1 ? 's' : ''}`}
-                      </span>
-                    </p>
-                    {manquants !== null && (
-                      <p className="text-[13.5px] text-textDim">
-                        {manquants === 0
-                          ? 'Série complète dans ta collection'
-                          : `${manquants} manquant${manquants > 1 ? 's' : ''} dans ta collection`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-
-              {progression && releves.length > 0 ? (
-                <span aria-hidden="true" className="hidden h-13 w-px bg-line sm:block" />
-              ) : null}
-
-              {releves.length > 0 ? <div className="flex flex-wrap items-start gap-x-7 gap-y-4">{releves}</div> : null}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-3">{actions}</div>
-          {/* Les compléments AVANT la phrase d'aide : la maquette met
-              « Chercher une meilleure édition → » sur la rangée d'actions
-              elle-même, puis l'aide dessous. Ici le lien vit sur sa propre
-              ligne parce qu'il se déplie en formulaire - le mettre dans la
-              rangée disloquerait celle-ci à l'ouverture - mais il garde sa
-              place AVANT l'aide. */}
-          {complements ? <div className="flex flex-col gap-2">{complements}</div> : null}
-          {aide ? <p className="max-w-[62ch] text-[13px] leading-relaxed text-faint">{aide}</p> : null}
+          {editions}
         </div>
       </div>
     </section>
   )
 }
 
-function Releve({ libelle, children }: { libelle: string; children: ReactNode }) {
+/** Le bouton « envies » du hero : une icône carrée sur surface, comme la
+ *  maquette - le libellé vit dans le `title`/`aria-label`, la rangée d'actions
+ *  n'a la place que d'un bouton plein et d'une icône. */
+export function BoutonEnviesHero({
+  dedans,
+  onBasculer,
+  disabled,
+}: {
+  dedans: boolean
+  onBasculer: () => void
+  disabled?: boolean
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-faint">{libelle}</span>
-      <span className="flex min-h-[26px] items-center">{children}</span>
-    </div>
+    <button
+      type="button"
+      onClick={onBasculer}
+      disabled={disabled}
+      // Le libellé visible n'existe pas : le nom accessible doit donc porter
+      // l'ACTION, pas l'état (même règle que WishlistToggle).
+      aria-label={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
+      aria-pressed={dedans}
+      title={dedans ? 'Retirer de mes envies' : 'Ajouter à mes envies'}
+      className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
+        dedans ? 'bg-accentTint text-accentText' : 'bg-surface text-textDim shadow-token-sm hover:text-accentText'
+      }`}
+    >
+      <Heart size={17} className={dedans ? 'fill-current' : undefined} />
+    </button>
   )
 }

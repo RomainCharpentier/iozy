@@ -390,3 +390,25 @@ button:disabled {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Chaque écran occupe la colonne du milieu de la grille de page ; seule une
+   bande qui demande explicitement `col-span-full` traverse tout l'écran (voir
+   AppShell.CLASSE_BANDE_PLEINE_LARGEUR).
+
+   `@layer base` À DESSEIN, et pour la même raison que la règle de survol plus
+   haut : les utilitaires Tailwind vivent dans une couche supérieure, donc le
+   `col-span-full` d'un enfant l'emporte. Écrite en utilitaire (`*:col-start-2`),
+   cette règle gagnerait au contraire toujours - le sélecteur d'un parent
+   (`.x > *`) est plus spécifique que la classe d'un enfant - et aucune bande ne
+   pourrait plus sortir de sa colonne. */
+@layer base {
+  main[data-grille] > * {
+    grid-column: 2;
+    /* Un élément de grille vaut `min-width: auto` par défaut, donc refuse de
+       descendre sous la largeur intrinsèque de son contenu : un titre en
+       `truncate` ou un tableau large repousserait alors la colonne et ferait
+       déborder la page - exactement ce que `<main>` en bloc empêchait
+       gratuitement. Même correctif que les colonnes de AddVolumeSection. */
+    min-width: 0;
+  }
+}
