@@ -74,6 +74,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 24. Audit transversal (erreurs, débordements, contraste, a11y, cohérence) — **fait** — voir ci-dessous
 25. Fiche d'une œuvre restructurée d'après la maquette v4, et en-têtes de tous les écrans harmonisés — **fait**, puis **remplacé au Lot 26** (mauvaise planche suivie) — voir ci-dessous
 26. Fiche refaite d'après la BONNE planche (« multi-éditions »), et « édition suivie » devenue une vraie donnée — **fait** — voir ci-dessous
+27. « Envies d'amélioration » retirée de l'interface : livrée mais sans conséquence — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -462,6 +463,62 @@ laissé tourner l'ANCIEN conteneur (« Running », pas « Recreated »), donc l'
 servait encore un backend sans `V20`. Détecté en comparant
 `docker inspect … {{.Image}}` à `docker images … {{.ID}}`, corrigé par
 `--force-recreate`.
+
+### Lot 27 — « Envies d'amélioration » retirée de l'interface
+
+Signalé par l'utilisateur en regardant la nouvelle fiche : « je vois pas
+l'intérêt de "rechercher une meilleure édition" ». Vérifié plutôt que
+supposé, en traçant qui CONSOMME réellement la donnée :
+
+| | Lu par | Agit sur quelque chose ? |
+|---|---|---|
+| `EditionUpgradeWish` | sa page `/edition-upgrades`, et l'export | **Non** — zéro occurrence dans `purchaseanalysis/` |
+| `WishlistEntry`, pour comparer | partage public, export, statistiques, **et Analyse d'achat** | Oui |
+
+Les deux autres mentions d'`EditionUpgradeWish` côté backend
+(`RelationshipController`, `TierListService`) sont des **commentaires** qui
+citent le contrôleur comme patron — aucune logique.
+
+Le geste écrivait donc une ligne que rien ne relisait, sauf à aller la
+chercher sous Profil. Et le peu qu'il apportait à la fiche a été absorbé au
+Lot 26 : la rangée `ÉDITIONS · n` montre désormais toutes les éditions avec
+leur progression côte à côte, ce qui est exactement l'information qu'on veut
+pour décider de changer d'édition.
+
+Décision utilisateur : **retirer**, plutôt que brancher sur Analyse d'achat.
+
+#### Portée exacte
+
+Retiré (web uniquement) : le lien de la fiche et `EditionUpgradeWishToggle`,
+la page `/edition-upgrades` et sa route, l'entrée dans Profil, `api/editionUpgrade.ts`,
+`types/editionUpgrade.ts`, et la clé de cache.
+
+**Conservé (backend intact)** : l'agrégat, le dépôt, la persistance, la table,
+le contrôleur REST et l'export. Aucune donnée détruite, aucun test touché — et
+c'est délibéré : la suite de contrat HTTP du endpoint fait une centaine de
+lignes, la supprimer serait une seconde décision, pas une conséquence de
+celle-ci. Le endpoint n'a désormais plus aucun appelant ; si l'on veut aussi
+retirer la surface backend, ce sera un lot à part.
+
+#### Une page de repli, trouvée au passage
+
+Retirer la route a révélé que l'application n'en avait **aucune** : toute URL
+inconnue rendait un `<main>` strictement vide, avec la navigation autour — un
+écran qui a l'air cassé plutôt que d'expliquer. Le cas devenait atteignable
+pour quiconque avait `/edition-upgrades` en signet, mais il existait déjà pour
+la moindre faute de frappe. `PageIntrouvable` comble ça, en dernier `Route
+path="*"`, avec un import direct plutôt que paresseux (la page est minuscule
+et doit s'afficher tout de suite, y compris quand c'est justement le
+chargement d'un chunk qui a échoué). Ni code d'erreur ni « 404 » : ce sont des
+mots de serveur.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` verts ; backend non touché,
+donc sa suite reste celle du Lot 26. En direct : plus aucune référence à
+`EditionUpgrade` dans `web/src`, la fiche intacte sans le lien, Profil réduit
+à trois entrées réelles (Évaluer un achat / Bilan annuel / Paramètres), et
+`/edition-upgrades` comme `/nimporte-quoi` affichent la page de repli.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -1900,6 +1957,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Avant de retirer une fonctionnalité qui « ne sert à rien », TRACER ses lecteurs réels (`grep -rln` sur le dépôt du domaine, en excluant son propre paquet) : au Lot 27, `EditionUpgradeWish` n'était lu que par sa propre page et l'export, alors que `WishlistEntry` l'est par quatre modules dont Analyse d'achat. La comparaison chiffrée tranche mieux qu'une impression, et distingue « inutile » de « pas encore branché ».
+- Retirer une route sans page de repli laisse un `<main>` VIDE, pas une erreur : l'application n'avait aucun `Route path="*"` avant le Lot 27. Vérifier ce point à chaque suppression d'écran.
 - **Le nom d'un fichier de maquette n'est pas une date** (Lot 26) : `Fiche série - IozyCore v4.dc.html` n'était PAS la planche à suivre, malgré son « v4 » - c'est `Fiche série - Naruto (multi-éditions).dc.html`. Toutes les dates de fichier d'un zip d'export sont identiques (heure d'export), donc rien dans le zip ne dit laquelle fait foi. Quand un handoff contient plusieurs planches du même écran, DEMANDER avant d'écrire une ligne : ici la mauvaise supposition a coûté une refonte complète.
 - Une bande pleine largeur dans un conteneur centré se fait par une GRILLE de page (`1fr | contenu | 1fr` sur `<main>`, enfant en `col-span-full`), jamais par `100vw`/`50vw` - ces unités comptent la barre de défilement et rouvrent le débordement du Lot 10. La règle qui range les enfants dans la colonne du milieu doit vivre dans `@layer base` (un sélecteur de parent bat la classe d'un enfant) et porter `min-width: 0` (un élément de grille vaut `min-width: auto` et refuse de descendre sous son contenu).
 - Échantillonner la couleur d'une jaquette externe : toujours sur une image SÉPARÉE en `crossOrigin = 'anonymous'`, jamais celle affichée. Sans en-têtes CORS l'échantillonnage échoue seul et on retombe sur une teinte de repli, tandis que la jaquette visible continue de s'afficher normalement.

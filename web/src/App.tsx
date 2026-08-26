@@ -1,5 +1,6 @@
 import { Suspense, lazy, type ComponentType } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { PageIntrouvable } from './routes/PageIntrouvable'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
 import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
@@ -38,7 +39,6 @@ const AnalysisHistoryDetailPage = page(
 const ProfilePage = page(() => import('./routes/Profile/ProfilePage'), 'ProfilePage')
 const ImportBggPage = page(() => import('./routes/Profile/ImportBggPage'), 'ImportBggPage')
 const AdministrationPage = page(() => import('./routes/Profile/AdministrationPage'), 'AdministrationPage')
-const EditionUpgradesPage = page(() => import('./routes/EditionUpgrades/EditionUpgradesPage'), 'EditionUpgradesPage')
 const SuggestionsPage = page(() => import('./routes/Suggestions/SuggestionsPage'), 'SuggestionsPage')
 const CollectionRecapPage = page(() => import('./routes/Recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('./routes/Scan/ScanPage'), 'ScanPage')
@@ -117,7 +117,6 @@ export default function App() {
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/import-bgg" element={<ImportBggPage />} />
                   <Route path="/administration" element={<AdministrationPage />} />
-                  <Route path="/edition-upgrades" element={<EditionUpgradesPage />} />
                   <Route path="/suggestions" element={<SuggestionsPage />} />
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
@@ -128,6 +127,10 @@ export default function App() {
                   <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
                   <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  {/* Le repli, en dernier : sans lui une URL inconnue rendait
+                      un `<main>` vide avec la navigation autour - un écran qui
+                      a l'air cassé plutôt que d'expliquer. */}
+                  <Route path="*" element={<PageIntrouvable />} />
                 </Routes>
               </Suspense>
             </AppShell>

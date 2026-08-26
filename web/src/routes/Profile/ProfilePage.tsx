@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Scale, Sparkles, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
+import { Scale, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
 import { ShareSection } from '../Share/ShareSection'
@@ -26,7 +26,6 @@ interface ProfileLink {
 // sur le même écran (voir docs/DESIGN_MIGRATION_V1.2.md Lot 8).
 const LINKS: ProfileLink[] = [
   { to: '/purchase-analysis', label: 'Évaluer un achat', description: "Analyser une annonce d'occasion avant de l'acheter", icon: Scale },
-  { to: '/edition-upgrades', label: 'Envies d\'amélioration', description: 'Séries dont tu recherches une meilleure édition', icon: Sparkles },
   { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
   { to: '/settings', label: 'Paramètres', description: 'Apparence, titres des mangas, administration avancée', icon: Settings2 },
 ]
