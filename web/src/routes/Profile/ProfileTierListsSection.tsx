@@ -8,6 +8,7 @@ import { boardCounts, flatRankedCovers } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 /**
  * "Mes Tier Lists" sur Profil (voir DS v1.1 §44 écran Profil) : une rangée
@@ -47,7 +48,7 @@ export function ProfileTierListsSection() {
   if (universeRows.length === 0 && customLists.length === 0) return null
 
   return (
-    <div className="mt-3 rounded-2xl border border-surface2 bg-surface p-4 shadow-token-sm">
+    <div className={`mt-3 ${CLASSE_CARTE}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-textPrimary">Mes Tier Lists</h2>
         <Link to="/tier-lists" className="min-h-11 text-xs font-semibold text-accentText">

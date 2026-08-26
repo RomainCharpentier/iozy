@@ -8,6 +8,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { EditionObservations } from './EditionObservations'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 import { TexteCoupe } from '../../components/TexteCoupe'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /**
  * "Éditions de référence" - la seule vue d'ensemble du référentiel
@@ -55,11 +56,11 @@ export function EditionsPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Éditions de référence</h1>
-        <p className="mt-1 text-sm text-textDim">
-          Le nombre de tomes, l'éditeur et les alertes de chaque édition. C'est d'ici que vient la progression X/Y
-          affichée sur tes séries — une édition non renseignée affiche simplement le nombre de tomes possédés.
-        </p>
+        <EnTeteSection
+          niveau={1}
+          titre="Éditions de référence"
+          sousTitre="Le nombre de tomes, l'éditeur et les alertes de chaque édition. C'est d'ici que vient la progression X/Y affichée sur tes séries — une édition non renseignée affiche simplement le nombre de tomes possédés."
+        />
       </div>
 
       {editionsQuery.isLoading && <p className="text-textDim">Chargement...</p>}

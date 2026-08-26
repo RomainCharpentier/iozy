@@ -8,6 +8,7 @@ import type {
   TrustLevel,
   TrustSignal,
 } from '../../types/purchaseAnalysis'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 /**
  * Le verdict personnalisé : trois dimensions gardées distinctes, puis la
@@ -107,7 +108,7 @@ export function ListingAssessmentCard({
     synthese.ton === 'bon' ? 'text-accentText' : synthese.ton === 'attention' ? 'text-warning' : 'text-textPrimary'
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
+    <div className={`flex flex-col gap-4 ${CLASSE_CARTE}`}>
       {/* Le verdict domine : un seul signal principal par carte. */}
       <h2 className={`font-display text-lg font-bold ${couleurSynthese}`}>{synthese.titre}</h2>
 

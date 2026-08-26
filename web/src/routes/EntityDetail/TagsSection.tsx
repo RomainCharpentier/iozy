@@ -42,11 +42,13 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
   const available = allTags.filter((t) => !attachedSet.has(t.id))
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-semibold text-textPrimary">Tags</h2>
+    <section className="flex flex-col gap-3.5 border-t border-line pt-5">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Tags</h3>
+        {attached.length === 0 && <span className="text-[13px] text-faint">Aucun tag pour l'instant</span>}
+      </div>
 
-      <div className="flex flex-wrap gap-2">
-        {attached.length === 0 && <p className="text-sm text-textDim">Aucun tag pour l'instant.</p>}
+      <div className="flex flex-wrap gap-2 empty:hidden">
         {attached.map((tag) => (
           <Chip key={tag.id} label={tag.label} isActive onClick={() => detachMutation.mutate(tag.id)} />
         ))}
@@ -71,12 +73,12 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Nouveau tag"
-          className="flex-1 rounded-lg bg-surface2 px-3 py-1.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="min-w-0 flex-1 rounded-xl border border-fieldBorder bg-background px-3.5 py-3 text-sm text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
         />
         <button
           type="submit"
           disabled={!newLabel.trim() || createMutation.isPending}
-          className="rounded-lg bg-surface2 px-3 py-1.5 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="shrink-0 rounded-xl bg-textPrimary px-4 py-3 text-[13.5px] font-medium text-background hover:bg-accent hover:text-accentInk disabled:opacity-50"
         >
           Ajouter
         </button>

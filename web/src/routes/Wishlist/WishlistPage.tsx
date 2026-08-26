@@ -12,6 +12,7 @@ import { coverImageUrlFrom } from '../../lib/coverImage'
 import { totalVolumesFrom } from '../../lib/seriesInfo'
 import { ShareSection } from '../Share/ShareSection'
 import type { EntityTypeDto, WishlistEntryResponse } from '../../types/api'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total) -
  * jamais "Possédé" ici, contrairement à ShelfPage : un souhait de wishlist
@@ -83,7 +84,7 @@ export function WishlistPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Envies</h1>
+      <EnTeteSection niveau={1} titre="Envies" />
 
       <ShareSection miseEnAvant="wishlist" />
 

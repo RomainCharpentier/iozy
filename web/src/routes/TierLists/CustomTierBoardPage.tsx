@@ -17,6 +17,7 @@ import { AddTierListItemsPanel } from './AddTierListItemsPanel'
 import { useQuickRank } from './useQuickRank'
 import { useModalA11y } from '../../lib/useModalA11y'
 import type { Rank, TierListEntryDto } from '../../types/tierList'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** Board d'une Tier List PERSONNALISÉE - même rendu que le classement
  * général (voir TierBoard), rangs actifs propres à cette liste (voir
@@ -106,13 +107,18 @@ export function CustomTierBoardPage() {
       </button>
 
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-textPrimary">{list.name}</h1>
-          {list.description && <p className="mt-1 text-sm text-textDim">{list.description}</p>}
-          <p className="mt-1 text-xs text-textDim">
-            {list.rankedCount} classé{list.rankedCount > 1 ? 's' : ''} · {list.itemCount - list.rankedCount} à classer
-          </p>
-        </div>
+        <EnTeteSection
+          niveau={1}
+          titre={list.name}
+          className="flex-1"
+          sousTitre={
+            <>
+              {list.description && <span className="block">{list.description}</span>}
+              {list.rankedCount} classé{list.rankedCount > 1 ? 's' : ''} · {list.itemCount - list.rankedCount} à
+              classer
+            </>
+          }
+        />
         <div className="flex shrink-0 items-center gap-2">
           {unranked.length > 0 && (
             <button

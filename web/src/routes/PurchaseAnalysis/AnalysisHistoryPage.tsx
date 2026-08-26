@@ -6,6 +6,7 @@ import { deleteAnalysis, listAnalysisHistory } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { VerdictBadge } from './VerdictBadge'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** "Comparer les annonces" (prévu dès le plan initial de l'Analyse d'achat,
  * jamais construit jusqu'ici) - liste toutes les analyses passées (les plus
@@ -33,7 +34,7 @@ export function AnalysisHistoryPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Historique des analyses</h1>
+      <EnTeteSection niveau={1} titre="Historique des analyses" />
 
       {historyQuery.isError && <ErrorBanner message={historyQuery.error.message} />}
       {deleteMutation.isError && <ErrorBanner message={deleteMutation.error.message} />}

@@ -8,6 +8,7 @@ import {
   type TitleComposition,
 } from '../../lib/titleLanguage'
 import { useTheme } from '../../lib/theme'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** Réglage propre à cet appareil (localStorage, pas de compte/backend - voir
  * lib/titleLanguage.ts) : seule la recherche/ajout de manga (Jikan/MyAnimeList)
@@ -72,7 +73,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Paramètres</h1>
+      <EnTeteSection niveau={1} titre="Paramètres" />
 
       {/* Apparence : réglage minimal pour l'instant (voir Lot 1 de la
           migration Design V1.2 - docs/DESIGN_MIGRATION_V1.2.md), sera

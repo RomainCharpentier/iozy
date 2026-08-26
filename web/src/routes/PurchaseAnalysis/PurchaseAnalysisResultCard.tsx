@@ -7,6 +7,7 @@ import { ListingAssessmentCard } from './ListingAssessmentCard'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
 import { LISTING_PLATFORM_LABELS } from '../../types/purchaseAnalysis'
 import type { PurchaseAnalysisDto, WarningSeverity } from '../../types/purchaseAnalysis'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 const CONFIDENCE_LABELS = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Faible' } as const
 
@@ -102,7 +103,7 @@ export function PurchaseAnalysisResultCard({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
+    <div className={`flex flex-col gap-4 ${CLASSE_CARTE}`}>
       {/* Le verdict personnalise d'abord : ce que le lot t'apporte, ou se situe
           son prix, ce qu'il faut verifier. Le score global du moteur reste
           en dessous - il juge l'affaire dans l'absolu, celui-ci la juge pour

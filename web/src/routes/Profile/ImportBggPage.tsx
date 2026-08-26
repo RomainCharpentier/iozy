@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { importBggCollection } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** Déplacé depuis Ma collection (audit UX : un import ponctuel n'a rien à
  * faire sur l'écran consulté à chaque session, voir "fonctionnalités à
@@ -20,11 +21,11 @@ export function ImportBggPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Importer depuis BoardGameGeek</h1>
-      <p className="text-sm text-textDim">
-        Récupère automatiquement les jeux de société marqués « possédés » sur un compte BoardGameGeek et les ajoute
-        à ta collection - un jeu déjà présent (même titre) n'est jamais dupliqué, juste retrouvé.
-      </p>
+      <EnTeteSection
+        niveau={1}
+        titre="Importer depuis BoardGameGeek"
+        sousTitre="Récupère automatiquement les jeux de société marqués « possédés » sur un compte BoardGameGeek et les ajoute à ta collection — un jeu déjà présent (même titre) n'est jamais dupliqué, juste retrouvé."
+      />
 
       <form
         onSubmit={(e) => {

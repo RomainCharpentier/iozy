@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { deleteEditionUpgradeWish, listAllEditionUpgradeWishes } from '../../api/editionUpgrade'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** "Je possède déjà cette série, mais je recherche une meilleure édition
  * pour la remplacer" - toutes les envies d'amélioration, tous propriétaires
@@ -20,7 +21,7 @@ export function EditionUpgradesPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Envies d'amélioration</h1>
+      <EnTeteSection niveau={1} titre="Envies d'amélioration" />
 
       {wishesQuery.isError && <ErrorBanner message={wishesQuery.error.message} />}
       {wishesQuery.isLoading && <p className="text-textDim">Chargement...</p>}

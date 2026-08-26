@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { mergeEntityAttributes, removeEntityAttribute } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
@@ -38,18 +38,29 @@ export function EntityInfoSection({
   attributes,
   customFieldKeys,
   edition,
+  ouvrirEdition,
+  onEditionOuverte,
 }: {
   entityId: string
   attributes: Record<string, unknown>
   customFieldKeys: string[]
-  /** Édition affichée, quand il y en a une (mangas). Volontairement SANS le
-   * nombre de tomes : le hero l'annonce déjà deux fois ("1 / 6 tomes
-   * possédés" puis "Black Édition · 6 tomes"). Et sans bouton de correction :
-   * il existe déjà, accroché au nom de l'édition dans le hero (voir
-   * EditionCorrectionSection) - deux entrées vers le même formulaire seraient
-   * exactement le genre de doublon qu'on retire ici. */
+  /** Passe à true quand « Modifier » est cliqué dans l'en-tête de la section
+   *  « L'œuvre » (maquette v4). Le bouton vit là-haut, mais le brouillon de
+   *  chaque champ vit ici - c'est le seul endroit qui connaît la liste réelle
+   *  des champs (union des champs déclarés par le TYPE et des attributs
+   *  réellement présents). Un booléen plutôt qu'un `ref` impératif : c'est un
+   *  état, la page a le droit de le porter. */
+  ouvrirEdition: boolean
+  onEditionOuverte: () => void
+  /** Édition affichée, quand il y en a une (mangas). Sans bouton de
+   * correction : il existe déjà, accroché au nom de l'édition dans le hero
+   * (voir EditionCorrectionSection) - deux entrées vers le même formulaire
+   * seraient exactement le genre de doublon qu'on retire ici. */
   edition?: {
     name: string
+    /** Le nombre de tomes de CETTE édition (voir la complétude), null tant
+     *  qu'aucune source ne le connaît. */
+    totalVolumes: number | null
     publisher: string | null
     outOfPrint: boolean
     betterEditionAnnounced: boolean
@@ -113,6 +124,15 @@ export function EntityInfoSection({
     setEditing(true)
   }
 
+  // Le drapeau est consommé aussitôt (onEditionOuverte le rabaisse), sinon
+  // fermer le formulaire le rouvrirait au rendu suivant.
+  useEffect(() => {
+    if (!ouvrirEdition) return
+    startEditing()
+    onEditionOuverte()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ouvrirEdition])
+
   const filled = descriptive.filter((key) => displayValue(attributes[key]) !== '')
   const filledTechnical = technical.filter((key) => displayValue(attributes[key]) !== '')
 
@@ -123,13 +143,20 @@ export function EntityInfoSection({
   const seriesStatusRow = edition?.ongoing == null ? null : edition.ongoing ? 'En cours' : 'Terminée'
 
   const editionRows: Array<[string, string]> = []
-  // "Éditeur de cette édition" et non "Éditeur" : l'attribut publisher de la
-  // SÉRIE existe aussi (champ personnalisé du type Manga) et ne veut pas dire
-  // la même chose - pour un candidat Jikan c'est la revue de prépublication
-  // japonaise, pas l'éditeur français, confusion déjà corrigée ailleurs (voir
-  // pickCandidate). Deux lignes "Éditeur" côte à côte avec deux valeurs
-  // différentes seraient exactement l'ambiguïté qu'on retire ici.
-  if (edition?.publisher) editionRows.push(['Éditeur de cette édition', edition.publisher])
+  // "Éditeur" tout court redevient possible depuis que ces lignes vivent sous
+  // un titre qui nomme l'édition (« Édition « Black Édition » ») : c'est le
+  // titre qui lève l'ambiguïté avec le publisher de la SÉRIE, lequel ne veut
+  // pas dire la même chose (pour un candidat Jikan, c'est la revue de
+  // prépublication japonaise, pas l'éditeur français - voir pickCandidate).
+  // Auparavant les deux sous-groupes se suivaient sans titre fort, d'où le
+  // libellé long "Éditeur de cette édition".
+  if (edition?.publisher) editionRows.push(['Éditeur', edition.publisher])
+  // Le nombre de tomes DE CETTE ÉDITION, à ne pas confondre avec le
+  // "Nombre de tomes (source)" des champs techniques, qui est celui de la
+  // série chez le fournisseur : Death Note fait 12 tomes chez MyAnimeList et 6
+  // en Black Édition. C'est précisément parce que les deux existent et
+  // diffèrent que le catalogue doit les montrer tous les deux.
+  if (edition?.totalVolumes != null) editionRows.push(["Tomes de l'édition", String(edition.totalVolumes)])
   if (edition?.outOfPrint) editionRows.push(['Disponibilité', 'Édition épuisée'])
   if (edition?.betterEditionAnnounced) {
     editionRows.push(['À venir', edition.betterEditionNote || 'Meilleure édition annoncée'])
@@ -140,20 +167,8 @@ export function EntityInfoSection({
   if (fields.length === 0 && editionRows.length === 0 && edition?.ongoing == null) return null
 
   return (
-    <section className="flex flex-col gap-3 border-t border-surface pt-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">L'œuvre</h2>
-        {!editing && (
-          <button
-            type="button"
-            onClick={startEditing}
-            className="flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accentText"
-          >
-            <Pencil size={14} />
-            {filled.length > 0 ? 'Modifier' : 'Renseigner'}
-          </button>
-        )}
-      </div>
+    <section className="flex flex-col gap-5">
+      <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Série</h3>
 
       {mutation.isError && <ErrorBanner message={mutation.error.message} />}
 
@@ -201,53 +216,64 @@ export function EntityInfoSection({
       ) : (
         <>
           {/* Sous-groupe SÉRIE : ce qui reste vrai quelle que soit l'édition
-              qu'on possède (auteur, année, statut de publication). */}
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-semibold tracking-wide text-textDim uppercase">Série</h3>
+              qu'on possède (auteur, année, statut de publication).
+
+              Des rangées libellé/valeur séparées par un filet, et non plus une
+              grille de colonnes : sur une carte étroite, la grille
+              `auto-fit(160px)` retombait à une colonne et empilait deux lignes
+              par champ - le libellé y flottait au-dessus de sa valeur sans
+              rien pour les rattacher. Une rangée par champ se lit du regard,
+              quelle que soit la largeur. */}
+          <div className="flex flex-col">
             {filled.length > 0 || filledTechnical.length > 0 || seriesStatusRow !== null ? (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
-                {seriesStatusRow && (
-                  <dl className="flex flex-col gap-0.5 text-sm">
-                    <dt className="text-textDim">Statut</dt>
-                    <dd className="text-textPrimary">{seriesStatusRow}</dd>
-                  </dl>
-                )}
-                {(showTechnical ? [...filled, ...filledTechnical] : filled).map((key) => (
-                  <dl key={key} className="flex flex-col gap-0.5 text-sm">
-                    <dt className="text-textDim">{labelFor(key)}</dt>
-                    <dd className="text-textPrimary">{displayValue(attributes[key])}</dd>
-                  </dl>
+              <>
+                {seriesStatusRow && <RangeeInfo libelle="Statut" valeur={seriesStatusRow} />}
+                {filled.map((key) => (
+                  <RangeeInfo key={key} libelle={labelFor(key)} valeur={displayValue(attributes[key])} />
                 ))}
-              </div>
+              </>
             ) : (
               <p className="text-sm text-textDim">Aucune information renseignée pour l'instant.</p>
             )}
-            {filledTechnical.length > 0 && (
+          </div>
+
+          {/* Les rouages, repliés derrière un chevron (maquette v4) : ils
+              restent modifiables, mais ne sont pas le visage de la fiche. */}
+          {filledTechnical.length > 0 && (
+            <div className="flex flex-col gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowTechnical((v) => !v)}
-                className="w-fit text-xs font-semibold text-accentText"
+                aria-expanded={showTechnical}
+                className={`flex w-fit items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-medium ${
+                  showTechnical ? 'bg-softPress text-textPrimary' : 'bg-softBtn text-textDim'
+                }`}
               >
-                {showTechnical ? 'Masquer les champs techniques' : `Champs techniques (${filledTechnical.length})`}
+                {showTechnical ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                Champs techniques ({filledTechnical.length})
               </button>
-            )}
-          </div>
+              {showTechnical && (
+                <div className="flex flex-col rounded-[15px] bg-background px-4">
+                  {filledTechnical.map((key) => (
+                    <RangeeInfo key={key} libelle={labelFor(key)} valeur={displayValue(attributes[key])} discret />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Sous-groupe ÉDITION : ce qui ne vaut QUE pour l'édition affichée
               (l'éditeur français, son épuisement...). Nommé avec l'édition
               elle-même, sinon "Éditeur : Kana" ressemble à une propriété de la
               série - alors qu'une autre édition a un autre éditeur. */}
           {editionRows.length > 0 && (
-            <div className="flex flex-col gap-2 pt-1">
-              <h3 className="text-xs font-semibold tracking-wide text-textDim uppercase">
+            <div className="flex flex-col gap-3 border-t border-line pt-5">
+              <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">
                 Édition « {edition?.name} »
               </h3>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,max-content))] gap-x-10 gap-y-3">
+              <div className="flex flex-col">
                 {editionRows.map(([label, value]) => (
-                  <dl key={label} className="flex flex-col gap-0.5 text-sm">
-                    <dt className="text-textDim">{label}</dt>
-                    <dd className="text-textPrimary">{value}</dd>
-                  </dl>
+                  <RangeeInfo key={label} libelle={label} valeur={value} />
                 ))}
               </div>
             </div>
@@ -255,6 +281,21 @@ export function EntityInfoSection({
         </>
       )}
     </section>
+  )
+}
+
+/** Une rangée « libellé à gauche, valeur à droite », séparée de la suivante
+ *  par un filet - la forme exacte de la maquette v4. `last:border-0` plutôt
+ *  qu'un test sur l'index : le dernier filet d'un groupe doublerait celui du
+ *  groupe suivant. */
+function RangeeInfo({ libelle, valeur, discret = false }: { libelle: string; valeur: string; discret?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-line py-2.5 last:border-0">
+      <span className={discret ? 'text-[13.5px] text-textDim' : 'text-sm text-textDim'}>{libelle}</span>
+      <span className={`text-right font-medium text-textPrimary ${discret ? 'text-sm' : 'text-[14.5px]'}`}>
+        {valeur}
+      </span>
+    </div>
   )
 }
 
@@ -314,11 +355,12 @@ const LABELS: Record<string, string> = {
   publisher: 'Éditeur',
   platform: 'Plateforme',
   studio: 'Studio',
-  seriesStatus: 'Statut de la série',
-  totalVolumes: 'Nombre de tomes',
+  seriesStatus: 'Statut brut',
+  totalVolumes: 'Nombre de tomes (source)',
   volumeNumber: 'Numéro de tome',
   averageDurationHours: 'Durée moyenne (h)',
   startYear: 'Année de début',
+  endYear: 'Année de fin',
   mediaType: 'Type de média',
   titleEnglish: 'Titre anglais',
   titleRomaji: 'Titre romaji',

@@ -5,6 +5,7 @@ import { getAnalysisById } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** Une analyse passée précise, revue en entier (même carte de résultat que
  * juste après "ANALYSER LE LOT") - voir AnalysisHistoryPage pour la liste. */
@@ -18,7 +19,7 @@ export function AnalysisHistoryDetailPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Analyse du {formatDate(analysisQuery.data?.requestedAt)}</h1>
+      <EnTeteSection niveau={1} titre={`Analyse du ${formatDate(analysisQuery.data?.requestedAt)}`} />
 
       {analysisQuery.isError && <ErrorBanner message={analysisQuery.error.message} />}
       {analysisQuery.isLoading && <p className="text-textDim">Chargement...</p>}

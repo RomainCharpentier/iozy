@@ -23,6 +23,7 @@ import { EditionStatusRow } from './EditionStatusRow'
 import { ListingSummaryCard } from './ListingSummaryCard'
 import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 interface QueuedItem {
   seriesTitle: string
@@ -460,7 +461,7 @@ export function PurchaseAnalysisPage() {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+          <EnTeteSection niveau={1} titre="Évaluer un achat" />
           <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
             <History size={13} />
             Historique
@@ -474,7 +475,7 @@ export function PurchaseAnalysisPage() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Évaluer un achat</h1>
+        <EnTeteSection niveau={1} titre="Évaluer un achat" />
         <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
           <History size={13} />
           Historique

@@ -1,3 +1,4 @@
+import { CLASSE_CARTE } from '../../components/Carte'
 /**
  * Panneau "Prochaines sorties" de Découvrir (voir DS v1.1 §44). BLOCKED_BY_DATA
  * réel, pas un "bientôt disponible" vague : aucune des deux données requises
@@ -13,7 +14,7 @@ export function DiscoverReleasesPanel() {
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-[11px] font-semibold tracking-wide text-textDim uppercase">Séries que tu suis</h2>
-      <div className="rounded-2xl border border-surface2 bg-surface p-5">
+      <div className={CLASSE_CARTE}>
         <p className="text-sm font-semibold text-textPrimary">Pas encore de calendrier de sorties.</p>
         <p className="mt-1.5 text-sm text-textDim">
           Aucune source ne fournit aujourd'hui de date fiable de prochain tome par série - cette section arrivera

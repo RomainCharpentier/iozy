@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Tags, Upload, ChevronRight, BookMarked } from 'lucide-react'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 interface AdminLink {
   to: string
@@ -30,8 +31,11 @@ export function AdministrationPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Administration avancée</h1>
-        <p className="mt-1 text-sm text-textDim">Configuration technique et gestion des données - à toucher rarement.</p>
+        <EnTeteSection
+          niveau={1}
+          titre="Administration avancée"
+          sousTitre="Configuration technique et gestion des données — à toucher rarement."
+        />
       </div>
 
       <ul className="flex flex-col gap-2">

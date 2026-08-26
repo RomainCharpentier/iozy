@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Compass, Library, ScanLine, Search } from 'lucide-react'
 
 interface TabDef {
@@ -44,7 +44,10 @@ export function TabBar() {
       {TABS.map(({ to, label, icon: Icon, activeWhen }) => {
         const active = activeWhen ? activeWhen(pathname) : pathname === to
         return (
-          <NavLink
+          // `Link` et non `NavLink` : voir DesktopHeader - NavLink écrase
+          // l'`aria-current` qu'on lui passe par celui de SA correspondance
+          // de route, qui ignore `activeWhen`.
+          <Link
             key={to}
             to={to}
             aria-current={active ? 'page' : undefined}
@@ -58,7 +61,7 @@ export function TabBar() {
               <Icon size={22} strokeWidth={active ? 2.15 : 1.75} />
               {label}
             </span>
-          </NavLink>
+          </Link>
         )
       })}
       <span className="my-2 w-px shrink-0 bg-surface2" aria-hidden="true" />

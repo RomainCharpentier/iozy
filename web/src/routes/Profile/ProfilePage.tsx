@@ -4,6 +4,7 @@ import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
 import { ShareSection } from '../Share/ShareSection'
 import { useEffect, useRef } from 'react'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 interface ProfileLink {
   to: string
@@ -42,7 +43,7 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Mon profil</h1>
+      <EnTeteSection niveau={1} titre="Mon profil" />
 
       <ProfileValueHero />
       <ProfileTierListsSection />

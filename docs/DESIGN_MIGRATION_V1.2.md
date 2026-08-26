@@ -72,6 +72,219 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 22. Couleur et icône d'un type de collection — **fait** — voir ci-dessous
 23. Format de jaquette d'un type de collection — **fait** — voir ci-dessous
 24. Audit transversal (erreurs, débordements, contraste, a11y, cohérence) — **fait** — voir ci-dessous
+25. Fiche d'une œuvre restructurée d'après la maquette v4, et en-têtes de tous les écrans harmonisés — **fait** — voir ci-dessous
+
+### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
+
+Nouvelle maquette reçue le 2026-08-26 (`Restructuration de page web.zip`,
+cinq artboards Claude Design). Celle qui fait foi est `Fiche série -
+IozyCore v4.dc.html` : c'est la dernière itération, et les quatre autres
+(`collection éditoriale`, `collection éditoriale v2`, `Naruto
+(multi-éditions)`, `Menu de la fiche - variantes`) sont les explorations qui
+y mènent — `Menu de la fiche - variantes` compare six systèmes de navigation
+de fiche, dont celui que v4 retient.
+
+Toutes les couleurs de la maquette (`#faf6f2`, `#fffdfb`, `#f4ece5`,
+`#231e1a`, `#544a43`, `#6c625c`, `#bc583b`, `#a2452c`) sont **exactement**
+les tokens déjà en place depuis le Lot 1 : aucune valeur nouvelle n'a été
+ajoutée à `index.css`, tout est repris en `var(--color-*)`, donc réactif au
+thème sombre que la maquette (clair seulement) ne montre pas.
+
+#### Le changement de fond : une section à la fois, à toutes les largeurs
+
+La fiche montrait « Mes tomes » en pleine largeur puis deux colonnes côte à
+côte, et ne repliait en onglets qu'en dessous de 900px (Lots 20 et suivants).
+La v4 tranche l'inverse : trois sections numérotées — **01 Mes tomes**,
+**02 Mon suivi**, **03 L'œuvre** — dont une seule est visible, du téléphone
+au grand écran.
+
+Ce n'est pas un choix de mise en page mais de lecture. Ces trois sections
+sont les trois axes du modèle (Possession ≠ Expérience ≠ Catalogue) et ce
+sont trois questions qu'on ne se pose pas en même temps. Les afficher
+ensemble obligeait à trier soi-même à chaque coup d'œil, et produisait deux
+colonnes dont l'une finissait systématiquement plus courte que l'autre —
+le défaut que les Lots 20/24 avaient déjà tenté de rattraper deux fois
+(`8746f2d` « remplir la colonne de droite au lieu de la laisser vide »,
+`aa1571f` « que chaque rangée ait un occupant à droite »).
+
+Conséquence a11y : `BarreSectionsFiche.tsx` remplace `OngletsFiche.tsx` et
+passe enfin à un vrai `role="tablist"`. L'ancien s'en tenait à
+`aria-pressed` **pour une bonne raison** (les panneaux coexistaient en
+grand, `role="tab"` aurait été faux la moitié du temps) ; ils s'excluent
+maintenant partout, donc le motif ARIA décrit exactement ce qui se passe —
+avec ce qu'il exige : `tabindex` mobile (un seul onglet atteignable au Tab)
+et navigation aux flèches / Home / End, plus `role="tabpanel"` +
+`aria-labelledby` sur chaque panneau.
+
+#### Ce que le hero absorbe, et ce qui disparaît
+
+`FicheHero.tsx` répond aux trois questions immédiates sans qu'aucune section
+ne soit ouverte : l'anneau de progression (dégradé conique), les trois
+relevés **Mon rang / Ma note / Édition suivie**, et les actions.
+
+`EditionProgressSection.tsx` est **supprimée**, dissoute plutôt que
+déplacée : sa barre de progression est devenue l'anneau, sa ligne d'édition
+un relevé, ses pastilles de choix d'édition ont rejoint « Mes tomes » (une
+édition ne commande que la grille — la choisir à côté des tomes qu'elle
+réordonne, plutôt qu'en haut de page à côté du titre, c'est montrer ce
+qu'elle fait), et ses deux avertissements (« épuisée », « nouvelle édition
+annoncée ») sont restés en haut, juste au-dessus de
+`EditionUpgradeWishToggle` — là où se forme l'envie de changer d'édition.
+C'est ce dernier qui tient le « Chercher une meilleure édition → » de la
+maquette : le lien existe, branché sur la fonctionnalité réelle.
+
+L'Assistant quitte lui aussi sa section (il vivait dans la colonne droite de
+« Mes tomes » depuis le Lot 24) pour la droite de la barre, comme dans la
+maquette : ses deux questions portent sur la série entière, pas sur une
+section. `AssistantSection.tsx` se scinde en `BoutonsAssistant` (les
+pastilles, dans la barre) et `ReponseAssistant` (la réponse, sous la barre —
+une barre collante qui grandirait repousserait le contenu qu'on lit).
+
+Trois queries partagent leur clé de cache entre le hero, la barre, la grille
+et l'Assistant (complétude, fiche d'édition, résumé Tier List) : vérifié en
+direct dans l'onglet réseau, **un seul appel réel par clé** pour toute la
+page.
+
+#### Écarts assumés vis-à-vis de la maquette
+
+- **Pas de bande pleine largeur** pour le hero : un panneau arrondi. Sortir
+  du conteneur centré (voir `AppShell`) demanderait un `100vw`, qui compte la
+  barre de défilement et rouvre exactement la classe de débordement
+  horizontal corrigée au Lot 10. Le dégradé et les deux halos radiaux sont
+  conservés, en tokens.
+- **« 2003 → 2006 » s'affiche dès que l'année de fin existe.** Aucun
+  fournisseur branché ne l'écrit aujourd'hui (grep sur tout
+  `backend/src/main/java` : seul `startYear` est produit, par Jikan et
+  MyAnimeList) — mais `endYear` est saisissable à la main depuis « L'œuvre »
+  (il a désormais son libellé), et la pastille lit la plage dès qu'il est là.
+  Sans lui : `Depuis 2003` si la série est en cours, `2003` sinon. On ne
+  l'invente jamais, on sait juste le lire.
+- **Le titre plafonne à `clamp(1.75rem, 4.6vw, 2.85rem)`** et non aux 46-68px
+  de la maquette, qui n'affiche que « Death Note » ; cette application a déjà
+  eu à encaisser des titres de plus de soixante caractères (`859e88a`).
+- **« Je l'ai » est un `span`, pas un bouton** : la tuile entière EST déjà le
+  bouton (imbriquer deux boutons est invalide), et le clic ouvre le panneau
+  du tome, qui fait « je l'ai » **et** tout le reste (état, prix,
+  renumérotation). L'affordance de la maquette est gardée, le doublon de
+  parcours non.
+- **« Mes tomes » disparaît** quand la notion de tome n'existe pas (jeu
+  vidéo, type personnalisé, série seulement en envies) et la numérotation
+  suit la liste réelle (01 Mon suivi / 02 L'œuvre) : un onglet vide serait
+  pire qu'un onglet absent. Vérifié en direct sur Breath of the Wild.
+
+#### Ce que la maquette apporte aux tuiles de tomes
+
+Chaque tuile porte désormais sa légende **sous** la jaquette (numéro + état
+en toutes lettres), extraite dans `TuileTome.tsx` et partagée par le tome
+catalogué et le tome purement virtuel — c'est ce qui garantit qu'une rangée
+reste alignée quel que soit ce que le catalogue connaît. Avant, le numéro
+n'apparaissait que faute de jaquette et l'état se devinait à une pastille :
+une grille de soixante-douze tuiles ne se lisait qu'en survolant. La grille
+passe de `minmax(96px,1fr)` à `minmax(110px,1fr)` et de 4 à 3 colonnes sur
+téléphone — mesuré à 375px : tuiles de 106px, « Dans ma collection » tient
+sans troncature.
+
+#### Harmonisation des autres écrans
+
+Deux primitives partagées, tirées de la maquette :
+
+- `components/EnTeteSection.tsx` — titre, sous-titre, action alignée sur le
+  bas du bloc de titre. Les **vingt-huit** écrans écrivaient chacun leur
+  en-tête à la main ; tous y passent (`niveau={1}` pour le titre d'écran,
+  `niveau={2}` pour une section), et les sous-titres/actions qui existaient
+  déjà y sont rentrés. Trois en-têtes sur mesure gardent leur forme (pastille
+  de couleur d'univers : `CategoryPage`, `GeneralTierBoardPage` ; kicker :
+  `SharedSpacePage`) et n'alignent que la typographie.
+- `components/Carte.tsx` — `CLASSE_CARTE` et `<Carte>`, coins à 20px,
+  respiration de 24px. Le dépôt comptait seize écritures différentes de « une
+  carte » (`p-2` à `p-6`, avec ou sans ombre). La bordure `surface2`, absente
+  de la maquette, est **gardée** : la maquette n'existe qu'en clair, où
+  l'ombre suffit ; en sombre l'ombre est du noir sur du presque-noir et une
+  carte posée sur une autre disparaîtrait.
+
+`WishlistToggle` en variante `default` reçoit enfin une surface
+(`bg-softBtn`) : posé nu à côté d'un bouton plein, il ne se lisait plus comme
+un bouton mais comme du texte gris. La variante `inline` (lignes de liste)
+est inchangée.
+
+
+#### Seconde lecture de la maquette (même lot)
+
+Une première passe avait pris la structure et laissé passer du contenu. Relu
+ligne à ligne, voici ce qui manquait — tout est repris :
+
+| Ce que la maquette dit | Ce qu'il y avait |
+|---|---|
+| La marque s'écrit `Iozy` en encre + `core` en accent | « IozyCore » d'un seul ton, dans les deux en-têtes |
+| La destination courante est une pastille **surélevée** (surface + ombre) | Aplat `accentTint` **plus** un trait accroché sous l'en-tête — deux signaux pour la même chose, dont un qui débordait |
+| « Mon rang » = la pastille **et** l'univers (« B  Manga ») | La pastille seule — or « B » ne veut rien dire tant qu'on ne sait pas « B en quoi » |
+| « Ma note » = ★ + 7/10 | 7/10 sans l'étoile |
+| Une phrase explique « Évaluer une annonce » (« Un lot d'occasion repéré sur Vinted ou Leboncoin ?… ») | Supprimée avec l'ancien hero |
+| « Chercher une meilleure édition → » | Le même bouton, libellé « Je cherche une meilleure édition », en gris souligné plutôt qu'en lien d'accent |
+| « Modifier » dans l'en-tête de la section « L'œuvre » | Dans la carte |
+| L'édition liste « Éditeur » **et** « Tomes de l'édition » | Ni l'un sous ce nom, ni l'autre du tout |
+| Champs techniques : « Statut brut », « Nombre de tomes (source) » | « Statut de la série », « Nombre de tomes » — ce dernier étant précisément celui qu'on confond avec les tomes de l'édition (12 chez MyAnimeList, 6 en Black Édition) |
+| Le cœur et l'avatar ont une surface | Deux icônes nues |
+
+Sur « Modifier » : le bouton vit maintenant dans l'en-tête de section
+(`EnTeteSection.action`) et le brouillon de chaque champ reste dans
+`EntityInfoSection`, seul endroit qui connaisse la liste réelle des champs
+(union des champs déclarés par le TYPE et des attributs réellement présents).
+Le lien est un booléen `ouvrirEdition` que le composant **consomme
+aussitôt** (`onEditionOuverte` le rabaisse) : sans ça, fermer le formulaire
+le rouvrirait au rendu suivant. Vérifié en direct : ouvre le formulaire
+pré-rempli, « Annuler » le referme et il ne se rouvre pas.
+
+Sur « Éditeur » : le libellé long « Éditeur de cette édition » (Lot 20)
+existait parce que les deux sous-groupes se suivaient sans titre fort, et que
+le `publisher` de la SÉRIE ne veut pas dire la même chose (pour un candidat
+Jikan, c'est la revue de prépublication japonaise, pas l'éditeur français —
+voir `pickCandidate`). Ces lignes vivent désormais sous un titre qui nomme
+l'édition ; c'est lui qui lève l'ambiguïté, le libellé peut redevenir court.
+
+#### Un bug d'accessibilité trouvé au passage
+
+En mesurant l'en-tête refait, `aria-current` s'est révélé **absent sur la
+fiche d'une œuvre** alors que « Ma collection » y était bien peinte en
+destination courante. Cause : `NavLink` recalcule `aria-current` à partir de
+SA propre correspondance de route — exacte pour `to="/"`, donc fausse sur
+`/entity/:id` — et écrase celui qu'on lui passe. Le commentaire de
+`DesktopHeader` disait pourtant depuis le Lot 2 que `NavLink` « ne sait
+comparer qu'un préfixe de route », d'où `activeWhen` : la couleur suivait,
+l'annonce non. Même silence sur `/scan` et `/purchase-analysis` sous
+« Rechercher ». Corrigé dans `DesktopHeader` **et** `TabBar` en passant à
+`Link` : `active` est déjà calculé par nous, il ne restait qu'à ne pas
+laisser `NavLink` le contredire. Vérifié en direct, `aria-current="page"` sur
+`/` comme sur `/entity/:id`.
+
+#### Les cartes des autres écrans
+
+Neuf panneaux de contenu passent sur `CLASSE_CARTE` (Découvrir ×3, Profil,
+Évaluer un achat ×2, Ma collection, page de catégorie, Tier Lists) : rayon
+20px et respiration de 24px partout, au lieu de `p-4`/`p-5`/`p-6` selon
+l'écran. Les **rangées et tuiles cliquables** gardent leur rayon de 16px —
+ce ne sont pas des cartes au sens de la maquette, et les aligner sur 20px
+effacerait la hiérarchie entre un panneau et une ligne de liste. `StatCard`
+descend à 15px, le rayon des rangées de la maquette, et gagne la bordure qui
+lui permet d'exister en thème sombre.
+
+#### Vérifications
+
+`npm run typecheck` / `lint` / `check:contrast` (116 combinaisons, deux
+thèmes) / `build` : tous verts. En direct sur données réelles, thème sombre :
+les trois sections, l'assistant (les deux questions), le dépliage des champs
+techniques, le « Modifier » de l'en-tête (ouverture, pré-remplissage,
+annulation sans réouverture), une fiche non-manga, et les huit écrans
+principaux (`/`, `/discover`, `/add`, `/profile`, `/tier-lists`,
+`/purchase-analysis`, `/wishlist`, `/settings`) — chacun avec son `<h1>` et
+sans débordement. Balayage de débordement horizontal à
+1265px et à 375px (méthode du Lot 10 : `clientWidth` vs `scrollWidth`, plus
+`getBoundingClientRect().right` par élément en ignorant les descendants d'un
+`overflow-x` scrollable) : **aucun débordement**. Barre collante mesurée à
+`top: 64px` en desktop et `56px` en mobile — exactement la hauteur de
+`DesktopHeader`/`MobileHeader`, `z-index` 9 contre leur 10, donc elle glisse
+dessous et jamais par-dessus.
+
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -1510,6 +1723,9 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Maquette v4 de la fiche (Lot 25) : la source de vérité du zip `Restructuration de page web.zip` est `Fiche série - IozyCore v4.dc.html` — les quatre autres artboards sont ses explorations, et `Menu de la fiche - variantes.dc.html` (100 Ko) compare six systèmes de navigation de fiche dont v4 retient le sixième (barre collante, trois sections numérotées à sous-titre calculé). Le dossier `_ds/modernist-*` du zip est un design system « Modernist » (rouge sur blanc, zéro rayon, Archivo) qu'**aucun** artboard n'utilise : tous sont en styles inline sur la palette terracotta déjà en place. Ne pas le suivre.
+- Un `<h1>` de la maquette peut porter un `clamp()` calibré sur un titre court ; toujours le retailler avant reprise (Lot 25 : 46-68px → `clamp(1.75rem, 4.6vw, 2.85rem)`), sinon c'est le Lot « tenir le choc des titres longs » à refaire.
+- Une barre collante posée dans `<main>` doit s'arrêter sous l'en-tête, pas sous le viewport : `top-14` / `md:top-16` (hauteurs exactes de `MobileHeader`/`DesktopHeader`) et un `z-index` STRICTEMENT inférieur au leur (`z-[9]` contre `z-10`). Et son débord latéral doit être conditionnel : `-mx-4 px-4` en dessous du point de bascule (où le conteneur porte 16px de marge, voir `AppShell`), `md:mx-0 md:px-0` au-dessus (où il n'en porte plus, et où le même débord la ferait dépasser du contenu).
 - `navItems` (mock, ligne ~2893) : source unique desktop rail + bottom bar mobile, exactement 3 entrées (Collection/Rechercher/Découvrir), jamais Wishlist/Profil/Paramètres/Scan en pair.
 - Bottom bar mobile (ligne ~1707-1728) : 3 nav items + FAB Scan séparé par une bordure verticale, `order` CSS pour le placer à droite. Le FAB Scan n'a pas `aria-current` — ce n'est pas une 4e destination, juste un raccourci. Réconcilie §12 ("ne pas mettre Scan dans la bottom-nav") : Scan n'est pas un onglet pair, juste un raccourci visuel dans la même barre.
 - Drawer Tome (ligne ~1809) : 392px desktop / bottom-sheet 88% mobile. Déjà très proche de `VolumeInteractionPanel.tsx` (420px/85dvh) construit plus tôt cette session — écart mineur, pas de refonte nécessaire.

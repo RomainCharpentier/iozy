@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getNearCompleteSuggestions } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
  * édition nommée est connue mais incomplète, les plus proches de la
@@ -17,10 +18,11 @@ export function SuggestionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Suggestions d'achats</h1>
-      <p className="text-sm text-textDim">
-        Séries que tu possèdes déjà, dont il ne manque plus que quelques tomes pour compléter l'édition.
-      </p>
+      <EnTeteSection
+        niveau={1}
+        titre="Suggestions d'achats"
+        sousTitre="Séries que tu possèdes déjà, dont il ne manque plus que quelques tomes pour compléter l'édition."
+      />
 
       {suggestionsQuery.isError && <ErrorBanner message={suggestionsQuery.error.message} />}
       {suggestionsQuery.isLoading && <p className="text-textDim">Chargement...</p>}

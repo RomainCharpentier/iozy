@@ -93,10 +93,10 @@ export function EditionUpgradeWishToggle({ entityId, editionName }: { entityId: 
       <button
         type="button"
         onClick={() => setFormOpen(true)}
-        className="flex w-fit items-center gap-1.5 text-xs text-textDim underline hover:text-textPrimary"
+        className="flex w-fit items-center gap-1.5 text-[13.5px] font-medium text-accentText hover:text-accentPress"
       >
-        <Sparkles size={12} className="shrink-0" />
-        Je cherche une meilleure édition
+        <Sparkles size={13} className="shrink-0" />
+        Chercher une meilleure édition →
       </button>
     )
   }

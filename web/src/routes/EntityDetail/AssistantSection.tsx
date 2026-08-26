@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpenCheck, PackageSearch, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BookOpenCheck, PackageSearch, Sparkles, X } from 'lucide-react'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
@@ -9,138 +8,157 @@ import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../ty
 import type { PriceBasis } from '../../types/purchaseAnalysis'
 
 /**
- * "Assistant" de la fiche (voir la maquette V1.2, section repérée en Lot 6 -
- * commentaire source : "Assistant : contextuel, pas un chatbot"). Deux
- * questions FIXES, dont la réponse est CALCULÉE à partir des données déjà
- * chargées par la fiche - jamais une saisie libre, jamais un appel à un
- * modèle de langage, jamais une réponse rédigée d'avance.
- * <p>
- * La seconde question de la maquette ("Qu'est-ce qui ressemble à mes S ?")
- * n'est pas construite et ne peut pas l'être : aucun champ genre/thème n'est
- * stocké dans ce backend (même raison que l'absence de ligne "Genre" dans
- * "À propos", voir TomesGridSection) - "ressemble à" n'aurait rien à
- * comparer. Remplacée par "Où en suis-je dans mes lectures ?", répondable
- * avec les Experiences réelles (choix utilisateur du 2026-08-20).
- * <p>
- * Aucun appel réseau propre : la complétude passe par la MÊME clé de cache
- * que EditionProgressSection/TomesGridSection (React Query partage la
- * requête), les expériences sont déjà chargées par EntityDetailPage.
+ * L'assistant de la fiche : deux questions FIXES, dont la réponse est
+ * CALCULÉE à partir des données déjà chargées par la page - jamais une saisie
+ * libre, jamais un appel à un modèle de langage, jamais une réponse rédigée
+ * d'avance (commentaire source de la maquette V1.2 : « Assistant : contextuel,
+ * pas un chatbot »).
+ *
+ * <h2>Pourquoi il vit dans la barre de sections</h2>
+ * Il occupait avant une section à part, coincée dans la colonne de droite de
+ * « Mes tomes ». Mais ses deux questions ne portent pas sur une section : « que
+ * me manque-t-il » interroge la possession, « où en suis-je » interroge les
+ * lectures. La maquette v4 le sort donc des sections et le pose à droite de la
+ * barre, disponible quelle que soit celle qu'on regarde. D'où la découpe en
+ * deux morceaux : les BOUTONS (dans la barre) et la RÉPONSE (sous la barre).
+ *
+ * <h2>La seconde question de la maquette V1.2 n'est toujours pas répondable</h2>
+ * « Qu'est-ce qui ressemble à mes S ? » n'a rien à comparer : aucun champ
+ * genre/thème n'est stocké dans ce backend (même raison que l'absence de ligne
+ * « Genre » dans « L'œuvre »). Remplacée par « Où en suis-je dans mes lectures ? »,
+ * répondable avec les Experiences réelles (choix utilisateur du 2026-08-20).
+ *
+ * <h2>Aucun appel réseau propre</h2>
+ * La complétude passe par la MÊME clé de cache que la page et « Mes tomes »
+ * (React Query partage la requête), les expériences sont déjà chargées.
  */
-export function AssistantSection({
+export type QuestionAssistant = 'missing' | 'reading'
+
+const QUESTIONS: { cle: QuestionAssistant; court: string; icone: typeof PackageSearch }[] = [
+  { cle: 'missing', court: 'Que me manque-t-il ?', icone: PackageSearch },
+  { cle: 'reading', court: 'Où en suis-je ?', icone: BookOpenCheck },
+]
+
+/** Les pastilles de l'assistant, telles qu'elles vivent dans la barre de
+ *  sections : une seule au repos, les deux questions quand elle est ouverte. */
+export function BoutonsAssistant({
+  ouvert,
+  question,
+  onOuvrir,
+  onFermer,
+  onQuestion,
+}: {
+  ouvert: boolean
+  question: QuestionAssistant | null
+  onOuvrir: () => void
+  onFermer: () => void
+  onQuestion: (question: QuestionAssistant) => void
+}) {
+  if (!ouvert) {
+    return (
+      <button
+        type="button"
+        onClick={onOuvrir}
+        aria-expanded={false}
+        className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-accentTint px-4 text-[13px] font-medium whitespace-nowrap text-accentText"
+      >
+        <Sparkles size={15} className="shrink-0" />
+        Demander à l'assistant
+      </button>
+    )
+  }
+
+  return (
+    <>
+      {QUESTIONS.map(({ cle, court, icone: Icone }) => (
+        <button
+          key={cle}
+          type="button"
+          onClick={() => onQuestion(cle)}
+          aria-expanded={question === cle}
+          className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-[12.5px] font-medium whitespace-nowrap transition-colors ${
+            question === cle ? 'bg-accent text-accentInk' : 'bg-surface text-textDim shadow-token-sm'
+          }`}
+        >
+          <Icone size={14} className="shrink-0" />
+          {court}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onFermer}
+        aria-label="Fermer l'assistant"
+        className="flex h-11 w-8 shrink-0 items-center justify-center rounded-full text-faint"
+      >
+        <X size={14} />
+      </button>
+    </>
+  )
+}
+
+/** La réponse, posée juste sous la barre de sections. Séparée des boutons
+ *  ci-dessus parce qu'elle ne tient pas dans une barre collante : elle fait
+ *  plusieurs lignes, et une barre qui grandit en collant repousserait le
+ *  contenu qu'on est en train de lire. */
+export function ReponseAssistant({
   entityId,
   entityTitle,
   variants,
   ownerships,
   experiences,
   activeGroup,
+  question,
 }: {
   entityId: string
   entityTitle: string
   variants: VariantDto[]
   ownerships: OwnershipResponse[]
   experiences: ExperienceResponse[]
-  activeGroup: EditionGroup
+  /** null quand aucune édition n'est affichée (type sans tome, série sans
+   *  aucun tome) : « que me manque-t-il » n'a alors rien sur quoi compter. */
+  activeGroup: EditionGroup | null
+  question: QuestionAssistant
 }) {
   const navigate = useNavigate()
-  const [openQuestion, setOpenQuestion] = useState<'missing' | 'reading' | null>(null)
+  const owned = activeGroup ? ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions) : []
+  const editionName = activeGroup?.edition ?? ''
 
-  const owned = ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions)
   const completenessQuery = useQuery({
-    queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, activeGroup.edition, owned),
-    queryFn: () => getCompleteness(entityTitle, activeGroup.edition, owned, activeGroup.volumeNumbers, entityId),
-    enabled: activeGroup.edition !== '' && openQuestion === 'missing',
+    queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, editionName, owned),
+    queryFn: () => getCompleteness(entityTitle, editionName, owned, activeGroup?.volumeNumbers ?? [], entityId),
+    enabled: editionName !== '' && question === 'missing',
   })
 
-  const toggle = (question: 'missing' | 'reading') => setOpenQuestion((current) => (current === question ? null : question))
-
-  return (
-    <section className="flex flex-col gap-3 border-t border-surface pt-4">
-      <div className="flex items-center gap-2">
-        <Sparkles size={16} className="shrink-0 text-accentText" />
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Assistant</h2>
-      </div>
-      {/* Dit d'où viennent les réponses AVANT de les afficher : deux
-          questions calculées sur les données de cette fiche, pas un
-          assistant qui "sait" des choses sur la série. */}
-      <p className="text-xs text-textDim">
-        Deux questions, répondues à partir de ta collection uniquement.
-      </p>
-
-      <div className="flex flex-wrap gap-2">
-        <QuestionButton
-          icon={<PackageSearch size={15} />}
-          label="Que me manque-t-il dans cette série ?"
-          isOpen={openQuestion === 'missing'}
-          onClick={() => toggle('missing')}
-        />
-        <QuestionButton
-          icon={<BookOpenCheck size={15} />}
-          label="Où en suis-je dans mes lectures ?"
-          isOpen={openQuestion === 'reading'}
-          onClick={() => toggle('reading')}
-        />
-      </div>
-
-      {openQuestion === 'missing' && (
-        <AnswerCard>
-          <MissingAnswer
-            editionName={activeGroup.edition}
-            ownedCount={owned.length}
-            isLoading={completenessQuery.isLoading}
-            isError={completenessQuery.isError}
-            totalVolumes={completenessQuery.data?.totalVolumes ?? null}
-            missingVolumeNumbers={completenessQuery.data?.missingVolumeNumbers ?? []}
-            cataloguedMissingVolumeNumbers={completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []}
-            estimatedCostToComplete={completenessQuery.data?.estimatedCostToComplete ?? null}
-            costToCompleteBasis={completenessQuery.data?.costToCompleteBasis ?? null}
-            onEvaluateListing={() =>
-              navigate('/purchase-analysis', { state: { seriesTitle: entityTitle, editionName: activeGroup.edition } })
-            }
-          />
-        </AnswerCard>
-      )}
-
-      {openQuestion === 'reading' && (
-        <AnswerCard>
-          <ReadingAnswer experiences={experiences} variants={variants} ownedVolumes={owned} activeGroup={activeGroup} />
-        </AnswerCard>
-      )}
-    </section>
-  )
-}
-
-function QuestionButton({
-  icon,
-  label,
-  isOpen,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  isOpen: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={isOpen}
-      className={`flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-left text-sm font-semibold transition-colors ${
-        isOpen ? 'bg-accent text-accentInk' : 'bg-surface text-textPrimary shadow-token-sm'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  )
-}
-
-function AnswerCard({ children }: { children: React.ReactNode }) {
   return (
     // aria-live : la réponse apparaît sans changer de page ni de focus - un
-    // lecteur d'écran doit l'annoncer, sinon le clic ne "fait rien" pour lui.
-    <div aria-live="polite" className="flex flex-col gap-2 rounded-xl bg-surface p-4 text-sm text-textPrimary">
-      {children}
+    // lecteur d'écran doit l'annoncer, sinon le clic ne « fait rien » pour lui.
+    <div
+      aria-live="polite"
+      className="flex flex-col gap-2 rounded-[20px] border border-surface2 bg-surface p-5 text-sm text-textPrimary shadow-token-sm"
+    >
+      {question === 'missing' ? (
+        <MissingAnswer
+          editionName={editionName}
+          ownedCount={owned.length}
+          isLoading={completenessQuery.isLoading}
+          isError={completenessQuery.isError}
+          totalVolumes={completenessQuery.data?.totalVolumes ?? null}
+          missingVolumeNumbers={completenessQuery.data?.missingVolumeNumbers ?? []}
+          cataloguedMissingVolumeNumbers={completenessQuery.data?.cataloguedMissingVolumeNumbers ?? []}
+          estimatedCostToComplete={completenessQuery.data?.estimatedCostToComplete ?? null}
+          costToCompleteBasis={completenessQuery.data?.costToCompleteBasis ?? null}
+          onEvaluateListing={() =>
+            navigate('/purchase-analysis', { state: { seriesTitle: entityTitle, editionName } })
+          }
+        />
+      ) : (
+        <ReadingAnswer
+          experiences={experiences}
+          variants={variants}
+          ownedVolumes={owned}
+          activeGroup={activeGroup}
+        />
+      )}
     </div>
   )
 }
@@ -281,7 +299,9 @@ function ReadingAnswer({
   experiences: ExperienceResponse[]
   variants: VariantDto[]
   ownedVolumes: number[]
-  activeGroup: EditionGroup
+  /** null pour un type sans notion de tome : les lectures existent toujours,
+   *  elles ne se rattachent simplement a aucun numero. */
+  activeGroup: EditionGroup | null
 }) {
   // Un tome lu est une Experience portant un variantId (voir Experience.
   // variantId, ajouté avec le sélecteur de tome) - les expériences SANS tome
@@ -292,7 +312,7 @@ function ReadingAnswer({
     const raw = variant.attributes.volumeNumber
     const volumeNumber = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
     const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
-    if (Number.isFinite(volumeNumber) && activeGroup.sourceEditions.includes(edition)) {
+    if (Number.isFinite(volumeNumber) && activeGroup?.sourceEditions.includes(edition)) {
       volumeNumberById.set(variant.id, volumeNumber)
     }
   }
@@ -309,8 +329,8 @@ function ReadingAnswer({
   if (experiences.length === 0) {
     return (
       <p className="text-textDim">
-        Aucune lecture enregistrée pour cette série. Tu peux en ajouter une depuis « Expériences », en bas de cette
-        fiche.
+        Aucune lecture enregistrée pour cette série. Tu peux en ajouter une depuis « Expériences », dans « Mon
+        suivi ».
       </p>
     )
   }
@@ -330,7 +350,11 @@ function ReadingAnswer({
           de cette édition : {formatVolumeRanges(readVolumes)}.
         </p>
       ) : (
-        <p>Aucune de tes lectures n'indique de tome précis pour cette édition.</p>
+        <p>
+          {activeGroup
+            ? "Aucune de tes lectures n'indique de tome précis pour cette édition."
+            : "Tes lectures ne se rattachent à aucun tome — ce type de collection n'en a pas."}
+        </p>
       )}
       {latest && (
         <p className="text-xs text-textDim">

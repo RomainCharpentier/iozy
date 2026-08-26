@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Compass, Library, Search } from 'lucide-react'
 import { GlobalShortcuts } from './GlobalShortcuts'
 
@@ -33,17 +33,27 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   const { pathname } = useLocation()
   const active = activeWhen ? activeWhen(pathname) : pathname === to
   return (
-    <NavLink
+  // `Link` et non `NavLink` : React Router recalcule lui-même `aria-current`
+  // à partir de SA correspondance de route (exacte pour `to="/"`) et écrase
+  // celui qu'on lui passe. Résultat mesuré : sur la fiche d'une œuvre, « Ma
+  // collection » était bien peinte en destination courante par `activeWhen`
+  // mais n'annonçait plus rien - la même incohérence sur `/scan` et
+  // `/purchase-analysis` sous « Rechercher ». On calcule déjà `active`
+  // nous-mêmes ; il ne reste qu'à ne pas laisser NavLink le contredire.
+    <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex h-[46px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors ${
-        active ? 'bg-accentTint text-accentText' : 'text-textDim hover:bg-rowHover'
+      // La destination courante est une pastille SURLEVEE (surface + ombre),
+      // pas un aplat teinté doublé d'un trait (maquette v4) : deux signaux
+      // pour la même information, dont l'un - le trait accroché à -10px -
+      // débordait de l'en-tête.
+      className={`flex h-[46px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-medium transition-colors ${
+        active ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-textDim hover:bg-rowHover'
       }`}
     >
       <Icon size={20} strokeWidth={active ? 2.15 : 1.75} />
       {label}
-      {active && <span className="absolute inset-x-4 -bottom-2.5 h-0.5 rounded-full bg-accent" />}
-    </NavLink>
+    </Link>
   )
 }
 
@@ -55,10 +65,13 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
 export function DesktopHeader() {
 
   return (
-    <header className="sticky top-0 z-10 hidden h-16 shrink-0 border-b border-surface2 bg-surface md:block">
+    <header className="sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line bg-surface2 md:block">
       <div className="mx-auto flex h-full w-[min(100%-48px,1600px)] items-center gap-6">
-        <Link to="/" className="font-display text-lg font-bold text-textPrimary">
-          IozyCore
+        {/* « Iozy » en encre, « core » en accent (maquette v4) : la marque
+            porte l'accent dans son propre nom, elle n'a pas besoin d'un bloc
+            coloré autour. */}
+        <Link to="/" className="font-display text-lg font-semibold tracking-[-0.02em] text-textPrimary">
+          Iozy<span className="text-accent">core</span>
         </Link>
         <nav className="flex h-full items-center gap-1.5">
           {PRIMARY.map((item) => (

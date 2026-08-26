@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { recordExperience } from '../../api/experiences'
 import { queryKeys } from '../../lib/queryKeys'
@@ -41,15 +42,17 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
   const sorted = [...experiences].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Expériences</h2>
+    <section className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Expériences</h3>
         <button
           type="button"
           onClick={() => setFormOpen((v) => !v)}
-          className="text-sm font-medium text-accentText"
+          aria-expanded={formOpen}
+          className="flex items-center gap-1.5 text-[13.5px] font-medium text-accentText"
         >
-          Ajouter une expérience
+          <Plus size={14} />
+          Ajouter
         </button>
       </div>
 
@@ -68,7 +71,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
               comment: comment.trim() || undefined,
             })
           }}
-          className="flex flex-col gap-3 rounded-xl bg-surface p-3"
+          className="flex flex-col gap-3 rounded-[15px] bg-background p-4"
         >
           <div className="flex gap-2">
             {allowedExperienceTypes.map((type) => (
@@ -135,7 +138,13 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
         </form>
       )}
 
-      <ul className="flex flex-col gap-2">
+      {sorted.length === 0 && !formOpen && (
+        <p className="text-[13.5px] text-faint">
+          Aucune expérience enregistrée — lecture, partie, visionnage…
+        </p>
+      )}
+
+      <ul className="flex flex-col gap-2.5">
         {sorted.map((experience) => (
           <ExperienceRow
             key={experience.id}

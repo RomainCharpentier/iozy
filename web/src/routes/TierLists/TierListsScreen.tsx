@@ -13,6 +13,8 @@ import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
 import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
+import { EnTeteSection } from '../../components/EnTeteSection'
+import { CLASSE_CARTE } from '../../components/Carte'
 
 /**
  * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
@@ -87,17 +89,23 @@ export function TierListsScreen() {
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">Tier Lists</h1>
-        {sections.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setCreatingFor({ id: sections[0].entityType.id })}
-            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
-          >
-            <Plus size={16} />
-            Nouvelle Tier List
-          </button>
-        )}
+        <EnTeteSection
+          niveau={1}
+          titre="Tier Lists"
+          className="flex-1"
+          action={
+            sections.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCreatingFor({ id: sections[0].entityType.id })}
+                className="flex min-h-11 items-center gap-2 rounded-[14px] bg-accent px-4 text-sm font-semibold text-accentInk"
+              >
+                <Plus size={16} />
+                Nouvelle Tier List
+              </button>
+            )
+          }
+        />
       </div>
 
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
@@ -107,7 +115,7 @@ export function TierListsScreen() {
           ouverture, le temps que les données arrivent - « Rien à classer »
           affiché à quelqu'un qui a justement des choses à classer. */}
       {!chargement && sections.length === 0 && (
-        <div className="rounded-2xl border border-surface2 bg-surface p-8 text-center">
+        <div className={`${CLASSE_CARTE} text-center`}>
           <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
           <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
         </div>

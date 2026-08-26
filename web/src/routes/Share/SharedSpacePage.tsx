@@ -58,7 +58,7 @@ export function SharedSpacePage() {
           ni pseudo ni avatar, et cette page n'en invente pas. */}
       <header className="flex flex-col gap-1 pt-4">
         <span className="font-display text-sm font-semibold tracking-wide text-textDim uppercase">IozyCore</span>
-        <h1 className="font-display text-2xl font-bold text-textPrimary">
+        <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">
           {/* Sans données (chargement, lien mort), un titre neutre : annoncer
               « Envies partagées » sur un lien révoqué laisserait croire qu'il
               a un jour mené quelque part, ce que cette page ne dit jamais. */}

@@ -6,6 +6,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { DiscoverySection } from './DiscoverySection'
 import { CollectionTimelineSection } from './CollectionTimelineSection'
 import { CollectionValueSection } from './CollectionValueSection'
+import { EnTeteSection } from '../../components/EnTeteSection'
 
 export function StatsPage() {
   // Toujours à jour, jamais de cache - une donnée périmée n'a pas de sens
@@ -19,7 +20,7 @@ export function StatsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-bold text-textPrimary">Statistiques</h1>
+      <EnTeteSection niveau={1} titre="Statistiques" />
 
       {statsQuery.isError && <ErrorBanner message={statsQuery.error.message} />}
       {statsQuery.isLoading && <p className="text-textDim">Chargement...</p>}

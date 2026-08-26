@@ -41,17 +41,17 @@ export function DeleteEntitySection({ entityId, entityTitle }: { entityId: strin
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="flex w-fit items-center gap-1.5 text-xs text-danger underline-offset-2 hover:underline"
+        className="flex w-fit items-center gap-2 rounded-xl border border-danger/35 px-3.5 py-2.5 text-[13.5px] font-medium text-dangerText hover:border-dangerText hover:bg-dangerText hover:text-dangerInk"
       >
-        <Trash2 size={13} />
-        Supprimer cette fiche
+        <Trash2 size={14} />
+        Supprimer
       </button>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-danger/10 p-3">
-      <p className="text-sm text-danger">
+    <div className="flex flex-col gap-2.5">
+      <p className="text-sm text-dangerText">
         Supprimer définitivement « {entityTitle} » ? Cette action est irréversible.
       </p>
       <div className="flex gap-2">
@@ -59,14 +59,14 @@ export function DeleteEntitySection({ entityId, entityTitle }: { entityId: strin
           type="button"
           onClick={() => deleteMutation.mutate()}
           disabled={deleteMutation.isPending}
-          className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-dangerInk disabled:opacity-50"
+          className="rounded-xl bg-danger px-3.5 py-2.5 text-[13px] font-semibold text-dangerInk disabled:opacity-50"
         >
           {deleteMutation.isPending ? 'Suppression...' : 'Confirmer la suppression'}
         </button>
         <button
           type="button"
           onClick={() => setConfirmOpen(false)}
-          className="rounded-lg px-3 py-1.5 text-xs text-textDim"
+          className="rounded-xl px-3.5 py-2.5 text-[13px] text-textDim"
         >
           Annuler
         </button>
