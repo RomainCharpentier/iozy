@@ -42,11 +42,37 @@ type ContentWidth = 'wide' | 'detail' | 'medium' | 'narrow'
  * avec un container wide=1600px doit occuper ~1152px, pas déborder) ; mobile
  * = pleine largeur + 16px de marge fixe (voir la refonte layout demandée). */
 const CONTAINER_CLASS: Record<ContentWidth, string> = {
-  wide: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,1600px)] md:px-0',
-  detail: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,1280px)] md:px-0',
-  medium: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,960px)] md:px-0',
-  narrow: 'w-full px-4 md:mx-auto md:w-[min(100%-48px,672px)] md:px-0',
+  wide: 'grid grid-cols-[1fr_min(100%_-_2rem,1600px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1600px)_1fr]',
+  detail: 'grid grid-cols-[1fr_min(100%_-_2rem,1320px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1320px)_1fr]',
+  medium: 'grid grid-cols-[1fr_min(100%_-_2rem,960px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,960px)_1fr]',
+  narrow: 'grid grid-cols-[1fr_min(100%_-_2rem,672px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,672px)_1fr]',
 }
+
+/**
+ * Ce qu'une bande PLEINE LARGEUR doit porter pour traverser tout l'écran, et
+ * ce que son contenu doit porter pour rester aligné sur le reste de la page.
+ *
+ * <h2>Une grille à trois colonnes, et pas un `100vw`</h2>
+ * `<main>` est une grille `1fr | contenu | 1fr` : tout enfant tombe dans la
+ * colonne du milieu (voir la règle `main[data-grille] > *` dans index.css), et
+ * celui qui porte `col-span-full` occupe les trois. Aucune unité `vw` n'entre
+ * en jeu - or c'est précisément `100vw` qui compte la barre de défilement et
+ * fait déborder la page de ~15px, la classe de bug corrigée au Lot 10. La
+ * grille, elle, ne connaît que la largeur réellement disponible.
+ *
+ * <h2>Pourquoi la règle par défaut vit dans `@layer base`</h2>
+ * Écrite en utilitaire (`*:col-start-2`), elle l'emporterait sur le
+ * `col-span-full` de l'enfant : le sélecteur du parent (`.x > *`) est plus
+ * spécifique que la classe de l'enfant. Posée dans la couche `base`, elle
+ * passe systématiquement APRÈS les utilitaires dans la cascade des couches -
+ * même raisonnement que la règle de survol déjà présente dans index.css.
+ */
+export const CLASSE_BANDE_PLEINE_LARGEUR = 'col-span-full'
+
+/** Le conteneur intérieur d'une bande pleine largeur : ramène son contenu à
+ *  la largeur exacte de la colonne du milieu, pour que rien ne se décale par
+ *  rapport au reste de la page. */
+export const CLASSE_CONTENU_BANDE = 'mx-auto w-[calc(100%_-_2rem)] md:w-[min(100%_-_3rem,1320px)]'
 
 /** `/entity/:id` couvre tous les types (Manga/Jeu vidéo/Jeu de société
  * partagent la même route) : la largeur du container est neutre pour ces
@@ -84,7 +110,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <DesktopHeader />
       <MobileHeader />
-      <main className={`${CONTAINER_CLASS[width]} pt-6 pb-24 md:pb-10`}>{children}</main>
+      {/* `data-grille` est ce que cible la règle de base d'index.css qui range
+          chaque enfant dans la colonne du milieu. Un attribut plutôt qu'une
+          classe : il dit ce que l'élément EST (une grille de page), pas de
+          quoi il a l'air, et rien ne peut le remplacer par mégarde en
+          réécrivant un className. */}
+      <main data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-24 md:pb-10`}>{children}</main>
       <TabBar />
     </div>
   )

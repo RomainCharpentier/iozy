@@ -72,7 +72,8 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 22. Couleur et icône d'un type de collection — **fait** — voir ci-dessous
 23. Format de jaquette d'un type de collection — **fait** — voir ci-dessous
 24. Audit transversal (erreurs, débordements, contraste, a11y, cohérence) — **fait** — voir ci-dessous
-25. Fiche d'une œuvre restructurée d'après la maquette v4, et en-têtes de tous les écrans harmonisés — **fait** — voir ci-dessous
+25. Fiche d'une œuvre restructurée d'après la maquette v4, et en-têtes de tous les écrans harmonisés — **fait**, puis **remplacé au Lot 26** (mauvaise planche suivie) — voir ci-dessous
+26. Fiche refaite d'après la BONNE planche (« multi-éditions »), et « édition suivie » devenue une vraie donnée — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -285,6 +286,182 @@ sans débordement. Balayage de débordement horizontal à
 `DesktopHeader`/`MobileHeader`, `z-index` 9 contre leur 10, donc elle glisse
 dessous et jamais par-dessus.
 
+
+### Lot 26 — la bonne planche, et l'édition suivie enfin persistée
+
+#### Ce qui s'est passé
+
+Le Lot 25 a suivi `Fiche série - IozyCore v4.dc.html` en supposant que « v4 »
+désignait la dernière itération du zip. C'était faux : la planche qui fait foi
+est **`Fiche série - Naruto (multi-éditions).dc.html`**, désignée par
+l'utilisateur après avoir vu le résultat (« ça ressemble pas du tout à la
+maquette »). Les deux ne sont pas des variantes de détail — v4 range la fiche
+en trois onglets numérotés, « multi-éditions » met tout sur une page autour
+d'une rangée de cartes d'édition. Le Lot 25 est donc **remplacé**, pas
+complété.
+
+À retenir pour la prochaine fois : **le nom d'un fichier n'est pas une date**.
+Quand un handoff contient plusieurs planches du même écran, aucune n'est
+« la dernière » par son nom — les dates de fichier du zip sont toutes
+identiques (heure d'export). La seule source fiable est l'utilisateur ; la
+question aurait dû être posée avant d'écrire une ligne.
+
+Ce que le Lot 25 laisse quand même derrière lui, et qui reste en place :
+`EnTeteSection` et `Carte` partagés par les 28 écrans, la marque `Iozy`+`core`,
+la destination courante en pastille surélevée, et surtout le correctif
+`aria-current` (`NavLink` écrasait celui qu'on lui passait — voir Lot 25).
+
+#### La bande pleine largeur, sans `100vw`
+
+C'est le défaut qui faisait que « ça ne ressemblait pas » : la maquette n'a pas
+une carte posée sur une page, elle a une bande teintée qui traverse tout
+l'écran. Le Lot 25 y avait renoncé pour une raison réelle — `100vw` compte la
+barre de défilement et rouvre le débordement horizontal du Lot 10.
+
+La solution ne passe pas par `vw` du tout. `<main>` devient une grille à trois
+colonnes `1fr | contenu | 1fr` (voir `AppShell.CONTAINER_CLASS`) : tout écran
+tombe dans celle du milieu, et une bande qui demande `col-span-full` occupe les
+trois. La grille ne connaît que la largeur réellement disponible.
+
+Deux pièges rencontrés et refermés :
+- La règle par défaut vit dans `@layer base` (`main[data-grille] > *`). Écrite
+  en utilitaire (`*:col-start-2`), elle l'emporterait toujours sur le
+  `col-span-full` de l'enfant — le sélecteur d'un parent est plus spécifique
+  que la classe d'un enfant — et aucune bande ne pourrait sortir de sa colonne.
+  Même raisonnement que la règle de survol déjà présente dans `index.css`.
+- Un élément de grille vaut `min-width: auto` et refuse de descendre sous la
+  largeur de son contenu, ce que `<main>` en bloc empêchait gratuitement. D'où
+  un `min-width: 0` dans la même règle, sans quoi le premier titre en
+  `truncate` faisait déborder la page.
+
+Mesuré après coup : bande à 1265px de large sur un viewport de 1265, contenu à
+24px/1217px comme le reste de la page, `scrollWidth == clientWidth` à 1265px
+comme à 375px.
+
+#### La teinte tirée de la jaquette
+
+La maquette fait dériver toute la bande de la couleur moyenne de la jaquette.
+`useTeinteJaquette` échantillonne un canvas 24×24 — mais sur une image
+**séparée** en `crossOrigin = 'anonymous'`, jamais celle affichée à l'écran.
+Les jaquettes viennent d'hôtes externes qui n'envoient pas tous les en-têtes
+CORS ; sans en-têtes, l'image d'échantillonnage échoue en silence et c'est le
+terracotta de la marque qui sert. La jaquette visible, elle, n'est jamais
+touchée — c'est tout l'intérêt de ne pas réutiliser la même balise.
+
+#### « Édition suivie » : une vraie donnée (décision utilisateur)
+
+Le badge SUIVIE de la maquette suppose un concept qui n'existait pas.
+L'édition affichée n'était qu'un `useState` : rouvrir une fiche repartait
+toujours sur la première édition trouvée, et « c'est CELLE-CI que je
+collectionne » n'était écrit nulle part.
+
+Nouveau domaine `com.iozycore.domain.followededition` (migration `V20`) :
+
+- Une seule édition suivie par série et par propriétaire, **tenue par la
+  base** (`UNIQUE (entity_id, owner_id)`) et non par le code appelant.
+- L'édition est désignée par son **nom**, jamais par l'id d'une
+  `MangaEdition` : une série peut avoir des tomes dans une édition qui n'a
+  encore aucune fiche documentaire, et suivre une édition ne doit pas exiger de
+  l'avoir d'abord documentée. Même choix que
+  `EditionUpgradeWish.currentEditionName`.
+- `PUT /api/followed-editions` est **idempotent** et passe par
+  `suivreALaPlace`, qui garde la même ligne — un DELETE suivi d'un INSERT
+  laisserait une fenêtre sans édition suivie et pourrait violer la contrainte
+  si les deux ordres se croisaient. Vérifié en direct : le même `id`
+  (`396fbddf…`) survit à un changement d'édition.
+- `GET` renvoie une **liste**, vide quand rien n'est suivi, et non un 404 :
+  « aucune édition suivie » est un état normal. Un 404 obligerait chaque
+  appelant à le neutraliser — c'est exactement ce que fait déjà `findEdition`,
+  dont tous les appels portent un `retry: false` pour cette seule raison.
+
+Distinction posée dans le code et dans l'interface : **afficher une édition
+n'est pas la suivre**. Cliquer une carte change ce qu'on REGARDE (volatile) ;
+« Suivre cette édition » déclare ce qu'on COLLECTIONNE (persisté, et c'est
+l'édition ouverte à la visite suivante). Comparer trois éditions avant d'en
+choisir une est le cas normal, et chaque coup d'œil ne doit pas réécrire la
+donnée.
+
+#### Lire, puis modifier
+
+Le bouton pinceau de la maquette bascule toute la fiche. Au repos elle se LIT :
+inspecteur compact à trois colonnes (PERSONNEL / ŒUVRE / SOURCE), aucun
+formulaire, aucun « + » qui traîne. En mode édition apparaissent les points
+d'ajout (suivre une édition, ajouter un tome, ajouter une édition) et, sous
+l'inspecteur, **les éditeurs complets déjà construits** — `TierSummarySection`,
+`ExperiencesSection`, `TagsSection`, `EntityInfoSection`,
+`RelationshipsSection`, `DeleteEntitySection`. Aucun n'a été réécrit : ils
+changent de moment d'apparition, pas de comportement.
+
+#### La grille dense
+
+Pistes de 78px, plus de légende sous les tuiles, et l'état lu au CONTRASTE
+(possédé net / manquant désaturé et pâle) plutôt qu'au mot. La maquette montre
+Naruto : soixante-douze tomes, qui à l'échelle précédente occupaient six
+rangées et deux écrans de défilement. Les filtres `Tous / Manquants / Possédés`
+remplacent le « Voir tout (N) » de l'aperçu des séries longues, désormais
+inutile — d'où la suppression de `buildPreviewTiles`.
+
+Les deux actions au survol d'une tuile sont `aria-hidden` et hors de l'ordre de
+tabulation : la tuile entière reste un bouton qui mène au même panneau, donc le
+clavier et le tactile atteignent tout sans dépendre d'un survol.
+
+Les filtres sont un `radiogroup` et non trois `aria-pressed` : trois vues qui
+s'excluent, là où `aria-pressed` annoncerait trois interrupteurs indépendants
+dont deux « inactifs ».
+
+#### Fichiers
+
+Créés : `lib/useTeinteJaquette.ts`, `lib/tomeTiles.ts` (extrait de
+`TomesGridSection`), `api/followedEdition.ts`, `EntityDetail/CartesEditions.tsx`,
+`GrilleTomes.tsx`, `InspecteurFiche.tsx`, `AideFlottante.tsx`, plus le domaine
+backend `followededition` (migration, agrégat, dépôt, persistance, DTO,
+contrôleur).
+
+Supprimés : `TomesGridSection.tsx`, `TuileTome.tsx`, `VirtualVolumeCard.tsx`,
+`BarreSectionsFiche.tsx` — les quatre appartenaient à la structure v4.
+
+#### Écarts assumés
+
+- **La navigation reste à trois destinations.** La planche « multi-éditions »
+  affiche quatre entrées (`Ma collection / Rechercher / Envies / Annonces`),
+  mais c'est une planche de FICHE et son en-tête est incident : la planche v4
+  du même zip en montre trois plus le cœur, ce qui est exactement la décision
+  du Lot 2 (« Envies au cœur, Profil à l'avatar »). Une décision de navigation
+  globale ne se prend pas dans l'en-tête d'une maquette d'écran.
+- **Le panneau d'un tome reste `VolumeInteractionPanel`.** La maquette dessine
+  une petite carte flottante à quatre lignes ; le panneau existant fait tout ce
+  qu'elle fait et davantage (état, prix d'achat, renumérotation, correction de
+  jaquette). Le remplacer, ce serait perdre des fonctionnalités pour gagner une
+  ressemblance.
+- **« Quelle édition compléter en priorité ? »** (deuxième question de l'aide
+  dans la maquette) n'est pas construite : y répondre demande la complétude de
+  CHAQUE édition, donc autant d'appels que d'éditions, alors que la fiche n'en
+  charge qu'une. « Où en suis-je dans mes lectures ? » est conservée à la
+  place, comme au Lot 13.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast` (116 combinaisons, deux thèmes), `build`
+et **la suite backend complète** : verts. En direct sur données réelles :
+
+- les trois endpoints (`GET` vide → `PUT` → `GET` → `PUT` d'une autre édition
+  → même `id` → `DELETE` → `GET` vide), accents compris ;
+- une édition sans nom refusée en 400, jamais en 500 (la garde est bien avant
+  le `trim`) ;
+- dans l'interface : pinceau → « Suivre cette édition » → badge `SUIVIE` et
+  bascule en « Ne plus suivre » ; carte lue « Black Édition | SUIVIE | Kana ·
+  6 tomes | 1/6 » ;
+- filtres mesurés : 6 tous / 5 manquants / 1 possédé ;
+- **état de départ restauré à l'identique** (aucune édition suivie, comme
+  avant le lot) ;
+- aucun débordement horizontal à 1265px ni à 375px.
+
+Piège de déploiement reconfirmé (voir les notes de calibrage) :
+`docker compose up -d --build iozycore-api` a bien reconstruit l'image mais
+laissé tourner l'ANCIEN conteneur (« Running », pas « Recreated »), donc l'API
+servait encore un backend sans `V20`. Détecté en comparant
+`docker inspect … {{.Image}}` à `docker images … {{.ID}}`, corrigé par
+`--force-recreate`.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -1723,6 +1900,9 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- **Le nom d'un fichier de maquette n'est pas une date** (Lot 26) : `Fiche série - IozyCore v4.dc.html` n'était PAS la planche à suivre, malgré son « v4 » - c'est `Fiche série - Naruto (multi-éditions).dc.html`. Toutes les dates de fichier d'un zip d'export sont identiques (heure d'export), donc rien dans le zip ne dit laquelle fait foi. Quand un handoff contient plusieurs planches du même écran, DEMANDER avant d'écrire une ligne : ici la mauvaise supposition a coûté une refonte complète.
+- Une bande pleine largeur dans un conteneur centré se fait par une GRILLE de page (`1fr | contenu | 1fr` sur `<main>`, enfant en `col-span-full`), jamais par `100vw`/`50vw` - ces unités comptent la barre de défilement et rouvrent le débordement du Lot 10. La règle qui range les enfants dans la colonne du milieu doit vivre dans `@layer base` (un sélecteur de parent bat la classe d'un enfant) et porter `min-width: 0` (un élément de grille vaut `min-width: auto` et refuse de descendre sous son contenu).
+- Échantillonner la couleur d'une jaquette externe : toujours sur une image SÉPARÉE en `crossOrigin = 'anonymous'`, jamais celle affichée. Sans en-têtes CORS l'échantillonnage échoue seul et on retombe sur une teinte de repli, tandis que la jaquette visible continue de s'afficher normalement.
 - Maquette v4 de la fiche (Lot 25) : la source de vérité du zip `Restructuration de page web.zip` est `Fiche série - IozyCore v4.dc.html` — les quatre autres artboards sont ses explorations, et `Menu de la fiche - variantes.dc.html` (100 Ko) compare six systèmes de navigation de fiche dont v4 retient le sixième (barre collante, trois sections numérotées à sous-titre calculé). Le dossier `_ds/modernist-*` du zip est un design system « Modernist » (rouge sur blanc, zéro rayon, Archivo) qu'**aucun** artboard n'utilise : tous sont en styles inline sur la palette terracotta déjà en place. Ne pas le suivre.
 - Un `<h1>` de la maquette peut porter un `clamp()` calibré sur un titre court ; toujours le retailler avant reprise (Lot 25 : 46-68px → `clamp(1.75rem, 4.6vw, 2.85rem)`), sinon c'est le Lot « tenir le choc des titres longs » à refaire.
 - Une barre collante posée dans `<main>` doit s'arrêter sous l'en-tête, pas sous le viewport : `top-14` / `md:top-16` (hauteurs exactes de `MobileHeader`/`DesktopHeader`) et un `z-index` STRICTEMENT inférieur au leur (`z-[9]` contre `z-10`). Et son débord latéral doit être conditionnel : `-mx-4 px-4` en dessous du point de bascule (où le conteneur porte 16px de marge, voir `AppShell`), `md:mx-0 md:px-0` au-dessus (où il n'en porte plus, et où le même débord la ferait dépasser du contenu).

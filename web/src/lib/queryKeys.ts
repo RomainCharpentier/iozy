@@ -54,6 +54,10 @@ export const queryKeys = {
     marketObservations: (mangaEditionId: string) =>
       ['purchaseAnalysis', 'marketObservations', mangaEditionId] as const,
   },
+  /** L'édition suivie d'une série (voir api/followedEdition). Clé par série :
+   *  la fiche, la grille de tomes et les cartes d'édition la lisent toutes,
+   *  une seule requête pour les trois. */
+  followedEdition: (entityId: string) => ['followedEdition', entityId] as const,
   editionUpgradeWishes: {
     byEntity: (entityId: string) => ['editionUpgradeWishes', 'entity', entityId] as const,
     all: ['editionUpgradeWishes', 'all'] as const,

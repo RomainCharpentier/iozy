@@ -10,7 +10,7 @@ import { findBestCoverMatch } from '../Shelf/backfillCovers'
 import { AddOwnershipForm } from './AddOwnershipForm'
 import { OwnershipDetails } from './OwnershipDetails'
 import { VariantNumberEditor } from './VariantNumberEditor'
-import type { TomeTile } from './TomesGridSection'
+import type { TomeTile } from '../../lib/tomeTiles'
 import type { OwnershipResponse, VariantDto } from '../../types/api'
 import { Jaquette } from '../../components/Jaquette'
 
