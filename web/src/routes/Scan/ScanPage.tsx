@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, HelpCircle, SkipForward, XCircle } from 'lucide-react'
 import { lookupBarcode } from '../../api/metadata'
-import { quickAdd, resolveEntity, searchEntities } from '../../api/entities'
+import { quickAdd, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { Chip } from '../../components/Chip'
@@ -254,17 +254,13 @@ export function ScanPage() {
           busy={adding}
           onAdd={addPending}
           onSkip={skipPending}
-          // Ouvrir la fiche de l'œuvre scannée, possédée ou non : il n'y a
-          // plus d'écran d'ajout séparé (voir SearchPage.ouvrirFiche).
-          onOpenDraft={() => {
-            void resolveEntity(
-              mangaType.id,
-              pending.candidate.title,
-              pending.candidate.imageUrl
-                ? { ...pending.candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: pending.candidate.imageUrl }
-                : pending.candidate.attributes,
-            ).then((entity) => navigate(`/entity/${entity.id}`, { state: RETOUR_SCAN }))
-          }}
+          // L'aperçu de l'œuvre scannée : rien n'est écrit tant qu'un tome
+          // n'est pas coché (voir ApercuOeuvrePage).
+          onOpenDraft={() =>
+            navigate(
+              `/apercu?type=${encodeURIComponent(mangaType.id)}&titre=${encodeURIComponent(pending.candidate.title)}`,
+            )
+          }
           onOpenEntity={(entityId) => navigate(`/entity/${entityId}`, { state: RETOUR_SCAN })}
         />
       )}

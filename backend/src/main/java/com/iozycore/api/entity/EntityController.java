@@ -3,8 +3,6 @@ package com.iozycore.api.entity;
 import com.iozycore.api.dto.EntityDtos.EntityResponse;
 import com.iozycore.api.dto.EntityDtos.QuickAddRequest;
 import com.iozycore.api.dto.EntityDtos.QuickAddResponse;
-import com.iozycore.api.dto.EntityDtos.ResolveEntityRequest;
-import com.iozycore.application.CatalogEntityResolver;
 import com.iozycore.application.EntityDeletionService;
 import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
@@ -33,20 +31,17 @@ public class EntityController {
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final QuickAddService quickAddService;
-    private final CatalogEntityResolver catalogEntityResolver;
     private final EntityDeletionService entityDeletionService;
     private final VariantDeletionService variantDeletionService;
 
     public EntityController(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
                              QuickAddService quickAddService,
-                             CatalogEntityResolver catalogEntityResolver,
                              EntityDeletionService entityDeletionService,
                              VariantDeletionService variantDeletionService) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.quickAddService = quickAddService;
-        this.catalogEntityResolver = catalogEntityResolver;
         this.entityDeletionService = entityDeletionService;
         this.variantDeletionService = variantDeletionService;
     }
@@ -67,35 +62,6 @@ public class EntityController {
                 request.volumeNumber(), request.edition(), request.volumeImageUrl(), request.purchasePrice());
         return new QuickAddResponse(
                 result.entityId(), result.matchedExistingEntity(), result.variantId(), result.matchedExistingVariant());
-    }
-
-    /**
-     * Ouvrir la fiche d'une œuvre qu'on ne possède pas encore.
-     * <p>
-     * Consulter un résultat de recherche mène désormais à la fiche - la même
-     * page que pour une œuvre déjà collectionnée, simplement sans aucune
-     * Ownership (voir EntityDetailPage côté web). Il faut donc une Entity, et
-     * une seule : d'où la résolution par (type, titre) de
-     * {@link CatalogEntityResolver}, celle-là même qu'utilisent déjà l'ajout
-     * rapide et la wishlist. Regarder deux fois la même œuvre ne crée pas deux
-     * fiches.
-     * <p>
-     * Ne crée AUCUNE Ownership, et c'est tout l'intérêt : Entity != Ownership
-     * est un invariant de ce modèle, et une fiche sans possession est un état
-     * parfaitement normal (c'est déjà celui d'une œuvre en envies).
-     */
-    @Operation(summary = "Retrouver ou créer la fiche d'une œuvre, sans créer de possession")
-    @PostMapping("/resolve")
-    public EntityResponse resolve(@RequestBody ResolveEntityRequest request) {
-        entityTypeRepository.findById(request.entityTypeId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "EntityType inconnu : " + request.entityTypeId()));
-        if (request.title() == null || request.title().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre ne peut pas être vide");
-        }
-        return EntityResponse.from(
-                catalogEntityResolver.resolveOrCreate(request.entityTypeId(), request.title(), request.attributes())
-                        .entity());
     }
 
     @Operation(summary = "Consulter une Entity par son identifiant")
