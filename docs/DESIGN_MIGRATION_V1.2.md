@@ -1107,6 +1107,139 @@ Fermeture de l'envie vérifiée sur une œuvre jetable (`Zzz Audit Envie`) : env
 présente, tome ajouté, envie absente — puis fiche supprimée par la cascade.
 **État final identique à l'état initial** : 8 œuvres, 2 envies.
 
+### Lot 37 — l'envie descend de l'œuvre vers le tome
+
+Étude produit corrigée par l'utilisateur (2026-08-27). Le changement
+structurant : on ne raisonne plus en « actions disponibles sur une œuvre »,
+mais en « **actions disponibles sur l'objet réellement concerné** ». Pour un
+manga, cet objet est le TOME ; la série et l'édition sont des **groupes**, et
+un groupe n'a pas d'état personnel.
+
+Déclencheur : « si je clique sur le résultat de la recherche je peux pas
+l'ajouter à mes envies alors que je peux depuis la liste ». La bonne réponse
+n'était pas d'ajouter le cœur manquant sur l'aperçu, mais de retirer les
+autres : ils portaient tous sur un groupe.
+
+#### La donnée (V21)
+
+`wishlist_entry` gagne `variant_id`. Deux index partiels plutôt qu'une
+contrainte unique : en SQL deux NULL ne sont jamais égaux, donc
+`UNIQUE (entity_id, variant_id)` n'aurait rien empêché côté œuvre entière.
+
+```sql
+CREATE UNIQUE INDEX wishlist_entry_unique_tome
+    ON wishlist_entry (entity_id, variant_id) WHERE variant_id IS NOT NULL;
+CREATE UNIQUE INDEX wishlist_entry_unique_oeuvre
+    ON wishlist_entry (entity_id) WHERE variant_id IS NULL;
+```
+
+Les envies de manga existantes sont **supprimées** à la migration (décision
+utilisateur) : les convertir aurait demandé de deviner quel tome était voulu.
+
+Conséquence directe, qui lève la réserve du Lot 36 : acheter un tome ne
+referme plus que l'envie de CE tome. Qui possède la standard et veut la
+Perfect Edition ne perd plus rien.
+
+#### `TomeResolver` — sans lui, « Je le veux » n'aurait presque jamais marché
+
+Sur une fiche, la plupart des tomes manquants ne sont catalogués **nulle
+part** : ils sont déduits du nombre total de tomes de l'édition
+(`buildTiles`, statut `virtualMissing`). Ils n'ont donc aucune identité à
+laquelle rattacher une envie. Restreindre « Je le veux » aux tomes déjà
+catalogués aurait donné un bouton qui ne s'affiche presque jamais.
+
+La règle « faire exister le tome » vivait dans `QuickAddService`, donc le seul
+moyen de faire entrer un tome au catalogue était d'en acquérir un exemplaire -
+exactement l'histoire de `CatalogEntityResolver` au Lot 27, un cran plus haut.
+Extraite en `TomeResolver`, elle est désormais partagée par les deux parcours,
+et c'est ce qui garantit qu'acheter un tome qu'on avait voulu retombe sur le
+**même** Variant (même libellé `VariantLabels.of`) - sans quoi l'envie ne se
+refermerait jamais.
+
+`POST /api/wishlist` accepte donc trois désignations, de la plus précise à la
+plus large : `variantId`, `volumeNumber` (+ `edition`), ou rien du tout pour
+l'œuvre entière - qui n'a de sens que pour un type sans notion de tome.
+
+#### Trois états exclusifs, tenus côté serveur
+
+Manquant / Je le veux / Je l'ai. « Vouloir » et « avoir » sont deux états du
+même objet, jamais deux états superposés : vouloir un tome déjà possédé
+renvoie **409**, et un tome qui n'appartient pas à l'œuvre annoncée **400**.
+Placé dans le contrôleur et non dans l'interface : la règle doit tenir quel
+que soit l'appelant.
+
+#### Où les cœurs ont disparu, et pourquoi
+
+Trois surfaces posaient un cœur sur une SÉRIE : la liste de recherche, le menu
+du scan, la bande haute de la fiche. La décision est encodée **une fois**,
+dans `WishlistToggle`, qui ne rend rien pour un type se collectionnant par tome
+(`lib/typeDeCollection`) - trois surfaces le posaient, une quatrième l'aurait
+reposé. Le cœur reste entier pour un jeu vidéo ou un jeu de société, où
+l'œuvre EST l'objet collectionnable.
+
+La capacité ne disparaît pas, elle **se déplace** : c'est pour ça que la
+grille (lot B) est livrée avec la donnée (lot A) et non après.
+
+#### La grille dit les trois états
+
+`GrilleVolumes` gagne `voulu`. Un tome voulu n'est **pas** atténué comme un
+manquant : la décision est prise, le pâlir le rendrait moins visible que ce
+qu'on n'a pas encore tranché. Il porte un anneau accent et un cœur plein.
+
+Le menu au survol remplace l'ancien duo cœur/œil par les deux intentions
+nommées. Asymétrie assumée : « Je le veux » agit sur place (vouloir n'a rien
+à demander), « Je l'ai » ouvre le panneau du tome (posséder a un état, un
+prix, des exemplaires passés). Les boutons restent `pointer-events-none` hors
+survol et hors de l'ordre de tabulation : clavier et tactile passent par la
+tuile, qui mène au même endroit.
+
+`buildTiles` : un Variant existant vaut « catalogué » quoi qu'en dise
+`cataloguedMissing`, qui vient d'une réponse réseau pouvant dater. Sans ça, un
+tome mis en envies à l'instant retombait en tuile purement déduite - sans
+identité, donc sans moyen d'afficher l'état qu'on venait de poser.
+
+#### Effets de bord traités
+
+- « Annuler » après un retrait réajoute le **même objet** : avant, la cible
+  était `entityId` seul, et annuler le retrait du tome 7 remettait la série
+  entière en envies - ce qui n'est plus la même chose.
+- La page Envies nommait cinq fois « Naruto » pour cinq tomes voulus : le
+  sous-titre porte désormais le tome. (Écran destiné à disparaître dans Ma
+  collection, lot C.)
+- `GET /wishlist/lookup` (sans appelant, Lot 36) répondait UNKNOWN pour une
+  série dont cinq tomes sont voulus : passe par `findAllByEntityId`.
+
+#### Trouvé en vérifiant en direct : une nappe vide qui avalait le clic
+
+Sur un tome possédé, les deux boutons du menu étaient masqués un par un - mais
+la nappe qui les porte, elle, continuait de se rendre. Vide, invisible,
+`inset-0`, et `pointer-events-auto` au survol : elle couvrait la tuile et
+interceptait le clic destiné à celle-ci. Un tome possédé devenait donc
+inouvrable à la souris.
+
+Le garde doit porter sur le CONTENEUR, pas seulement sur ses enfants. Rien
+dans `typecheck`/`lint`/`build` ne pouvait le voir ; `elementFromPoint` au
+centre de chaque tuile le montre en une requête.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` et **suite backend complète**
+(1016 tests) verts. Six tests d'intégration ajoutés sur la règle elle-même : le tome non
+catalogué se crée sans possession, deux envies du même tome n'en font qu'une,
+deux tomes de la même série sont deux envies distinctes, acheter n'en referme
+qu'une, vouloir un tome possédé est refusé, un tome d'une autre œuvre est
+refusé.
+
+En direct sur une œuvre jetable (`Zzz Lot37 Verification`) : envie du tome 7
+non catalogué → tome créé sans possession ; rejouée → même entrée ; achat du
+tome 3 → seule l'envie du 3 se referme, sur le MÊME Variant ; tome possédé
+→ 409 ; tome d'une autre œuvre → 400. Depuis l'interface : « Retirer » puis
+« Je le veux » sur la même tuile, aller-retour complet. Naruto (72 tuiles) :
+manquants atténués avec les deux actions, possédé net, aucun cœur de série,
+aucun débordement. Recherche : plus de cœur sur un manga, cœur intact sur
+*Zelda*. **État final identique à l'état initial** : 8 œuvres, 12 tomes, 10
+possessions, 5 éditions, 0 envie.
+
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
 Reproduit en direct avant correction (`GET /api/metadata/french-title?query=Vagabond&author=Takehiko Inoue`
@@ -2544,6 +2677,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une nappe d'actions au survol (`absolute inset-0` + `group-hover:pointer-events-auto`) doit être gardée sur son CONTENEUR, pas seulement sur ses boutons : vide, elle couvre quand même sa cible et avale le clic. Se détecte avec `elementFromPoint` au centre de chaque tuile, jamais par `typecheck`/`lint`/`build` (Lot 37).
+- Le fanal d'une règle produit se pose à UN endroit : « pas de cœur sur un groupe » vit dans `WishlistToggle` lui-même (via `lib/typeDeCollection`), pas dans ses trois appelants - un quatrième appelant l'aurait reposé (Lot 37).
 - Un test peut CONSIGNER un comportement sans le protéger : `WishlistWithoutOwnershipIntegrationTest` affirmait « rien ne retire automatiquement une envie à l'achat, ce comportement est inchangé ». Lire l'intention du commentaire avant de conclure qu'un test bloque un changement produit (Lot 36).
 - Un audit d'exports morts doit compter les usages DANS le fichier lui-même : `isComplete` paraissait mort alors que `matchesCompletionFilter`, deux fonctions plus bas, s'en sert (Lot 36).
 - Savoir si une œuvre a des tomes coûte huit requêtes Google Books (recherche de tomes, `GoogleBooksVolumeSearchProvider`) : toute fonctionnalité qui voudrait le savoir POUR UNE LISTE doit passer par le seul cache durable (`volume_search_cache`, où une liste vide est mémorisée), jamais par un appel par ligne. Et `totalVolumes` n'est pas un substitut - il vient du catalogue japonais, pas des éditions françaises indexées (Lot 35).

@@ -1,4 +1,4 @@
-import { Check, CheckCheck, Eye, Heart, Plus } from 'lucide-react'
+import { Check, CheckCheck, Heart, Plus } from 'lucide-react'
 import { Jaquette } from './Jaquette'
 
 /**
@@ -22,6 +22,9 @@ export interface VolumeAffiche {
   /** Une Ownership active existe pour ce tome. Vrai dans les deux écrans - et
    *  c'est justement ce qui rend la grille commune possible. */
   possede: boolean
+  /** Ce tome est dans les envies. Exclusif de `possede` : vouloir et avoir
+   *  sont deux etats du meme objet, jamais deux etats superposes. */
+  voulu?: boolean
   /** Mis en avant : le tome dont le panneau est ouvert (navigation), ou le
    *  tome coché (sélection). Deux sens, un seul état visuel. */
   actif: boolean
@@ -57,7 +60,8 @@ export function GrilleVolumes({
   volumes,
   mode,
   onActiver,
-  onEnvies,
+  onJeLAi,
+  onJeLeVeux,
   filtre,
   onFiltre,
   action,
@@ -66,9 +70,10 @@ export function GrilleVolumes({
   volumes: VolumeAffiche[]
   mode: 'navigation' | 'selection'
   onActiver: (cle: string) => void
-  /** Le cœur au survol - navigation seulement, et seulement si l'écran a
-   *  quelque chose à en faire. */
-  onEnvies?: (cle: string) => void
+  /** Les deux gestes d'un tome, en mode navigation. Absents en mode
+   *  sélection, où cocher EST le geste. */
+  onJeLAi?: (cle: string) => void
+  onJeLeVeux?: (cle: string) => void
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
   /** Une tuile d'action en fin de grille (« ajouter un tome »). */
@@ -125,7 +130,8 @@ export function GrilleVolumes({
               volume={volume}
               mode={mode}
               onActiver={() => onActiver(volume.cle)}
-              onEnvies={onEnvies ? () => onEnvies(volume.cle) : undefined}
+              onJeLAi={onJeLAi ? () => onJeLAi(volume.cle) : undefined}
+              onJeLeVeux={onJeLeVeux ? () => onJeLeVeux(volume.cle) : undefined}
             />
           ))}
           {action && (
@@ -149,19 +155,24 @@ function TuileVolume({
   volume,
   mode,
   onActiver,
-  onEnvies,
+  onJeLAi,
+  onJeLeVeux,
 }: {
   volume: VolumeAffiche
   mode: 'navigation' | 'selection'
   onActiver: () => void
-  onEnvies?: () => void
+  onJeLAi?: () => void
+  onJeLeVeux?: () => void
 }) {
   const selection = mode === 'selection'
   // En sélection, un tome déjà possédé n'est PAS atténué : le cocher reste
   // légitime (c'est un deuxième exemplaire), et le pâlir laisserait croire
   // qu'il est indisponible. En navigation au contraire, l'atténuation EST
   // l'information : c'est ce qui fait voir les trous d'une collection.
-  const attenue = !selection && !volume.possede
+  // Un tome VOULU n'est pas atténué comme un manquant : la décision est prise,
+  // et le pâlir le rendrait moins visible que ce qu'on n'a pas encore
+  // tranché. Trois états, trois traitements.
+  const attenue = !selection && !volume.possede && !volume.voulu
 
   return (
     <div className="group relative">
@@ -174,11 +185,15 @@ function TuileVolume({
         aria-label={
           selection
             ? `Tome ${volume.numero}${volume.possede ? ', déjà possédé' : ''}`
-            : `${volume.possede ? 'Voir' : 'Ajouter'} le tome ${volume.numero}`
+            : `Tome ${volume.numero}${
+                volume.possede ? ', possédé' : volume.voulu ? ', dans mes envies' : ', manquant'
+              }`
         }
         className={`relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-handle transition ${
           attenue ? 'opacity-[.42] grayscale-[1] contrast-[.92] ring-1 ring-line ring-inset' : 'shadow-token-sm'
-        } ${volume.actif ? 'outline-2 outline-offset-2 outline-accent' : ''}`}
+        } ${volume.voulu && !selection ? 'ring-2 ring-accent ring-inset' : ''} ${
+          volume.actif ? 'outline-2 outline-offset-2 outline-accent' : ''
+        }`}
       >
         <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
         {/* Le numéro reste dans l'arbre même sous une jaquette : c'est lui qui
@@ -194,6 +209,16 @@ function TuileVolume({
         {/* « Déjà possédé » et « coché » sont deux informations distinctes qui
             coexistent : re-cocher un tome possédé signale un 2e exemplaire.
             D'où deux coins différents, jamais un seul badge à double sens. */}
+        {/* Le cœur DIT l'état, il ne le change pas : on en sort par le menu
+            ci-dessous, où l'action est nommée. */}
+        {!selection && volume.voulu && (
+          <span
+            title="Dans mes envies"
+            className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accentInk shadow-token-sm"
+          >
+            <Heart size={11} className="fill-current" />
+          </span>
+        )}
         {selection && volume.possede && (
           <span
             title="Déjà possédé"
@@ -209,32 +234,53 @@ function TuileVolume({
         )}
       </button>
 
-      {/* Souris uniquement, et inertes tant que le survol n'a pas lieu : ces
-          boutons ne doivent ni intercepter un clic destiné à la tuile, ni
-          s'intercaler dans l'ordre de tabulation - le clavier passe par la
-          tuile, qui mène au même endroit. */}
-      {!selection && onEnvies && (
-        <div className="pointer-events-none absolute inset-0 grid grid-rows-2 overflow-hidden rounded-lg opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            onClick={onEnvies}
-            title={`Ajouter le tome ${volume.numero} à mes envies`}
-            className="flex items-center justify-center bg-scrim text-white hover:bg-accent"
-          >
-            <Heart size={18} />
-          </button>
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            onClick={onActiver}
-            title={`Voir le tome ${volume.numero}`}
-            className="flex items-center justify-center border-t border-white/25 bg-scrim text-white hover:bg-accent"
-          >
-            <Eye size={18} />
-          </button>
+      {/* Le menu du tome : les deux gestes possibles sur l'objet réellement
+          concerné. Rien du tout sur un tome DÉJÀ POSSÉDÉ - vouloir ce qu'on a
+          n'a pas de sens (le backend le refuse en 409), et l'avoir non plus.
+          Le garde porte sur la nappe entière et pas seulement sur ses boutons :
+          vide, elle couvrait quand même la tuile et avalait au survol le clic
+          qui lui était destiné (trouvé en vérifiant en direct).
+
+          Souris uniquement, et inertes hors survol : ces boutons ne doivent ni
+          intercepter un clic destiné à la tuile, ni s'intercaler dans l'ordre
+          de tabulation. Le clavier et le tactile passent par la tuile, qui
+          ouvre le panneau du tome - où les mêmes actions sont nommées. */}
+      {!selection && !volume.possede && (onJeLAi || onJeLeVeux) && (
+        <div
+          className={`pointer-events-none absolute inset-0 grid overflow-hidden rounded-lg opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 ${
+            onJeLAi && onJeLeVeux ? 'grid-rows-2' : 'grid-rows-1'
+          }`}
+        >
+          {onJeLAi && (
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              onClick={onJeLAi}
+              title={`J'ai le tome ${volume.numero}`}
+              className="flex items-center justify-center gap-1 bg-scrim text-[11px] font-medium text-white hover:bg-ok hover:text-background"
+            >
+              <Check size={13} strokeWidth={2.5} />
+              Je l&apos;ai
+            </button>
+          )}
+          {onJeLeVeux && (
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              onClick={onJeLeVeux}
+              title={
+                volume.voulu
+                  ? `Retirer le tome ${volume.numero} de mes envies`
+                  : `Je veux le tome ${volume.numero}`
+              }
+              className="flex items-center justify-center gap-1 border-t border-white/25 bg-scrim text-[11px] font-medium text-white hover:bg-accent hover:text-accentInk"
+            >
+              <Heart size={12} className={volume.voulu ? 'fill-current' : undefined} />
+              {volume.voulu ? 'Retirer' : 'Je le veux'}
+            </button>
+          )}
         </div>
       )}
     </div>

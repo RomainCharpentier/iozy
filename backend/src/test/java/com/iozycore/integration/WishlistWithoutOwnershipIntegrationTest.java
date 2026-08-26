@@ -7,8 +7,10 @@ import com.iozycore.application.QuickAddService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +75,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         UUID entityId = entityRepository.save(Entity.create(MANGA, unTitre())).id();
         assertThat(possessionsDe(entityId)).isZero();
 
-        wishlistController.add(new AddToWishlistRequest(entityId, null, null, null));
+        wishlistController.add(new AddToWishlistRequest(entityId, null, null, null, null, null, null));
 
         assertThat(wishlistEntryRepository.findByEntityId(entityId)).isPresent();
         assertThat(possessionsDe(entityId)).isZero();
@@ -85,7 +87,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         assertThat(entityRepository.findByTypeAndTitle(MANGA, titre)).isEmpty();
 
         WishlistEntryResponse creee = wishlistController.add(
-                new AddToWishlistRequest(null, MANGA, titre, Map.of("coverImageUrl", "https://exemple/jaquette.jpg")));
+                new AddToWishlistRequest(null, null, null, null, MANGA, titre, Map.of("coverImageUrl", "https://exemple/jaquette.jpg")));
 
         Entity fiche = entityRepository.findById(creee.entityId()).orElseThrow();
         assertThat(fiche.title()).isEqualTo(titre);
@@ -101,11 +103,11 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
     void la_meme_oeuvre_ajoutee_deux_fois_ne_cree_ni_deuxieme_fiche_ni_deuxieme_envie() {
         String titre = unTitre();
 
-        WishlistEntryResponse premiere = wishlistController.add(new AddToWishlistRequest(null, MANGA, titre, null));
+        WishlistEntryResponse premiere = wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, titre, null));
         // Deuxième passage avec des espaces autour : c'est le même titre, la
         // normalisation est celle du reste de l'app.
         WishlistEntryResponse seconde = wishlistController.add(
-                new AddToWishlistRequest(null, MANGA, "  " + titre + "  ", null));
+                new AddToWishlistRequest(null, null, null, null, MANGA, "  " + titre + "  ", null));
 
         assertThat(seconde.entityId()).isEqualTo(premiere.entityId());
         assertThat(seconde.id()).isEqualTo(premiere.id());
@@ -115,7 +117,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
     @Test
     void acheter_ensuite_l_oeuvre_reutilise_sa_fiche_et_referme_l_envie() {
         String titre = unTitre();
-        WishlistEntryResponse envie = wishlistController.add(new AddToWishlistRequest(null, MANGA, titre, null));
+        WishlistEntryResponse envie = wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, titre, null));
 
         // Le parcours normal d'ajout à la collection, plus tard, sur la même œuvre.
         var resultat = quickAddService.addNewEntityWithOwnership(MANGA, titre, OwnershipCondition.NEW);
@@ -134,7 +136,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
     @Test
     void retirer_puis_reajouter_une_oeuvre_externe_laisse_sa_fiche_intacte() {
         String titre = unTitre();
-        WishlistEntryResponse creee = wishlistController.add(new AddToWishlistRequest(null, MANGA, titre, null));
+        WishlistEntryResponse creee = wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, titre, null));
         UUID entityId = creee.entityId();
 
         wishlistController.remove(creee.id());
@@ -143,7 +145,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
         // l'action « Annuler » de réajouter par identité interne.
         assertThat(entityRepository.findById(entityId)).isPresent();
 
-        WishlistEntryResponse reajoutee = wishlistController.add(new AddToWishlistRequest(entityId, null, null, null));
+        WishlistEntryResponse reajoutee = wishlistController.add(new AddToWishlistRequest(entityId, null, null, null, null, null, null));
 
         assertThat(reajoutee.entityId()).isEqualTo(entityId);
         assertThat(possessionsDe(entityId)).isZero();
@@ -153,15 +155,118 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
     void une_requete_sans_identite_exploitable_est_refusee_sans_rien_creer() {
         int fichesAvant = entityRepository.findAllByType(MANGA).size();
 
-        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null)))
+        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class);
-        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, MANGA, "   ", null)))
+        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, MANGA, "   ", null)))
                 .isInstanceOf(ResponseStatusException.class);
         // Un type de collection inexistant est refusé en 400, pas en 500 par la
         // contrainte de clé étrangère (même règle qu'un entityId inconnu).
-        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, UUID.randomUUID(), "Berserk", null)))
+        assertThatThrownBy(() -> wishlistController.add(new AddToWishlistRequest(null, null, null, null, UUID.randomUUID(), "Berserk", null)))
                 .isInstanceOf(ResponseStatusException.class);
 
         assertThat(entityRepository.findAllByType(MANGA)).hasSize(fichesAvant);
+    }
+
+    @Test
+    void vouloir_un_tome_non_encore_catalogue_le_fait_exister_sans_possession() {
+        String titre = unTitre();
+        UUID entityId = entityRepository.save(Entity.create(MANGA, titre)).id();
+
+        // Le cas NORMAL depuis une fiche : le tome 7 n'est catalogué nulle part,
+        // il n'est que déduit du total de l'édition (voir TomeResolver).
+        WishlistEntryResponse envie = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
+
+        assertThat(envie.variantId()).isNotNull();
+        Entity oeuvre = entityRepository.findById(entityId).orElseThrow();
+        assertThat(oeuvre.variants()).extracting(Variant::label).containsExactly("Tome 7 — Perfect Edition");
+        // La moitié qui compte : le catalogue a grossi, la collection non.
+        assertThat(possessionsDe(entityId)).isZero();
+    }
+
+    @Test
+    void vouloir_deux_fois_le_meme_tome_ne_cree_ni_deux_envies_ni_deux_tomes() {
+        String titre = unTitre();
+        UUID entityId = entityRepository.save(Entity.create(MANGA, titre)).id();
+
+        WishlistEntryResponse premiere = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
+        WishlistEntryResponse seconde = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
+
+        assertThat(seconde.id()).isEqualTo(premiere.id());
+        assertThat(entityRepository.findById(entityId).orElseThrow().variants()).hasSize(1);
+    }
+
+    @Test
+    void deux_tomes_de_la_meme_serie_sont_deux_envies_distinctes() {
+        String titre = unTitre();
+        UUID entityId = entityRepository.save(Entity.create(MANGA, titre)).id();
+
+        WishlistEntryResponse tome3 = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 3, "Perfect Edition", null, null, null));
+        WishlistEntryResponse tome7 = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
+
+        assertThat(tome7.id()).isNotEqualTo(tome3.id());
+        assertThat(wishlistEntryRepository.findAllByEntityId(entityId)).hasSize(2);
+        // L'ŒUVRE elle-même n'est pas voulue : ce sont deux tomes qui le sont.
+        // Confondre les deux ferait dire « déjà voulue » à toute la série.
+        assertThat(wishlistEntryRepository.findByEntityId(entityId)).isEmpty();
+    }
+
+    @Test
+    void acheter_un_tome_voulu_ne_referme_que_cette_envie_la() {
+        String titre = unTitre();
+        UUID entityId = entityRepository.save(Entity.create(MANGA, titre)).id();
+        WishlistEntryResponse tome3 = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 3, "Perfect Edition", null, null, null));
+        WishlistEntryResponse tome7 = wishlistController.add(
+                new AddToWishlistRequest(entityId, null, 7, "Perfect Edition", null, null, null));
+
+        quickAddService.addNewEntityWithOwnership(
+                MANGA, titre, OwnershipCondition.NEW, Map.of(), 3, "Perfect Edition");
+
+        // Le tome acheté retombe sur le MÊME Variant que celui créé par l'envie
+        // (même libellé, même résolveur) - sans quoi l'envie ne se refermerait
+        // jamais et la série resterait à la fois voulue et possédée.
+        assertThat(entityRepository.findById(entityId).orElseThrow().variants()).hasSize(2);
+        assertThat(wishlistEntryRepository.findAllByEntityId(entityId))
+                .extracting(WishlistEntry::id)
+                .containsExactly(tome7.id());
+        assertThat(tome3.variantId()).isNotNull();
+    }
+
+    @Test
+    void vouloir_un_tome_deja_possede_est_refuse() {
+        String titre = unTitre();
+        var achat = quickAddService.addNewEntityWithOwnership(
+                MANGA, titre, OwnershipCondition.NEW, Map.of(), 1, "Perfect Edition");
+
+        // « Je le veux » et « je l'ai » sont deux états du même objet, jamais deux
+        // états superposés : la règle tient côté serveur, pas seulement dans l'UI.
+        assertThatThrownBy(() -> wishlistController.add(
+                new AddToWishlistRequest(achat.entityId(), achat.variantId(), null, null, null, null, null)))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> wishlistController.add(
+                new AddToWishlistRequest(achat.entityId(), null, 1, "Perfect Edition", null, null, null)))
+                .isInstanceOf(ResponseStatusException.class);
+
+        assertThat(wishlistEntryRepository.findAllByEntityId(achat.entityId())).isEmpty();
+    }
+
+    @Test
+    void un_tome_appartenant_a_une_autre_oeuvre_est_refuse() {
+        UUID uneOeuvre = entityRepository.save(Entity.create(MANGA, unTitre())).id();
+        UUID uneAutre = entityRepository.save(Entity.create(MANGA, unTitre())).id();
+        UUID tomeDeLAutre = wishlistController
+                .add(new AddToWishlistRequest(uneAutre, null, 2, "Perfect Edition", null, null, null))
+                .variantId();
+
+        assertThatThrownBy(() -> wishlistController.add(
+                new AddToWishlistRequest(uneOeuvre, tomeDeLAutre, null, null, null, null, null)))
+                .isInstanceOf(ResponseStatusException.class);
+
+        assertThat(wishlistEntryRepository.findAllByEntityId(uneOeuvre)).isEmpty();
     }
 }

@@ -402,6 +402,18 @@ class StatsServiceTest {
         }
 
         @Override
+        public Optional<WishlistEntry> findByVariantId(UUID variantId) {
+            return store.values().stream()
+                    .filter(e -> e.variantId().map(variantId::equals).orElse(false))
+                    .findFirst();
+        }
+
+        @Override
+        public List<WishlistEntry> findAllByEntityId(UUID entityId) {
+            return store.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
+        }
+
+        @Override
         public void deleteById(UUID id) {
             store.remove(id);
         }

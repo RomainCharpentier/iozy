@@ -32,7 +32,7 @@ class WishlistEntryTest {
     @Test
     void reconstituting_an_existing_entry_records_no_event() {
         WishlistEntry entry = WishlistEntry.reconstitute(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), LocalDate.now());
+                UUID.randomUUID(), UUID.randomUUID(), null, UUID.randomUUID(), LocalDate.now());
 
         assertEquals(0, entry.pullDomainEvents().size());
     }

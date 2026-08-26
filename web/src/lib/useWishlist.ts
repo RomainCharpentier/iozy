@@ -21,6 +21,12 @@ import { queryKeys } from './queryKeys'
  * retrait recrée l'entrée pour la même œuvre. Les deux restaurent vraiment
  * l'état précédent, c'est pourquoi « Annuler » est proposé dans les deux sens.
  *
+ * **L'envie porte sur l'objet réellement collectionnable** : le TOME pour un
+ * manga, l'ŒUVRE pour un type qui se possède d'une seule pièce (voir
+ * lib/typeDeCollection). D'où les deux index ci-dessous, qu'il ne faut surtout
+ * pas confondre - une série n'est pas « voulue » parce qu'un de ses tomes
+ * l'est, elle n'est qu'un groupe.
+ *
  * **Une œuvre non possédée peut être mise en envies** : c'est même le cas
  * normal. `add` accepte aussi bien une œuvre déjà fichée qu'une œuvre venue
  * d'une recherche externe ou d'un scan (voir WishlistTarget) ; le backend
@@ -56,15 +62,15 @@ export function useWishlist() {
     onSuccess: (created, target) => {
       invalidate()
       if (!('entityId' in target)) invalidateApresCreationDeFiche()
-      toast('Ajouté aux envies', {
+      toast(created.variantId ? 'Tome ajouté aux envies' : 'Ajouté aux envies', {
         label: 'Annuler',
-        onAction: () => removeMutation.mutate({ entryId: created.id, entityId: created.entityId, silencieux: true }),
+        onAction: () => removeMutation.mutate({ entryId: created.id, cible: target, silencieux: true }),
       })
     },
   })
 
   const removeMutation = useMutation({
-    mutationFn: ({ entryId }: { entryId: string; entityId: string; silencieux?: boolean }) =>
+    mutationFn: ({ entryId }: { entryId: string; cible: WishlistTarget; silencieux?: boolean }) =>
       removeFromWishlist(entryId),
     onSuccess: (_result, variables) => {
       invalidate()
@@ -73,32 +79,46 @@ export function useWishlist() {
       if (variables.silencieux) return
       toast('Retiré des envies', {
         label: 'Annuler',
-        // L'œuvre a forcément une fiche à ce stade (elle en avait une pour
-        // être en envies), donc on réajoute par identité interne.
-        onAction: () => addMutation.mutate({ entityId: variables.entityId }),
+        // Réajoute EXACTEMENT le même objet - le tome, pas la série. Avant, on
+        // réajoutait par `entityId` seul : annuler le retrait du tome 7
+        // remettait en envies la série entière, ce qui n'est plus la même
+        // chose depuis que l'envie porte sur l'objet collectionnable.
+        onAction: () => addMutation.mutate(variables.cible),
       })
     },
   })
 
   /**
-   * Ajout groupé (résultat d'une analyse d'achat : toutes les séries connues du
+   * Ajout groupé (résultat d'une analyse d'achat : tous les tomes connus du
    * lot). Un seul message pour l'ensemble, et une annulation qui retire
    * exactement les entrées créées - avant, ce bouton ajoutait en masse « sans
    * confirmation, sans message de retour et sans indiquer combien ont été
    * ajoutées » (docs/USER_JOURNEYS.md, UX-4).
+   *
+   * **Un refus n'interrompt pas le lot** : un tome déjà possédé est refusé en
+   * 409 (vouloir et avoir ne se superposent pas), et c'est un cas normal dans
+   * une annonce qui recoupe la collection. Interrompre là abandonnerait tous
+   * les tomes suivants, sans rien dire.
    */
   const addManyMutation = useMutation({
-    mutationFn: async (entityIds: string[]) => {
+    mutationFn: async (cibles: WishlistTarget[]) => {
       const nouveaux = []
-      for (const entityId of entityIds) {
-        nouveaux.push(await addToWishlist({ entityId }))
+      for (const cible of cibles) {
+        try {
+          nouveaux.push(await addToWishlist(cible))
+        } catch {
+          // Déjà possédé, ou déjà voulu : rien à ajouter, rien à signaler.
+        }
       }
       return nouveaux
     },
     onSuccess: (crees) => {
       invalidate()
-      if (crees.length === 0) return
-      toast(crees.length === 1 ? 'Ajouté aux envies' : `${crees.length} séries ajoutées aux envies`, {
+      if (crees.length === 0) {
+        toast('Rien à ajouter - tu as déjà tout ça, ou tu le voulais déjà')
+        return
+      }
+      toast(crees.length === 1 ? 'Tome ajouté aux envies' : `${crees.length} tomes ajoutés aux envies`, {
         label: 'Annuler',
         onAction: async () => {
           for (const entree of crees) {
@@ -110,7 +130,14 @@ export function useWishlist() {
     },
   })
 
-  const byEntityId = new Map(entries.map((entry) => [entry.entityId, entry]))
+  // Deux index, parce qu'il y a deux natures d'envie : celle d'un TOME (le cas
+  // normal pour un manga) et celle d'une ŒUVRE entière (types sans tome).
+  // Les confondre ferait dire « déjà voulu » à toute une série dès qu'un seul
+  // de ses tomes l'est.
+  const parTome = new Map(
+    entries.filter((entry) => entry.variantId).map((entry) => [entry.variantId as string, entry]),
+  )
+  const parOeuvre = new Map(entries.filter((entry) => !entry.variantId).map((entry) => [entry.entityId, entry]))
 
   return {
     /** Nombre d'envies - alimente le badge des en-têtes. */
@@ -119,9 +146,13 @@ export function useWishlist() {
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
-    /** L'entrée de wishlist pour cette œuvre, ou undefined. */
-    entryFor: (entityId: string) => byEntityId.get(entityId),
-    isInWishlist: (entityId: string) => byEntityId.has(entityId),
+    /** L'entrée portant sur l'ŒUVRE entière, ou undefined. */
+    entryFor: (entityId: string) => parOeuvre.get(entityId),
+    isInWishlist: (entityId: string) => parOeuvre.has(entityId),
+    /** L'entrée portant sur CE tome, ou undefined. */
+    entryForVariant: (variantId: string) => parTome.get(variantId),
+    /** Les tomes voulus d'une œuvre - ce que la grille de la fiche colorie. */
+    variantsVoulus: new Set(parTome.keys()),
     add: (target: WishlistTarget) => addMutation.mutate(target),
     /**
      * Comme `add`, mais rend l'entrée créée : la seule façon, pour une œuvre
@@ -130,10 +161,12 @@ export function useWishlist() {
      * envies » ou la retirer.
      */
     addAsync: (target: WishlistTarget) => addMutation.mutateAsync(target),
-    /** N'ajoute que ce qui n'y est pas déjà : rejouer le bouton ne crée pas de doublon. */
-    addMany: (entityIds: string[]) =>
-      addManyMutation.mutate(entityIds.filter((id) => !byEntityId.has(id))),
-    remove: (entryId: string, entityId: string) => removeMutation.mutate({ entryId, entityId }),
+    /** Rejouer le bouton ne crée pas de doublon : le backend est idempotent sur
+     *  l'objet voulu, et ce qui est déjà possédé est simplement ignoré. */
+    addMany: (cibles: WishlistTarget[]) => addManyMutation.mutate(cibles),
+    /** `cible` décrit ce qui vient d'être retiré, pour qu'« Annuler » remette
+     *  le même objet et pas son groupe. */
+    remove: (entryId: string, cible: WishlistTarget) => removeMutation.mutate({ entryId, cible }),
     isPending: addMutation.isPending || removeMutation.isPending || addManyMutation.isPending,
   }
 }

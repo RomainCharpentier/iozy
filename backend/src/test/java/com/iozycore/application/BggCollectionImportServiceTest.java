@@ -40,7 +40,8 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), new InMemoryWishlistEntryRepository(), event -> {
+                new CatalogEntityResolver(entityRepository),
+                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -61,7 +62,8 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), new InMemoryWishlistEntryRepository(), event -> {
+                new CatalogEntityResolver(entityRepository),
+                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -292,6 +294,18 @@ class BggCollectionImportServiceTest {
         @Override
         public List<WishlistEntry> findAll() {
             return List.copyOf(parId.values());
+        }
+
+        @Override
+        public Optional<WishlistEntry> findByVariantId(UUID variantId) {
+            return parId.values().stream()
+                    .filter(e -> e.variantId().map(variantId::equals).orElse(false))
+                    .findFirst();
+        }
+
+        @Override
+        public List<WishlistEntry> findAllByEntityId(UUID entityId) {
+            return parId.values().stream().filter(e -> e.entityId().equals(entityId)).toList();
         }
 
         @Override

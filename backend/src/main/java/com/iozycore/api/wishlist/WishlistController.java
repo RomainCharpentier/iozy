@@ -4,9 +4,12 @@ import com.iozycore.api.dto.WishlistDtos.AddToWishlistRequest;
 import com.iozycore.api.dto.WishlistDtos.LookupResponse;
 import com.iozycore.api.dto.WishlistDtos.WishlistEntryResponse;
 import com.iozycore.application.CatalogEntityResolver;
+import com.iozycore.application.TomeResolver;
+import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.domain.ownership.OwnershipStatus;
 import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,36 +34,105 @@ public class WishlistController {
     private final EntityRepository entityRepository;
     private final EntityTypeRepository entityTypeRepository;
     private final CatalogEntityResolver catalogEntityResolver;
+    private final TomeResolver tomeResolver;
 
     public WishlistController(WishlistEntryRepository wishlistEntryRepository,
                                OwnershipRepository ownershipRepository,
                                EntityRepository entityRepository,
                                EntityTypeRepository entityTypeRepository,
-                               CatalogEntityResolver catalogEntityResolver) {
+                               CatalogEntityResolver catalogEntityResolver,
+                               TomeResolver tomeResolver) {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.ownershipRepository = ownershipRepository;
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.catalogEntityResolver = catalogEntityResolver;
+        this.tomeResolver = tomeResolver;
     }
 
-    @Operation(summary = "Ajouter une œuvre aux envies - par son entityId, ou par sa référence externe "
-            + "(entityTypeId + titre) si elle n'a pas encore de fiche. Ne crée jamais de possession.")
+    @Operation(summary = "Ajouter aux envies l'objet réellement voulu : un tome (variantId, ou volumeNumber "
+            + "+ edition) quand le type en a, l'œuvre entière sinon. L'œuvre se désigne par son entityId ou, "
+            + "si elle n'a pas encore de fiche, par entityTypeId + titre. Ne crée jamais de possession.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public WishlistEntryResponse add(@RequestBody AddToWishlistRequest request) {
         UUID entityId = resolveEntityId(request);
+        UUID variantId = resolveVariantId(entityId, request);
 
-        // Idempotent : une œuvre déjà en envies n'en crée pas une seconde. Sans
-        // ça, deux ajouts depuis deux surfaces (ou un double clic) produiraient
-        // deux entrées pour la même œuvre.
-        Optional<WishlistEntry> existing = wishlistEntryRepository.findByEntityId(entityId);
-        if (existing.isPresent()) {
-            return WishlistEntryResponse.from(existing.get());
+        if (variantId != null) {
+            refuserSiDejaPossede(variantId);
         }
 
-        WishlistEntry entry = WishlistEntry.add(entityId, LocalDate.now());
+        // Idempotent : un même objet déjà voulu n'en crée pas un second. Sans
+        // ça, deux ajouts depuis deux surfaces (ou un double clic) produiraient
+        // deux entrées. La question porte sur le TOME quand il y en a un, sur
+        // l'œuvre sinon - c'est le même objet dont on demande l'état.
+        Optional<WishlistEntry> existante = variantId != null
+                ? wishlistEntryRepository.findByVariantId(variantId)
+                : wishlistEntryRepository.findByEntityId(entityId);
+        if (existante.isPresent()) {
+            return WishlistEntryResponse.from(existante.get());
+        }
+
+        WishlistEntry entry = variantId != null
+                ? WishlistEntry.addVariant(entityId, variantId, LocalDate.now())
+                : WishlistEntry.add(entityId, LocalDate.now());
         return WishlistEntryResponse.from(wishlistEntryRepository.save(entry));
+    }
+
+    /**
+     * Rend le TOME voulu, ou null quand l'envie porte sur l'œuvre entière.
+     * <p>
+     * Un {@code variantId} reçu est vérifié comme appartenant bien à l'œuvre
+     * annoncée : sans ce contrôle, une requête forgée rattacherait l'envie
+     * d'un tome à une autre série, et la fiche l'afficherait sur un tome qui
+     * n'est pas le sien.
+     * <p>
+     * Un {@code volumeNumber} fait exister le tome au catalogue s'il n'y est
+     * pas encore : c'est le cas NORMAL depuis une fiche, où les tomes
+     * manquants sont pour la plupart déduits du total de l'édition sans
+     * jamais avoir été catalogués. Le catalogue grossit donc d'un tome qui
+     * existe réellement dans cette édition - c'est le même geste que l'ajout
+     * rapide, sans la possession.
+     */
+    private UUID resolveVariantId(UUID entityId, AddToWishlistRequest request) {
+        if (request.variantId() != null) {
+            boolean appartient = entityRepository.findById(entityId)
+                    .map(oeuvre -> oeuvre.variants().stream().anyMatch(v -> v.id().equals(request.variantId())))
+                    .orElse(false);
+            if (!appartient) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Ce tome n'appartient pas à cette œuvre : " + request.variantId());
+            }
+            return request.variantId();
+        }
+        if (request.volumeNumber() == null) {
+            return null;
+        }
+        if (request.volumeNumber() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Numéro de tome invalide : " + request.volumeNumber());
+        }
+        Entity oeuvre = entityRepository.findById(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Entité introuvable : " + entityId));
+        return tomeResolver.resoudreEtSauver(oeuvre, request.volumeNumber(), request.edition()).variant().id();
+    }
+
+    /**
+     * « Je le veux » et « je l'ai » sont deux états du MÊME objet, jamais deux
+     * états superposés (voir l'étude produit du 2026-08-27, §1). Vouloir un
+     * tome qu'on possède déjà est donc refusé ici plutôt que masqué côté
+     * interface : la règle doit tenir quel que soit l'appelant.
+     */
+    private void refuserSiDejaPossede(UUID variantId) {
+        boolean possede = ownershipRepository.findAll().stream()
+                .anyMatch(o -> o.status() == OwnershipStatus.OWNED
+                        && o.variantId().map(variantId::equals).orElse(false));
+        if (possede) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ce tome est déjà dans ta collection - « je le veux » n'a plus lieu d'être");
+        }
     }
 
     /**
@@ -117,7 +189,10 @@ public class WishlistController {
         if (ownershipRepository.existsByEntityId(entityId)) {
             return LookupResponse.OWNED;
         }
-        if (wishlistEntryRepository.findByEntityId(entityId).isPresent()) {
+        // findAllByEntityId : depuis V21, l'envie porte sur un tome. « Cette
+        // œuvre est-elle voulue ? » veut dire « en veux-tu quoi que ce soit ? »,
+        // sans quoi une série dont on veut cinq tomes ressortirait UNKNOWN.
+        if (!wishlistEntryRepository.findAllByEntityId(entityId).isEmpty()) {
             return LookupResponse.WISHLISTED;
         }
         return LookupResponse.UNKNOWN;

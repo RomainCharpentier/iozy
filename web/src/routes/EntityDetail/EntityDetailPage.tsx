@@ -196,7 +196,11 @@ export function EntityDetailPage() {
   const generalRank = tierSummaryQuery.data?.generalRank ?? null
   const notes = experiences.map((e) => e.rating).filter((r): r is number => r !== null)
   const meilleureNote = notes.length > 0 ? Math.max(...notes) : null
+  // Le cœur de la bande haute ne vaut que pour une œuvre qui se possède d'une
+  // seule pièce. Pour un manga, la série est un GROUPE : on ne veut pas
+  // « Naruto », on veut le tome 47 - et c'est la grille qui le dit.
   const dansEnvies = !!wishlist.entryFor(entityId)
+  const tomesVoulus = wishlist.variantsVoulus
 
   const editionsAffichees: EditionAffichee[] = groupes.map((groupe) => ({
     nom: groupe.edition,
@@ -218,8 +222,24 @@ export function EntityDetailPage() {
 
   async function basculerEnvies() {
     const entree = wishlist.entryFor(entityId)
-    if (entree) wishlist.remove(entree.id, entityId)
+    if (entree) wishlist.remove(entree.id, { entityId })
     else await wishlist.addAsync({ entityId })
+  }
+
+  /**
+   * « Je le veux » / « Retirer » sur UN tome de l'édition affichée.
+   *
+   * Le tome est désigné par son numéro et non par son identifiant : sur une
+   * fiche, la plupart des tomes manquants sont déduits du total de l'édition
+   * et ne sont catalogués nulle part. C'est le backend qui les fait exister au
+   * passage (voir TomeResolver), sans jamais créer de possession.
+   */
+  function basculerEnvieDuTome(numero: number) {
+    const tuile = tuiles.find((t) => t.volumeNumber === numero)
+    const entree = tuile?.variant ? wishlist.entryForVariant(tuile.variant.id) : undefined
+    const cible = { entityId, volumeNumber: numero, edition: groupeActif?.edition || undefined }
+    if (entree) wishlist.remove(entree.id, cible)
+    else wishlist.add(cible)
   }
 
   return (
@@ -267,7 +287,9 @@ export function EntityDetailPage() {
             : null
         }
         actionEnvies={
-          <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
+          isManga ? null : (
+            <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
+          )
         }
         editions={
           groupes.length > 0 ? (
@@ -336,7 +358,8 @@ export function EntityDetailPage() {
             tuiles={tuiles}
             tomeActif={tomeActif}
             onChoisirTome={setTomeActif}
-            onAjouterAuxEnvies={() => void basculerEnvies()}
+            tomesVoulus={tomesVoulus}
+            onBasculerEnvie={basculerEnvieDuTome}
             modeEdition={modeEdition}
             onAjouterTome={() => setAjoutTomeOuvert(true)}
           />

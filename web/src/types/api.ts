@@ -88,6 +88,10 @@ export interface ExperienceResponse {
 
 // --- Wishlist ---
 export interface WishlistEntryResponse {
+  /** Le TOME voulu. Absent quand l'envie porte sur l'œuvre entière - le cas
+   *  des types sans notion de tome, où l'œuvre EST l'objet collectionnable
+   *  (voir com.iozycore.domain.wishlist.WishlistEntry). */
+  variantId?: UUID | null
   id: UUID
   entityId: UUID
   addedAt: LocalDateString
