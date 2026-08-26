@@ -36,7 +36,6 @@ import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
 import { EntityInfoSection } from './EntityInfoSection'
 import { EditionCorrectionSection } from './EditionCorrectionSection'
-import { EditionUpgradeWishToggle } from './EditionUpgradeWishToggle'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 
@@ -415,7 +414,6 @@ export function EntityDetailPage() {
                     editionName={groupeActif.edition}
                     editionInfo={editionInfo}
                   />
-                  <EditionUpgradeWishToggle entityId={entityId} editionName={groupeActif.edition} />
                 </div>
               )}
             </div>
