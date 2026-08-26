@@ -28,8 +28,13 @@ export function StatsPage() {
       {statsQuery.data && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <StatCard value={String(statsQuery.data.totalEntities)} label="Entités" />
-            <StatCard value={String(statsQuery.data.totalActiveOwnerships)} label="Possédés" />
+            {/* « Œuvres » et « Exemplaires », jamais deux fois « possédés ».
+                Ma collection compte des ŒUVRES (« 5 titres possédés »), cet
+                écran comptait des EXEMPLAIRES sous le même mot : les deux
+                chiffres étaient justes et se contredisaient à la lecture
+                (5 contre 10). « Entités » disait juste le nom de la table. */}
+            <StatCard value={String(statsQuery.data.totalEntities)} label="Œuvres au catalogue" />
+            <StatCard value={String(statsQuery.data.totalActiveOwnerships)} label="Exemplaires possédés" />
             <StatCard value={String(statsQuery.data.wishlistCount)} label="Envies" />
             <StatCard value={String(statsQuery.data.experiencesThisYear)} label="Expériences cette année" />
           </div>

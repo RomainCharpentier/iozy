@@ -113,7 +113,7 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void acheter_ensuite_l_oeuvre_reutilise_sa_fiche_au_lieu_d_en_creer_une_seconde() {
+    void acheter_ensuite_l_oeuvre_reutilise_sa_fiche_et_referme_l_envie() {
         String titre = unTitre();
         WishlistEntryResponse envie = wishlistController.add(new AddToWishlistRequest(null, MANGA, titre, null));
 
@@ -122,10 +122,13 @@ class WishlistWithoutOwnershipIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(resultat.entityId()).isEqualTo(envie.entityId());
         assertThat(fichesIntitulees(titre)).hasSize(1);
-        // Elle est désormais possédée ET toujours en envies : rien ne retire
-        // automatiquement une envie à l'achat, ce comportement est inchangé.
         assertThat(possessionsDe(envie.entityId())).isEqualTo(1);
-        assertThat(wishlistEntryRepository.findByEntityId(envie.entityId())).isPresent();
+        // L'envie se referme à l'acquisition (décision utilisateur du
+        // 2026-08-26, après un audit où « Death Note » et « Naruto »
+        // s'affichaient à la fois « Possédé » et « Dans vos envies »). Ce test
+        // consignait auparavant le comportement inverse - il constatait l'état
+        // des lieux, il ne protégeait pas une règle.
+        assertThat(wishlistEntryRepository.findByEntityId(envie.entityId())).isEmpty();
     }
 
     @Test

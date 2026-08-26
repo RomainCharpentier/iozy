@@ -10,6 +10,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { Chip } from '../../components/Chip'
 import { WishlistToggle } from '../../components/WishlistToggle'
+import { useWishlist } from '../../lib/useWishlist'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePrimaryTitle } from '../../lib/titleLanguage'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
@@ -56,6 +57,7 @@ const RETOUR_RECHERCHE: EtatFiche = { retour: { to: '/add', libelle: 'Recherche'
 export function SearchPage() {
   const navigate = useNavigate()
   const titleComposition = useTitleComposition()
+  const wishlist = useWishlist()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const [entityTypeId, setEntityTypeId] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
@@ -94,7 +96,20 @@ export function SearchPage() {
     queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId }),
     enabled: localSearchEnabled,
   })
-  const localMatches = localMatchQuery.data ?? []
+  /**
+   * Ce que « Déjà dans IozyCore » a le droit de montrer.
+   *
+   * Une Entity peut exister sans que rien ne la rattache à l'utilisateur : ni
+   * possession, ni tome catalogué, ni envie. Relevé à l'audit - « One Piece »
+   * et « One Piece: Strong World » traînaient ainsi, et s'annonçaient comme
+   * déjà connues d'IozyCore alors qu'ouvrir leur fiche ne montrait rien.
+   *
+   * On garde donc une fiche qui a AU MOINS un lien réel : un tome catalogué,
+   * une possession, ou une envie. Les autres restent en base - on ne supprime
+   * rien dans le dos de l'utilisateur - elles cessent simplement de se
+   * présenter comme un résultat.
+   */
+  const localMatchesBrutes = localMatchQuery.data ?? []
   // Une œuvre connue d'IozyCore n'est pas forcément possédée : une série mise
   // en envies sans être achetée a une fiche et aucune possession. Sans cette
   // vérification, ce bloc affichait « Possédé » sur TOUT résultat local -
@@ -107,6 +122,10 @@ export function SearchPage() {
   })
   const entityIdsPossedes = new Set(
     (ownershipsQuery.data ?? []).filter((o) => o.status === 'OWNED').map((o) => o.entityId),
+  )
+  const idsEnEnvies = new Set(wishlist.entries.map((e) => e.entityId))
+  const localMatches = localMatchesBrutes.filter(
+    (entity) => entity.variants.length > 0 || entityIdsPossedes.has(entity.id) || idsEnEnvies.has(entity.id),
   )
 
   /**

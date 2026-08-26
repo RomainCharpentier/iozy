@@ -4,6 +4,9 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
+import java.util.LinkedHashMap;
+import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
@@ -37,7 +40,7 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -58,7 +61,7 @@ class BggCollectionImportServiceTest {
         ));
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
-                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), event -> {
+                new InMemoryMangaEditionRepository(), new CatalogEntityResolver(entityRepository), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -266,6 +269,34 @@ class BggCollectionImportServiceTest {
         @Override
         public void deleteById(UUID id) {
             store.remove(id);
+        }
+    }
+
+    /** Double local, comme les autres dépôts de ce fichier : QuickAddService
+     *  referme l'envie d'une œuvre qu'on vient d'acquérir (voir
+     *  retirerDesEnvies), il lui faut donc un dépôt d'envies. */
+    private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
+        private final Map<UUID, WishlistEntry> parId = new LinkedHashMap<>();
+
+        @Override
+        public WishlistEntry save(WishlistEntry entry) {
+            parId.put(entry.id(), entry);
+            return entry;
+        }
+
+        @Override
+        public Optional<WishlistEntry> findByEntityId(UUID entityId) {
+            return parId.values().stream().filter(e -> e.entityId().equals(entityId)).findFirst();
+        }
+
+        @Override
+        public List<WishlistEntry> findAll() {
+            return List.copyOf(parId.values());
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            parId.remove(id);
         }
     }
 }

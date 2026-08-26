@@ -5,6 +5,7 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import com.iozycore.domain.catalog.VariantLabels;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
@@ -54,17 +55,20 @@ public class QuickAddService {
     private final OwnershipRepository ownershipRepository;
     private final MangaEditionRepository mangaEditionRepository;
     private final CatalogEntityResolver catalogEntityResolver;
+    private final WishlistEntryRepository wishlistEntryRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public QuickAddService(EntityRepository entityRepository,
                             OwnershipRepository ownershipRepository,
                             MangaEditionRepository mangaEditionRepository,
                             CatalogEntityResolver catalogEntityResolver,
+                            WishlistEntryRepository wishlistEntryRepository,
                             ApplicationEventPublisher eventPublisher) {
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
         this.mangaEditionRepository = mangaEditionRepository;
         this.catalogEntityResolver = catalogEntityResolver;
+        this.wishlistEntryRepository = wishlistEntryRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -181,11 +185,36 @@ public class QuickAddService {
 
         entityRepository.save(entity);
         ownershipRepository.save(ownership);
+        retirerDesEnvies(entity.id());
 
         entity.pullDomainEvents().forEach(eventPublisher::publishEvent);
         ownership.pullDomainEvents().forEach(eventPublisher::publishEvent);
 
         return new QuickAddResult(entity.id(), matchedExisting, variantId, matchedExistingVariant);
+    }
+
+    /**
+     * Une œuvre qu'on vient d'acquérir n'est plus une envie.
+     * <p>
+     * Constaté à l'audit : « Death Note » et « Naruto » apparaissaient à la
+     * fois « Possédé » et « Dans vos envies » dans la recherche, faute d'un
+     * point où l'envie se referme. Placé ICI et non côté web parce que
+     * plusieurs chemins créent une Ownership (ajout depuis une fiche, depuis
+     * un aperçu, depuis le scan, saisie manuelle) : les traiter un par un
+     * garantissait d'en oublier un.
+     * <p>
+     * Décision produit tranchée avec l'utilisateur : retirer plutôt que
+     * signaler. Elle a une conséquence à connaître - quelqu'un qui possède
+     * l'édition standard et souhaite la Perfect Edition perd son envie en
+     * ajoutant un tome de la standard, l'envie ne portant que sur l'ŒUVRE et
+     * jamais sur une édition précise (voir WishlistEntry).
+     * <p>
+     * Idempotent et silencieux : aucune envie pour cette œuvre est le cas de
+     * loin le plus fréquent, ce n'est pas une anomalie.
+     */
+    private void retirerDesEnvies(UUID entityId) {
+        wishlistEntryRepository.findByEntityId(entityId)
+                .ifPresent(entree -> wishlistEntryRepository.deleteById(entree.id()));
     }
 
     /**

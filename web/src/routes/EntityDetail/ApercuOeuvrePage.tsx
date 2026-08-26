@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { searchMetadata } from '../../api/metadata'
+import { searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
@@ -49,6 +51,29 @@ export function ApercuOeuvrePage() {
 
   const typesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const type = typesQuery.data?.find((t) => t.id === entityTypeId)
+
+  /**
+   * Cette œuvre a-t-elle DÉJÀ une fiche ?
+   *
+   * L'aperçu est une URL comme une autre : on peut y arriver par un signet,
+   * par le bouton Précédent, ou par un lien reçu - y compris pour une œuvre
+   * qu'on possède depuis longtemps. Sans cette vérification, il affirmait
+   * « Cette œuvre n'est pas encore dans ta collection » devant une série de
+   * 3 tomes possédés (reproduit sur Naruto). L'aperçu s'efface alors devant
+   * la vraie fiche, en REMPLAÇANT l'entrée d'historique : revenir en arrière
+   * doit ramener d'où l'on vient, pas à un aperçu qui redirigerait aussitôt.
+   */
+  const ficheExistanteQuery = useQuery({
+    queryKey: queryKeys.entities.search({ q: titre }),
+    queryFn: () => searchEntities({ q: titre }),
+    enabled: entityTypeId !== '' && titre !== '',
+  })
+  const ficheExistante = ficheExistanteQuery.data?.find(
+    (e) => e.entityTypeId === entityTypeId && e.title.trim().toLowerCase() === titre.trim().toLowerCase(),
+  )
+  useEffect(() => {
+    if (ficheExistante) navigate(`/entity/${ficheExistante.id}`, { replace: true })
+  }, [ficheExistante, navigate])
 
   // On refait la recherche pour retrouver les métadonnées de l'œuvre (auteur,
   // jaquette, année, identifiants). Même clé de cache que l'écran de
