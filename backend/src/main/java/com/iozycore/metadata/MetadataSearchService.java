@@ -580,6 +580,28 @@ public class MetadataSearchService {
         return existing.imageUrl() != null ? existing : replacement;
     }
 
+    /**
+     * « Sait-on DÉJÀ qu'aucun tome n'existe pour cette série ? », sans jamais
+     * interroger un fournisseur.
+     * <p>
+     * Consulte uniquement le stockage durable ({@link VolumeSearchCacheRepository},
+     * voir V3__volume_search_cache.sql), où une liste vide EST mémorisée -
+     * c'est ce qui rend la question gratuite. Une série jamais recherchée
+     * renvoie donc {@code false} : « on ne sait pas » et « on sait qu'il n'y
+     * en a pas » ne se confondent pas, sous peine de signaler à tort toute
+     * œuvre encore inconnue.
+     * <p>
+     * Ne réchauffe volontairement PAS le cache mémoire : cette lecture sert un
+     * affichage secondaire (une mention dans une liste de résultats), elle ne
+     * doit pas influencer ce que le prochain vrai appel trouvera.
+     */
+    public boolean isVolumeSearchKnownEmpty(EntityType entityType, String seriesTitle, String author) {
+        return volumeSearchCacheRepository
+                .find(entityType.id(), normalize(seriesTitle), normalize(author == null ? "" : author))
+                .map(List::isEmpty)
+                .orElse(false);
+    }
+
     private static String volumeKey(VolumeCandidate candidate) {
         return candidate.edition().trim().toLowerCase() + "|" + candidate.volumeNumber();
     }

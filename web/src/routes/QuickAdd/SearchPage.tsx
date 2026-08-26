@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, Scale, ScanBarcode, ScanLine } from 'lucide-react'
-import { fetchFrenchTitle, searchMetadata } from '../../api/metadata'
+import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
 import { listAllOwnerships } from '../../api/ownerships'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -108,6 +108,35 @@ export function SearchPage() {
   const entityIdsPossedes = new Set(
     (ownershipsQuery.data ?? []).filter((o) => o.status === 'OWNED').map((o) => o.entityId),
   )
+
+  /**
+   * Les œuvres qu'on sait DÉJÀ sans aucun tome, signalées dans la liste.
+   *
+   * Une seule requête pour toute la page de résultats, et surtout **aucun
+   * appel à un fournisseur** : le backend répond depuis le seul cache durable
+   * des recherches de tomes (voir `/metadata/volumes/known-empty`). Poser
+   * vraiment la question coûterait huit requêtes Google Books PAR œuvre, sur
+   * une recherche qui se relance à chaque frappe - le quota n'y survivrait
+   * pas.
+   *
+   * Conséquence assumée, et c'est le compromis choisi : une œuvre jamais
+   * ouverte n'est pas signalée. La mention apparaît une fois qu'on a
+   * réellement cherché ses tomes et qu'il n'y en avait aucun.
+   *
+   * Le couple (titre, auteur) envoyé est EXACTEMENT celui que la recherche de
+   * tomes utiliserait - titre primaire résolu et mangaka - sans quoi la clé de
+   * cache ne correspondrait pas et la mention ne sortirait jamais.
+   */
+  const clesInterrogees = (suggestionsQuery.data ?? []).map((candidate) => ({
+    title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
+    author: typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined,
+  }))
+  const sansTomesQuery = useQuery({
+    queryKey: queryKeys.metadata.sansTomes(entityTypeId ?? '', clesInterrogees.map((c) => c.title).join('|')),
+    queryFn: () => seriesSansTomesConnues(entityTypeId!, clesInterrogees),
+    enabled: !!entityTypeId && clesInterrogees.length > 0,
+  })
+  const titresSansTomes = new Set((sansTomesQuery.data ?? []).map((s) => s.title.trim().toLowerCase()))
 
   // Résout un titre français pour les 6 premières suggestions affichées -
   // voir l'ancien QuickAddPage.tsx pour le même mécanisme et son
@@ -335,6 +364,17 @@ export function SearchPage() {
                       className="truncate text-sm font-medium text-textPrimary"
                     />
                     <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
+                    {/* Signalé, jamais masqué : l'œuvre reste ajoutable à la
+                        main depuis son aperçu (voir AddVolumeSection). La
+                        mention évite seulement d'y arriver en s'attendant à
+                        une liste de tomes. */}
+                    {titresSansTomes.has(
+                      resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
+                        .trim()
+                        .toLowerCase(),
+                    ) && (
+                      <div className="mt-0.5 text-xs text-faint">Aucun tome connu — à saisir à la main</div>
+                    )}
                   </div>
                 </button>
                 {/* Deux issues possibles pour une œuvre trouvée : « je
