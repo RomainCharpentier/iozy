@@ -1,0 +1,204 @@
+import { useQuery } from '@tanstack/react-query'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { searchMetadata } from '../../api/metadata'
+import { listEntityTypes } from '../../api/entityTypes'
+import { queryKeys } from '../../lib/queryKeys'
+import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
+import { creatorFrom } from '../../lib/creatorInfo'
+import { isSeriesOngoing } from '../../lib/seriesInfo'
+import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
+import { resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
+import { gradientFor } from '../../theme/gradient'
+import { ErrorBanner } from '../../components/ErrorBanner'
+import { InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
+import type { MetadataCandidateDto } from '../../types/api'
+import { FicheHero } from './FicheHero'
+import { usePropositionTomes } from './usePropositionTomes'
+
+/**
+ * L'aperçu d'une œuvre qu'on ne possède pas : la même page que sa fiche, mais
+ * lue chez le fournisseur de métadonnées, sans rien écrire en base.
+ *
+ * <h2>Consulter n'écrit pas</h2>
+ * Une version précédente créait l'Entity à l'ouverture, pour n'avoir qu'une
+ * seule route. C'était pratique et faux : parcourir des résultats de recherche
+ * remplissait le catalogue d'œuvres qu'on n'a jamais eu l'intention de
+ * collectionner. Ici rien n'est écrit tant qu'un tome n'est pas coché puis
+ * ajouté - c'est `quickAdd` qui crée la fiche à ce moment-là, et l'aperçu
+ * bascule alors vers elle.
+ *
+ * <h2>Identifiée par l'URL, pas par un état de navigation</h2>
+ * `?type=…&titre=…` : l'écran se recharge, se partage et revient en arrière.
+ * L'ancien écran d'ajout ne vivait que par `location.state` et affichait
+ * « Aucune sélection en cours » après un simple F5. La recherche de
+ * métadonnées est refaite au chargement pour retrouver l'œuvre - un
+ * aller-retour, contre une page qui ne se recharge pas.
+ *
+ * <h2>Ce qu'il n'affiche pas, et pourquoi</h2>
+ * Ni classement, ni note, ni lecture, ni tag, ni relation : ces choses se
+ * rattachent à une fiche, et il n'y en a pas encore. Les inventer en lecture
+ * seule laisserait croire qu'on peut les renseigner ici.
+ */
+export function ApercuOeuvrePage() {
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const titleComposition = useTitleComposition()
+  const entityTypeId = params.get('type') ?? ''
+  const titre = params.get('titre') ?? ''
+
+  const typesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
+  const type = typesQuery.data?.find((t) => t.id === entityTypeId)
+
+  // On refait la recherche pour retrouver les métadonnées de l'œuvre (auteur,
+  // jaquette, année, identifiants). Même clé de cache que l'écran de
+  // recherche : y revenir juste après ne relance rien.
+  const rechercheQuery = useQuery({
+    queryKey: queryKeys.metadata.search(entityTypeId, titre),
+    queryFn: () => searchMetadata(entityTypeId, titre),
+    enabled: entityTypeId !== '' && titre !== '',
+  })
+
+  // Le candidat déjà en main, quand on vient de le cliquer : un raccourci,
+  // jamais une dépendance - au rechargement il est absent et la recherche
+  // ci-dessus le retrouve. C'est ce qui distingue cet écran de l'ancien
+  // brouillon, qui n'existait QUE par son `location.state`.
+  const candidatRecu = (useLocation().state as { candidat?: MetadataCandidateDto } | null)?.candidat ?? null
+
+  // Sinon, celui dont un des titres correspond exactement à celui de l'URL.
+  // Comparaison insensible à la casse, et sur le titre principal COMME sur le
+  // titre brut : le premier peut venir d'une résolution française que cette
+  // page ne refait pas. Aucun repli sur « le premier résultat » - un homonyme
+  // afficherait l'auteur et la jaquette d'une autre œuvre.
+  const memeTitre = (valeur: string) => valeur.trim().toLowerCase() === titre.trim().toLowerCase()
+  const candidat =
+    candidatRecu ??
+    rechercheQuery.data?.find(
+      (c) => memeTitre(resolvePrimaryTitle(c, titleComposition, undefined)) || memeTitre(c.title),
+    ) ??
+    null
+  const attributs = candidat
+    ? candidat.imageUrl
+      ? { ...candidat.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidat.imageUrl }
+      : candidat.attributes
+    : {}
+
+  const couvertureUrl = coverImageUrlFrom(attributs)
+  const teinte = useTeinteJaquette(couvertureUrl)
+  const ongoing = isSeriesOngoing(attributs)
+  const startYear = typeof attributs.startYear === 'string' ? attributs.startYear : null
+  const endYear = typeof attributs.endYear === 'string' ? attributs.endYear : null
+
+  const proposition = usePropositionTomes({
+    entityTypeId,
+    titre,
+    attributs,
+    actif: entityTypeId !== '' && titre !== '',
+    // Le premier tome ajouté crée la fiche : on quitte l'aperçu pour elle,
+    // en remplaçant l'entrée d'historique - revenir en arrière doit ramener
+    // à la recherche, pas à un aperçu d'une œuvre désormais possédée.
+    onAjoute: (id) => navigate(`/entity/${id}`, { replace: true, state: { retour: { to: '/add', libelle: 'Recherche' } } }),
+  })
+
+  if (entityTypeId === '' || titre === '') {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-textDim">Aucune œuvre à afficher.</p>
+        <Link to="/add" className="w-fit text-sm font-semibold text-accentText">
+          Retour à la recherche
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Link
+        to="/add"
+        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
+      >
+        <ArrowLeft size={15} />
+        Recherche
+      </Link>
+
+      <FicheHero
+        colleEnHaut={false}
+        teinte={teinte}
+        kicker={type?.label ?? null}
+        titre={titre}
+        auteur={creatorFrom(attributs)}
+        statut={
+          ongoing === null
+            ? null
+            : ongoing
+              ? { libelle: 'En cours', couleur: 'var(--color-warning)' }
+              : { libelle: 'Terminée', couleur: 'var(--color-ok)' }
+        }
+        annees={startYear ? (endYear ? `${startYear} → ${endYear}` : ongoing ? `Depuis ${startYear}` : startYear) : null}
+        couvertureUrl={couvertureUrl}
+        repliCouverture={
+          <div className="absolute inset-0" style={{ background: gradientFor(titre) }} aria-hidden="true" />
+        }
+        editions={proposition.cartesEditions}
+      />
+
+      {rechercheQuery.isError && <ErrorBanner message={rechercheQuery.error.message} />}
+
+      {/* Dire que cette œuvre n'est pas encore à soi, plutôt que de laisser
+          l'absence de progression le suggérer. */}
+      <p className="pt-4 text-sm text-textDim">
+        Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter.
+      </p>
+
+      {proposition.section}
+
+      <div className="pt-6">
+        <InspecteurFiche
+          teinte={teinte}
+          personnel={
+            <p className="text-[13.5px] text-faint">
+              Classement, note, lectures et tags apparaîtront ici une fois l'œuvre dans ta collection.
+            </p>
+          }
+          oeuvre={
+            <div className="flex flex-col">
+              {creatorFrom(attributs) && (
+                <RangeeInspecteur libelle={type?.code === 'MANGA' ? 'Mangaka' : 'Auteur'}>
+                  {creatorFrom(attributs)}
+                </RangeeInspecteur>
+              )}
+              {ongoing !== null && (
+                <RangeeInspecteur libelle="Statut">{ongoing ? 'En cours' : 'Terminée'}</RangeeInspecteur>
+              )}
+              {startYear && <RangeeInspecteur libelle="Année de début">{startYear}</RangeeInspecteur>}
+            </div>
+          }
+          source={
+            <div className="flex flex-col">
+              {CLES_SOURCE.map(({ cle, libelle }) => {
+                const valeur = attributs[cle]
+                if (valeur === null || valeur === undefined || valeur === '') return null
+                return (
+                  <RangeeInspecteur key={cle} libelle={libelle} compact>
+                    {String(valeur)}
+                  </RangeeInspecteur>
+                )
+              })}
+            </div>
+          }
+        />
+      </div>
+    </>
+  )
+}
+
+/** Mêmes clés, même ordre que la colonne SOURCE de la fiche - c'est la même
+ *  provenance, qu'elle soit déjà enregistrée ou non. */
+const CLES_SOURCE: { cle: string; libelle: string }[] = [
+  { cle: 'malId', libelle: 'malId' },
+  { cle: 'titleRomaji', libelle: 'Titre romaji' },
+  { cle: 'titleJapanese', libelle: 'Titre japonais' },
+  { cle: 'seriesStatus', libelle: 'Statut source' },
+  { cle: 'totalVolumes', libelle: 'Nb de tomes source' },
+  { cle: 'endYear', libelle: 'Année de fin' },
+]

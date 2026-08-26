@@ -78,6 +78,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 28. Une seule grille de tomes pour la fiche et l'ajout — **fait** — voir ci-dessous
 29. `/add/draft` supprimé : on ouvre la fiche d'une œuvre qu'on ne possède pas — **fait** — voir ci-dessous
 30. Un retour vers l'écran d'où l'on vient, sur la fiche — **fait** — voir ci-dessous
+31. Consulter n'écrit plus rien : l'aperçu d'une œuvre, et l'ajout comme seule écriture — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -706,6 +707,78 @@ Quatre contrôles web verts. En direct : depuis la recherche, le lien
 pose exactement sous le lien (0px, aucun recouvrement — c'est ce que règle
 `colleEnHaut`). En arrivée directe sur la même fiche (lien reçu, rechargement),
 le lien est absent et le hero colle de nouveau à l'en-tête.
+
+### Lot 31 — consulter n'écrit pas
+
+Le Lot 29 créait l'Entity à l'ouverture d'un résultat de recherche, pour
+n'avoir qu'une seule route. Décision revue par l'utilisateur : « on ajoute en
+base seulement quand c'est dans la collection, sinon que retour API ». Elle
+est juste — parcourir des résultats remplissait le catalogue d'œuvres qu'on
+n'a jamais eu l'intention de collectionner, et une fiche vide qu'on n'a pas
+demandée est un déchet qu'il faut ensuite aller supprimer à la main.
+
+#### Ce qui change
+
+`/apercu?type=…&titre=…` affiche la **même page** que la fiche — même hero,
+mêmes cartes d'édition, même grille — mais lue chez le fournisseur de
+métadonnées. Rien n'est écrit tant qu'un tome n'est pas coché puis ajouté :
+c'est `quickAdd` qui crée alors la fiche, et l'aperçu bascule vers elle
+(`replace: true`, pour que Précédent ramène à la recherche et non à l'aperçu
+d'une œuvre désormais possédée).
+
+`POST /api/entities/resolve` et son client sont **retirés** : ajoutés au Lot 29,
+plus aucun appelant depuis celui-ci. Un endpoint sans appelant est exactement
+ce que la ligne « livré mais inatteignable » proscrit.
+
+#### Identifiée par l'URL, et c'est ce qui la distingue du vieux brouillon
+
+L'ancien `/add/draft` n'existait QUE par son `location.state` : un F5 affichait
+« Aucune sélection en cours », et un lien ne menait nulle part. Ici l'URL porte
+l'identité (type + titre) et la page se reconstitue seule en refaisant la
+recherche de métadonnées. Le candidat voyage bien en `state`, mais **en
+raccourci** : il évite un aller-retour à l'arrivée, et son absence ne coûte
+qu'une requête. Un écran qui DÉPEND d'un état volatile contre un écran qui SAIT
+s'en passer — vérifié par un rechargement à froid.
+
+#### Une implémentation, deux écrans
+
+`usePropositionTomes` porte « quels tomes possèdes-tu ? » : la recherche
+externe, les cartes d'édition, la grille en sélection et l'ajout. L'aperçu s'en
+sert, et la fiche aussi — une œuvre peut exister sans le moindre tome (ajoutée
+en envies). La fiche avait sa propre copie depuis le Lot 29 ; elle est
+supprimée.
+
+Le hook renvoie DEUX nœuds (les cartes pour le hero, la section pour le corps)
+parce qu'ils partagent un état mais pas un emplacement. Première version
+fautive : les cartes étaient remontées à l'appelant par un rappel pendant le
+rendu — modifier l'état d'un composant pendant le rendu d'un autre, ce que
+React refuse à juste titre.
+
+#### Appariement du candidat
+
+Premier essai : égalité stricte entre le titre de l'URL et
+`resolvePrimaryTitle(candidat, composition, undefined)`. Constaté en direct —
+l'auteur et le statut manquaient, parce que le titre affiché venait parfois
+d'une résolution française que cette page ne refait pas. Corrigé : comparaison
+insensible à la casse, sur le titre principal **et** sur le titre brut. Aucun
+repli sur « le premier résultat » : un homonyme afficherait la jaquette et
+l'auteur d'une autre œuvre.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` et **la suite backend complète** :
+verts. En direct, la preuve qui compte :
+
+- `GET /api/entities/search?q=Boruto` → **0 avant, 0 après** avoir ouvert et
+  parcouru l'aperçu. Consulter n'écrit rien.
+- `POST /api/entities/resolve` → 405, l'endpoint n'existe plus.
+- Rechargement à froid de `/apercu?type=…&titre=Boruto` : titre, auteur
+  (« Masashi Kishimoto »), statut (« En cours »), années (« Depuis 2023 ») et
+  les deux éditions (14 et 5 tomes) reviennent sans aucun `location.state`.
+- La fiche d'une œuvre possédée (Death Note) est intacte : `ÉDITIONS · 1`,
+  « 1 tome possédé sur 6 ».
+- Aucun débordement horizontal sur les deux écrans à 1265px.
+- **L'ajout n'a pas été déclenché** : il ne se défait pas (voir Lot 29).
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -2144,6 +2217,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un hook qui doit alimenter deux endroits d'une même page (ici les cartes d'édition dans le hero, la grille dans le corps) renvoie DEUX nœuds ; il ne remonte jamais un morceau à l'appelant par un rappel pendant le rendu - c'est modifier l'état d'un composant pendant le rendu d'un autre, et React le refuse (Lot 31).
+- Distinguer les deux usages de `location.state` : une DÉPENDANCE (l'écran n'existe pas sans lui - l'ancien `/add/draft`, cassé au F5) et un RACCOURCI (il évite une requête, son absence ne coûte rien - l'aperçu du Lot 31). Le second est légitime, le premier presque jamais : mettre l'identité dans l'URL.
 - `candidateDisplayTitle` compose « Titre (Autre titre) » pour une LISTE ; ce qu'on persiste est toujours `resolvePrimaryTitle` (Lot 29). Deux chemins d'écriture s'étaient trompés, dont un depuis longtemps - et l'erreur ne se voit qu'au moment où un second chemin résout la même œuvre par son titre, et crée un doublon.
 - Un écran qui ne vit que par `location.state` (l'ancien `/add/draft`) n'est ni partageable ni rechargeable : F5 y affichait « Aucune sélection en cours ». Quand un écran mérite d'être revu ou envoyé, lui donner une vraie URL - ici, la fiche.
 - Avant de conclure « ces deux composants ne se factorisent pas », écrire la signature commune : au Lot 28 j'ai d'abord recommandé de ne partager que la coquille d'une tuile, et la fusion complète s'est révélée propre - une seule prop (`onEnvies`) est propre à un mode, tout le reste est commun. Le bon test n'est pas « les gestes diffèrent-ils ? » mais « la liste de props commune est-elle entière ? ».

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
-import { getEntity, mergeEntityAttributes, quickAdd, renameEntity } from '../../api/entities'
+import { getEntity, mergeEntityAttributes, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
@@ -19,11 +19,7 @@ import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverIma
 import { creatorFrom } from '../../lib/creatorInfo'
 import { groupVariantsByEdition, resolveEditionView, variantLabel } from '../../lib/editionGroups'
 import { buildTiles, ownedVolumeNumbers } from '../../lib/tomeTiles'
-import { useTomesProposes } from '../../lib/useTomesProposes'
-import { volumeKey } from '../../lib/volumeKey'
-import { GrilleVolumes, type VolumeAffiche } from '../../components/GrilleVolumes'
-import { BarreAjoutTomes } from './BarreAjoutTomes'
-import type { Condition } from '../../types/entityTypes'
+import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '../../components/layout/AppShell'
 import { TierBadge } from '../TierLists/TierBadge'
@@ -87,11 +83,6 @@ export function EntityDetailPage() {
   const [tomeActif, setTomeActif] = useState<number | null>(null)
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
   const [ajoutTomeOuvert, setAjoutTomeOuvert] = useState(false)
-  // La sélection de tomes PROPOSÉS (pas encore catalogués) et ce qui
-  // l'accompagne. Vide sur une fiche déjà remplie, où rien n'est à proposer.
-  const [tomesSelectionnes, setTomesSelectionnes] = useState<Set<string>>(new Set())
-  const [conditionAjout, setConditionAjout] = useState<Condition>('NEW')
-  const [prixAjout, setPrixAjout] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [editingCover, setEditingCover] = useState(false)
@@ -156,43 +147,16 @@ export function EntityDetailPage() {
     groupes[0]
   const owned = groupeActif ? ownedVolumeNumbers(entity?.variants ?? [], ownerships, groupeActif.sourceEditions) : []
 
-  // Une fiche sans aucun tome catalogué vient forcément d'être ouverte depuis
-  // la recherche : c'est le moment de proposer les tomes que le fournisseur
-  // connaît. Une fiche déjà remplie ne demande rien à personne.
-  const tomesProposes = useTomesProposes({
+  // Une fiche peut exister sans le moindre tome - ajoutée en envies, ou
+  // créée par un ajout qui n'a rien trouvé. C'est le même « quels tomes
+  // possèdes-tu ? » que l'aperçu, donc le même hook (voir
+  // usePropositionTomes) : une seule implémentation pour les deux écrans.
+  const proposition = usePropositionTomes({
     entityTypeId: entity?.entityTypeId ?? '',
     titre: entity?.title ?? '',
     attributs: entity?.attributes ?? {},
+    entityId,
     actif: !!entity && isManga && groupes.length === 0,
-  })
-
-  const ajoutMutation = useMutation({
-    mutationFn: async (aAjouter: { volumeNumber: number; edition: string; imageUrl: string | null }[]) => {
-      const prix = prixAjout.trim() ? Number(prixAjout) : undefined
-      // Un appel par tome : quickAdd est déjà le point d'entrée unique de
-      // l'ajout (déduplication d'Entity et d'Édition comprises), et lui
-      // passer un lot demanderait un second chemin d'écriture côté backend
-      // pour le même résultat.
-      for (const tome of aAjouter) {
-        await quickAdd({
-          entityTypeId: entity!.entityTypeId,
-          title: entity!.title,
-          condition: conditionAjout,
-          attributes: entity!.attributes,
-          volumeNumber: tome.volumeNumber,
-          edition: tome.edition || undefined,
-          volumeImageUrl: tome.imageUrl ?? undefined,
-          purchasePrice: prix,
-        })
-      }
-    },
-    onSuccess: () => {
-      setTomesSelectionnes(new Set())
-      setPrixAjout('')
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-    },
   })
 
   const completenessQuery = useQuery({
@@ -223,23 +187,6 @@ export function EntityDetailPage() {
       )
     : []
   const tuileActive = tuiles.find((t) => t.volumeNumber === tomeActif) ?? null
-
-  // Les tomes proposés, groupés par édition - la même forme que les groupes
-  // du catalogue, pour que les cartes d'édition ne sachent pas d'où elles
-  // viennent.
-  const editionsProposees: string[] = []
-  const proposesParEdition = new Map<string, typeof tomesProposes.candidats>()
-  for (const candidat of tomesProposes.candidats) {
-    if (!proposesParEdition.has(candidat.edition)) {
-      editionsProposees.push(candidat.edition)
-      proposesParEdition.set(candidat.edition, [])
-    }
-    proposesParEdition.get(candidat.edition)!.push(candidat)
-  }
-  const enProposition = groupes.length === 0 && editionsProposees.length > 0
-  const editionProposeeActive =
-    editionAffichee !== null && proposesParEdition.has(editionAffichee) ? editionAffichee : editionsProposees[0]
-  const candidatsAffiches = proposesParEdition.get(editionProposeeActive) ?? []
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
@@ -338,21 +285,11 @@ export function EntityDetailPage() {
               modeEdition={modeEdition}
               onBasculerMode={() => setModeEdition((v) => !v)}
             />
-          ) : enProposition ? (
-            // Rien au catalogue, mais un fournisseur connaît des éditions :
-            // ce sont elles qu'on montre, et la jauge compte ce qu'on coche.
-            <CartesEditions
-              editions={editionsProposees.map((nom) => ({
-                nom,
-                editeur: null,
-                total: proposesParEdition.get(nom)!.length,
-                possedes: proposesParEdition.get(nom)!.filter((v) => tomesSelectionnes.has(volumeKey(v))).length,
-              }))}
-              editionAffichee={editionProposeeActive}
-              onAfficher={setEditionAffichee}
-              sensProgression="selection"
-            />
-          ) : null
+          ) : (
+            // Rien au catalogue : ce sont les éditions proposées par le
+            // fournisseur, et la jauge compte ce qu'on coche.
+            proposition.cartesEditions
+          )
         }
       />
 
@@ -387,89 +324,7 @@ export function EntityDetailPage() {
         </div>
       )}
 
-      {enProposition && (
-        <section className="flex flex-col gap-4 pt-7">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="font-display text-[17px] font-medium tracking-[-0.02em] text-textPrimary">
-              {editionProposeeActive || 'Édition non précisée'}
-            </h2>
-            <p className="text-[13px] text-faint">Quels tomes possèdes-tu ?</p>
-          </div>
-
-          <GrilleVolumes
-            volumes={candidatsAffiches.map((candidat): VolumeAffiche => ({
-              cle: volumeKey(candidat),
-              numero: candidat.volumeNumber,
-              jaquetteUrl: candidat.imageUrl,
-              possede: candidat.alreadyOwned,
-              actif: tomesSelectionnes.has(volumeKey(candidat)),
-            }))}
-            mode="selection"
-            filtre={filtre}
-            onFiltre={setFiltre}
-            onActiver={(cle) =>
-              setTomesSelectionnes((prev) => {
-                const suivant = new Set(prev)
-                if (suivant.has(cle)) suivant.delete(cle)
-                else suivant.add(cle)
-                return suivant
-              })
-            }
-            videMessage="Aucun tome ne correspond à ce filtre."
-          />
-
-          <BarreAjoutTomes
-            nombre={tomesSelectionnes.size}
-            condition={conditionAjout}
-            onCondition={setConditionAjout}
-            prix={prixAjout}
-            onPrix={setPrixAjout}
-            enCours={ajoutMutation.isPending}
-            erreur={ajoutMutation.isError ? ajoutMutation.error.message : null}
-            onToutDeselectionner={() => setTomesSelectionnes(new Set())}
-            onAjouter={() =>
-              ajoutMutation.mutate(
-                tomesProposes.candidats
-                  .filter((candidat) => tomesSelectionnes.has(volumeKey(candidat)))
-                  .map((candidat) => ({
-                    volumeNumber: candidat.volumeNumber,
-                    edition: candidat.edition,
-                    imageUrl: candidat.imageUrl,
-                  })),
-              )
-            }
-          />
-        </section>
-      )}
-
-      {/* Ni tome catalogué, ni tome proposé : le fournisseur n'a rien trouvé,
-          ou n'a pas répondu. La saisie manuelle reste le filet - et on le dit,
-          plutôt que de laisser une page vide. */}
-      {isManga && groupes.length === 0 && !enProposition && (
-        <section className="flex flex-col gap-3 pt-7">
-          <p className="text-sm text-textDim">
-            {tomesProposes.enCours
-              ? 'Recherche des tomes disponibles...'
-              : tomesProposes.quotaDepasse
-                ? "Quota Google Books dépassé pour le moment - impossible de vérifier les éditions françaises. Tu peux ajouter un tome à la main, ou réessayer plus tard."
-                : "Aucun tome trouvé pour cette œuvre chez nos fournisseurs. Tu peux les ajouter à la main."}
-          </p>
-          <button
-            type="button"
-            onClick={() => setAjoutTomeOuvert(true)}
-            className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
-          >
-            Ajouter un tome à la main
-          </button>
-          <AddVolumeSection
-            entityId={entityId}
-            entityTypeId={entity.entityTypeId}
-            title={entity.title}
-            ouvert={ajoutTomeOuvert}
-            onFermer={() => setAjoutTomeOuvert(false)}
-          />
-        </section>
-      )}
+      {proposition.section}
 
       {groupeActif && (
         <>

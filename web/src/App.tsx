@@ -26,6 +26,7 @@ function page<M extends Record<string, unknown>, K extends keyof M>(
 // là où il n'y a rien à économiser.
 const SearchPage = page(() => import('./routes/QuickAdd/SearchPage'), 'SearchPage')
 const EntityDetailPage = page(() => import('./routes/EntityDetail/EntityDetailPage'), 'EntityDetailPage')
+const ApercuOeuvrePage = page(() => import('./routes/EntityDetail/ApercuOeuvrePage'), 'ApercuOeuvrePage')
 const DiscoverPage = page(() => import('./routes/Discover/DiscoverPage'), 'DiscoverPage')
 const TierListsScreen = page(() => import('./routes/TierLists/TierListsScreen'), 'TierListsScreen')
 const GeneralTierBoardPage = page(() => import('./routes/TierLists/GeneralTierBoardPage'), 'GeneralTierBoardPage')
@@ -104,6 +105,9 @@ export default function App() {
                   <Route path="/" element={<ShelfPage />} />
                   <Route path="/add" element={<SearchPage />} />
                   <Route path="/entity/:id" element={<EntityDetailPage />} />
+                  {/* L'aperçu d'une œuvre qu'on ne possède pas : la même page,
+                      lue chez le fournisseur, sans rien écrire en base. */}
+                  <Route path="/apercu" element={<ApercuOeuvrePage />} />
                   <Route path="/discover" element={<DiscoverPage />} />
                   <Route path="/tier-lists" element={<TierListsScreen />} />
                   <Route path="/tier-lists/general/:entityTypeId" element={<GeneralTierBoardPage />} />
