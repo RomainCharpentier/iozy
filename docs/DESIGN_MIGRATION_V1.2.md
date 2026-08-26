@@ -77,6 +77,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 27. « Envies d'amélioration » retirée de l'interface : livrée mais sans conséquence — **fait** — voir ci-dessous
 28. Une seule grille de tomes pour la fiche et l'ajout — **fait** — voir ci-dessous
 29. `/add/draft` supprimé : on ouvre la fiche d'une œuvre qu'on ne possède pas — **fait** — voir ci-dessous
+30. Un retour vers l'écran d'où l'on vient, sur la fiche — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -669,6 +670,42 @@ complète** : verts. En direct :
   utilisait déjà. Seul son câblage est neuf.
 - Les deux fiches de test créées pendant la vérification ont été supprimées :
   **état de départ restauré à l'identique**.
+
+### Lot 30 — revenir à la recherche depuis la fiche
+
+Le Lot 29 a fait disparaître `/add/draft`, et avec lui son « ← Recherche ».
+Ouvrir un résultat menait donc à la fiche sans autre issue que le bouton
+Précédent du navigateur - alors qu'on enchaîne les recherches.
+
+`retourFiche.ts` porte l'origine d'une navigation : `/add` depuis la
+recherche, `/scan` depuis le scan. La fiche affiche un lien nommé quand elle
+la reçoit.
+
+**Pourquoi `location.state`, alors que le Lot 29 vient de l'en retirer.** Ce
+n'est pas la même chose. L'ancien écran d'ajout n'existait QUE par cet état :
+un F5 le vidait (« Aucune sélection en cours ») et un lien partagé ne menait
+nulle part. Ici l'état ne porte aucune donnée, seulement une commodité — s'il
+manque, le lien ne s'affiche pas et la page reste entière. Un écran qui
+DÉPEND d'un état volatile, contre un écran qui SAIT s'en passer.
+
+**Pourquoi pas `navigate(-1)`.** Un « Retour » sans destination ment une fois
+sur deux : ouvrir une fiche depuis la recherche, puis une autre depuis ses
+relations, ramènerait à la fiche précédente et non à la recherche. Nommer la
+destination, c'est ne promettre que ce qu'on tient — et le bouton Précédent
+continue de faire son travail à côté.
+
+`retourDepuis` ne fait pas confiance à la forme de l'état (c'est un sac libre,
+qu'un lien forgé ou une version antérieure de l'app peut remplir autrement) et
+refuse toute cible qui ne serait pas une route interne : ce lien ne doit pas
+pouvoir devenir une redirection vers l'extérieur.
+
+#### Vérifications
+
+Quatre contrôles web verts. En direct : depuis la recherche, le lien
+« ← Recherche » pointe `/add` et y ramène ; le hero reste pleine largeur et se
+pose exactement sous le lien (0px, aucun recouvrement — c'est ce que règle
+`colleEnHaut`). En arrivée directe sur la même fiche (lien reçu, rechargement),
+le lien est absent et le hero colle de nouveau à l'en-tête.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, quickAdd, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
@@ -43,6 +43,8 @@ import { EntityInfoSection } from './EntityInfoSection'
 import { EditionCorrectionSection } from './EditionCorrectionSection'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
+import { retourDepuis } from './retourFiche'
+import { ArrowLeft } from 'lucide-react'
 
 /**
  * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
@@ -73,6 +75,10 @@ export function EntityDetailPage() {
   const entityId = id!
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // D'où l'on vient, quand l'écran précédent a pris la peine de le dire (voir
+  // retourFiche). Absent sur une fiche rechargée ou reçue par lien : le
+  // raccourci disparaît alors, la page reste entière.
+  const retour = retourDepuis(useLocation().state)
   const wishlist = useWishlist()
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
@@ -271,7 +277,20 @@ export function EntityDetailPage() {
 
   return (
     <>
+      {/* Avant le hero, donc la bande ne colle plus au haut : sans ça elle
+          remonterait par-dessus ce lien (voir FicheHero.colleEnHaut). */}
+      {retour && (
+        <Link
+          to={retour.to}
+          className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
+        >
+          <ArrowLeft size={15} />
+          {retour.libelle}
+        </Link>
+      )}
+
       <FicheHero
+        colleEnHaut={!retour}
         teinte={teinte}
         kicker={entityType?.label ?? null}
         titre={entity.title}
