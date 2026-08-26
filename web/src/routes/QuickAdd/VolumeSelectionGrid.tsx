@@ -1,18 +1,28 @@
 import { useState } from 'react'
-import { Check, CheckCheck } from 'lucide-react'
 import { Chip } from '../../components/Chip'
+import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../components/GrilleVolumes'
 import type { VolumeCandidateDto } from '../../types/api'
 import { volumeKey } from '../../lib/volumeKey'
-import { Jaquette } from '../../components/Jaquette'
 
 /**
- * Sélection visuelle des tomes possédés par jaquette (façon Mangacollec) :
- * on choisit d'abord l'édition (une série peut en avoir plusieurs - ex:
- * "Édition originale" et "Perfect Edition" pour Dragon Ball, chacune avec
- * ses propres tomes/jaquettes), puis on coche les tomes possédés dans la
- * grille de cette édition. La sélection est conservée en changeant d'édition
- * (voir selectedKeys, géré par le parent) - possible de cocher des tomes
- * dans plusieurs éditions avant de valider.
+ * Sélection des tomes possédés à l'ajout : le choix de l'édition, puis la
+ * grille commune en mode sélection (voir components/GrilleVolumes).
+ *
+ * <h2>Ce que fait cet adaptateur</h2>
+ * Il groupe les candidats par édition - une série peut en avoir plusieurs,
+ * chacune avec ses propres tomes et jaquettes (« Édition originale » et
+ * « Perfect Edition » pour Dragon Ball) - et traduit ceux de l'édition
+ * affichée vers les `VolumeAffiche` que la grille comprend. La sélection est
+ * conservée en changeant d'édition (elle est portée par le parent, voir
+ * `selectedKeys`) : on peut cocher des tomes dans plusieurs éditions avant de
+ * valider.
+ *
+ * <h2>Ce qui a été mis en commun avec la fiche</h2>
+ * Toute la tuile. Cet écran dessinait ses propres vignettes de 64×96 en
+ * `flex-wrap`, quand la fiche en dessinait de ratio 2/3 en `auto-fill` : le
+ * MÊME tome ne se ressemblait pas d'un écran à l'autre. Les gestes, eux,
+ * restent bien distincts - ici on coche, là-bas on ouvre - et c'est le `mode`
+ * de la grille qui porte cette différence, elle seule.
  */
 export function VolumeSelectionGrid({
   volumes,
@@ -34,6 +44,7 @@ export function VolumeSelectionGrid({
   }
 
   const [activeEdition, setActiveEdition] = useState(editionsInOrder[0])
+  const [filtre, setFiltre] = useState<FiltreVolumes>('tous')
   // L'édition active peut disparaître si une nouvelle recherche remplace
   // `volumes` (nouveau candidat choisi) sans que ce composant soit démonté -
   // on retombe alors sur la première édition disponible plutôt que sur un
@@ -42,6 +53,16 @@ export function VolumeSelectionGrid({
   const activeVolumes = byEdition.get(resolvedActiveEdition) ?? []
 
   if (editionsInOrder.length === 0) return null
+
+  const affiches: VolumeAffiche[] = activeVolumes.map((volume) => ({
+    // La clé combine édition ET numéro : deux éditions ont chacune leur
+    // tome 1 (voir lib/volumeKey), et c'est elle que le parent stocke.
+    cle: volumeKey(volume),
+    numero: volume.volumeNumber,
+    jaquetteUrl: volume.imageUrl,
+    possede: volume.alreadyOwned,
+    actif: selectedKeys.has(volumeKey(volume)),
+  }))
 
   return (
     <div className="flex flex-col gap-3">
@@ -61,51 +82,18 @@ export function VolumeSelectionGrid({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {activeVolumes.map((volume) => {
-          const key = volumeKey(volume)
-          const isSelected = selectedKeys.has(key)
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onToggle(key)}
-              aria-pressed={isSelected}
-              title={volume.alreadyOwned ? 'Déjà possédé' : undefined}
-              className={`relative h-24 w-16 shrink-0 overflow-hidden rounded-lg ring-2 transition ${
-                isSelected ? 'ring-accent' : 'ring-transparent'
-              }`}
-            >
-              <Jaquette
-                src={volume.imageUrl}
-                className={`h-full w-full object-cover ${volume.alreadyOwned ? 'opacity-60' : ''}`}
-                repli={
-                  <div className="flex h-full w-full items-center justify-center bg-surface2 text-xs text-textDim">
-                    T. {volume.volumeNumber}
-                  </div>
-                }
-              />
-              <span className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center text-[10px] font-semibold text-white">
-                {volume.volumeNumber}
-              </span>
-              {/* Déjà possédé (vert, coin gauche) et sélectionné (accent, coin
-                  droit) sont deux informations distinctes qui peuvent
-                  coexister (re-sélectionner un tome déjà possédé signale un
-                  2e exemplaire, voir formatAddResultMessage). */}
-              {volume.alreadyOwned && (
-                <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
-                  <CheckCheck size={10} strokeWidth={3} />
-                </span>
-              )}
-              {isSelected && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accentInk">
-                  <Check size={10} strokeWidth={3} />
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+      <GrilleVolumes
+        volumes={affiches}
+        mode="selection"
+        filtre={filtre}
+        onFiltre={setFiltre}
+        onActiver={onToggle}
+        videMessage={
+          filtre === 'possedes'
+            ? 'Aucun tome de cette édition ne figure déjà dans ta collection.'
+            : 'Tu possèdes déjà tous les tomes trouvés pour cette édition.'
+        }
+      />
     </div>
   )
 }
