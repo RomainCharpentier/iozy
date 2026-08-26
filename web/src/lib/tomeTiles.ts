@@ -21,7 +21,14 @@ export interface TomeTile {
  * Ownership) ni avec un purement virtuel (numéro déduit de totalVolumes,
  * jamais catalogué). Sans totalVolumes connu, on ne montre que ce qu'on
  * connaît réellement (possédé ou catalogué) - jamais de tuile virtuelle
- * devinée sans un total sur lequel s'appuyer. */
+ * devinée sans un total sur lequel s'appuyer.
+ *
+ * <p>Un Variant existant vaut « catalogué » quoi qu'en dise
+ * `cataloguedMissing`, qui vient d'une réponse réseau pouvant dater : c'est
+ * ce qui fait qu'un tome mis en envies à l'instant (et donc catalogué à
+ * l'instant, voir TomeResolver) porte immédiatement son état au lieu de
+ * retomber en tuile purement déduite, sans identité à laquelle rattacher
+ * l'envie. */
 export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: number[], totalVolumes: number | null, cataloguedMissing: number[]): TomeTile[] {
   const variantsByNumber = new Map<number, VariantDto>()
   // group.sourceEditions plutôt que group.edition seul : un groupe fusionné
@@ -48,7 +55,7 @@ export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: n
   for (let n = 1; n <= totalVolumes; n++) {
     if (ownedSet.has(n)) {
       tiles.push({ volumeNumber: n, status: 'owned', variant: variantsByNumber.get(n) })
-    } else if (cataloguedMissingSet.has(n)) {
+    } else if (cataloguedMissingSet.has(n) || variantsByNumber.has(n)) {
       tiles.push({ volumeNumber: n, status: 'cataloguedMissing', variant: variantsByNumber.get(n) })
     } else {
       tiles.push({ volumeNumber: n, status: 'virtualMissing' })

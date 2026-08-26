@@ -11,15 +11,26 @@ import { CoverTile } from '../../components/CoverTile'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { totalVolumesFrom } from '../../lib/seriesInfo'
 import { ShareSection } from '../Share/ShareSection'
-import type { EntityTypeDto, WishlistEntryResponse } from '../../types/api'
+import { variantLabel } from '../../lib/editionGroups'
+import type { EntityResponse, EntityTypeDto, WishlistEntryResponse } from '../../types/api'
 import { EnTeteSection } from '../../components/EnTeteSection'
 
-/** "72 tomes" si connu (manga dont Jikan/MyAnimeList a fourni un total) -
- * jamais "Possédé" ici, contrairement à ShelfPage : un souhait de wishlist
- * n'est par définition pas possédé. Le type vit dans son propre badge (voir
- * CoverTile.typeLabel), cette fonction ne gère plus que le sous-titre. */
-function wishlistTileSubtitle(attributes: Record<string, unknown>): string | undefined {
-  const total = totalVolumesFrom(attributes)
+/**
+ * Ce que la tuile dit sous le titre : le TOME voulu quand l'envie en désigne
+ * un, le nombre total de tomes sinon.
+ *
+ * Sans ça, cinq tomes voulus d'une même série donnaient cinq tuiles
+ * rigoureusement identiques - le titre de la série ne suffit plus à
+ * identifier une envie depuis qu'elle porte sur l'objet collectionnable.
+ *
+ * Jamais "Possédé" ici, contrairement à ShelfPage : un souhait n'est par
+ * définition pas possédé. Le type vit dans son propre badge (voir
+ * CoverTile.typeLabel).
+ */
+function wishlistTileSubtitle(entity: EntityResponse, variantId: string | null | undefined): string | undefined {
+  const tome = variantId ? entity.variants.find((v) => v.id === variantId) : undefined
+  if (tome) return variantLabel(tome)
+  const total = totalVolumesFrom(entity.attributes)
   return total !== null ? `${total} tome${total > 1 ? 's' : ''}` : undefined
 }
 
@@ -41,11 +52,13 @@ function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse;
 
   if (!entityQuery.data) return null
 
+  const sousTitre = wishlistTileSubtitle(entityQuery.data, entry.variantId)
+
   return (
     <li className="relative">
       <CoverTile
         title={entityQuery.data.title}
-        subtitle={wishlistTileSubtitle(entityQuery.data.attributes)}
+        subtitle={sousTitre}
         typeLabel={entityTypesById.get(entityQuery.data.entityTypeId)?.label}
         imageUrl={coverImageUrlFrom(entityQuery.data.attributes)}
         onClick={() => navigate(`/entity/${entry.entityId}`)}
@@ -62,10 +75,12 @@ function WishlistRow({ entry, entityTypesById }: { entry: WishlistEntryResponse;
         type="button"
         onClick={(e) => {
           e.stopPropagation()
-          wishlist.remove(entry.id, entry.entityId)
+          wishlist.remove(entry.id, entry.variantId
+            ? { entityId: entry.entityId, variantId: entry.variantId }
+            : { entityId: entry.entityId })
         }}
         disabled={wishlist.isPending}
-        aria-label={`Retirer ${entityQuery.data.title} de la wishlist`}
+        aria-label={`Retirer ${sousTitre ? `${entityQuery.data.title} - ${sousTitre}` : entityQuery.data.title} de mes envies`}
         title="Retirer de la wishlist"
         className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-textPrimary transition hover:bg-black/85 disabled:opacity-50"
       >

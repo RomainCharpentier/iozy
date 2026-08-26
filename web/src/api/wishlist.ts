@@ -21,6 +21,18 @@ export function listWishlist(): Promise<WishlistEntryResponse[]> {
  * n'est pas la collection.
  */
 export type WishlistTarget =
+  /**
+   * Un tome précis d'une œuvre déjà fichée - le cas normal pour un manga,
+   * depuis que l'envie porte sur l'objet réellement collectionnable.
+   *
+   * Deux façons de le désigner : par `variantId` s'il est déjà catalogué, par
+   * son NUMÉRO sinon. La seconde est de loin la plus fréquente : sur une
+   * fiche, les tomes manquants sont déduits du total de l'édition et n'ont,
+   * pour la plupart, jamais été catalogués. Le backend fait alors exister le
+   * tome, sans possession (voir TomeResolver).
+   */
+  | { entityId: string; variantId: string }
+  | { entityId: string; volumeNumber: number; edition?: string }
   | { entityId: string }
   | { entityTypeId: string; title: string; attributes?: Record<string, unknown> }
 

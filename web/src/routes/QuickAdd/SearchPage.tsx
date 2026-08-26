@@ -329,7 +329,7 @@ export function SearchPage() {
                       </span>
                     )}
                   </button>
-                  <WishlistToggle entityId={entity.id} variant="inline" />
+                  <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
                 </div>
               )
             })}
@@ -403,6 +403,7 @@ export function SearchPage() {
                     backend crée sa fiche catalogue, sans aucune possession. */}
                 <WishlistToggle
                   variant="inline"
+                  entityTypeId={entityTypeId!}
                   external={{
                     entityTypeId: entityTypeId!,
                     // Le titre PRIMAIRE, pas celui affiché : la ligne montre

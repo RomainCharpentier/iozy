@@ -12,7 +12,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 interface WishlistEntryJpaRepository extends JpaRepository<WishlistEntryJpaEntity, UUID> {
-    Optional<WishlistEntryJpaEntity> findByEntityId(UUID entityId);
+    Optional<WishlistEntryJpaEntity> findByEntityIdAndVariantIdIsNull(UUID entityId);
+
+    Optional<WishlistEntryJpaEntity> findByVariantId(UUID variantId);
+
+    List<WishlistEntryJpaEntity> findAllByEntityId(UUID entityId);
 }
 
 @Repository
@@ -27,22 +31,44 @@ class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
 
     @Override
     public WishlistEntry save(WishlistEntry entry) {
-        WishlistEntryJpaEntity saved = jpaRepository.save(
-                new WishlistEntryJpaEntity(entry.id(), entry.entityId(), entry.ownerId(), entry.addedAt()));
-        return WishlistEntry.reconstitute(saved.getId(), saved.getEntityId(), saved.getOwnerId(), saved.getAddedAt());
+        WishlistEntryJpaEntity saved = jpaRepository.save(new WishlistEntryJpaEntity(
+                entry.id(), entry.entityId(), entry.variantId().orElse(null), entry.ownerId(), entry.addedAt()));
+        return versDomaine(saved);
+    }
+
+    /**
+     * `findByEntityIdAndVariantIdIsNull` et non `findByEntityId` : depuis que
+     * l'envie peut porter sur un tome (voir V21), une même œuvre a autant de
+     * lignes que de tomes voulus. Cette méthode-ci répond à « l'ŒUVRE entière
+     * est-elle voulue ? », ce qui n'a de sens que pour un type sans tome.
+     */
+    @Override
+    public Optional<WishlistEntry> findByEntityId(UUID entityId) {
+        return jpaRepository.findByEntityIdAndVariantIdIsNull(entityId).map(JpaWishlistEntryRepositoryAdapter::versDomaine);
     }
 
     @Override
-    public Optional<WishlistEntry> findByEntityId(UUID entityId) {
-        return jpaRepository.findByEntityId(entityId)
-                .map(e -> WishlistEntry.reconstitute(e.getId(), e.getEntityId(), e.getOwnerId(), e.getAddedAt()));
+    public Optional<WishlistEntry> findByVariantId(UUID variantId) {
+        return jpaRepository.findByVariantId(variantId).map(JpaWishlistEntryRepositoryAdapter::versDomaine);
+    }
+
+    @Override
+    public List<WishlistEntry> findAllByEntityId(UUID entityId) {
+        return jpaRepository.findAllByEntityId(entityId).stream()
+                .map(JpaWishlistEntryRepositoryAdapter::versDomaine)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<WishlistEntry> findAll() {
         return jpaRepository.findAll().stream()
-                .map(e -> WishlistEntry.reconstitute(e.getId(), e.getEntityId(), e.getOwnerId(), e.getAddedAt()))
+                .map(JpaWishlistEntryRepositoryAdapter::versDomaine)
                 .collect(Collectors.toList());
+    }
+
+    private static WishlistEntry versDomaine(WishlistEntryJpaEntity jpa) {
+        return WishlistEntry.reconstitute(jpa.getId(), jpa.getEntityId(), jpa.getVariantId(), jpa.getOwnerId(),
+                jpa.getAddedAt());
     }
 
     @Override

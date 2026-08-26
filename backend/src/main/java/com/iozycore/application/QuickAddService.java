@@ -1,13 +1,9 @@
 package com.iozycore.application;
 
-import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
-import com.iozycore.domain.catalog.VariantLabels;
-import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -17,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,30 +39,30 @@ import java.util.UUID;
  * <p>
  * Modèle catalogue cible Série -> Édition -> Tome (étape 3) : quand une
  * édition est renseignée, ce Variant est aussi relié à l'Édition catalogue
- * ({@link MangaEdition}) correspondante - identifiée-ou-créée avec la même
- * logique de déduplication que la Série/le Tome (voir
- * {@link #resolveOrCreateMangaEdition}), jamais un doublon d'Édition.
+ * ({@code MangaEdition}) correspondante - identifiée-ou-créée avec la même
+ * logique de déduplication que la Série/le Tome (voir {@link TomeResolver}),
+ * jamais un doublon d'Édition.
  */
 @Service
 public class QuickAddService {
 
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
-    private final MangaEditionRepository mangaEditionRepository;
     private final CatalogEntityResolver catalogEntityResolver;
+    private final TomeResolver tomeResolver;
     private final WishlistEntryRepository wishlistEntryRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public QuickAddService(EntityRepository entityRepository,
                             OwnershipRepository ownershipRepository,
-                            MangaEditionRepository mangaEditionRepository,
                             CatalogEntityResolver catalogEntityResolver,
+                            TomeResolver tomeResolver,
                             WishlistEntryRepository wishlistEntryRepository,
                             ApplicationEventPublisher eventPublisher) {
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
-        this.mangaEditionRepository = mangaEditionRepository;
         this.catalogEntityResolver = catalogEntityResolver;
+        this.tomeResolver = tomeResolver;
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.eventPublisher = eventPublisher;
     }
@@ -143,9 +138,9 @@ public class QuickAddService {
         // déduplication (type + titre) et la fusion d'attributs ne vivent qu'à
         // un seul endroit, donc les deux chemins ne peuvent pas produire deux
         // Entity différentes pour la même œuvre. La sauvegarde y est immédiate,
-        // ce dont resolveOrCreateMangaEdition ci-dessous a besoin : une Entity
-        // toute neuve doit exister en base avant qu'un MangaEdition ne
-        // référence son id (contrainte FK manga_edition.entity_id).
+        // ce dont TomeResolver a besoin : une Entity toute neuve doit exister en
+        // base avant qu'un MangaEdition ne référence son id (contrainte FK
+        // manga_edition.entity_id).
         CatalogEntityResolver.Resolution resolution =
                 catalogEntityResolver.resolveOrCreate(entityTypeId, title, prefilledAttributes);
         Entity entity = resolution.entity();
@@ -154,28 +149,20 @@ public class QuickAddService {
         UUID variantId = null;
         boolean matchedExistingVariant = false;
         if (volumeNumber != null) {
-            String label = VariantLabels.of(volumeNumber, edition);
-            Optional<Variant> existingVariant = entity.findVariantByLabel(label);
-            Variant variant = existingVariant.orElseGet(() -> entity.addVariant(label, variantAttributes(volumeNumber, edition, volumeImageUrl)));
-            variantId = variant.id();
+            // « Faire exister le tome » vit désormais dans TomeResolver, partagé
+            // avec le parcours Envies : la déduplication par libellé et le
+            // rattachement à l'Édition catalogue ne sont écrits qu'une fois, donc
+            // vouloir puis acheter un tome retombe forcément sur le MÊME Variant.
+            TomeResolver.Resolution tome = tomeResolver.resoudre(entity, volumeNumber, edition, volumeImageUrl);
+            variantId = tome.variant().id();
             // Un Variant déjà présent sur l'Entity ne veut pas forcément dire que ce
-            // tome précis est déjà possédé (il a pu être vendu/perdu depuis) - on ne
-            // signale un doublon que s'il en existe encore une Ownership active.
+            // tome précis est déjà possédé (il a pu être vendu/perdu depuis, ou
+            // n'avoir jamais été que voulu) - on ne signale un doublon que s'il en
+            // existe encore une Ownership active.
             UUID finalVariantId = variantId;
-            matchedExistingVariant = existingVariant.isPresent() && ownershipRepository.findByEntityId(entity.id()).stream()
+            matchedExistingVariant = tome.matchedExisting() && ownershipRepository.findByEntityId(entity.id()).stream()
                     .anyMatch(ownership -> ownership.isActive()
                             && ownership.variantId().map(finalVariantId::equals).orElse(false));
-
-            // Modèle catalogue cible (Série -> Édition -> Tome, étape 3) : quand une
-            // édition est renseignée, résout-ou-crée l'Édition catalogue correspondante
-            // et relie ce Tome dessus - même patron identifier-ou-créer que pour la
-            // Série/le Tome eux-mêmes ci-dessus, jamais de doublon d'Édition (unicité
-            // seriesTitle+editionName). Aucune tentative d'enrichissement externe ici
-            // (Jikan/Google Books/IA) - seulement le matching déjà en place, voir étape 7.
-            if (edition != null && !edition.isBlank()) {
-                UUID mangaEditionId = resolveOrCreateMangaEdition(entity, edition.trim());
-                entity.linkVariantToEdition(variantId, mangaEditionId);
-            }
         }
 
         Ownership ownership = Ownership.acquire(entity.id(), variantId, condition, LocalDate.now(), null);
@@ -185,7 +172,7 @@ public class QuickAddService {
 
         entityRepository.save(entity);
         ownershipRepository.save(ownership);
-        retirerDesEnvies(entity.id());
+        retirerDesEnvies(entity.id(), variantId);
 
         entity.pullDomainEvents().forEach(eventPublisher::publishEvent);
         ownership.pullDomainEvents().forEach(eventPublisher::publishEvent);
@@ -204,67 +191,22 @@ public class QuickAddService {
      * garantissait d'en oublier un.
      * <p>
      * Décision produit tranchée avec l'utilisateur : retirer plutôt que
-     * signaler. Elle a une conséquence à connaître - quelqu'un qui possède
-     * l'édition standard et souhaite la Perfect Edition perd son envie en
-     * ajoutant un tome de la standard, l'envie ne portant que sur l'ŒUVRE et
-     * jamais sur une édition précise (voir WishlistEntry).
+     * signaler. La conséquence gênante de la première version - acheter un
+     * tome effaçait l'envie de TOUTE la série - a disparu avec V21 : l'envie
+     * porte désormais sur un tome, et seul celui-là se referme.
      * <p>
      * Idempotent et silencieux : aucune envie pour cette œuvre est le cas de
      * loin le plus fréquent, ce n'est pas une anomalie.
      */
-    private void retirerDesEnvies(UUID entityId) {
-        wishlistEntryRepository.findByEntityId(entityId)
-                .ifPresent(entree -> wishlistEntryRepository.deleteById(entree.id()));
+    private void retirerDesEnvies(UUID entityId, UUID variantId) {
+        // L'envie qui se referme est celle de l'objet qu'on vient d'acquérir :
+        // le TOME s'il y en a un, l'œuvre sinon (type sans notion de tome).
+        // Acheter le tome 3 ne doit rien changer à l'envie du tome 7 - c'est
+        // tout l'intérêt d'avoir descendu l'envie au tome (voir V21).
+        Optional<WishlistEntry> aReferner = variantId != null
+                ? wishlistEntryRepository.findByVariantId(variantId)
+                : wishlistEntryRepository.findByEntityId(entityId);
+        aReferner.ifPresent(entree -> wishlistEntryRepository.deleteById(entree.id()));
     }
 
-    /**
-     * Identifier-ou-créer pour l'Édition catalogue, symétrique de la déduplication
-     * Série/Tome ci-dessus. Cherche par entityId D'ABORD (voir migration "Série ->
-     * Édition par ID", historique de la conversation) - entity.id() est connu avec
-     * certitude ici, jamais besoin de repasser par une correspondance de titre pour UNE
-     * Entity qu'on a déjà en main. Le repli par titre ne sert plus que pour une édition
-     * pas encore reliée (ex: créée depuis l'Analyse d'achat avant que cette série soit
-     * en collection) - reliée ici même, opportunistement, dès qu'elle est retrouvée
-     * ainsi : jamais l'inverse, on ne force jamais un entityId sur une édition qui en a
-     * déjà un différent. Sans ce repli par ID en premier, un renommage de Série aurait
-     * rendu une édition déjà reliée introuvable par entity.title() (désormais différent
-     * de l'ancien MangaEdition.seriesTitle, jamais mis à jour en cascade) et en aurait
-     * créé un doublon vide à chaque nouvel ajout. Une édition réellement nouvelle est
-     * créée avec le strict minimum connu (nom + tier OTHER, tout le reste null) - à
-     * enrichir plus tard, jamais deviné à la création.
-     */
-    private UUID resolveOrCreateMangaEdition(Entity entity, String editionName) {
-        Optional<MangaEdition> byId = mangaEditionRepository.findByEntityIdAndEditionName(entity.id(), editionName);
-        if (byId.isPresent()) {
-            return byId.get().id();
-        }
-        Optional<MangaEdition> existing = mangaEditionRepository.findBySeriesAndEdition(entity.title(), editionName);
-        if (existing.isPresent()) {
-            MangaEdition mangaEdition = existing.get();
-            if (mangaEdition.entityId() == null) {
-                mangaEdition = mangaEditionRepository.save(mangaEdition.withEntityId(entity.id()));
-            }
-            return mangaEdition.id();
-        }
-        MangaEdition created = MangaEdition.create(entity.id(), entity.title(), editionName, EditionTier.OTHER,
-                null, null, null, false, false, null);
-        return mangaEditionRepository.save(created).id();
-    }
-
-    private Map<String, Object> variantAttributes(int volumeNumber, String edition, String volumeImageUrl) {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("volumeNumber", volumeNumber);
-        if (edition != null && !edition.isBlank()) {
-            attributes.put("edition", edition.trim());
-        }
-        // Même clé que COVER_IMAGE_ATTRIBUTE_KEY côté web/iOS (voir
-        // lib/coverImage.ts) - convention partagée pour qu'une jaquette de
-        // Variant se lise avec exactement la même fonction qu'une jaquette
-        // d'Entity, seule la source (Entity.attributes vs Variant.attributes)
-        // change à l'appel.
-        if (volumeImageUrl != null && !volumeImageUrl.isBlank()) {
-            attributes.put("coverImageUrl", volumeImageUrl);
-        }
-        return attributes;
-    }
 }

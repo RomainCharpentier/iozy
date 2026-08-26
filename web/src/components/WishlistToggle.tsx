@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import { Heart, HeartOff } from 'lucide-react'
 import { useWishlist } from '../lib/useWishlist'
+import { useCollecteParTome } from '../lib/typeDeCollection'
 import type { WishlistTarget } from '../api/wishlist'
 
 /**
  * Le seul bouton « Envies » de l'application - même état, même libellé et même
- * retour visuel partout (fiche d'une œuvre, résultat de recherche local ou
- * externe, menu du scan). Toute la logique vit dans useWishlist.
+ * retour visuel partout (résultat de recherche local ou externe, menu du
+ * scan). Toute la logique vit dans useWishlist.
+ *
+ * <h2>Il porte sur l'ŒUVRE, donc il ne s'affiche pas partout</h2>
+ * Ce bouton ne vaut que pour un type qui se possède d'une seule pièce (jeu
+ * vidéo, jeu de société). Pour un manga, l'objet voulu est le TOME, et le
+ * seul endroit où on peut le désigner est la grille de la fiche - le bouton
+ * s'efface alors de lui-même (voir lib/typeDeCollection).
  *
  * Le bouton accepte les deux natures d'œuvre :
  * - `entityId` : l'œuvre a déjà une fiche IozyCore ;
@@ -21,13 +28,18 @@ import type { WishlistTarget } from '../api/wishlist'
  */
 export function WishlistToggle({
   entityId,
+  entityTypeId,
   external,
   variant = 'default',
 }: {
   entityId?: string
+  /** Le type de l'œuvre. Requis : c'est lui qui dit si l'œuvre est un objet
+   *  ou un groupe, et donc si ce bouton a lieu d'exister. */
+  entityTypeId: string
   external?: { entityTypeId: string; title: string; attributes?: Record<string, unknown> }
   variant?: 'default' | 'inline'
 }) {
+  const parTome = useCollecteParTome(entityTypeId)
   const wishlist = useWishlist()
   // Identité interne apprise en ajoutant une œuvre externe. Tant qu'elle est
   // inconnue, le bouton ne peut pas savoir si l'œuvre est en envies - ce qui
@@ -36,6 +48,12 @@ export function WishlistToggle({
   const idConnu = entityId ?? resoluEntityId
   const entry = idConnu ? wishlist.entryFor(idConnu) : undefined
   const dedans = !!entry
+
+  // Rien du tout sur une œuvre qui se collectionne par tome : la série y est
+  // un GROUPE, et vouloir un groupe ne veut rien dire - c'est le tome 47 qu'on
+  // veut, depuis la grille de la fiche. La règle tient ici plutôt qu'à chaque
+  // appel : trois surfaces posaient ce cœur, une quatrième l'aurait reposé.
+  if (parTome) return null
 
   const base = 'flex items-center gap-1.5 font-semibold transition-colors disabled:opacity-50'
   const taille =
@@ -53,7 +71,7 @@ export function WishlistToggle({
 
   async function basculer() {
     if (entry && idConnu) {
-      wishlist.remove(entry.id, idConnu)
+      wishlist.remove(entry.id, { entityId: idConnu })
       return
     }
     const cible: WishlistTarget | undefined = entityId

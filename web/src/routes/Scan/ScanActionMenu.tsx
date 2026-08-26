@@ -127,9 +127,10 @@ export function ScanActionMenu({
               externe, que le backend résout ou crée - sans possession. */}
           <div className="px-1 py-1">
             {existingEntity ? (
-              <WishlistToggle entityId={existingEntity.id} />
+              <WishlistToggle entityId={existingEntity.id} entityTypeId={entityTypeId} />
             ) : (
               <WishlistToggle
+                entityTypeId={entityTypeId}
                 external={{
                   entityTypeId,
                   title: candidate.title,

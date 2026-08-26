@@ -8,7 +8,14 @@ public interface WishlistEntryRepository {
 
     WishlistEntry save(WishlistEntry entry);
 
+    /** L'envie portant sur l'ŒUVRE entière (variantId vide) - types sans tome. */
     Optional<WishlistEntry> findByEntityId(UUID entityId);
+
+    /** L'envie portant sur CE tome précis. */
+    Optional<WishlistEntry> findByVariantId(UUID variantId);
+
+    /** Toutes les envies d'une œuvre, tomes compris - ce que la fiche affiche. */
+    List<WishlistEntry> findAllByEntityId(UUID entityId);
 
     /** Utilisé par le Bounded Context Insights (étape 8) pour calculer les statistiques. */
     List<WishlistEntry> findAll();

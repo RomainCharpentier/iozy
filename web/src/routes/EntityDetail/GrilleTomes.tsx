@@ -29,7 +29,8 @@ export function GrilleTomes({
   tuiles,
   tomeActif,
   onChoisirTome,
-  onAjouterAuxEnvies,
+  tomesVoulus,
+  onBasculerEnvie,
   modeEdition,
   onAjouterTome,
 }: {
@@ -40,7 +41,9 @@ export function GrilleTomes({
   tuiles: TomeTile[]
   tomeActif: number | null
   onChoisirTome: (numero: number) => void
-  onAjouterAuxEnvies: (numero: number) => void
+  /** Les identifiants des tomes de cette œuvre qui sont dans les envies. */
+  tomesVoulus: Set<string>
+  onBasculerEnvie: (numero: number) => void
   modeEdition: boolean
   onAjouterTome: () => void
 }) {
@@ -52,6 +55,10 @@ export function GrilleTomes({
     numero: tuile.volumeNumber,
     jaquetteUrl: tuile.variant ? coverImageUrlFrom(tuile.variant.attributes) : null,
     possede: tuile.status === 'owned',
+    // Un tome purement déduit n'a pas d'identité, donc rien à quoi rattacher
+    // une envie : il ne peut pas être voulu tant qu'il n'est pas catalogué -
+    // ce que « Je le veux » déclenche justement (voir TomeResolver).
+    voulu: !!tuile.variant && tomesVoulus.has(tuile.variant.id),
     actif: tuile.volumeNumber === tomeActif,
   }))
 
@@ -68,7 +75,11 @@ export function GrilleTomes({
         filtre={filtre}
         onFiltre={onFiltre}
         onActiver={(cle) => onChoisirTome(Number(cle))}
-        onEnvies={(cle) => onAjouterAuxEnvies(Number(cle))}
+        // « Je l'ai » ouvre le panneau du tome : posséder a des détails (état,
+        // prix, exemplaires passés) que vouloir n'a pas. « Je le veux », lui,
+        // n'a rien à demander et agit sur place.
+        onJeLAi={(cle) => onChoisirTome(Number(cle))}
+        onJeLeVeux={(cle) => onBasculerEnvie(Number(cle))}
         action={modeEdition ? { libelle: 'Ajouter un tome', onClick: onAjouterTome } : undefined}
       />
     </section>

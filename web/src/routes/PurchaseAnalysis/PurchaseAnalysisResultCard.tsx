@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Copy, ExternalLink, Heart, History, Scale, TriangleAlert, Info, CircleX } from 'lucide-react'
 import { useWishlist } from '../../lib/useWishlist'
+import type { WishlistTarget } from '../../api/wishlist'
 import { VerdictBadge } from './VerdictBadge'
 import { ListingAssessmentCard } from './ListingAssessmentCard'
 import { SeriesBreakdownItem } from './SeriesBreakdownItem'
@@ -73,9 +74,23 @@ export function PurchaseAnalysisResultCard({
   const [copied, setCopied] = useState(false)
   const { listing, negotiation } = analysis
 
-  const knownEntityIds = analysis.itemBreakdown
-    .map((item) => item.item.series.knownEntityId)
-    .filter((id): id is string => !!id)
+  /**
+   * Les TOMES du lot déjà rattachables à une fiche - pas les séries.
+   *
+   * Une annonce propose des tomes précis, et c'est le tome qui se veut : la
+   * série n'est qu'un groupe (étude produit du 2026-08-27). Une série sans
+   * tome détaillé dans l'annonce ne donne donc rien ici, faute d'objet à
+   * désigner.
+   */
+  const tomesDuLot: WishlistTarget[] = analysis.itemBreakdown.flatMap((entree) => {
+    const entityId = entree.item.series.knownEntityId
+    if (!entityId) return []
+    return entree.item.includedVolumes.map((volumeNumber) => ({
+      entityId,
+      volumeNumber,
+      edition: entree.item.editionNameRaw || undefined,
+    }))
+  })
 
   // "Analyse d'un lot" (brainstorm) - affiché seulement si au moins une série
   // du lot a un doublon, sinon ça ferait doublon (sans jeu de mots) avec le
@@ -248,13 +263,17 @@ export function PurchaseAnalysisResultCard({
         </button>
         <button
           type="button"
-          onClick={() => wishlist.addMany(knownEntityIds)}
-          disabled={knownEntityIds.length === 0 || wishlist.isPending}
-          title={knownEntityIds.length === 0 ? "Aucune série de ce lot n'est encore dans ta collection ni dans tes envies" : undefined}
+          onClick={() => wishlist.addMany(tomesDuLot)}
+          disabled={tomesDuLot.length === 0 || wishlist.isPending}
+          title={
+            tomesDuLot.length === 0
+              ? "Aucun tome de ce lot ne se rattache à une fiche connue"
+              : `Ajouter les ${tomesDuLot.length} tomes de ce lot à mes envies`
+          }
           className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
           <Heart size={15} />
-          Ajouter à mes envies
+          {tomesDuLot.length > 1 ? `Vouloir ces ${tomesDuLot.length} tomes` : 'Ajouter à mes envies'}
         </button>
         <Link
           to="/purchase-analysis/history"
