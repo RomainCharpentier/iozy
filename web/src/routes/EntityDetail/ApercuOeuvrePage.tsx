@@ -94,6 +94,9 @@ export function ApercuOeuvrePage() {
     titre,
     attributs,
     actif: entityTypeId !== '' && titre !== '',
+    // Tant que la recherche n'a pas répondu, `attributs` est vide : ajouter
+    // maintenant créerait une œuvre sans jaquette ni auteur.
+    attributsEnCours: !candidatRecu && rechercheQuery.isLoading,
     // Le premier tome ajouté crée la fiche : on quitte l'aperçu pour elle,
     // en remplaçant l'entrée d'historique - revenir en arrière doit ramener
     // à la recherche, pas à un aperçu d'une œuvre désormais possédée.

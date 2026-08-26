@@ -40,6 +40,7 @@ export function usePropositionTomes({
   attributs,
   entityId,
   actif,
+  attributsEnCours = false,
   onAjoute,
 }: {
   entityTypeId: string
@@ -51,6 +52,11 @@ export function usePropositionTomes({
    *  `quickAdd` créera l'Entity par (type, titre) à ce moment-là. */
   entityId?: string
   actif: boolean
+  /** Les attributs ne sont pas encore connus (aperçu dont la recherche de
+   *  métadonnées n'a pas répondu). L'ajout est retenu : il les recopie sur
+   *  l'Entity qu'il crée, et une fiche sans jaquette ni auteur est très
+   *  pénible à rattraper ensuite. */
+  attributsEnCours?: boolean
   /** Appelé après un ajout réussi, avec l'identifiant de la fiche - c'est là
    *  que l'aperçu bascule vers la vraie fiche. */
   onAjoute?: (entityId: string) => void
@@ -206,7 +212,8 @@ export function usePropositionTomes({
           prix={prix}
           onPrix={setPrix}
           enCours={ajout.isPending}
-          erreur={ajout.isError ? ajout.error.message : null}
+          attente={attributsEnCours}
+        erreur={ajout.isError ? ajout.error.message : null}
           onToutDeselectionner={() => setSelection(new Set())}
           onAjouter={() => ajout.mutate()}
         />
