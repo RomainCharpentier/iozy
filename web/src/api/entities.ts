@@ -5,6 +5,23 @@ export function quickAdd(body: QuickAddRequest): Promise<QuickAddResponse> {
   return post<QuickAddResponse>('/entities/quick-add', body)
 }
 
+/**
+ * Retrouve ou crée la fiche d'une œuvre, SANS créer la moindre possession.
+ *
+ * C'est ce qui permet d'ouvrir la fiche d'une œuvre qu'on ne possède pas
+ * encore : consulter un résultat de recherche mène désormais à la même page
+ * que pour une œuvre collectionnée (voir EntityDetailPage), simplement vide.
+ * La résolution se fait par (type, titre) côté backend - regarder deux fois
+ * la même œuvre ne crée pas deux fiches.
+ */
+export function resolveEntity(
+  entityTypeId: string,
+  title: string,
+  attributes: Record<string, unknown>,
+): Promise<EntityResponse> {
+  return post<EntityResponse>('/entities/resolve', { entityTypeId, title, attributes })
+}
+
 export function getEntity(id: string): Promise<EntityResponse> {
   return get<EntityResponse>(`/entities/${id}`)
 }

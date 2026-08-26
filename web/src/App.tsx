@@ -25,7 +25,6 @@ function page<M extends Record<string, unknown>, K extends keyof M>(
 // page d'accueil, et la charger en différé ne ferait qu'ajouter une attente
 // là où il n'y a rien à économiser.
 const SearchPage = page(() => import('./routes/QuickAdd/SearchPage'), 'SearchPage')
-const AddDraftPage = page(() => import('./routes/QuickAdd/AddDraftPage'), 'AddDraftPage')
 const EntityDetailPage = page(() => import('./routes/EntityDetail/EntityDetailPage'), 'EntityDetailPage')
 const DiscoverPage = page(() => import('./routes/Discover/DiscoverPage'), 'DiscoverPage')
 const TierListsScreen = page(() => import('./routes/TierLists/TierListsScreen'), 'TierListsScreen')
@@ -104,7 +103,6 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<ShelfPage />} />
                   <Route path="/add" element={<SearchPage />} />
-                  <Route path="/add/draft" element={<AddDraftPage />} />
                   <Route path="/entity/:id" element={<EntityDetailPage />} />
                   <Route path="/discover" element={<DiscoverPage />} />
                   <Route path="/tier-lists" element={<TierListsScreen />} />

@@ -25,6 +25,13 @@ public final class EntityDtos {
      * jaquette de la série éventuellement présente dans attributes.
      * purchasePrice est optionnel (voir Ownership.updatePurchasePrice) - jamais
      * deviné, reste modifiable après coup via PATCH /api/ownerships/{id}/purchase-price. */
+    /** Ouvrir la fiche d'une œuvre pas encore possédée (voir
+     *  EntityController.resolve). `attributes` porte ce que le fournisseur a
+     *  déjà donné - jaquette, auteur, identifiants - pour que la fiche ne
+     *  s'ouvre pas vide en attendant une seconde recherche. */
+    public record ResolveEntityRequest(UUID entityTypeId, String title, Map<String, Object> attributes) {
+    }
+
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
                                    Map<String, Object> attributes, Integer volumeNumber, String edition,
                                    String volumeImageUrl, BigDecimal purchasePrice) {

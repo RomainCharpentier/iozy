@@ -3,14 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, HelpCircle, SkipForward, XCircle } from 'lucide-react'
 import { lookupBarcode } from '../../api/metadata'
-import { quickAdd, searchEntities } from '../../api/entities'
+import { quickAdd, resolveEntity, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { Chip } from '../../components/Chip'
 import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { CameraBarcodeScanner } from './CameraBarcodeScanner'
 import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
-import type { DraftLocationState } from '../QuickAdd/draftState'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
@@ -250,11 +249,17 @@ export function ScanPage() {
           busy={adding}
           onAdd={addPending}
           onSkip={skipPending}
-          onOpenDraft={() =>
-            navigate('/add/draft', {
-              state: { entityTypeId: mangaType.id, candidate: pending.candidate } satisfies DraftLocationState,
-            })
-          }
+          // Ouvrir la fiche de l'œuvre scannée, possédée ou non : il n'y a
+          // plus d'écran d'ajout séparé (voir SearchPage.ouvrirFiche).
+          onOpenDraft={() => {
+            void resolveEntity(
+              mangaType.id,
+              pending.candidate.title,
+              pending.candidate.imageUrl
+                ? { ...pending.candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: pending.candidate.imageUrl }
+                : pending.candidate.attributes,
+            ).then((entity) => navigate(`/entity/${entity.id}`))
+          }}
           onOpenEntity={(entityId) => navigate(`/entity/${entityId}`)}
         />
       )}

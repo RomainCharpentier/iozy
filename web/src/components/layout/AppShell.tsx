@@ -86,12 +86,10 @@ export const CLASSE_CONTENU_BANDE =
  * deux derniers tant que leur propre mise en page n'est pas retravaillée
  * (voir EntityDetailPage - hors périmètre pour l'instant). */
 function contentWidthFor(pathname: string): ContentWidth {
-  // La fiche d'une œuvre a sa propre largeur - voir `detail` ci-dessus.
-  // `/add/draft` la partage : depuis qu'il compose le même hero, les mêmes
-  // cartes d'édition et la même grille, c'est la MÊME page à un autre moment
-  // (avant que l'œuvre existe). Le laisser en `narrow` donnerait une bande
-  // pleine largeur au-dessus d'une colonne de 672px.
-  if (pathname.startsWith('/entity/') || pathname === '/add/draft') return 'detail'
+  // La fiche d'une œuvre a sa propre largeur - voir `detail` ci-dessus. Elle
+  // sert aussi bien à une œuvre collectionnée qu'à une œuvre qu'on vient
+  // d'ouvrir depuis la recherche : il n'y a plus d'écran d'ajout séparé.
+  if (pathname.startsWith('/entity/')) return 'detail'
   if (
     pathname === '/' ||
     pathname.startsWith('/discover') ||
