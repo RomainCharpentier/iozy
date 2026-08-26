@@ -129,10 +129,15 @@ export function CartesEditions({
                     </span>
                   )}
                 </span>
+                {/* Ce qu'on sait de l'édition. Quand on n'en sait rien, une
+                    invitation plutôt qu'un constat : « Éditeur et nombre de
+                    tomes non renseignés » énonçait un manque sans dire qu'on
+                    peut le combler - le crayon de correction est juste à
+                    côté, dans « L'œuvre ». */}
                 <span className="text-[12.5px] text-faint">
                   {[edition.editeur, edition.total !== null ? `${edition.total} tomes` : null]
                     .filter(Boolean)
-                    .join(' · ') || 'Éditeur et nombre de tomes non renseignés'}
+                    .join(' · ') || 'Édition à renseigner'}
                 </span>
                 <span className="flex w-full items-center gap-2.5">
                   <span className="h-[5px] flex-1 overflow-hidden rounded-full bg-line">
@@ -148,8 +153,18 @@ export function CartesEditions({
                       edition.possedes > 0 ? 'text-accentText' : 'text-faint'
                     }`}
                   >
+                    {/* Pas de « 2/? » : un ratio dont le dénominateur est
+                        inconnu se lit comme une donnée manquante alors que le
+                        numérateur, lui, est parfaitement su. On affiche
+                        simplement ce qu'on a. Le total d'une édition n'est
+                        connu que renseigné (voir MangaEdition) - le déduire du
+                        nombre de tomes qu'une recherche a RAMENÉS
+                        empoisonnerait le moteur de complétude, qui s'en sert
+                        ensuite pour dire ce qui manque et ce qu'il en coûte. */}
                     <span aria-hidden="true">
-                      {edition.possedes}/{edition.total ?? '?'}
+                      {edition.total !== null
+                        ? `${edition.possedes}/${edition.total}`
+                        : `${edition.possedes} tome${edition.possedes > 1 ? 's' : ''}`}
                     </span>
                     <span className="sr-only">
                       {edition.possedes} tome{edition.possedes > 1 ? 's' : ''}{' '}
