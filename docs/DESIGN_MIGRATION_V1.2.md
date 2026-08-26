@@ -76,6 +76,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 26. Fiche refaite d'après la BONNE planche (« multi-éditions »), et « édition suivie » devenue une vraie donnée — **fait** — voir ci-dessous
 27. « Envies d'amélioration » retirée de l'interface : livrée mais sans conséquence — **fait** — voir ci-dessous
 28. Une seule grille de tomes pour la fiche et l'ajout — **fait** — voir ci-dessous
+29. `/add/draft` supprimé : on ouvre la fiche d'une œuvre qu'on ne possède pas — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -598,6 +599,76 @@ jamais un seul badge à double sens.
   règle ci-dessus est bien celle qui s'applique. Aucune donnée réelle touchée,
   `window.fetch` restauré.
 - Aucun débordement horizontal sur les deux écrans à 1265px.
+
+### Lot 29 — la fiche d'une œuvre qu'on ne possède pas
+
+Demandé par l'utilisateur : « add/draft devrait retirer vers la page de
+détails, on peut voir la page de détail sans avoir dans la collection le
+truc ». Les Lots 28 et le précédent avaient mutualisé la grille puis la
+composition de la page ; il restait deux écrans. Il n'en reste qu'un.
+
+#### Ce que le modèle permettait déjà
+
+`Entity` != `Ownership` est un invariant de ce dépôt : une fiche sans la
+moindre possession est un état normal — c'est déjà celui d'une œuvre en
+envies, dont la fiche s'ouvre sans qu'on possède quoi que ce soit. Il ne
+manquait donc pas un modèle, seulement une porte : `POST /api/entities/resolve`,
+qui expose le `CatalogEntityResolver.resolveOrCreate` **déjà** utilisé par
+l'ajout rapide et la wishlist. Aucune Ownership créée, résolution par
+(type, titre), donc regarder deux fois la même œuvre ne crée pas deux fiches
+(vérifié : deux appels, même `id`).
+
+#### Le parcours
+
+Choisir un résultat de recherche → la fiche est résolue ou créée → on atterrit
+sur `/entity/:id`. Si le catalogue n'a aucun tome, la fiche interroge le
+fournisseur (`useTomesProposes`) et affiche ses éditions dans les mêmes cartes,
+ses tomes dans la même grille en mode sélection, et une barre d'ajout qui
+n'apparaît qu'une fois quelque chose de coché. `AddDraftPage`, `draftState.ts`
+et la route `/add/draft` sont supprimés ; `ScanPage` mène au même endroit.
+
+Plus aucun `location.state` : les indices de recherche (mangaka, malId,
+titleRomaji) sont déjà dans les attributs de la fiche. Un lien vers une fiche
+est donc partageable et rechargeable, ce que le brouillon n'était pas —
+il affichait « Aucune sélection en cours » après un simple F5.
+
+#### Deux bugs de titre, dont un pré-existant
+
+En vérifiant en direct, la fiche créée s'appelait
+**« Boruto (Boruto: Two Blue Vortex) »** et sa recherche de tomes ne trouvait
+plus rien. Cause : j'avais utilisé `candidateDisplayTitle`, qui compose
+« Titre (Autre titre, …) » **pour la liste de résultats**. Sa documentation le
+disait déjà noir sur blanc — « jamais intégré au titre réellement
+saisi/sauvegardé (voir `resolvePrimaryTitle`) ». Corrigé : c'est
+`resolvePrimaryTitle` qui nomme la fiche.
+
+Le même appel fautif existait **avant ce lot** sur le cœur « envies » de la
+liste de résultats : ajouter aux envies depuis la recherche persistait le
+libellé composé. Inoffensif tant que rien d'autre ne résolvait par titre ;
+franchement nocif depuis que la fiche le fait — les deux chemins auraient créé
+deux fiches pour la même œuvre. Corrigé aussi.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` et **la suite backend
+complète** : verts. En direct :
+
+- `POST /entities/resolve` deux fois → même `id`, `variants: []`, aucune
+  possession ; type inconnu et titre vide → 400.
+- Recherche « Boruto » → clic → `/entity/9be55477…` affichant
+  `MANGA · Boruto · Masashi Kishimoto · En cours · Depuis 2023`,
+  `ÉDITIONS · 2` (14 et 5 tomes), « Quels tomes possèdes-tu ? », filtres et
+  grille numérotée.
+- Deux tuiles cochées → `aria-pressed=true`, la jauge de la carte passe à
+  « 2/14 · 2 tomes sélectionnés sur 14 », la barre d'ajout apparaît avec état,
+  prix et un bouton actif.
+- **L'écriture n'a pas été déclenchée**, et c'est délibéré : un ajout ne se
+  défait pas ici (`EntityDeletionService` refuse de supprimer une fiche qui
+  porte une Ownership, et une Ownership ne change que de statut). Le chemin
+  d'écriture lui-même est `quickAdd`, inchangé, celui que `/add/draft`
+  utilisait déjà. Seul son câblage est neuf.
+- Les deux fiches de test créées pendant la vérification ont été supprimées :
+  **état de départ restauré à l'identique**.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -2036,6 +2107,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- `candidateDisplayTitle` compose « Titre (Autre titre) » pour une LISTE ; ce qu'on persiste est toujours `resolvePrimaryTitle` (Lot 29). Deux chemins d'écriture s'étaient trompés, dont un depuis longtemps - et l'erreur ne se voit qu'au moment où un second chemin résout la même œuvre par son titre, et crée un doublon.
+- Un écran qui ne vit que par `location.state` (l'ancien `/add/draft`) n'est ni partageable ni rechargeable : F5 y affichait « Aucune sélection en cours ». Quand un écran mérite d'être revu ou envoyé, lui donner une vraie URL - ici, la fiche.
 - Avant de conclure « ces deux composants ne se factorisent pas », écrire la signature commune : au Lot 28 j'ai d'abord recommandé de ne partager que la coquille d'une tuile, et la fusion complète s'est révélée propre - une seule prop (`onEnvies`) est propre à un mode, tout le reste est commun. Le bon test n'est pas « les gestes diffèrent-ils ? » mais « la liste de props commune est-elle entière ? ».
 - Avant de retirer une fonctionnalité qui « ne sert à rien », TRACER ses lecteurs réels (`grep -rln` sur le dépôt du domaine, en excluant son propre paquet) : au Lot 27, `EditionUpgradeWish` n'était lu que par sa propre page et l'export, alors que `WishlistEntry` l'est par quatre modules dont Analyse d'achat. La comparaison chiffrée tranche mieux qu'une impression, et distingue « inutile » de « pas encore branché ».
 - Retirer une route sans page de repli laisse un `<main>` VIDE, pas une erreur : l'application n'avait aucun `Route path="*"` avant le Lot 27. Vérifier ce point à chaque suppression d'écran.

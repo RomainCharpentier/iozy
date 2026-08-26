@@ -54,6 +54,11 @@ export const queryKeys = {
     marketObservations: (mangaEditionId: string) =>
       ['purchaseAnalysis', 'marketObservations', mangaEditionId] as const,
   },
+  /** Les tomes qu'un fournisseur connaît pour une œuvre, que le catalogue n'a
+   *  pas encore (voir useTomesProposes). Clé par type ET titre : c'est ce
+   *  couple que la recherche interroge, et deux œuvres homonymes de types
+   *  différents n'ont pas les mêmes tomes. */
+  tomesProposes: (entityTypeId: string, titre: string) => ['tomesProposes', entityTypeId, titre] as const,
   /** L'édition suivie d'une série (voir api/followedEdition). Clé par série :
    *  la fiche, la grille de tomes et les cartes d'édition la lisent toutes,
    *  une seule requête pour les trois. */

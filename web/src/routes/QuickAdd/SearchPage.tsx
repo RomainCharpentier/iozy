@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, Scale, ScanBarcode, ScanLine } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata } from '../../api/metadata'
-import { searchEntities } from '../../api/entities'
+import { resolveEntity, searchEntities } from '../../api/entities'
 import { listAllOwnerships } from '../../api/ownerships'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
@@ -11,10 +11,9 @@ import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { Chip } from '../../components/Chip'
 import { WishlistToggle } from '../../components/WishlistToggle'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle } from '../../lib/titleLanguage'
+import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePrimaryTitle } from '../../lib/titleLanguage'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
 import { BarcodeLookupField } from './BarcodeLookupField'
-import type { DraftLocationState } from './draftState'
 import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
@@ -56,6 +55,10 @@ export function SearchPage() {
   const [title, setTitle] = useState('')
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
+  // La ligne en cours d'ouverture : créer la fiche est un aller-retour réseau,
+  // et un clic sans retour visuel se répète (donc crée, puis re-résout).
+  const [ouvertureEnCours, setOuvertureEnCours] = useState<string | null>(null)
+  const [erreurOuverture, setErreurOuverture] = useState<string | null>(null)
 
   useEffect(() => {
     if (!entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
@@ -131,9 +134,50 @@ export function SearchPage() {
     return () => controller.abort()
   }, [suggestionsQuery.data, entityTypeId, titleComposition])
 
-  function goToDraft(candidate: MetadataCandidateDto) {
-    const state: DraftLocationState = { entityTypeId: entityTypeId!, candidate }
-    navigate('/add/draft', { state })
+  /**
+   * Ouvrir un résultat mène à sa FICHE, possédée ou non - il n'y a plus
+   * d'écran d'ajout séparé. La fiche est créée si elle n'existe pas, sans
+   * aucune possession : c'est de là qu'on choisira les tomes qu'on a.
+   *
+   * <p>La fiche est créée sous le titre AFFICHÉ, celui que l'utilisateur
+   * vient de lire et de cliquer - jamais un titre re-résolu dans son dos. Le
+   * titre français des six premiers résultats est déjà connu ici (voir
+   * `frenchTitles`), et c'est lui qu'affiche la ligne cliquée.
+   */
+  async function ouvrirFiche(candidate: MetadataCandidateDto) {
+    if (!entityTypeId) return
+    setOuvertureEnCours(candidateKey(candidate))
+    try {
+      // `resolvePrimaryTitle` et NON `candidateDisplayTitle` : le second
+      // compose « Titre (Autre titre, Encore un autre) » pour la LISTE, et sa
+      // documentation dit déjà « jamais intégré au titre réellement
+      // sauvegardé ». Créer la fiche sous ce libellé donnait une œuvre nommée
+      // « Boruto (Boruto: Two Blue Vortex) », dont la recherche de tomes ne
+      // retrouvait plus rien - constaté en direct avant correction.
+      const titre = resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
+      const attributes = candidate.imageUrl
+        ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
+        : candidate.attributes
+      const entity = await resolveEntity(entityTypeId, titre, attributes)
+      navigate(`/entity/${entity.id}`)
+    } catch (erreur) {
+      setOuvertureEnCours(null)
+      setErreurOuverture(erreur instanceof Error ? erreur.message : "Impossible d'ouvrir cette fiche")
+    }
+  }
+
+  /** Saisie libre : aucun candidat, juste un titre. Même destination - la
+   *  fiche vide de l'œuvre, où l'on ajoutera ses tomes à la main. */
+  async function ouvrirFicheManuelle(titreManuel: string) {
+    if (!entityTypeId || !titreManuel.trim()) return
+    setOuvertureEnCours('manuel')
+    try {
+      const entity = await resolveEntity(entityTypeId, titreManuel.trim(), {})
+      navigate(`/entity/${entity.id}`)
+    } catch (erreur) {
+      setOuvertureEnCours(null)
+      setErreurOuverture(erreur instanceof Error ? erreur.message : "Impossible de créer cette fiche")
+    }
   }
 
   function goToEntity(entity: EntityResponse) {
@@ -176,6 +220,7 @@ export function SearchPage() {
 
       {entityTypesQuery.isLoading && <p className="text-sm text-textDim">Chargement des types...</p>}
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
+      {erreurOuverture && <ErrorBanner message={erreurOuverture} />}
 
       <div className="flex flex-wrap gap-2">
         {(entityTypesQuery.data ?? []).map((type) => (
@@ -210,7 +255,7 @@ export function SearchPage() {
           passe par les mêmes sources externes que la recherche (voir
           MetadataSearchService.lookupByBarcode), il ne peut rien trouver ici. */}
       {!requiresMatch ? null : showBarcodeLookup ? (
-        <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={goToDraft} />
+        <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={(candidat) => void ouvrirFiche(candidat)} />
       ) : (
         entityTypeId && (
           <button
@@ -268,7 +313,8 @@ export function SearchPage() {
       {!requiresMatch && title.trim().length > 0 && entityTypeId && (
         <button
           type="button"
-          onClick={() => navigate('/add/draft', { state: { entityTypeId, candidate: null, manualTitle: title.trim() } satisfies DraftLocationState })}
+          onClick={() => void ouvrirFicheManuelle(title)}
+          disabled={ouvertureEnCours !== null}
           className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk"
         >
           Ajouter « {title.trim()} »
@@ -292,7 +338,8 @@ export function SearchPage() {
               <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
                 <button
                   type="button"
-                  onClick={() => goToDraft(candidate)}
+                  onClick={() => void ouvrirFiche(candidate)}
+                  disabled={ouvertureEnCours !== null}
                   className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
                   <Jaquette
@@ -318,11 +365,14 @@ export function SearchPage() {
                   variant="inline"
                   external={{
                     entityTypeId: entityTypeId!,
-                    // Le titre envoyé est celui AFFICHÉ : c'est l'identité que
-                    // l'utilisateur vient de choisir, et c'est sur elle que
-                    // porte la déduplication côté backend.
-                    title: candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
-                    // Même règle que l'écran de saisie (AddDraftPage) : la
+                    // Le titre PRIMAIRE, pas celui affiché : la ligne montre
+                    // « Titre (Autre titre) » pour aider à reconnaître l'œuvre,
+                    // mais c'est sur le titre seul que porte la déduplication
+                    // côté backend. Envoyer le libellé composé créait une
+                    // seconde fiche pour la même œuvre dès qu'un autre chemin
+                    // (ouvrir la fiche, ajout rapide) utilisait le titre nu.
+                    title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
+                    // Même règle que partout ailleurs : la
                     // jaquette du candidat est persistée sous la clé
                     // partagée, sans quoi l'œuvre apparaîtrait sans visuel
                     // dans les Envies et dans la liste partagée.
