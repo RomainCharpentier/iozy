@@ -104,9 +104,9 @@ export function buildShelfTile(entity: EntityResponse, owned: Set<string>, editi
 
 /** null = complétude inconnue (pas de tome, éditions mélangées, ou édition
  * sans fiche de référence renseignée) - jamais devinée, voir isSeriesOngoing
- * pour le même principe. Réutilisé par le filtre "État de la collection" ET
- * par le calcul de `completeSeriesCount` existant (ShelfPage). */
-export function isComplete(entity: EntityResponse, owned: Set<string>, editionTotals: Map<string, number>): boolean | null {
+ * pour le même principe. Interne : seul `matchesCompletionFilter` ci-dessous
+ * s'en sert. */
+function isComplete(entity: EntityResponse, owned: Set<string>, editionTotals: Map<string, number>): boolean | null {
   if (entity.variants.length === 0) return null
   const total = editionTotalFor(entity, editionTotals)
   if (total === null) return null

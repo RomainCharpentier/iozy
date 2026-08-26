@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { BookOpenCheck, PackageSearch, Sparkles, X } from 'lucide-react'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
@@ -8,7 +7,7 @@ import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../ty
 import type { PriceBasis } from '../../types/purchaseAnalysis'
 
 /**
- * L'assistant de la fiche : deux questions FIXES, dont la réponse est
+ * Les réponses de l'assistant : deux questions FIXES, dont la réponse est
  * CALCULÉE à partir des données déjà chargées par la page - jamais une saisie
  * libre, jamais un appel à un modèle de langage, jamais une réponse rédigée
  * d'avance (commentaire source de la maquette V1.2 : « Assistant : contextuel,
@@ -34,67 +33,6 @@ import type { PriceBasis } from '../../types/purchaseAnalysis'
  */
 export type QuestionAssistant = 'missing' | 'reading'
 
-const QUESTIONS: { cle: QuestionAssistant; court: string; icone: typeof PackageSearch }[] = [
-  { cle: 'missing', court: 'Que me manque-t-il ?', icone: PackageSearch },
-  { cle: 'reading', court: 'Où en suis-je ?', icone: BookOpenCheck },
-]
-
-/** Les pastilles de l'assistant, telles qu'elles vivent dans la barre de
- *  sections : une seule au repos, les deux questions quand elle est ouverte. */
-export function BoutonsAssistant({
-  ouvert,
-  question,
-  onOuvrir,
-  onFermer,
-  onQuestion,
-}: {
-  ouvert: boolean
-  question: QuestionAssistant | null
-  onOuvrir: () => void
-  onFermer: () => void
-  onQuestion: (question: QuestionAssistant) => void
-}) {
-  if (!ouvert) {
-    return (
-      <button
-        type="button"
-        onClick={onOuvrir}
-        aria-expanded={false}
-        className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-accentTint px-4 text-[13px] font-medium whitespace-nowrap text-accentText"
-      >
-        <Sparkles size={15} className="shrink-0" />
-        Demander à l'assistant
-      </button>
-    )
-  }
-
-  return (
-    <>
-      {QUESTIONS.map(({ cle, court, icone: Icone }) => (
-        <button
-          key={cle}
-          type="button"
-          onClick={() => onQuestion(cle)}
-          aria-expanded={question === cle}
-          className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3.5 text-[12.5px] font-medium whitespace-nowrap transition-colors ${
-            question === cle ? 'bg-accent text-accentInk' : 'bg-surface text-textDim shadow-token-sm'
-          }`}
-        >
-          <Icone size={14} className="shrink-0" />
-          {court}
-        </button>
-      ))}
-      <button
-        type="button"
-        onClick={onFermer}
-        aria-label="Fermer l'assistant"
-        className="flex h-11 w-8 shrink-0 items-center justify-center rounded-full text-faint"
-      >
-        <X size={14} />
-      </button>
-    </>
-  )
-}
 
 /** La réponse, posée juste sous la barre de sections. Séparée des boutons
  *  ci-dessus parce qu'elle ne tient pas dans une barre collante : elle fait

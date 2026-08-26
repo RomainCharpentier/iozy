@@ -544,9 +544,16 @@ export function EntityDetailPage() {
 
       <AideFlottante
         titreSerie={entity.title}
+        /* Les questions dépendent de ce que le type PERMET. « Que me
+           manque-t-il ? » se calcule sur la complétude d'une édition : posée
+           sur un jeu vidéo, elle répondait « Tes tomes n'ont pas d'édition
+           précisée… Renseigne l'édition sur un tome », c'est-à-dire du
+           vocabulaire manga devant une œuvre qui n'a ni tome ni édition.
+           Et « mes lectures » ne vaut que pour ce qui se lit - le type
+           déclare lui-même ses expériences (voir EntityType.allowedExperienceTypes). */
         questions={[
-          { cle: 'missing', libelle: 'Que me manque-t-il ?' },
-          { cle: 'reading', libelle: 'Où en suis-je dans mes lectures ?' },
+          ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
+          { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
         ]}
         question={question}
         onQuestion={setQuestion}
@@ -566,6 +573,26 @@ export function EntityDetailPage() {
       />
     </>
   )
+}
+
+/**
+ * L'intitulé de la question d'avancement, dans le vocabulaire du type.
+ *
+ * Un type déclare ses expériences (« Read », « Play », « Watch »…) : c'est la
+ * seule source qui sache si l'on LIT, JOUE ou REGARDE cette œuvre. À défaut,
+ * une formulation neutre - jamais « mes lectures » posé au hasard devant un
+ * jeu vidéo.
+ */
+function libelleQuestionExperiences(typesDExperience: string[]): string {
+  // Les codes réellement livrés par ce catalogue : READ (manga), PLAYED (jeu
+  // de société), FINISHED (jeu vidéo), plus ABANDONED/IN_PROGRESS partagés.
+  // Ces derniers décrivent un ÉTAT, pas un geste - ils ne nomment donc rien,
+  // et la formulation neutre prend le relais plutôt qu'un mot inventé.
+  const codes = typesDExperience.map((t) => t.toUpperCase())
+  if (codes.includes('READ')) return 'Où en suis-je dans mes lectures ?'
+  if (codes.includes('PLAYED')) return 'Où en suis-je dans mes parties ?'
+  if (codes.includes('WATCHED')) return 'Où en suis-je dans mes visionnages ?'
+  return 'Où en suis-je ?'
 }
 
 /** Les rouages recopiés d'un fournisseur - colonne SOURCE de la maquette.

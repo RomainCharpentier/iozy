@@ -129,15 +129,16 @@ export function CartesEditions({
                     </span>
                   )}
                 </span>
-                {/* Ce qu'on sait de l'édition. Quand on n'en sait rien, une
-                    invitation plutôt qu'un constat : « Éditeur et nombre de
-                    tomes non renseignés » énonçait un manque sans dire qu'on
-                    peut le combler - le crayon de correction est juste à
-                    côté, dans « L'œuvre ». */}
+                {/* Ce qu'on sait de l'édition - son ÉDITEUR et son nombre de
+                    tomes, pas son nom, qui est juste au-dessus. D'où
+                    « Détails à renseigner » et non « Édition à renseigner » :
+                    le second, posé sous « Crunchyroll », se lisait comme une
+                    contradiction (on nomme l'édition ET on dit qu'elle est à
+                    renseigner). Le crayon de correction est dans « L'œuvre ». */}
                 <span className="text-[12.5px] text-faint">
                   {[edition.editeur, edition.total !== null ? `${edition.total} tomes` : null]
                     .filter(Boolean)
-                    .join(' · ') || 'Édition à renseigner'}
+                    .join(' · ') || 'Détails à renseigner'}
                 </span>
                 <span className="flex w-full items-center gap-2.5">
                   <span className="h-[5px] flex-1 overflow-hidden rounded-full bg-line">
@@ -179,7 +180,13 @@ export function CartesEditions({
               {/* « Suivre » n'a de sens que sur une édition NOMMÉE : le groupe
                   des tomes sans édition précisée n'est pas une édition qu'on
                   peut collectionner, c'est le fourre-tout de ce qu'on ignore. */}
-              {modeEdition && onSuivre && onNePlusSuivre && edition.nom !== '' && (
+              {/* Plus derrière le pinceau : suivre une édition est la
+                  décision principale de cette rangée, et la cacher derrière un
+                  mode d'édition la rendait introuvable - la donnée persistée
+                  côté backend n'avait aucun chemin évident pour être posée.
+                  Affiché dès qu'il y a un CHOIX réel : avec une seule édition,
+                  déclarer laquelle on collectionne ne veut rien dire. */}
+              {editions.length > 1 && onSuivre && onNePlusSuivre && edition.nom !== '' && (
                 suivie ? (
                   <button
                     type="button"

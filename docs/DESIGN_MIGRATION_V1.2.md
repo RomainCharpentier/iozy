@@ -83,6 +83,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 33. Plus de « 2/? » : un ratio sans dénominateur — **fait** — voir ci-dessous
 34. L'aperçu promettait un ajout manuel qu'il n'offrait pas — **fait** — voir ci-dessous
 35. Signaler dans la recherche les œuvres déjà connues sans tome — **fait** — voir ci-dessous
+36. Audit transversal après la refonte : sept défauts trouvés, six corrigés — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -998,6 +999,113 @@ Quatre contrôles web et **suite backend complète** verts.
   recherche « Death Note » → mention absente partout **sauf** sur
   « Death Edge », effectivement déjà recherchée et sans tome. Signal par
   ligne, jamais global.
+
+### Lot 36 — audit transversal après la refonte
+
+Demandé après une session de refonte lourde : « y'a plein d'incohérences et de
+mécanismes qui fonctionnent mal, fais un tour de toute l'app ». Vingt écrans
+parcourus, plus un balayage statique (routes sans point d'entrée, exports sans
+importateur, endpoints sans appelant).
+
+#### Ce qui allait déjà
+
+Les 20 écrans rendent, un `<h1>` chacun, **aucune erreur console**, **aucun
+débordement horizontal** ni à 1280 ni à 375px. Deux routes sans lien interne,
+toutes deux normales : `*` (repli, Lot 27) et `/public/share/:token` (lien
+partagé, atteint de l'extérieur).
+
+#### 1. L'aperçu mentait sur une œuvre déjà possédée
+
+`/apercu?type=…&titre=Naruto` affichait « Cette œuvre n'est pas encore dans ta
+collection » devant une série de 3 tomes possédés. Régression du Lot 31 : la
+recherche évite le cas en séparant « Déjà dans IozyCore », mais l'URL est
+partageable et atteignable au retour arrière.
+
+Corrigé : l'aperçu cherche une fiche de même (type, titre) et s'efface devant
+elle (`replace: true` — revenir en arrière doit ramener d'où l'on vient, pas à
+un aperçu qui redirigerait aussitôt).
+
+#### 2. L'assistant parlait manga devant un jeu vidéo
+
+Sur *Breath of the Wild* : « Où en suis-je dans mes **lectures** ? » et, en
+réponse, « Tes **tomes** n'ont pas d'édition précisée… Renseigne l'**édition**
+sur un **tome** ». Il était rendu sans aucune condition de type.
+
+Corrigé : « Que me manque-t-il ? » n'apparaît que s'il existe une édition à
+compléter, et l'intitulé d'avancement suit les expériences DÉCLARÉES par le
+type (`READ` → lectures, `PLAYED` → parties). `ABANDONED`/`IN_PROGRESS`
+décrivent un état et non un geste : ils ne nomment rien, la formulation neutre
+prend le relais plutôt qu'un mot inventé.
+
+#### 3. « Possédés » ne voulait pas dire la même chose sur deux écrans
+
+Statistiques affichait **10 Possédés** (des exemplaires), Ma collection **5
+titres possédés** (des œuvres). Les deux chiffres justes, le même mot.
+Renommés « Œuvres au catalogue » et « Exemplaires possédés » — « Entités »
+disait par ailleurs le nom de la table, pas celui de la chose.
+
+#### 4. Une édition nommée qu'on disait « à renseigner »
+
+Chainsaw Man affichait `Crunchyroll` puis, dessous, `Édition à renseigner` —
+formulation du Lot 33, qui parlait des DÉTAILS (éditeur, nombre de tomes) mais
+se lisait comme une contradiction avec le nom juste au-dessus. Devenue
+« Détails à renseigner ».
+
+#### 5. « Suivre cette édition » était introuvable
+
+La donnée persistée au Lot 26 (migration, table, endpoint) n'avait pour seul
+chemin qu'un bouton pinceau que rien n'annonçait. Le contrôle s'affiche
+désormais dès qu'il y a un CHOIX réel, c'est-à-dire plus d'une édition — avec
+une seule, déclarer laquelle on collectionne ne veut rien dire.
+
+#### 6. Fiches sans aucun lien réel, annoncées comme connues
+
+« One Piece » et « One Piece: Strong World » : zéro tome, zéro possession, pas
+en envies. Elles s'annonçaient sous « Déjà dans IozyCore » et ouvraient une
+fiche vide. **Décision utilisateur : les masquer de la recherche locale**, sans
+rien supprimer — une fiche doit avoir au moins un tome catalogué, une
+possession ou une envie pour se présenter comme un résultat.
+
+#### 7. Possédé ET en envies
+
+« Death Note » et « Naruto » portaient les deux états. **Décision utilisateur :
+refermer l'envie à l'acquisition.** Placé dans `QuickAddService` et non côté
+web : quatre chemins créent une Ownership (fiche, aperçu, scan, saisie
+manuelle), les traiter un par un garantissait d'en oublier un.
+
+Conséquence à connaître : une envie ne porte que sur l'ŒUVRE, jamais sur une
+édition précise. Qui possède l'édition standard et veut la Perfect Edition perd
+son envie en ajoutant un tome de la standard. Les chevauchements **existants**
+ne sont pas nettoyés — la règle ne vaut que pour les acquisitions à venir.
+
+Le test `acheter_ensuite_l_oeuvre_reutilise_sa_fiche…` consignait le
+comportement inverse (« rien ne retire automatiquement une envie à l'achat, ce
+comportement est inchangé »). Il constatait l'état des lieux, il ne protégeait
+pas une règle : mis à jour, pas contourné.
+
+#### 8. Code mort
+
+`BoutonsAssistant` (reliquat du déplacement de l'assistant vers l'aide
+flottante, Lot 31) supprimé. `isComplete` n'était pas mort — mon script ne
+comptait que les usages externes, `matchesCompletionFilter` s'en sert dans le
+même fichier — simplement dé-exporté.
+
+#### Signalé, non traité : quatre endpoints sans appelant
+
+`GET /insights/progress`, `GET`+`PATCH /purchase-analysis/preferences`,
+`GET /wishlist/lookup`. (`/edition-upgrade-wishes` est le retrait délibéré du
+Lot 27.) Chacun porte une suite de tests de contrat ; les supprimer est une
+décision à part, comme au Lot 27.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` et **suite backend complète**
+verts. En direct après redéploiement : `/apercu?titre=Naruto` redirige vers
+`/entity/6e46b1c2…` ; l'assistant de Zelda n'offre plus que « Où en suis-je ? » ;
+« One Piece » ne fait plus apparaître le bloc « Déjà dans IozyCore ».
+Fermeture de l'envie vérifiée sur une œuvre jetable (`Zzz Audit Envie`) : envie
+présente, tome ajouté, envie absente — puis fiche supprimée par la cascade.
+**État final identique à l'état initial** : 8 œuvres, 2 envies.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -2436,6 +2544,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un test peut CONSIGNER un comportement sans le protéger : `WishlistWithoutOwnershipIntegrationTest` affirmait « rien ne retire automatiquement une envie à l'achat, ce comportement est inchangé ». Lire l'intention du commentaire avant de conclure qu'un test bloque un changement produit (Lot 36).
+- Un audit d'exports morts doit compter les usages DANS le fichier lui-même : `isComplete` paraissait mort alors que `matchesCompletionFilter`, deux fonctions plus bas, s'en sert (Lot 36).
 - Savoir si une œuvre a des tomes coûte huit requêtes Google Books (recherche de tomes, `GoogleBooksVolumeSearchProvider`) : toute fonctionnalité qui voudrait le savoir POUR UNE LISTE doit passer par le seul cache durable (`volume_search_cache`, où une liste vide est mémorisée), jamais par un appel par ligne. Et `totalVolumes` n'est pas un substitut - il vient du catalogue japonais, pas des éditions françaises indexées (Lot 35).
 - L'ajout d'un tome EST réversible, contrairement à ce que deux lots ont affirmé : `DELETE /api/ownerships/{id}`, puis `DELETE /api/entities/{id}/variants/{id}`, et `VariantDeletionService` cascade jusqu'à supprimer l'Édition orpheline puis la Série vide. Vérifier un chemin d'écriture en direct est donc possible - lire la règle de suppression avant de renoncer (Lot 32).
 - Un écran dont une partie ne dépend que d'un identifiant faible (ici le titre) peut devenir actionnable AVANT que le reste de ses données soit chargé. L'aperçu proposait ses tomes avant de connaître l'œuvre, et l'ajout persistait un sac d'attributs vide. Retenir l'action, pas seulement afficher un chargement (Lot 32).
