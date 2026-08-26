@@ -42,10 +42,10 @@ type ContentWidth = 'wide' | 'detail' | 'medium' | 'narrow'
  * avec un container wide=1600px doit occuper ~1152px, pas déborder) ; mobile
  * = pleine largeur + 16px de marge fixe (voir la refonte layout demandée). */
 const CONTAINER_CLASS: Record<ContentWidth, string> = {
-  wide: 'grid grid-cols-[1fr_min(100%_-_2rem,1600px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1600px)_1fr]',
-  detail: 'grid grid-cols-[1fr_min(100%_-_2rem,1320px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1320px)_1fr]',
-  medium: 'grid grid-cols-[1fr_min(100%_-_2rem,960px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,960px)_1fr]',
-  narrow: 'grid grid-cols-[1fr_min(100%_-_2rem,672px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,672px)_1fr]',
+  wide: 'grid grid-cols-[1fr_min(100%_-_2rem,1600px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1600px)_1fr] [--largeur-page:1600px]',
+  detail: 'grid grid-cols-[1fr_min(100%_-_2rem,1320px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,1320px)_1fr] [--largeur-page:1320px]',
+  medium: 'grid grid-cols-[1fr_min(100%_-_2rem,960px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,960px)_1fr] [--largeur-page:960px]',
+  narrow: 'grid grid-cols-[1fr_min(100%_-_2rem,672px)_1fr] md:grid-cols-[1fr_min(100%_-_3rem,672px)_1fr] [--largeur-page:672px]',
 }
 
 /**
@@ -71,8 +71,15 @@ export const CLASSE_BANDE_PLEINE_LARGEUR = 'col-span-full'
 
 /** Le conteneur intérieur d'une bande pleine largeur : ramène son contenu à
  *  la largeur exacte de la colonne du milieu, pour que rien ne se décale par
- *  rapport au reste de la page. */
-export const CLASSE_CONTENU_BANDE = 'mx-auto w-[calc(100%_-_2rem)] md:w-[min(100%_-_3rem,1320px)]'
+ *  rapport au reste de la page.
+ *
+ *  Passe par `--largeur-page`, posée juste au-dessus par la même entrée de
+ *  CONTAINER_CLASS : sans elle, une bande recopierait en dur la largeur de
+ *  l'écran pour lequel elle a été écrite, et se décalerait dès qu'on la
+ *  réutilise ailleurs - ce qui est exactement ce qu'on fait en la partageant
+ *  entre la fiche et l'écran d'ajout. */
+export const CLASSE_CONTENU_BANDE =
+  'mx-auto w-[calc(100%_-_2rem)] md:w-[min(100%_-_3rem,var(--largeur-page))]'
 
 /** `/entity/:id` couvre tous les types (Manga/Jeu vidéo/Jeu de société
  * partagent la même route) : la largeur du container est neutre pour ces
@@ -80,7 +87,11 @@ export const CLASSE_CONTENU_BANDE = 'mx-auto w-[calc(100%_-_2rem)] md:w-[min(100
  * (voir EntityDetailPage - hors périmètre pour l'instant). */
 function contentWidthFor(pathname: string): ContentWidth {
   // La fiche d'une œuvre a sa propre largeur - voir `detail` ci-dessus.
-  if (pathname.startsWith('/entity/')) return 'detail'
+  // `/add/draft` la partage : depuis qu'il compose le même hero, les mêmes
+  // cartes d'édition et la même grille, c'est la MÊME page à un autre moment
+  // (avant que l'œuvre existe). Le laisser en `narrow` donnerait une bande
+  // pleine largeur au-dessus d'une colonne de 672px.
+  if (pathname.startsWith('/entity/') || pathname === '/add/draft') return 'detail'
   if (
     pathname === '/' ||
     pathname.startsWith('/discover') ||

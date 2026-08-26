@@ -35,6 +35,7 @@ export function FicheHero({
   onEvaluer,
   actionEnvies,
   editions,
+  colleEnHaut = true,
 }: {
   teinte: [number, number, number]
   /** Le type de collection en petites capitales au-dessus du titre. */
@@ -47,16 +48,24 @@ export function FicheHero({
   annees: string | null
   couvertureUrl: string | null
   repliCouverture: ReactNode
-  onCouverture: () => void
-  /** null pour un type sans notion d'annonce à évaluer. */
-  onEvaluer: (() => void) | null
-  actionEnvies: ReactNode
+  /** Absent quand il n'y a rien à corriger : sur l'écran d'ajout l'œuvre
+   *  n'existe pas encore, sa jaquette vient du candidat choisi. La jaquette
+   *  cesse alors d'être un bouton plutôt que d'en rester un qui ne fait rien. */
+  onCouverture?: () => void
+  /** null pour un type sans notion d'annonce à évaluer, et à l'ajout. */
+  onEvaluer?: (() => void) | null
+  actionEnvies?: ReactNode
   /** La rangée « ÉDITIONS · n » (voir CartesEditions), absente pour un type
    *  qui n'a pas d'éditions. */
-  editions: ReactNode
+  editions?: ReactNode
+  /** La bande remonte sous l'en-tête en annulant le `pt-6` de `<main>`, pour
+   *  qu'aucune bande de fond ne s'intercale. À mettre à false quand quelque
+   *  chose la précède dans la page (un lien de retour) : sinon elle lui
+   *  passerait par-dessus. */
+  colleEnHaut?: boolean
 }) {
   return (
-    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative -mt-6`}>
+    <section className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative ${colleEnHaut ? '-mt-6' : ''}`}>
       {/* Les deux couches de la maquette, dans l'ordre : le dégradé vertical
           qui pose l'ambiance, puis le lavis radial qui la casse pour qu'elle
           ne ressemble pas à un aplat. `-z-10` et non `z-0` : elles doivent
@@ -84,14 +93,20 @@ export function FicheHero({
       />
 
       <div className={`${CLASSE_CONTENU_BANDE} flex flex-wrap items-start gap-5 pt-6 md:gap-9`}>
-        <button
-          type="button"
-          onClick={onCouverture}
-          aria-label="Modifier la couverture de la série"
-          className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated"
-        >
-          <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
-        </button>
+        {onCouverture ? (
+          <button
+            type="button"
+            onClick={onCouverture}
+            aria-label="Modifier la couverture de la série"
+            className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated"
+          >
+            <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
+          </button>
+        ) : (
+          <div className="relative aspect-[2/3] w-[clamp(112px,15vw,188px)] shrink-0 overflow-hidden rounded-xl shadow-token-elevated">
+            <Jaquette src={couvertureUrl} repli={repliCouverture} className="absolute inset-0 h-full w-full object-cover" />
+          </div>
+        )}
 
         <div className="flex min-w-[280px] flex-1 flex-col gap-5">
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
@@ -120,6 +135,7 @@ export function FicheHero({
               )}
             </div>
 
+            {(onEvaluer || actionEnvies) && (
             <div className="flex shrink-0 items-center gap-2">
               {onEvaluer && (
                 <button
@@ -133,6 +149,7 @@ export function FicheHero({
               )}
               {actionEnvies}
             </div>
+            )}
           </div>
 
           {editions}

@@ -9,15 +9,17 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { Chip } from '../../components/Chip'
 import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
-import { VolumeSelectionGrid } from './VolumeSelectionGrid'
 import { volumeKey } from '../../lib/volumeKey'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
 import { isFrenchEnabled, resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
 import type { DraftLocationState } from './draftState'
 import type { VolumeCandidateDto } from '../../types/api'
-import { TexteCoupe } from '../../components/TexteCoupe'
-import { Jaquette } from '../../components/Jaquette'
+import { gradientFor } from '../../theme/gradient'
+import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
+import { FicheHero } from '../EntityDetail/FicheHero'
+import { CartesEditions, type EditionAffichee } from '../EntityDetail/CartesEditions'
+import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../components/GrilleVolumes'
 
 interface QuickAddOutcome {
   addedCount: number
@@ -76,6 +78,11 @@ export function AddDraftPage() {
   const [volumesQuotaExceeded, setVolumesQuotaExceeded] = useState(false)
   const [isSearchingVolumes, setIsSearchingVolumes] = useState(false)
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set())
+  // L'édition affichée et le filtre vivent ICI depuis que les cartes
+  // d'édition sont dans le hero et la grille en dessous : les deux doivent
+  // réagir au même choix, exactement comme sur la fiche.
+  const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
+  const [filtreTomes, setFiltreTomes] = useState<FiltreVolumes>('tous')
   const [showManualVolumeFields, setShowManualVolumeFields] = useState(false)
   const volumeSearchAbortRef = useRef<AbortController | null>(null)
   const [lastVolumeSearchParams, setLastVolumeSearchParams] = useState<{
@@ -221,6 +228,11 @@ export function AddDraftPage() {
     })
   }
 
+  const pickedCoverUrl = attributes ? coverImageUrlFrom(attributes) : null
+  // Avant le retour anticipé ci-dessous : un Hook ne peut pas être appelé
+  // conditionnellement, React rendrait moins de Hooks sans `state` qu'avec.
+  const teinte = useTeinteJaquette(pickedCoverUrl)
+
   // Pas de state reçu (accès direct à l'URL, ou rechargement de page - voir
   // draftState.ts, jamais persisté) : rien à afficher, retour à la
   // recherche plutôt qu'un écran cassé.
@@ -235,34 +247,89 @@ export function AddDraftPage() {
     )
   }
 
-  const pickedCoverUrl = attributes ? coverImageUrlFrom(attributes) : null
   const pickedAuthor = attributes ? creatorFrom(attributes) : null
   const totalVolumesToAdd = selectedVolumeKeys.size + manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
 
+  // Les candidats groupés par édition - la même forme que les groupes de la
+  // fiche, pour que les cartes d'édition ne sachent pas d'où elles viennent.
+  const editionsTrouvees: string[] = []
+  const parEdition = new Map<string, VolumeCandidateDto[]>()
+  for (const candidat of volumeCandidates) {
+    if (!parEdition.has(candidat.edition)) {
+      editionsTrouvees.push(candidat.edition)
+      parEdition.set(candidat.edition, [])
+    }
+    parEdition.get(candidat.edition)!.push(candidat)
+  }
+  // L'édition demandée peut disparaître quand une nouvelle recherche remplace
+  // les candidats : on retombe sur la première plutôt que sur un onglet mort.
+  const editionActive =
+    editionAffichee !== null && parEdition.has(editionAffichee) ? editionAffichee : editionsTrouvees[0]
+  const candidatsAffiches = parEdition.get(editionActive) ?? []
+
+  const cartesEditions: EditionAffichee[] = editionsTrouvees.map((nom) => ({
+    nom,
+    editeur: null,
+    total: parEdition.get(nom)!.length,
+    possedes: parEdition.get(nom)!.filter((v) => selectedVolumeKeys.has(volumeKey(v))).length,
+  }))
+
+  const volumesAffiches: VolumeAffiche[] = candidatsAffiches.map((candidat) => ({
+    cle: volumeKey(candidat),
+    numero: candidat.volumeNumber,
+    jaquetteUrl: candidat.imageUrl,
+    possede: candidat.alreadyOwned,
+    actif: selectedVolumeKeys.has(volumeKey(candidat)),
+  }))
+
   return (
-    <div className="flex flex-col gap-5">
+    // Un fragment, pas un `<div>` racine : la bande du hero traverse l'écran
+    // par `col-span-full`, ce qui suppose qu'elle soit un enfant DIRECT de la
+    // grille de `<main>` (voir AppShell). Enveloppée, elle restait sagement
+    // dans la colonne de contenu - défaut mesuré avant correction.
+    <>
       <button type="button" onClick={() => navigate('/add')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
         <ArrowLeft size={15} />
         Recherche
       </button>
 
-      <div className="flex items-center gap-3">
-        <Jaquette
-          src={pickedCoverUrl}
-          className="h-20 w-14 shrink-0 rounded-lg object-cover"
-          repli={<span className="h-20 w-14 shrink-0 rounded-lg bg-surface2" />}
-        />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <TexteCoupe as="h1" texte={title || '…'} className="truncate font-display text-xl font-bold text-textPrimary" />
-          {pickedAuthor && <TexteCoupe as="p" texte={pickedAuthor} className="truncate text-sm text-textDim" />}
-          {isTranslating && (
-            <p className="flex items-center gap-1.5 text-xs text-textDim">
-              <Loader2 size={11} className="animate-spin" />
-              Recherche du titre français...
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Exactement le hero de la fiche (voir FicheHero) : c'est la MÊME
+          œuvre, à un autre moment - avant qu'elle existe dans la collection.
+          Ni couverture corrigeable, ni « Évaluer », ni envies : ces actions
+          supposent une fiche, qui n'existe pas encore. Le hero les omet
+          plutôt que de les afficher inertes. */}
+      <FicheHero
+        teinte={teinte}
+        kicker={selectedType?.label ?? null}
+        titre={title || '…'}
+        auteur={pickedAuthor}
+        statut={null}
+        annees={null}
+        couvertureUrl={pickedCoverUrl}
+        repliCouverture={
+          <div className="absolute inset-0" style={{ background: gradientFor(title || 'Nouvelle œuvre') }} aria-hidden="true" />
+        }
+        editions={
+          cartesEditions.length > 0 ? (
+            <CartesEditions
+              editions={cartesEditions}
+              editionAffichee={editionActive}
+              onAfficher={setEditionAffichee}
+              sensProgression="selection"
+            />
+          ) : null
+        }
+        colleEnHaut={false}
+      />
+
+      <div className="flex flex-col gap-5">
+
+      {isTranslating && (
+        <p className="flex items-center gap-1.5 text-xs text-textDim">
+          <Loader2 size={11} className="animate-spin" />
+          Recherche du titre français...
+        </p>
+      )}
 
       {selectedType?.code === 'MANGA' && <p className="text-sm text-textDim">Quels tomes possèdes-tu ?</p>}
 
@@ -358,7 +425,18 @@ export function AddDraftPage() {
                 Quota Google Books dépassé - la dernière action n'a pas pu aboutir, réessaie plus tard.
               </p>
             )}
-            <VolumeSelectionGrid volumes={volumeCandidates} selectedKeys={selectedVolumeKeys} onToggle={toggleVolumeSelection} />
+            <GrilleVolumes
+              volumes={volumesAffiches}
+              mode="selection"
+              filtre={filtreTomes}
+              onFiltre={setFiltreTomes}
+              onActiver={toggleVolumeSelection}
+              videMessage={
+                filtreTomes === 'possedes'
+                  ? 'Aucun tome de cette édition ne figure déjà dans ta collection.'
+                  : 'Tu possèdes déjà tous les tomes trouvés pour cette édition.'
+              }
+            />
           </div>
         )}
 
@@ -490,6 +568,7 @@ export function AddDraftPage() {
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
