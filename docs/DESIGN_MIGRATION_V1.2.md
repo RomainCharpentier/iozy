@@ -81,6 +81,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 31. Consulter n'écrit plus rien : l'aperçu d'une œuvre, et l'ajout comme seule écriture — **fait** — voir ci-dessous
 32. L'ajout depuis l'aperçu, testé de bout en bout — un bug trouvé — **fait** — voir ci-dessous
 33. Plus de « 2/? » : un ratio sans dénominateur — **fait** — voir ci-dessous
+34. L'aperçu promettait un ajout manuel qu'il n'offrait pas — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -883,6 +884,54 @@ réécrivant à la volée les réponses `/completeness` et
 « navigateur de test »). `window.fetch` restauré, page rechargée, données
 réelles revenues (`Kana · 6 tomes`, `1/6`) et collection intacte à 8 œuvres.
 Plus aucun `/?` nulle part.
+
+### Lot 34 — « Tu peux les ajouter à la main », sans bouton pour le faire
+
+Signalé par l'utilisateur sur « Demon's Plan » : aucun tome trouvé chez les
+fournisseurs, le message invitait à en ajouter à la main, et **aucun bouton**
+ne le permettait.
+
+Cause : au Lot 31 j'avais conditionné la saisie manuelle à `entityId`, avec un
+commentaire affirmant qu'« elle suppose une fiche ». C'était faux, et le code
+le disait déjà : `AddVolumeSection` appelle `quickAdd({ entityTypeId, title })`,
+qui CRÉE l'Entity si elle n'existe pas. `entityId` ne lui servait qu'à
+rafraîchir des caches.
+
+Corrigé : `entityId` devient facultatif, les caches ne sont invalidés que
+lorsqu'il existe, et `onAjoute` remonte l'identifiant de la fiche née de
+l'ajout - l'aperçu bascule alors vers elle, comme après un ajout depuis la
+grille.
+
+Deuxième défaut du même endroit : `AddVolumeSection` n'envoyait **aucun**
+`attributes` à `quickAdd`. Sans conséquence tant qu'il ne servait que sur une
+fiche existante ; depuis un aperçu, il aurait créé une œuvre sans jaquette ni
+auteur - exactement le bug du Lot 32, par une autre porte. Les attributs sont
+désormais transmis.
+
+#### Vérifications
+
+Quatre contrôles web verts. Sur « Demon's Plan », de bout en bout :
+
+- le bouton « Ajouter un tome à la main » apparaît, et ouvre le formulaire
+  (État, Tome n°, Édition, Prix d'achat) ;
+- tome 1 / édition « Kana » ajouté → fiche créée avec **dix attributs**
+  (`coverImageUrl`, `malId`, `mangaka`, `mediaType`, `seriesStatus`,
+  `startYear`, `titleEnglish`, `titleJapanese`, `titleRomaji`, `totalVolumes`)
+  et bascule vers `/entity/eae2b044…` affichant « Yoshimichi Okamoto · Terminée
+  · 2016 · ÉDITIONS · 1 · Kana · 1 tome possédé » ;
+- **état restauré** : possession et tome supprimés, cascade jusqu'à la Série
+  (404), collection de nouveau à 8 œuvres.
+
+#### Sur « seul l'admin peut ajouter les tomes »
+
+Vérifié dans le code : **cette application n'a aucune notion de rôle**. Elle
+est mono-utilisateur, tout est rattaché à `DefaultOwner.ID` (un UUID nul par
+convention, en préparation d'un futur multi-utilisateur). N'importe quel
+tome s'ajoute depuis la fiche, depuis le scan ou depuis cet aperçu. Ce que
+l'écran « Administration avancée » contient (`/editions`, « Éditions de
+référence ») ne crée pas de tomes : il renseigne l'éditeur, le nombre de tomes
+et les alertes d'une ÉDITION - la donnée de référence qui alimente ensuite la
+progression X/Y et la complétude.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 

@@ -38,17 +38,27 @@ export function AddVolumeSection({
   entityId,
   entityTypeId,
   title,
+  attributes,
   ouvert,
   onFermer,
+  onAjoute,
 }: {
-  entityId: string
+  /** Absent depuis un aperçu : l'œuvre n'a pas encore de fiche, `quickAdd`
+   *  la créera. Ne sert qu'à rafraîchir les caches de la fiche courante. */
+  entityId?: string
   entityTypeId: string
   title: string
+  /** Recopiés sur l'Entity créée. Indispensables depuis un aperçu : sans eux
+   *  la fiche naîtrait sans jaquette ni auteur - même piège qu'au Lot 32. */
+  attributes?: Record<string, unknown>
   /** Ouvert/fermé décidé par « Mes tomes » : la maquette v4 place le
    *  déclencheur « Ajouter un tome » dans l'en-tête de la section, pas sous la
    *  grille - le formulaire, lui, reste ici, sous les tuiles qu'il complète. */
   ouvert: boolean
   onFermer: () => void
+  /** Appelé avec l'identifiant de la fiche après un ajout réussi - c'est ce
+   *  qui permet à un aperçu de basculer vers la fiche qui vient de naître. */
+  onAjoute?: (entityId: string) => void
 }) {
   const queryClient = useQueryClient()
   const [condition, setCondition] = useState<Condition>('NEW')
@@ -72,6 +82,7 @@ export function AddVolumeSection({
 
       let addedCount = 0
       let alreadyOwnedCount = 0
+      let identifiant = entityId
       // Séquentiel : voir QuickAddPage.tsx pour la même précaution (l'Entity
       // existe déjà ici, mais un Variant à créer par appel reste plus sûr
       // qu'un Promise.all en cas d'erreur partielle).
@@ -80,18 +91,23 @@ export function AddVolumeSection({
           entityTypeId,
           title,
           condition,
+          attributes,
           volumeNumber: item.volumeNumber,
           edition: item.edition || undefined,
           purchasePrice: parsedPurchasePrice,
         })
+        identifiant = result.entityId
         if (result.matchedExistingVariant) alreadyOwnedCount++
         else addedCount++
       }
-      return { addedCount, alreadyOwnedCount }
+      return { addedCount, alreadyOwnedCount, entityId: identifiant }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+    onSuccess: (resultat) => {
+      if (entityId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      }
+      if (resultat.entityId) onAjoute?.(resultat.entityId)
       // Ajouté ici pour s'aligner sur AddOwnershipForm/OwnershipDetails, qui
       // invalident les trois : cette clé alimente Ma collection et les
       // panneaux de sélection des Tier Lists (voir listAllOwnerships).

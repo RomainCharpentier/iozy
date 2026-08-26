@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
@@ -132,27 +133,29 @@ export function usePropositionTomes({
                 ? 'Quota Google Books dépassé pour le moment — impossible de vérifier les éditions françaises. Tu peux ajouter un tome à la main, ou réessayer plus tard.'
                 : 'Aucun tome trouvé pour cette œuvre chez nos fournisseurs. Tu peux les ajouter à la main.'}
           </p>
-          {/* La saisie manuelle suppose une fiche : sans elle, il n'y a pas
-              encore d'œuvre à laquelle rattacher un tome. En aperçu, le
-              premier ajout passe forcément par la grille. */}
-          {entityId && (
-            <>
-              <button
-                type="button"
-                onClick={() => setAjoutManuelOuvert(true)}
-                className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
-              >
-                Ajouter un tome à la main
-              </button>
-              <AddVolumeSection
-                entityId={entityId}
-                entityTypeId={entityTypeId}
-                title={titre}
-                ouvert={ajoutManuelOuvert}
-                onFermer={() => setAjoutManuelOuvert(false)}
-              />
-            </>
-          )}
+          {/* La saisie manuelle ne suppose AUCUNE fiche : `quickAdd` la crée
+              au premier tome (voir AddVolumeSection). Elle était pourtant
+              conditionnée à `entityId`, si bien qu'un aperçu sans tome trouvé
+              promettait « tu peux les ajouter à la main » sans offrir le
+              moindre bouton - signalé sur « Demon's Plan ». */}
+          <button
+            type="button"
+            onClick={() => setAjoutManuelOuvert(true)}
+            aria-expanded={ajoutManuelOuvert}
+            className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
+          >
+            <Plus size={15} />
+            Ajouter un tome à la main
+          </button>
+          <AddVolumeSection
+            entityId={entityId}
+            entityTypeId={entityTypeId}
+            title={titre}
+            attributes={attributs}
+            ouvert={ajoutManuelOuvert}
+            onFermer={() => setAjoutManuelOuvert(false)}
+            onAjoute={(id) => onAjoute?.(id)}
+          />
         </section>
       ),
     }
