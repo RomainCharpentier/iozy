@@ -37,6 +37,10 @@ export const queryKeys = {
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,
+    /** Les œuvres déjà connues comme sans tome, pour une page de résultats.
+     *  Clé par la liste des titres interrogés : changer de recherche change la
+     *  question, et deux pages de résultats n'ont pas la même réponse. */
+    sansTomes: (entityTypeId: string, titres: string) => ['metadata', 'sansTomes', entityTypeId, titres] as const,
   },
   entityTypes: {
     all: ['entityTypes'] as const,

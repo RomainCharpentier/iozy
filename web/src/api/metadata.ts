@@ -1,6 +1,27 @@
 import { get, post, buildQuery, ApiError } from './client'
 import type { BggImportResult, MetadataCandidateDto, VolumesResponseDto } from '../types/api'
 
+/** Une série interrogée, et telle qu'elle revient si on la sait sans tome. */
+export interface SerieInterrogee {
+  title: string
+  author?: string
+}
+
+/**
+ * Parmi ces séries, lesquelles sait-on déjà sans aucun tome ?
+ *
+ * Répond depuis le seul cache durable, sans appeler de fournisseur : poser
+ * vraiment la question coûterait huit requêtes Google Books PAR SÉRIE. Une
+ * série jamais recherchée n'est donc pas signalée - « on ne sait pas » n'est
+ * pas « on sait qu'il n'y en a pas ».
+ */
+export function seriesSansTomesConnues(
+  entityTypeId: string,
+  series: SerieInterrogee[],
+): Promise<SerieInterrogee[]> {
+  return post<SerieInterrogee[]>('/metadata/volumes/known-empty', { entityTypeId, series })
+}
+
 export function searchMetadata(
   entityTypeId: string,
   query: string,

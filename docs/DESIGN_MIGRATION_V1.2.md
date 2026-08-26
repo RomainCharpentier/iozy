@@ -82,6 +82,7 @@ dans ce lot) jusqu'à un travail dédié ultérieur — accepté explicitement.
 32. L'ajout depuis l'aperçu, testé de bout en bout — un bug trouvé — **fait** — voir ci-dessous
 33. Plus de « 2/? » : un ratio sans dénominateur — **fait** — voir ci-dessous
 34. L'aperçu promettait un ajout manuel qu'il n'offrait pas — **fait** — voir ci-dessous
+35. Signaler dans la recherche les œuvres déjà connues sans tome — **fait** — voir ci-dessous
 
 ### Lot 25 — la fiche d'après la maquette v4, et l'en-tête de tous les écrans
 
@@ -932,6 +933,71 @@ l'écran « Administration avancée » contient (`/editions`, « Éditions de
 référence ») ne crée pas de tomes : il renseigne l'éditeur, le nombre de tomes
 et les alertes d'une ÉDITION - la donnée de référence qui alimente ensuite la
 progression X/Y et la complétude.
+
+### Lot 35 — signaler, plutôt que masquer, les œuvres sans tome
+
+Demande initiale : masquer de la recherche les œuvres dont aucun tome n'est
+trouvable. Mesuré avant de coder — et c'est ce qui a fait changer la demande :
+
+**Savoir si une œuvre a des tomes EXIGE la recherche de tomes**, soit huit
+requêtes Google Books en parallèle par série (voir
+`GoogleBooksVolumeSearchProvider`). Filtrer une liste de résultats coûterait
+donc `8 × nombre de résultats` appels externes, sur une recherche qui se
+relance à chaque frappe. Le quota est une contrainte réelle ici : le code
+porte déjà des messages « Quota Google Books dépassé » et une rotation de
+clés.
+
+Il n'existe aucun signal bon marché de substitution : « Demon's Plan » porte
+bien un `totalVolumes` (série terminée, MyAnimeList le connaît) et pourtant
+aucune ÉDITION FRANÇAISE n'est indexée - ce que seul Google Books sait.
+Filtrer sur `totalVolumes` masquerait donc les mauvaises œuvres et garderait
+celle-ci.
+
+**Décision utilisateur : signaler, sans masquer.** Les résultats restent tous
+visibles - l'œuvre est saisissable à la main depuis son aperçu (Lot 34) - mais
+ceux qu'on SAIT déjà sans tome portent la mention « Aucun tome connu — à
+saisir à la main ».
+
+#### Ce qui rend la question gratuite
+
+`POST /api/metadata/volumes/known-empty` répond depuis le **seul cache
+durable** des recherches de tomes (`volume_search_cache`, V3), sans jamais
+appeler de fournisseur. C'est possible parce qu'une liste vide EST mémorisée
+(`MetadataSearchService`, commentaire « Une liste vide EST mise en cache »).
+
+Trois choix qui comptent :
+
+- **« On ne sait pas » n'est pas « on sait qu'il n'y en a pas ».** Une série
+  jamais recherchée renvoie `false` et n'est pas signalée - la confondre
+  reviendrait à marquer tout le catalogue.
+- **La lecture ne réchauffe pas le cache mémoire** : elle sert un affichage
+  secondaire, elle ne doit pas influencer ce que le prochain vrai appel
+  trouvera.
+- **POST et non GET** : la question porte sur une liste de couples
+  (titre, auteur), dont des titres japonais et à ponctuation - fragiles en
+  query string.
+
+Le couple envoyé est EXACTEMENT celui que la recherche de tomes utiliserait
+(titre primaire résolu + mangaka), sans quoi la clé de cache ne
+correspondrait pas et la mention ne sortirait jamais.
+
+#### Conséquence assumée
+
+Une œuvre jamais ouverte n'est pas signalée : la mention apparaît une fois
+qu'on a réellement cherché ses tomes et qu'il n'y en avait aucun. C'est le
+prix du « zéro appel externe », et c'est le compromis retenu.
+
+#### Vérifications
+
+Quatre contrôles web et **suite backend complète** verts.
+
+- Endpoint : `Demon's Plan` (cache à 0 tome) renvoyé, `Death Note` (qui en a)
+  non, `Jamais Cherchee XYZ` (jamais recherchée) non plus. Type inconnu → 400.
+  Cache confirmé en base : `demon's plan | yoshimichi okamoto | 0`.
+- Interface : recherche « Demon's Plan » → mention présente sur la ligne ;
+  recherche « Death Note » → mention absente partout **sauf** sur
+  « Death Edge », effectivement déjà recherchée et sans tome. Signal par
+  ligne, jamais global.
 
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
@@ -2370,6 +2436,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Savoir si une œuvre a des tomes coûte huit requêtes Google Books (recherche de tomes, `GoogleBooksVolumeSearchProvider`) : toute fonctionnalité qui voudrait le savoir POUR UNE LISTE doit passer par le seul cache durable (`volume_search_cache`, où une liste vide est mémorisée), jamais par un appel par ligne. Et `totalVolumes` n'est pas un substitut - il vient du catalogue japonais, pas des éditions françaises indexées (Lot 35).
 - L'ajout d'un tome EST réversible, contrairement à ce que deux lots ont affirmé : `DELETE /api/ownerships/{id}`, puis `DELETE /api/entities/{id}/variants/{id}`, et `VariantDeletionService` cascade jusqu'à supprimer l'Édition orpheline puis la Série vide. Vérifier un chemin d'écriture en direct est donc possible - lire la règle de suppression avant de renoncer (Lot 32).
 - Un écran dont une partie ne dépend que d'un identifiant faible (ici le titre) peut devenir actionnable AVANT que le reste de ses données soit chargé. L'aperçu proposait ses tomes avant de connaître l'œuvre, et l'ajout persistait un sac d'attributs vide. Retenir l'action, pas seulement afficher un chargement (Lot 32).
 - Un hook qui doit alimenter deux endroits d'une même page (ici les cartes d'édition dans le hero, la grille dans le corps) renvoie DEUX nœuds ; il ne remonte jamais un morceau à l'appelant par un rappel pendant le rendu - c'est modifier l'état d'un composant pendant le rendu d'un autre, et React le refuse (Lot 31).

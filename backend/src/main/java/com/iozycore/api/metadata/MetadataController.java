@@ -189,6 +189,46 @@ public class MetadataController {
         return new VolumesResponse(candidates, searchResult.quotaExceeded());
     }
 
+    public record SeriesSansTomesRequest(UUID entityTypeId, List<SerieInterrogee> series) {
+    }
+
+    public record SerieInterrogee(String title, String author) {
+    }
+
+    /**
+     * Parmi ces séries, lesquelles sait-on DÉJÀ sans aucun tome ?
+     * <p>
+     * Répond depuis le seul cache durable des recherches de tomes, sans jamais
+     * appeler de fournisseur : c'est ce qui rend cette question utilisable sur
+     * une liste de résultats de recherche, là où la poser vraiment coûterait
+     * huit requêtes Google Books PAR SÉRIE (voir GoogleBooksVolumeSearchProvider)
+     * et épuiserait le quota en quelques frappes.
+     * <p>
+     * Conséquence assumée : une série jamais recherchée n'est pas signalée. On
+     * ne confond pas « on sait qu'il n'y en a pas » avec « on ne sait pas
+     * encore » - signaler la seconde reviendrait à marquer tout le catalogue.
+     * <p>
+     * POST et non GET : la question porte sur une LISTE de couples
+     * (titre, auteur), dont des titres japonais et à ponctuation - les faire
+     * tenir dans une query string serait fragile pour une requête qui ne
+     * modifie rien mais ne se met de toute façon pas en cache HTTP.
+     */
+    @Operation(summary = "Parmi ces séries, lesquelles sont déjà connues comme n'ayant aucun tome "
+            + "(cache uniquement, aucun appel à un fournisseur externe)")
+    @PostMapping("/volumes/known-empty")
+    public List<SerieInterrogee> volumesKnownEmpty(@RequestBody SeriesSansTomesRequest request) {
+        EntityType entityType = entityTypeRepository.findById(request.entityTypeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "EntityType inconnu : " + request.entityTypeId()));
+        if (request.series() == null) {
+            return List.of();
+        }
+        return request.series().stream()
+                .filter(serie -> serie.title() != null && !serie.title().isBlank())
+                .filter(serie -> metadataSearchService.isVolumeSearchKnownEmpty(entityType, serie.title(), serie.author()))
+                .collect(Collectors.toList());
+    }
+
     /** Clés "édition|tome" (normalisées) des Variant de la série {@code title}
      * (si elle existe déjà) référencés par au moins une Ownership active -
      * vide si la série n'a jamais été ajoutée, ce qui est le cas le plus
