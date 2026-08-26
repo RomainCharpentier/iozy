@@ -11,6 +11,7 @@ import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entity
 import { CameraBarcodeScanner } from './CameraBarcodeScanner'
 import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
+import type { EtatFiche } from '../EntityDetail/retourFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { EnTeteSection } from '../../components/EnTeteSection'
@@ -72,6 +73,10 @@ function parseVolumeNumberFromTitle(title: string): number | undefined {
  * suite via la caméra et enregistre chaque tome reconnu sans repasser par le
  * formulaire complet d'Ajout rapide à chaque fois (voir CameraBarcodeScanner
  * pour la mécanique caméra/détection, purement mécanique, aucun lookup). */
+/** Une fiche ouverte depuis le scan propose de revenir scanner : on scanne
+ *  une pile de tomes, pas un seul. */
+const RETOUR_SCAN: EtatFiche = { retour: { to: '/scan', libelle: 'Scan' } }
+
 export function ScanPage() {
   const queryClient = useQueryClient()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
@@ -258,9 +263,9 @@ export function ScanPage() {
               pending.candidate.imageUrl
                 ? { ...pending.candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: pending.candidate.imageUrl }
                 : pending.candidate.attributes,
-            ).then((entity) => navigate(`/entity/${entity.id}`))
+            ).then((entity) => navigate(`/entity/${entity.id}`, { state: RETOUR_SCAN }))
           }}
-          onOpenEntity={(entityId) => navigate(`/entity/${entityId}`)}
+          onOpenEntity={(entityId) => navigate(`/entity/${entityId}`, { state: RETOUR_SCAN })}
         />
       )}
 

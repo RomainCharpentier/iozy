@@ -18,6 +18,7 @@ import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import type { EtatFiche } from '../EntityDetail/retourFiche'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -47,6 +48,11 @@ function candidateKey(candidate: MetadataCandidateDto): string {
  * directement sa fiche (le parcours contextuel d'ajout de tome y vit déjà,
  * voir VolumeInteractionPanel) plutôt que de repasser par ce formulaire.
  */
+/** Toute fiche ouverte depuis cet écran propose d'y revenir (voir
+ *  retourFiche). Une constante plutôt qu'un littéral répété quatre fois :
+ *  c'est une seule promesse, pas quatre. */
+const RETOUR_RECHERCHE: EtatFiche = { retour: { to: '/add', libelle: 'Recherche' } }
+
 export function SearchPage() {
   const navigate = useNavigate()
   const titleComposition = useTitleComposition()
@@ -159,7 +165,7 @@ export function SearchPage() {
         ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
         : candidate.attributes
       const entity = await resolveEntity(entityTypeId, titre, attributes)
-      navigate(`/entity/${entity.id}`)
+      navigate(`/entity/${entity.id}`, { state: RETOUR_RECHERCHE })
     } catch (erreur) {
       setOuvertureEnCours(null)
       setErreurOuverture(erreur instanceof Error ? erreur.message : "Impossible d'ouvrir cette fiche")
@@ -173,7 +179,7 @@ export function SearchPage() {
     setOuvertureEnCours('manuel')
     try {
       const entity = await resolveEntity(entityTypeId, titreManuel.trim(), {})
-      navigate(`/entity/${entity.id}`)
+      navigate(`/entity/${entity.id}`, { state: RETOUR_RECHERCHE })
     } catch (erreur) {
       setOuvertureEnCours(null)
       setErreurOuverture(erreur instanceof Error ? erreur.message : "Impossible de créer cette fiche")
@@ -181,7 +187,7 @@ export function SearchPage() {
   }
 
   function goToEntity(entity: EntityResponse) {
-    navigate(`/entity/${entity.id}`)
+    navigate(`/entity/${entity.id}`, { state: RETOUR_RECHERCHE })
   }
 
   const showSearching = searchEnabled && suggestionsQuery.isFetching
