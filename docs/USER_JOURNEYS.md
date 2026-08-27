@@ -30,8 +30,12 @@ mobile (`DesktopHeader.PRIMARY` et `TabBar.TABS`, maintenues en miroir) :
 Tout le reste est atteint par des **raccourcis** ou depuis l'espace auquel il
 appartient :
 
-- **Envies** — icône cœur, avec badge de compte, dans l'en-tête **desktop et
-  mobile** (`GlobalShortcuts`, partagé par les deux en-têtes).
+- **Envies** — vue « Envies » de Ma collection, dans sa barre de vues, avec le
+  décompte à côté du libellé. Le cœur de l'en-tête a été **retiré le
+  2026-08-28** : depuis que les envies sont une lecture de la collection
+  (Lot 38), il se contentait de poser le filtre avant d'y naviguer - un
+  raccourci qui doublait, sur tous les écrans, un bouton déjà visible sur
+  celui-là.
 - **Profil** — avatar « IO », même en-tête, mêmes deux plateformes. Ces deux
   accès n'existaient que sur desktop jusqu'au 2026-08-21 ; `MobileHeader` les
   rétablit sans toucher à la barre du pouce, qui garde ses trois destinations.
@@ -1154,12 +1158,14 @@ d'accès**, alors que les écrans existaient et fonctionnaient.
 
 `MobileHeader` (nom de l'app + cœur + avatar) rétablit ces deux accès, et avec
 eux Paramètres, Administration, l'export, le bilan annuel, les éditions de
-référence et le partage d'espace. La navigation globale n'a pas bougé :
+référence et le partage d'espace. *(Le cœur en est reparti le 2026-08-28, voir
+plus haut : Ma collection est dans la barre du pouce et porte le filtre. Le
+profil, lui, n'a pas d'autre chemin - c'est ce qui justifie qu'il reste.)* La navigation globale n'a pas bougé :
 la barre du pouce garde **strictement** ses trois destinations plus le
 raccourci Scan — Envies et Profil ne sont pas des destinations pairs.
 
-Vérifié à **375, 390 et 430 px** : cœur et avatar présents, chaîne complète
-parcourue (Cœur → Envies → retour ; Avatar → Profil → Paramètres →
+Vérifié à **375, 390 et 430 px** : avatar présent (et cœur, à l'époque), chaîne
+complète parcourue (Cœur → Envies → retour ; Avatar → Profil → Paramètres →
 Administration → liens d'export), les deux « Générer un lien » atteignables,
 aucun débordement horizontal. Desktop inchangé.
 
@@ -1383,7 +1389,7 @@ Parcours CASSÉS                     :  0
 Parcours MOCK / DÉMO                :  0
 
 Parcours principaux                 : 24   (atteints en 2 gestes au plus depuis une des
-                                            3 destinations, du cœur ou de l'avatar)
+                                            3 destinations ou de l'avatar)
 Parcours secondaires                : 37
 
 Parcours sans aucun accès en mobile :  0   (10 avant le 2026-08-21, voir §12.1)
