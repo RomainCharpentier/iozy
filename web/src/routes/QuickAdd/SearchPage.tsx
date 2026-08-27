@@ -11,6 +11,7 @@ import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { Chip } from '../../components/Chip'
 import { WishlistToggle } from '../../components/WishlistToggle'
 import { useWishlist } from '../../lib/useWishlist'
+import { useCollecteParTome } from '../../lib/typeDeCollection'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { isFrenchEnabled, useTitleComposition, candidateDisplayTitle, resolvePrimaryTitle } from '../../lib/titleLanguage'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
@@ -95,6 +96,7 @@ export function SearchPage() {
   }, [entityTypeId, entityTypesQuery.data])
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
+  const parTome = useCollecteParTome(entityTypeId)
   const debouncedTitle = useDebouncedValue(title, 500)
 
   // L'URL suit la recherche RÉELLEMENT lancée, pas la frappe : même
@@ -179,6 +181,11 @@ export function SearchPage() {
    * Le couple (titre, auteur) envoyé est EXACTEMENT celui que la recherche de
    * tomes utiliserait - titre primaire résolu et mangaka - sans quoi la clé de
    * cache ne correspondrait pas et la mention ne sortirait jamais.
+   *
+   * <p>Uniquement pour un type qui se collectionne PAR TOME : un jeu vidéo
+   * n'a pas de tome, donc « aucun tome connu » n'y signale rien - ça se lisait
+   * comme un manque (constaté sur « Hollow Knight »). Et ça évite une requête
+   * qui ne pouvait rien rendre.
    */
   const clesInterrogees = (suggestionsQuery.data ?? []).map((candidate) => ({
     title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
@@ -187,7 +194,7 @@ export function SearchPage() {
   const sansTomesQuery = useQuery({
     queryKey: queryKeys.metadata.sansTomes(entityTypeId ?? '', clesInterrogees.map((c) => c.title).join('|')),
     queryFn: () => seriesSansTomesConnues(entityTypeId!, clesInterrogees),
-    enabled: !!entityTypeId && clesInterrogees.length > 0,
+    enabled: !!entityTypeId && parTome && clesInterrogees.length > 0,
   })
   const titresSansTomes = new Set((sansTomesQuery.data ?? []).map((s) => s.title.trim().toLowerCase()))
 

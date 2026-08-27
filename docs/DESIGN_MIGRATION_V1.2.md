@@ -1407,16 +1407,32 @@ n'en a pas. La phrase d'accueil de l'aperçu suit.
 accompagne une sélection et n'apparaît qu'une fois des tomes cochés ; ici il
 n'y a rien à cocher, donc rien à attendre - le bouton est là dès l'arrivée.
 
+#### 3. « Aucun tome connu » sur un jeu vidéo
+
+Trouvé en enchaînant sur l'ajout d'un jeu vidéo, comme demandé. La recherche
+IGDB classe bien - « Hollow Knight » sort premier - mais le résultat portait le
+badge « **Aucun tome connu — à saisir à la main** ».
+
+Ce signal vient du Lot 35 : il prévient qu'une série manga n'a aucun tome
+indexable. Sur un jeu, il se lit comme un manque alors que l'œuvre EST l'objet.
+La requête qui l'alimente n'était gardée par aucun test de type ; elle l'est
+maintenant - ce qui évite au passage un appel qui ne pouvait rien rendre.
+
 #### Vérifications
 
 Suite backend complète : **1020 tests**, 0 échec (trois ajoutés sur le
 classement BGG). `typecheck`, `lint`, `check:contrast`, `build`.
 
-Chaîne complète en direct : recherche « Carcassonne » → aperçu sans une seule
+Chaîne complète en direct, sur les DEUX types sans tome. Jeu de société :
+recherche « Carcassonne » → aperçu sans une seule
 mention de « tome » → « Ajouter à ma collection » → fiche créée → Ma
 collection ouvre une section « Jeu de société · Carcassonne · Possédé »,
-groupée comme dégroupée, compteurs passés à 7. Jeu supprimé ensuite, base
-revenue à l'identique (9 œuvres, 14 tomes, 12 possessions, 6 éditions).
+groupée comme dégroupée, compteurs passés à 7. Jeu vidéo : « Hollow Knight »
+ajouté en « Occasion » à 12,50 € - vérifié en base, l'Ownership porte bien
+`condition=USED`, `purchasePrice=12.5` et **aucun variantId** (elle se rattache
+à l'Entity), avec les attributs recopiés d'IGDB (plateforme, jaquette, igdbId).
+Les deux jeux supprimés ensuite, base revenue à l'identique (9 œuvres, 14
+tomes, 12 possessions, 6 éditions).
 
 ### Lot 51 — les endpoints sans appelant, traités
 
