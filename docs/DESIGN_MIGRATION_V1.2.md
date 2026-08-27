@@ -1360,6 +1360,40 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 54 — le panneau du tome quitte le chemin d'ajout
+
+« Retire le sidepanel du coup ». Le « du coup » désigne le lot précédent : ce
+panneau n'existait sur un tome MANQUANT que pour porter le formulaire d'état et
+de prix. Ce formulaire a disparu, donc la surface aussi.
+
+**Un tome manquant s'ajoute d'un clic** - le clic sur la tuile comme
+« Je l'ai » du menu font maintenant la même chose, sans détour. `quickAdd`
+retrouve ou crée le tome par (titre, numéro, édition), comme partout ailleurs.
+`AddOwnershipForm` est supprimé.
+
+**Le panneau survit sur un tome POSSÉDÉ**, et je le laisse : il y gère un
+exemplaire réel - prix payé, note, marquer vendu, marquer perdu, supprimer,
+exemplaires passés - plus les corrections catalogue du tome (jaquette, numéro).
+Le retirer là aussi supprimerait ces sept actions sans leur donner de nouveau
+domicile ; c'est une décision à part, pas une conséquence du clic unique.
+
+#### Deux fausses alertes de ma sonde
+
+`« Tome 3, dans mes envies »` est apparu pendant l'essai : une envie créée par
+un de mes propres clics, pas un défaut. Supprimée.
+
+Et le panneau d'un tome possédé semblait avoir perdu la gestion de
+l'exemplaire : mon relevé ne listait que les boutons **nommés**, or ces sept
+actions vivent derrière un bouton « … » sans texte. Ouvrir le menu les montre
+toutes. Relever le `innerText` du conteneur avant de conclure à une disparition.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build`. En direct : clic sur le tome 4
+de Death Note → ajouté, **aucun panneau** ; clic sur le tome 1 (possédé) →
+panneau, et son menu rend bien les sept actions. Données d'essai retirées
+(possession, tome catalogué au passage, et l'envie), base revenue à l'identique.
+
 ### Lot 53 — ajouter tient en un clic
 
 « Lorsque j'ajoute un item à ma collection je veux pas de "neuf / abîmé, etc"

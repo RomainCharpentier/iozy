@@ -30,6 +30,7 @@ export function GrilleTomes({
   tuiles,
   tomeActif,
   onChoisirTome,
+  onJeLAi,
   tomesVoulus,
   onBasculerEnvie,
   modeEdition,
@@ -46,6 +47,8 @@ export function GrilleTomes({
   tuiles: TomeTile[]
   tomeActif: number | null
   onChoisirTome: (numero: number) => void
+  /** « Je l'ai » - ajoute le tome en un clic. */
+  onJeLAi: (numero: number) => void
   /** Les identifiants des tomes de cette œuvre qui sont dans les envies. */
   tomesVoulus: Set<string>
   onBasculerEnvie: (numero: number) => void
@@ -84,10 +87,10 @@ export function GrilleTomes({
         filtre={filtre}
         onFiltre={onFiltre}
         onActiver={(cle) => onChoisirTome(Number(cle))}
-        // « Je l'ai » ouvre le panneau du tome : posséder a des détails (état,
-        // prix, exemplaires passés) que vouloir n'a pas. « Je le veux », lui,
-        // n'a rien à demander et agit sur place.
-        onJeLAi={(cle) => onChoisirTome(Number(cle))}
+        // Les deux gestes agissent désormais sur place : depuis que l'ajout ne
+        // demande plus ni état ni prix, « Je l'ai » n'a pas plus à ouvrir un
+        // panneau que « Je le veux ».
+        onJeLAi={(cle) => onJeLAi(Number(cle))}
         onJeLeVeux={(cle) => onBasculerEnvie(Number(cle))}
         action={modeEdition ? { libelle: 'Ajouter un tome', onClick: onAjouterTome } : undefined}
       />

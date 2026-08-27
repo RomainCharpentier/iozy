@@ -7,7 +7,6 @@ import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { useModalA11y } from '../../lib/useModalA11y'
 import { findBestCoverMatch } from '../Shelf/backfillCovers'
-import { AddOwnershipForm } from './AddOwnershipForm'
 import { OwnershipDetails } from './OwnershipDetails'
 import { VariantNumberEditor } from './VariantNumberEditor'
 import type { TomeTile } from '../../lib/tomeTiles'
@@ -131,6 +130,8 @@ export function VolumeInteractionPanel({
   onRenumbered: (newVolumeNumber: number) => void
   onClose: () => void
   entityId: string
+  /** Requis par la correction de jaquette, qui interroge Google Books avec le
+   *  titre de l'œuvre (voir VariantCoverEditor). */
   entityTypeId: string
   entityTitle: string
   editionName: string
@@ -228,24 +229,13 @@ export function VolumeInteractionPanel({
             </>
           )}
 
-          {activeTile.status === 'owned' ? (
-            <OwnershipDetails ownerships={variantOwnerships} entityId={entityId} />
-          ) : (
-            <>
-              <AddOwnershipForm
-                entityId={entityId}
-                entityTypeId={entityTypeId}
-                entityTitle={entityTitle}
-                volumeNumber={activeTile.volumeNumber}
-                edition={editionName}
-              />
-              {/* Le tome n'est plus possédé, mais il l'a été : l'ajout reste
-                  l'action principale (on peut le racheter), l'historique se
-                  lit en dessous plutôt que d'être escamoté. */}
-              {pastOwnerships.length > 0 && (
-                <OwnershipDetails ownerships={pastOwnerships} entityId={entityId} heading="Exemplaires passés" />
-              )}
-            </>
+          {/* Ce panneau ne s'ouvre plus que sur un tome POSSÉDÉ : ajouter tient
+              en un clic depuis la grille, sans rien à remplir, donc sans
+              surface intermédiaire. Ne reste ici que la gestion d'exemplaires
+              réels - le présent, puis les passés. */}
+          <OwnershipDetails ownerships={variantOwnerships} entityId={entityId} />
+          {pastOwnerships.length > 0 && (
+            <OwnershipDetails ownerships={pastOwnerships} entityId={entityId} heading="Exemplaires passés" />
           )}
         </div>
       </div>
