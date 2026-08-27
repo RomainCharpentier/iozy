@@ -1,14 +1,10 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import { listEntityTypes } from '../../api/entityTypes'
-import { getGeneralBoard, listTierLists } from '../../api/tierLists'
-import { queryKeys } from '../../lib/queryKeys'
-import { boardCounts, flatRankedCovers } from '../../lib/tierListVisuals'
-import type { TierListDto } from '../../types/tierList'
+import { flatRankedCovers } from '../../lib/tierListVisuals'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { useDonneesTierLists } from '../../lib/useDonneesTierLists'
 
 /**
  * "Mes Tier Lists" sur Profil (voir DS v1.1 §44 écran Profil) : une rangée
@@ -20,30 +16,17 @@ import { CLASSE_CARTE } from '../../components/Carte'
  * perso n'existe - jamais une carte vide.
  */
 export function ProfileTierListsSection() {
-  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const entityTypes = entityTypesQuery.data ?? []
+  const donnees = useDonneesTierLists()
 
-  const boardQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.general(t.id),
-      queryFn: () => getGeneralBoard(t.id),
-    })),
-  })
-  const listsQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.custom(t.id),
-      queryFn: () => listTierLists(t.id),
-    })),
-  })
+  if (!donnees.typesCharges || donnees.chargement) return null
 
-  if (!entityTypesQuery.isSuccess) return null
-  if (boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading)) return null
-
-  const universeRows = entityTypes
-    .map((entityType, i) => ({ entityType, counts: boardCounts(boardQueries[i].data), covers: flatRankedCovers(boardQueries[i].data, 3) }))
+  const universeRows = donnees.univers
+    .map((u) => ({ entityType: u.entityType, counts: u.counts, covers: flatRankedCovers(u.board, 3) }))
     .filter((u) => u.counts.ranked > 0)
 
-  const customLists = entityTypes.flatMap((_, i) => listsQueries[i].data ?? ([] as TierListDto[]))
+  // Les listes « toutes catégories » comprises : cette carte les oubliait,
+  // alors qu'elle annonce « Mes Tier Lists » et propose « Tout voir ».
+  const customLists = donnees.toutesLesListes
 
   if (universeRows.length === 0 && customLists.length === 0) return null
 
