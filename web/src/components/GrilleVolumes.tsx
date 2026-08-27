@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Check, CheckCheck, Heart, Plus } from 'lucide-react'
 import { Jaquette } from './Jaquette'
 
@@ -64,6 +65,7 @@ export function GrilleVolumes({
   onJeLeVeux,
   filtre,
   onFiltre,
+  enTete,
   action,
   videMessage,
 }: {
@@ -76,6 +78,12 @@ export function GrilleVolumes({
   onJeLeVeux?: (cle: string) => void
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
+  /** Ce qui se dit à gauche des filtres, sur la MÊME ligne : l'édition
+   *  regardée et son avancement. Deux lignes de titre au-dessus d'une rangée
+   *  de filtres coûtaient une centaine de pixels avant la première jaquette,
+   *  pour un rappel de ce que les cartes d'édition disent déjà juste
+   *  au-dessus. */
+  enTete?: ReactNode
   /** Une tuile d'action en fin de grille (« ajouter un tome »). */
   action?: { libelle: string; onClick: () => void }
   videMessage?: string
@@ -87,32 +95,37 @@ export function GrilleVolumes({
   })
 
   return (
-    <div className="flex flex-col gap-3.5">
-      {/* Un vrai groupe de boutons radio : trois vues qui s'excluent, ce que
-          `aria-pressed` ne dirait pas - il annoncerait trois interrupteurs
-          indépendants dont deux « inactifs ». */}
-      <div
-        role="radiogroup"
-        aria-label="Filtrer les tomes"
-        className="flex w-fit items-center gap-1.5 rounded-full bg-softBtn p-1"
-      >
-        {FILTRES.map(({ cle, libelle }) => {
-          const actif = cle === filtre
-          return (
-            <button
-              key={cle}
-              type="button"
-              role="radio"
-              aria-checked={actif}
-              onClick={() => onFiltre(cle)}
-              className={`rounded-full px-3.5 py-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
-                actif ? 'bg-surface font-medium text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
-              }`}
-            >
-              {libelle}
-            </button>
-          )
-        })}
+    <div className="flex flex-col gap-3">
+      {/* Une seule rangée : ce qu'on regarde à gauche, comment on le filtre à
+          droite. Elle se replie d'elle-même quand la place manque. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        {enTete}
+        {/* Un vrai groupe de boutons radio : trois vues qui s'excluent, ce que
+            `aria-pressed` ne dirait pas - il annoncerait trois interrupteurs
+            indépendants dont deux « inactifs ». */}
+        <div
+          role="radiogroup"
+          aria-label="Filtrer les tomes"
+          className="flex w-fit shrink-0 items-center gap-1 rounded-full bg-softBtn p-0.5"
+        >
+          {FILTRES.map(({ cle, libelle }) => {
+            const actif = cle === filtre
+            return (
+              <button
+                key={cle}
+                type="button"
+                role="radio"
+                aria-checked={actif}
+                onClick={() => onFiltre(cle)}
+                className={`rounded-full px-3 py-1 text-[12px] whitespace-nowrap transition-colors ${
+                  actif ? 'bg-surface font-medium text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
+                }`}
+              >
+                {libelle}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {visibles.length === 0 ? (

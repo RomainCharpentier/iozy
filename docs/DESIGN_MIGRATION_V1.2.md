@@ -1360,6 +1360,28 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 43 — l'en-tête de la grille de tomes tient sur une ligne
+
+Remarque de l'utilisateur en testant : « ça prend trop de place pour des infos
+non nécessaires », en désignant « Kurokawa / 1 tome possédé / Tous · Manquants
+· Possédés ».
+
+Il avait raison deux fois. **La place** : titre, sous-titre et rangée de
+filtres s'empilaient sur trois niveaux avant la première jaquette - **142 px
+mesurés** à 1280. Ils tiennent maintenant sur UNE rangée (ce qu'on regarde à
+gauche, comment on le filtre à droite), en plus petit, avec des pastilles de
+filtre resserrées : **62 px**, soit 56 % de moins. À 375 px la rangée se replie
+d'elle-même sur deux lignes (91 px), sans débordement.
+
+**L'utilité** : cet en-tête ne fait que répéter ce que la carte d'édition dit
+déjà juste au-dessus - d'où le petit corps, c'est un repère et non un titre de
+section. Et le résumé commençait par l'ÉDITEUR, alors qu'une édition porte
+souvent le nom de son éditeur : « Kurokawa · Kurokawa · 1 tome possédé ».
+L'éditeur n'est plus répété que lorsqu'il apporte quelque chose.
+
+L'écran d'ajout reçoit le même en-tête : les deux montrent la même chose, ils
+doivent l'annoncer de la même façon.
+
 ### Lot 42 — « Éditer » contenait ce qui n'est pas du catalogue
 
 Remarque de l'utilisateur en testant : « y'a pas trop de choses sous l'édition ?

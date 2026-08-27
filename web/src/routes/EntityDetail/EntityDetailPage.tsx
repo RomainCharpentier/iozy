@@ -213,8 +213,15 @@ export function EntityDetailPage() {
   }))
 
   const manquants = totalTomes !== null ? Math.max(totalTomes - owned.length, 0) : null
+  // L'éditeur n'est répété que s'il APPORTE quelque chose : une édition
+  // s'appelle souvent du nom de son éditeur (« Kurokawa », « Ki-oon »), et le
+  // titre juste à côté le porte déjà - « Kurokawa · Kurokawa · 1 tome ».
+  const editeurUtile =
+    editionInfo?.publisher && editionInfo.publisher.trim().toLowerCase() !== (groupeActif?.edition ?? '').trim().toLowerCase()
+      ? editionInfo.publisher
+      : null
   const resumeEdition = [
-    editionInfo?.publisher,
+    editeurUtile,
     totalTomes !== null
       ? `${owned.length} possédé${owned.length > 1 ? 's' : ''} sur ${totalTomes}`
       : `${owned.length} tome${owned.length > 1 ? 's' : ''} possédé${owned.length > 1 ? 's' : ''}`,

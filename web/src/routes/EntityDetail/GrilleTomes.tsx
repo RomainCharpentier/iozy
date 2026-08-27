@@ -63,13 +63,17 @@ export function GrilleTomes({
   }))
 
   return (
-    <section className="flex flex-col gap-3.5 pt-7">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="font-display text-[17px] font-medium tracking-[-0.02em] text-textPrimary">{titre}</h2>
-        <p className="text-[13px] text-faint">{resume}</p>
-      </div>
-
+    <section className="pt-5">
       <GrilleVolumes
+        enTete={
+          // Titre et avancement sur une seule ligne, en petit : l'édition
+          // regardée et sa progression sont déjà dites par sa carte juste
+          // au-dessus, ce n'est ici qu'un repère.
+          <h2 className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="font-display text-[14px] font-medium tracking-[-0.01em] text-textPrimary">{titre}</span>
+            <span className="text-[12.5px] text-faint">{resume}</span>
+          </h2>
+        }
         volumes={volumes}
         mode="navigation"
         filtre={filtre}
