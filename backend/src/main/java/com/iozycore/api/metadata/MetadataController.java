@@ -151,10 +151,17 @@ public class MetadataController {
     }
 
     /** {@code quotaExceeded} distingue une liste vide "aucune édition
-     * trouvée" d'un quota Google Books dépassé sur toutes les clés
-     * configurées (voir VolumeSearchResult) - le client peut alors afficher
-     * un message adapté ("réessaie plus tard") plutôt que de laisser croire
-     * à tort que la série n'a aucune édition française. */
+     * trouvée" d'un échec TRANSITOIRE du fournisseur externe - quota dépassé
+     * sur toutes les clés configurées, ou source qui n'a pas répondu du tout
+     * (voir VolumeSearchResult) - le client peut alors afficher un message
+     * adapté ("réessaie plus tard") plutôt que de laisser croire à tort que
+     * la série n'a aucune édition française.
+     * <p>
+     * Le nom du champ dit "quota" et couvre désormais les deux causes : il
+     * est déjà décodé tel quel par le client iOS (voir
+     * APIClient+Collections.swift), le renommer casserait sa lecture pour un
+     * gain purement cosmétique - le drapeau se nomme {@code
+     * providerUnavailable} partout ailleurs, côté serveur. */
     public record VolumesResponse(List<VolumeCandidateResponse> volumes, boolean quotaExceeded) {
     }
 
@@ -163,7 +170,7 @@ public class MetadataController {
             + "manuelle du numéro de tome. alreadyOwned indique les tomes déjà possédés (Ownership active sur le "
             + "Variant correspondant, si la série existe déjà dans la collection). volumes vide si rien trouvé "
             + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle - quotaExceeded distingue "
-            + "ce cas d'un quota Google Books dépassé. Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
+            + "ce cas d'un échec transitoire du fournisseur (quota dépassé, ou source qui n'a pas répondu). Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
             + "un résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
             + "'Actualiser' côté client) est le seul moyen de relancer les requêtes Google Books derrière ce "
             + "candidat - voir MetadataSearchService.searchVolumes. Recherche par défaut limitée à quelques mots-clés "
@@ -197,7 +204,7 @@ public class MetadataController {
         List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
                 .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
                 .collect(Collectors.toList());
-        return new VolumesResponse(candidates, searchResult.quotaExceeded());
+        return new VolumesResponse(candidates, searchResult.providerUnavailable());
     }
 
     public record SeriesSansTomesRequest(UUID entityTypeId, List<SerieInterrogee> series) {

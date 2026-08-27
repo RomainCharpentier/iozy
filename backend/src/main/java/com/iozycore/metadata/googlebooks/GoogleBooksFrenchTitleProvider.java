@@ -151,9 +151,6 @@ public class GoogleBooksFrenchTitleProvider implements FrenchTitleProvider {
         try {
             String encodedQuery = URLEncoder.encode(rawQuery, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
-            if (body == null) {
-                return Optional.empty();
-            }
             return parse(body, excludedTitleFragments, requireVolumeNumber);
         } catch (QuotaExceededException e) {
             // Open Library est déjà essayé en premier (voir @Order) - pas

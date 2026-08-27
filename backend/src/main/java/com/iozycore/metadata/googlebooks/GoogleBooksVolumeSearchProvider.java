@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.QuotaExceededException;
+import com.iozycore.metadata.SourceUnavailableException;
 import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
@@ -168,8 +169,10 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
     private List<VolumeCandidate> runKeywordSearches(String seriesTitle, String author, List<String> keywords, List<String> excludedTitleFragments) {
         AtomicBoolean anyQuotaExceeded = new AtomicBoolean(false);
+        AtomicBoolean anySourceUnavailable = new AtomicBoolean(false);
         List<CompletableFuture<List<VolumeCandidate>>> searches = keywords.stream()
-                .map(keyword -> CompletableFuture.supplyAsync(() -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded)))
+                .map(keyword -> CompletableFuture.supplyAsync(
+                        () -> searchOneEdition(seriesTitle, author, keyword, excludedTitleFragments, anyQuotaExceeded, anySourceUnavailable)))
                 .collect(Collectors.toList());
 
         List<VolumeCandidate> combined = searches.stream()
@@ -185,6 +188,13 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         // trouvée" (voir historique de la conversation).
         if (result.isEmpty() && anyQuotaExceeded.get()) {
             throw new QuotaExceededException("Quota Google Books dépassé pour la recherche de tomes de '" + seriesTitle + "'");
+        }
+        // Même raisonnement pour une source qui n'a pas répondu du tout (503,
+        // délai dépassé) : c'était le défaut du Lot 58 - « Aucune trouvée cette
+        // fois. » affiché, et la liste vide mise en cache durablement, alors que
+        // le tome existait chez le fournisseur.
+        if (result.isEmpty() && anySourceUnavailable.get()) {
+            throw new SourceUnavailableException("Google Books n'a pas répondu pour la recherche de tomes de '" + seriesTitle + "'");
         }
         return result;
     }
@@ -274,7 +284,9 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 .collect(Collectors.toList());
     }
 
-    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword, List<String> excludedTitleFragments, AtomicBoolean anyQuotaExceeded) {
+    private List<VolumeCandidate> searchOneEdition(String seriesTitle, String author, String editionKeyword,
+                                                  List<String> excludedTitleFragments,
+                                                  AtomicBoolean anyQuotaExceeded, AtomicBoolean anySourceUnavailable) {
         // Volontairement SANS inauthor: DANS LA REQUÊTE (vérifié
         // manuellement à trois reprises, voir historique) : certaines
         // fiches françaises n'ont pas le champ auteur correctement
@@ -298,10 +310,14 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         try {
             String encodedQuery = URLEncoder.encode(combinedQuery, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
-            if (body == null) {
-                return List.of();
-            }
             return extractCandidates(body, seriesTitle, excludedTitleFragments, author);
+        } catch (SourceUnavailableException e) {
+            // Ne PAS relancer ici non plus : les autres mots-clés ont peut-être
+            // abouti, eux - c'est runKeywordSearches qui tranche, une fois tout
+            // rassemblé (voir le commentaire du quota juste en dessous).
+            anySourceUnavailable.set(true);
+            log.warn("Google Books n'a pas répondu pour la recherche de tomes '{}' : {}", combinedQuery, e.getMessage());
+            return List.of();
         } catch (QuotaExceededException e) {
             // Ne PAS relancer ici : les 7 autres mots-clés (même quota
             // épuisé) vont échouer pareil - on note juste le fait, agrégé

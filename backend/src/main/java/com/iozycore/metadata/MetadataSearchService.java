@@ -479,20 +479,22 @@ public class MetadataSearchService {
             }
         }
 
-        // Boucle explicite (plutôt qu'un stream) : un fournisseur qui lève
-        // QuotaExceededException ne doit pas faire perdre les résultats déjà
-        // obtenus des AUTRES fournisseurs compétents pour ce type (contrairement
-        // à un flatMap+collect, qui abandonnerait tout dès la première exception).
+        // Boucle explicite (plutôt qu'un stream) : un fournisseur en échec ne
+        // doit pas faire perdre les résultats déjà obtenus des AUTRES
+        // fournisseurs compétents pour ce type (contrairement à un
+        // flatMap+collect, qui abandonnerait tout dès la première exception).
         List<VolumeCandidate> result = new ArrayList<>();
-        boolean quotaExceeded = false;
+        boolean providerUnavailable = false;
         for (VolumeSearchProvider provider : volumeSearchProviders) {
             if (!provider.supports(entityType)) {
                 continue;
             }
             try {
                 result.addAll(provider.searchVolumes(seriesTitle, author, excludedTitleFragments));
-            } catch (QuotaExceededException e) {
-                quotaExceeded = true;
+            } catch (QuotaExceededException | SourceUnavailableException e) {
+                // Quota dépassé OU source muette : dans les deux cas le
+                // fournisseur n'a rien DIT, ce n'est pas une absence de tomes.
+                providerUnavailable = true;
             }
         }
         // Deux fournisseurs (Google Books et BnF, voir BnfVolumeSearchProvider)
@@ -501,13 +503,14 @@ public class MetadataSearchService {
         result = dedupeVolumesPreferringImage(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
-        // ci-dessus) - seul un résultat vide causé par le quota ne l'est
-        // jamais, pour ne pas condamner une recherche par un échec transitoire.
-        if (!quotaExceeded) {
+        // ci-dessus) - seul un résultat vide causé par un échec transitoire du
+        // fournisseur ne l'est jamais, pour ne pas condamner une recherche
+        // pendant des jours à cause d'une panne de quelques minutes.
+        if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, result);
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
         }
-        return new VolumeSearchResult(result, quotaExceeded);
+        return new VolumeSearchResult(result, providerUnavailable);
     }
 
     /**
@@ -539,25 +542,25 @@ public class MetadataSearchService {
                 .orElseGet(List::of);
 
         List<VolumeCandidate> additional = new ArrayList<>();
-        boolean quotaExceeded = false;
+        boolean providerUnavailable = false;
         for (VolumeSearchProvider provider : volumeSearchProviders) {
             if (!provider.supports(entityType)) {
                 continue;
             }
             try {
                 additional.addAll(provider.searchAdditionalEditions(seriesTitle, author, excludedTitleFragments));
-            } catch (QuotaExceededException e) {
-                quotaExceeded = true;
+            } catch (QuotaExceededException | SourceUnavailableException e) {
+                providerUnavailable = true;
             }
         }
         additional = dedupeVolumesPreferringImage(additional);
 
         List<VolumeCandidate> merged = mergeVolumes(existing, additional);
-        if (!quotaExceeded) {
+        if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, merged);
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, merged);
         }
-        return new VolumeSearchResult(merged, quotaExceeded);
+        return new VolumeSearchResult(merged, providerUnavailable);
     }
 
     /** Fusionne sans dupliquer par (édition, tome) - garde la version déjà

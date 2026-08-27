@@ -87,10 +87,9 @@ public class GoogleBooksBarcodeProvider implements BarcodeMetadataProvider {
         }
 
         try {
+            // Jamais null : un appel qui n'aboutit pas lève, et le
+            // catch(Exception) ci-dessous rend BarcodeLookup.unavailable().
             String body = httpClient.get(LOOKUP_URL.formatted(isbn));
-            if (body == null) {
-                return BarcodeLookup.unavailable();
-            }
             Optional<MetadataCandidate> trouve = parse(body, isbn);
             // Le corps a été lu jusqu'au bout : que Google connaisse ou non cet
             // ISBN, il a bel et bien répondu.

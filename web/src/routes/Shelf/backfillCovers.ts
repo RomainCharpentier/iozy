@@ -41,7 +41,9 @@ export function findBestCoverMatch(
 /** Ce qu'une passe de rattrapage a donné pour UNE série. */
 export interface ResultatRattrapage {
   trouvees: number
-  quotaDepasse: boolean
+  /** Le fournisseur n'a rien DIT : quota dépassé, ou source muette (503,
+   * délai dépassé). Distinct de "il a répondu, il n'a pas cette jaquette". */
+  fournisseurMuet: boolean
 }
 
 /**
@@ -50,9 +52,9 @@ export interface ResultatRattrapage {
  * <h2>Une seule implémentation, deux appelants</h2>
  * Ma collection la déroule sur toute la bibliothèque ; la fiche l'appelle pour
  * la série qu'on regarde, quand on en a besoin - typiquement après un ajout
- * d'un clic, ou après une panne de quota chez le fournisseur. La logique
- * d'appariement, la seconde tentative et la lecture du quota vivaient dans la
- * boucle de Ma collection : deux copies auraient fini par diverger.
+ * d'un clic, ou après une panne chez le fournisseur. La logique d'appariement,
+ * la seconde tentative et la lecture de l'échec vivaient dans la boucle de Ma
+ * collection : deux copies auraient fini par diverger.
  *
  * <p><b>Deux recherches au plus, et seulement si la première ne suffit pas</b> :
  * la seconde force le rafraîchissement du cache, ce qui coûte un vrai appel au
@@ -60,7 +62,7 @@ export interface ResultatRattrapage {
  * cache servait déjà.
  *
  * <p>Best-effort par nature : une série en échec reste simplement sans
- * jaquette. Le quota dépassé, lui, remonte - c'est la seule information qui
+ * jaquette. Un fournisseur muet, lui, remonte - c'est la seule information qui
  * change ce que l'utilisateur doit faire (réessayer plus tard).
  */
 export async function rattraperJaquettes(
@@ -70,16 +72,16 @@ export async function rattraperJaquettes(
   enregistrerJaquette: (entityId: string, variantId: string, url: string) => Promise<unknown>,
 ): Promise<ResultatRattrapage> {
   const manquantes = variantsMissingCover(entity)
-  if (manquantes.length === 0) return { trouvees: 0, quotaDepasse: false }
+  if (manquantes.length === 0) return { trouvees: 0, fournisseurMuet: false }
 
   const auteur = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
   try {
     let reponse = await chercherTomes(entityTypeId, entity.title, { author: auteur })
-    if (reponse.quotaExceeded) return { trouvees: 0, quotaDepasse: true }
+    if (reponse.quotaExceeded) return { trouvees: 0, fournisseurMuet: true }
 
     if (manquantes.some((v) => !findBestCoverMatch(reponse.volumes, v)?.imageUrl)) {
       reponse = await chercherTomes(entityTypeId, entity.title, { author: auteur, forceRefresh: true })
-      if (reponse.quotaExceeded) return { trouvees: 0, quotaDepasse: true }
+      if (reponse.quotaExceeded) return { trouvees: 0, fournisseurMuet: true }
     }
 
     let trouvees = 0
@@ -90,9 +92,9 @@ export async function rattraperJaquettes(
         trouvees++
       }
     }
-    return { trouvees, quotaDepasse: false }
+    return { trouvees, fournisseurMuet: false }
   } catch {
     // Une série en échec ne doit jamais faire échouer l'appelant.
-    return { trouvees: 0, quotaDepasse: false }
+    return { trouvees: 0, fournisseurMuet: false }
   }
 }

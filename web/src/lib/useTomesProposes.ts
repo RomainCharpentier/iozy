@@ -35,7 +35,7 @@ function indicesDe(attributs: Record<string, unknown>) {
  * <h2>Ce qu'elle ne fait pas</h2>
  * Elle ne s'exécute que sur demande (`actif`) : une fiche dont les tomes sont
  * déjà catalogués n'a rien à demander à un fournisseur externe, et le quota
- * Google Books est une ressource réelle (voir `quotaExceeded`).
+ * Google Books est une ressource réelle (voir `fournisseurMuet`).
  */
 export function useTomesProposes({
   entityTypeId,
@@ -60,7 +60,7 @@ export function useTomesProposes({
 
   return {
     candidats: (requete.data?.volumes ?? []) as VolumeCandidateDto[],
-    quotaDepasse: requete.data?.quotaExceeded ?? false,
+    fournisseurMuet: requete.data?.quotaExceeded ?? false,
     enCours: requete.isFetching,
     aEchoue: requete.isError,
     relancer: requete.refetch,

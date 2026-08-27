@@ -752,7 +752,7 @@ export function EntityDetailPage() {
               bouton toujours là mais sans effet possible ne dirait rien. Le
               décompte annonce combien de tomes attendent une image. */}
           {/* `isSuccess` autant que le décompte : au succès il tombe à zéro, et
-              le bloc emportait sa propre confirmation en disparaîvant - on
+              le bloc emportait sa propre confirmation en disparaissant - on
               cliquait, tout s'évanouissait, sans un mot. */}
           {(jaquettesManquantes > 0 || jaquettesMutation.isSuccess) && (
             <div className="flex flex-wrap items-center gap-3">
@@ -771,8 +771,8 @@ export function EntityDetailPage() {
               )}
               {jaquettesMutation.isSuccess && (
                 <span className="text-[13px] text-textDim">
-                  {jaquettesMutation.data.quotaDepasse
-                    ? 'Quota du fournisseur dépassé - réessaie plus tard.'
+                  {jaquettesMutation.data.fournisseurMuet
+                    ? "Le fournisseur n'a pas répondu - réessaie plus tard."
                     : jaquettesMutation.data.trouvees > 0
                       ? `${jaquettesMutation.data.trouvees} retrouvée${jaquettesMutation.data.trouvees > 1 ? 's' : ''}.`
                       : 'Aucune trouvée cette fois.'}

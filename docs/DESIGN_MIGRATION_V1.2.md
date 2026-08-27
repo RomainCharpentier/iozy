@@ -1360,6 +1360,76 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 58 — une source muette n'est pas une absence
+
+Épreuve du bouton du Lot 57, sur Naruto. Il annonçait « Retrouver 1 jaquette »,
+et après le clic : « Aucune trouvée cette fois. » Le journal de l'API disait
+autre chose - trois `Google Books a répondu 503` pendant ce clic - et un appel
+direct à `/api/metadata/volumes` rendait **59 tomes, le 30 compris**. La
+jaquette manquante existe chez le fournisseur ; c'est l'écran qui a conclu à sa
+place.
+
+**Même défaut que le Lot 50, un cran plus bas.** Là-bas, un scan sans réponse
+disait « Rien trouvé » ; ici, une recherche de tomes sans réponse dit « aucun
+tome ». La cause est commune : un vide qui ne distingue pas « la source a
+répondu, il n'y a rien » de « la source n'a rien dit ».
+
+#### Le chemin exact
+
+`GoogleBooksHttpClient.get` rendait `null` sur tout statut autre que 200/429 ;
+`GoogleBooksVolumeSearchProvider` traduisait ce `null` en liste vide ;
+`MetadataSearchService` ne reconnaissait comme transitoire que
+`QuotaExceededException`. Un 503 traversait donc les trois étages déguisé en
+« cette série n'a aucune édition française ».
+
+Et le pire n'était pas le message : cette liste vide était **mise en cache
+durablement** (`volume_search_cache`, où un vide légitime EST mémorisé, voir
+Lot 35). Une panne de quelques minutes condamnait la recherche pour de bon - le
+bouton serait resté impuissant même une fois Google Books rétabli.
+
+#### Ce qui change
+
+`GoogleBooksHttpClient.get` ne rend plus jamais `null` : il **lève**
+`SourceUnavailableException` (nouvelle, sœur de `QuotaExceededException`) sur un
+statut inattendu, un délai dépassé ou une coupure réseau. L'appelant ne peut
+plus confondre les deux cas, parce que le type ne le permet plus.
+
+En amont, `searchVolumes` agrège les sources muettes comme il agrégeait déjà les
+quotas, et ne relève l'échec que si le résultat final est vide - un mot-clé en
+panne sur huit ne condamne pas les sept autres. `MetadataSearchService` traite
+les deux exceptions ensemble : rien n'est mis en cache, et le drapeau remonte au
+client.
+
+**Un seul drapeau pour les deux causes**, renommé `providerUnavailable` côté
+serveur : quota dépassé et source muette appellent la même conduite (ne rien
+mémoriser, réessayer plus tard) - les distinguer n'aurait ajouté qu'un mot dans
+un message. Le champ JSON garde son nom `quotaExceeded` : le client iOS le
+décode tel quel (`APIClient+Collections.swift`), et le renommer aurait cassé sa
+lecture pour un gain cosmétique.
+
+Côté écran, trois messages cessent d'accuser le quota d'une panne qui n'est pas
+la sienne : « Le fournisseur n'a pas répondu - réessaie plus tard. »
+
+#### Les trois autres appelants, vérifiés avant de changer le contrat
+
+Changer un `return null` en `throw` touche tout le monde. Les trois autres
+fournisseurs Google Books (code-barres, titre français, recherche par titre)
+enveloppaient déjà leur appel dans un `catch (Exception)` : leur comportement est
+identique à la ligne près, seul le test `body == null` devenu mort a été retiré.
+Le lookup par code-barres, lui, y gagne - une 503 y produit désormais
+`BarcodeLookup.unavailable()`, exactement le chemin construit au Lot 50.
+
+#### Vérifications
+
+Trois tests de non-régression, dont deux confrontés à l'ancien code : le service
+qui n'attrape que le quota laisse échapper l'exception (`SourceUnavailable 503`
+au lieu d'un drapeau), et le client qui rend `null` ne lève rien. Le troisième
+vérifie qu'une deuxième recherche rappelle bien le fournisseur au lieu d'être
+servie par un vide mémorisé.
+
+**Vérifié** : suite backend complète, 1023 tests, 0 échec ; `typecheck`,
+`lint`, `check:contrast`, `build`.
+
 ### Lot 57 — recharger les jaquettes quand on en a besoin
 
 « Il faudrait pouvoir recharger quand on a besoin. » Le rattrapage existait,
@@ -3485,6 +3555,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un `return null` qui veut dire « ça n'a pas marché » finit toujours par vouloir dire « il n'y a rien » : deux étages plus haut, plus personne ne sait lequel des deux. Quand un échec et un vide légitime mènent à des conduites différentes (ici : mettre en cache, ou pas), c'est le TYPE qui doit les séparer, pas une convention (Lot 58).
 - Ce dépôt a DEUX clients (web et iOS, tous deux suivis par git). Un balayage d'appelants qui ne regarde que `web/src` déclare mort du code vivant : `/wishlist/lookup` a été listé à tort comme sans appelant au Lot 36 (Lot 51).
 - Un défaut d'interface « prudent » (ici : ne rien conclure d'un vide) sert un usage INTERNE précis - le cache. Le remonter tel quel à l'utilisateur lui fait dire autre chose. Vérifier qui s'appuie sur le défaut avant de lui donner un sens visible (Lot 50).
 - Un test de non-régression doit être confronté à l'ANCIEN code avant d'être gardé (`git checkout` du fichier corrigé, lancer le seul test, restaurer) : sinon rien ne dit qu'il protège quoi que ce soit (Lot 49).
