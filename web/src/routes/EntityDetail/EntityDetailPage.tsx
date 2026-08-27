@@ -44,6 +44,7 @@ import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 import { retourDepuis } from './retourFiche'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { invaliderApresPossession } from '../../lib/invalidations'
 
 /**
  * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
@@ -158,12 +159,7 @@ export function EntityDetailPage() {
       }
       return resultat
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
-      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
-    },
+    onSuccess: () => invaliderApresPossession(queryClient),
   })
 
   /**
@@ -184,12 +180,7 @@ export function EntityDetailPage() {
         await deleteOwnership(id)
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
-      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
-    },
+    onSuccess: () => invaliderApresPossession(queryClient),
   })
 
   const renameMutation = useMutation({

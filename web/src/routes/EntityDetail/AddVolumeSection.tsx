@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
-import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { invaliderApresPossession } from '../../lib/invalidations'
 
 interface ManualVolume {
   volumeNumber: number
@@ -99,19 +99,8 @@ export function AddVolumeSection({
       return { addedCount, alreadyOwnedCount, entityId: identifiant }
     },
     onSuccess: (resultat) => {
-      if (entityId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-        queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-      }
+      invaliderApresPossession(queryClient)
       if (resultat.entityId) onAjoute?.(resultat.entityId)
-      // Ajouté ici pour s'aligner sur OwnershipDetails, qui
-      // invalident les trois : cette clé alimente Ma collection et les
-      // panneaux de sélection des Tier Lists (voir listAllOwnerships).
-      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
-      // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
-      // recalculee ici : sans cette invalidation, Ma collection afficherait
-      // encore l'ancien decompte apres un ajout.
-      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       setVolumeNumber('')
       setEdition('')
       setManualVolumes([])

@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import { Plus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
-import { queryKeys } from '../../lib/queryKeys'
 import { volumeKey } from '../../lib/volumeKey'
 import { useTomesProposes } from '../../lib/useTomesProposes'
 import { useCollecteParTome } from '../../lib/typeDeCollection'
@@ -11,6 +10,7 @@ import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../com
 import { CartesEditions } from './CartesEditions'
 import { BarreAjoutTomes } from './BarreAjoutTomes'
 import { AddVolumeSection } from './AddVolumeSection'
+import { invaliderApresPossession } from '../../lib/invalidations'
 
 /**
  * « Quels tomes possèdes-tu ? » — les tomes qu'un fournisseur connaît, à
@@ -122,15 +122,9 @@ export function usePropositionTomes({
     },
     onSuccess: (identifiant) => {
       setSelection(new Set())
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-      if (entityId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-        queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
-        // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
-        // recalculee ici : sans cette invalidation, Ma collection afficherait
-        // encore l'ancien decompte apres un ajout.
-        queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
-      }
+      // Sans condition sur `entityId` : l'ajout vient peut-être de CRÉER
+      // l'œuvre, auquel cas la progression de toute la collection change aussi.
+      invaliderApresPossession(queryClient)
       if (identifiant) onAjoute?.(identifiant)
     },
   })
