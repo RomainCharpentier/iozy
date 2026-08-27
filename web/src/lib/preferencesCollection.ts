@@ -19,7 +19,7 @@ export type FiltreCollection = 'tout' | 'possedes' | 'envies'
 export type VueCollection = 'groupee' | 'plate'
 export type TriCollection = 'recent' | 'titre'
 
-export interface PreferencesCollection {
+interface PreferencesCollection {
   filtre: FiltreCollection
   vue: VueCollection
   tri: TriCollection

@@ -208,7 +208,7 @@ export function groupByEntityType(
  * EST l'objet collectionnable : la possession est rattachée à l'Entity, et
  * l'envie aussi (voir lib/typeDeCollection).
  */
-export interface EtatOeuvre {
+interface EtatOeuvre {
   possede: boolean
   voulu: boolean
 }
