@@ -1,8 +1,6 @@
 package com.iozycore.api.ownership;
 
 import com.iozycore.api.dto.OwnershipDtos.OwnershipResponse;
-import com.iozycore.api.dto.OwnershipDtos.UpdateNoteRequest;
-import com.iozycore.api.dto.OwnershipDtos.UpdatePurchasePriceRequest;
 import com.iozycore.application.OwnershipDeletionService;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -62,26 +60,15 @@ public class OwnershipController {
 
     @Operation(summary = "Remettre en possession un exemplaire vendu ou perdu - sert l'action \"Annuler\" "
             + "proposée juste après avoir marqué vendu/perdu. 409 si l'exemplaire est déjà actif.")
+    // Aucun appelant web aujourd'hui, et pourtant conservée : le client iOS
+    // sait marquer vendu et perdu (/sell, /lose). Sans cette route, ces deux
+    // gestes seraient des allers simples. C'est un écran qui manque, pas du
+    // code mort - même distinction qu'au Lot 51 pour les préférences
+    // d'analyse d'achat.
     @PostMapping("/{id}/restore")
     public OwnershipResponse restore(@PathVariable UUID id) {
         Ownership ownership = findOrThrow(id);
         ownership.restore();
-        return OwnershipResponse.from(ownershipRepository.save(ownership));
-    }
-
-    @Operation(summary = "Mettre à jour la note libre d'une Ownership")
-    @PatchMapping("/{id}/note")
-    public OwnershipResponse updateNote(@PathVariable UUID id, @RequestBody UpdateNoteRequest request) {
-        Ownership ownership = findOrThrow(id);
-        ownership.updateNote(request.note());
-        return OwnershipResponse.from(ownershipRepository.save(ownership));
-    }
-
-    @Operation(summary = "Renseigner (ou effacer, si purchasePrice est null) le prix d'achat d'une Ownership")
-    @PatchMapping("/{id}/purchase-price")
-    public OwnershipResponse updatePurchasePrice(@PathVariable UUID id, @RequestBody UpdatePurchasePriceRequest request) {
-        Ownership ownership = findOrThrow(id);
-        ownership.updatePurchasePrice(request.purchasePrice());
         return OwnershipResponse.from(ownershipRepository.save(ownership));
     }
 

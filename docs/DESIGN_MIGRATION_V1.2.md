@@ -1360,6 +1360,84 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 61 — les surfaces retirées avaient laissé leurs tuyaux
+
+« Que faut-il consolider ? » Réponse mesurée plutôt que devinée : inventaire des
+**99 routes** du backend, croisé avec les **deux** clients - web et iOS, la
+leçon du Lot 51 - puis scan des exports sans lecteur, et vérification en base de
+ce que contenaient réellement les colonnes concernées.
+
+Les Lots 27 et 53 à 55 ont retiré des écrans. Chaque fois, la fonction cliente
+est restée, et derrière elle la route serveur.
+
+#### Six fonctions clientes sans appelant, trois routes sans client
+
+`markSold`, `markLost`, `restoreOwnership`, `updateNote`, `updatePurchasePrice`,
+`renumberVariant` : plus personne ne les appelait. Derrière elles, trois routes
+n'avaient **plus aucun client, ni web ni iOS** :
+
+- `PATCH /ownerships/{id}/note` - la note d'exemplaire a cédé la place à celle
+  de l'ŒUVRE (demande utilisateur du 2026-08-26) ;
+- `PATCH /ownerships/{id}/purchase-price` - le prix payé n'entre plus dans
+  aucun calcul depuis que la valeur se compte au prix neuf (Lot 56) ;
+- `PATCH /entities/{id}/variants/{id}/volume-number` - le renumérotateur est
+  parti avec le panneau du tome (Lot 55). `Entity.renumberVariant` suit : une
+  méthode de domaine que plus aucune route n'atteint n'est plus un invariant,
+  c'est du poids mort. Le recours existe - supprimer le tome et le rajouter - et
+  la grille continue d'afficher les numéros hors total pour qu'ils restent
+  visibles.
+
+**En base : zéro prix payé, zéro note d'exemplaire** sur 14 possessions. Rien
+n'est perdu. Les colonnes, elles, restent : l'export les lit, et
+`POST /entities/quick-add` accepte toujours un prix facultatif.
+
+#### Ce qui a été GARDÉ, et pourquoi
+
+`POST /ownerships/{id}/restore` n'a aucun appelant non plus - et reste. Le
+client iOS sait marquer « vendu » et « perdu » ; sans cette route, ces deux
+gestes seraient des allers simples. **C'est un écran qui manque, pas du code
+mort** - exactement la distinction faite au Lot 51 pour les préférences
+d'analyse d'achat. La différence n'est pas le nombre d'appelants, c'est
+l'existence d'une porte de sortie pour un geste qu'un client peut encore faire.
+
+#### Un domaine entier sans interface
+
+« Envies d'amélioration d'édition » a quitté l'écran au Lot 27. Il en restait :
+un contrôleur (4 routes), des DTO, un agrégat, un repository, une entité JPA,
+une table, et **un fichier CSV toujours vide dans l'export**. Zéro ligne en base.
+
+Tout est parti, `V22__drop_edition_upgrade_wish.sql` compris - même geste,
+mêmes raisons et même garde-fou qu'au `V19` pour les prêts : la migration refuse
+bruyamment de s'exécuter si la table n'est pas vide, plutôt que d'effacer en
+silence. `V6` n'est pas réécrite : l'histoire des migrations reste fidèle.
+
+À ne pas confondre avec `followed_edition` (Lot 20), bien vivante : « je suis
+CETTE édition » n'est pas « je voudrais en changer ». La javadoc de
+`FollowedEdition` s'appuyait sur ce contraste pour se définir - elle tient
+maintenant debout toute seule.
+
+#### La documentation décrivait une version antérieure de l'app
+
+`docs/USER_JOURNEYS.md` citait **six écrans supprimés** comme s'ils existaient
+(`VariantNumberEditor`, `VolumeInteractionPanel`, `OwnershipDetails`,
+`AddOwnershipForm`, `WishlistPage`, `EditionUpgradeWishToggle`), plus
+`lib/editionGroups.ts`, supprimé la veille au Lot 60. Les parcours 11, 15 et 20
+passent en `SUPPRIMÉ` avec la convention déjà établie pour les prêts au §16 ;
+les parcours 09, 13, 17 et 51 sont corrigés ; la carte « Où retrouver
+l'implémentation » redevient exacte.
+
+C'est le fichier qui répond à « quels écrans existent ». Faux, il coûte plus
+qu'il ne rend - un commentaire de `lib/tomeTiles` renvoyait encore le lecteur
+vers un composant disparu.
+
+#### Vérifications
+
+Le même inventaire, rejoué après coup : **92 routes**, plus une seule sans trace
+côté client (hors `restore`, gardée à dessein).
+
+**Vérifié** : suite backend complète, 1002 tests, 0 échec ; `typecheck`,
+`lint`, `check:contrast`, `build`. **-531 lignes.**
+
 ### Lot 60 — la fiche cesse de recalculer sa progression
 
 Le dernier des trois calculs de « X tomes possédés sur Y ». Ma collection a
@@ -3717,6 +3795,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- « Sans appelant » ne veut pas dire « à supprimer ». Deux questions le tranchent : un client peut-il encore faire le geste INVERSE (alors la route est une porte de sortie - `restore` face à `sell`/`lose` sur iOS), et existe-t-il un autre recours (renuméroter, non : supprimer et rajouter suffit) ? Compter les appelants ne suffit jamais (Lot 61).
+- Retirer un écran laisse trois strates derrière lui : la fonction cliente, la route serveur, et la DOC qui le décrit encore. Les lots 27 et 53-55 n'avaient nettoyé que l'écran ; six mentions d'écrans morts sont restées dans USER_JOURNEYS pendant des jours (Lot 61).
 - Remplacer un calcul SYNCHRONE par une requête crée un état qui n'existait pas : « je ne sais pas encore ». Chercher tous ses lecteurs, y compris ceux qui tournent pendant le vol - les Hooks s'exécutent avant le retour anticipé, et une condition du type « si la liste est vide » y devient vraie à tort (Lot 60).
 - Un endpoint peut porter un filtre qui rend une question IMPOSSIBLE à poser : `/metadata/search` écarte ce qu'on possède déjà, donc une fiche existante n'y trouvait jamais sa propre œuvre - zéro correspondance par construction, et un message d'écran parfaitement plausible pour le masquer. Avant de rapprocher deux données, vérifier que la source peut seulement rendre la bonne (Lot 59).
 - Rapprocher une œuvre d'un candidat par le TITRE est un piège quand la source indexe aussi les dérivés : Naruto rend huit spin-offs, Zelda rend un bundle en premier. L'identifiant externe est déjà stocké depuis l'ajout - s'en servir d'abord (Lot 59).

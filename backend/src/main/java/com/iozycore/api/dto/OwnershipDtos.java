@@ -23,11 +23,4 @@ public final class OwnershipDtos {
                     ownership.purchasePrice().orElse(null));
         }
     }
-
-    public record UpdateNoteRequest(String note) {
-    }
-
-    /** {@code purchasePrice} null efface le prix renseigné (ex: saisie corrigée). */
-    public record UpdatePurchasePriceRequest(BigDecimal purchasePrice) {
-    }
 }

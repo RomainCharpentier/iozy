@@ -303,62 +303,13 @@ class EntityHttpContractTest extends HttpContractTestBase {
     // ======================================================= Variants
 
     @Test
-    void renumbers_a_volume_and_updates_its_label_in_the_same_move() throws Exception {
-        Entity serie = uneSerieAvecPossession();
-        UUID variantId = serie.variants().get(0).id();
-
-        mockMvc.perform(patch("/api/entities/{e}/variants/{v}/volume-number", serie.id(), variantId)
-                        .contentType("application/json").content(json(Map.of("volumeNumber", 7))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.variants[0].attributes.volumeNumber").value(7))
-                // Numéro et libellé bougent ensemble : la déduplication à l'ajout
-                // se fait par libellé, les désynchroniser créerait des doublons.
-                // Le libellé porte aussi l'édition - deux éditions d'une même
-                // série ont chacune leur tome 7, et le libellé doit les séparer.
-                .andExpect(jsonPath("$.variants[0].label").value("Tome 7 — Standard"));
-    }
-
-    @Test
-    void rejects_a_missing_or_invalid_volume_number_with_400_and_never_500() throws Exception {
-        Entity serie = uneSerieAvecPossession();
-        UUID variantId = serie.variants().get(0).id();
-
-        mockMvc.perform(patch("/api/entities/{e}/variants/{v}/volume-number", serie.id(), variantId)
-                        .contentType("application/json").content("{}"))
-                .andExpect(status().isBadRequest());
-        // Zéro : refusé par le domaine, traduit en 400 par le contrôleur.
-        mockMvc.perform(patch("/api/entities/{e}/variants/{v}/volume-number", serie.id(), variantId)
-                        .contentType("application/json").content(json(Map.of("volumeNumber", 0))))
-                .andExpect(status().isBadRequest());
-        // Non numérique : refusé à la désérialisation, avant même le contrôleur.
-        mockMvc.perform(patch("/api/entities/{e}/variants/{v}/volume-number", serie.id(), variantId)
-                        .contentType("application/json").content("{\"volumeNumber\":\"sept\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void returns_409_when_renumbering_onto_a_number_another_volume_already_uses() throws Exception {
-        String titre = "Vinland Saga " + UUID.randomUUID();
-        quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), titre,
-                OwnershipCondition.USED, Map.of(), 1, "Standard");
-        QuickAddService.QuickAddResult second = quickAddService.addNewEntityWithOwnership(
-                EntityTypeFixtures.MANGA.id(), titre, OwnershipCondition.USED, Map.of(), 2, "Standard");
-
-        // Deux tomes ne peuvent pas porter le même numéro dans une même édition.
-        // Conflit d'état -> 409, et non 400 : la requête est bien formée.
-        mockMvc.perform(patch("/api/entities/{e}/variants/{v}/volume-number",
-                        second.entityId(), second.variantId())
-                        .contentType("application/json").content(json(Map.of("volumeNumber", 1))))
-                .andExpect(status().isConflict());
-    }
-
-    @Test
     void returns_404_when_the_variant_does_not_belong_to_the_entity() throws Exception {
         Entity serie = uneSerieAvecPossession();
 
         // Le contrôleur traduit ici IllegalArgumentException en 404 - un Variant
-        // inconnu est une ressource absente, pas une requête invalide. Ce choix
-        // diffère de renumberVariant, qui rend 400 : les deux sont figés.
+        // inconnu est une ressource absente, pas une requête invalide. Choix
+        // délibéré, figé par ce test : les autres routes de ce contrôleur
+        // rendent 400 sur la même exception.
         mockMvc.perform(patch("/api/entities/{e}/variants/{v}", serie.id(), ABSENT)
                         .contentType("application/json").content(json(Map.of("cover", "x"))))
                 .andExpect(status().isNotFound());

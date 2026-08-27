@@ -10,7 +10,6 @@ import com.iozycore.domain.catalog.RelationshipRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.editionupgrade.EditionUpgradeWishRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.domain.ownership.Ownership;
@@ -50,7 +49,6 @@ public class ExportService {
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
-    private final EditionUpgradeWishRepository editionUpgradeWishRepository;
 
     public ExportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
                           OwnershipRepository ownershipRepository, ExperienceRepository experienceRepository,
@@ -59,19 +57,18 @@ public class ExportService {
                           MangaEditionRepository mangaEditionRepository,
                           EntityRankRepository entityRankRepository,
                           TierListRepository tierListRepository,
-                          TierListItemRepository tierListItemRepository,
-                          EditionUpgradeWishRepository editionUpgradeWishRepository) {
+                          TierListItemRepository tierListItemRepository) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
         this.experienceRepository = experienceRepository;
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.relationshipRepository = relationshipRepository;
-        this.tagRepository = tagRepository;        this.mangaEditionRepository = mangaEditionRepository;
+        this.tagRepository = tagRepository;
+        this.mangaEditionRepository = mangaEditionRepository;
         this.entityRankRepository = entityRankRepository;
         this.tierListRepository = tierListRepository;
         this.tierListItemRepository = tierListItemRepository;
-        this.editionUpgradeWishRepository = editionUpgradeWishRepository;
     }
 
     public ExportDocument buildExportDocument() {
@@ -144,15 +141,9 @@ public class ExportService {
                                 .toList()))
                 .toList();
 
-        List<ExportDocument.EditionUpgradeWishExport> upgradeWishExports = editionUpgradeWishRepository.findAll().stream()
-                .map(w -> new ExportDocument.EditionUpgradeWishExport(w.id(), w.entityId(),
-                        titleOf(w.entityId(), entitiesById), w.currentEditionName(),
-                        w.desiredEditionName().orElse(null), w.note().orElse(null), w.addedAt()))
-                .toList();
-
         return new ExportDocument(Instant.now().toString(), entityExports, ownershipExports, experienceExports,
                 wishlistExports, relationshipExports, tagExports, editionExports, generalRankExports,
-                tierListExports, upgradeWishExports);
+                tierListExports);
     }
 
     private static ExportDocument.EntityExport toEntityExport(Entity entity, Map<UUID, EntityType> typesById,

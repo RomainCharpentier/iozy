@@ -96,12 +96,6 @@ public class ExportCsvWriter {
                         str(pair.getValue().entityId()), str(pair.getValue().entityTitle()),
                         str(pair.getValue().rank()))));
 
-        files.put("edition-upgrade-wishes.csv", writeCsv(
-                List.of("id", "entityId", "entityTitle", "currentEditionName", "desiredEditionName", "note", "addedAt"),
-                document.editionUpgradeWishes(),
-                w -> List.of(str(w.id()), str(w.entityId()), str(w.entityTitle()), str(w.currentEditionName()),
-                        str(w.desiredEditionName()), str(w.note()), str(w.addedAt()))));
-
         files.put("tags.csv", writeCsv(
                 List.of("id", "label"),
                 document.tags(),

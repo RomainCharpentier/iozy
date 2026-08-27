@@ -40,9 +40,8 @@ public class ExperienceController {
     @ResponseStatus(HttpStatus.CREATED)
     public ExperienceResponse record(@RequestBody RecordExperienceRequest request) {
         // 400 et non 404 : l'endpoint existe, c'est le CORPS envoyé qui référence
-        // une œuvre inconnue - même refus que /wishlist,
-        // /edition-upgrade-wishes et /tier-lists/general (Lot 28, mise en
-        // cohérence). Le 404 avait en outre un effet de bord côté client, qui
+        // une œuvre inconnue - même refus que /wishlist et
+        // /tier-lists/general (Lot 28, mise en cohérence). Le 404 avait en outre un effet de bord côté client, qui
         // remplace tout message de 404 par un repli traduit (voir Lot 26) : la
         // raison réelle n'arrivait jamais à l'écran.
         Entity entity = entityRepository.findById(request.entityId())

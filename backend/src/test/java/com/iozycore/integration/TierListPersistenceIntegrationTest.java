@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Valide le module de persistance Tier Lists (Flyway V12 + JPA) contre un vrai PostgreSQL - mirrors EditionUpgradeWishPersistenceIntegrationTest. */
+/** Valide le module de persistance Tier Lists (Flyway V12 + JPA) contre un vrai PostgreSQL. */
 class TierListPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
