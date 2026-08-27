@@ -13,7 +13,7 @@ import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
 import { resolvePrimaryTitle, useTitleComposition } from '../../lib/titleLanguage'
 import { gradientFor } from '../../theme/gradient'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
+import { ColonneSource, InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { FicheHero } from './FicheHero'
 import { retourDepuis } from './retourFiche'
@@ -215,32 +215,9 @@ export function ApercuOeuvrePage() {
               {startYear && <RangeeInspecteur libelle="Année de début">{startYear}</RangeeInspecteur>}
             </div>
           }
-          source={
-            <div className="flex flex-col">
-              {CLES_SOURCE.map(({ cle, libelle }) => {
-                const valeur = attributs[cle]
-                if (valeur === null || valeur === undefined || valeur === '') return null
-                return (
-                  <RangeeInspecteur key={cle} libelle={libelle} compact>
-                    {String(valeur)}
-                  </RangeeInspecteur>
-                )
-              })}
-            </div>
-          }
+          source={<ColonneSource attributs={attributs} />}
         />
       </div>
     </>
   )
 }
-
-/** Mêmes clés, même ordre que la colonne SOURCE de la fiche - c'est la même
- *  provenance, qu'elle soit déjà enregistrée ou non. */
-const CLES_SOURCE: { cle: string; libelle: string }[] = [
-  { cle: 'malId', libelle: 'malId' },
-  { cle: 'titleRomaji', libelle: 'Titre romaji' },
-  { cle: 'titleJapanese', libelle: 'Titre japonais' },
-  { cle: 'seriesStatus', libelle: 'Statut source' },
-  { cle: 'totalVolumes', libelle: 'Nb de tomes source' },
-  { cle: 'endYear', libelle: 'Année de fin' },
-]

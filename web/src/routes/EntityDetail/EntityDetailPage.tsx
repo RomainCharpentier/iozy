@@ -30,7 +30,7 @@ import { TierBadge } from '../TierLists/TierBadge'
 import { BoutonEnviesHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
-import { InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
+import { ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
 import { AddVolumeSection } from './AddVolumeSection'
@@ -714,17 +714,7 @@ export function EntityDetailPage() {
           }
           source={
             <>
-              <div className="flex flex-col">
-                {CLES_SOURCE.map(({ cle, libelle }) => {
-                  const valeur = entity.attributes[cle]
-                  if (valeur === null || valeur === undefined || valeur === '') return null
-                  return (
-                    <RangeeInspecteur key={cle} libelle={libelle} compact>
-                      {String(valeur)}
-                    </RangeeInspecteur>
-                  )
-                })}
-              </div>
+              <ColonneSource attributs={entity.attributes} />
               <span className="text-xs text-faint">
                 Relations :{' '}
                 {relFromQuery.data?.length || relToQuery.data?.length
@@ -950,18 +940,6 @@ function resumeRechargement(resultat: {
   if (resultat.sansCorrespondance) return "La source ne connaît pas cette œuvre sous ce titre."
   return 'Tout était déjà à jour.'
 }
-
-/** Les rouages recopiés d'un fournisseur - colonne SOURCE de la maquette.
- *  Liste fermée et ORDONNÉE : c'est l'ordre de la maquette, pas celui,
- *  imprévisible, des clés du sac d'attributs. */
-const CLES_SOURCE: { cle: string; libelle: string }[] = [
-  { cle: 'malId', libelle: 'malId' },
-  { cle: 'titleRomaji', libelle: 'Titre romaji' },
-  { cle: 'titleJapanese', libelle: 'Titre japonais' },
-  { cle: 'seriesStatus', libelle: 'Statut source' },
-  { cle: 'totalVolumes', libelle: 'Nb de tomes source' },
-  { cle: 'endYear', libelle: 'Année de fin' },
-]
 
 function ChampCorrection({
   valeur,

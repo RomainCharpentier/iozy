@@ -1360,6 +1360,24 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 67 — la colonne SOURCE, écrite une fois
+
+La fiche et l'aperçu d'une œuvre qu'on ne possède pas affichaient la même
+colonne SOURCE - **la liste des clés ET son rendu**, recopiés, avec pour seul
+lien un commentaire disant « mêmes clés, même ordre que la colonne SOURCE de la
+fiche ». C'est le montage exact que le Lot 39 avait déjà vu lâcher sur la
+navigation : deux listes gardées synchronisées à la main sont deux listes vouées
+à diverger.
+
+`ColonneSource` vit maintenant dans `InspecteurFiche`, avec `RangeeInspecteur`
+qu'elle utilise.
+
+**Vérifié en direct sur les deux écrans** : la fiche Naruto rend « malId 11 /
+Titre romaji Naruto / Titre japonais NARUTO―ナルト― / Statut source finished /
+Nb de tomes source 72 » ; l'aperçu de Vinland Saga, jamais possédée, rend la
+même colonne avec ses propres valeurs. `typecheck`, `lint`, `check:contrast`,
+`build`.
+
 ### Lot 66 — deux écrans de collection, un seul chargement
 
 Ma collection et la vue d'une catégorie posaient les **mêmes quatre requêtes**,
