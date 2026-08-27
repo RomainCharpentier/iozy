@@ -1373,14 +1373,28 @@ gauche, comment on le filtre à droite), en plus petit, avec des pastilles de
 filtre resserrées : **62 px**, soit 56 % de moins. À 375 px la rangée se replie
 d'elle-même sur deux lignes (91 px), sans débordement.
 
-**L'utilité** : cet en-tête ne fait que répéter ce que la carte d'édition dit
-déjà juste au-dessus - d'où le petit corps, c'est un repère et non un titre de
-section. Et le résumé commençait par l'ÉDITEUR, alors qu'une édition porte
-souvent le nom de son éditeur : « Kurokawa · Kurokawa · 1 tome possédé ».
-L'éditeur n'est plus répété que lorsqu'il apporte quelque chose.
+**L'utilité** : première passe, j'avais gardé l'en-tête en petit corps, « comme
+repère ». L'utilisateur a recollé son écran, et le repère était une pure
+redite : la carte d'édition juste au-dessus dit déjà « Kurokawa · Détails à
+renseigner · 1 tome · 1 tome possédé », jauge comprise.
 
-L'écran d'ajout reçoit le même en-tête : les deux montrent la même chose, ils
+L'en-tête ne survit donc que là où il lève une **ambiguïté** : quand l'œuvre a
+PLUSIEURS éditions, il faut redire laquelle la grille montre. Avec une seule,
+il disparaît, et il ne reste que les filtres. Et il ne porte plus que le NOM :
+l'avancement est sur la carte.
+
+Le résumé disparait avec lui - il commençait d'ailleurs par l'ÉDITEUR, alors
+qu'une édition porte souvent le nom de son éditeur : « Kurokawa · Kurokawa · 1
+tome possédé ».
+
+L'écran d'ajout reçoit la même rangée : les deux montrent la même chose, ils
 doivent l'annoncer de la même façon.
+
+**Vérifié** en restaurant la version précédente pour comparer (142 → 62 px), et
+sur les deux branches : œuvre à une édition, aucun en-tête ; œuvre à deux
+éditions - fabriquée jetable puis supprimée, aucune série réelle n'en ayant deux
+- le nom de l'édition regardée s'affiche bien, sur la même ligne que les
+filtres.
 
 ### Lot 42 — « Éditer » contenait ce qui n'est pas du catalogue
 
