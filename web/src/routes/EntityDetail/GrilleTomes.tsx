@@ -28,7 +28,6 @@ export function GrilleTomes({
   filtre,
   onFiltre,
   tuiles,
-  tomeActif,
   onChoisirTome,
   onJeLAi,
   tomesVoulus,
@@ -45,7 +44,6 @@ export function GrilleTomes({
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
   tuiles: TomeTile[]
-  tomeActif: number | null
   onChoisirTome: (numero: number) => void
   /** « Je l'ai » - ajoute le tome en un clic. */
   onJeLAi: (numero: number) => void
@@ -67,7 +65,8 @@ export function GrilleTomes({
     // une envie : il ne peut pas être voulu tant qu'il n'est pas catalogué -
     // ce que « Je le veux » déclenche justement (voir TomeResolver).
     voulu: !!tuile.variant && tomesVoulus.has(tuile.variant.id),
-    actif: tuile.volumeNumber === tomeActif,
+    // Plus rien ne s'ouvre au clic : aucun tome n'est « actif ».
+    actif: false,
   }))
 
   return (

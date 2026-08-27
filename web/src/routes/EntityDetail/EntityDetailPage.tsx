@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, quickAdd, renameEntity } from '../../api/entities'
-import { listOwnerships } from '../../api/ownerships'
+import { deleteOwnership, listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
@@ -29,7 +29,6 @@ import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
-import { VolumeInteractionPanel } from './VolumeInteractionPanel'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierSummarySection } from './TierSummarySection'
 import { TagsSection } from './TagsSection'
@@ -80,7 +79,6 @@ export function EntityDetailPage() {
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
-  const [tomeActif, setTomeActif] = useState<number | null>(null)
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
   const [ajoutTomeOuvert, setAjoutTomeOuvert] = useState(false)
   // Un seul éditeur personnel ouvert à la fois : ce sont trois relevés voisins
@@ -89,6 +87,7 @@ export function EntityDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [editingCover, setEditingCover] = useState(false)
+  const [remarquesInput, setRemarquesInput] = useState<string | null>(null)
   const [coverUrlInput, setCoverUrlInput] = useState('')
 
   const entityQuery = useQuery({ queryKey: queryKeys.entities.detail(entityId), queryFn: () => getEntity(entityId) })
@@ -135,6 +134,32 @@ export function EntityDetailPage() {
     },
   })
 
+  /**
+   * Cliquer un tome POSSÉDÉ le repasse en manquant.
+   *
+   * C'est le geste inverse de « Je l'ai », et le seul moyen restant de sortir
+   * du troisième état depuis que le panneau du tome a disparu (décision
+   * utilisateur du 2026-08-27 : ne garder que possédé / envie / manquant, plus
+   * une note au niveau du groupe).
+   *
+   * Supprime l'Ownership plutôt que de la marquer vendue : « vendu » et
+   * « perdu » ont été retirés avec le panneau, il ne reste donc qu'un sens à
+   * ce geste - je ne l'ai plus.
+   */
+  const retraitTome = useMutation({
+    mutationFn: async (ownershipIds: string[]) => {
+      for (const id of ownershipIds) {
+        await deleteOwnership(id)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+    },
+  })
+
   const renameMutation = useMutation({
     mutationFn: (title: string) => renameEntity(entityId, title),
     onSuccess: () => {
@@ -142,6 +167,26 @@ export function EntityDetailPage() {
       setEditingTitle(false)
     },
   })
+  /**
+   * La note de l'utilisateur sur l'ŒUVRE.
+   *
+   * Elle vivait sur chaque exemplaire (`ownership.note`), avec le prix payé et
+   * les statuts vendu/perdu. Tout cela est parti avec le panneau du tome ; la
+   * note, elle, reste - mais attachée au GROUPE, ce qu'on écrit d'une série
+   * n'ayant presque jamais trait à un exemplaire précis (décision utilisateur
+   * du 2026-08-27).
+   *
+   * Stockée dans les attributs de l'Entity : pas de migration pour un texte
+   * libre, et le même chemin que le titre ou la jaquette.
+   */
+  const remarquesMutation = useMutation({
+    mutationFn: (note: string) => mergeEntityAttributes(entityId, { note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      setRemarquesInput(null)
+    },
+  })
+
   const coverMutation = useMutation({
     mutationFn: (url: string) => mergeEntityAttributes(entityId, { [COVER_IMAGE_ATTRIBUTE_KEY]: url }),
     onSuccess: () => {
@@ -217,7 +262,6 @@ export function EntityDetailPage() {
         completenessQuery.data?.cataloguedMissingVolumeNumbers ?? [],
       )
     : []
-  const tuileActive = tuiles.find((t) => t.volumeNumber === tomeActif) ?? null
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
@@ -230,6 +274,7 @@ export function EntityDetailPage() {
   // Le cœur de la bande haute ne vaut que pour une œuvre qui se possède d'une
   // seule pièce. Pour un manga, la série est un GROUPE : on ne veut pas
   // « Naruto », on veut le tome 47 - et c'est la grille qui le dit.
+  const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
   const dansEnvies = !!wishlist.entryFor(entityId)
   const tomesVoulus = wishlist.variantsVoulus
 
@@ -317,10 +362,7 @@ export function EntityDetailPage() {
               editions={editionsAffichees}
               editionAffichee={groupeActif?.edition ?? ''}
               editionSuivie={editionSuivie}
-              onAfficher={(nom) => {
-                setEditionAffichee(nom)
-                setTomeActif(null)
-              }}
+              onAfficher={(nom) => setEditionAffichee(nom)}
               onSuivre={(nom) => suivreMutation.mutate(nom)}
               onNePlusSuivre={() => nePlusSuivreMutation.mutate()}
               onAjouterEdition={() => setAjoutTomeOuvert(true)}
@@ -376,13 +418,17 @@ export function EntityDetailPage() {
             filtre={filtre}
             onFiltre={setFiltre}
             tuiles={tuiles}
-            tomeActif={tomeActif}
             onChoisirTome={(numero) => {
-              // Un tome possédé ouvre son panneau (gérer l'exemplaire) ; un
-              // tome manquant s'ajoute, sans détour.
+              // Un seul geste, dans les deux sens : le tome entre dans la
+              // collection ou en sort. Plus de surface intermédiaire.
               const tuile = tuiles.find((t) => t.volumeNumber === numero)
-              if (tuile?.status === 'owned') setTomeActif(numero)
-              else ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+              if (tuile?.status === 'owned' && tuile.variant) {
+                retraitTome.mutate(
+                  ownerships.filter((o) => o.variantId === tuile.variant!.id).map((o) => o.id),
+                )
+              } else {
+                ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+              }
             }}
             onJeLAi={(numero) =>
               ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
@@ -402,17 +448,6 @@ export function EntityDetailPage() {
               onFermer={() => setAjoutTomeOuvert(false)}
             />
           </div>
-
-          <VolumeInteractionPanel
-            activeTile={tuileActive}
-            onRenumbered={setTomeActif}
-            onClose={() => setTomeActif(null)}
-            entityId={entityId}
-            entityTypeId={entity.entityTypeId}
-            entityTitle={entity.title}
-            editionName={groupeActif.edition}
-            ownerships={ownerships}
-          />
         </>
       )}
 
@@ -451,6 +486,45 @@ export function EntityDetailPage() {
                   </span>
                 ) : (
                   <span className="text-[13.5px] text-faint">Pas encore notée</span>
+                )}
+              </ReleveInspecteur>
+              <ReleveInspecteur
+                libelle="Mes remarques"
+                ouvert={remarquesInput !== null}
+                onModifier={() => setRemarquesInput((v) => (v === null ? remarques : null))}
+              >
+                {remarquesInput !== null ? (
+                  <span className="flex flex-col gap-2 pt-1">
+                    <textarea
+                      value={remarquesInput}
+                      onChange={(e) => setRemarquesInput(e.target.value)}
+                      rows={3}
+                      autoFocus
+                      placeholder="Ce que tu veux retenir sur cette série…"
+                      className="w-full rounded-xl bg-surface px-3 py-2 text-[13.5px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                    />
+                    <span className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => remarquesMutation.mutate(remarquesInput.trim())}
+                        disabled={remarquesMutation.isPending}
+                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
+                      >
+                        Enregistrer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRemarquesInput(null)}
+                        className="text-xs text-textDim"
+                      >
+                        Annuler
+                      </button>
+                    </span>
+                  </span>
+                ) : remarques ? (
+                  <span className="text-[13.5px] whitespace-pre-line text-textPrimary">{remarques}</span>
+                ) : (
+                  <span className="text-[13.5px] text-faint">Aucune</span>
                 )}
               </ReleveInspecteur>
               <ReleveInspecteur

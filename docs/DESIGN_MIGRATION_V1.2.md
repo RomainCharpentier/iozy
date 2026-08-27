@@ -1360,6 +1360,50 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 55 — le panneau du tome disparaît, la note remonte au groupe
+
+Décision utilisateur : « je veux plus voir de prix payé, vendu, perdu, on garde
+juste les notes (associé au groupe) et le possédé ou envie ».
+
+**Un tome n'a plus que trois états et deux gestes.** Cliquer une tuile la fait
+entrer dans la collection ou en sortir ; le menu au survol garde « Je l'ai » et
+« Je le veux ». Plus aucune surface intermédiaire.
+
+**Ce qui part** : `VolumeInteractionPanel`, `OwnershipDetails`,
+`VariantNumberEditor` et l'éditeur de jaquette du tome - donc le prix payé, la
+note d'exemplaire, « marquer vendu », « marquer perdu », « supprimer cet
+exemplaire », les exemplaires passés, et les deux corrections catalogue du
+tome. **Vérifié avant de supprimer** : zéro note, zéro prix et zéro exemplaire
+vendu ou perdu en base - rien de réel n'est perdu.
+
+Sortir un tome de la collection SUPPRIME son Ownership au lieu de la marquer
+vendue : « vendu » et « perdu » sont partis, il ne reste donc qu'un sens à ce
+geste - je ne l'ai plus.
+
+**Ce qui reste** : la note, mais portée par le GROUPE. Elle vivait sur chaque
+exemplaire, alors que ce qu'on écrit d'une série n'a presque jamais trait à un
+exemplaire précis. Elle apparaît en « Mes remarques » dans la colonne
+Personnel, à côté du classement, de la note et des tags - au même endroit et
+avec le même geste que les autres relevés (voir Lot 42). Stockée dans les
+attributs de l'Entity : pas de migration pour un texte libre.
+
+#### Conséquence à connaître
+
+Plus aucune surface ne SAISIT de prix d'achat (le lot 53 avait déjà retiré les
+champs, celui-ci retire le dernier). « Valeur de la collection », sur
+Statistiques, ne pourra donc plus afficher que **0,00 €** - elle le dit
+honnêtement (« prix connu sur 0/12 possessions »), mais c'est un écran devenu
+inerte. `StatsService` et l'export CSV lisent toujours la colonne, qui reste en
+base. À trancher à part : retirer l'écran, ou lui rendre une source.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build`. En direct sur Death Note : clic
+sur un tome possédé → il repasse manquant, **aucun panneau** ; re-clic → il
+revient possédé. « Mes remarques » s'ouvre parmi les cinq relevés personnels,
+et le texte saisi se retrouve bien dans `entity.attributes.note`. Remarque
+d'essai retirée, base revenue à l'identique.
+
 ### Lot 54 — le panneau du tome quitte le chemin d'ajout
 
 « Retire le sidepanel du coup ». Le « du coup » désigne le lot précédent : ce
