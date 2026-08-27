@@ -1360,6 +1360,50 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 49 — l'analyse d'un lot conseillait de racheter ce qu'on a déjà
+
+Épreuve du parcours « Analyser une annonce » (§12 de l'étude), la seule entrée
+de navigation que rien n'avait touchée depuis sa promotion au premier plan.
+
+#### Ce qui tient
+
+Le modèle du §12 est en place : le lien est explicitement facultatif, les
+photos ont leur propre chemin (« IozyCore y lit les séries et les tomes, puis
+vous confirmez »), et **l'édition est déduite du catalogue sans jamais être
+demandée** - taper « Naruto » + « 1-5 » suffit à remplir « Naruto · Kana · 5
+tomes ». Le panneau « Éléments détectés » groupe par série parce que l'édition
+est une propriété de la série. Et l'incertitude est assumée, comme l'exige la
+règle 7 : « Référence insuffisante », « Livraison non incluse : ce total est
+incomplet », « Confiance Haute · basée sur 8/10 critères disponibles ».
+
+#### Ce qui ne tenait pas
+
+L'analyse a répondu « 5 éléments · **5 manquants** » sur un lot Naruto 1-5,
+alors que le tome 1 est possédé - la fiche l'affiche comme tel dans l'édition
+Kana, et Ma collection compte 3/72. L'écran conseillait donc de **racheter un
+tome déjà en rayon**, l'inverse de ce à quoi il sert.
+
+Cause : `findOwnedVolumeNumbers` exigeait que l'attribut `edition` du tome
+corresponde EXACTEMENT. Un tome catalogué sans édition précisée - ce que laisse
+tout ajout ancien - n'appartenait alors à aucune édition. Partout ailleurs il
+rejoint l'unique édition nommée de la série.
+
+**Le plus instructif** : ce défaut est déjà décrit dans ce fichier même. Un
+commentaire quarante lignes plus haut explique qu'au Lot 31 les suggestions ont
+été rebranchées sur `CollectionProgressService` parce qu'elles « ignoraient les
+tomes sans édition précisée, d'où une série annoncée 2/72 ici et 3/72 sur Ma
+collection ». Corrigé pour une méthode, pas pour sa voisine. Quand on rebranche
+un calcul sur une source unique, chercher **tous** ses jumeaux dans le fichier.
+
+#### Vérifications
+
+Suite backend complète : **1017 tests**, 0 échec. Le test ajouté a été confronté
+à l'ancien code avant d'être gardé - **rouge sans le correctif, vert avec** :
+un test qui passerait dans les deux cas ne protégerait rien.
+
+Donnée de test nettoyée : l'analyse créée pour l'épreuve a été supprimée via
+`DELETE /purchase-analysis/history/{id}`, l'historique est revenu à 9.
+
 ### Lot 48 — revenir à la recherche la retrouve
 
 « Quand je retourne sur la recherche depuis les détails je perds le résultat et
@@ -3087,6 +3131,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un test de non-régression doit être confronté à l'ANCIEN code avant d'être gardé (`git checkout` du fichier corrigé, lancer le seul test, restaurer) : sinon rien ne dit qu'il protège quoi que ce soit (Lot 49).
+- Quand un calcul est rebranché sur une source unique, chercher TOUS ses jumeaux dans le même fichier : au Lot 31 les suggestions ont été corrigées et `findOwnedVolumeNumbers`, quarante lignes plus bas, a gardé le même défaut six jours de plus (Lot 49).
 - Pour voir ce qu'un écran affiche PENDANT un appel : `docker pause` sur le conteneur de l'API, naviguer, mesurer, puis `unpause`. Plus fiable que de retarder `fetch` dans la page, que le rechargement emporte (Lot 47).
 - Une sonde qui teste une vue pilotée par une PRÉFÉRENCE MÉMORISÉE doit poser l'état qu'elle mesure (écrire `localStorage` puis recharger), jamais cliquer une bascule en supposant l'état de départ : au Lot 45 elle a relevé deux fois la même vue sans que rien ne le signale.
 - **`document.documentElement.clientWidth` peut valoir 0 dans ce navigateur de test** quand aucun viewport n'est émulé : toute sonde de débordement rapporte alors un faux positif, et `elementFromPoint` rend `null`. Appeler `resize_window` avec une taille EXPLICITE avant de mesurer, et se méfier d'un `deborde: true` accompagné d'un viewport nul (Lot 41).

@@ -378,6 +378,48 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
     }
 
+    /**
+     * Un tome catalogué SANS édition précisée appartient à l'unique édition nommée de
+     * la série - c'est ce que la fiche et Ma collection affichent depuis toujours, via
+     * le regroupement de CollectionProgressService.
+     * <p>
+     * L'analyse d'un lot exigeait, elle, une correspondance EXACTE de l'attribut
+     * {@code edition} : elle annonçait donc « manquant » un tome bien présent en rayon,
+     * et conseillait de le racheter. Trouvé en éprouvant le parcours le 2026-08-27 sur
+     * un Naruto dont le tome 1 n'a pas d'édition renseignée.
+     */
+    @Test
+    void a_volume_catalogued_without_an_edition_still_counts_as_owned_in_the_only_named_edition() {
+        String seriesTitle = "Naruto " + UUID.randomUUID();
+        Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), seriesTitle);
+        // Le tome 1 sans édition, les deux autres dans "Kana" : exactement la forme
+        // qu'un ajout ancien laisse derrière lui.
+        entity.addVariant("Tome 1", Map.of("volumeNumber", 1));
+        entity.addVariant("Tome 2 — Kana", Map.of("volumeNumber", 2, "edition", "Kana"));
+        entityRepository.save(entity);
+
+        ownershipRepository.save(Ownership.acquire(entity.id(),
+                entity.findVariantByLabel("Tome 1").orElseThrow().id(),
+                OwnershipCondition.NEW, LocalDate.now(), null));
+        ownershipRepository.save(Ownership.acquire(entity.id(),
+                entity.findVariantByLabel("Tome 2 — Kana").orElseThrow().id(),
+                OwnershipCondition.NEW, LocalDate.now(), null));
+
+        AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Lot Naruto 1-3",
+                null, new BigDecimal("30"), BigDecimal.ZERO, ShippingEstimateKind.UNKNOWN, BigDecimal.ZERO,
+                Condition.VERY_GOOD, false,
+                List.of(new AnalyzeListingItemCommand(seriesTitle, "Kana", Set.of(1, 2, 3), null)),
+                List.of());
+
+        PurchaseAnalysis analysis = purchaseAnalysisService.analyze(command);
+
+        var duplicates = analysis.itemBreakdown().get(0).duplicates();
+        // Le tome 1 compte comme déjà possédé malgré son édition absente ; seul le 3
+        // est réellement utile dans ce lot.
+        assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
+        assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
+    }
+
     // --- Migration "Série -> Édition par ID" (historique de la conversation) ---
     // Le titre ne doit plus jamais être la relation persistante entre une Série et
     // ses Éditions : un renommage doit pouvoir modifier UNIQUEMENT Entity.title
