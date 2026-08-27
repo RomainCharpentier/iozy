@@ -1360,6 +1360,49 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 42 — « Éditer » contenait ce qui n'est pas du catalogue
+
+Remarque de l'utilisateur en testant : « y'a pas trop de choses sous l'édition ?
+normalement on devrait juste modifier les infos qui sont affichées ». Elle
+pointe une contradiction avec l'étude elle-même.
+
+« Éditer » ouvrait cinq éditeurs : classements, tags, expériences, informations
+de la série, relations. Or le §2 range « **juger** » - noter, enregistrer une
+lecture, classer en Tier List - dans les intentions de l'utilisateur NORMAL, et
+« éditer le catalogue » dans celles de l'administrateur. Trois actions
+ordinaires étaient donc enfermées derrière une porte d'admin. Et l'inspecteur
+AFFICHAIT déjà ces informations dans sa colonne « Personnel » : elles se
+lisaient à un endroit et se modifiaient à un autre.
+
+**Décision utilisateur : on modifie l'information là où elle s'affiche.** Chaque
+relevé de la colonne « Personnel » porte son propre « Modifier », qui ouvre
+SON éditeur - un seul à la fois, en pleine largeur sous l'inspecteur, parce
+qu'une colonne de 240 px ne peut pas accueillir un formulaire. « Ma note » et
+« Lectures » partagent le même : la note vit sur une expérience, deux points
+d'entrée pour la même donnée en inventeraient une seconde. Les tags, qui
+flottaient sans intitulé sous les trois relevés, en reçoivent un.
+
+« Éditer » ne garde que le catalogue : informations de l'œuvre et de
+l'édition, relations, renommer, jaquette, ajouter édition/tome, zone sensible.
+
+**Toujours visible, jamais révélé au survol.** Le premier jet cachait le bouton
+sous `md:opacity-0`. Deviner « cet appareil a un survol » à partir d'une
+largeur d'écran est le mauvais signal - un écran tactile large n'en a pas, un
+petit écran avec souris en a un - et un contrôle invisible ET cliquable est le
+pire des deux mondes. Il reste donc là, petit et calme.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` verts. En direct : les quatre
+points d'entrée apparaissent, chacun n'ouvre que son éditeur (« Mes
+classements », « Tags »), un seul à la fois ; « Éditer » ne montre plus que
+« Série », « Édition » et « Relations » ; aucun débordement à 1280 ni à 375 px.
+
+**Piège rencontré** : une mesure d'opacité prise juste après l'édition a rendu
+`0` sur une page que le rechargement à chaud n'avait pas mise à jour, et j'ai
+failli en conclure un défaut de point de rupture qui n'existait pas. Recharger
+avant de mesurer un style qu'on vient de changer.
+
 ### Lot 41 — revérification : deux défauts que le lot C avait introduits
 
 Relecture demandée après coup. Les deux défauts viennent du même geste : la
