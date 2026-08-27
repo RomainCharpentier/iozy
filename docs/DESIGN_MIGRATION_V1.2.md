@@ -1360,6 +1360,35 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 69 — le cœur « Envies » quitte l'en-tête
+
+« Le bouton envie en haut dans le menu semble inutile. » Le code le disait déjà
+dans son propre commentaire : *« Le cœur ne mène plus à un écran à lui : les
+envies sont une LECTURE de Ma collection. Il pose donc le filtre et emmène
+là-bas. »*
+
+Or Ma collection porte « Tout / Possédés / Envies » dans sa barre de vues,
+décompte compris. Le cœur doublait donc, **sur tous les écrans et en
+permanence**, un bouton déjà visible sur celui qu'il ouvrait.
+
+#### Pourquoi le profil reste, lui
+
+`GlobalShortcuts` existe parce qu'au 2026-08-21 le cœur et l'avatar ne vivaient
+que sur desktop, rendant les envies et le profil inatteignables en dessous de
+768 px (UX-1). Cette raison a survécu pour l'un et disparu pour l'autre :
+Paramètres, Administration, export, bilan annuel et partages n'ont **pas**
+d'autre chemin que l'avatar, tandis que Ma collection est dans la barre du
+pouce et porte son filtre.
+
+Le décompte n'est pas perdu non plus - la barre de vues affiche « Envies · 1 »
+là où le nombre se lit avec ce qu'il compte.
+
+**Vérifié en direct, aux deux tailles** : en desktop l'en-tête ne porte plus que
+les quatre destinations et « Mon profil » ; à 375 px, l'en-tête mobile garde
+l'avatar, la barre du pouce ses cinq entrées, la barre de vues son « Envies · 1 »
+- et aucun débordement horizontal. `typecheck`, `lint`, `check:contrast`,
+`build`.
+
 ### Lot 68 — trois écrans de Tier Lists, un seul chargement
 
 L'aperçu de Découvrir, l'écran Tier Lists et la carte du Profil posaient les

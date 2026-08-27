@@ -1,51 +1,32 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { Heart } from 'lucide-react'
-import { useWishlist } from '../../lib/useWishlist'
-import { definirPreferencesCollection } from '../../lib/preferencesCollection'
+import { Link } from 'react-router-dom'
 
 /**
- * Les deux accès globaux qui ne sont PAS des destinations de navigation :
- * Envies (cœur, avec badge) et Profil (avatar). Voir la maquette V1.2 -
- * « Trois intentions, trois espaces. Tout le reste vit dans l'espace auquel il
- * appartient : Envies au cœur, Profil à l'avatar ».
- * <p>
- * Le cœur ne mène plus à un écran à lui : les envies sont une LECTURE de Ma
- * collection (étude produit du 2026-08-27, §5). Il pose donc le filtre et
- * emmène là-bas - un raccourci vers un état de la page, jamais une seconde
- * page qui montrerait les mêmes données autrement.
- * <p>
- * Extrait de DesktopHeader pour être partagé avec MobileHeader : ces deux
- * raccourcis n'existaient que sur desktop, ce qui rendait `/wishlist` et
- * `/profile` - et donc Paramètres, Administration, l'export, le bilan annuel et
- * les deux partages - **totalement inatteignables en dessous de 768 px** (voir
- * docs/USER_JOURNEYS.md §12.1). Un seul composant pour les deux en-têtes, pour
- * qu'ils ne puissent plus diverger.
+ * L'accès global qui n'est PAS une destination de navigation : le Profil
+ * (avatar). Voir la maquette V1.2 - « Trois intentions, trois espaces. Tout le
+ * reste vit dans l'espace auquel il appartient ».
+ *
+ * <h2>Le cœur « Envies » a été retiré (2026-08-28)</h2>
+ * Il ne menait plus à un écran à lui depuis le Lot 38 : les envies sont une
+ * LECTURE de Ma collection, et le cœur se contentait de poser le filtre avant
+ * d'y naviguer. Or cette page porte déjà « Tout / Possédés / Envies » dans sa
+ * barre de vues : le raccourci doublait un bouton visible, en permanence, sur
+ * tous les écrans.
+ *
+ * <p>Sa raison d'être historique a disparu avec `/wishlist` : ce composant
+ * existe parce qu'au 2026-08-21 le cœur et l'avatar ne vivaient que sur
+ * desktop, rendant les envies et le profil inatteignables en dessous de 768 px
+ * (UX-1, voir docs/USER_JOURNEYS.md). Le profil reste dans ce cas - c'est bien
+ * une destination sans autre chemin. Les envies, non : Ma collection est dans
+ * la barre du pouce, et le filtre est sur la page.
+ *
+ * <p>Le décompte n'est pas perdu : la barre de vues affiche « Envies · N » là
+ * où le nombre se lit avec ce qu'il compte.
  */
 export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
-  const navigate = useNavigate()
-  const { count } = useWishlist()
-  const size = compact ? 'h-10 w-10' : 'h-11 w-11'
   const avatarSize = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => {
-          definirPreferencesCollection({ filtre: 'envies' })
-          navigate('/')
-        }}
-        title="Mes envies"
-        aria-label={count > 0 ? `Mes envies, ${count}` : 'Mes envies'}
-        className={`relative flex ${size} items-center justify-center rounded-xl bg-softBtn text-textDim transition-colors hover:bg-softPress hover:text-textPrimary`}
-      >
-        <Heart size={20} />
-        {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-            {count}
-          </span>
-        )}
-      </button>
       <Link
         to="/profile"
         title="Mon profil"
