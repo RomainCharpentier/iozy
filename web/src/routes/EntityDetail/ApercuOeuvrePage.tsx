@@ -16,6 +16,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { FicheHero } from './FicheHero'
+import { retourDepuis } from './retourFiche'
 import { usePropositionTomes } from './usePropositionTomes'
 
 /**
@@ -88,7 +89,12 @@ export function ApercuOeuvrePage() {
   // jamais une dépendance - au rechargement il est absent et la recherche
   // ci-dessus le retrouve. C'est ce qui distingue cet écran de l'ancien
   // brouillon, qui n'existait QUE par son `location.state`.
-  const candidatRecu = (useLocation().state as { candidat?: MetadataCandidateDto } | null)?.candidat ?? null
+  const etatRecu = useLocation().state
+  const candidatRecu = (etatRecu as { candidat?: MetadataCandidateDto } | null)?.candidat ?? null
+  // La recherche d'où l'on vient, avec ce qui y était tapé (voir retourFiche).
+  // Absente d'un lien reçu ou d'un F5 : le retour vise alors la recherche nue,
+  // qui reste une destination valable.
+  const retour = retourDepuis(etatRecu) ?? { to: '/add', libelle: 'Recherche' }
 
   // Sinon, celui dont un des titres correspond exactement à celui de l'URL.
   // Comparaison insensible à la casse, et sur le titre principal COMME sur le
@@ -125,14 +131,16 @@ export function ApercuOeuvrePage() {
     // Le premier tome ajouté crée la fiche : on quitte l'aperçu pour elle,
     // en remplaçant l'entrée d'historique - revenir en arrière doit ramener
     // à la recherche, pas à un aperçu d'une œuvre désormais possédée.
-    onAjoute: (id) => navigate(`/entity/${id}`, { replace: true, state: { retour: { to: '/add', libelle: 'Recherche' } } }),
+    // Le retour voyage jusqu'à la fiche : après un ajout, « Recherche » doit
+    // encore rouvrir la recherche telle qu'on l'avait laissée.
+    onAjoute: (id) => navigate(`/entity/${id}`, { replace: true, state: { retour } }),
   })
 
   if (entityTypeId === '' || titre === '') {
     return (
       <div className="flex flex-col gap-4">
         <p className="text-textDim">Aucune œuvre à afficher.</p>
-        <Link to="/add" className="w-fit text-sm font-semibold text-accentText">
+        <Link to={retour.to} className="w-fit text-sm font-semibold text-accentText">
           Retour à la recherche
         </Link>
       </div>
@@ -142,11 +150,11 @@ export function ApercuOeuvrePage() {
   return (
     <>
       <Link
-        to="/add"
+        to={retour.to}
         className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim hover:text-textPrimary"
       >
         <ArrowLeft size={15} />
-        Recherche
+        {retour.libelle}
       </Link>
 
       <FicheHero

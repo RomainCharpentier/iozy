@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, ScanBarcode, ScanLine } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
@@ -49,18 +49,42 @@ function candidateKey(candidate: MetadataCandidateDto): string {
  * directement sa fiche (le parcours contextuel d'ajout de tome y vit déjà,
  * voir VolumeInteractionPanel) plutôt que de repasser par ce formulaire.
  */
-/** Toute fiche ouverte depuis cet écran propose d'y revenir (voir
- *  retourFiche). Une constante plutôt qu'un littéral répété quatre fois :
- *  c'est une seule promesse, pas quatre. */
-const RETOUR_RECHERCHE: EtatFiche = { retour: { to: '/add', libelle: 'Recherche' } }
+/**
+ * Toute fiche ou tout aperçu ouvert depuis cet écran propose d'y revenir (voir
+ * retourFiche) - et y revenir doit RETROUVER la recherche, pas une page vide.
+ *
+ * D'où l'URL complète, `search` compris : c'est elle qui porte le type et le
+ * titre cherchés, donc c'est elle qu'il faut rouvrir. Une constante `/add`
+ * ramenait bien à l'écran, mais vidé de ce qu'on y avait tapé.
+ */
+function retourVersRecherche(search: string): EtatFiche {
+  return { retour: { to: `/add${search}`, libelle: 'Recherche' } }
+}
 
 export function SearchPage() {
   const navigate = useNavigate()
+  const { search } = useLocation()
   const titleComposition = useTitleComposition()
   const wishlist = useWishlist()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const [entityTypeId, setEntityTypeId] = useState<string | undefined>(undefined)
-  const [title, setTitle] = useState('')
+  /**
+   * Le type et le titre cherchés vivent dans l'URL.
+   *
+   * <h2>Pourquoi pas un simple `useState`</h2>
+   * Parce qu'un état local meurt avec le composant : ouvrir un résultat puis
+   * revenir rendait une page vierge, la recherche perdue. L'URL, elle, survit
+   * à l'aller-retour, au F5 et au partage - c'est la règle que ce dépôt s'est
+   * déjà donnée au Lot 31 (« quand un écran mérite d'être revu ou envoyé, lui
+   * donner une vraie URL »), simplement pas encore appliquée ici.
+   *
+   * <p>La frappe reste dans un état local : l'URL ne suit qu'après la même
+   * temporisation que la requête (voir plus bas), et en `replace` - sinon
+   * chaque lettre laisserait une entrée dans l'historique et le bouton
+   * Précédent remonterait le mot caractère par caractère.
+   */
+  const [parametres, setParametres] = useSearchParams()
+  const [entityTypeId, setEntityTypeId] = useState<string | undefined>(parametres.get('type') ?? undefined)
+  const [title, setTitle] = useState(parametres.get('q') ?? '')
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
 
@@ -72,6 +96,16 @@ export function SearchPage() {
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const debouncedTitle = useDebouncedValue(title, 500)
+
+  // L'URL suit la recherche RÉELLEMENT lancée, pas la frappe : même
+  // temporisation que la requête, et `replace` pour ne pas empiler une entrée
+  // d'historique par lettre.
+  useEffect(() => {
+    const voulu = new URLSearchParams()
+    if (entityTypeId) voulu.set('type', entityTypeId)
+    if (debouncedTitle.trim()) voulu.set('q', debouncedTitle.trim())
+    if (voulu.toString() !== parametres.toString()) setParametres(voulu, { replace: true })
+  }, [entityTypeId, debouncedTitle, parametres, setParametres])
   // Un type sans fournisseur de métadonnées (type personnalisé créé depuis
   // Administration) n'a AUCUNE source externe : ni recherche, ni scan - voir
   // requiresMatch et EntityTypeDto.hasMetadataProvider. Sans ce garde, l'écran
@@ -202,18 +236,20 @@ export function SearchPage() {
     // l'arrivée ; l'URL reste seule maîtresse de l'identité (voir
     // ApercuOeuvrePage).
     navigate(`/apercu?type=${encodeURIComponent(entityTypeId)}&titre=${encodeURIComponent(titre)}`, {
-      state: { candidat: candidate },
+      state: { candidat: candidate, ...retourVersRecherche(search) },
     })
   }
 
   /** Saisie libre : aucun candidat, juste un titre. Même destination. */
   function ouvrirApercuManuel(titreManuel: string) {
     if (!entityTypeId || !titreManuel.trim()) return
-    navigate(`/apercu?type=${encodeURIComponent(entityTypeId)}&titre=${encodeURIComponent(titreManuel.trim())}`)
+    navigate(`/apercu?type=${encodeURIComponent(entityTypeId)}&titre=${encodeURIComponent(titreManuel.trim())}`, {
+      state: retourVersRecherche(search),
+    })
   }
 
   function goToEntity(entity: EntityResponse) {
-    navigate(`/entity/${entity.id}`, { state: RETOUR_RECHERCHE })
+    navigate(`/entity/${entity.id}`, { state: retourVersRecherche(search) })
   }
 
   const showSearching = searchEnabled && suggestionsQuery.isFetching
