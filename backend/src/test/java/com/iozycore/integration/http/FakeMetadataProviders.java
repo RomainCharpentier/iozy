@@ -107,11 +107,26 @@ public class FakeMetadataProviders {
                 if (barcode.contains(DECLENCHE_PANNE)) {
                     throw new IllegalStateException("Source de test indisponible");
                 }
-                if (barcode.contains(DECLENCHE_VIDE)) {
-                    return Optional.empty();
+                return lookupDetailed(barcode).candidateIfAny();
+            }
+
+            /**
+             * Les deux vrais fournisseurs de code-barres (Google Books, Open Library)
+             * distinguent « j'ai répondu, je ne connais pas ce code » de « je n'ai pas
+             * pu répondre ». Ce double doit savoir en dire autant, sans quoi il
+             * retombe sur le défaut prudent de l'interface - qui ne conclut RIEN d'un
+             * vide - et fait passer une absence constatée pour une panne.
+             */
+            @Override
+            public com.iozycore.metadata.BarcodeLookup lookupDetailed(String barcode) {
+                if (barcode.contains(DECLENCHE_PANNE)) {
+                    return com.iozycore.metadata.BarcodeLookup.unavailable();
                 }
-                return Optional.of(new MetadataCandidate("SOURCE_DE_TEST", "fake-" + barcode,
-                        "Trouvé par code-barres", null, java.util.Map.of()));
+                if (barcode.contains(DECLENCHE_VIDE)) {
+                    return com.iozycore.metadata.BarcodeLookup.absent();
+                }
+                return com.iozycore.metadata.BarcodeLookup.found(new MetadataCandidate("SOURCE_DE_TEST",
+                        "fake-" + barcode, "Trouvé par code-barres", null, java.util.Map.of()));
             }
         };
     }

@@ -1360,6 +1360,44 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 50 — « rien trouvé » quand une source était en panne
+
+Épreuve du parcours Scan. La caméra est honnêtement déclarée non supportée ici,
+avec la saisie ISBN en repli - rien à redire. Mais quatre ISBN ont rendu
+« Rien trouvé » alors que **Google Books limitait le débit** (429 depuis l'hôte
+comme depuis le conteneur, 503 dans le journal de l'API) et qu'Open Library ne
+connaît pas ces codes.
+
+Le service faisait déjà la différence - `BarcodeLookup.conclusive()` dit si
+chaque base a répondu, et une panne n'est jamais mise en cache - mais il la
+gardait pour lui : le contrôleur rendait un 404 plat. Désormais **404** quand
+les bases ont répondu et ne connaissent pas le code, **503** quand l'une n'a pas
+répondu. L'écran dit alors « Une source n'a pas répondu pour … - réessaie » au
+lieu de « Rien trouvé » : le geste utile n'est pas le même (réessayer, contre
+chercher par titre).
+
+À noter : la formulation vague était un choix DÉLIBÉRÉ, déjà commenté dans
+ScanPage (« un scan sans résultat n'est pas forcément une absence »). Ce lot ne
+le corrige pas, il le précise : l'information existait, elle n'était pas
+transmise.
+
+#### Le test qui a cassé avait raison
+
+`MetadataHttpContractTest` est passé au rouge : 503 là où il attendait 404. Le
+défaut de `BarcodeMetadataProvider.lookupDetailed` est **prudent à dessein** -
+un fournisseur qui ne sait pas distinguer ne conclut rien d'un vide, pour que
+rien ne soit mis en cache. Mon changement transformait cette prudence interne en
+un « source indisponible » annoncé à l'utilisateur.
+
+Les deux vrais fournisseurs (Google Books, Open Library) redéfinissent
+`lookupDetailed` ; seul le double de test s'appuyait sur le défaut. C'est donc
+le DOUBLE qui était sous-spécifié : il sait maintenant dire « absent » et
+« indisponible » comme les vrais, et le test gagne une assertion sur le cas
+panne. Le corriger en assouplissant l'assertion aurait été l'erreur inverse.
+
+**Vérifié** : suite backend complète, 1017 tests, 0 échec ; `typecheck`, `lint`,
+`check:contrast`, `build`.
+
 ### Lot 49 — l'analyse d'un lot conseillait de racheter ce qu'on a déjà
 
 Épreuve du parcours « Analyser une annonce » (§12 de l'étude), la seule entrée
@@ -3131,6 +3169,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un défaut d'interface « prudent » (ici : ne rien conclure d'un vide) sert un usage INTERNE précis - le cache. Le remonter tel quel à l'utilisateur lui fait dire autre chose. Vérifier qui s'appuie sur le défaut avant de lui donner un sens visible (Lot 50).
 - Un test de non-régression doit être confronté à l'ANCIEN code avant d'être gardé (`git checkout` du fichier corrigé, lancer le seul test, restaurer) : sinon rien ne dit qu'il protège quoi que ce soit (Lot 49).
 - Quand un calcul est rebranché sur une source unique, chercher TOUS ses jumeaux dans le même fichier : au Lot 31 les suggestions ont été corrigées et `findOwnedVolumeNumbers`, quarante lignes plus bas, a gardé le même défaut six jours de plus (Lot 49).
 - Pour voir ce qu'un écran affiche PENDANT un appel : `docker pause` sur le conteneur de l'API, naviguer, mesurer, puis `unpause`. Plus fiable que de retarder `fetch` dans la page, que le rechargement emporte (Lot 47).

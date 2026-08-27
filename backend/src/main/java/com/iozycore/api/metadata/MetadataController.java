@@ -9,6 +9,7 @@ import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.metadata.BarcodeLookup;
 import com.iozycore.metadata.MetadataSearchService;
 import com.iozycore.metadata.RelatedSeriesService;
 import com.iozycore.metadata.VolumeCandidate;
@@ -72,9 +73,19 @@ public class MetadataController {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
-        return metadataSearchService.lookupByBarcode(entityType, barcode)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Aucune métadonnée trouvée pour le code-barres : " + barcode));
+        BarcodeLookup lookup = metadataSearchService.lookupDetailedByBarcode(entityType, barcode);
+        if (lookup.candidate() != null) {
+            return lookup.candidate();
+        }
+        // 404 = les bases ont répondu et ne connaissent pas ce code : chercher par
+        // titre est la suite logique. 503 = l'une d'elles n'a pas répondu, et le
+        // ré-essai reste légitime - deux situations que l'écran doit dire
+        // différemment, et qu'un seul 404 confondait.
+        throw lookup.conclusive()
+                ? new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Aucune métadonnée trouvée pour le code-barres : " + barcode)
+                : new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Source de métadonnées indisponible pour le code-barres : " + barcode);
     }
 
     @Operation(summary = "Importer en masse les jeux marqués \"possédés\" de la collection BGG d'un utilisateur "

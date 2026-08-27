@@ -191,15 +191,30 @@ public class MetadataSearchService {
      * qu'un succès rendrait le catalogue aveugle à ses propres progrès.
      */
     public Optional<MetadataCandidate> lookupByBarcode(EntityType entityType, String barcode) {
+        return lookupDetailedByBarcode(entityType, barcode).candidateIfAny();
+    }
+
+    /**
+     * Comme {@link #lookupByBarcode}, mais en disant AUSSI si l'absence a été
+     * constatée ou seulement subie.
+     * <p>
+     * Le service faisait déjà la différence pour son cache - une panne n'y est
+     * jamais mémorisée - mais la gardait pour lui : l'appelant ne recevait qu'un
+     * {@code Optional} vide, et l'écran ne pouvait que rester vague. Or c'est
+     * précisément la distinction qui intéresse celui qui scanne : « ce code
+     * n'existe pas » appelle une saisie par titre, « une base n'a pas répondu »
+     * appelle un simple ré-essai.
+     */
+    public BarcodeLookup lookupDetailedByBarcode(EntityType entityType, String barcode) {
         String cacheKey = entityType.id() + "|" + normalize(barcode);
         Optional<MetadataCandidate> cached = barcodeCache.get(cacheKey);
         if (cached.isPresent()) {
-            return cached;
+            return BarcodeLookup.found(cached.get());
         }
         if (barcodeMissCache.get(cacheKey).isPresent()) {
             // Déjà cherché récemment, et introuvable. Inutile de refaire
             // l'aller-retour pour obtenir la même réponse.
-            return Optional.empty();
+            return BarcodeLookup.absent();
         }
 
         // Tous les providers compétents sont interrogés jusqu'au premier
@@ -220,6 +235,7 @@ public class MetadataSearchService {
 
         if (result.isPresent()) {
             barcodeCache.put(cacheKey, result.get());
+            return BarcodeLookup.found(result.get());
         } else if (tousOntRepondu) {
             // Absence CONSTATÉE : toutes les bases compétentes ont répondu, et
             // aucune ne connaît ce code. La reposer dans la demi-heure donnerait
@@ -230,7 +246,7 @@ public class MetadataSearchService {
             // incident d'une seconde se figerait pour trente minutes.
             barcodeMissCache.put(cacheKey, Boolean.TRUE);
         }
-        return result;
+        return tousOntRepondu ? BarcodeLookup.absent() : BarcodeLookup.unavailable();
     }
 
     /**
