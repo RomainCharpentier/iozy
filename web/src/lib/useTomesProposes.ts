@@ -2,20 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { searchVolumes } from '../api/metadata'
 import { queryKeys } from './queryKeys'
 import type { VolumeCandidateDto } from '../types/api'
-
-/** Les indices de recherche qu'une fiche porte déjà dans ses attributs -
- *  recopiés par le fournisseur au moment où l'œuvre a été résolue. */
-function indicesDe(attributs: Record<string, unknown>) {
-  const texte = (cle: string) => (typeof attributs[cle] === 'string' ? (attributs[cle] as string) : undefined)
-  return {
-    author: texte('mangaka'),
-    malId: texte('malId'),
-    titleRomaji: texte('titleRomaji'),
-    // Le titre d'origine du catalogue : c'est lui qui retrouve les éditions
-    // chez les fournisseurs qui n'indexent pas le titre français.
-    originalTitle: texte('titleRomaji') ?? texte('titleEnglish'),
-  }
-}
+import { indicesDe } from './indicesOeuvre'
 
 /**
  * Les tomes qu'un fournisseur connaît pour cette œuvre, et que le catalogue

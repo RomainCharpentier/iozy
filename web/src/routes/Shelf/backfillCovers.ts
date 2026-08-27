@@ -1,6 +1,7 @@
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import type { EntityResponse, VariantDto, VolumeCandidateDto } from '../../types/api'
 import { editionDe, numeroDe } from '../../lib/attributsTome'
+import { indicesDe } from '../../lib/indicesOeuvre'
 
 /** Un Variant "manga" reconnaissable (porte un volumeNumber structuré) sans
  * jaquette propre - seuls ceux-là sont éligibles au repêchage (voir
@@ -77,7 +78,7 @@ export async function rattraperJaquettes(
   const manquantes = variantsMissingCover(entity)
   if (manquantes.length === 0) return { trouvees: 0, fournisseurMuet: false }
 
-  const auteur = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
+  const { author: auteur } = indicesDe(entity.attributes)
   try {
     let reponse = await chercherTomes(entityTypeId, entity.title, { author: auteur })
     if (reponse.quotaExceeded) return { trouvees: 0, fournisseurMuet: true }

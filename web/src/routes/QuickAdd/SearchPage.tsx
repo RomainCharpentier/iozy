@@ -21,6 +21,7 @@ import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import type { EtatFiche } from '../EntityDetail/retourFiche'
+import { indicesDe } from '../../lib/indicesOeuvre'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -189,7 +190,7 @@ export function SearchPage() {
    */
   const clesInterrogees = (suggestionsQuery.data ?? []).map((candidate) => ({
     title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
-    author: typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined,
+    author: indicesDe(candidate.attributes).author,
   }))
   const sansTomesQuery = useQuery({
     queryKey: queryKeys.metadata.sansTomes(entityTypeId ?? '', clesInterrogees.map((c) => c.title).join('|')),
@@ -212,9 +213,7 @@ export function SearchPage() {
       .filter((c) => c.source === 'JIKAN' || c.source === 'MYANIMELIST')
       .slice(0, 6)
       .forEach((candidate) => {
-        const author = typeof candidate.attributes.mangaka === 'string' ? candidate.attributes.mangaka : undefined
-        const malId = typeof candidate.attributes.malId === 'string' ? candidate.attributes.malId : undefined
-        const titleRomaji = typeof candidate.attributes.titleRomaji === 'string' ? candidate.attributes.titleRomaji : undefined
+        const { author, malId, titleRomaji } = indicesDe(candidate.attributes)
         fetchFrenchTitle(entityTypeId, candidate.title, { author, malId, titleRomaji, signal: controller.signal })
           .then((frenchTitle) => {
             if (controller.signal.aborted || !frenchTitle) return
