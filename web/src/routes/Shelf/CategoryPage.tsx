@@ -20,7 +20,6 @@ import {
 } from './shelfTiles'
 import { BarreVues } from './BarreVues'
 import { indexerVenues, trierOeuvres } from './venues'
-import { GrilleElements } from './GrilleElements'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
 import { listAllEditions } from '../../api/purchaseAnalysis'
@@ -135,8 +134,10 @@ export function CategoryPage() {
     return preferences.tri === 'titre' ? tuiles : [...tuiles].sort((a, b) => b.depuis.localeCompare(a.depuis))
   }, [entities, preferences.filtre, preferences.tri, ownerships, owned, tomesVoulus, oeuvresVoulues, venues])
 
-  const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
-  const affiches = preferences.vue === 'plate' ? tuilesElements.length : tiles.length
+  // Un seul rendu pour les deux vues : dégrouper change les tuiles, pas leur
+  // mise en forme (même raison que sur Ma collection).
+  const tuilesAffichees = preferences.vue === 'plate' ? tuilesElements : tiles
+  const affiches = tuilesAffichees.length
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
 
@@ -201,24 +202,20 @@ export function CategoryPage() {
         </div>
       )}
 
-      {preferences.vue === 'plate' ? (
-        <GrilleElements tuiles={tuilesElements} typesParId={typesParId} />
-      ) : (
-        <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
-          {tiles.map((tile) => (
-            <CoverTile
-              key={tile.key}
-              title={tile.title}
-              subtitle={tile.subtitle}
-              imageUrl={tile.imageUrl}
-              gradientKey={tile.gradientKey}
-              aspectClassName={visual.aspectClassName}
-              signal={tile.signal}
-              onClick={() => navigate(`/entity/${tile.entityId}`)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
+        {tuilesAffichees.map((tile) => (
+          <CoverTile
+            key={tile.key}
+            title={tile.title}
+            subtitle={tile.subtitle}
+            imageUrl={tile.imageUrl}
+            gradientKey={tile.gradientKey}
+            aspectClassName={visual.aspectClassName}
+            signal={tile.signal}
+            onClick={() => navigate(`/entity/${tile.entityId}`)}
+          />
+        ))}
+      </div>
 
       <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
     </div>

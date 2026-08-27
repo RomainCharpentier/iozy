@@ -1374,14 +1374,23 @@ types est désormais partagé par les deux vues (`trierTypes`, extrait de
 `groupByEntityType`) : basculer d'une vue à l'autre ne rebat pas les univers.
 
 Conséquence heureuse : le badge de type disparaît des tuiles. Il valait quand
-tout était mélangé ; répété sur les onze tuiles d'une section qui l'annonce
-déjà, il n'apprend plus rien. L'en-tête de section ne s'affiche lui-même que
-s'il sépare vraiment quelque chose - sur la vue d'une catégorie, où il n'y a
-qu'un type, il répéterait le titre de la page.
+tout était mélangé ; répété sur les onze tuiles d'une rangée qui l'annonce
+déjà, il n'apprend plus rien.
+
+**Deuxième passe** : j'avais donné à la vue dégroupée sa PROPRE mise en forme -
+en-tête sobre, grille dense de petites tuiles. « Il faut garder le même
+affichage que la vue groupe en fait », et c'est plus juste : ce que dégrouper
+change, c'est le CONTENU d'une rangée, pas sa présentation. Les deux vues
+passent donc par le même `CategorySection` - même halo teinté par univers,
+même en-tête cliquable avec « Tout voir », même défilement horizontal - et le
+composant séparé `GrilleElements` disparaît. Une seconde mise en forme n'aurait
+fait que dériver de la première. Même principe sur la vue d'une catégorie, qui
+garde sa grille pleine dans les deux vues.
 
 **Vérifié** à 1280 et 375 px : groupée → Manga 5 · Jeu vidéo 1 ; dégroupée →
-Manga 11 · Jeu vidéo 1, chacun dans sa section ; zéro badge de type sur les
-tuiles ; vue catégorie sans en-tête de section ; aucun débordement.
+Manga 11 · Jeu vidéo 1 ; halo, « Tout voir » et format de tuile identiques dans
+les deux vues ; zéro badge de type ; vue catégorie à 11 tuiles dans sa grille
+habituelle ; aucun débordement.
 
 **Piège de mesure** : ma première sonde a capturé DEUX FOIS le même état - elle
 cliquait « Dégrouper » alors que la vue était déjà dégroupée par une

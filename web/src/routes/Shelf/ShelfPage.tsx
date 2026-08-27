@@ -11,7 +11,6 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { GrilleElements } from './GrilleElements'
 import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
 import {
   aplatirEnElements,
@@ -20,6 +19,7 @@ import {
   groupByEntityType,
   indexEditionTotals,
   matchesCompletionFilter,
+  trierTypes,
 } from './shelfTiles'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
@@ -203,14 +203,35 @@ export function ShelfPage() {
   )
 
   // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce
-  // sont les TOMES qu'il faut réordonner - sans quoi les tomes d'une même
-  // série resteraient groupés alors que la vue plate les délie justement.
+  // sont les ÉLÉMENTS qu'il faut réordonner - sans quoi ceux d'un même groupe
+  // resteraient ensemble alors que la vue dégroupée les délie justement.
   const tuilesAffichees = useMemo(
     () =>
       preferences.tri === 'titre'
         ? tuilesElements
         : [...tuilesElements].sort((a, b) => b.depuis.localeCompare(a.depuis)),
     [tuilesElements, preferences.tri],
+  )
+
+  /**
+   * Les rangées à afficher - MÊME forme, MÊME composant, dans les deux vues.
+   *
+   * Dégrouper ne change que ce qu'une rangée contient : des groupes ou les
+   * éléments qu'ils contiennent. La présentation, elle, ne bouge pas - halo
+   * teinté par univers, en-tête cliquable, défilement horizontal. Une seconde
+   * mise en forme n'aurait fait que diverger de celle-ci.
+   */
+  const rangees = useMemo(
+    () =>
+      preferences.vue === 'groupee'
+        ? sections
+        : trierTypes([...typesParId.values()])
+            .map((entityType) => ({
+              entityType,
+              tiles: tuilesAffichees.filter((tuile) => tuile.entityTypeId === entityType.id),
+            }))
+            .filter((rangee) => rangee.tiles.length > 0),
+    [preferences.vue, sections, tuilesAffichees, typesParId],
   )
 
   // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
@@ -402,17 +423,11 @@ export function ShelfPage() {
         </div>
       )}
 
-      {preferences.vue === 'plate' ? (
-        <div className="mt-6">
-          <GrilleElements tuiles={tuilesAffichees} typesParId={typesParId} />
-        </div>
-      ) : (
-        <div className="mt-6 flex flex-col gap-2">
-          {sections.map(({ entityType, tiles }) => (
-            <CategorySection key={entityType.id} entityType={entityType} tiles={tiles} />
-          ))}
-        </div>
-      )}
+      <div className="mt-6 flex flex-col gap-2">
+        {rangees.map(({ entityType, tiles }) => (
+          <CategorySection key={entityType.id} entityType={entityType} tiles={tiles} />
+        ))}
+      </div>
 
       <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
 
