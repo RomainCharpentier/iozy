@@ -22,12 +22,37 @@ export function seriesSansTomesConnues(
   return post<SerieInterrogee[]>('/metadata/volumes/known-empty', { entityTypeId, series })
 }
 
+/**
+ * Les candidats à AJOUTER : ce qu'on possède déjà en est écarté côté serveur,
+ * pour ne pas proposer d'ajouter deux fois la même œuvre.
+ */
 export function searchMetadata(
   entityTypeId: string,
   query: string,
   signal?: AbortSignal,
 ): Promise<MetadataCandidateDto[]> {
   return get<MetadataCandidateDto[]>(`/metadata/search${buildQuery({ entityTypeId, query })}`, signal)
+}
+
+/**
+ * Le même endpoint, sans ce filtre : « que sait la source sur CETTE œuvre-là,
+ * celle que j'ai déjà ? » - la question du rechargement d'une fiche.
+ *
+ * Deux fonctions nommées plutôt qu'un booléen à la fin d'un appel : le filtre
+ * décide de ce que la réponse peut contenir, ce n'est pas un détail de
+ * réglage. Sur une fiche, `searchMetadata` rendait par construction zéro
+ * correspondance - vérifié sur Naruto, qui rendait huit dérivés et jamais la
+ * série.
+ */
+export function rechercherOeuvrePossedee(
+  entityTypeId: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<MetadataCandidateDto[]> {
+  return get<MetadataCandidateDto[]>(
+    `/metadata/search${buildQuery({ entityTypeId, query, includeOwned: 'true' })}`,
+    signal,
+  )
 }
 
 /** 404 = les bases ont répondu et ne connaissent pas ce code : ce n'est pas une

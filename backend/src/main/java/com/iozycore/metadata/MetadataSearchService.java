@@ -124,8 +124,28 @@ public class MetadataSearchService {
      * par code-barres ({@link #lookupByBarcode}) doit au contraire pouvoir
      * retrouver un titre déjà possédé, pour y rattacher un second exemplaire
      * scanné (voir QuickAddService.addNewEntityWithOwnership).
+     * <p>
+     * Voir {@link #search(EntityType, String, boolean)} pour le seul appelant
+     * qui a besoin de l'inverse.
      */
     public List<MetadataCandidate> search(EntityType entityType, String query) {
+        return search(entityType, query, false);
+    }
+
+    /**
+     * Même recherche, avec la possibilité de GARDER ce qu'on possède déjà.
+     * <p>
+     * Le filtre ci-dessus sert un écran précis : celui qui prépare un ajout.
+     * Recharger les informations d'une fiche existante pose la question
+     * inverse - « que sait la source sur CETTE œuvre-là ? » - et le filtre y
+     * garantissait zéro correspondance, par construction. Constaté sur Naruto :
+     * la recherche rendait huit dérivés (Boruto, les light novels…) et jamais
+     * la série elle-même.
+     * <p>
+     * Le cache n'est pas concerné : il mémorise les résultats BRUTS des
+     * fournisseurs, le filtre s'applique après.
+     */
+    public List<MetadataCandidate> search(EntityType entityType, String query, boolean includeOwned) {
         String cacheKey = entityType.id() + "|" + normalize(query);
         List<MetadataCandidate> rawResults = searchCache.get(cacheKey).orElseGet(() -> {
             List<MetadataCandidate> fetched = providers.stream()
@@ -136,6 +156,10 @@ public class MetadataSearchService {
             searchCache.put(cacheKey, deduped);
             return deduped;
         });
+
+        if (includeOwned) {
+            return rawResults;
+        }
 
         Set<String> alreadyOwnedTitles = entityRepository.findAllByType(entityType.id()).stream()
                 .map(entity -> normalize(entity.title()))

@@ -76,6 +76,21 @@ class MetadataSearchServiceTest {
     }
 
     @Test
+    void keeps_an_already_owned_title_when_the_caller_asks_for_it() {
+        // Le filtre sert l'écran d'AJOUT. Recharger les informations d'une fiche
+        // pose la question inverse - « que sait la source sur CETTE œuvre ? » -
+        // et le filtre y garantissait zéro correspondance par construction :
+        // sur Naruto, la recherche rendait huit dérivés et jamais la série.
+        FakeEntityRepository repository = new FakeEntityRepository(List.of(Entity.create(MANGA.id(), "Naruto")));
+        FakeMetadataProvider provider = new FakeMetadataProvider(List.of(candidate("Naruto"), candidate("Boruto")));
+        MetadataSearchService service = new MetadataSearchService(List.of(provider), List.of(), repository, List.of(), List.of(), new FakeVolumeSearchCacheRepository());
+
+        assertThat(service.search(MANGA, "naruto")).extracting(MetadataCandidate::title).containsExactly("Boruto");
+        assertThat(service.search(MANGA, "naruto", true)).extracting(MetadataCandidate::title)
+                .containsExactlyInAnyOrder("Naruto", "Boruto");
+    }
+
+    @Test
     void deduplicates_candidates_with_the_same_title_across_providers_keeping_the_first_providers_result() {
         // Cas réel observé (voir historique) : "Naruto", inchangé en
         // français, ressort à la fois de Jikan/MyAnimeList et de

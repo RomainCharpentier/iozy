@@ -54,9 +54,13 @@ public class MetadataController {
         this.ownershipRepository = ownershipRepository;
     }
 
-    @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1)")
+    @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1). "
+            + "Les titres déjà présents dans la collection sont écartés - le but est de préparer un AJOUT. "
+            + "includeOwned=true les garde : c'est ce dont a besoin le rechargement des informations d'une fiche "
+            + "existante, qui cherche précisément une œuvre déjà possédée (voir MetadataSearchService.search).")
     @GetMapping("/search")
-    public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query) {
+    public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query,
+                                           @RequestParam(required = false, defaultValue = "false") boolean includeOwned) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -64,7 +68,7 @@ public class MetadataController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le paramètre 'query' est requis");
         }
 
-        return metadataSearchService.search(entityType, query);
+        return metadataSearchService.search(entityType, query, includeOwned);
     }
 
     @Operation(summary = "Retrouver les métadonnées d'un élément à partir d'un code-barres scanné (ISBN pour les mangas)")

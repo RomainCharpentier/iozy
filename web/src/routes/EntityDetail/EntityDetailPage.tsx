@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '../../api/entities'
 import { deleteOwnership, listOwnerships } from '../../api/ownerships'
-import { searchVolumes } from '../../api/metadata'
+import { rechercherOeuvrePossedee, searchVolumes } from '../../api/metadata'
 import { findBestCoverMatch, rattraperJaquettes, variantsMissingCover } from '../Shelf/backfillCovers'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
@@ -21,6 +21,7 @@ import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverIma
 import { creatorFrom } from '../../lib/creatorInfo'
 import { groupVariantsByEdition, resolveEditionView, variantLabel } from '../../lib/editionGroups'
 import { buildTiles, ownedVolumeNumbers } from '../../lib/tomeTiles'
+import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '../../components/layout/AppShell'
@@ -41,7 +42,7 @@ import { EditionCorrectionSection } from './EditionCorrectionSection'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 import { retourDepuis } from './retourFiche'
-import { ArrowLeft, ImagePlus } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 
 /**
  * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
@@ -218,21 +219,70 @@ export function EntityDetailPage() {
   })
 
   /**
-   * « Retrouver les jaquettes manquantes » pour CETTE série.
+   * « Recharger depuis la source » pour CETTE œuvre : ses informations, puis
+   * les jaquettes de ses tomes.
    *
-   * Le rattrapage existait, mais seulement sur toute la collection et rangé
-   * dans « Plus d'outils ». Or c'est ici qu'on constate le manque, et c'est
-   * ici qu'on veut le combler - après un ajout d'un clic, ou après une panne
-   * de quota chez le fournisseur (demande utilisateur du 2026-08-27 :
-   * « il faudrait pouvoir recharger quand on a besoin »).
+   * <h2>Un seul geste, parce que c'est une seule question</h2>
+   * « Redemande à la source ce qu'elle sait. » Le rattrapage de jaquettes
+   * existait déjà ici, mais les attributs de l'œuvre (mangaka, statut, nombre
+   * de tomes, jaquette de série) n'étaient recopiés qu'À L'AJOUT et plus
+   * jamais - une série en cours gardait éternellement le nombre de tomes du
+   * jour où on l'a ajoutée. Deux boutons côte à côte pour « recharger » et
+   * « recharger aussi » n'auraient aidé personne (demande utilisateur du
+   * 2026-08-27 : « je veux un bouton pour recharger les images ou les infos
+   * api »).
    *
-   * Même implémentation que le rattrapage groupé, à une série près.
+   * <h2>L'ordre compte</h2>
+   * Les informations d'abord : si la source nous apprend le mangaka, la
+   * recherche de tomes qui suit s'en sert pour viser juste. Les jaquettes de
+   * tomes passent par le même rattrapage que Ma collection, à une série près.
    */
-  const jaquettesMutation = useMutation({
-    mutationFn: () =>
-      rattraperJaquettes(entityQuery.data!, entityQuery.data!.entityTypeId, searchVolumes, (id, variantId, url) =>
-        mergeVariantAttributes(id, variantId, { coverImageUrl: url }),
-      ),
+  const rechargerMutation = useMutation({
+    mutationFn: async () => {
+      const oeuvre = entityQuery.data!
+      let infos = 0
+      let sansCorrespondance = false
+      let fournisseurMuet = false
+      let attributs = oeuvre.attributes
+
+      let candidats = null
+      try {
+        candidats = await rechercherOeuvrePossedee(oeuvre.entityTypeId, oeuvre.title)
+      } catch {
+        // Une source qui ne répond pas n'est PAS une œuvre inconnue - même
+        // distinction qu'au lot 58, côté serveur. Les jaquettes sont tentées
+        // quand même : elles ne dépendent pas des mêmes fournisseurs.
+        fournisseurMuet = true
+      }
+
+      if (candidats) {
+        const candidat = candidatCorrespondant(candidats, oeuvre)
+        if (!candidat) {
+          sansCorrespondance = true
+        } else {
+          const aEcrire = attributsARecharger(candidat, oeuvre)
+          if (Object.keys(aEcrire).length > 0) {
+            await mergeEntityAttributes(entityId, aEcrire)
+            infos = Object.keys(aEcrire).length
+            attributs = { ...attributs, ...aEcrire }
+          }
+        }
+      }
+
+      const jaquettes = await rattraperJaquettes(
+        { ...oeuvre, attributes: attributs },
+        oeuvre.entityTypeId,
+        searchVolumes,
+        (id, variantId, url) => mergeVariantAttributes(id, variantId, { coverImageUrl: url }),
+      )
+
+      return {
+        infos,
+        sansCorrespondance,
+        trouvees: jaquettes.trouvees,
+        fournisseurMuet: fournisseurMuet || jaquettes.fournisseurMuet,
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) }),
   })
 
@@ -748,38 +798,33 @@ export function EntityDetailPage() {
               />
             </Carte>
           </div>
-          {/* N'apparaît que s'il y a vraiment quelque chose à retrouver : un
-              bouton toujours là mais sans effet possible ne dirait rien. Le
-              décompte annonce combien de tomes attendent une image. */}
-          {/* `isSuccess` autant que le décompte : au succès il tombe à zéro, et
-              le bloc emportait sa propre confirmation en disparaissant - on
-              cliquait, tout s'évanouissait, sans un mot. */}
-          {(jaquettesManquantes > 0 || jaquettesMutation.isSuccess) && (
-            <div className="flex flex-wrap items-center gap-3">
-              {jaquettesManquantes > 0 && (
-              <button
-                type="button"
-                onClick={() => jaquettesMutation.mutate()}
-                disabled={jaquettesMutation.isPending}
-                className="flex min-h-11 w-fit items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-50"
-              >
-                <ImagePlus size={15} />
-                {jaquettesMutation.isPending
-                  ? 'Recherche en cours...'
-                  : `Retrouver ${jaquettesManquantes} jaquette${jaquettesManquantes > 1 ? 's' : ''}`}
-              </button>
-              )}
-              {jaquettesMutation.isSuccess && (
-                <span className="text-[13px] text-textDim">
-                  {jaquettesMutation.data.fournisseurMuet
-                    ? "Le fournisseur n'a pas répondu - réessaie plus tard."
-                    : jaquettesMutation.data.trouvees > 0
-                      ? `${jaquettesMutation.data.trouvees} retrouvée${jaquettesMutation.data.trouvees > 1 ? 's' : ''}.`
-                      : 'Aucune trouvée cette fois.'}
-                </span>
-              )}
-            </div>
-          )}
+          {/* Toujours là, contrairement à l'ancien bouton de jaquettes qui
+              n'apparaissait qu'en cas de manque : une œuvre dont toutes les
+              images sont en place a quand même des informations à redemander
+              (un tome de plus paru, un statut qui passe à « terminée »). Le
+              décompte des jaquettes manquantes reste annoncé quand il y en a,
+              c'est ce qui se voit à l'œil. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => rechargerMutation.mutate()}
+              disabled={rechargerMutation.isPending}
+              className="flex min-h-11 w-fit items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-50"
+            >
+              <RefreshCw size={15} />
+              {rechargerMutation.isPending ? 'Rechargement...' : 'Recharger depuis la source'}
+            </button>
+            {jaquettesManquantes > 0 && !rechargerMutation.isPending && (
+              <span className="text-[13px] text-textDim">
+                {jaquettesManquantes} jaquette{jaquettesManquantes > 1 ? 's' : ''} manquante
+                {jaquettesManquantes > 1 ? 's' : ''}
+              </span>
+            )}
+            {rechargerMutation.isSuccess && (
+              <span className="text-[13px] text-textDim">{resumeRechargement(rechargerMutation.data)}</span>
+            )}
+          </div>
+          {rechargerMutation.isError && <ErrorBanner message={rechargerMutation.error.message} />}
 
           {/* Les corrections d'identité restent avec le reste des éditeurs ;
               ce qui DÉTRUIT vit en dessous, dans un bloc qui le dit. */}
@@ -863,6 +908,41 @@ function libelleQuestionExperiences(typesDExperience: string[]): string {
   if (codes.includes('PLAYED')) return 'Où en suis-je dans mes parties ?'
   if (codes.includes('WATCHED')) return 'Où en suis-je dans mes visionnages ?'
   return 'Où en suis-je ?'
+}
+
+/**
+ * Ce que le rechargement a donné, en une phrase.
+ *
+ * Trois cas se ressemblent à l'écran et appellent trois gestes différents :
+ * la source n'a pas répondu (réessayer), elle a répondu mais ne connaît pas
+ * cette œuvre (rien à attendre d'un second clic), elle a répondu et tout était
+ * déjà à jour. Les confondre sous un « rien trouvé » était exactement le
+ * défaut du lot 58.
+ */
+function resumeRechargement(resultat: {
+  infos: number
+  trouvees: number
+  sansCorrespondance: boolean
+  fournisseurMuet: boolean
+}): string {
+  const faits = [
+    resultat.infos > 0
+      ? `${resultat.infos} information${resultat.infos > 1 ? 's' : ''} mise${resultat.infos > 1 ? 's' : ''} à jour`
+      : null,
+    resultat.trouvees > 0
+      ? `${resultat.trouvees} jaquette${resultat.trouvees > 1 ? 's' : ''} retrouvée${resultat.trouvees > 1 ? 's' : ''}`
+      : null,
+  ].filter((fait): fait is string => fait !== null)
+
+  if (faits.length > 0) {
+    // Ce qui a été fait prime, même si une source est restée muette à côté :
+    // l'utilisateur voit le résultat, et le reste se retentera.
+    const reste = resultat.fournisseurMuet ? " Une source n'a pas répondu - réessaie pour le reste." : ''
+    return `${faits.join(', ')}.${reste}`
+  }
+  if (resultat.fournisseurMuet) return "Le fournisseur n'a pas répondu - réessaie plus tard."
+  if (resultat.sansCorrespondance) return "La source ne connaît pas cette œuvre sous ce titre."
+  return 'Tout était déjà à jour.'
 }
 
 /** Les rouages recopiés d'un fournisseur - colonne SOURCE de la maquette.
