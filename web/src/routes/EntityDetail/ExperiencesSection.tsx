@@ -5,7 +5,7 @@ import { recordExperience } from '../../api/experiences'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { ExperienceRow } from './ExperienceRow'
-import { variantLabel } from '../../lib/editionGroups'
+import { variantLabel } from '../../lib/tomeTiles'
 import type { ExperienceResponse, VariantDto } from '../../types/api'
 
 interface ExperiencesSectionProps {

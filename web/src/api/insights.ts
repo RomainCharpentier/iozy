@@ -26,6 +26,12 @@ export function getCollectionProgress(): Promise<CollectionProgressDto[]> {
   return get<CollectionProgressDto[]>('/insights/progress')
 }
 
+/** La même progression, pour UNE œuvre : ce dont a besoin sa fiche, sans
+ *  télécharger celle de toute la collection. */
+export function getEntityProgress(entityId: string): Promise<CollectionProgressDto> {
+  return get<CollectionProgressDto>(`/insights/progress/${entityId}`)
+}
+
 /** entityTypeCode doit être "MANGA", "BOARD_GAME" ou "VIDEO_GAME", renvoie 400 sinon. */
 export function discover(entityTypeCode: 'MANGA' | 'BOARD_GAME' | 'VIDEO_GAME'): Promise<DiscoveryCandidateDto[]> {
   return get<DiscoveryCandidateDto[]>(`/insights/discover${buildQuery({ entityTypeCode })}`)
