@@ -1360,6 +1360,86 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 65 — une seule liste d'invalidations
+
+Cinq endroits écrivaient leur propre liste de caches à invalider après un ajout
+ou un retrait, et **les cinq différaient**. L'un d'eux portait le commentaire
+« ajouté ici pour s'aligner sur `OwnershipDetails`, qui invalident les trois » -
+un composant supprimé depuis. S'aligner à la main est une promesse qu'aucun
+écran ne peut tenir : au Lot 51, ajouter un tome laissait Ma collection sur
+l'ancien décompte, précisément parce qu'une clé manquait à un endroit sur cinq.
+
+`invaliderApresPossession` n'en retient que **trois préfixes**, et ils couvrent
+tout : `['entities']` couvre la recherche ET chaque fiche, `['ownerships']`
+celles d'une œuvre et la liste complète, `['insights','progress']` la
+progression de la collection et celle d'une fiche. Un écran n'a plus à savoir
+QUELLES données il touche - seulement qu'il a touché à ce qu'on possède.
+Invalider large ne coûte aucun appel de plus : React Query ne re-télécharge que
+les requêtes actives, c'est-à-dire ce qui est à l'écran.
+
+#### Le défaut que ça referme
+
+`useWishlist` n'invalidait **que** la liste des envies. Or une envie posée sur un
+TOME fait exister ce tome au catalogue (`TomeResolver`, Lot 37) : la fiche et sa
+progression changeaient sans que rien ne le dise. `invaliderApresEnvie` ajoute
+les deux.
+
+Second défaut, dans la proposition de tomes : les invalidations étaient
+conditionnées à `entityId`, alors que l'ajout venait peut-être de **créer**
+l'œuvre - auquel cas la progression de toute la collection changeait, sans que
+personne ne le signale.
+
+#### Vérifications
+
+Mesuré en direct, sur Raw Hero, par la trace réseau plutôt que par l'œil :
+mettre le tome 1 en envies déclenche désormais `/api/entities/{id}` **et**
+`/api/insights/progress/{id}` dans la foulée - les deux appels que l'ancien code
+ne déclenchait pas. Le serveur crée bien le tome (5 variantes → 6, catalogués
+`[1..6]`), et la tuile propose « Retirer » sans rechargement.
+
+État rendu à l'identique après coup : envie retirée, tome 1 supprimé,
+9 œuvres / 17 tomes / 14 possessions / 1 envie comme avant.
+
+**Vérifié** : `typecheck`, `lint`, `check:contrast`, `build`.
+
+### Lot 64 — deux clés, deux copies chacune
+
+Une clé recopiée est une divergence en attente.
+
+**L'identité d'une édition** - `(œuvre, nom)`, à la casse et aux espaces près -
+existait en double : dans `CollectionProgressService`, qui possède la règle de
+progression, et dans `StatsService`, qui s'en était fait une copie au Lot 56
+pour valoriser la collection au prix neuf. Deux copies de la clé qui relie une
+édition à sa progression, c'est exactement le montage qui a produit les écarts
+des Lots 31 et 49. Elle est maintenant publique là où vit le calcul qu'elle
+sert, et `StatsService` l'appelle.
+
+**L'identité d'un tome** - `(édition, numéro)` - existait aussi en double :
+`MetadataSearchService` dédoublonne des candidats, `MetadataController` compare
+un Variant catalogué à ces mêmes candidats pour dire « déjà possédé ». Deux
+lectures d'une même égalité, deux copies. Elle vit désormais sur
+`VolumeCandidate` lui-même, en statique parce que les deux appelants ne partent
+pas du même objet.
+
+**Vérifié** : suite backend complète, 1002 tests, 0 échec.
+
+### Lot 63 — les indices d'une œuvre, extraits une fois
+
+`mangaka`, `malId`, `titleRomaji`, `titleEnglish` : les attributs recopiés du
+fournisseur au moment où l'œuvre a été résolue, et qu'on lui redonne pour toute
+recherche ultérieure - c'est ce qui distingue « Naruto » de ses huit dérivés
+(Lot 59). Trois écrans les ré-extrayaient à la main, **chacun un sous-ensemble
+différent** : la recherche de tomes en utilisait quatre, la résolution de titre
+français trois, le rattrapage de jaquettes un seul.
+
+`lib/indicesOeuvre.ts` porte la liste. Un détail y est consigné plutôt que laissé
+à deviner : l'auteur retenu est `mangaka` SEUL, jamais le `studio` d'un jeu
+vidéo - les trois appelants interrogent des fournisseurs de manga, un studio y
+serait un indice faux et non un indice de plus. `creatorFrom` reste la fonction
+d'affichage, tous types confondus.
+
+**Vérifié** : `typecheck`, `lint`, `build`.
+
 ### Lot 62 — une seule façon de lire un tome
 
 Quatre fichiers réécrivaient la même expression pour l'édition d'un tome, et
@@ -3843,6 +3923,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une liste de caches à invalider recopiée dans cinq écrans est cinq occasions d'en oublier un - et le coût d'un oubli est invisible : l'écran affiche simplement l'état d'avant. Quand les clés sont hiérarchiques, un préfixe remplace une énumération, et il n'y a plus rien à tenir à jour (Lot 65).
 - Un sac d'attributs non typé se lit à un seul endroit, sinon chaque lecteur invente sa tolérance : quatre copies de « lire le numéro d'un tome », dont une acceptait `"12"` quand les trois autres l'ignoraient. Le défaut ne se voit pas tant que la donnée est propre - il attend (Lot 62).
 - « Sans appelant » ne veut pas dire « à supprimer ». Deux questions le tranchent : un client peut-il encore faire le geste INVERSE (alors la route est une porte de sortie - `restore` face à `sell`/`lose` sur iOS), et existe-t-il un autre recours (renuméroter, non : supprimer et rajouter suffit) ? Compter les appelants ne suffit jamais (Lot 61).
 - Retirer un écran laisse trois strates derrière lui : la fonction cliente, la route serveur, et la DOC qui le décrit encore. Les lots 27 et 53-55 n'avaient nettoyé que l'écran ; six mentions d'écrans morts sont restées dans USER_JOURNEYS pendant des jours (Lot 61).

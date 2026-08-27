@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addToWishlist, listWishlist, removeFromWishlist, type WishlistTarget } from '../api/wishlist'
 import { useToast } from './toast'
 import { queryKeys } from './queryKeys'
+import { invaliderApresEnvie } from './invalidations'
 
 /**
  * SOURCE UNIQUE du comportement « Envies ».
@@ -40,7 +41,7 @@ export function useWishlist() {
   const entries = query.data ?? []
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
+    invaliderApresEnvie(queryClient)
   }
 
   /**

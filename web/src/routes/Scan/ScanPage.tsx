@@ -14,6 +14,7 @@ import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { ApiError } from '../../api/client'
+import { invaliderApresPossession } from '../../lib/invalidations'
 
 interface ScanEntry {
   code: string
@@ -158,12 +159,7 @@ export function ScanPage() {
         volumeNumber,
         edition,
       })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
-      // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
-      // recalculee ici : sans cette invalidation, Ma collection afficherait
-      // encore l'ancien decompte apres un ajout.
-      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+      invaliderApresPossession(queryClient)
       setEntries((prev) => [
         { code, status: 'added', title: candidate.title, volumeNumber, edition, alreadyOwned: result.matchedExistingVariant },
         ...prev,
