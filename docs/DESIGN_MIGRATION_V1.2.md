@@ -1360,6 +1360,64 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 52 — un jeu ne pouvait pas être ajouté
+
+Épreuve demandée par l'utilisateur : « tester l'ajout des jeux de société » -
+le type où l'œuvre EST l'objet collectionnable, donc celui qui exerce toutes
+les branches « sans variante ». Deux défauts, dont un bloquant.
+
+#### 1. La recherche BGG enterrait le jeu cherché
+
+« Carcassonne » rendait **144 résultats** dans l'ordre de BGG - alphabétique -
+ouverts par treize extensions amateurs (« Am Pranger », « Angler &
+Fischfarm »…), le jeu lui-même en **quatorzième** position. Le fournisseur
+manga plafonnait déjà à dix (`limit=10` demandé à Jikan) ; BGG ne triait ni ne
+plafonnait rien.
+
+Quatre rangs, l'ordre de BGG conservé dans chacun : titre exact, titre qui
+COMMENCE par la recherche, titre qui la contient, le reste. Accents ignorés.
+Dix résultats. Pas de score continu - il serait plus dur à expliquer qu'à
+calculer. **Vérifié en direct : Carcassonne en premier, dix lignes.**
+
+Une assertion de mon test a d'ailleurs échoué à juste titre : j'attendais que
+« New Carcassonne » passe devant une extension amateur. Les deux sont au rang
+« contient », donc l'ordre de BGG les départage. Les distinguer demanderait de
+deviner ce qu'est une extension - ce dépôt ne devine pas. C'est l'assertion qui
+était fausse, pas le classement.
+
+#### 2. Une œuvre sans tome était impossible à ajouter
+
+Plus grave. L'aperçu d'un jeu affichait :
+
+> « coche les **tomes** que tu possèdes » · « Aucun **tome** trouvé » · un seul
+> bouton, « **Ajouter un tome** à la main »
+
+Vocabulaire manga devant un objet qui n'a pas de tome - et **aucun chemin
+d'ajout** : le seul bouton en créait un. Confirmé sur Carcassonne (jeu de
+société) ET Hollow Knight (jeu vidéo) : ce n'était pas propre à BGG, c'était
+tout type sans variante. Même famille que le défaut du Lot 36 (« l'assistant
+parlait manga devant un jeu vidéo »), corrigé là et pas ici.
+
+`usePropositionTomes` reconnaît désormais ces types (`lib/typeDeCollection`) et
+rend un ajout DIRECT : état, prix, « Ajouter à ma collection » - sans grille,
+sans édition, et sans interroger un fournisseur de tomes pour une œuvre qui
+n'en a pas. La phrase d'accueil de l'aperçu suit.
+
+`AjoutDirect` est un bloc à part de `BarreAjoutTomes` à dessein : celle-là
+accompagne une sélection et n'apparaît qu'une fois des tomes cochés ; ici il
+n'y a rien à cocher, donc rien à attendre - le bouton est là dès l'arrivée.
+
+#### Vérifications
+
+Suite backend complète : **1020 tests**, 0 échec (trois ajoutés sur le
+classement BGG). `typecheck`, `lint`, `check:contrast`, `build`.
+
+Chaîne complète en direct : recherche « Carcassonne » → aperçu sans une seule
+mention de « tome » → « Ajouter à ma collection » → fiche créée → Ma
+collection ouvre une section « Jeu de société · Carcassonne · Possédé »,
+groupée comme dégroupée, compteurs passés à 7. Jeu supprimé ensuite, base
+revenue à l'identique (9 œuvres, 14 tomes, 12 possessions, 6 éditions).
+
 ### Lot 51 — les endpoints sans appelant, traités
 
 Reprise de la dette signalée au Lot 36. **Première correction : ils étaient

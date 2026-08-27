@@ -18,6 +18,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.util.Comparator;
+import java.util.Locale;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,11 +83,61 @@ public class BggMetadataProvider implements MetadataProvider {
                 return List.of();
             }
 
-            return parse(response.body());
+            return classerParPertinence(parse(response.body()), query);
         } catch (Exception e) {
             log.warn("Échec de l'appel à BGG pour '{}' : {}", query, e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * Nombre de résultats rendus à l'écran de recherche - même plafond que le
+     * fournisseur manga, qui le demande directement à Jikan ({@code limit=10}).
+     * BGG, lui, rend TOUT : « Carcassonne » ramène 144 lignes.
+     */
+    private static final int MAX_RESULTATS = 10;
+
+    /**
+     * Classe les résultats de BGG par pertinence, et n'en garde que les
+     * premiers.
+     *
+     * <h2>Pourquoi c'est nécessaire</h2>
+     * L'API de BGG rend ses correspondances dans SON ordre - alphabétique - et
+     * sans limite. Chercher « Carcassonne » donnait 144 lignes ouvertes par
+     * treize extensions amateurs (« Am Pranger », « Angler & Fischfarm »…), le
+     * jeu lui-même arrivant en quatorzième position. Le titre exact que l'on
+     * vient de taper doit être le premier résultat.
+     *
+     * <p>Quatre rangs seulement, et l'ordre de BGG conservé à l'intérieur de
+     * chacun : titre exact, puis titre qui COMMENCE par la recherche, puis
+     * titre qui la contient, puis le reste. Pas de score continu - il serait
+     * plus difficile à expliquer qu'à calculer, et rien ici ne le demande.
+     */
+    static List<MetadataCandidate> classerParPertinence(List<MetadataCandidate> candidats, String query) {
+        String recherche = normaliser(query);
+        return candidats.stream()
+                .sorted(Comparator.comparingInt(candidat -> rang(normaliser(candidat.title()), recherche)))
+                .limit(MAX_RESULTATS)
+                .toList();
+    }
+
+    private static int rang(String titre, String recherche) {
+        if (titre.equals(recherche)) {
+            return 0;
+        }
+        if (titre.startsWith(recherche)) {
+            return 1;
+        }
+        return titre.contains(recherche) ? 2 : 3;
+    }
+
+    /** Minuscules sans accent : « Baum fällt » et « baum fallt » désignent le
+     *  même jeu, et l'utilisateur tape rarement les diacritiques. */
+    private static String normaliser(String valeur) {
+        return Normalizer.normalize(valeur == null ? "" : valeur, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toLowerCase(Locale.ROOT);
     }
 
     List<MetadataCandidate> parse(String xmlBody) throws Exception {

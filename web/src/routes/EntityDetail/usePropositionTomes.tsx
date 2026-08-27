@@ -5,6 +5,8 @@ import { quickAdd } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { volumeKey } from '../../lib/volumeKey'
 import { useTomesProposes } from '../../lib/useTomesProposes'
+import { useCollecteParTome } from '../../lib/typeDeCollection'
+import { AjoutDirect } from './AjoutDirect'
 import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../components/GrilleVolumes'
 import { CartesEditions } from './CartesEditions'
 import { BarreAjoutTomes } from './BarreAjoutTomes'
@@ -34,6 +36,15 @@ import type { Condition } from '../../types/entityTypes'
  * fiche d'une œuvre qui existe mais n'a encore aucun tome (ajoutée en envies,
  * par exemple). Les deux posent la même question, avec les mêmes cartes et la
  * même grille.
+ *
+ * <h2>Et les œuvres qui n'ont pas de tome</h2>
+ * Un jeu vidéo, un jeu de société : l'œuvre EST l'objet collectionnable (voir
+ * lib/typeDeCollection). « Quels tomes possèdes-tu ? » n'y veut rien dire - et
+ * pourtant cet écran le demandait, pour finir sur « Aucun tome trouvé » et un
+ * unique bouton « Ajouter un tome à la main ». Un jeu était donc **impossible
+ * à ajouter depuis la recherche** (constaté le 2026-08-27 sur Carcassonne puis
+ * Hollow Knight). Ces types reçoivent maintenant un ajout direct, sans grille
+ * ni édition.
  */
 export function usePropositionTomes({
   entityTypeId,
@@ -70,12 +81,29 @@ export function usePropositionTomes({
   const [prix, setPrix] = useState('')
   const [ajoutManuelOuvert, setAjoutManuelOuvert] = useState(false)
 
-  const proposes = useTomesProposes({ entityTypeId, titre, attributs, actif })
+  // Inutile d'aller chercher des tomes pour un jeu : il n'en a pas, et
+  // l'appel au fournisseur serait de toute façon vide.
+  const parTome = useCollecteParTome(entityTypeId)
+  const proposes = useTomesProposes({ entityTypeId, titre, attributs, actif: actif && parTome })
 
   const ajout = useMutation({
     mutationFn: async () => {
       const prixNombre = prix.trim() ? Number(prix) : undefined
       let identifiant = entityId
+
+      // Une œuvre sans tome s'ajoute d'un seul appel, sans volumeNumber :
+      // l'Ownership se rattache alors directement à l'Entity (voir
+      // QuickAddService).
+      if (!parTome) {
+        const resultat = await quickAdd({
+          entityTypeId,
+          title: titre,
+          condition,
+          attributes: attributs,
+          purchasePrice: prixNombre,
+        })
+        return resultat.entityId
+      }
       // Un appel par tome : `quickAdd` est déjà le point d'entrée unique de
       // l'ajout, déduplication d'Entity et d'Édition comprises. Il renvoie
       // l'identifiant de la fiche - créée au premier tome quand elle
@@ -112,6 +140,26 @@ export function usePropositionTomes({
   })
 
   if (!actif) return { cartesEditions: null, section: null }
+
+  if (!parTome) {
+    return {
+      cartesEditions: null,
+      section: (
+        <section className="flex flex-col gap-4 pt-5">
+          <AjoutDirect
+            condition={condition}
+            onCondition={setCondition}
+            prix={prix}
+            onPrix={setPrix}
+            onAjouter={() => ajout.mutate()}
+            enCours={ajout.isPending}
+            attente={attributsEnCours}
+            erreur={ajout.isError ? ajout.error.message : null}
+          />
+        </section>
+      ),
+    }
+  }
 
   const editions: string[] = []
   const parEdition = new Map<string, typeof proposes.candidats>()

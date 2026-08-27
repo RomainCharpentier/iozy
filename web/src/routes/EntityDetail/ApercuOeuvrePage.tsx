@@ -17,6 +17,7 @@ import { InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { FicheHero } from './FicheHero'
 import { retourDepuis } from './retourFiche'
+import { useCollecteParTome } from '../../lib/typeDeCollection'
 import { usePropositionTomes } from './usePropositionTomes'
 
 /**
@@ -95,6 +96,9 @@ export function ApercuOeuvrePage() {
   // Absente d'un lien reçu ou d'un F5 : le retour vise alors la recherche nue,
   // qui reste une destination valable.
   const retour = retourDepuis(etatRecu) ?? { to: '/add', libelle: 'Recherche' }
+  // Un jeu n'a pas de tome : la phrase d'accueil ne peut pas demander d'en
+  // cocher (voir lib/typeDeCollection).
+  const parTome = useCollecteParTome(entityTypeId)
 
   // Sinon, celui dont un des titres correspond exactement à celui de l'URL.
   // Comparaison insensible à la casse, et sur le titre principal COMME sur le
@@ -183,7 +187,9 @@ export function ApercuOeuvrePage() {
       {/* Dire que cette œuvre n'est pas encore à soi, plutôt que de laisser
           l'absence de progression le suggérer. */}
       <p className="pt-4 text-sm text-textDim">
-        Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter.
+        {parTome
+          ? "Cette œuvre n'est pas encore dans ta collection — coche les tomes que tu possèdes pour l'y ajouter."
+          : "Cette œuvre n'est pas encore dans ta collection."}
       </p>
 
       {proposition.section}
