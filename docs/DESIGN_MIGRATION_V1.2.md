@@ -1360,6 +1360,35 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 45 — dégrouper déliait aussi les TYPES
+
+« On voit plus que les mangas quand on dégroupe ». Reproduit : le jeu vidéo
+était bel et bien là, en **quatrième position sur douze**. Ce n'est donc pas un
+filtrage qui l'écartait - c'est la structure qui manquait. Onze tuiles de manga
+et une de jeu, jetées dans une grille unique : le type peu fourni se noie.
+
+La page promet **une section par catégorie** depuis le Lot 3, et dégrouper ne
+doit pas revenir dessus. Ce qui change en dégroupant, c'est le CONTENU d'une
+section - des éléments au lieu de groupes - pas son existence. L'ordre des
+types est désormais partagé par les deux vues (`trierTypes`, extrait de
+`groupByEntityType`) : basculer d'une vue à l'autre ne rebat pas les univers.
+
+Conséquence heureuse : le badge de type disparaît des tuiles. Il valait quand
+tout était mélangé ; répété sur les onze tuiles d'une section qui l'annonce
+déjà, il n'apprend plus rien. L'en-tête de section ne s'affiche lui-même que
+s'il sépare vraiment quelque chose - sur la vue d'une catégorie, où il n'y a
+qu'un type, il répéterait le titre de la page.
+
+**Vérifié** à 1280 et 375 px : groupée → Manga 5 · Jeu vidéo 1 ; dégroupée →
+Manga 11 · Jeu vidéo 1, chacun dans sa section ; zéro badge de type sur les
+tuiles ; vue catégorie sans en-tête de section ; aucun débordement.
+
+**Piège de mesure** : ma première sonde a capturé DEUX FOIS le même état - elle
+cliquait « Dégrouper » alors que la vue était déjà dégroupée par une
+préférence mémorisée, le bouton disait donc « Grouper » et rien ne bougeait.
+Depuis qu'un réglage est persisté, une sonde doit POSER l'état qu'elle mesure,
+jamais supposer celui de départ.
+
 ### Lot 44 — « Grouper / Dégrouper », parce que le tome est un mot de manga
 
 Remarque de l'utilisateur : « faut pas "grouper par tome", c'est trop
@@ -2955,6 +2984,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une sonde qui teste une vue pilotée par une PRÉFÉRENCE MÉMORISÉE doit poser l'état qu'elle mesure (écrire `localStorage` puis recharger), jamais cliquer une bascule en supposant l'état de départ : au Lot 45 elle a relevé deux fois la même vue sans que rien ne le signale.
 - **`document.documentElement.clientWidth` peut valoir 0 dans ce navigateur de test** quand aucun viewport n'est émulé : toute sonde de débordement rapporte alors un faux positif, et `elementFromPoint` rend `null`. Appeler `resize_window` avec une taille EXPLICITE avant de mesurer, et se méfier d'un `deborde: true` accompagné d'un viewport nul (Lot 41).
 - Quand une variable change de SENS (`entities` : « tout ce qui est possédé » → « ce qui est à l'écran »), relire tous ses lecteurs, pas seulement ceux qu'on modifie : un outil de maintenance s'était mis à dépendre du filtre d'affichage (Lot 41).
 - Deux listes « gardées manuellement synchronisées » sont deux listes vouées à diverger : `DesktopHeader.PRIMARY` et `TabBar.TABS` le disaient dans leurs propres commentaires. Extraire AVANT d'ajouter la quatrième entrée, pas après avoir oublié une des deux (Lot 39).
