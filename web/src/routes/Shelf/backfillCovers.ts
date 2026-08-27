@@ -36,3 +36,63 @@ export function findBestCoverMatch(
   }
   return sameVolume[0]
 }
+
+
+/** Ce qu'une passe de rattrapage a donné pour UNE série. */
+export interface ResultatRattrapage {
+  trouvees: number
+  quotaDepasse: boolean
+}
+
+/**
+ * Retrouve les jaquettes manquantes d'UNE série.
+ *
+ * <h2>Une seule implémentation, deux appelants</h2>
+ * Ma collection la déroule sur toute la bibliothèque ; la fiche l'appelle pour
+ * la série qu'on regarde, quand on en a besoin - typiquement après un ajout
+ * d'un clic, ou après une panne de quota chez le fournisseur. La logique
+ * d'appariement, la seconde tentative et la lecture du quota vivaient dans la
+ * boucle de Ma collection : deux copies auraient fini par diverger.
+ *
+ * <p><b>Deux recherches au plus, et seulement si la première ne suffit pas</b> :
+ * la seconde force le rafraîchissement du cache, ce qui coûte un vrai appel au
+ * fournisseur. La faire d'emblée gaspillerait le quota sur les séries que le
+ * cache servait déjà.
+ *
+ * <p>Best-effort par nature : une série en échec reste simplement sans
+ * jaquette. Le quota dépassé, lui, remonte - c'est la seule information qui
+ * change ce que l'utilisateur doit faire (réessayer plus tard).
+ */
+export async function rattraperJaquettes(
+  entity: EntityResponse,
+  entityTypeId: string,
+  chercherTomes: (entityTypeId: string, titre: string, options?: { author?: string; forceRefresh?: boolean }) => Promise<{ volumes: VolumeCandidateDto[]; quotaExceeded: boolean }>,
+  enregistrerJaquette: (entityId: string, variantId: string, url: string) => Promise<unknown>,
+): Promise<ResultatRattrapage> {
+  const manquantes = variantsMissingCover(entity)
+  if (manquantes.length === 0) return { trouvees: 0, quotaDepasse: false }
+
+  const auteur = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
+  try {
+    let reponse = await chercherTomes(entityTypeId, entity.title, { author: auteur })
+    if (reponse.quotaExceeded) return { trouvees: 0, quotaDepasse: true }
+
+    if (manquantes.some((v) => !findBestCoverMatch(reponse.volumes, v)?.imageUrl)) {
+      reponse = await chercherTomes(entityTypeId, entity.title, { author: auteur, forceRefresh: true })
+      if (reponse.quotaExceeded) return { trouvees: 0, quotaDepasse: true }
+    }
+
+    let trouvees = 0
+    for (const variante of manquantes) {
+      const correspondance = findBestCoverMatch(reponse.volumes, variante)
+      if (correspondance?.imageUrl) {
+        await enregistrerJaquette(entity.id, variante.id, correspondance.imageUrl)
+        trouvees++
+      }
+    }
+    return { trouvees, quotaDepasse: false }
+  } catch {
+    // Une série en échec ne doit jamais faire échouer l'appelant.
+    return { trouvees: 0, quotaDepasse: false }
+  }
+}

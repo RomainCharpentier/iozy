@@ -11,7 +11,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
+import { rattraperJaquettes, variantsMissingCover } from './backfillCovers'
 import {
   aplatirEnElements,
   correspondAuFiltre,
@@ -290,34 +290,21 @@ export function ShelfPage() {
     // Séquentiel, jamais Promise.all : chaque série coûte potentiellement un
     // vrai appel Google Books (cache manquant), un lot en parallèle risquerait
     // de vider le quota d'un coup plutôt que de s'arrêter proprement dessus.
+    //
+    // Le travail d'UNE série vit dans rattraperJaquettes, partagé avec la fiche
+    // (voir backfillCovers) : ici il ne reste que le parcours et l'arrêt net
+    // sur quota.
     for (let i = 0; i < entitiesMissingCovers.length; i++) {
-      const entity = entitiesMissingCovers[i]
-      const author = typeof entity.attributes.mangaka === 'string' ? entity.attributes.mangaka : undefined
-      try {
-        let response = await searchVolumes(mangaType.id, entity.title, { author })
-        if (response.quotaExceeded) {
-          quotaExceeded = true
-          break
-        }
-        const missingVariants = variantsMissingCover(entity)
-        const stillUnmatched = missingVariants.some((v) => !findBestCoverMatch(response.volumes, v)?.imageUrl)
-        if (stillUnmatched) {
-          response = await searchVolumes(mangaType.id, entity.title, { author, forceRefresh: true })
-          if (response.quotaExceeded) {
-            quotaExceeded = true
-            break
-          }
-        }
-        for (const variant of missingVariants) {
-          const match = findBestCoverMatch(response.volumes, variant)
-          if (match?.imageUrl) {
-            await mergeVariantAttributes(entity.id, variant.id, { coverImageUrl: match.imageUrl })
-            found++
-          }
-        }
-      } catch {
-        // Best-effort par nature (voir VolumeSelectionGrid) - une série en échec
-        // ne doit jamais bloquer les suivantes, elle reste juste sans jaquette.
+      const resultat = await rattraperJaquettes(
+        entitiesMissingCovers[i],
+        mangaType.id,
+        searchVolumes,
+        (entityId, variantId, url) => mergeVariantAttributes(entityId, variantId, { coverImageUrl: url }),
+      )
+      found += resultat.trouvees
+      if (resultat.quotaDepasse) {
+        quotaExceeded = true
+        break
       }
       setBackfill({ running: true, processed: i + 1, total: entitiesMissingCovers.length, found, quotaExceeded })
     }
