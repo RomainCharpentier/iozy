@@ -177,3 +177,42 @@ export function ReleveInspecteur({
     </div>
   )
 }
+
+/** Les rouages recopiés d'un fournisseur - colonne SOURCE de la maquette.
+ *  Liste fermée et ORDONNÉE : c'est l'ordre de la maquette, pas celui,
+ *  imprévisible, des clés du sac d'attributs. */
+const CLES_SOURCE: { cle: string; libelle: string }[] = [
+  { cle: 'malId', libelle: 'malId' },
+  { cle: 'titleRomaji', libelle: 'Titre romaji' },
+  { cle: 'titleJapanese', libelle: 'Titre japonais' },
+  { cle: 'seriesStatus', libelle: 'Statut source' },
+  { cle: 'totalVolumes', libelle: 'Nb de tomes source' },
+  { cle: 'endYear', libelle: 'Année de fin' },
+]
+
+/**
+ * La colonne SOURCE, identique sur la fiche et sur l'aperçu d'une œuvre qu'on
+ * ne possède pas.
+ *
+ * <p>La liste ET son rendu vivaient en double, avec pour seul lien un
+ * commentaire disant « mêmes clés, même ordre que la colonne SOURCE de la
+ * fiche ». Deux listes gardées synchronisées à la main sont deux listes vouées
+ * à diverger (voir Lot 39, où le même montage avait déjà lâché sur la
+ * navigation) - et c'est la même provenance, qu'elle soit déjà enregistrée
+ * ou non.
+ */
+export function ColonneSource({ attributs }: { attributs: Record<string, unknown> }) {
+  return (
+    <div className="flex flex-col">
+      {CLES_SOURCE.map(({ cle, libelle }) => {
+        const valeur = attributs[cle]
+        if (valeur === null || valeur === undefined || valeur === '') return null
+        return (
+          <RangeeInspecteur key={cle} libelle={libelle} compact>
+            {String(valeur)}
+          </RangeeInspecteur>
+        )
+      })}
+    </div>
+  )
+}
