@@ -46,8 +46,12 @@ export function BarreVues({
   tri: TriCollection
   onTri: (tri: TriCollection) => void
   /** Ce que chaque filtre donnerait - annoncé avant le clic, pour qu'un
-   *  filtre vide se voie au lieu de se découvrir. */
-  comptes: Record<FiltreCollection, number>
+   *  filtre vide se voie au lieu de se découvrir.
+   *
+   *  `null` tant que les données ne sont pas arrivées : afficher « 0 » en
+   *  attendant, c'est affirmer une collection vide à quelqu'un qui en a une.
+   *  Un chiffre absent se lit comme « pas encore su », un zéro comme un fait. */
+  comptes: Record<FiltreCollection, number> | null
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -71,7 +75,7 @@ export function BarreVues({
             >
               {cle === 'envies' && <Heart size={13} className={actif ? 'fill-current' : undefined} />}
               {libelle}
-              <span className={actif ? 'text-textDim' : 'text-faint'}>{comptes[cle]}</span>
+              {comptes && <span className={actif ? 'text-textDim' : 'text-faint'}>{comptes[cle]}</span>}
             </button>
           )
         })}
