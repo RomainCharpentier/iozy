@@ -646,6 +646,6 @@ public class MetadataSearchService {
     }
 
     private static String volumeKey(VolumeCandidate candidate) {
-        return candidate.edition().trim().toLowerCase() + "|" + candidate.volumeNumber();
+        return candidate.key();
     }
 }

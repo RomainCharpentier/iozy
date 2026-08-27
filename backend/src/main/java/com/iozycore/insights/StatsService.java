@@ -235,7 +235,7 @@ public class StatsService {
         Map<String, BigDecimal> prixNeufParEdition = new HashMap<>();
         for (MangaEdition edition : mangaEditionRepository.findAll()) {
             if (edition.entityId() != null && edition.retailPriceNewPerVolume() != null) {
-                prixNeufParEdition.put(cleEdition(edition.entityId(), edition.editionName()),
+                prixNeufParEdition.put(CollectionProgressService.editionKey(edition.entityId(), edition.editionName()),
                         edition.retailPriceNewPerVolume());
             }
         }
@@ -265,7 +265,7 @@ public class StatsService {
                     ? typesById.get(entity.entityTypeId()).label() : "?";
             for (CollectionProgress.EditionProgress groupe : progressService.compute(entity.id())
                     .map(CollectionProgress::editions).orElse(List.of())) {
-                BigDecimal prixNeuf = prixNeufParEdition.get(cleEdition(entity.id(), groupe.editionName()));
+                BigDecimal prixNeuf = prixNeufParEdition.get(CollectionProgressService.editionKey(entity.id(), groupe.editionName()));
                 if (prixNeuf == null || groupe.ownedVolumeNumbers().isEmpty()) {
                     continue;
                 }
@@ -287,11 +287,6 @@ public class StatsService {
                 .toList();
 
         return new CollectionValue(totalKnownValue, pricedCount, activeOwnerships.size(), byType);
-    }
-
-    /** Même clé que partout ailleurs : une édition s'identifie par (œuvre, nom). */
-    private static String cleEdition(java.util.UUID entityId, String editionName) {
-        return entityId + "|" + editionName.trim().toLowerCase();
     }
 
     private List<StatsSummary.TagCount> computeTopTags(List<Entity> allEntities) {

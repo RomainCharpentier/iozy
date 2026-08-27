@@ -98,7 +98,16 @@ public class CollectionProgressService {
         return totals;
     }
 
-    private static String editionKey(UUID entityId, String editionName) {
+    /**
+     * L'identité d'une édition : (œuvre, nom), à la casse et aux espaces près.
+     *
+     * <p>Publique parce qu'elle était RECOPIÉE - {@code StatsService} en avait
+     * sa propre version pour valoriser la collection au prix neuf (Lot 56).
+     * Deux copies d'une clé sont deux occasions de diverger, et c'est
+     * exactement ce qui a produit les écarts de progression des Lots 31 et 49 :
+     * la règle vit ici, avec le calcul qu'elle sert.
+     */
+    public static String editionKey(UUID entityId, String editionName) {
         return entityId + "|" + editionName.trim().toLowerCase();
     }
 
