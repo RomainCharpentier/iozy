@@ -1360,6 +1360,38 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 53 — ajouter tient en un clic
+
+« Lorsque j'ajoute un item à ma collection je veux pas de "neuf / abîmé, etc"
+ou de prix, je veux juste l'ajouter en un clic sans rien d'autre. »
+
+Cinq surfaces demandaient l'état et le prix **avant** de laisser ajouter :
+l'ajout direct d'une œuvre sans tome, la barre de sélection de tomes, le
+panneau d'un tome, l'ajout manuel, et le scan (qui posait la question tout en
+haut, avant même d'avoir scanné quoi que ce soit). Toutes passent à un bouton.
+
+**Ce qui NE change pas** : `OwnershipDetails`, où l'on corrige un exemplaire
+existant - c'est là que l'état et le prix décrivent quelque chose de réel,
+plutôt qu'un formulaire à remplir d'avance ; et l'analyse d'annonce, dont
+l'« état déclaré » est celui du VENDEUR, pas un ajout à la collection.
+
+**La valeur stockée reste `NEW`.** `ownership.condition` est NOT NULL et
+l'énumération n'a que NEW / USED / DAMAGED : il n'existe pas de « non
+renseigné ». `NEW` était déjà la valeur pré-sélectionnée de tous ces
+formulaires, donc rien ne change en base - on cesse simplement de poser la
+question. Rendre la colonne nullable aurait touché le moteur d'analyse,
+l'export et le domaine entier pour une question de formulaire : hors de
+proportion.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build`. En direct sur les cinq
+surfaces : plus une seule mention de « Neuf / Occasion / Abîmé » ni de « Prix
+d'achat ». Chaîne complète depuis le panneau d'un tome - un clic, tome 3 de
+Death Note passe à « possédé », et la possession créée porte bien
+`condition=NEW`, `purchasePrice=null`. Retirée ensuite, base revenue à
+l'identique.
+
 ### Lot 52 — un jeu ne pouvait pas être ajouté
 
 Épreuve demandée par l'utilisateur : « tester l'ajout des jeux de société » -

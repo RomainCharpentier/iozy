@@ -3,9 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
-import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 
 interface ManualVolume {
   volumeNumber: number
@@ -61,10 +59,8 @@ export function AddVolumeSection({
   onAjoute?: (entityId: string) => void
 }) {
   const queryClient = useQueryClient()
-  const [condition, setCondition] = useState<Condition>('NEW')
   const [volumeNumber, setVolumeNumber] = useState('')
   const [edition, setEdition] = useState('')
-  const [purchasePrice, setPurchasePrice] = useState('')
   const [manualVolumes, setManualVolumes] = useState<ManualVolume[]>([])
 
   const totalVolumesToAdd = manualVolumes.length + (volumeNumber.trim() ? 1 : 0)
@@ -78,7 +74,6 @@ export function AddVolumeSection({
       }
       if (items.length === 0) return { addedCount: 0, alreadyOwnedCount: 0 }
 
-      const parsedPurchasePrice = purchasePrice.trim() ? Number(purchasePrice) : undefined
 
       let addedCount = 0
       let alreadyOwnedCount = 0
@@ -90,11 +85,12 @@ export function AddVolumeSection({
         const result = await quickAdd({
           entityTypeId,
           title,
-          condition,
+          // Ajouter tient en un clic : ni état ni prix demandés ici, tous deux
+          // corrigeables ensuite sur l'exemplaire (voir OwnershipDetails).
+          condition: 'NEW',
           attributes,
           volumeNumber: item.volumeNumber,
           edition: item.edition || undefined,
-          purchasePrice: parsedPurchasePrice,
         })
         identifiant = result.entityId
         if (result.matchedExistingVariant) alreadyOwnedCount++
@@ -118,7 +114,6 @@ export function AddVolumeSection({
       queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       setVolumeNumber('')
       setEdition('')
-      setPurchasePrice('')
       setManualVolumes([])
       onFermer()
     },
@@ -140,15 +135,6 @@ export function AddVolumeSection({
   return (
     <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
       <h2 className="font-display text-sm font-semibold text-textPrimary">Ajouter un tome</h2>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-textDim">État</span>
-        <div className="flex gap-2">
-          {CONDITIONS.map((c) => (
-            <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
-          ))}
-        </div>
-      </div>
 
       <div className="flex items-end gap-2">
         {/* min-w-0 : sans lui, ces colonnes gardent min-width:auto et ne peuvent
@@ -194,23 +180,6 @@ export function AddVolumeSection({
         </button>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm text-textDim" htmlFor="addVolumePurchasePrice">
-          Prix d'achat (optionnel)
-        </label>
-        <input
-          id="addVolumePurchasePrice"
-          type="number"
-          min={0}
-          step="0.01"
-          inputMode="decimal"
-          value={purchasePrice}
-          onChange={(e) => setPurchasePrice(e.target.value)}
-          placeholder="ex: 6.90"
-          className="w-32 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-        />
-      </div>
-
       {manualVolumes.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {manualVolumes.map((manual, index) => (
@@ -254,8 +223,7 @@ export function AddVolumeSection({
             onFermer()
             setVolumeNumber('')
             setEdition('')
-            setPurchasePrice('')
-            setManualVolumes([])
+                  setManualVolumes([])
           }}
           className="rounded-lg px-4 py-2 text-sm text-textDim"
         >

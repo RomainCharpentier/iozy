@@ -6,8 +6,6 @@ import { lookupBarcode } from '../../api/metadata'
 import { quickAdd, searchEntities } from '../../api/entities'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
-import { Chip } from '../../components/Chip'
-import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 import { CameraBarcodeScanner } from './CameraBarcodeScanner'
 import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
@@ -84,7 +82,6 @@ export function ScanPage() {
   const queryClient = useQueryClient()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const mangaType = entityTypesQuery.data?.find((t) => t.code === 'MANGA')
-  const [condition, setCondition] = useState<Condition>('NEW')
   const [entries, setEntries] = useState<ScanEntry[]>([])
   const [processing, setProcessing] = useState(false)
   // Tant qu'un menu est ouvert, la caméra continue de tourner mais ses
@@ -153,7 +150,10 @@ export function ScanPage() {
       const result = await quickAdd({
         entityTypeId: mangaType.id,
         title: candidate.title,
-        condition,
+        // Scanner et ajouter tient en un clic : l'état n'est plus demandé
+        // d'avance (décision utilisateur du 2026-08-27), il se corrige sur
+        // l'exemplaire depuis la fiche (voir OwnershipDetails).
+        condition: 'NEW',
         attributes,
         volumeNumber,
         edition,
@@ -208,15 +208,6 @@ export function ScanPage() {
         demande quoi en faire - rien n'est enregistré sans toi. Le numéro de tome est déduit du titre quand c'est
         possible ; quand il ne l'est pas, « Choisir l'édition et les tomes » est là pour ça.
       </p>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-textDim">État (appliqué quand tu choisis « Ajouter à ma collection »)</span>
-        <div className="flex gap-2">
-          {CONDITIONS.map((c) => (
-            <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
-          ))}
-        </div>
-      </div>
 
       <CameraBarcodeScanner onScan={handleScan} />
 
