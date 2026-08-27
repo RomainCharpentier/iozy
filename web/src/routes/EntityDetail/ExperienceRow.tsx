@@ -4,7 +4,7 @@ import { MoreHorizontal, Star } from 'lucide-react'
 import { deleteExperience, recordExperience, updateExperience } from '../../api/experiences'
 import { queryKeys } from '../../lib/queryKeys'
 import { useToast } from '../../lib/toast'
-import { variantLabel } from '../../lib/tomeTiles'
+import { variantLabel } from '../../lib/attributsTome'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import type { ExperienceResponse, VariantDto } from '../../types/api'
 

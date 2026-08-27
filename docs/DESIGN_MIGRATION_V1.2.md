@@ -1360,6 +1360,54 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 62 — une seule façon de lire un tome
+
+Quatre fichiers réécrivaient la même expression pour l'édition d'un tome, et
+quatre pour son numéro. Les attributs d'un Variant sont un sac non typé : chaque
+lecteur décide donc lui-même ce qu'il accepte - et deux avaient déjà divergé.
+
+**L'écart trouvé** : `AssistantSection` acceptait un numéro de tome écrit en
+TEXTE (`typeof raw === 'string' ? Number(raw) : NaN`), là où la grille, le
+rattrapage de jaquettes et Ma collection exigent un vrai nombre. Un tome ainsi
+saisi aurait été compté dans « où en suis-je dans mes lectures » et **invisible
+dans la grille juste au-dessus**. Aujourd'hui les 17 tomes en base portent tous
+un numéro numérique, donc rien ne s'est encore vu - c'est exactement le moment
+de le refermer.
+
+`lib/attributsTome.ts` porte la règle : `editionDe`, `numeroDe`, et
+`variantLabel` qui les utilise. Le numéro se lit `typeof === 'number'` STRICT,
+comme partout ailleurs (voir `lib/seriesInfo.totalVolumesFrom` et les
+`NUMERIC_KEYS` d'`EntityInfoSection`, qui préservent le type à l'écriture
+précisément pour ça).
+
+**Un écart reste, et devient visible** : le rattrapage de jaquettes compare
+l'édition d'un tome à celle qu'annonce un fournisseur externe, où « Kana » et
+« KANA » désignent la même. Il abaisse donc la casse - mais désormais sur sa
+propre ligne, `editionDe(variant).toLowerCase()`, comme un choix, au lieu d'être
+noyé dans une copie qui ressemblait aux trois autres.
+
+#### Vérifications
+
+Refactor à comportement constant : ce sont les écrans qui l'attestent, mesurés
+après coup sur les données réelles.
+
+- Ma collection, vue groupée : les six titres et leurs progressions inchangés
+  (Death Note 3/6, Jujutsu Kaisen 2/30, Raw Hero 4/6, Naruto 3/72).
+- Vue **dégroupée**, qui passe par `libelleDeLElement` : « Jujutsu Kaisen ·
+  Tome 5 · Ki-oon · Je le veux ». Préférence d'affichage remise dans l'état où
+  elle était trouvée.
+- Fiche Raw Hero : grille 01→06, 4 possédés, 2 manquants.
+- « Où en suis-je dans mes lectures ? » sur Death Note - le code exact modifié
+  dans `AssistantSection` : « Tu as lu 1 tome de cette édition : 1 », « Tomes
+  possédés sans lecture enregistrée : 2, 5 », « 1 lecture enregistrée sans tome
+  précisé ». Conforme aux tomes 1, 2 et 5 possédés.
+- L'export, touché au Lot 61 : archive à **10 fichiers CSV** bien formés,
+  `edition-upgrade-wishes.csv` disparu, JSON à 10 clés - 9 œuvres, 14
+  possessions, 6 éditions, comme la base.
+
+**Vérifié** : `typecheck`, `lint`, `check:contrast`, `build`. Aucun test backend
+concerné (changement purement web).
+
 ### Lot 61 — les surfaces retirées avaient laissé leurs tuyaux
 
 « Que faut-il consolider ? » Réponse mesurée plutôt que devinée : inventaire des
@@ -3795,6 +3843,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un sac d'attributs non typé se lit à un seul endroit, sinon chaque lecteur invente sa tolérance : quatre copies de « lire le numéro d'un tome », dont une acceptait `"12"` quand les trois autres l'ignoraient. Le défaut ne se voit pas tant que la donnée est propre - il attend (Lot 62).
 - « Sans appelant » ne veut pas dire « à supprimer ». Deux questions le tranchent : un client peut-il encore faire le geste INVERSE (alors la route est une porte de sortie - `restore` face à `sell`/`lose` sur iOS), et existe-t-il un autre recours (renuméroter, non : supprimer et rajouter suffit) ? Compter les appelants ne suffit jamais (Lot 61).
 - Retirer un écran laisse trois strates derrière lui : la fonction cliente, la route serveur, et la DOC qui le décrit encore. Les lots 27 et 53-55 n'avaient nettoyé que l'écran ; six mentions d'écrans morts sont restées dans USER_JOURNEYS pendant des jours (Lot 61).
 - Remplacer un calcul SYNCHRONE par une requête crée un état qui n'existait pas : « je ne sais pas encore ». Chercher tous ses lecteurs, y compris ceux qui tournent pendant le vol - les Hooks s'exécutent avant le retour anticipé, et une condition du type « si la liste est vide » y devient vraie à tort (Lot 60).
