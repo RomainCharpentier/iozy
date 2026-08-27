@@ -217,6 +217,33 @@ export interface VolumesResponseDto {
   quotaExceeded: boolean
 }
 
+/**
+ * « Combien de tomes possédés sur combien », calculé PAR LE SERVEUR.
+ *
+ * Miroir de com.iozycore.insights.CollectionProgress. La règle - notamment le
+ * rattachement des tomes sans édition précisée à l'unique édition nommée d'une
+ * série - vit là-bas et nulle part ailleurs : la recalculer ici a déjà produit
+ * deux divergences (voir docs/DESIGN_MIGRATION_V1.2.md, lots 31 et 49).
+ */
+export interface EditionProgressDto {
+  /** `''` = les tomes sans édition précisée, quand ils forment un groupe à part. */
+  editionName: string
+  sourceEditions: string[]
+  ownedVolumeNumbers: number[]
+  cataloguedVolumeNumbers: number[]
+  /** null tant que le total de l'édition n'est pas renseigné - jamais deviné. */
+  totalVolumes: number | null
+}
+
+export interface CollectionProgressDto {
+  entityId: UUID
+  title: string
+  editions: EditionProgressDto[]
+  /** L'édition qui représente cette œuvre - null quand elle n'a aucun tome. */
+  dominantEdition: EditionProgressDto | null
+  ownedVolumeCount: number
+}
+
 // --- EntityType (éditeur de types dynamique) ---
 export interface EntityTypeDto {
   id: UUID

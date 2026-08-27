@@ -14,7 +14,7 @@ import {
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
-  indexEditionTotals,
+  indexerProgression,
   matchesCompletionFilter,
   type CompletionFilter,
 } from './shelfTiles'
@@ -22,14 +22,13 @@ import { BarreVues } from './BarreVues'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
-import { listAllEditions } from '../../api/purchaseAnalysis'
-import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+import { getCollectionProgress } from '../../api/insights'
 
 /** Référence stable - voir ShelfPage pour la même précaution. */
-const EMPTY_EDITIONS: MangaEditionDto[] = []
+const EMPTY_PROGRESS: CollectionProgressDto[] = []
 import { CollectionFilters } from './CollectionFilters'
 import { ownedVariantIds } from './ownership'
-import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
+import type { CollectionProgressDto, EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 import { CLASSE_CARTE } from '../../components/Carte'
 
 const EMPTY_ENTITIES: EntityResponse[] = []
@@ -59,11 +58,10 @@ export function CategoryPage() {
   const entitiesQuery = useQuery({ queryKey: queryKeys.entities.search({}), queryFn: () => searchEntities({}) })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   const ownershipsQuery = useQuery({ queryKey: queryKeys.allOwnerships, queryFn: listAllOwnerships })
-  // Référentiel d'éditions : une seule requête pour tout l'écran, partagée
-  // en cache entre Ma collection et la page catégorie - la progression X/Y
-  // se lit PAR ÉDITION (voir indexEditionTotals), comme sur la fiche.
-  const editionsQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.allEditions, queryFn: listAllEditions })
-  const editionTotals = useMemo(() => indexEditionTotals(editionsQuery.data ?? EMPTY_EDITIONS), [editionsQuery.data])
+  // Même source que Ma collection, et même requête en cache : la progression
+  // vient du serveur, elle n'est pas re-dérivée ici.
+  const progressQuery = useQuery({ queryKey: queryKeys.insights.progress, queryFn: getCollectionProgress })
+  const progression = useMemo(() => indexerProgression(progressQuery.data ?? EMPTY_PROGRESS), [progressQuery.data])
 
   const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
@@ -90,9 +88,9 @@ export function CategoryPage() {
       duType.filter((e) => {
         const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
         if (!correspondAuFiltre(etat, filtre)) return false
-        return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+        return !etat.possede || matchesCompletionFilter(e, status, progression)
       }),
-    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, status, editionTotals],
+    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, status, progression],
   )
 
   const contexteAplatissement = useMemo(
@@ -128,13 +126,13 @@ export function CategoryPage() {
   const tiles = useMemo(
     () =>
       entities.map((e) =>
-        buildShelfTile(e, owned, editionTotals, {
+        buildShelfTile(e, progression, {
           possede: etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues).possede,
           tomesVoulus: e.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(e.id) ? 1 : 0),
           prioritaire: preferences.filtre === 'envies',
         }),
       ),
-    [entities, owned, editionTotals, ownerships, tomesVoulus, oeuvresVoulues, preferences.filtre],
+    [entities, owned, progression, ownerships, tomesVoulus, oeuvresVoulues, preferences.filtre],
   )
 
   // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
@@ -155,7 +153,7 @@ export function CategoryPage() {
   // Même règle que sur Ma collection : aucun chiffre tant que tout n'est pas
   // arrivé, sans quoi la page annonce une catégorie vide qui ne l'est pas.
   const donneesPretes =
-    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !editionsQuery.isPending
+    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !progressQuery.isPending
   const isLoading = !donneesPretes
 
   return (

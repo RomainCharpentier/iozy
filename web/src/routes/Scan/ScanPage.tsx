@@ -160,6 +160,10 @@ export function ScanPage() {
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+      // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
+      // recalculee ici : sans cette invalidation, Ma collection afficherait
+      // encore l'ancien decompte apres un ajout.
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       setEntries((prev) => [
         { code, status: 'added', title: candidate.title, volumeNumber, edition, alreadyOwned: result.matchedExistingVariant },
         ...prev,
