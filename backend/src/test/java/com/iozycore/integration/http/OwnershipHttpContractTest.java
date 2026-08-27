@@ -9,14 +9,12 @@ import com.iozycore.domain.ownership.OwnershipStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -156,77 +154,6 @@ class OwnershipHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post("/api/ownerships/{id}/sell", MALFORME))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isNotEmpty());
-    }
-
-    // ============================================== PATCH note / purchase-price
-
-    @Test
-    void updates_the_note_and_returns_the_updated_resource() throws Exception {
-        Ownership exemplaire = unExemplaire();
-
-        mockMvc.perform(patch("/api/ownerships/{id}/note", exemplaire.id())
-                        .contentType("application/json")
-                        .content(json(Map.of("note", "Jaquette abîmée"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.note").value("Jaquette abîmée"));
-    }
-
-    @Test
-    void accepts_a_null_note_because_erasing_a_note_is_a_legitimate_correction() throws Exception {
-        Ownership exemplaire = unExemplaire();
-
-        // Le corps {} donne note = null. Ce n'est pas une erreur de saisie :
-        // le domaine l'autorise explicitement, et l'API doit suivre plutôt
-        // qu'inventer une contrainte que le métier n'impose pas.
-        mockMvc.perform(patch("/api/ownerships/{id}/note", exemplaire.id())
-                        .contentType("application/json").content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.note").doesNotExist());
-    }
-
-    @Test
-    void updates_then_erases_the_purchase_price() throws Exception {
-        Ownership exemplaire = unExemplaire();
-
-        mockMvc.perform(patch("/api/ownerships/{id}/purchase-price", exemplaire.id())
-                        .contentType("application/json")
-                        .content(json(Map.of("purchasePrice", new BigDecimal("7.65")))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.purchasePrice").value(7.65));
-
-        // null efface, volontairement : une Ownership peut redevenir « prix inconnu ».
-        mockMvc.perform(patch("/api/ownerships/{id}/purchase-price", exemplaire.id())
-                        .contentType("application/json").content("{\"purchasePrice\":null}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.purchasePrice").doesNotExist());
-    }
-
-    @Test
-    void rejects_a_non_numeric_purchase_price_with_400_and_never_500() throws Exception {
-        Ownership exemplaire = unExemplaire();
-
-        mockMvc.perform(patch("/api/ownerships/{id}/purchase-price", exemplaire.id())
-                        .contentType("application/json").content("{\"purchasePrice\":\"beaucoup\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void rejects_an_absent_or_unparseable_body_with_400_and_never_500() throws Exception {
-        Ownership exemplaire = unExemplaire();
-
-        mockMvc.perform(patch("/api/ownerships/{id}/note", exemplaire.id())
-                        .contentType("application/json").content(""))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(patch("/api/ownerships/{id}/note", exemplaire.id())
-                        .contentType("application/json").content("{pas du json"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void returns_404_when_patching_an_ownership_that_does_not_exist() throws Exception {
-        mockMvc.perform(patch("/api/ownerships/{id}/note", ABSENT)
-                        .contentType("application/json").content(json(Map.of("note", "x"))))
-                .andExpect(status().isNotFound());
     }
 
     // ====================================================== DELETE

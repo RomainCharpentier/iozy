@@ -9,8 +9,6 @@ import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
-import com.iozycore.domain.editionupgrade.EditionUpgradeWish;
-import com.iozycore.domain.editionupgrade.EditionUpgradeWishRepository;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
@@ -30,14 +28,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Le contrat HTTP de la <b>configuration du catalogue</b> : les types d'œuvres
- * ({@code /api/entity-types}), les tags personnels ({@code /api/tags}) et les
- * souhaits de changement d'édition ({@code /api/edition-upgrade-wishes}).
+ * ({@code /api/entity-types}) et les tags personnels ({@code /api/tags}).
  *
- * <h2>Ce que ces trois surfaces ont en commun</h2>
+ * <h2>Ce que ces deux surfaces ont en commun</h2>
  * Elles écrivent des données <b>structurantes ou personnelles</b> sans passer
  * par aucune intégration externe, et chacune référence quelque chose d'autre -
- * un type référencé par des œuvres, un tag accroché à une œuvre, un souhait
- * rattaché à une série. C'est précisément là que les références invalides
+ * un type référencé par des œuvres, un tag accroché à une œuvre. C'est
+ * précisément là que les références invalides
  * remontaient historiquement en 500 ou en 409 trompeur : la clé étrangère de
  * Postgres tranchait à la place du code.
  *
@@ -58,9 +55,6 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
     @Autowired
     private TagRepository tagRepository;
-
-    @Autowired
-    private EditionUpgradeWishRepository wishRepository;
 
     @Autowired
     private CatalogEntityResolver catalogEntityResolver;
@@ -297,114 +291,5 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), jamaisAttache.id()))
                 .andExpect(status().isOk());
         assertThat(entityRepository.findById(oeuvre.id())).isPresent();
-    }
-
-    // ═══════════════════════════════════════════ EDITION UPGRADE WISHES
-
-    @Test
-    void records_a_wish_to_upgrade_the_edition_of_a_series() throws Exception {
-        Entity oeuvre = uneOeuvre("Monster");
-
-        String corps = mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json")
-                        .content("{\"entityId\":\"" + oeuvre.id() + "\",\"currentEditionName\":\"Standard\","
-                                + "\"desiredEditionName\":\"Perfect\",\"note\":\"Si je la trouve d'occasion\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.entityId").value(oeuvre.id().toString()))
-                .andExpect(jsonPath("$.currentEditionName").value("Standard"))
-                .andExpect(jsonPath("$.desiredEditionName").value("Perfect"))
-                .andExpect(jsonPath("$.addedAt").isNotEmpty())
-                .andReturn().getResponse().getContentAsString();
-
-        mockMvc.perform(get("/api/edition-upgrade-wishes").param("entityId", oeuvre.id().toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
-        // La vue « Mon profil » enrichit du titre de la série.
-        mockMvc.perform(get("/api/edition-upgrade-wishes/all"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.entityId=='" + oeuvre.id() + "')]").exists());
-
-        assertThat(corps).contains("Standard");
-    }
-
-    @Test
-    void wishing_a_better_edition_creates_neither_ownership_nor_wishlist_entry() throws Exception {
-        Entity oeuvre = uneOeuvre("Gunnm");
-
-        mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json")
-                        .content("{\"entityId\":\"" + oeuvre.id() + "\",\"currentEditionName\":\"Standard\","
-                                + "\"desiredEditionName\":\"Perfect\"}"))
-                .andExpect(status().isCreated());
-
-        // Souhaiter une meilleure édition n'est ni posséder ni vouloir acquérir
-        // l'œuvre : c'est une troisième chose. Sans ces assertions, une cascade
-        // involontaire passerait inaperçue.
-        assertThat(ownershipRepository.findByEntityId(oeuvre.id())).isEmpty();
-        assertThat(wishlistEntryRepository.findByEntityId(oeuvre.id())).isEmpty();
-    }
-
-    @Test
-    void rejects_a_wish_without_a_current_edition_with_400_instead_of_crashing() throws Exception {
-        Entity oeuvre = uneOeuvre("Akira");
-
-        // Découvert par cette passe, et c'était un vrai 500 : la garde du
-        // domaine existait, mais le trim() s'exécutait comme ARGUMENT du
-        // constructeur, donc avant elle - « Cannot invoke String.trim() because
-        // currentEditionName is null ».
-        mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json")
-                        .content("{\"entityId\":\"" + oeuvre.id() + "\",\"desiredEditionName\":\"Perfect\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").isNotEmpty());
-
-        mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json")
-                        .content("{\"entityId\":\"" + oeuvre.id() + "\",\"currentEditionName\":\"   \"}"))
-                .andExpect(status().isBadRequest());
-
-        assertThat(wishRepository.findByEntityId(oeuvre.id())).isEmpty();
-    }
-
-    @Test
-    void rejects_a_wish_pointing_at_a_series_that_does_not_exist_with_400() throws Exception {
-        // 400 et non 404 : l'endpoint existe, c'est le corps qui référence une
-        // œuvre inconnue - même convention que /experiences et /wishlist.
-        mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json")
-                        .content("{\"entityId\":\"" + ABSENT + "\",\"currentEditionName\":\"Standard\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void rejects_an_empty_or_unparseable_wish_body_with_400_and_never_500() throws Exception {
-        for (String corps : new String[] {"{}", "", "{pas du json"}) {
-            mockMvc.perform(post("/api/edition-upgrade-wishes").contentType("application/json").content(corps))
-                    .andExpect(status().isBadRequest());
-        }
-    }
-
-    @Test
-    void deletes_a_wish_without_touching_the_series_and_stays_idempotent() throws Exception {
-        Entity oeuvre = uneOeuvre("Blame");
-        EditionUpgradeWish souhait = wishRepository.save(
-                EditionUpgradeWish.create(oeuvre.id(), "Standard", "Master Edition", null));
-
-        mockMvc.perform(delete("/api/edition-upgrade-wishes/{id}", souhait.id()))
-                .andExpect(status().isNoContent());
-        assertThat(wishRepository.findByEntityId(oeuvre.id())).isEmpty();
-        // La série survit : le souhait la référençait, il ne la possédait pas.
-        assertThat(entityRepository.findById(oeuvre.id())).isPresent();
-
-        mockMvc.perform(delete("/api/edition-upgrade-wishes/{id}", souhait.id()))
-                .andExpect(status().isNoContent());
-        mockMvc.perform(delete("/api/edition-upgrade-wishes/{id}", MALFORME))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void listing_wishes_requires_an_entity_and_answers_empty_for_an_unknown_one() throws Exception {
-        mockMvc.perform(get("/api/edition-upgrade-wishes")).andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/edition-upgrade-wishes").param("entityId", MALFORME))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/edition-upgrade-wishes").param("entityId", ABSENT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
     }
 }

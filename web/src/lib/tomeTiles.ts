@@ -71,10 +71,11 @@ export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): T
 
   // Tomes réellement catalogués/possédés AU-DELÀ du total connu de l'édition :
   // affichés à la suite plutôt qu'escamotés. Le cas existe dès qu'un tome est
-  // ajouté à la main avec un numéro trop grand, ou renuméroté ainsi (voir
-  // VariantNumberEditor) - les masquer rendait la donnée invisible ET
-  // irrécupérable depuis l'écran. Un total d'édition peut aussi être faux :
-  // mieux vaut montrer la contradiction que de la cacher.
+  // ajouté à la main avec un numéro trop grand - les masquer rendait la donnée
+  // invisible ET irrécupérable depuis l'écran, d'autant qu'il n'existe plus de
+  // moyen de renuméroter un tome (voir USER_JOURNEYS §20) : le seul recours est
+  // de le supprimer et de le rajouter, encore faut-il le voir. Un total
+  // d'édition peut aussi être faux : mieux vaut montrer la contradiction.
   const beyondTotal = [...new Set([...owned, ...group.cataloguedVolumeNumbers])]
     .filter((n) => n > totalVolumes)
     .sort((a, b) => a - b)

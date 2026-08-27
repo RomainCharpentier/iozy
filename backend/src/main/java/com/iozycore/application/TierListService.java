@@ -118,7 +118,10 @@ public class TierListService {
         return entries;
     }
 
-    /** Éléments d'une Tier List personnalisée, enrichis de l'Entity - vide silencieusement les items dont l'Entity a disparu (même garde que EditionUpgradeWishController.enrich). */
+    /** Éléments d'une Tier List personnalisée, enrichis de l'Entity - vide
+     *  silencieusement les items dont l'Entity a disparu : un classement ne doit
+     *  pas faire échouer la lecture d'une liste parce qu'une œuvre a été
+     *  supprimée entre-temps. */
     public List<Map.Entry<TierListItem, Entity>> enrichedItems(UUID tierListId) {
         List<TierListItem> items = tierListItemRepository.findByTierListId(tierListId);
         List<Map.Entry<TierListItem, Entity>> result = new ArrayList<>();

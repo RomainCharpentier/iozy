@@ -1,4 +1,4 @@
-import { get, post, patch, del, buildQuery } from './client'
+import { get, del, buildQuery } from './client'
 import type { OwnershipResponse } from '../types/api'
 
 export function listOwnerships(entityId: string): Promise<OwnershipResponse[]> {
@@ -12,35 +12,17 @@ export function listAllOwnerships(): Promise<OwnershipResponse[]> {
   return get<OwnershipResponse[]>('/ownerships')
 }
 
-/** Suppression définitive, contrairement à markSold/markLost qui ne changent que
- * le statut. Le backend peut la refuser en 409 ; son message est affiché tel
- * quel. */
+/**
+ * Suppression définitive d'un exemplaire. Le backend peut la refuser en 409 ;
+ * son message est affiché tel quel.
+ *
+ * <h2>Le seul geste d'écriture qui reste ici</h2>
+ * « Vendu », « perdu », « annuler », la note de l'exemplaire et le prix payé
+ * avaient chacun leur fonction dans ce fichier - elles ont perdu leur écran aux
+ * lots 53 à 55, et personne ne les appelait plus. Les routes serveur
+ * correspondantes ont suivi, sauf `/sell` et `/lose` que le client iOS utilise
+ * encore, et `/restore` qui les annule (voir OwnershipController).
+ */
 export function deleteOwnership(id: string): Promise<void> {
   return del<void>(`/ownerships/${id}`)
-}
-
-export function markSold(id: string): Promise<OwnershipResponse> {
-  return post<OwnershipResponse>(`/ownerships/${id}/sell`)
-}
-
-/** Remet en possession un exemplaire vendu ou perdu - sert l'action « Annuler »
- * proposée juste après. */
-export function restoreOwnership(id: string): Promise<OwnershipResponse> {
-  return post<OwnershipResponse>(`/ownerships/${id}/restore`)
-}
-
-export function markLost(id: string): Promise<OwnershipResponse> {
-  return post<OwnershipResponse>(`/ownerships/${id}/lose`)
-}
-
-/** note null efface la note (voir Ownership.updateNote, qui stocke la valeur
- * telle quelle : passer "" y laisserait une chaîne vide indiscernable d'une
- * note réelle côté lecture). */
-export function updateNote(id: string, note: string | null): Promise<OwnershipResponse> {
-  return patch<OwnershipResponse>(`/ownerships/${id}/note`, { note })
-}
-
-/** purchasePrice null efface le prix renseigné (ex: saisie corrigée). */
-export function updatePurchasePrice(id: string, purchasePrice: number | null): Promise<OwnershipResponse> {
-  return patch<OwnershipResponse>(`/ownerships/${id}/purchase-price`, { purchasePrice })
 }

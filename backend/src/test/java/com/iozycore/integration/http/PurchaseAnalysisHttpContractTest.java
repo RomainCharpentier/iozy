@@ -374,7 +374,7 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
         //
         // 400 et non 404 : la ressource visée (POST /editions) existe, c'est la
         // référence fournie dans le CORPS qui est invalide - même convention que
-        // /experiences, /wishlist, /relationships et /edition-upgrade-wishes. Le
+        // /experiences, /wishlist et /relationships. Le
         // message compte autant que le status : le client remplace celui de tout
         // 404 par un repli générique, si bien qu'en 404 « Série introuvable »
         // n'atteindrait jamais l'écran.

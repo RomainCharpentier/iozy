@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Validates the WishlistEntry persistence module against a real PostgreSQL - mirrors
- * EditionUpgradeWishPersistenceIntegrationTest. Focused on the retrait ("Retirer de la wishlist") flow :
+ * les autres modules de persistance. Focused on the retrait ("Retirer de la wishlist") flow :
  * round-trip, idempotence de deleteById, et absence de tout effet de bord sur le catalogue/la collection. */
 class WishlistEntryPersistenceIntegrationTest extends PostgresIntegrationTest {
 

@@ -25,7 +25,7 @@ class ExportCsvWriterTest {
     void writes_one_csv_file_per_resource_type() {
         Map<String, String> files = writer.writeAll(new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of()));
+                List.of(), List.of(), List.of()));
 
         // Quatre familles ajoutées au Lot 33 : saisies à la main et pourtant
         // absentes de l'export, dont les éditions de référence sans lesquelles
@@ -33,7 +33,7 @@ class ExportCsvWriterTest {
         assertThat(files.keySet()).containsExactlyInAnyOrder(
                 "entities.csv", "variants.csv", "ownerships.csv", "experiences.csv",
                 "wishlist.csv", "relationships.csv", "tags.csv",
-                "editions.csv", "general-rankings.csv", "tier-lists.csv", "edition-upgrade-wishes.csv");
+                "editions.csv", "general-rankings.csv", "tier-lists.csv");
     }
 
     @Test
@@ -41,7 +41,7 @@ class ExportCsvWriterTest {
         UUID entityId = UUID.randomUUID();
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(sampleEntity(entityId)), List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of());
 
         String csv = writer.writeAll(document).get("entities.csv");
         List<String> lines = List.of(csv.strip().split("\n"));
@@ -54,7 +54,7 @@ class ExportCsvWriterTest {
     void variants_are_flattened_one_row_per_variant_with_the_parent_entity_context() {
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(sampleEntity(UUID.randomUUID())), List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of());
 
         String csv = writer.writeAll(document).get("variants.csv");
         List<String> lines = List.of(csv.strip().split("\n"));
@@ -70,7 +70,7 @@ class ExportCsvWriterTest {
                 LocalDate.now(), "Acheté \"pas cher\", en lot", new BigDecimal("6.90"));
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(), List.of(ownership), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of());
 
         String csv = writer.writeAll(document).get("ownerships.csv");
 
@@ -83,7 +83,7 @@ class ExportCsvWriterTest {
                 UUID.randomUUID(), "MANGA", "Manga", "Sans attributs", Map.of(), List.of(), List.of());
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(entity), List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of());
 
         String csv = writer.writeAll(document).get("entities.csv");
 

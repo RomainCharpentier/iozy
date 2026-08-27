@@ -29,8 +29,7 @@ public record ExportDocument(
         // éditions de référence, plus aucun "X sur Y" ne peut être reconstruit.
         List<MangaEditionExport> editions,
         List<GeneralRankExport> generalRankings,
-        List<TierListExport> tierLists,
-        List<EditionUpgradeWishExport> editionUpgradeWishes
+        List<TierListExport> tierLists
 ) {
     public record VariantExport(UUID id, String label, Map<String, Object> attributes) {
     }
@@ -71,10 +70,6 @@ public record ExportDocument(
     }
 
     public record TierListItemExport(UUID entityId, String entityTitle, String rank) {
-    }
-
-    public record EditionUpgradeWishExport(UUID id, UUID entityId, String entityTitle, String currentEditionName,
-                                            String desiredEditionName, String note, LocalDate addedAt) {
     }
 
     public record TagExport(UUID id, String label) {

@@ -127,30 +127,6 @@ public class EntityController {
     public record RenameEntityRequest(String title) {
     }
 
-    public record RenumberVariantRequest(Integer volumeNumber) {
-    }
-
-    @Operation(summary = "Renuméroter un Tome - met à jour son numéro ET son libellé d'un seul geste (les deux "
-            + "doivent bouger ensemble : la déduplication à l'ajout se fait par libellé, voir QuickAddService). "
-            + "409 si un autre tome de la même édition porte déjà ce numéro.")
-    @PatchMapping("/{entityId}/variants/{variantId}/volume-number")
-    public EntityResponse renumberVariant(@PathVariable UUID entityId, @PathVariable UUID variantId,
-                                           @RequestBody RenumberVariantRequest request) {
-        Entity entity = entityRepository.findById(entityId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        if (request.volumeNumber() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le numéro de tome est requis");
-        }
-        try {
-            entity.renumberVariant(variantId, request.volumeNumber());
-        } catch (IllegalStateException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-        return EntityResponse.from(entityRepository.save(entity));
-    }
-
     @Operation(summary = "Renommer la Série (correction manuelle, voir action \"Modifier\" de la fiche Série) - "
             + "ne touche jamais les MangaEdition/Variant déjà rattachés : leur lien avec cette Série passe par "
             + "entityId (voir migration \"Série -> Édition par ID\"), jamais par une égalité de titre, donc "

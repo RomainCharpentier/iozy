@@ -564,9 +564,8 @@ public class PurchaseAnalysisService {
         // « Cette donnée entre en conflit avec une donnée existante » - alors que
         // la Série est ABSENTE, pas conflictuelle.
         //
-        // 400 et non 404, comme les quatre autres routes qui référencent une
-        // œuvre depuis un CORPS de requête (/experiences, /wishlist,
-        // /relationships, /edition-upgrade-wishes). La ressource visée -
+        // 400 et non 404, comme les autres routes qui référencent une œuvre
+        // depuis un CORPS de requête (/experiences, /wishlist, /relationships). La ressource visée -
         // POST /editions - existe bel et bien ; c'est la référence fournie qui
         // est invalide. Et le client remplace le message de tout 404 par un
         // repli générique : en 404, « Série introuvable » n'atteindrait jamais

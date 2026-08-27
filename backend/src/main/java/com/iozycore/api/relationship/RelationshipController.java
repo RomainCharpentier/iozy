@@ -46,8 +46,8 @@ public class RelationshipController {
                 UUID.randomUUID(), request.sourceEntityId(), request.targetEntityId(), request.relationshipType());
         // Les deux extrémités doivent exister : sinon seule la contrainte de clé
         // étrangère de Postgres protégeait la table, et remontait en 500 avec la
-        // requête SQL et le nom de la contrainte (Lot 28). Même contrôle que
-        // EditionUpgradeWishController, qui référence lui aussi une Entity.
+        // requête SQL et le nom de la contrainte (Lot 28). Même contrôle partout
+        // où un corps de requête désigne une Entity par son identifiant.
         requireEntity(relationship.sourceEntityId());
         requireEntity(relationship.targetEntityId());
         return relationshipRepository.save(relationship);

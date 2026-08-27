@@ -143,9 +143,12 @@ et son nombre total de tomes ; avertissements « Cette édition est épuisée »
 ### 09. Changer d'édition affichée
 **Préconditions** : la série a **2 éditions nommées ou plus**. Une seule édition
 nommée plus des tomes sans édition précisée sont fusionnés — aucun sélecteur.
+La fusion est décidée **par le serveur** depuis le 2026-08-27 (Lot 60,
+`CollectionProgressService`) : `lib/editionGroups.ts`, qui la refaisait côté
+client, n'existe plus.
 **Étapes** : choisir une puce d'édition.
 **Résultat** : progression, grille de tomes et avertissements suivent l'édition.
-**Écrans** : `EditionProgressSection`, `TomesGridSection`, `editionGroups.ts`
+**Écrans** : `CartesEditions`, `GrilleTomes`
 **Statut** : `COMPLET`
 
 ### 10. Renseigner ou corriger l'édition de référence
@@ -161,15 +164,19 @@ existe déjà → **409 lisible** (« Une édition « X » existe déjà pour la
 **Backend** : `POST` / `PATCH /purchase-analysis/editions`
 **Statut** : `COMPLET`
 
-### 11. Signaler une envie d'amélioration d'édition
-**Point de départ** : fiche ▸ « Je cherche une meilleure édition »
-**Préconditions** : l'édition active porte un nom.
-**Étapes** : édition recherchée (facultative), note (facultative) → Enregistrer.
-**Résultat** : l'envie apparaît sur la fiche et dans Profil ▸ Envies
-d'amélioration. Réversible par « Annuler ».
-**Écrans** : `EditionUpgradeWishToggle`, `EditionUpgradesPage`
-**Backend** : `POST` / `DELETE /edition-upgrade-wishes`
-**Statut** : `COMPLET`
+### 11. ~~Signaler une envie d'amélioration d'édition~~ — supprimé du produit (2026-08-27)
+« Je possède celle-ci, j'en veux une meilleure » a quitté l'interface le
+2026-08-25 (Lot 27) : `EditionUpgradeWishToggle` et `EditionUpgradesPage`
+n'existent plus.
+**Backend supprimé le 2026-08-27** : `EditionUpgradeWishController`, les DTO,
+l'agrégat, le repository, l'entité JPA et la table `edition_upgrade_wish`
+(`V22__drop_edition_upgrade_wish.sql`, qui défait `V6` sans la réécrire), ainsi
+que le fichier `edition-upgrade-wishes.csv` de l'export, toujours vide. Vérifié
+avant suppression, en croisant les 99 routes du backend avec les deux clients :
+aucun appel web, aucun appel iOS, et **zéro ligne** dans la table.
+**À ne pas confondre** avec « suivre une édition » (§10bis, `FollowedEdition`),
+bien vivante : déclarer l'édition qu'on tient n'est pas vouloir en changer.
+**Statut** : `SUPPRIMÉ`
 
 ### 12. Parcourir les tomes d'une édition
 **Résultat** : grille de tuiles, chacune « Possédé » ou « Manquant » ; les
@@ -190,10 +197,10 @@ collection actualisées.
 **Branches** : un exemplaire **passé** (vendu/perdu) du même tome s'affiche sous
 « Exemplaires passés », sous le formulaire d'ajout ; mutation en erreur →
 bannière.
-**Écrans** : `VolumeInteractionPanel`, `AddOwnershipForm`, `OwnershipDetails`
+**Écrans** : la grille elle-même (`GrilleTomes`) — voir la mise à jour du
+2026-08-26 en tête de §13.
 **Backend** : `POST /entities/quick-add`
-**Statut** : `COMPLET` — **Desktop** drawer droit (non modal) / **Mobile**
-bottom-sheet (modal, overlay cliquable).
+**Statut** : `COMPLET`
 
 ### 14. Ajouter un tome à la main
 **Point de départ** : fiche ▸ « + Ajouter un tome »
@@ -203,14 +210,17 @@ tomes réellement ajoutés de ceux déjà possédés.
 **Écrans** : `AddVolumeSection`
 **Statut** : `COMPLET`
 
-### 15. Gérer un exemplaire possédé (prix, note)
-**Point de départ** : panneau d'un tome possédé ▸ menu « … »
-**Étapes** : « Modifier le prix payé » ou « Ajouter/Modifier ma note » → OK.
-**Résultat** : valeur enregistrée, affichée sur la ligne de l'exemplaire ; le
-prix alimente la valeur de collection. Vider le champ efface la donnée.
-**Écrans** : `OwnershipDetails`
-**Backend** : `PATCH /ownerships/{id}/purchase-price`, `/note`
-**Statut** : `COMPLET`
+### 15. ~~Gérer un exemplaire possédé (prix, note)~~ — supprimé du produit (2026-08-27)
+Le prix payé et la note d'exemplaire ont quitté l'interface les 2026-08-26/27
+(Lots 53 à 55) : ajouter un tome tient en un clic, et la note qui reste est
+celle de l'ŒUVRE, pas celle d'un exemplaire. La valeur de la collection se
+calcule depuis le prix NEUF de l'édition (Lot 56), plus depuis ce qu'on a payé.
+**Backend supprimé le 2026-08-27** : `PATCH /ownerships/{id}/purchase-price` et
+`PATCH /ownerships/{id}/note` n'avaient plus aucun appelant, ni web ni iOS. Les
+colonnes, elles, restent : l'export les lit, et `POST /entities/quick-add`
+accepte toujours un prix d'achat facultatif. Vérifié avant suppression :
+**zéro prix et zéro note** enregistrés.
+**Statut** : `SUPPRIMÉ`
 
 ### 16. ~~Prêter un exemplaire~~ — supprimé du produit (2026-08-23)
 La gestion des prêts ne fait plus partie du périmètre. « Prêter », « Marquer
@@ -233,8 +243,12 @@ redevient « Manquant » ; l'exemplaire reste visible sous « Exemplaires passé
 avec sa pastille **Vendu** ou **Perdu**.
 **Branches** : **aucun retour arrière** — aucun endpoint ne redonne le statut
 `OWNED` (voir §Undo).
-**Écrans** : `OwnershipDetails`, `VolumeInteractionPanel`
-**Backend** : `POST /ownerships/{id}/sell`, `/lose`
+**Écrans** : **client iOS uniquement** depuis le 2026-08-27 — le web n'a plus
+de surface pour ces deux gestes (voir §15).
+**Backend** : `POST /ownerships/{id}/sell`, `/lose`, et `/restore` qui les
+annule. Cette dernière n'a aujourd'hui **aucun appelant** et est conservée à
+dessein : sans elle, « vendu » et « perdu » seraient des allers simples depuis
+l'iPhone. C'est un écran qui manque, pas du code mort.
 **Statut** : `COMPLET`
 
 ### 18. Supprimer définitivement un exemplaire
@@ -255,13 +269,14 @@ Books » (recherche ciblée sur ce seul tome, `forceRefresh`).
 pas une erreur.
 **Statut** : `COMPLET`
 
-### 20. Corriger le numéro d'un tome
-**Étapes** : panneau d'un tome ▸ « Corriger le numéro de tome » → nouveau numéro.
-**Résultat** : numéro **et** libellé mis à jour ensemble.
-**Branches** : un autre tome de la même édition porte déjà ce numéro → 409
-lisible.
-**Écrans** : `VariantNumberEditor`
-**Statut** : `COMPLET`
+### 20. ~~Corriger le numéro d'un tome~~ — supprimé du produit (2026-08-27)
+`VariantNumberEditor` a disparu avec le panneau du tome (Lot 55).
+**Backend supprimé le 2026-08-27** : `PATCH /entities/{id}/variants/{id}/volume-number`
+et `Entity.renumberVariant` n'avaient plus aucun appelant, ni web ni iOS.
+**Recours** : un tome mal numéroté se supprime et se rajoute — la grille
+continue d'afficher les numéros au-delà du total de l'édition plutôt que de les
+escamoter, précisément pour qu'ils restent rattrapables (voir `lib/tomeTiles`).
+**Statut** : `SUPPRIMÉ`
 
 ### 21. Classer une œuvre au classement général
 **Point de départ** : fiche ▸ « Classer cette œuvre »
@@ -911,10 +926,12 @@ geste : un classement accompagne l'inventaire, il ne se partage pas seul.
 ## 9. Parcours — Envies
 
 ### 51. Consulter et gérer ses envies
-**Point de départ** : header desktop ▸ cœur (badge de compte) ; mobile : Profil.
+**Point de départ** : Ma collection ▸ vue « Envies » (depuis le 2026-08-26,
+Lot 38 : les envies ne sont plus un écran à part, elles sont un filtre de la
+collection — `WishlistPage` a été supprimée).
 **Étapes** : consulter la liste ; ouvrir la fiche d'une envie ; retirer une
 envie.
-**Écrans** : `WishlistPage`
+**Écrans** : `ShelfPage` ▸ `BarreVues`
 **Backend** : `GET /wishlist`, `DELETE /wishlist/{id}`
 **Statut** : `COMPLET`
 
@@ -1436,7 +1453,8 @@ seule une fonctionnalité clairement remplacée ou abandonnée perd son accès.
 | **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Modifiables (note, commentaire) et supprimables depuis la fiche depuis le 2026-08-21. |
 | **Tags** | `SECONDARY` | Attachables et détachables depuis la fiche, remontés dans les statistiques (`topTags`). Le backend sait filtrer par tag (`GET /entities/search?tagId=`) mais **aucun écran ne l'expose** — sous-employés, pas abandonnés. Rien ne les a remplacés : les retirer serait arbitraire. |
 | **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche avec leur type et leur sens, exportées, corrigeables et supprimables depuis le 2026-08-21. Purement descriptives, aucun autre écran ne s'en sert. |
-| **Prêts** | `LEGACY` → **retiré** | Hors périmètre produit. Ses surfaces d'interface ont été retirées le 2026-08-21 ; elle n'était de toute façon liée depuis aucun écran. Backend laissé en place, voir le parcours 16. |
+| **Prêts** | `LEGACY` → **retiré** | Hors périmètre produit. Ses surfaces d'interface ont été retirées le 2026-08-21, son backend le 2026-08-23 (`V19`). Voir le parcours 16. |
+| **Envies d'amélioration d'édition** | `LEGACY` → **retiré** | Hors périmètre produit. Interface retirée le 2026-08-25, backend et table le 2026-08-27 (`V22`). Voir le parcours 11. |
 
 **Rien d'autre n'a été retiré.** Les écrans jugés `SECONDARY` gardent leur accès
 actuel sans devenir des destinations de navigation.
@@ -1450,16 +1468,13 @@ Navigation      web/src/App.tsx
                 web/src/components/layout/{AppShell,DesktopHeader,TabBar}.tsx
 
 Collection      web/src/routes/Shelf/{ShelfPage,CategoryPage,CategorySection,
-                                      CollectionFilters,shelfTiles.ts,ownership.ts,
-                                      backfillCovers.ts}
-                web/src/lib/editionGroups.ts
+                                      CollectionFilters,BarreVues,shelfTiles.ts,
+                                      venues.ts,ownership.ts,backfillCovers.ts}
 
 Fiche œuvre     web/src/routes/EntityDetail/*.tsx
-                (EntityDetailPage, EditionProgressSection, TomesGridSection,
-                 VolumeInteractionPanel, OwnershipDetails, AddOwnershipForm,
+                (EntityDetailPage, FicheHero, CartesEditions, GrilleTomes,
                  AddVolumeSection, AssistantSection, EntityInfoSection,
-                 MoreOptionsSection, EditionCorrectionSection,
-                 EditionUpgradeWishToggle, VariantNumberEditor)
+                 EditionCorrectionSection, rechargerSource.ts)
 
 Recherche/Scan  web/src/routes/QuickAdd/{SearchPage,AddDraftPage,
                                          VolumeSelectionGrid,BarcodeLookupField}.tsx
@@ -1471,13 +1486,15 @@ Analyse d'achat web/src/routes/PurchaseAnalysis/*.tsx
                                               MarketPriceCalculator,DuplicateDetector}.java
 
 Tier Lists      web/src/routes/TierLists/*.tsx
-Envies          web/src/routes/Wishlist/*.tsx
 Profil/Admin    web/src/routes/Profile/*.tsx, routes/Settings/SettingsPage.tsx
-                web/src/routes/{Editions,EntityTypes,Recap,EditionUpgrades,
+                web/src/routes/{Editions,EntityTypes,Recap,
                                 Suggestions,Stats,Discover}/*.tsx
 
 Client API      web/src/api/*.ts          Clés de cache : web/src/lib/queryKeys.ts
 Progression     backend .../insights/CollectionProgressService.java  (source unique)
+                GET /insights/progress (toute la collection) et
+                GET /insights/progress/{entityId} (une fiche) - aucun client
+                ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (389 tests)
 ```
