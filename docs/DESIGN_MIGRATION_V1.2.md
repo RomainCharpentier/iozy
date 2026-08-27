@@ -1360,6 +1360,42 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 57 — recharger les jaquettes quand on en a besoin
+
+« Il faudrait pouvoir recharger quand on a besoin. » Le rattrapage existait,
+mais uniquement sur TOUTE la collection et rangé dans « Plus d'outils ». Or
+c'est sur une fiche qu'on constate le manque - après un ajout d'un clic, ou
+après une panne de quota chez le fournisseur.
+
+La fiche gagne donc « Retrouver N jaquettes » dans l'espace « Éditer » - la
+jaquette d'un tome est une donnée de catalogue. Le bouton n'apparaît que s'il
+y a vraiment quelque chose à retrouver, et annonce combien.
+
+**Une seule implémentation, deux appelants** : le travail d'UNE série -
+appariement, seconde tentative, lecture du quota - vivait dans la boucle de Ma
+collection. Extrait en `rattraperJaquettes` ; Ma collection le déroule sur la
+bibliothèque, la fiche l'appelle pour la série regardée. Deux copies auraient
+fini par diverger, comme les deux listes de navigation du Lot 39.
+
+La seconde recherche (celle qui force le rafraîchissement du cache, donc un
+vrai appel au fournisseur) reste conditionnelle : la faire d'emblée gaspillerait
+le quota sur les séries que le cache servait déjà.
+
+#### Le bloc emportait sa propre confirmation
+
+Premier essai : j'ai cliqué, les deux jaquettes ont bien été retrouvées en base
+- et **rien ne s'est affiché**. Le message vivait dans le bloc conditionné par
+« il reste des jaquettes à trouver » : au succès ce compte tombe à zéro, le
+bloc disparaît, et la confirmation avec lui. On cliquait, tout s'évanouissait,
+sans un mot. Le bloc reste maintenant tant qu'il y a un résultat à annoncer.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build`. En direct : sur Death Note, les
+deux tomes sans image (ajoutés d'un clic) ont été retrouvés - vérifié en base ;
+sur Chainsaw Man, « 1 retrouvée. » s'affiche bien. Plus une seule variante sans
+jaquette dans toute la base.
+
 ### Lot 56 — la valeur de la collection se compte au prix NEUF
 
 « La valeur de collection sera calculée par rapport à la valeur neuf, pas la

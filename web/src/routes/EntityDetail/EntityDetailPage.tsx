@@ -4,7 +4,7 @@ import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '../../api/entities'
 import { deleteOwnership, listOwnerships } from '../../api/ownerships'
 import { searchVolumes } from '../../api/metadata'
-import { findBestCoverMatch } from '../Shelf/backfillCovers'
+import { findBestCoverMatch, rattraperJaquettes, variantsMissingCover } from '../Shelf/backfillCovers'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
@@ -41,7 +41,7 @@ import { EditionCorrectionSection } from './EditionCorrectionSection'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 import { retourDepuis } from './retourFiche'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ImagePlus } from 'lucide-react'
 
 /**
  * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
@@ -217,6 +217,25 @@ export function EntityDetailPage() {
     },
   })
 
+  /**
+   * « Retrouver les jaquettes manquantes » pour CETTE série.
+   *
+   * Le rattrapage existait, mais seulement sur toute la collection et rangé
+   * dans « Plus d'outils ». Or c'est ici qu'on constate le manque, et c'est
+   * ici qu'on veut le combler - après un ajout d'un clic, ou après une panne
+   * de quota chez le fournisseur (demande utilisateur du 2026-08-27 :
+   * « il faudrait pouvoir recharger quand on a besoin »).
+   *
+   * Même implémentation que le rattrapage groupé, à une série près.
+   */
+  const jaquettesMutation = useMutation({
+    mutationFn: () =>
+      rattraperJaquettes(entityQuery.data!, entityQuery.data!.entityTypeId, searchVolumes, (id, variantId, url) =>
+        mergeVariantAttributes(id, variantId, { coverImageUrl: url }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) }),
+  })
+
   const coverMutation = useMutation({
     mutationFn: (url: string) => mergeEntityAttributes(entityId, { [COVER_IMAGE_ATTRIBUTE_KEY]: url }),
     onSuccess: () => {
@@ -305,6 +324,7 @@ export function EntityDetailPage() {
   // seule pièce. Pour un manga, la série est un GROUPE : on ne veut pas
   // « Naruto », on veut le tome 47 - et c'est la grille qui le dit.
   const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
+  const jaquettesManquantes = variantsMissingCover(entity).length
   const dansEnvies = !!wishlist.entryFor(entityId)
   const tomesVoulus = wishlist.variantsVoulus
 
@@ -728,6 +748,39 @@ export function EntityDetailPage() {
               />
             </Carte>
           </div>
+          {/* N'apparaît que s'il y a vraiment quelque chose à retrouver : un
+              bouton toujours là mais sans effet possible ne dirait rien. Le
+              décompte annonce combien de tomes attendent une image. */}
+          {/* `isSuccess` autant que le décompte : au succès il tombe à zéro, et
+              le bloc emportait sa propre confirmation en disparaîvant - on
+              cliquait, tout s'évanouissait, sans un mot. */}
+          {(jaquettesManquantes > 0 || jaquettesMutation.isSuccess) && (
+            <div className="flex flex-wrap items-center gap-3">
+              {jaquettesManquantes > 0 && (
+              <button
+                type="button"
+                onClick={() => jaquettesMutation.mutate()}
+                disabled={jaquettesMutation.isPending}
+                className="flex min-h-11 w-fit items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-50"
+              >
+                <ImagePlus size={15} />
+                {jaquettesMutation.isPending
+                  ? 'Recherche en cours...'
+                  : `Retrouver ${jaquettesManquantes} jaquette${jaquettesManquantes > 1 ? 's' : ''}`}
+              </button>
+              )}
+              {jaquettesMutation.isSuccess && (
+                <span className="text-[13px] text-textDim">
+                  {jaquettesMutation.data.quotaDepasse
+                    ? 'Quota du fournisseur dépassé - réessaie plus tard.'
+                    : jaquettesMutation.data.trouvees > 0
+                      ? `${jaquettesMutation.data.trouvees} retrouvée${jaquettesMutation.data.trouvees > 1 ? 's' : ''}.`
+                      : 'Aucune trouvée cette fois.'}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Les corrections d'identité restent avec le reste des éditeurs ;
               ce qui DÉTRUIT vit en dessous, dans un bloc qui le dit. */}
           <button
