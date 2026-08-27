@@ -88,6 +88,15 @@ export function GrilleVolumes({
   action?: { libelle: string; onClick: () => void }
   videMessage?: string
 }) {
+  // Sur `volumes` et non sur `visibles` : un compteur qui ne compterait que ce
+  // qui est déjà à l'écran dirait toujours le total de la vue courante.
+  const possedes = volumes.filter((volume) => volume.possede).length
+  const comptes: Record<FiltreVolumes, number> = {
+    tous: volumes.length,
+    manquants: volumes.length - possedes,
+    possedes,
+  }
+
   const visibles = volumes.filter((volume) => {
     if (filtre === 'possedes') return volume.possede
     if (filtre === 'manquants') return !volume.possede
@@ -100,29 +109,45 @@ export function GrilleVolumes({
           droite. Elle se replie d'elle-même quand la place manque. */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         {enTete}
-        {/* Un vrai groupe de boutons radio : trois vues qui s'excluent, ce que
-            `aria-pressed` ne dirait pas - il annoncerait trois interrupteurs
-            indépendants dont deux « inactifs ». */}
+        {/* Du TEXTE, pas des pastilles dans un conteneur : trois libellés
+            séparés par des points, l'actif en encre pleine. Et chacun porte son
+            nombre, si bien que la rangée informe au lieu de seulement occuper -
+            on voit combien il manque sans avoir à cliquer.
+
+            Un vrai groupe de boutons radio malgré l'apparence : trois vues qui
+            s'excluent, ce que `aria-pressed` ne dirait pas - il annoncerait
+            trois interrupteurs indépendants dont deux « inactifs ». */}
         <div
           role="radiogroup"
           aria-label="Filtrer les tomes"
-          className="flex w-fit shrink-0 items-center gap-1 rounded-full bg-softBtn p-0.5"
+          className="flex w-fit shrink-0 flex-wrap items-center"
         >
-          {FILTRES.map(({ cle, libelle }) => {
+          {FILTRES.map(({ cle, libelle }, index) => {
             const actif = cle === filtre
+            const compte = comptes[cle]
             return (
-              <button
-                key={cle}
-                type="button"
-                role="radio"
-                aria-checked={actif}
-                onClick={() => onFiltre(cle)}
-                className={`rounded-full px-3 py-1 text-[12px] whitespace-nowrap transition-colors ${
-                  actif ? 'bg-surface font-medium text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
-                }`}
-              >
-                {libelle}
-              </button>
+              <span key={cle} className="flex items-center">
+                {index > 0 && (
+                  <span aria-hidden="true" className="px-1 text-[12px] text-line select-none">
+                    ·
+                  </span>
+                )}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={actif}
+                  aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
+                  onClick={() => onFiltre(cle)}
+                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
+                    actif ? 'font-semibold text-textPrimary' : 'text-faint hover:text-textPrimary'
+                  }`}
+                >
+                  {libelle}
+                  <span className={`text-[11.5px] tabular-nums ${actif ? 'text-accentText' : 'text-faint'}`}>
+                    {compte}
+                  </span>
+                </button>
+              </span>
             )
           })}
         </div>

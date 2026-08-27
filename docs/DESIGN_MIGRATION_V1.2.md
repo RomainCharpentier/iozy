@@ -1390,6 +1390,25 @@ tome possédé ».
 L'écran d'ajout reçoit la même rangée : les deux montrent la même chose, ils
 doivent l'annoncer de la même façon.
 
+#### La forme du filtre : du texte, pas des pastilles
+
+« J'aime pas la forme du sous-menu ». Le groupe de pastilles dans un conteneur
+arrondi cède la place à trois libellés nus séparés par des points, l'actif en
+encre pleine - **choix utilisateur parmi trois formes proposées** (texte,
+onglets soulignés, menu déroulant).
+
+Chaque libellé porte son NOMBRE : « Tous 72 · Manquants 69 · Possédés 3 ». La
+rangée informe donc au lieu de seulement occuper - on voit combien il manque
+sans avoir à cliquer. Les compteurs se calculent sur TOUS les tomes et non sur
+ceux déjà filtrés, sans quoi le compteur de la vue courante afficherait
+toujours son propre total.
+
+L'apparence change, la sémantique non : c'est toujours un `radiogroup` de trois
+`radio`, parce que les trois vues s'excluent - `aria-pressed` annoncerait trois
+interrupteurs indépendants dont deux « inactifs ». Le nom accessible reste
+explicite (« Manquants : 69 tomes ») : « Manquants 69 » seul laisserait le
+nombre sans unité.
+
 **Vérifié** en restaurant la version précédente pour comparer (142 → 62 px), et
 sur les deux branches : œuvre à une édition, aucun en-tête ; œuvre à deux
 éditions - fabriquée jetable puis supprimée, aucune série réelle n'en ayant deux
