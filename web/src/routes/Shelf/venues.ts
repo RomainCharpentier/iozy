@@ -16,7 +16,7 @@ import type { TriCollection } from '../../lib/preferencesCollection'
  * elle offrait « Récents d'abord » sans pouvoir l'honorer, faute de ces dates.
  * Un contrôle qui ne fait rien est pire que pas de contrôle.
  */
-export interface Venues {
+interface Venues {
   parTome: Map<string, string>
   parOeuvre: Map<string, string>
 }
@@ -49,7 +49,7 @@ export function indexerVenues(ownerships: OwnershipResponse[], envies: WishlistE
  * l'inverse : une série entamée il y a deux ans resterait au fond quoi qu'on y
  * ajoute.
  */
-export function derniereVenue(entity: EntityResponse, venues: Venues): string {
+function derniereVenue(entity: EntityResponse, venues: Venues): string {
   let derniere = venues.parOeuvre.get(entity.id) ?? ''
   for (const variant of entity.variants) {
     const venue = venues.parTome.get(variant.id)

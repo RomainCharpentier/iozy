@@ -22,7 +22,7 @@ import { queryKeys } from './queryKeys'
  */
 const CODES_PAR_TOME = new Set(['MANGA'])
 
-export function collecteParTome(code: string | null | undefined): boolean {
+function collecteParTome(code: string | null | undefined): boolean {
   return !!code && CODES_PAR_TOME.has(code)
 }
 
