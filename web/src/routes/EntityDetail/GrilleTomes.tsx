@@ -5,8 +5,9 @@ import type { TomeTile } from '../../lib/tomeTiles'
 export type { FiltreVolumes as FiltreTomes }
 
 /**
- * « Mes tomes » sur la fiche : l'en-tête de l'édition affichée, puis la
- * grille commune en mode navigation (voir components/GrilleVolumes).
+ * « Mes tomes » sur la fiche : la grille commune en mode navigation (voir
+ * components/GrilleVolumes), précédée du nom de l'édition regardée quand il y
+ * en a plusieurs.
  *
  * <h2>Ce que fait cet adaptateur, et rien de plus</h2>
  * Il traduit des `TomeTile` - la forme du catalogue, avec ses trois états
@@ -23,7 +24,7 @@ export type { FiltreVolumes as FiltreTomes }
  */
 export function GrilleTomes({
   titre,
-  resume,
+  plusieursEditions,
   filtre,
   onFiltre,
   tuiles,
@@ -35,7 +36,11 @@ export function GrilleTomes({
   onAjouterTome,
 }: {
   titre: string
-  resume: string
+  /** Vrai quand l'œuvre a plus d'une édition. C'est la seule situation où il
+   *  faut redire laquelle cette grille montre : avec une seule édition, sa
+   *  carte juste au-dessus l'a déjà dit, et la répéter ne fait qu'éloigner la
+   *  première jaquette. */
+  plusieursEditions: boolean
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
   tuiles: TomeTile[]
@@ -66,13 +71,13 @@ export function GrilleTomes({
     <section className="pt-5">
       <GrilleVolumes
         enTete={
-          // Titre et avancement sur une seule ligne, en petit : l'édition
-          // regardée et sa progression sont déjà dites par sa carte juste
-          // au-dessus, ce n'est ici qu'un repère.
-          <h2 className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="font-display text-[14px] font-medium tracking-[-0.01em] text-textPrimary">{titre}</span>
-            <span className="text-[12.5px] text-faint">{resume}</span>
-          </h2>
+          // Le NOM seul, et seulement s'il y a un choix. L'avancement vivait
+          // ici aussi ; il est déjà sur la carte de l'édition, jauge comprise.
+          plusieursEditions ? (
+            <h2 className="min-w-0 truncate font-display text-[14px] font-medium tracking-[-0.01em] text-textPrimary">
+              {titre}
+            </h2>
+          ) : undefined
         }
         volumes={volumes}
         mode="navigation"
