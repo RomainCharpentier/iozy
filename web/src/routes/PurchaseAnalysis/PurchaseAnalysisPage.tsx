@@ -56,7 +56,7 @@ function parseVolumes(text: string): number[] {
 }
 
 /**
- * "Évaluer un achat" (Analyse d'achat) - saisie d'une annonce d'occasion puis
+ * "Analyser une annonce" - saisie d'une annonce d'occasion puis
  * analyse produisant un verdict, un prix conseillé/cible/maximum et un détail
  * de complétude/édition par série.
  *
@@ -461,7 +461,7 @@ export function PurchaseAnalysisPage() {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-2">
-          <EnTeteSection niveau={1} titre="Évaluer un achat" />
+          <EnTeteSection niveau={1} titre="Analyser une annonce" />
           <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
             <History size={13} />
             Historique
@@ -475,7 +475,7 @@ export function PurchaseAnalysisPage() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
-        <EnTeteSection niveau={1} titre="Évaluer un achat" />
+        <EnTeteSection niveau={1} titre="Analyser une annonce" />
         <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
           <History size={13} />
           Historique

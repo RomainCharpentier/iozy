@@ -50,10 +50,12 @@ export function CartesEditions({
   onSuivre?: (nom: string) => void
   onNePlusSuivre?: () => void
   onAjouterEdition?: () => void
-  /** Le mode « pinceau » de la maquette : au repos la fiche se lit, en mode
-   *  édition elle montre ses points d'ajout. Évite de saupoudrer la page de
-   *  boutons « + » qu'on ne cherche que rarement. Absent des écrans qui n'ont
-   *  rien à modifier - le pinceau disparaît alors au lieu de rester inerte. */
+  /** L'espace « Éditer » : au repos la fiche se LIT, et aucune action de
+   *  catalogue n'y apparaît. Ajouter une édition ou un tome relève de la
+   *  connaissance catalographique, pas de la collection personnelle (étude
+   *  produit du 2026-08-27, §10) - ces actions vivent donc toutes derrière
+   *  cette bascule, jamais saupoudrées dans la page. Absent des écrans qui
+   *  n'ont rien à modifier : le bouton disparaît au lieu de rester inerte. */
   modeEdition?: boolean
   onBasculerMode?: () => void
   /** Ce que la jauge d'une carte COMPTE. Sur la fiche, des tomes possédés ;
@@ -69,25 +71,32 @@ export function CartesEditions({
         </span>
         {onBasculerMode && (
           <div className="flex items-center gap-2">
+            {/* Nommé, et pas un simple pinceau : « Éditer » dit dans quel
+                espace on entre. Un pictogramme seul laissait deviner, et
+                c'est ce qui avait rendu « Suivre cette édition » introuvable
+                au Lot 36. */}
             <button
               type="button"
               onClick={onBasculerMode}
               aria-pressed={modeEdition}
-              title={modeEdition ? 'Terminer les modifications' : 'Modifier cette fiche'}
-              className={`flex h-[34px] w-[34px] items-center justify-center rounded-[10px] transition-colors ${
-                modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim'
+              className={`flex h-[34px] items-center gap-1.5 rounded-[10px] px-3 text-[12.5px] font-semibold transition-colors ${
+                modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim hover:text-textPrimary'
               }`}
             >
-              <Pencil size={15} />
+              <Pencil size={14} />
+              {modeEdition ? 'Terminer' : 'Éditer'}
             </button>
             {modeEdition && onAjouterEdition && (
+              // « Ajouter » doit toujours dire OÙ (§11) : un « + » nu ne
+              // distinguait pas ce geste de catalogue d'un ajout à la
+              // collection.
               <button
                 type="button"
                 onClick={onAjouterEdition}
-                title="Ajouter une édition"
-                className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-dashed border-lineStrong text-textDim hover:border-accent hover:text-accentText"
+                className="flex h-[34px] items-center gap-1.5 rounded-[10px] border border-dashed border-lineStrong px-3 text-[12.5px] font-medium text-textDim hover:border-accent hover:text-accentText"
               >
-                <Plus size={15} />
+                <Plus size={14} />
+                Ajouter une édition
               </button>
             )}
           </div>

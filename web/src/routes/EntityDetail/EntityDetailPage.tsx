@@ -556,11 +556,33 @@ export function EntityDetailPage() {
               />
             </Carte>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Les corrections d'identité restent avec le reste des éditeurs ;
+              ce qui DÉTRUIT vit en dessous, dans un bloc qui le dit. */}
+          <button
+            type="button"
+            onClick={() => {
+              setTitleInput(entity.title)
+              setEditingTitle(true)
+            }}
+            className="w-fit text-[13px] text-textDim underline"
+          >
+            Renommer la série
+          </button>
+
+          {/* Séparé visuellement et nommé, en bas de l'espace d'édition
+              (étude produit du 2026-08-27, §3) : une action définitive ne
+              doit pas se trouver par accident au milieu de corrections
+              banales. La confirmation, elle, vit dans le bouton lui-même. */}
+          <div className="mt-2 flex flex-col gap-2.5 rounded-2xl border border-danger/30 bg-dangerTint p-4">
+            <span className="text-[11px] font-semibold tracking-[0.14em] text-dangerText uppercase">
+              Zone sensible
+            </span>
+            <p className="text-[13px] text-textDim">
+              Supprimer la fiche efface la série du catalogue. Contrairement à « vendu » ou « perdu », qui
+              gardent une trace, c&apos;est définitif - et refusé tant qu&apos;un exemplaire ou une lecture y
+              est rattaché.
+            </p>
             <DeleteEntitySection entityId={entityId} entityTitle={entity.title} />
-            <button type="button" onClick={() => setEditingTitle(true)} className="text-[13px] text-textDim underline">
-              Renommer la série
-            </button>
           </div>
         </div>
       )}

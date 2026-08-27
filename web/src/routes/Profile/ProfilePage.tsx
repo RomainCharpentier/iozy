@@ -25,7 +25,7 @@ interface ProfileLink {
 // vrais chiffres, une 2e ligne identique juste en dessous serait un doublon
 // sur le même écran (voir docs/DESIGN_MIGRATION_V1.2.md Lot 8).
 const LINKS: ProfileLink[] = [
-  { to: '/purchase-analysis', label: 'Évaluer un achat', description: "Analyser une annonce d'occasion avant de l'acheter", icon: Scale },
+  { to: '/purchase-analysis', label: 'Analyser une annonce', description: "Estimer une annonce d'occasion avant de l'acheter", icon: Scale },
   { to: '/recap', label: 'Bilan annuel', description: 'Ton année en un coup d\'œil, façon carte à partager', icon: PartyPopper },
   { to: '/settings', label: 'Paramètres', description: 'Apparence, titres des mangas, administration avancée', icon: Settings2 },
 ]

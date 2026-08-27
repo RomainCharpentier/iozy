@@ -57,7 +57,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
           className="flex items-center gap-1.5 text-[13.5px] font-medium text-accentText"
         >
           <Plus size={14} />
-          Ajouter
+          Ajouter une relation
         </button>
       </div>
 

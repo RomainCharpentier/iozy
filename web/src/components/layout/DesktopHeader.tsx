@@ -1,37 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Compass, Library, Search } from 'lucide-react'
 import { GlobalShortcuts } from './GlobalShortcuts'
-
-interface NavItem {
-  to: string
-  label: string
-  icon: typeof Library
-  /** Routes additionnelles qui doivent aussi allumer cet onglet (voir la
-   * maquette V1.2, `navItems[].screens`) - ex: la fiche d'une série reste
-   * sous "Ma collection", une page d'historique d'analyse reste sous
-   * "Rechercher". `NavLink` seul ne sait comparer qu'un préfixe de route. */
-  activeWhen?: (pathname: string) => boolean
-}
-
-// Trois destinations globales, jamais plus (voir la maquette V1.2 - "Trois
-// intentions, trois espaces. Tout le reste vit dans l'espace auquel il
-// appartient : Envies au cœur [Heart ci-dessous], Profil à l'avatar, outils
-// dans leur contexte" - ni Wishlist ni Paramètres n'y figurent plus, voir
-// docs/DESIGN_MIGRATION_V1.2.md Lot 2).
-const PRIMARY: NavItem[] = [
-  { to: '/', label: 'Ma collection', icon: Library, activeWhen: (p) => p === '/' || p.startsWith('/entity/') },
-  {
-    to: '/add',
-    label: 'Rechercher',
-    icon: Search,
-    activeWhen: (p) => p === '/add' || p === '/scan' || p.startsWith('/purchase-analysis'),
-  },
-  { to: '/discover', label: 'Découvrir', icon: Compass, activeWhen: (p) => p.startsWith('/discover') },
-]
+import { NAV_ITEMS, type NavItem } from './navItems'
 
 function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   const { pathname } = useLocation()
-  const active = activeWhen ? activeWhen(pathname) : pathname === to
+  const active = activeWhen(pathname)
   return (
   // `Link` et non `NavLink` : React Router recalcule lui-même `aria-current`
   // à partir de SA correspondance de route (exacte pour `to="/"`) et écrase
@@ -57,11 +30,11 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   )
 }
 
-/** Navigation desktop (>= 768px, voir AppShell.NAV_BREAKPOINT) - source
- * unique à 3 destinations (voir PRIMARY), partagée conceptuellement avec
- * TabBar (même 3 entrées, même ordre - voir la maquette V1.2 "navItems").
- * Envies (Heart, avec badge) et Profil (avatar) restent des raccourcis
- * séparés, jamais des destinations de nav pairs (voir §9-11 du brief). */
+/** Navigation desktop (>= 768px, voir AppShell.NAV_BREAKPOINT) - les quatre
+ * destinations de NAV_ITEMS, la même liste que la barre du pouce. Envies
+ * (cœur, avec badge) et Profil (avatar) restent des raccourcis séparés,
+ * jamais des destinations pairs : les Envies sont une lecture de Ma
+ * collection (étude produit du 2026-08-27, §16). */
 export function DesktopHeader() {
 
   return (
@@ -74,7 +47,7 @@ export function DesktopHeader() {
           Iozy<span className="text-accent">core</span>
         </Link>
         <nav className="flex h-full items-center gap-1.5">
-          {PRIMARY.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <NavLinkItem key={item.to} {...item} />
           ))}
         </nav>
