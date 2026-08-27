@@ -34,6 +34,7 @@ export const queryKeys = {
     timeline: ['insights', 'timeline'] as const,
     yearlyRecap: (year: number) => ['insights', 'yearlyRecap', year] as const,
     value: ['insights', 'value'] as const,
+    progress: ['insights', 'progress'] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,

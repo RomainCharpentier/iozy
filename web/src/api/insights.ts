@@ -1,5 +1,5 @@
 import { get, buildQuery } from './client'
-import type { CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
+import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
@@ -18,6 +18,12 @@ export function getTimeline(): Promise<MonthlyPointDto[]> {
 /** "Bilan annuel" - year omis = année en cours. */
 export function getYearlyRecap(year?: number): Promise<YearlyRecapDto> {
   return get<YearlyRecapDto>(`/insights/yearly-recap${buildQuery({ year: year?.toString() })}`)
+}
+
+/** La progression de TOUTES les œuvres, en un appel - à consommer plutôt qu'à
+ *  recalculer (voir CollectionProgressService côté serveur). */
+export function getCollectionProgress(): Promise<CollectionProgressDto[]> {
+  return get<CollectionProgressDto[]>('/insights/progress')
 }
 
 /** entityTypeCode doit être "MANGA", "BOARD_GAME" ou "VIDEO_GAME", renvoie 400 sinon. */

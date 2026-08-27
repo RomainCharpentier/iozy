@@ -52,6 +52,10 @@ export function AddOwnershipForm({
       queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+      // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
+      // recalculee ici : sans cette invalidation, Ma collection afficherait
+      // encore l'ancien decompte apres un ajout.
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       // Ne ferme rien, ne navigue nulle part : le parent (voir
       // VolumeInteractionPanel) recalcule activeTile à partir des tuiles
       // fraîchement invalidées - le panneau passe seul en mode "owned" au

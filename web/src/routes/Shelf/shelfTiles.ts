@@ -1,8 +1,14 @@
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import { isOwned } from './ownership'
 import type { FiltreCollection } from '../../lib/preferencesCollection'
-import type { EntityResponse, EntityTypeDto, OwnershipResponse, VariantDto } from '../../types/api'
-import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+import type {
+  CollectionProgressDto,
+  EditionProgressDto,
+  EntityResponse,
+  EntityTypeDto,
+  OwnershipResponse,
+  VariantDto,
+} from '../../types/api'
 
 export interface ShelfTile {
   key: string
@@ -24,49 +30,29 @@ function formatTomeCount(count: number): string {
 }
 
 /**
- * Index (Série + édition) -> nombre total de tomes de CETTE édition, construit
- * une fois pour tout l'écran à partir du référentiel d'éditions.
- * <p>
- * C'est la même source que la fiche, l'assistant et la page publique : la
- * complétude se calcule TOUJOURS par édition, jamais au niveau de la série
- * (deux éditions n'ont pas le même nombre de tomes - voir CollectionStatus
- * côté backend). Ma collection utilisait jusqu'ici l'attribut `totalVolumes`
- * de la Série, fourni par MyAnimeList : les deux écrans se contredisaient sur
- * les mêmes données ("1 tome" ici contre "1/6" sur la fiche pour Death Note,
- * et l'inverse pour une série sans édition renseignée). Alignement demandé par
- * l'utilisateur le 2026-08-20.
+ * La progression calculée PAR LE SERVEUR, indexée par œuvre.
+ *
+ * <h2>Lire, plutôt que recalculer</h2>
+ * Cet écran dérivait sa propre progression d'un référentiel d'éditions et d'un
+ * `singleNamedEdition` maison. Le serveur expose exactement la même chose
+ * (`GET /insights/progress`), avec une règle de plus : un tome catalogué SANS
+ * édition précisée rejoint l'unique édition nommée de la série. Recalculer de
+ * son côté a déjà produit deux divergences documentées - une série annoncée
+ * 2/72 ici et 3/72 là (lot 31), puis une analyse d'achat conseillant de
+ * racheter un tome déjà possédé (lot 49). La règle vit désormais à un seul
+ * endroit, et cet écran la consomme.
  */
-export function indexEditionTotals(editions: MangaEditionDto[]): Map<string, number> {
-  const index = new Map<string, number>()
-  for (const edition of editions) {
-    if (edition.entityId && edition.totalVolumes !== null) {
-      index.set(editionTotalKey(edition.entityId, edition.editionName), edition.totalVolumes)
-    }
-  }
-  return index
+export function indexerProgression(progressions: CollectionProgressDto[]): Map<string, CollectionProgressDto> {
+  return new Map(progressions.map((progression) => [progression.entityId, progression]))
 }
 
-function editionTotalKey(entityId: string, editionName: string): string {
-  return `${entityId}|${editionName.trim().toLowerCase()}`
-}
-
-/** Total de tomes de l'édition possédée - null quand la série mélange
- * plusieurs éditions (rien à totaliser sans savoir laquelle) ou quand
- * l'édition n'a pas de fiche de référence renseignée. Jamais un repli sur le
- * total de la série : ce serait exactement l'incohérence qu'on retire. */
-function editionTotalFor(entity: EntityResponse, editionTotals: Map<string, number>): number | null {
-  const edition = singleNamedEdition(entity)
-  if (edition === null) return null
-  return editionTotals.get(editionTotalKey(entity.id, edition)) ?? null
-}
-
-function singleNamedEdition(entity: EntityResponse): string | null {
-  const names = new Set(
-    entity.variants
-      .map((v) => (typeof v.attributes.edition === 'string' ? v.attributes.edition.trim() : ''))
-      .filter((name) => name !== ''),
-  )
-  return names.size === 1 ? [...names][0] : null
+/** L'édition qui représente une œuvre dans une liste - celle que le serveur a
+ *  retenue. `null` pour une œuvre sans tome (jeu vidéo, jeu de société). */
+function editionRepresentative(
+  entity: EntityResponse,
+  progression: Map<string, CollectionProgressDto>,
+): EditionProgressDto | null {
+  return progression.get(entity.id)?.dominantEdition ?? null
 }
 
 /** "Plus que 2 tomes" - seul signal implémenté pour l'instant (voir "un seul
@@ -92,8 +78,7 @@ function nearCompletionSignal(missing: number): string | undefined {
  */
 export function buildShelfTile(
   entity: EntityResponse,
-  owned: Set<string>,
-  editionTotals: Map<string, number>,
+  progression: Map<string, CollectionProgressDto>,
   envie: { possede: boolean; tomesVoulus: number; prioritaire: boolean } = {
     possede: true,
     tomesVoulus: 0,
@@ -114,11 +99,14 @@ export function buildShelfTile(
       entityId: entity.id,
     }
   }
-  const ownedCount = entity.variants.filter((v) => owned.has(v.id)).length
-  const total = editionTotalFor(entity, editionTotals)
+  // Le décompte vient du serveur : il inclut les tomes sans édition précisée
+  // rattachés à cette édition, que le calcul local d'ici oubliait.
+  const editionAffichee = editionRepresentative(entity, progression)
+  const ownedCount = editionAffichee ? editionAffichee.ownedVolumeNumbers.length : 0
+  const total = editionAffichee?.totalVolumes ?? null
   const countPart =
     ownedCount === 0 ? 'aucun tome encore' : total !== null ? `${ownedCount}/${total} tomes` : formatTomeCount(ownedCount)
-  const edition = singleNamedEdition(entity)
+  const edition = editionAffichee && editionAffichee.editionName !== '' ? editionAffichee.editionName : null
   return {
     key: entity.id,
     title: entity.title,
@@ -138,11 +126,10 @@ export function buildShelfTile(
  * sans fiche de référence renseignée) - jamais devinée, voir isSeriesOngoing
  * pour le même principe. Interne : seul `matchesCompletionFilter` ci-dessous
  * s'en sert. */
-function isComplete(entity: EntityResponse, owned: Set<string>, editionTotals: Map<string, number>): boolean | null {
-  if (entity.variants.length === 0) return null
-  const total = editionTotalFor(entity, editionTotals)
-  if (total === null) return null
-  return entity.variants.filter((v) => owned.has(v.id)).length >= total
+function isComplete(entity: EntityResponse, progression: Map<string, CollectionProgressDto>): boolean | null {
+  const editionAffichee = editionRepresentative(entity, progression)
+  if (!editionAffichee || editionAffichee.totalVolumes === null) return null
+  return editionAffichee.ownedVolumeNumbers.length >= editionAffichee.totalVolumes
 }
 
 export type CompletionFilter = 'ALL' | 'INCOMPLETE' | 'COMPLETE'
@@ -152,12 +139,11 @@ export type CompletionFilter = 'ALL' | 'INCOMPLETE' | 'COMPLETE'
  * ou de l'autre faute de donnée réelle. */
 export function matchesCompletionFilter(
   entity: EntityResponse,
-  owned: Set<string>,
   filter: CompletionFilter,
-  editionTotals: Map<string, number>,
+  progression: Map<string, CollectionProgressDto>,
 ): boolean {
   if (filter === 'ALL') return true
-  const complete = isComplete(entity, owned, editionTotals)
+  const complete = isComplete(entity, progression)
   if (complete === null) return false
   return filter === 'COMPLETE' ? complete : !complete
 }
@@ -179,8 +165,7 @@ export function trierTypes(entityTypes: EntityTypeDto[]): EntityTypeDto[] {
 export function groupByEntityType(
   entities: EntityResponse[],
   entityTypes: EntityTypeDto[],
-  owned: Set<string>,
-  editionTotals: Map<string, number>,
+  progression: Map<string, CollectionProgressDto>,
   envieDe: (entity: EntityResponse) => { possede: boolean; tomesVoulus: number; prioritaire: boolean } = () => ({
     possede: true,
     tomesVoulus: 0,
@@ -192,7 +177,7 @@ export function groupByEntityType(
       entityType,
       tiles: entities
         .filter((e) => e.entityTypeId === entityType.id)
-        .map((e) => buildShelfTile(e, owned, editionTotals, envieDe(e))),
+        .map((e) => buildShelfTile(e, progression, envieDe(e))),
     }))
     .filter((section) => section.tiles.length > 0)
 }

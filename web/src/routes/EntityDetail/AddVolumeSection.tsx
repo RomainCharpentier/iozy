@@ -112,6 +112,10 @@ export function AddVolumeSection({
       // invalident les trois : cette clé alimente Ma collection et les
       // panneaux de sélection des Tier Lists (voir listAllOwnerships).
       queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+      // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
+      // recalculee ici : sans cette invalidation, Ma collection afficherait
+      // encore l'ancien decompte apres un ajout.
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       setVolumeNumber('')
       setEdition('')
       setPurchasePrice('')

@@ -1360,6 +1360,53 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 51 — les endpoints sans appelant, traités
+
+Reprise de la dette signalée au Lot 36. **Première correction : ils étaient
+trois, pas quatre.**
+
+`GET /wishlist/lookup` **a un appelant** - le client **iOS**, suivi par git,
+l'appelle dans `APIClient.swift`. L'audit du Lot 36 n'avait balayé que
+`web/src`. Conservé tel quel. Leçon : ce dépôt a deux clients, un balayage
+d'appelants qui n'en regarde qu'un déclare mort du code vivant.
+
+`GET` et `PATCH /purchase-analysis/preferences` : ce n'est **pas du code mort**.
+Le moteur de scoring lit `service.preferences()` à chaque analyse ; il manque
+seulement l'écran pour les éditer. Conservés - c'est un écran non construit,
+pas une dette à supprimer.
+
+#### `GET /insights/progress` : branché, et il enlève une duplication
+
+Son résumé dit « source unique, à consommer plutôt qu'à recalculer » - et Ma
+collection recalculait. Elle dérivait sa progression d'un référentiel
+d'éditions (`indexEditionTotals`) et d'un `singleNamedEdition` maison, avec une
+règle en moins : un tome catalogué SANS édition précisée ne rejoignait pas
+l'unique édition nommée de la série.
+
+C'est exactement la règle dont l'absence a produit les deux divergences déjà
+consignées : une série annoncée 2/72 ici et 3/72 là (Lot 31), puis une analyse
+d'achat conseillant de racheter un tome possédé (Lot 49). Trois calculs pour
+une seule question ; il n'en reste qu'un.
+
+`shelfTiles` perd `indexEditionTotals`, `editionTotalFor`, `singleNamedEdition`
+et `editionTotalKey`, et `buildShelfTile` n'a plus besoin de `owned` - le
+décompte ne se dérive plus des variantes.
+
+**Piège évité** : la progression étant désormais une requête à elle, ajouter un
+tome ne l'invalidait plus. Sans ça, Ma collection aurait gardé l'ancien
+décompte après un ajout. `queryKeys.insights.progress` est invalidée partout où
+une possession change - formulaire du tome, ajout manuel, détails d'un
+exemplaire, proposition de tomes, scan.
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build`. En direct, mêmes valeurs
+qu'avant le branchement (Naruto 3/72, Death Note 2/6, Raw Hero « Plus que 2
+tomes », Zelda « Possédé »), puis chaîne complète : ajout du tome 3 de Death
+Note depuis la fiche → Ma collection passe de **2/6 à 3/6 sans rechargement**.
+Ajout retiré ensuite, base revenue à l'identique (9 œuvres, 14 tomes, 12
+possessions, 6 éditions, 0 envie).
+
 ### Lot 50 — « rien trouvé » quand une source était en panne
 
 Épreuve du parcours Scan. La caméra est honnêtement déclarée non supportée ici,
@@ -3169,6 +3216,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Ce dépôt a DEUX clients (web et iOS, tous deux suivis par git). Un balayage d'appelants qui ne regarde que `web/src` déclare mort du code vivant : `/wishlist/lookup` a été listé à tort comme sans appelant au Lot 36 (Lot 51).
 - Un défaut d'interface « prudent » (ici : ne rien conclure d'un vide) sert un usage INTERNE précis - le cache. Le remonter tel quel à l'utilisateur lui fait dire autre chose. Vérifier qui s'appuie sur le défaut avant de lui donner un sens visible (Lot 50).
 - Un test de non-régression doit être confronté à l'ANCIEN code avant d'être gardé (`git checkout` du fichier corrigé, lancer le seul test, restaurer) : sinon rien ne dit qu'il protège quoi que ce soit (Lot 49).
 - Quand un calcul est rebranché sur une source unique, chercher TOUS ses jumeaux dans le même fichier : au Lot 31 les suggestions ont été corrigées et `findOwnedVolumeNumbers`, quarante lignes plus bas, a gardé le même défaut six jours de plus (Lot 49).

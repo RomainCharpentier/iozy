@@ -17,22 +17,21 @@ import {
   correspondAuFiltre,
   etatDeLOeuvre,
   groupByEntityType,
-  indexEditionTotals,
+  indexerProgression,
   matchesCompletionFilter,
   trierTypes,
 } from './shelfTiles'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
-import { listAllEditions } from '../../api/purchaseAnalysis'
-import type { MangaEditionDto } from '../../types/purchaseAnalysis'
+import { getCollectionProgress } from '../../api/insights'
 
 /** Référence stable : une liste vide recréée à chaque rendu invaliderait les
  * useMemo qui en dépendent (même raison que EMPTY_ENTITIES ci-dessous). */
-const EMPTY_EDITIONS: MangaEditionDto[] = []
+const EMPTY_PROGRESS: CollectionProgressDto[] = []
 import { ownedVariantIds } from './ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
-import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
+import type { CollectionProgressDto, EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
 
@@ -124,11 +123,12 @@ export function ShelfPage() {
     queryKey: queryKeys.allOwnerships,
     queryFn: listAllOwnerships,
   })
-  // Référentiel d'éditions : une seule requête pour tout l'écran, partagée
-  // en cache entre Ma collection et la page catégorie - la progression X/Y
-  // se lit PAR ÉDITION (voir indexEditionTotals), comme sur la fiche.
-  const editionsQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.allEditions, queryFn: listAllEditions })
-  const editionTotals = useMemo(() => indexEditionTotals(editionsQuery.data ?? EMPTY_EDITIONS), [editionsQuery.data])
+  // La progression « X sur Y » vient du SERVEUR, en un appel pour toute la
+  // collection - même source que la fiche, l'analyse d'achat et les
+  // suggestions. Une seule requête, partagée en cache avec la vue d'une
+  // catégorie.
+  const progressQuery = useQuery({ queryKey: queryKeys.insights.progress, queryFn: getCollectionProgress })
+  const progression = useMemo(() => indexerProgression(progressQuery.data ?? EMPTY_PROGRESS), [progressQuery.data])
 
   const wishlist = useWishlist()
   const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
@@ -161,9 +161,9 @@ export function ShelfPage() {
       allEntities.filter((e) => {
         const etat = etats.get(e.id)
         if (!etat || !correspondAuFiltre(etat, filtre)) return false
-        return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+        return !etat.possede || matchesCompletionFilter(e, status, progression)
       }),
-    [allEntities, etats, owned, status, editionTotals],
+    [allEntities, etats, status, progression],
   )
 
   const contexteAplatissement = useMemo(
@@ -213,8 +213,8 @@ export function ShelfPage() {
   )
 
   const sections = useMemo(
-    () => groupByEntityType(triees, entityTypes, owned, editionTotals, envieDe),
-    [triees, entityTypes, owned, editionTotals, envieDe],
+    () => groupByEntityType(triees, entityTypes, progression, envieDe),
+    [triees, entityTypes, progression, envieDe],
   )
 
   const tuilesElements = useMemo(
@@ -342,7 +342,7 @@ export function ShelfPage() {
    * il décide de la complétude, donc du filtre Complètes/Incomplètes.
    */
   const donneesPretes =
-    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !editionsQuery.isPending
+    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !progressQuery.isPending
   const isLoading = !donneesPretes
   const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
 

@@ -36,6 +36,10 @@ function OwnershipRow({ ownership, entityId }: { ownership: OwnershipResponse; e
     queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+    // La progression « X sur Y » vient du serveur depuis qu'elle n'est plus
+    // recalculee ici : sans cette invalidation, Ma collection afficherait
+    // encore l'ancien decompte apres un ajout.
+    queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
   }
 
 
