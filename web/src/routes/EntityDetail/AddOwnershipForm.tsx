@@ -1,10 +1,7 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
-import { Chip } from '../../components/Chip'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import { CONDITIONS, CONDITION_LABELS, type Condition } from '../../types/entityTypes'
 
 /**
  * Ajout CONTEXTUEL (voir VolumeInteractionPanel) : série/édition/numéro déjà
@@ -35,18 +32,19 @@ export function AddOwnershipForm({
   edition: string
 }) {
   const queryClient = useQueryClient()
-  const [condition, setCondition] = useState<Condition>('NEW')
-  const [purchasePrice, setPurchasePrice] = useState('')
 
   const addMutation = useMutation({
     mutationFn: () =>
       quickAdd({
         entityTypeId,
         title: entityTitle,
-        condition,
+        // État et prix ne sont plus demandés ici : dire « je l'ai » tient en un
+        // clic (décision utilisateur du 2026-08-27). `NEW` était déjà le défaut
+        // du formulaire, et les deux se corrigent sur l'exemplaire juste
+        // au-dessus (voir OwnershipDetails).
+        condition: 'NEW',
         volumeNumber,
         edition: edition || undefined,
-        purchasePrice: purchasePrice.trim() ? Number(purchasePrice) : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
@@ -65,32 +63,6 @@ export function AddOwnershipForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-textDim">État</span>
-        <div className="flex gap-2">
-          {CONDITIONS.map((c) => (
-            <Chip key={c} label={CONDITION_LABELS[c]} isActive={condition === c} onClick={() => setCondition(c)} />
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm text-textDim" htmlFor="contextualPurchasePrice">
-          Prix d'achat (optionnel)
-        </label>
-        <input
-          id="contextualPurchasePrice"
-          type="number"
-          min={0}
-          step="0.01"
-          inputMode="decimal"
-          value={purchasePrice}
-          onChange={(e) => setPurchasePrice(e.target.value)}
-          placeholder="ex: 6.90"
-          className="w-32 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-        />
-      </div>
-
       {addMutation.isError && <ErrorBanner message={addMutation.error.message} />}
 
       <button

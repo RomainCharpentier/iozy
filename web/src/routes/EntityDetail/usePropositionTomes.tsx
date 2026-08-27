@@ -11,7 +11,6 @@ import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../com
 import { CartesEditions } from './CartesEditions'
 import { BarreAjoutTomes } from './BarreAjoutTomes'
 import { AddVolumeSection } from './AddVolumeSection'
-import type { Condition } from '../../types/entityTypes'
 
 /**
  * « Quels tomes possèdes-tu ? » — les tomes qu'un fournisseur connaît, à
@@ -77,8 +76,6 @@ export function usePropositionTomes({
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [filtre, setFiltre] = useState<FiltreVolumes>('tous')
   const [selection, setSelection] = useState<Set<string>>(new Set())
-  const [condition, setCondition] = useState<Condition>('NEW')
-  const [prix, setPrix] = useState('')
   const [ajoutManuelOuvert, setAjoutManuelOuvert] = useState(false)
 
   // Inutile d'aller chercher des tomes pour un jeu : il n'en a pas, et
@@ -88,7 +85,6 @@ export function usePropositionTomes({
 
   const ajout = useMutation({
     mutationFn: async () => {
-      const prixNombre = prix.trim() ? Number(prix) : undefined
       let identifiant = entityId
 
       // Une œuvre sans tome s'ajoute d'un seul appel, sans volumeNumber :
@@ -98,9 +94,11 @@ export function usePropositionTomes({
         const resultat = await quickAdd({
           entityTypeId,
           title: titre,
-          condition,
+          // `NEW` reste la valeur stockée - c'était déjà le défaut de l'ancien
+          // formulaire - et se corrige sur l'exemplaire. `condition` est
+          // obligatoire en base et n'a pas de valeur « non renseigné ».
+          condition: 'NEW',
           attributes: attributs,
-          purchasePrice: prixNombre,
         })
         return resultat.entityId
       }
@@ -112,12 +110,11 @@ export function usePropositionTomes({
         const resultat = await quickAdd({
           entityTypeId,
           title: titre,
-          condition,
+          condition: 'NEW',
           attributes: attributs,
           volumeNumber: candidat.volumeNumber,
           edition: candidat.edition || undefined,
           volumeImageUrl: candidat.imageUrl ?? undefined,
-          purchasePrice: prixNombre,
         })
         identifiant = resultat.entityId
       }
@@ -125,7 +122,6 @@ export function usePropositionTomes({
     },
     onSuccess: (identifiant) => {
       setSelection(new Set())
-      setPrix('')
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
       if (entityId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
@@ -147,10 +143,6 @@ export function usePropositionTomes({
       section: (
         <section className="flex flex-col gap-4 pt-5">
           <AjoutDirect
-            condition={condition}
-            onCondition={setCondition}
-            prix={prix}
-            onPrix={setPrix}
             onAjouter={() => ajout.mutate()}
             enCours={ajout.isPending}
             attente={attributsEnCours}
@@ -266,10 +258,6 @@ export function usePropositionTomes({
 
         <BarreAjoutTomes
           nombre={selection.size}
-          condition={condition}
-          onCondition={setCondition}
-          prix={prix}
-          onPrix={setPrix}
           enCours={ajout.isPending}
           attente={attributsEnCours}
         erreur={ajout.isError ? ajout.error.message : null}
