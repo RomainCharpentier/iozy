@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -149,30 +149,58 @@ export function ShelfPage() {
     [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues],
   )
 
-  const comptes = useMemo(() => {
-    const total: Record<FiltreCollection, number> = { tout: 0, possedes: 0, envies: 0 }
-    for (const etat of etats.values()) {
-      if (etat.possede) total.possedes++
-      if (etat.voulu) total.envies++
-      if (etat.possede || etat.voulu) total.tout++
-    }
-    return total
-  }, [etats])
-
   const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
 
   const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
 
-  const triees = useMemo(() => {
-    // Le filtre d'état (Complètes/Incomplètes) ne s'applique qu'à ce qui a une
-    // complétude : une œuvre seulement voulue n'en a pas encore.
-    const retenues = allEntities.filter((e) => {
-      const etat = etats.get(e.id)
-      if (!etat || !correspondAuFiltre(etat, preferences.filtre)) return false
-      return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
-    })
-    return trierOeuvres(retenues, preferences.tri, venues)
-  }, [allEntities, etats, preferences.filtre, preferences.tri, owned, status, editionTotals, venues])
+  /** Les œuvres que CE filtre retient - le filtre d'état (Complètes /
+   *  Incomplètes) ne s'appliquant qu'à ce qui a une complétude, une œuvre
+   *  seulement voulue n'en ayant pas encore. */
+  const retenuesPour = useCallback(
+    (filtre: FiltreCollection) =>
+      allEntities.filter((e) => {
+        const etat = etats.get(e.id)
+        if (!etat || !correspondAuFiltre(etat, filtre)) return false
+        return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+      }),
+    [allEntities, etats, owned, status, editionTotals],
+  )
+
+  const contexteAplatissement = useMemo(
+    () => ({
+      ownerships,
+      owned,
+      tomesVoulus,
+      oeuvresVoulues,
+      depuisTome: (variantId: string) => venues.parTome.get(variantId) ?? '',
+      depuisOeuvre: (entityId: string) => venues.parOeuvre.get(entityId) ?? '',
+    }),
+    [ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
+  )
+
+  /**
+   * Ce que chaque filtre donnerait, **dans la vue courante**.
+   *
+   * Le compteur passait toujours par les groupes : en vue dégroupée il
+   * annonçait « Possédés 6 » au-dessus de douze tuiles. Un nombre posé à côté
+   * d'un libellé doit compter ce que ce libellé montre - sinon il n'est pas
+   * une aide, c'est une contradiction. Il suit donc le même chemin que
+   * l'affichage, filtre d'état compris.
+   */
+  const comptes = useMemo(() => {
+    const compter = (filtre: FiltreCollection) => {
+      const retenues = retenuesPour(filtre)
+      return preferences.vue === 'groupee'
+        ? retenues.length
+        : aplatirEnElements(retenues, filtre, contexteAplatissement).length
+    }
+    return { tout: compter('tout'), possedes: compter('possedes'), envies: compter('envies') }
+  }, [retenuesPour, preferences.vue, contexteAplatissement])
+
+  const triees = useMemo(
+    () => trierOeuvres(retenuesPour(preferences.filtre), preferences.tri, venues),
+    [retenuesPour, preferences.filtre, preferences.tri, venues],
+  )
 
   const envieDe = useMemo(
     () => (entity: EntityResponse) => ({
@@ -190,16 +218,8 @@ export function ShelfPage() {
   )
 
   const tuilesElements = useMemo(
-    () =>
-      aplatirEnElements(triees, preferences.filtre, {
-        ownerships,
-        owned,
-        tomesVoulus,
-        oeuvresVoulues,
-        depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
-        depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
-      }),
-    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
+    () => aplatirEnElements(triees, preferences.filtre, contexteAplatissement),
+    [triees, preferences.filtre, contexteAplatissement],
   )
 
   // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce
@@ -311,7 +331,19 @@ export function ShelfPage() {
     return ownerships.filter((o) => o.status === 'OWNED' && o.acquiredAt.startsWith(currentMonth)).length
   }, [ownerships])
 
-  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
+  /**
+   * Vrai seulement quand TOUT ce dont un chiffre dépend est arrivé.
+   *
+   * Un décompte se calcule sur `data ?? []` : tant qu'une seule de ces
+   * requêtes n'a pas répondu, il vaut zéro - et l'écran annonce alors une
+   * collection vide à quelqu'un qui en a une (constaté en gelant l'API :
+   * « 0 possédé ou voulu », filtres à 0/0/0, pendant que « Chargement... »
+   * s'affichait juste en dessous). Le référentiel d'éditions en fait partie :
+   * il décide de la complétude, donc du filtre Complètes/Incomplètes.
+   */
+  const donneesPretes =
+    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !editionsQuery.isPending
+  const isLoading = !donneesPretes
   const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
 
   const vide = messageVide(preferences.filtre, status !== 'ALL')
@@ -324,12 +356,18 @@ export function ShelfPage() {
         niveau={1}
         titre="Ma collection"
         sousTitre={
-          <>
-            {affiches} {LIBELLES_DECOMPTE[preferences.vue][preferences.filtre](affiches)}
-            {preferences.filtre !== 'envies' &&
-              addedThisMonthCount > 0 &&
-              ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
-          </>
+          donneesPretes ? (
+            <>
+              {affiches} {LIBELLES_DECOMPTE[preferences.vue][preferences.filtre](affiches)}
+              {preferences.filtre !== 'envies' &&
+                addedThisMonthCount > 0 &&
+                ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
+            </>
+          ) : (
+            // Occupe la même ligne pour que rien ne saute quand le vrai
+            // décompte arrive.
+            'Chargement...'
+          )
         }
       />
 
@@ -341,7 +379,7 @@ export function ShelfPage() {
           onVue={(vue) => preferences.definir({ vue })}
           tri={preferences.tri}
           onTri={(tri) => preferences.definir({ tri })}
-          comptes={comptes}
+          comptes={donneesPretes ? comptes : null}
         />
       </div>
 

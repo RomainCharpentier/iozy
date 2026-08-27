@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
@@ -83,27 +83,47 @@ export function CategoryPage() {
     [allEntities, entityTypeId],
   )
 
-  const comptes = useMemo(() => {
-    const total: Record<FiltreCollection, number> = { tout: 0, possedes: 0, envies: 0 }
-    for (const entity of duType) {
-      const etat = etatDeLOeuvre(entity, ownerships, owned, tomesVoulus, oeuvresVoulues)
-      if (etat.possede) total.possedes++
-      if (etat.voulu) total.envies++
-      if (etat.possede || etat.voulu) total.tout++
-    }
-    return total
-  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues])
-
   const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
 
-  const entities = useMemo(() => {
-    const retenues = duType.filter((e) => {
-      const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
-      if (!correspondAuFiltre(etat, preferences.filtre)) return false
-      return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
-    })
-    return trierOeuvres(retenues, preferences.tri, venues)
-  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, preferences.filtre, preferences.tri, status, editionTotals, venues])
+  const retenuesPour = useCallback(
+    (filtre: FiltreCollection) =>
+      duType.filter((e) => {
+        const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
+        if (!correspondAuFiltre(etat, filtre)) return false
+        return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+      }),
+    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, status, editionTotals],
+  )
+
+  const contexteAplatissement = useMemo(
+    () => ({
+      ownerships,
+      owned,
+      tomesVoulus,
+      oeuvresVoulues,
+      depuisTome: (variantId: string) => venues.parTome.get(variantId) ?? '',
+      depuisOeuvre: (entityId: string) => venues.parOeuvre.get(entityId) ?? '',
+    }),
+    [ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
+  )
+
+  /** Ce que chaque filtre donnerait dans la VUE COURANTE - même règle que sur
+   *  Ma collection : un nombre posé à côté d'un libellé compte ce que ce
+   *  libellé montre, groupes ou éléments. */
+  const comptes = useMemo(() => {
+    const compter = (filtre: FiltreCollection) => {
+      const retenues = retenuesPour(filtre)
+      return preferences.vue === 'groupee'
+        ? retenues.length
+        : aplatirEnElements(retenues, filtre, contexteAplatissement).length
+    }
+    return { tout: compter('tout'), possedes: compter('possedes'), envies: compter('envies') }
+  }, [retenuesPour, preferences.vue, contexteAplatissement])
+
+  const entities = useMemo(
+    () => trierOeuvres(retenuesPour(preferences.filtre), preferences.tri, venues),
+    [retenuesPour, preferences.filtre, preferences.tri, venues],
+  )
 
   const tiles = useMemo(
     () =>
@@ -120,26 +140,23 @@ export function CategoryPage() {
   // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
   // partout et répéterait le titre de la page.
   const tuilesElements = useMemo(() => {
-    const tuiles = aplatirEnElements(entities, preferences.filtre, {
-      ownerships,
-      owned,
-      tomesVoulus,
-      oeuvresVoulues,
-      depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
-      depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
-    })
-    // Par titre, l'ordre des œuvres suffit ; par récence, ce sont les TOMES
+    const tuiles = aplatirEnElements(entities, preferences.filtre, contexteAplatissement)
+    // Par titre, l'ordre des œuvres suffit ; par récence, ce sont les ÉLÉMENTS
     // qu'il faut réordonner - sinon « Récents d'abord » ne ferait rien de
-    // visible dans la vue qui délie justement les tomes de leur série.
+    // visible dans la vue qui les délie justement de leur groupe.
     return preferences.tri === 'titre' ? tuiles : [...tuiles].sort((a, b) => b.depuis.localeCompare(a.depuis))
-  }, [entities, preferences.filtre, preferences.tri, ownerships, owned, tomesVoulus, oeuvresVoulues, venues])
+  }, [entities, preferences.filtre, preferences.tri, contexteAplatissement])
 
   // Un seul rendu pour les deux vues : dégrouper change les tuiles, pas leur
   // mise en forme (même raison que sur Ma collection).
   const tuilesAffichees = preferences.vue === 'plate' ? tuilesElements : tiles
   const affiches = tuilesAffichees.length
 
-  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
+  // Même règle que sur Ma collection : aucun chiffre tant que tout n'est pas
+  // arrivé, sans quoi la page annonce une catégorie vide qui ne l'est pas.
+  const donneesPretes =
+    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !editionsQuery.isPending
+  const isLoading = !donneesPretes
 
   return (
     <div className="flex flex-col gap-4">
@@ -153,7 +170,7 @@ export function CategoryPage() {
         <h1 className="font-display text-2xl font-bold tracking-[-0.025em]" style={{ color: entityType ? visual.color : undefined }}>
           {entityType?.label ?? '…'}
         </h1>
-        <span className="text-sm text-faint">{affiches}</span>
+        {donneesPretes && <span className="text-sm text-faint">{affiches}</span>}
       </div>
 
       <BarreVues
@@ -163,7 +180,7 @@ export function CategoryPage() {
         onVue={(vue) => preferences.definir({ vue })}
         tri={preferences.tri}
         onTri={(tri) => preferences.definir({ tri })}
-        comptes={comptes}
+        comptes={donneesPretes ? comptes : null}
       />
 
       <button

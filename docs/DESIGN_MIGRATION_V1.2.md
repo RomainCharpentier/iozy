@@ -1360,6 +1360,44 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 47 — ne rien affirmer tant que l'appel n'a pas répondu
+
+« Il faut revoir le chargement des données pour ne pas afficher "pas de
+données" alors que l'appel API est toujours en cours. »
+
+**Reproduit en gelant l'API** (`docker pause` sur le conteneur, puis
+`unpause`) : Ma collection annonçait « **0 possédé ou voulu** » et des filtres
+à **0 / 0 / 0**, pendant que « Chargement... » s'affichait juste en dessous.
+Deux messages contradictoires à l'écran, dont l'un ment.
+
+La cause est un `data ?? []` : un décompte calculé sur un tableau vide vaut
+zéro, et rien ne distingue « je n'ai rien » de « je ne sais pas encore ».
+
+**Balayage** : les cartes d'état vide, elles, étaient déjà correctement gardées
+partout (`query.isSuccess && liste.length === 0` — Opportunités, Éditions,
+Types, Historique d'analyses ; `stillLoading` sur l'aperçu Tier Lists ;
+`proposes.enCours` sur la proposition de tomes). Ce qui fuyait, ce sont les
+CHIFFRES dérivés, sur Ma collection et la vue d'une catégorie.
+
+Correctif : un seul prédicat `donneesPretes` par écran, vrai quand **tout** ce
+dont un chiffre dépend est arrivé - œuvres, possessions, envies **et le
+référentiel d'éditions**, qui décide de la complétude donc du filtre
+Complètes/Incomplètes. Tant qu'il est faux, le sous-titre dit « Chargement... »
+sur la même ligne (rien ne saute quand le vrai décompte arrive) et les
+compteurs de filtre n'affichent **aucun** nombre : un chiffre absent se lit
+« pas encore su », un zéro se lit comme un fait.
+
+#### Un compteur doit compter ce qu'il montre
+
+Défatut voisin, trouvé en vérifiant le premier : en vue dégroupée, le filtre
+annonçait « Possédés 6 » au-dessus de **douze** tuiles. Il comptait toujours
+les groupes, quelle que soit la vue - et il ignorait aussi le filtre d'état.
+Il emprunte désormais le MÊME chemin que l'affichage (`retenuesPour` puis, en
+vue dégroupée, `aplatirEnElements`), si bien qu'il ne peut plus le contredire.
+
+**Vérifié** : API gelée → « Chargement... », filtres sans nombre, aucun « 0 » ;
+API rendue → groupée 6/6 pour 6 tuiles, dégroupée 12/12 pour 12 tuiles.
+
 ### Lot 46 — la barre de défilement des rangées
 
 « Le scroll horizontal est moche ». La barre native de Windows est épaisse (15
@@ -3017,6 +3055,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Pour voir ce qu'un écran affiche PENDANT un appel : `docker pause` sur le conteneur de l'API, naviguer, mesurer, puis `unpause`. Plus fiable que de retarder `fetch` dans la page, que le rechargement emporte (Lot 47).
 - Une sonde qui teste une vue pilotée par une PRÉFÉRENCE MÉMORISÉE doit poser l'état qu'elle mesure (écrire `localStorage` puis recharger), jamais cliquer une bascule en supposant l'état de départ : au Lot 45 elle a relevé deux fois la même vue sans que rien ne le signale.
 - **`document.documentElement.clientWidth` peut valoir 0 dans ce navigateur de test** quand aucun viewport n'est émulé : toute sonde de débordement rapporte alors un faux positif, et `elementFromPoint` rend `null`. Appeler `resize_window` avec une taille EXPLICITE avant de mesurer, et se méfier d'un `deborde: true` accompagné d'un viewport nul (Lot 41).
 - Quand une variable change de SENS (`entities` : « tout ce qui est possédé » → « ce qui est à l'écran »), relire tous ses lecteurs, pas seulement ceux qu'on modifie : un outil de maintenance s'était mis à dépendre du filtre d'affichage (Lot 41).
