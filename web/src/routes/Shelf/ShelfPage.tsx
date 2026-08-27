@@ -10,19 +10,65 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
+import { BarreVues } from './BarreVues'
+import { GrilleTomesCollection } from './GrilleTomesCollection'
 import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
-import { groupByEntityType, indexEditionTotals, matchesCompletionFilter } from './shelfTiles'
+import {
+  aplatirEnTomes,
+  correspondAuFiltre,
+  etatDeLOeuvre,
+  groupByEntityType,
+  indexEditionTotals,
+  matchesCompletionFilter,
+} from './shelfTiles'
+import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
+import { useWishlist } from '../../lib/useWishlist'
 import { listAllEditions } from '../../api/purchaseAnalysis'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 
 /** Référence stable : une liste vide recréée à chaque rendu invaliderait les
  * useMemo qui en dépendent (même raison que EMPTY_ENTITIES ci-dessous). */
 const EMPTY_EDITIONS: MangaEditionDto[] = []
-import { isOwned, ownedVariantIds } from './ownership'
+import { ownedVariantIds } from './ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
+
+/**
+ * Ce que compte le sous-titre, selon ce qu'on regarde. Un décompte doit nommer
+ * la chose comptée : sous « Envies + non groupée », « 12 titres possédés »
+ * serait faux deux fois.
+ */
+const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n: number) => string>> = {
+  groupee: {
+    tout: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
+    possedes: (n) => `titre${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
+    envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
+  },
+  plate: {
+    tout: (n) => `tome${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
+    possedes: (n) => `tome${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
+    envies: (n) => `tome${n > 1 ? 's' : ''} dans mes envies`,
+  },
+}
+
+/** Un écran vide doit dire POURQUOI il l'est, et par où en sortir. */
+function messageVide(filtre: FiltreCollection, filtreEtatActif: boolean): { titre: string; detail: string } {
+  if (filtreEtatActif) {
+    return { titre: 'Aucune série ne correspond à ces filtres.', detail: '' }
+  }
+  if (filtre === 'envies') {
+    return {
+      titre: 'Aucune envie en cours.',
+      detail: "Sur la fiche d'une série, « Je le veux » sur un tome manquant le fera apparaître ici.",
+    }
+  }
+  return {
+    titre: "Rien ici pour l'instant.",
+    detail: 'Utilise l\'onglet "Rechercher" pour commencer ta collection.',
+  }
+}
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
 // serait recréé à chaque render et invaliderait la mémoïsation.
@@ -40,15 +86,25 @@ const EMPTY_OWNERSHIPS: OwnershipResponse[] = []
  * des SÉRIES, jamais des tomes individuels) et n'apparaît nulle part dans
  * la maquette V1.2 - retiré de cet écran (différence documentée, voir
  * docs/DESIGN_MIGRATION_V1.2.md). Rien n'est perdu côté modèle/données : le
- * suivi tome par tome (Ownership individuelle) reste entier, seul CE mode
- * de navigation disparaît ; récupérable depuis l'historique git si un
- * besoin réel le justifie ailleurs.
+ * suivi tome par tome (Ownership individuelle) reste entier.
+ *
+ * <h2>Une page, trois lectures (étude produit du 2026-08-27)</h2>
+ * « Collection » et « Envies » étaient deux écrans pour le même endroit. Ce
+ * sont désormais trois FILTRES - Tout / Possédés / Envies - qui raisonnent
+ * tous sur les tomes qu'un groupe contient, et deux VUES : groupée (une carte
+ * par série) ou plate (les tomes eux-mêmes). Le mode « par tome » retiré au
+ * Lot 3 revient donc ici, mais comme une vue de plein droit plutôt que comme
+ * un filtre de type déguisé.
+ *
+ * <p>Filtre, vue et tri sont mémorisés (voir lib/preferencesCollection) : ils
+ * décrivent une habitude, pas un choix à refaire à chaque ouverture.
  */
 export function ShelfPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState<CompletionFilter>('ALL')
+  const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
   // Escape + piège de focus + focus rendu au déclencheur - voir
   // useModalA11y (Lot 9).
@@ -69,23 +125,124 @@ export function ShelfPage() {
   const editionsQuery = useQuery({ queryKey: queryKeys.purchaseAnalysis.allEditions, queryFn: listAllEditions })
   const editionTotals = useMemo(() => indexEditionTotals(editionsQuery.data ?? EMPTY_EDITIONS), [editionsQuery.data])
 
+  const wishlist = useWishlist()
   const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
   const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
   const ownerships = ownershipsQuery.data ?? EMPTY_OWNERSHIPS
   const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
 
-  // "Ma collection" montre ce qui est réellement possédé - une série
-  // entièrement cataloguée mais dont plus aucun exemplaire n'est possédé
-  // (tout revendu) n'y a pas sa place, voir isOwned.
-  const entities = useMemo(
-    () =>
-      allEntities.filter((e) => isOwned(e, ownerships, owned) && matchesCompletionFilter(e, owned, status, editionTotals)),
-    [allEntities, ownerships, owned, status, editionTotals],
+  const oeuvresVoulues = useMemo(
+    () => new Set(wishlist.entries.filter((e) => !e.variantId).map((e) => e.entityId)),
+    [wishlist.entries],
+  )
+  const tomesVoulus = wishlist.variantsVoulus
+
+  // L'état de chaque œuvre, calculé une fois : les trois compteurs de la barre
+  // et la liste affichée le lisent tous, au lieu de le redériver chacun.
+  const etats = useMemo(
+    () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)])),
+    [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues],
+  )
+
+  const comptes = useMemo(() => {
+    const total: Record<FiltreCollection, number> = { tout: 0, possedes: 0, envies: 0 }
+    for (const etat of etats.values()) {
+      if (etat.possede) total.possedes++
+      if (etat.voulu) total.envies++
+      if (etat.possede || etat.voulu) total.tout++
+    }
+    return total
+  }, [etats])
+
+  // « Depuis quand », pour le tri : la date d'acquisition d'un tome possédé,
+  // celle de l'envie sinon. Deux index, plutôt qu'un parcours par tuile.
+  const depuisParTome = useMemo(() => {
+    const index = new Map<string, string>()
+    for (const o of ownerships) {
+      if (o.status === 'OWNED' && o.variantId) index.set(o.variantId, o.acquiredAt)
+    }
+    for (const entree of wishlist.entries) {
+      if (entree.variantId && !index.has(entree.variantId)) index.set(entree.variantId, entree.addedAt)
+    }
+    return index
+  }, [ownerships, wishlist.entries])
+
+  const depuisParOeuvre = useMemo(() => {
+    const index = new Map<string, string>()
+    for (const o of ownerships) {
+      if (o.status === 'OWNED' && !o.variantId) index.set(o.entityId, o.acquiredAt)
+    }
+    for (const entree of wishlist.entries) {
+      if (!entree.variantId && !index.has(entree.entityId)) index.set(entree.entityId, entree.addedAt)
+    }
+    return index
+  }, [ownerships, wishlist.entries])
+
+  const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
+
+  /**
+   * Le tri des ŒUVRES. Une œuvre « récente » est celle dont le dernier tome est
+   * arrivé le plus tard : c'est ce qui bouge quand on ajoute un tome à une
+   * vieille série, et donc ce qu'on s'attend à voir remonter.
+   */
+  const triees = useMemo(() => {
+    // Le filtre d'état (Complètes/Incomplètes) ne s'applique qu'à ce qui a une
+    // complétude : une œuvre seulement voulue n'en a pas encore.
+    const retenues = allEntities.filter((e) => {
+      const etat = etats.get(e.id)
+      if (!etat || !correspondAuFiltre(etat, preferences.filtre)) return false
+      return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+    })
+    if (preferences.tri === 'titre') {
+      return [...retenues].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
+    }
+    const derniereVenue = (entity: EntityResponse) =>
+      [...entity.variants.map((v) => depuisParTome.get(v.id) ?? ''), depuisParOeuvre.get(entity.id) ?? '']
+        .sort()
+        .at(-1) ?? ''
+    return [...retenues].sort((a, b) => derniereVenue(b).localeCompare(derniereVenue(a)))
+  }, [allEntities, etats, preferences.filtre, preferences.tri, owned, status, editionTotals, depuisParTome, depuisParOeuvre])
+
+  const entities = triees
+
+  const envieDe = useMemo(
+    () => (entity: EntityResponse) => ({
+      possede: etats.get(entity.id)?.possede ?? false,
+      tomesVoulus:
+        entity.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(entity.id) ? 1 : 0),
+      prioritaire: preferences.filtre === 'envies',
+    }),
+    [etats, tomesVoulus, oeuvresVoulues, preferences.filtre],
   )
 
   const sections = useMemo(
-    () => groupByEntityType(entities, entityTypes, owned, editionTotals),
-    [entities, entityTypes, owned, editionTotals],
+    () => groupByEntityType(triees, entityTypes, owned, editionTotals, envieDe),
+    [triees, entityTypes, owned, editionTotals, envieDe],
+  )
+
+  const tuilesTomes = useMemo(
+    () =>
+      aplatirEnTomes(triees, preferences.filtre, {
+        ownerships,
+        owned,
+        tomesVoulus,
+        oeuvresVoulues,
+        depuisTome: (variantId) => depuisParTome.get(variantId) ?? '',
+        depuisOeuvre: (entityId) => depuisParOeuvre.get(entityId) ?? '',
+        libelleDuType: (entity) => typesParId.get(entity.entityTypeId)?.label,
+      }),
+    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, depuisParTome, depuisParOeuvre, typesParId],
+  )
+
+  // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce
+  // sont les TOMES qu'il faut réordonner - sans quoi les tomes d'une même
+  // série resteraient groupés alors que la vue plate les délie justement.
+  const tuilesAffichees = useMemo(
+    () =>
+      preferences.tri === 'titre'
+        ? tuilesTomes
+        : [...tuilesTomes].sort((a, b) => b.depuis.localeCompare(a.depuis)),
+    [tuilesTomes, preferences.tri],
   )
 
   // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
@@ -151,21 +308,39 @@ export function ShelfPage() {
     return ownerships.filter((o) => o.status === 'OWNED' && o.acquiredAt.startsWith(currentMonth)).length
   }, [ownerships])
 
-  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
-  const totalOwned = entities.length
+  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
+  const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : entities.length
+
+  const vide = messageVide(preferences.filtre, status !== 'ALL')
 
   return (
     <div className="flex flex-col gap-1">
+      {/* Le sous-titre suit le filtre : sous « Envies », annoncer un nombre de
+          titres possédés décrirait autre chose que ce qui est à l'écran. */}
       <EnTeteSection
         niveau={1}
         titre="Ma collection"
         sousTitre={
           <>
-            {totalOwned} titre{totalOwned > 1 ? 's' : ''} possédé{totalOwned > 1 ? 's' : ''}
-            {addedThisMonthCount > 0 && ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
+            {affiches} {LIBELLES_DECOMPTE[preferences.vue][preferences.filtre](affiches)}
+            {preferences.filtre !== 'envies' &&
+              addedThisMonthCount > 0 &&
+              ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
           </>
         }
       />
+
+      <div className="mt-3">
+        <BarreVues
+          filtre={preferences.filtre}
+          onFiltre={(filtre) => preferences.definir({ filtre })}
+          vue={preferences.vue}
+          onVue={(vue) => preferences.definir({ vue })}
+          tri={preferences.tri}
+          onTri={(tri) => preferences.definir({ tri })}
+          comptes={comptes}
+        />
+      </div>
 
       {/* Toolbar calme : une seule entrée Filtres (badge si actif), deux
           raccourcis visibles, le reste dans "Plus d'outils" (voir la
@@ -245,16 +420,10 @@ export function ShelfPage() {
 
       {isLoading && <p className="mt-6 text-textDim">Chargement...</p>}
 
-      {!isLoading && entitiesQuery.isSuccess && sections.length === 0 && (
+      {!isLoading && entitiesQuery.isSuccess && affiches === 0 && (
         <div className={`mt-6 ${CLASSE_CARTE}`}>
-          <p className="font-display text-base font-semibold text-textPrimary">
-            {status !== 'ALL' ? 'Aucune série ne correspond à ces filtres.' : 'Rien ici pour l\'instant.'}
-          </p>
-          <p className="mt-1 text-sm text-textDim">
-            {status !== 'ALL'
-              ? ''
-              : 'Utilise l\'onglet "Rechercher" pour commencer ta collection.'}
-          </p>
+          <p className="font-display text-base font-semibold text-textPrimary">{vide.titre}</p>
+          <p className="mt-1 text-sm text-textDim">{vide.detail}</p>
           {status !== 'ALL' && (
             <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
               Réinitialiser les filtres
@@ -263,11 +432,17 @@ export function ShelfPage() {
         </div>
       )}
 
-      <div className="mt-6 flex flex-col gap-2">
-        {sections.map(({ entityType, tiles }) => (
-          <CategorySection key={entityType.id} entityType={entityType} tiles={tiles} />
-        ))}
-      </div>
+      {preferences.vue === 'plate' ? (
+        <div className="mt-6">
+          <GrilleTomesCollection tuiles={tuilesAffichees} typesParId={typesParId} />
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-2">
+          {sections.map(({ entityType, tiles }) => (
+            <CategorySection key={entityType.id} entityType={entityType} tiles={tiles} />
+          ))}
+        </div>
+      )}
 
       <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
 

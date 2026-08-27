@@ -1,12 +1,18 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Heart } from 'lucide-react'
 import { useWishlist } from '../../lib/useWishlist'
+import { definirPreferencesCollection } from '../../lib/preferencesCollection'
 
 /**
  * Les deux accès globaux qui ne sont PAS des destinations de navigation :
  * Envies (cœur, avec badge) et Profil (avatar). Voir la maquette V1.2 -
  * « Trois intentions, trois espaces. Tout le reste vit dans l'espace auquel il
  * appartient : Envies au cœur, Profil à l'avatar ».
+ * <p>
+ * Le cœur ne mène plus à un écran à lui : les envies sont une LECTURE de Ma
+ * collection (étude produit du 2026-08-27, §5). Il pose donc le filtre et
+ * emmène là-bas - un raccourci vers un état de la page, jamais une seconde
+ * page qui montrerait les mêmes données autrement.
  * <p>
  * Extrait de DesktopHeader pour être partagé avec MobileHeader : ces deux
  * raccourcis n'existaient que sur desktop, ce qui rendait `/wishlist` et
@@ -25,7 +31,10 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={() => navigate('/wishlist')}
+        onClick={() => {
+          definirPreferencesCollection({ filtre: 'envies' })
+          navigate('/')
+        }}
         title="Mes envies"
         aria-label={count > 0 ? `Mes envies, ${count}` : 'Mes envies'}
         className={`relative flex ${size} items-center justify-center rounded-xl bg-softBtn text-textDim transition-colors hover:bg-softPress hover:text-textPrimary`}

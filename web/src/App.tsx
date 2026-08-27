@@ -1,10 +1,25 @@
 import { Suspense, lazy, type ComponentType } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PageIntrouvable } from './routes/PageIntrouvable'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
 import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
 import { useScrollToTopOnNavigation } from './lib/useScrollToTop'
+import { definirPreferencesCollection } from './lib/preferencesCollection'
+
+/**
+ * `/wishlist` menait à un écran qui n'existe plus : les envies sont une
+ * LECTURE de Ma collection (étude produit du 2026-08-27, §5). Le filtre est
+ * posé au passage, sinon la redirection déposerait sur « Tout » quelqu'un qui
+ * demandait justement ses envies.
+ *
+ * <p>`replace` : revenir en arrière doit ramener d'où l'on vient, pas à une
+ * URL qui redirigerait aussitôt (même règle qu'à l'aperçu, Lot 36).
+ */
+function RedirectionEnvies() {
+  definirPreferencesCollection({ filtre: 'envies' })
+  return <Navigate to="/" replace />
+}
 
 /**
  * Charge une page à la demande, à partir d'un export NOMMÉ.
@@ -42,7 +57,6 @@ const AdministrationPage = page(() => import('./routes/Profile/AdministrationPag
 const SuggestionsPage = page(() => import('./routes/Suggestions/SuggestionsPage'), 'SuggestionsPage')
 const CollectionRecapPage = page(() => import('./routes/Recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('./routes/Scan/ScanPage'), 'ScanPage')
-const WishlistPage = page(() => import('./routes/Wishlist/WishlistPage'), 'WishlistPage')
 const StatsPage = page(() => import('./routes/Stats/StatsPage'), 'StatsPage')
 const EditionsPage = page(() => import('./routes/Editions/EditionsPage'), 'EditionsPage')
 const EntityTypesPage = page(() => import('./routes/EntityTypes/EntityTypesPage'), 'EntityTypesPage')
@@ -122,7 +136,10 @@ export default function App() {
                   <Route path="/suggestions" element={<SuggestionsPage />} />
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
-                  <Route path="/wishlist" element={<WishlistPage />} />
+                  {/* L'écran Envies a disparu dans Ma collection (lot C) - mais
+                      un lien partagé ou un signet peut encore pointer ici :
+                      il emmène au bon endroit plutôt qu'à une page introuvable. */}
+                  <Route path="/wishlist" element={<RedirectionEnvies />} />
                   <Route path="/stats" element={<StatsPage />} />
                   <Route path="/editions" element={<EditionsPage />} />
                   <Route path="/types" element={<EntityTypesPage />} />

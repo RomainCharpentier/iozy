@@ -1240,6 +1240,69 @@ aucun débordement. Recherche : plus de cœur sur un manga, cœur intact sur
 *Zelda*. **État final identique à l'état initial** : 8 œuvres, 12 tomes, 10
 possessions, 5 éditions, 0 envie.
 
+### Lot 38 — les envies n'ont plus d'écran, elles ont un filtre
+
+Suite directe du Lot 37, et §5-6 de l'étude produit : « Collection » et
+« Envies » étaient deux écrans pour le **même endroit**. Une page, trois
+filtres — et chacun raisonne sur les tomes qu'un groupe contient.
+
+| Filtre | Affiche les groupes contenant… |
+| --- | --- |
+| Tout | au moins un tome possédé **ou** un tome dans les envies |
+| Possédés | au moins un tome possédé |
+| Envies | au moins un tome marqué « Je le veux » |
+
+#### Deux vues, et le retour du mode « par tome »
+
+**Groupée** (défaut) : une carte par série, la série servant de représentation
+visuelle d'un groupe de tomes. **Non groupée** : directement les tomes
+individuels correspondant au filtre actif.
+
+Le mode « par tome » avait été retiré au Lot 3 faute de place dans la
+structure en rails — « rien n'est perdu côté modèle, seul CE mode de
+navigation disparaît ». Il revient ici, mais comme une **vue de plein droit**
+et non comme un filtre de type déguisé : c'est la même liste, regardée de plus
+près.
+
+Filtre, vue et tri sont mémorisés (`lib/preferencesCollection`, en local comme
+le thème et la composition des titres) : ils décrivent une habitude, pas un
+choix à refaire à chaque ouverture. La vue d'une catégorie (« Tout voir »)
+lit les **mêmes** préférences — arriver là par « Tout voir » depuis Envies et
+retomber sur les possessions serait une rupture, pas un filtre local. Seul le
+filtre d'état (Complètes/Incomplètes) reste propre à chaque écran.
+
+#### Ce que l'écran retiré emporte avec lui
+
+`/wishlist` **redirige** vers Ma collection en posant le filtre Envies : un
+signet ou un lien partagé doit arriver quelque part, et sur ce qu'il
+demandait. Le cœur des en-têtes fait exactement pareil — il pose le filtre et
+navigue, il n'ouvre plus rien. `ShareSection.miseEnAvant` disparaît : il
+ordonnait deux cases selon l'écran d'où l'on venait, et il n'y a plus qu'un
+écran d'où venir. Le partage lui-même est inchangé (collection et envies, même
+jeton, même lien).
+
+#### Trois formulations qui mentaient une fois les envies visibles
+
+- **« 0 tome »** sur une série voulue sans en posséder un seul : un décompte
+  de possession posé sur une carte qui n'est là que parce qu'on la veut.
+  Devenu « aucun tome encore », et la carte porte « 1 tome voulu ».
+- **Le signal de carte** : sous le filtre Envies, c'est le nombre de tomes
+  voulus qui est pertinent, pas « Plus que 2 tomes ». Il prend le pas —
+  jamais empilé, la règle d'un seul signal par carte tient.
+- **Le sous-titre de la page** annonçait « N titres possédés » quel que soit
+  le filtre. Il nomme désormais ce qu'il compte : « titres avec une envie en
+  cours », « tomes dans mes envies », « tomes possédés ou voulus ».
+
+#### Vérifications
+
+`typecheck`, `lint`, `check:contrast`, `build` verts. En direct, sur trois
+envies posées sur des tomes **déjà catalogués** (donc réversibles sans toucher
+au catalogue) : compteurs 7 / 6 / 3 cohérents avec la base ; les six
+combinaisons filtre × vue rendent ce qu'elles annoncent ; la préférence est
+relue à chaque bascule ; `/wishlist` redirige en posant le filtre ; le cœur
+des en-têtes fait passer « Tout » à « Envies » sans quitter la page ; la vue
+catégorie suit ; aucun débordement horizontal à 1280 ni à 375 px.
+
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
 Reproduit en direct avant correction (`GET /api/metadata/french-title?query=Vagabond&author=Takehiko Inoue`

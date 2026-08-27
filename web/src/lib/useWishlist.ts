@@ -7,10 +7,10 @@ import { queryKeys } from './queryKeys'
  * SOURCE UNIQUE du comportement « Envies ».
  *
  * Toutes les surfaces qui affichent ou modifient les envies passent par ici :
- * la fiche d'une œuvre, les résultats de recherche déjà possédés, le menu du
- * scan, l'écran Envies lui-même et le badge des en-têtes. Elles partagent donc
- * le même état (« Dans vos envies » vs « Ajouter aux envies »), la même
- * invalidation de cache et le même retour visuel - impossible de dériver.
+ * la grille de tomes d'une fiche, Ma collection filtrée par Envies, les
+ * résultats de recherche, le menu du scan, l'analyse d'achat et le badge des
+ * en-têtes. Elles partagent donc le même état, la même invalidation de cache
+ * et le même retour visuel - impossible de dériver.
  *
  * L'ajout n'avait qu'UN seul appelant dans toute l'application (le résultat
  * d'une analyse d'achat), alors que l'écran Envies, son badge et son lien de
