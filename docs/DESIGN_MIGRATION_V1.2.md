@@ -1360,6 +1360,55 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 56 — la valeur de la collection se compte au prix NEUF
+
+« La valeur de collection sera calculée par rapport à la valeur neuf, pas la
+valeur qu'on l'a acheté. »
+
+Ce total sommait les prix d'ACHAT des possessions. Deux raisons de changer :
+ce que vaut une collection ne dépend pas de ce qu'elle a coûté - un tome trouvé
+d'occasion à 2 € vaut ce que vaut ce tome - et depuis le Lot 53 plus aucune
+surface ne saisit de prix d'achat : l'écran n'avait plus **aucune** source.
+
+Le prix neuf vit sur l'ÉDITION (`MangaEdition.retailPriceNewPerVolume`), se
+renseigne depuis l'écran Éditions, et se multiplie par le nombre de tomes
+possédés de cette édition. Le comptage passe par `CollectionProgressService` -
+source unique de la progression - plutôt que par les Ownership une à une : les
+tomes catalogués sans édition précisée rejoignent ainsi leur édition, comme
+partout ailleurs (voir Lots 49 et 51, où refaire ce calcul de son côté avait
+déjà mal tourné deux fois).
+
+Un type sans source de prix neuf - jeu vidéo, jeu de société - compte dans le
+total des possessions et jamais dans la valeur connue. La couverture reste
+affichée : « prix neuf connu sur X/Y ».
+
+**Mesuré en direct après redéploiement** : 44,70 € sur 3/13 - les trois tomes de
+Death Note à 14,90 € l'unité - contre 0,00 € auparavant, faute de prix d'achat.
+
+#### Un tome ajouté d'un clic naissait sans jaquette
+
+Signalé dans la foulée : « sur Death Note il manque des jaquettes ».
+`quickAdd` n'enregistre une image que si l'appelant lui en donne. Un tome venu
+d'une proposition en avait une ; un tome ajouté d'un clic sur la grille, non -
+et le Lot 55 venait de retirer l'éditeur de jaquette du tome avec le panneau.
+
+L'ajout va donc la chercher lui-même, avec le même appariement que le
+rattrapage groupé de Ma collection (`findBestCoverMatch`, jamais un nouvel
+algorithme). Best-effort assumé : quota dépassé, fournisseur muet ou aucune
+correspondance laissent le tome sans image - jamais une erreur à l'écran pour
+un ajout qui, lui, a réussi.
+
+`findBestCoverMatch` ne prend plus un `VariantDto` complet mais ses seuls
+attributs : un tome qu'on vient de créer n'a pas d'objet complet à offrir, et
+n'a pas à en fabriquer un faux à coups de `as`.
+
+#### Vérifications
+
+Suite backend complète : **1020 tests**, 0 échec. Le test de la valeur décrit
+la nouvelle règle et pose un prix d'achat volontairement absurde (2 € sur un
+tome à 14,90 €) pour vérifier qu'il n'entre dans aucun total. `typecheck`,
+`lint`, `check:contrast`, `build`.
+
 ### Lot 55 — le panneau du tome disparaît, la note remonte au groupe
 
 Décision utilisateur : « je veux plus voir de prix payé, vendu, perdu, on garde

@@ -1,6 +1,9 @@
 package com.iozycore.insights;
 
 import com.iozycore.domain.catalog.Entity;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
@@ -57,7 +60,10 @@ class StatsServiceTest {
 
         wishlistEntryRepository.save(WishlistEntry.add(UUID.randomUUID(), LocalDate.now()));
 
+        InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
         StatsService statsService = new StatsService(
+                editionRepository,
+                new CollectionProgressService(entityRepository, ownershipRepository, editionRepository),
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
                 entityTypeRepository);
 
@@ -105,7 +111,10 @@ class StatsServiceTest {
         soldButStillCountedTowardsHistoricalGrowth.markSold();
         ownershipRepository.save(soldButStillCountedTowardsHistoricalGrowth);
 
+        InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
         StatsService statsService = new StatsService(
+                editionRepository,
+                new CollectionProgressService(entityRepository, ownershipRepository, editionRepository),
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
                 entityTypeRepository);
 
@@ -148,7 +157,10 @@ class StatsServiceTest {
         experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.of(2026, 2, 10), 9, null));
         experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.of(2025, 1, 1), 5, null));
 
+        InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
         StatsService statsService = new StatsService(
+                editionRepository,
+                new CollectionProgressService(entityRepository, ownershipRepository, editionRepository),
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
                 entityTypeRepository);
 
@@ -173,7 +185,10 @@ class StatsServiceTest {
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
         InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
 
+        InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
         StatsService statsService = new StatsService(
+                editionRepository,
+                new CollectionProgressService(entityRepository, ownershipRepository, editionRepository),
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
                 entityTypeRepository);
 
@@ -195,40 +210,63 @@ class StatsServiceTest {
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
         InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
 
+        // Une série à DEUX tomes possédés, dans une édition dont le prix neuf est
+        // connu : c'est lui qui fait la valeur, pas ce qu'on a payé.
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
+        deathNote.addVariant("Tome 1 — Black Édition", Map.of("volumeNumber", 1, "edition", "Black Édition"));
+        deathNote.addVariant("Tome 2 — Black Édition", Map.of("volumeNumber", 2, "edition", "Black Édition"));
         entityRepository.save(deathNote);
         Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(hollowKnight);
 
-        Ownership priced = Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
-        priced.updatePurchasePrice(new BigDecimal("6.90"));
-        ownershipRepository.save(priced);
-        // Tome sans prix renseigné (ex: ajouté avant cette fonctionnalité) - compte dans le total, pas dans la valeur connue.
-        ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
-        Ownership pricedGame = Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
-        pricedGame.updatePurchasePrice(new BigDecimal("30.00"));
-        ownershipRepository.save(pricedGame);
-        // Vendue : ne doit compter dans aucun total, même si elle a un prix.
+        InMemoryMangaEditionRepository editionRepository = new InMemoryMangaEditionRepository();
+        editionRepository.save(MangaEdition.create(deathNote.id(), "Death Note", "Black Édition",
+                EditionTier.INTEGRAL, "Kana", 6, new BigDecimal("14.90"), false, false, null));
+
+        // Le prix PAYÉ est volontairement absurde : il ne doit entrer dans aucun
+        // total. Ce que vaut la collection ne dépend pas de ce qu'elle a coûté.
+        Ownership tome1 = Ownership.acquire(deathNote.id(),
+                deathNote.findVariantByLabel("Tome 1 — Black Édition").orElseThrow().id(),
+                OwnershipCondition.NEW, LocalDate.now(), null);
+        tome1.updatePurchasePrice(new BigDecimal("2.00"));
+        ownershipRepository.save(tome1);
+        ownershipRepository.save(Ownership.acquire(deathNote.id(),
+                deathNote.findVariantByLabel("Tome 2 — Black Édition").orElseThrow().id(),
+                OwnershipCondition.NEW, LocalDate.now(), null));
+
+        // Aucune source de prix neuf pour un jeu : il compte dans le total des
+        // possessions, jamais dans la valeur connue.
+        ownershipRepository.save(Ownership.acquire(hollowKnight.id(), null,
+                OwnershipCondition.NEW, LocalDate.now(), null));
+
+        // Vendue : hors de tous les totaux.
         Ownership sold = Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
-        sold.updatePurchasePrice(new BigDecimal("99.00"));
         sold.markSold();
         ownershipRepository.save(sold);
 
         StatsService statsService = new StatsService(
+                editionRepository,
+                new CollectionProgressService(entityRepository, ownershipRepository, editionRepository),
                 entityRepository, ownershipRepository, experienceRepository, wishlistEntryRepository, tagRepository,
                 entityTypeRepository);
 
         CollectionValue value = statsService.computeCollectionValue();
 
-        assertThat(value.totalKnownValue()).isEqualByComparingTo(new BigDecimal("36.90"));
+        // 2 tomes x 14,90 - et surtout pas les 2,00 payés.
+        assertThat(value.totalKnownValue()).isEqualByComparingTo(new BigDecimal("29.80"));
         assertThat(value.pricedOwnershipCount()).isEqualTo(2);
-        assertThat(value.totalActiveOwnershipCount()).isEqualTo(3); // sold excluded
+        assertThat(value.totalActiveOwnershipCount()).isEqualTo(3); // le jeu vendu est exclu
 
         CollectionValue.TypeValue mangaValue = value.byType().stream()
                 .filter(t -> t.entityTypeLabel().equals("Manga")).findFirst().orElseThrow();
-        assertThat(mangaValue.knownValue()).isEqualByComparingTo(new BigDecimal("6.90"));
-        assertThat(mangaValue.pricedCount()).isEqualTo(1);
+        assertThat(mangaValue.knownValue()).isEqualByComparingTo(new BigDecimal("29.80"));
+        assertThat(mangaValue.pricedCount()).isEqualTo(2);
         assertThat(mangaValue.totalCount()).isEqualTo(2);
+
+        CollectionValue.TypeValue jeuValue = value.byType().stream()
+                .filter(t -> t.entityTypeLabel().equals("Jeu vidéo")).findFirst().orElseThrow();
+        assertThat(jeuValue.knownValue()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(jeuValue.pricedCount()).isZero();
     }
 
     private static class InMemoryEntityRepository implements EntityRepository {
@@ -441,6 +479,56 @@ class StatsServiceTest {
         @Override
         public List<Tag> findAll() {
             return new ArrayList<>(store.values());
+        }
+    }
+
+    private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
+        private final Map<UUID, MangaEdition> store = new HashMap<>();
+
+        @Override
+        public MangaEdition save(MangaEdition edition) {
+            store.put(edition.id(), edition);
+            return edition;
+        }
+
+        @Override
+        public Optional<MangaEdition> findById(UUID id) {
+            return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public Optional<MangaEdition> findBySeriesAndEdition(String seriesTitle, String editionName) {
+            return store.values().stream()
+                    .filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)
+                            && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public List<MangaEdition> findBySeriesTitle(String seriesTitle) {
+            return store.values().stream().filter(e -> e.seriesTitle().equalsIgnoreCase(seriesTitle)).toList();
+        }
+
+        @Override
+        public List<MangaEdition> findByEntityId(UUID entityId) {
+            return store.values().stream().filter(e -> entityId.equals(e.entityId())).toList();
+        }
+
+        @Override
+        public List<MangaEdition> findAll() {
+            return new ArrayList<>(store.values());
+        }
+
+        @Override
+        public Optional<MangaEdition> findByEntityIdAndEditionName(UUID entityId, String editionName) {
+            return store.values().stream()
+                    .filter(e -> entityId.equals(e.entityId()) && e.editionName().equalsIgnoreCase(editionName))
+                    .findFirst();
+        }
+
+        @Override
+        public void deleteById(UUID id) {
+            store.remove(id);
         }
     }
 }

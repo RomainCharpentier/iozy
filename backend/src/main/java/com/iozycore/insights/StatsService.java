@@ -2,6 +2,8 @@ package com.iozycore.insights;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Tag;
@@ -43,8 +45,12 @@ public class StatsService {
     private final WishlistEntryRepository wishlistEntryRepository;
     private final TagRepository tagRepository;
     private final EntityTypeRepository entityTypeRepository;
+    private final MangaEditionRepository mangaEditionRepository;
+    private final CollectionProgressService progressService;
 
-    public StatsService(EntityRepository entityRepository,
+    public StatsService(MangaEditionRepository mangaEditionRepository,
+                         CollectionProgressService progressService,
+                         EntityRepository entityRepository,
                          OwnershipRepository ownershipRepository,
                          ExperienceRepository experienceRepository,
                          WishlistEntryRepository wishlistEntryRepository,
@@ -56,6 +62,8 @@ public class StatsService {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.tagRepository = tagRepository;
         this.entityTypeRepository = entityTypeRepository;
+        this.mangaEditionRepository = mangaEditionRepository;
+        this.progressService = progressService;
     }
 
     public StatsSummary computeSummary() {
@@ -219,6 +227,19 @@ public class StatsService {
             entitiesById.computeIfAbsent(ownership.entityId(), id -> entityRepository.findById(id).orElse(null));
         }
 
+        // Prix NEUF de l'édition, jamais le prix payé (décision utilisateur du
+        // 2026-08-27). Ce que vaut une collection ne dépend pas de ce qu'elle a
+        // coûté : un tome trouvé d'occasion à 2 € vaut ce que vaut ce tome.
+        // Et plus aucune surface ne saisit de prix d'achat depuis que l'ajout
+        // tient en un clic - ce calcul-là n'avait plus de source du tout.
+        Map<String, BigDecimal> prixNeufParEdition = new HashMap<>();
+        for (MangaEdition edition : mangaEditionRepository.findAll()) {
+            if (edition.entityId() != null && edition.retailPriceNewPerVolume() != null) {
+                prixNeufParEdition.put(cleEdition(edition.entityId(), edition.editionName()),
+                        edition.retailPriceNewPerVolume());
+            }
+        }
+
         BigDecimal totalKnownValue = BigDecimal.ZERO;
         long pricedCount = 0;
         Map<String, BigDecimal> valueByTypeLabel = new HashMap<>();
@@ -230,13 +251,30 @@ public class StatsService {
             String typeLabel = entity != null && typesById.containsKey(entity.entityTypeId())
                     ? typesById.get(entity.entityTypeId()).label() : "?";
             totalCountByTypeLabel.merge(typeLabel, 1L, Long::sum);
+        }
 
-            Optional<BigDecimal> price = ownership.purchasePrice();
-            if (price.isPresent()) {
-                totalKnownValue = totalKnownValue.add(price.get());
-                pricedCount++;
-                valueByTypeLabel.merge(typeLabel, price.get(), BigDecimal::add);
-                pricedCountByTypeLabel.merge(typeLabel, 1L, Long::sum);
+        // Par ÉDITION et non par possession : c'est l'édition qui porte un prix
+        // neuf, et c'est CollectionProgressService qui sait quels tomes lui
+        // appartiennent - y compris ceux catalogués sans édition précisée (voir
+        // Lot 49, où refaire ce calcul de son côté avait déjà mal tourné).
+        for (Entity entity : entitiesById.values()) {
+            if (entity == null) {
+                continue;
+            }
+            String typeLabel = typesById.containsKey(entity.entityTypeId())
+                    ? typesById.get(entity.entityTypeId()).label() : "?";
+            for (CollectionProgress.EditionProgress groupe : progressService.compute(entity.id())
+                    .map(CollectionProgress::editions).orElse(List.of())) {
+                BigDecimal prixNeuf = prixNeufParEdition.get(cleEdition(entity.id(), groupe.editionName()));
+                if (prixNeuf == null || groupe.ownedVolumeNumbers().isEmpty()) {
+                    continue;
+                }
+                long tomes = groupe.ownedVolumeNumbers().size();
+                BigDecimal valeur = prixNeuf.multiply(BigDecimal.valueOf(tomes));
+                totalKnownValue = totalKnownValue.add(valeur);
+                pricedCount += tomes;
+                valueByTypeLabel.merge(typeLabel, valeur, BigDecimal::add);
+                pricedCountByTypeLabel.merge(typeLabel, tomes, Long::sum);
             }
         }
 
@@ -249,6 +287,11 @@ public class StatsService {
                 .toList();
 
         return new CollectionValue(totalKnownValue, pricedCount, activeOwnerships.size(), byType);
+    }
+
+    /** Même clé que partout ailleurs : une édition s'identifie par (œuvre, nom). */
+    private static String cleEdition(java.util.UUID entityId, String editionName) {
+        return entityId + "|" + editionName.trim().toLowerCase();
     }
 
     private List<StatsSummary.TagCount> computeTopTags(List<Entity> allEntities) {

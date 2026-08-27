@@ -19,7 +19,9 @@ export function variantsMissingCover(entity: EntityResponse): VariantDto[] {
  * volumeNumber absent du résultat de recherche reste sans jaquette. */
 export function findBestCoverMatch(
   candidates: VolumeCandidateDto[],
-  variant: VariantDto,
+  /** Seuls les attributs sont lus - un tome qu'on vient de créer n'a pas
+   *  encore d'objet complet à offrir, et n'a pas à en fabriquer un faux. */
+  variant: Pick<VariantDto, 'attributes'>,
 ): VolumeCandidateDto | undefined {
   const volumeNumber = variant.attributes.volumeNumber
   if (typeof volumeNumber !== 'number') return undefined

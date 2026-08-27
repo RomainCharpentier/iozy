@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
-import { getEntity, mergeEntityAttributes, quickAdd, renameEntity } from '../../api/entities'
+import { getEntity, mergeEntityAttributes, mergeVariantAttributes, quickAdd, renameEntity } from '../../api/entities'
 import { deleteOwnership, listOwnerships } from '../../api/ownerships'
+import { searchVolumes } from '../../api/metadata'
+import { findBestCoverMatch } from '../Shelf/backfillCovers'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
@@ -118,14 +120,42 @@ export function EntityDetailPage() {
    * partout ailleurs : rien de neuf n'est inventé ici.
    */
   const ajoutTome = useMutation({
-    mutationFn: (tome: { entityTypeId: string; titre: string; numero: number; edition?: string }) =>
-      quickAdd({
+    mutationFn: async (tome: { entityTypeId: string; titre: string; numero: number; edition?: string }) => {
+      const resultat = await quickAdd({
         entityTypeId: tome.entityTypeId,
         title: tome.titre,
         condition: 'NEW',
         volumeNumber: tome.numero,
         edition: tome.edition,
-      }),
+      })
+
+      // La jaquette du tome, cherchée tout de suite - et sans rien demander.
+      //
+      // `quickAdd` n'en enregistre une que si l'appelant lui en donne : un tome
+      // ajouté d'un clic depuis la grille naissait donc sans image, alors que
+      // ceux venus d'une proposition en avaient une. Constaté sur Death Note.
+      //
+      // Best-effort par nature : quota dépassé, fournisseur muet ou aucune
+      // correspondance laissent simplement le tome sans jaquette - jamais une
+      // erreur à l'écran pour un ajout qui, lui, a réussi. Le rattrapage
+      // groupé reste disponible depuis Ma collection (voir backfillCovers).
+      if (resultat.variantId) {
+        try {
+          const trouves = await searchVolumes(tome.entityTypeId, tome.titre)
+          const correspondance = findBestCoverMatch(trouves.volumes, {
+            attributes: { volumeNumber: tome.numero, edition: tome.edition },
+          })
+          if (correspondance?.imageUrl) {
+            await mergeVariantAttributes(resultat.entityId, resultat.variantId, {
+              coverImageUrl: correspondance.imageUrl,
+            })
+          }
+        } catch {
+          // Voir ci-dessus : l'ajout prime, la jaquette est un bonus.
+        }
+      }
+      return resultat
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
