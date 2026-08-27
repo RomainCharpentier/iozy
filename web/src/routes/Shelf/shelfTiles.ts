@@ -166,6 +166,16 @@ export function matchesCompletionFilter(
  * SANS les types à 0 titre (voir la maquette V1.2 - `sections.filter(s =>
  * s.tiles.length > 0)`, jamais un rail vide qui n'aurait rien à faire
  * défiler). */
+/** L'ordre d'affichage des types, partagé par les DEUX vues : grouper puis
+ *  dégrouper ne doit pas changer l'ordre dans lequel les univers défilent. */
+export function trierTypes(entityTypes: EntityTypeDto[]): EntityTypeDto[] {
+  return [...entityTypes].sort((a, b) => {
+    const ia = TYPE_ORDER.indexOf(a.code)
+    const ib = TYPE_ORDER.indexOf(b.code)
+    return (ia === -1 ? TYPE_ORDER.length : ia) - (ib === -1 ? TYPE_ORDER.length : ib)
+  })
+}
+
 export function groupByEntityType(
   entities: EntityResponse[],
   entityTypes: EntityTypeDto[],
@@ -177,12 +187,7 @@ export function groupByEntityType(
     prioritaire: false,
   }),
 ): { entityType: EntityTypeDto; tiles: ShelfTile[] }[] {
-  const sorted = [...entityTypes].sort((a, b) => {
-    const ia = TYPE_ORDER.indexOf(a.code)
-    const ib = TYPE_ORDER.indexOf(b.code)
-    return (ia === -1 ? TYPE_ORDER.length : ia) - (ib === -1 ? TYPE_ORDER.length : ib)
-  })
-  return sorted
+  return trierTypes(entityTypes)
     .map((entityType) => ({
       entityType,
       tiles: entities
@@ -244,7 +249,6 @@ export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): 
  */
 export interface TuileElement extends ShelfTile {
   etat: 'possede' | 'voulu'
-  typeLabel?: string
   /** Le type porte le format de jaquette (2/3 pour un manga, carré pour un
    *  jeu de société) : sans lui, la grille plate mélangerait les cadres. */
   entityTypeId: string
@@ -266,6 +270,10 @@ function libelleDeLElement(variant: VariantDto): string {
  * elle-même : c'est déjà l'objet individuel de son type, il n'y a rien à
  * aplatir. Une œuvre à variantes en donne une par variante retenue - des
  * tomes pour un manga, et le libellé de la variante pour tout autre type.
+ *
+ * <p>Les tuiles ne portent PAS leur type : c'est la section qui l'annonce
+ * (voir GrilleElements), et le répéter sur chacune des soixante-douze tuiles
+ * d'une même section n'apprendrait rien.
  */
 export function aplatirEnElements(
   entities: EntityResponse[],
@@ -278,12 +286,10 @@ export function aplatirEnElements(
     /** Depuis quand cet élément est possédé, ou voulu - selon ce qu'il est. */
     depuisTome: (variantId: string) => string
     depuisOeuvre: (entityId: string) => string
-    libelleDuType: (entity: EntityResponse) => string | undefined
   },
 ): TuileElement[] {
   const tuiles: TuileElement[] = []
   for (const entity of entities) {
-    const typeLabel = contexte.libelleDuType(entity)
     if (entity.variants.length === 0) {
       const etat = isOwned(entity, ownershipsDe(entity, contexte.ownerships), contexte.owned) ? 'possede' : 'voulu'
       if (retenu(etat, filtre)) {
@@ -291,7 +297,6 @@ export function aplatirEnElements(
           key: entity.id,
           title: entity.title,
           subtitle: etat === 'possede' ? 'Possédé' : 'Dans mes envies',
-          typeLabel,
           imageUrl: coverImageUrlFrom(entity.attributes),
           entityId: entity.id,
           entityTypeId: entity.entityTypeId,
@@ -313,7 +318,6 @@ export function aplatirEnElements(
         key: variant.id,
         title: entity.title,
         subtitle: sousTitre,
-        typeLabel,
         imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
         // Sans jaquette propre au tome, le dégradé de repli serait le même
         // pour toute la série : le sous-titre le fait varier tome par tome.

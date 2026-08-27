@@ -198,9 +198,8 @@ export function ShelfPage() {
         oeuvresVoulues,
         depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
         depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
-        libelleDuType: (entity) => typesParId.get(entity.entityTypeId)?.label,
       }),
-    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, venues, typesParId],
+    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
   )
 
   // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce

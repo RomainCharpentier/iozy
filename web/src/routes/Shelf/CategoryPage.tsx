@@ -128,7 +128,6 @@ export function CategoryPage() {
       oeuvresVoulues,
       depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
       depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
-      libelleDuType: () => undefined,
     })
     // Par titre, l'ordre des œuvres suffit ; par récence, ce sont les TOMES
     // qu'il faut réordonner - sinon « Récents d'abord » ne ferait rien de
