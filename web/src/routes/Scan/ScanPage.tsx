@@ -15,10 +15,11 @@ import type { EtatFiche } from '../EntityDetail/retourFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { ApiError } from '../../api/client'
 
 interface ScanEntry {
   code: string
-  status: 'added' | 'skipped' | 'not-found' | 'error'
+  status: 'added' | 'skipped' | 'not-found' | 'unavailable' | 'error'
   title?: string
   volumeNumber?: number
   edition?: string
@@ -45,6 +46,8 @@ function libelleEntree(entry: ScanEntry): string {
       return `${nom} - passé`
     case 'not-found':
       return `Rien trouvé pour ${entry.code}`
+    case 'unavailable':
+      return `Une source n'a pas répondu pour ${entry.code} - réessaie`
     case 'error':
       return `Échec de la recherche pour ${entry.code}`
   }
@@ -99,8 +102,12 @@ export function ScanPage() {
       let candidate: MetadataCandidateDto | null = null
       try {
         candidate = await lookupBarcode(mangaType.id, code)
-      } catch {
-        setEntries((prev) => [{ code, status: 'error' }, ...prev])
+      } catch (erreur) {
+        // 503 : une base de métadonnées n'a pas répondu. Le dire, plutôt que de
+        // le confondre avec un échec de la recherche - le geste utile n'est pas
+        // le même (réessayer, contre chercher par titre).
+        const indisponible = erreur instanceof ApiError && erreur.status === 503
+        setEntries((prev) => [{ code, status: indisponible ? 'unavailable' : 'error' }, ...prev])
         return
       }
       if (!candidate) {
@@ -274,6 +281,7 @@ export function ScanPage() {
               )}
               {entry.status === 'skipped' && <SkipForward size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
+              {entry.status === 'unavailable' && <HelpCircle size={16} className="shrink-0 text-warning" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
               <TexteCoupe texte={libelleEntree(entry)} className="min-w-0 flex-1 truncate text-textPrimary" />
               {entry.volumeNumber !== undefined && (
@@ -288,7 +296,7 @@ export function ScanPage() {
                   d'intervalle). D'où "Rien trouvé" plutôt qu'"Aucune
                   correspondance", et une porte de sortie plutôt qu'une ligne
                   morte. */}
-              {(entry.status === 'not-found' || entry.status === 'error') && (
+              {(entry.status === 'not-found' || entry.status === 'unavailable' || entry.status === 'error') && (
                 <button
                   type="button"
                   onClick={() => navigate('/add')}

@@ -30,8 +30,10 @@ export function searchMetadata(
   return get<MetadataCandidateDto[]>(`/metadata/search${buildQuery({ entityTypeId, query })}`, signal)
 }
 
-/** 404 = pas de correspondance trouvée, pas une erreur (comme côté iOS) -
- * renvoie null plutôt que de laisser l'exception remonter. */
+/** 404 = les bases ont répondu et ne connaissent pas ce code : ce n'est pas une
+ * erreur (comme côté iOS), d'où `null` plutôt qu'une exception. Un 503 - une base
+ * n'a pas répondu - remonte au contraire, parce que l'écran doit le dire
+ * autrement : ré-essayer a du sens, chercher par titre non. */
 export async function lookupBarcode(entityTypeId: string, barcode: string): Promise<MetadataCandidateDto | null> {
   try {
     return await get<MetadataCandidateDto>(`/metadata/lookup-barcode${buildQuery({ entityTypeId, barcode })}`)

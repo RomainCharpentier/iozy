@@ -153,6 +153,13 @@ class MetadataHttpContractTest extends HttpContractTestBase {
                         .param("barcode", DECLENCHE_VIDE))
                 .andExpect(status().isNotFound());
 
+        // Une source qui n'a pas répondu n'est PAS une absence : 503, parce que le
+        // geste utile est de réessayer, là où un 404 invite à chercher par titre.
+        mockMvc.perform(get(META + "/lookup-barcode")
+                        .param("entityTypeId", universDeTest().toString())
+                        .param("barcode", DECLENCHE_PANNE))
+                .andExpect(status().isServiceUnavailable());
+
         // Univers inconnu : la requête elle-même est invalide.
         mockMvc.perform(get(META + "/lookup-barcode")
                         .param("entityTypeId", ABSENT).param("barcode", "123"))
