@@ -1360,6 +1360,88 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 59 — recharger ce que la source sait, en un bouton
+
+« Je veux un bouton pour recharger les images ou les infos api. »
+
+Les attributs d'une œuvre - mangaka, statut, nombre de tomes, jaquette de
+série, identifiants externes - étaient recopiés d'un fournisseur **au moment
+de l'ajout, et plus jamais**. Une série en cours gardait éternellement le
+nombre de tomes qu'elle avait le jour où on l'a ajoutée, et une fiche saisie à
+la main n'avait rien du tout. Seules les jaquettes de tomes pouvaient se
+rattraper (Lot 57).
+
+**Un seul bouton pour les deux**, « Recharger depuis la source », dans
+« Éditer » avec le reste du catalogue : les informations d'abord, les jaquettes
+de tomes ensuite. Cet ordre n'est pas cosmétique - si la source nous apprend le
+mangaka, la recherche de tomes qui suit s'en sert pour viser juste. Deux boutons
+côte à côte pour « recharger » et « recharger aussi » n'auraient aidé personne.
+
+Le bouton est **toujours là**, contrairement à l'ancien qui n'apparaissait qu'en
+cas de jaquette manquante : une œuvre dont toutes les images sont en place a
+quand même des informations à redemander. Le décompte des jaquettes manquantes
+reste annoncé à côté, c'est ce qui se voit à l'œil.
+
+#### Le filtre qui garantissait zéro correspondance
+
+`GET /metadata/search` **écarte les titres déjà présents dans la collection** -
+son but est de préparer un AJOUT, pas de proposer deux fois la même œuvre. Sur
+une fiche existante, la question est exactement inverse, et le filtre y
+garantissait par construction qu'on ne trouverait jamais rien.
+
+Vérifié en direct sur Naruto avant de le corriger : la recherche rendait huit
+dérivés - Boruto, les light novels, les films - et **jamais la série
+elle-même**. L'écran disait « La source ne connaît pas cette œuvre sous ce
+titre », ce qui était la vérité de ce que l'endpoint avait rendu.
+
+`includeOwned=true` lève le filtre, sans toucher au cache (il mémorise les
+résultats bruts des fournisseurs, le filtre s'applique après). Côté web, deux
+fonctions nommées plutôt qu'un booléen en fin d'appel - `searchMetadata` et
+`rechercherOeuvrePossedee` : le filtre décide de ce que la réponse peut
+contenir, ce n'est pas un détail de réglage.
+
+#### Deux fonctions pures, parce que ce sont les deux endroits qui écrivent
+
+`rechargerSource.ts` tient hors de React le choix du candidat et le calcul de ce
+qu'il faut écrire.
+
+**Le candidat se choisit par IDENTIFIANT d'abord** (`malId`/`igdbId`/`bggId`,
+déjà stocké depuis l'ajout), et seulement à défaut par titre exact. Jamais un
+« à peu près » : sur Zelda, le premier résultat rendu par IGDB est un *bundle*,
+et la recherche Naruto est pleine de dérivés portant le même début de titre.
+Sans cette règle, un rechargement recopierait tranquillement les informations
+d'un spin-off sur la série mère.
+
+**Ce qui s'écrit est le strict nécessaire** : les clés que la source renseigne
+vraiment, et seulement quand leur valeur diffère de celle en base - le décompte
+affiché doit pouvoir dire « tout est déjà à jour » sans mentir. Deux exclusions :
+les remarques de l'utilisateur, qui ne viennent d'aucune source ; et la jaquette
+de la série, **posée seulement si elle manque** - elle se choisit à la main sur
+la fiche, et un rechargement n'a pas à défaire ce choix.
+
+#### Quatre issues, quatre phrases
+
+Héritage direct du Lot 58 : la source n'a pas répondu (réessayer), elle a
+répondu mais ne connaît pas cette œuvre (rien à attendre d'un second clic), elle
+a répondu et tout était déjà à jour, ou quelque chose a changé. Les confondre
+sous un « rien trouvé » était exactement le défaut corrigé la veille.
+
+#### Vérifications
+
+**Mesuré en direct**, sur les données réelles et rendues à l'identique :
+
+1. Naruto, tout déjà à jour → aucune écriture, attributs inchangés au caractère
+   près.
+2. `totalVolumes` abaissé à 71 et `mangaka` remplacé par « Inconnu » à la main,
+   puis clic → « 2 informations mises à jour. », les deux valeurs justes
+   revenues. La vérification se répare elle-même.
+3. Zelda (IGDB) sans rien écrire : le bon candidat (`igdbId` 7346) est en 4e
+   position, derrière un bundle et deux dérivés - l'identifiant le retrouve là
+   où le titre aurait pris le premier venu.
+
+**Vérifié** : suite backend complète, 1024 tests, 0 échec ; `typecheck`,
+`lint`, `check:contrast`, `build`.
+
 ### Lot 58 — une source muette n'est pas une absence
 
 Épreuve du bouton du Lot 57, sur Naruto. Il annonçait « Retrouver 1 jaquette »,
@@ -3555,6 +3637,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un endpoint peut porter un filtre qui rend une question IMPOSSIBLE à poser : `/metadata/search` écarte ce qu'on possède déjà, donc une fiche existante n'y trouvait jamais sa propre œuvre - zéro correspondance par construction, et un message d'écran parfaitement plausible pour le masquer. Avant de rapprocher deux données, vérifier que la source peut seulement rendre la bonne (Lot 59).
+- Rapprocher une œuvre d'un candidat par le TITRE est un piège quand la source indexe aussi les dérivés : Naruto rend huit spin-offs, Zelda rend un bundle en premier. L'identifiant externe est déjà stocké depuis l'ajout - s'en servir d'abord (Lot 59).
 - Un `return null` qui veut dire « ça n'a pas marché » finit toujours par vouloir dire « il n'y a rien » : deux étages plus haut, plus personne ne sait lequel des deux. Quand un échec et un vide légitime mènent à des conduites différentes (ici : mettre en cache, ou pas), c'est le TYPE qui doit les séparer, pas une convention (Lot 58).
 - Ce dépôt a DEUX clients (web et iOS, tous deux suivis par git). Un balayage d'appelants qui ne regarde que `web/src` déclare mort du code vivant : `/wishlist/lookup` a été listé à tort comme sans appelant au Lot 36 (Lot 51).
 - Un défaut d'interface « prudent » (ici : ne rien conclure d'un vide) sert un usage INTERNE précis - le cache. Le remonter tel quel à l'utilisateur lui fait dire autre chose. Vérifier qui s'appuie sur le défaut avant de lui donner un sens visible (Lot 50).
