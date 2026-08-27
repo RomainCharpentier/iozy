@@ -1360,6 +1360,29 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 66 — deux écrans de collection, un seul chargement
+
+Ma collection et la vue d'une catégorie posaient les **mêmes quatre requêtes**,
+déclaraient les **mêmes quatre constantes de repli**, dérivaient les mêmes
+possessions et les mêmes envies, et composaient le même « tout est arrivé ? » -
+une trentaine de lignes identiques, recopiées.
+
+Deux copies d'une règle divergent toujours : au Lot 41, un outil de Ma
+collection s'est mis à dépendre du filtre d'affichage sans que la vue d'une
+catégorie le sache.
+
+`useDonneesCollection` porte les données et leur état de chargement, y compris
+la garde du Lot 47 (aucun chiffre tant que tout n'est pas arrivé, sans quoi
+l'écran annonce une collection vide à quelqu'un qui en a une). Ce qui reste
+propre à chaque écran - filtrage, tri, compteurs, mise en page - y reste : c'est
+là qu'ils diffèrent vraiment.
+
+**Vérifié en direct, les deux écrans rendus à l'identique** : Ma collection
+« 6 titres suivis · 14 ajouts ce mois », Tout 6 / Possédés 6 / Envies 1, cinq
+mangas avec leurs progressions ; la catégorie Manga « 5 », Tout 5 / Possédés 5 /
+Envies 1, les mêmes cinq titres. `typecheck`, `lint`, `check:contrast`,
+`build`. **-51 lignes** dans les deux écrans.
+
 ### Lot 65 — une seule liste d'invalidations
 
 Cinq endroits écrivaient leur propre liste de caches à invalider après un ajout
@@ -3923,6 +3946,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Quand deux écrans lisent la même donnée, c'est le CHARGEMENT qu'on partage, pas l'affichage : le hook rend les données et leur état, chaque écran garde son filtrage, son tri et sa mise en page. Factoriser plus loin les aurait fondus en un composant à options, et c'est ce que le Lot 28 avait justement démonté (Lot 66).
 - Une liste de caches à invalider recopiée dans cinq écrans est cinq occasions d'en oublier un - et le coût d'un oubli est invisible : l'écran affiche simplement l'état d'avant. Quand les clés sont hiérarchiques, un préfixe remplace une énumération, et il n'y a plus rien à tenir à jour (Lot 65).
 - Un sac d'attributs non typé se lit à un seul endroit, sinon chaque lecteur invente sa tolérance : quatre copies de « lire le numéro d'un tome », dont une acceptait `"12"` quand les trois autres l'ignoraient. Le défaut ne se voit pas tant que la donnée est propre - il attend (Lot 62).
 - « Sans appelant » ne veut pas dire « à supprimer ». Deux questions le tranchent : un client peut-il encore faire le geste INVERSE (alors la route est une porte de sortie - `restore` face à `sell`/`lose` sur iOS), et existe-t-il un autre recours (renuméroter, non : supprimer et rajouter suffit) ? Compter les appelants ne suffit jamais (Lot 61).
