@@ -1360,6 +1360,30 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 46 — la barre de défilement des rangées
+
+« Le scroll horizontal est moche ». La barre native de Windows est épaisse (15
+px mesurés), opaque et toujours visible : posée sous chaque rangée d'univers,
+elle attirait l'œil plus que les jaquettes qu'elle sert. Le défaut existait
+avant, mais dégrouper l'a rendu criant - une rangée de cinq séries ne défilait
+pas, une rangée de onze tomes si.
+
+Un utilitaire `defilement-discret` (dans `index.css`, avec les autres règles de
+base) la réduit à un filet de **10 px** aux tons de l'interface, qui suit le
+thème clair/sombre comme le reste. `scrollbar-width`/`scrollbar-color` pour
+Firefox, `::-webkit-scrollbar` pour Chrome/Safari : les deux syntaxes coexistent
+sans se gêner, et un navigateur qui n'en comprend aucune garde sa barre
+d'origine.
+
+**Jamais `display: none`** : une barre invisible ôte le seul indice qu'il reste
+du contenu à droite. Une rangée qui ne défile pas n'en affiche déjà aucune
+(mesuré : 0 px perdu sur la rangée à une tuile), et au doigt la barre est en
+surimpression, donc sans coût de place.
+
+Appliqué aux quatre zones qui défilent latéralement, pas seulement aux rangées :
+Ma collection, les onglets de Découvrir en dessous de 1100 px, les vignettes
+d'une annonce et la frise des Statistiques.
+
 ### Lot 45 — dégrouper déliait aussi les TYPES
 
 « On voit plus que les mangas quand on dégroupe ». Reproduit : le jeu vidéo

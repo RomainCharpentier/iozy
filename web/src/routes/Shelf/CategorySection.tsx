@@ -36,7 +36,7 @@ export function CategorySection({ entityType, tiles }: { entityType: EntityTypeD
           <ChevronRight size={15} />
         </span>
       </button>
-      <div className="flex gap-3 overflow-x-auto pb-3.5">
+      <div className="defilement-discret flex gap-3 overflow-x-auto pb-3">
         {tiles.map((tile) => (
           <div key={tile.key} className="w-[130px] shrink-0 sm:w-[150px]">
             <CoverTile

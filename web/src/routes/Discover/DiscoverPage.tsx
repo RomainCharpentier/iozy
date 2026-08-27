@@ -29,7 +29,7 @@ export function DiscoverPage() {
     <div className="flex flex-col gap-5">
       <EnTeteSection niveau={1} titre="Découvrir" />
 
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
+      <div role="tablist" className="defilement-discret flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
