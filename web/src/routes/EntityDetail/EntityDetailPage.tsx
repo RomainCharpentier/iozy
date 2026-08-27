@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
-import { getEntity, mergeEntityAttributes, renameEntity } from '../../api/entities'
+import { getEntity, mergeEntityAttributes, quickAdd, renameEntity } from '../../api/entities'
 import { listOwnerships } from '../../api/ownerships'
 import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
@@ -105,6 +105,34 @@ export function EntityDetailPage() {
   const followedQuery = useQuery({
     queryKey: queryKeys.followedEdition(entityId),
     queryFn: () => listFollowedEdition(entityId),
+  })
+
+  /**
+   * « Je l'ai » sur un tome manquant - un clic, rien à remplir.
+   *
+   * Le panneau du tome ne s'ouvre plus sur ce chemin : il n'existait là que
+   * pour porter le formulaire d'état et de prix, qui a disparu (voir le lot
+   * précédent). Il reste la surface d'un tome POSSÉDÉ, où il gère un
+   * exemplaire réel - prix payé, note, vendu/perdu, exemplaires passés.
+   *
+   * `quickAdd` retrouve ou crée le tome par (titre, numéro, édition), comme
+   * partout ailleurs : rien de neuf n'est inventé ici.
+   */
+  const ajoutTome = useMutation({
+    mutationFn: (tome: { entityTypeId: string; titre: string; numero: number; edition?: string }) =>
+      quickAdd({
+        entityTypeId: tome.entityTypeId,
+        title: tome.titre,
+        condition: 'NEW',
+        volumeNumber: tome.numero,
+        edition: tome.edition,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.ownerships(entityId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+    },
   })
 
   const renameMutation = useMutation({
@@ -349,7 +377,16 @@ export function EntityDetailPage() {
             onFiltre={setFiltre}
             tuiles={tuiles}
             tomeActif={tomeActif}
-            onChoisirTome={setTomeActif}
+            onChoisirTome={(numero) => {
+              // Un tome possédé ouvre son panneau (gérer l'exemplaire) ; un
+              // tome manquant s'ajoute, sans détour.
+              const tuile = tuiles.find((t) => t.volumeNumber === numero)
+              if (tuile?.status === 'owned') setTomeActif(numero)
+              else ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+            }}
+            onJeLAi={(numero) =>
+              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+            }
             tomesVoulus={tomesVoulus}
             onBasculerEnvie={basculerEnvieDuTome}
             modeEdition={modeEdition}

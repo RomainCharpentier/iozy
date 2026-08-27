@@ -11,7 +11,7 @@ interface ManualVolume {
 }
 
 /**
- * Parcours MANUEL (voir VolumeInteractionPanel/AddOwnershipForm pour le
+ * Parcours MANUEL (voir la grille de tomes pour le
  * parcours CONTEXTUEL, déclenché depuis un clic sur une tuile déjà visible -
  * les deux sont volontairement distincts, voir "deux modes d'ajout") : pour
  * un tome qui n'apparaît pas encore dans la grille (numéro/édition hors de
@@ -28,7 +28,7 @@ interface ManualVolume {
  * Même mécanique de file d'attente que QuickAddPage.tsx (voir
  * queueManualVolume) - permet d'enchaîner plusieurs tomes avant de valider
  * une seule fois, l'édition restant pré-remplie d'un tome au suivant. Reste
- * volontairement plus complet que AddOwnershipForm (numéro ET édition à
+ * volontairement plus complet que le clic sur une tuile (numéro ET édition à
  * saisir, plusieurs tomes à la fois) : le parcours manuel n'a par définition
  * aucun contexte déjà connu à réutiliser.
  */
@@ -104,7 +104,7 @@ export function AddVolumeSection({
         queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       }
       if (resultat.entityId) onAjoute?.(resultat.entityId)
-      // Ajouté ici pour s'aligner sur AddOwnershipForm/OwnershipDetails, qui
+      // Ajouté ici pour s'aligner sur OwnershipDetails, qui
       // invalident les trois : cette clé alimente Ma collection et les
       // panneaux de sélection des Tier Lists (voir listAllOwnerships).
       queryClient.invalidateQueries({ queryKey: queryKeys.allOwnerships })
