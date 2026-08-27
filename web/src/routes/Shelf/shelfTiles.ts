@@ -199,13 +199,13 @@ export function groupByEntityType(
 /**
  * L'état personnel d'une œuvre, résumé pour le filtrage.
  *
- * Une œuvre n'est ici qu'un GROUPE : ce sont les tomes qu'elle contient qui
- * portent l'état. « Possédée » veut dire « au moins un tome possédé », et
- * « voulue » « au moins un tome dans les envies » - jamais un état propre à
- * la série, qui n'existe pas.
+ * Une œuvre n'est ici qu'un GROUPE : ce sont les éléments qu'elle contient qui
+ * portent l'état. « Possédée » veut dire « au moins un élément possédé », et
+ * « voulue » « au moins un élément dans les envies » - jamais un état propre à
+ * l'œuvre, qui n'en a pas.
  *
- * <p>Pour un type sans notion de tome (jeu vidéo, jeu de société), l'œuvre
- * EST l'objet collectionnable : la possession est rattachée à l'Entity, et
+ * <p>Pour un type sans variante (jeu vidéo, jeu de société), l'œuvre EST
+ * l'élément collectionnable : la possession est rattachée à l'Entity, et
  * l'envie aussi (voir lib/typeDeCollection).
  */
 interface EtatOeuvre {
@@ -234,14 +234,15 @@ export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): 
 }
 
 /**
- * Un tome, tel que la vue NON GROUPÉE l'affiche : l'objet individuel, sorti
- * du groupe qui ne servait qu'à le ranger.
+ * Un ÉLÉMENT, tel que la vue DÉGROUPÉE l'affiche : l'objet individuel, sorti
+ * du groupe qui ne servait qu'à le ranger. Un tome pour un manga, l'œuvre
+ * elle-même pour un type qui se possède d'une seule pièce.
  *
- * `etat` est ce qui distingue deux tuiles de même série sous le filtre
- * « Tout » - sans lui, un tome voulu et un tome possédé se ressembleraient
- * trait pour trait.
+ * `etat` est ce qui distingue deux tuiles d'un même groupe sous le filtre
+ * « Tout » - sans lui, un élément voulu et un élément possédé se
+ * ressembleraient trait pour trait.
  */
-export interface TuileTome extends ShelfTile {
+export interface TuileElement extends ShelfTile {
   etat: 'possede' | 'voulu'
   typeLabel?: string
   /** Le type porte le format de jaquette (2/3 pour un manga, carré pour un
@@ -251,7 +252,7 @@ export interface TuileTome extends ShelfTile {
   depuis: string
 }
 
-function libelleDuTome(variant: VariantDto): string {
+function libelleDeLElement(variant: VariantDto): string {
   const numero = variant.attributes.volumeNumber
   const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
   const base = typeof numero === 'number' ? `Tome ${numero}` : variant.label
@@ -259,13 +260,14 @@ function libelleDuTome(variant: VariantDto): string {
 }
 
 /**
- * Aplatit les œuvres retenues en tuiles de TOMES.
+ * Aplatit les œuvres retenues en tuiles d'ÉLÉMENTS.
  *
- * Une œuvre sans tome (jeu vidéo, jeu de société) donne une seule tuile,
+ * Une œuvre sans variante (jeu vidéo, jeu de société) donne une seule tuile,
  * elle-même : c'est déjà l'objet individuel de son type, il n'y a rien à
- * aplatir.
+ * aplatir. Une œuvre à variantes en donne une par variante retenue - des
+ * tomes pour un manga, et le libellé de la variante pour tout autre type.
  */
-export function aplatirEnTomes(
+export function aplatirEnElements(
   entities: EntityResponse[],
   filtre: FiltreCollection,
   contexte: {
@@ -273,13 +275,13 @@ export function aplatirEnTomes(
     owned: Set<string>
     tomesVoulus: Set<string>
     oeuvresVoulues: Set<string>
-    /** Depuis quand ce tome est possédé, ou voulu - selon ce qu'il est. */
+    /** Depuis quand cet élément est possédé, ou voulu - selon ce qu'il est. */
     depuisTome: (variantId: string) => string
     depuisOeuvre: (entityId: string) => string
     libelleDuType: (entity: EntityResponse) => string | undefined
   },
-): TuileTome[] {
-  const tuiles: TuileTome[] = []
+): TuileElement[] {
+  const tuiles: TuileElement[] = []
   for (const entity of entities) {
     const typeLabel = contexte.libelleDuType(entity)
     if (entity.variants.length === 0) {
@@ -306,7 +308,7 @@ export function aplatirEnTomes(
           ? ('voulu' as const)
           : null
       if (etat === null || !retenu(etat, filtre)) continue
-      const sousTitre = libelleDuTome(variant)
+      const sousTitre = libelleDeLElement(variant)
       tuiles.push({
         key: variant.id,
         title: entity.title,

@@ -11,10 +11,10 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { GrilleTomesCollection } from './GrilleTomesCollection'
+import { GrilleElements } from './GrilleElements'
 import { findBestCoverMatch, variantsMissingCover } from './backfillCovers'
 import {
-  aplatirEnTomes,
+  aplatirEnElements,
   correspondAuFiltre,
   etatDeLOeuvre,
   groupByEntityType,
@@ -47,10 +47,13 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
     possedes: (n) => `titre${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
     envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
   },
+  // Sans nom d'objet en vue dégroupée : « tome » ne vaut que pour un manga, et
+  // « élément » sonne comme un mot de développeur. Le contraste avec
+  // « titres » de la vue groupée dit déjà ce qu'on compte.
   plate: {
-    tout: (n) => `tome${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
-    possedes: (n) => `tome${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
-    envies: (n) => `tome${n > 1 ? 's' : ''} dans mes envies`,
+    tout: (n) => `possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
+    possedes: (n) => `possédé${n > 1 ? 's' : ''}`,
+    envies: () => 'dans mes envies',
   },
 }
 
@@ -62,7 +65,7 @@ function messageVide(filtre: FiltreCollection, filtreEtatActif: boolean): { titr
   if (filtre === 'envies') {
     return {
       titre: 'Aucune envie en cours.',
-      detail: "Sur la fiche d'une série, « Je le veux » sur un tome manquant le fera apparaître ici.",
+      detail: "Sur une fiche, « Je le veux » sur un élément manquant le fera apparaître ici.",
     }
   }
   return {
@@ -92,10 +95,11 @@ const EMPTY_OWNERSHIPS: OwnershipResponse[] = []
  * <h2>Une page, trois lectures (étude produit du 2026-08-27)</h2>
  * « Collection » et « Envies » étaient deux écrans pour le même endroit. Ce
  * sont désormais trois FILTRES - Tout / Possédés / Envies - qui raisonnent
- * tous sur les tomes qu'un groupe contient, et deux VUES : groupée (une carte
- * par série) ou plate (les tomes eux-mêmes). Le mode « par tome » retiré au
- * Lot 3 revient donc ici, mais comme une vue de plein droit plutôt que comme
- * un filtre de type déguisé.
+ * tous sur les ÉLÉMENTS qu'un groupe contient, et deux VUES : groupée (une
+ * carte par groupe) ou dégroupée (les éléments eux-mêmes). Le mode « par
+ * tome » retiré au Lot 3 revient donc ici, mais comme une vue de plein droit
+ * plutôt que comme un filtre de type déguisé - et sans supposer que
+ * l'élément soit un tome : chaque type a ses propres groupes.
  *
  * <p>Filtre, vue et tri sont mémorisés (voir lib/preferencesCollection) : ils
  * décrivent une habitude, pas un choix à refaire à chaque ouverture.
@@ -185,9 +189,9 @@ export function ShelfPage() {
     [triees, entityTypes, owned, editionTotals, envieDe],
   )
 
-  const tuilesTomes = useMemo(
+  const tuilesElements = useMemo(
     () =>
-      aplatirEnTomes(triees, preferences.filtre, {
+      aplatirEnElements(triees, preferences.filtre, {
         ownerships,
         owned,
         tomesVoulus,
@@ -205,9 +209,9 @@ export function ShelfPage() {
   const tuilesAffichees = useMemo(
     () =>
       preferences.tri === 'titre'
-        ? tuilesTomes
-        : [...tuilesTomes].sort((a, b) => b.depuis.localeCompare(a.depuis)),
-    [tuilesTomes, preferences.tri],
+        ? tuilesElements
+        : [...tuilesElements].sort((a, b) => b.depuis.localeCompare(a.depuis)),
+    [tuilesElements, preferences.tri],
   )
 
   // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
@@ -401,7 +405,7 @@ export function ShelfPage() {
 
       {preferences.vue === 'plate' ? (
         <div className="mt-6">
-          <GrilleTomesCollection tuiles={tuilesAffichees} typesParId={typesParId} />
+          <GrilleElements tuiles={tuilesAffichees} typesParId={typesParId} />
         </div>
       ) : (
         <div className="mt-6 flex flex-col gap-2">

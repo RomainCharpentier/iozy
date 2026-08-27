@@ -10,7 +10,7 @@ import { CoverTile } from '../../components/CoverTile'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
 import {
-  aplatirEnTomes,
+  aplatirEnElements,
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
@@ -20,7 +20,7 @@ import {
 } from './shelfTiles'
 import { BarreVues } from './BarreVues'
 import { indexerVenues, trierOeuvres } from './venues'
-import { GrilleTomesCollection } from './GrilleTomesCollection'
+import { GrilleElements } from './GrilleElements'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
 import { listAllEditions } from '../../api/purchaseAnalysis'
@@ -120,8 +120,8 @@ export function CategoryPage() {
 
   // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
   // partout et répéterait le titre de la page.
-  const tuilesTomes = useMemo(() => {
-    const tuiles = aplatirEnTomes(entities, preferences.filtre, {
+  const tuilesElements = useMemo(() => {
+    const tuiles = aplatirEnElements(entities, preferences.filtre, {
       ownerships,
       owned,
       tomesVoulus,
@@ -137,7 +137,7 @@ export function CategoryPage() {
   }, [entities, preferences.filtre, preferences.tri, ownerships, owned, tomesVoulus, oeuvresVoulues, venues])
 
   const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
-  const affiches = preferences.vue === 'plate' ? tuilesTomes.length : tiles.length
+  const affiches = preferences.vue === 'plate' ? tuilesElements.length : tiles.length
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
 
@@ -203,7 +203,7 @@ export function CategoryPage() {
       )}
 
       {preferences.vue === 'plate' ? (
-        <GrilleTomesCollection tuiles={tuilesTomes} typesParId={typesParId} />
+        <GrilleElements tuiles={tuilesElements} typesParId={typesParId} />
       ) : (
         <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
           {tiles.map((tile) => (

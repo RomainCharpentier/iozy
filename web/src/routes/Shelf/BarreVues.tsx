@@ -21,9 +21,14 @@ const FILTRES: { cle: FiltreCollection; libelle: string }[] = [
  * annoncerait trois interrupteurs indépendants dont deux « inactifs ». Même
  * traitement que la grille de tomes de la fiche, pour la même raison.
  *
- * <p>La vue, elle, est un interrupteur à deux positions : groupée (une carte
- * par série) ou plate (les tomes eux-mêmes). Le libellé dit ce vers quoi on
- * bascule, jamais l'état courant - un bouton nomme son action.
+ * <p>La vue est un interrupteur à deux positions : groupée (une carte par
+ * GROUPE) ou dégroupée (les éléments eux-mêmes). Le libellé dit ce vers quoi
+ * on bascule, jamais l'état courant - un bouton nomme son action.
+ *
+ * <p>« Grouper » / « Dégrouper », et non « voir les tomes » : le tome est le
+ * vocabulaire du manga, pas celui du concept. Chaque type de collection a ses
+ * propres groupes - une série pour un manga, demain une saga ou une gamme
+ * ailleurs - et le libellé doit valoir pour tous.
  */
 export function BarreVues({
   filtre,
@@ -75,11 +80,11 @@ export function BarreVues({
       <button
         type="button"
         onClick={() => onVue(vue === 'groupee' ? 'plate' : 'groupee')}
-        aria-label={vue === 'groupee' ? 'Afficher les tomes un par un' : 'Regrouper par série'}
+        aria-label={vue === 'groupee' ? 'Dégrouper : afficher les éléments un par un' : 'Regrouper les éléments'}
         className="flex min-h-9 items-center gap-2 rounded-full border border-fieldBorder px-3.5 text-[13px] font-medium text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary"
       >
         {vue === 'groupee' ? <Grid2x2 size={14} /> : <Layers size={14} />}
-        {vue === 'groupee' ? 'Voir les tomes' : 'Regrouper'}
+        {vue === 'groupee' ? 'Dégrouper' : 'Grouper'}
       </button>
 
       <button
