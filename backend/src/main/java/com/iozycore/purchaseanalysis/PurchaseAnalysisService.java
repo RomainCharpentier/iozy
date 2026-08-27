@@ -499,44 +499,35 @@ public class PurchaseAnalysisService {
     }
 
     /**
-     * "Analyse d'un lot" (brainstorm) - tomes de cette édition précise actuellement possédés
-     * (ownership active uniquement : un tome revendu/perdu n'est plus un doublon si racheté).
-     * Jamais deviné : renvoie un ensemble vide si l'Entity a disparu depuis la résolution du
-     * knownEntityId, ou si aucun tome actif ne correspond à editionName.
+     * "Analyse d'un lot" - tomes de cette édition actuellement possédés (ownership active
+     * uniquement : un tome revendu/perdu n'est plus un doublon si on le rachète).
+     * <p>
+     * Passe par {@link CollectionProgressService}, source UNIQUE de la progression, comme
+     * les suggestions ci-dessus. Cette méthode refaisait le calcul pour son compte et
+     * exigeait que l'attribut {@code edition} du tome corresponde EXACTEMENT : un tome
+     * catalogué sans édition précisée n'était donc compté dans aucune édition. Partout
+     * ailleurs il rejoint l'unique édition nommée de la série (voir resolveEditionView côté
+     * web, et le regroupement de CollectionProgressService côté serveur).
+     * <p>
+     * Conséquence constatée en éprouvant le parcours le 2026-08-27 : la fiche de Naruto
+     * annonçait le tome 1 possédé dans l'édition Kana, et l'analyse d'un lot "Naruto 1-5"
+     * répondait "5 manquants" - elle conseillait donc de racheter un tome déjà en rayon,
+     * ce qui est l'inverse de ce que cet écran sert à faire. Même défaut, même fichier,
+     * que celui corrigé au Lot 31 pour les suggestions - corrigé là, pas ici.
+     * <p>
+     * Jamais deviné : ensemble vide si l'Entity a disparu depuis la résolution du
+     * knownEntityId, ou si aucun groupe ne porte cette édition.
      */
     private Set<Integer> findOwnedVolumeNumbers(UUID entityId, String editionName) {
-        Optional<Entity> entity = entityRepository.findById(entityId);
-        if (entity.isEmpty()) {
-            return Set.of();
-        }
-        Map<UUID, Variant> variantsById = entity.get().variants().stream()
-                .collect(java.util.stream.Collectors.toMap(Variant::id, v -> v));
-        String normalizedEdition = editionName == null ? "" : editionName.trim();
-
-        Set<Integer> owned = new TreeSet<>();
-        for (Ownership ownership : ownershipRepository.findByEntityId(entityId)) {
-            if (!ownership.isActive()) {
-                continue;
-            }
-            UUID variantId = ownership.variantId().orElse(null);
-            if (variantId == null) {
-                continue;
-            }
-            Variant variant = variantsById.get(variantId);
-            if (variant == null) {
-                continue;
-            }
-            Object editionAttr = variant.attributes().get("edition");
-            String variantEdition = editionAttr instanceof String s ? s.trim() : "";
-            if (!variantEdition.equalsIgnoreCase(normalizedEdition)) {
-                continue;
-            }
-            Object volumeNumberAttr = variant.attributes().get("volumeNumber");
-            if (volumeNumberAttr instanceof Number number) {
-                owned.add(number.intValue());
-            }
-        }
-        return owned;
+        String recherchee = editionName == null ? "" : editionName.trim();
+        return progressService.compute(entityId)
+                .map(CollectionProgress::editions)
+                .orElse(List.of())
+                .stream()
+                .filter(groupe -> groupe.editionName().equalsIgnoreCase(recherchee))
+                .findFirst()
+                .<Set<Integer>>map(groupe -> new TreeSet<>(groupe.ownedVolumeNumbers()))
+                .orElseGet(Set::of);
     }
 
     /** Server-side equivalent of the web's groupVariantsByEdition (editionGroups.ts) - variants
