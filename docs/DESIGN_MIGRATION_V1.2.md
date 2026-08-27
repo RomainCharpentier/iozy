@@ -1360,6 +1360,30 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 68 — trois écrans de Tier Lists, un seul chargement
+
+L'aperçu de Découvrir, l'écran Tier Lists et la carte du Profil posaient les
+mêmes requêtes - une par type d'œuvre pour le classement général, une par type
+pour les listes perso, une pour les listes transverses - recopiées à
+l'identique sur une vingtaine de lignes. Même geste qu'au Lot 66 pour les deux
+écrans de collection.
+
+#### Le défaut que ça referme
+
+La carte du Profil ne chargeait **pas** les listes « toutes catégories »
+(Lot 14). Elle annonce « Mes Tier Lists » et propose « Tout voir » : un
+utilisateur n'ayant que des listes transverses y aurait vu une carte vide,
+quand l'écran Tier Lists et Découvrir les affichaient tous les deux. Latent
+jusqu'ici - aucune liste n'existait encore - et refermé avant qu'il ne se voie.
+
+**Démontré en direct** : une liste « toutes catégories » créée pour le test
+apparaît maintenant dans la carte du Profil (« Test consolidation · 0
+élément ») comme sur l'écran Tier Lists (section « Toutes catégories »). Elle a
+été supprimée ensuite - 0 tier list en base, 9 œuvres / 17 tomes / 14
+possessions / 1 envie inchangés.
+
+**Vérifié** : `typecheck`, `lint`, `check:contrast`, `build`.
+
 ### Lot 67 — la colonne SOURCE, écrite une fois
 
 La fiche et l'aperçu d'une œuvre qu'on ne possède pas affichaient la même

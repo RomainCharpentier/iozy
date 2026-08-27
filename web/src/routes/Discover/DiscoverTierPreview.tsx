@@ -1,17 +1,13 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Sparkles } from 'lucide-react'
-import { listEntityTypes } from '../../api/entityTypes'
-import { getGeneralBoard, listTierLists } from '../../api/tierLists'
-import { queryKeys } from '../../lib/queryKeys'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
-import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
+import { boardPreviewRows } from '../../lib/tierListVisuals'
 import { TierBadge } from '../TierLists/TierBadge'
 import { ErrorBanner } from '../../components/ErrorBanner'
-import type { TierListDto } from '../../types/tierList'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { useDonneesTierLists } from '../../lib/useDonneesTierLists'
 
 const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
@@ -24,45 +20,19 @@ const MAX_CUSTOM_PREVIEWS = 3
  */
 export function DiscoverTierPreview() {
   const navigate = useNavigate()
-  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const entityTypes = entityTypesQuery.data ?? []
+  const donnees = useDonneesTierLists()
 
-  const boardQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.general(t.id),
-      queryFn: () => getGeneralBoard(t.id),
-    })),
-  })
-  const listsQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.custom(t.id),
-      queryFn: () => listTierLists(t.id),
-    })),
-  })
-  const crossUniverseQuery = useQuery({
-    queryKey: queryKeys.tierLists.custom(null),
-    queryFn: () => listTierLists(null),
-  })
+  if (donnees.erreur) return <ErrorBanner message={donnees.erreur} />
+  if (donnees.chargement) return <p className="text-textDim">Chargement...</p>
 
-  if (entityTypesQuery.isError) return <ErrorBanner message={entityTypesQuery.error.message} />
-  if (entityTypesQuery.isLoading) return <p className="text-textDim">Chargement...</p>
-  const stillLoading =
-    boardQueries.some((q) => q.isLoading) || listsQueries.some((q) => q.isLoading) || crossUniverseQuery.isLoading
-  if (stillLoading) return <p className="text-textDim">Chargement...</p>
-
-  const universes = entityTypes
-    .map((entityType, i) => ({ entityType, board: boardQueries[i].data, counts: boardCounts(boardQueries[i].data) }))
-    .filter((u) => u.counts.total > 0)
+  const universes = donnees.univers.filter((u) => u.counts.total > 0)
 
   const previewedUniverses = universes.slice(0, MAX_UNIVERSE_PREVIEWS)
 
   // Les listes transverses "toutes catégories" (Lot 14) comptent comme les
   // autres dans cet aperçu : elles n'appartiennent à aucun univers, mais
   // elles restent des Tier Lists perso de l'utilisateur.
-  const allCustomLists = [
-    ...entityTypes.flatMap((_, i) => listsQueries[i].data ?? ([] as TierListDto[])),
-    ...(crossUniverseQuery.data ?? ([] as TierListDto[])),
-  ]
+  const allCustomLists = donnees.toutesLesListes
   const previewedCustom = allCustomLists.slice(0, MAX_CUSTOM_PREVIEWS)
 
   const totalUnranked = universes.reduce((sum, u) => sum + (u.counts.total - u.counts.ranked), 0)

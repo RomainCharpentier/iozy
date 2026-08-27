@@ -1,20 +1,16 @@
 import { useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ListOrdered, Plus } from 'lucide-react'
-import { listEntityTypes } from '../../api/entityTypes'
-import { getGeneralBoard, listTierLists } from '../../api/tierLists'
-import { queryKeys } from '../../lib/queryKeys'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CreateTierListModal } from './CreateTierListModal'
 import { TierBadge } from './TierBadge'
-import { boardCounts, boardPreviewRows } from '../../lib/tierListVisuals'
-import type { TierListDto } from '../../types/tierList'
+import { boardPreviewRows } from '../../lib/tierListVisuals'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { useDonneesTierLists } from '../../lib/useDonneesTierLists'
 
 /**
  * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
@@ -38,25 +34,7 @@ export function TierListsScreen() {
   // "Toutes catégories" - deux "null" de sens différents, d'où l'objet.
   const [creatingFor, setCreatingFor] = useState<{ id: string | null } | null>(null)
 
-  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const entityTypes = entityTypesQuery.data ?? []
-
-  const boardQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.general(t.id),
-      queryFn: () => getGeneralBoard(t.id),
-    })),
-  })
-  const listsQueries = useQueries({
-    queries: entityTypes.map((t) => ({
-      queryKey: queryKeys.tierLists.custom(t.id),
-      queryFn: () => listTierLists(t.id),
-    })),
-  })
-  const crossUniverseQuery = useQuery({
-    queryKey: queryKeys.tierLists.custom(null),
-    queryFn: () => listTierLists(null),
-  })
+  const donnees = useDonneesTierLists()
 
   // Pas de retour anticipé : l'écran garde son titre pendant qu'il charge.
   // Le remplacer entièrement par « Chargement... » lui faisait perdre son h1,
@@ -64,22 +42,13 @@ export function TierListsScreen() {
   // l'onglet retombait sur « IozyCore » - et son seul repère de structure pour
   // un lecteur d'écran. Statistiques et Envies gardent déjà le leur : c'est
   // cette forme-là qui est majoritaire dans l'application.
-  const chargement =
-    entityTypesQuery.isLoading ||
-    boardQueries.some((q) => q.isLoading) ||
-    listsQueries.some((q) => q.isLoading) ||
-    crossUniverseQuery.isLoading
+  const chargement = donnees.chargement
 
-  const sections = entityTypes
-    .map((entityType, i) => ({
-      entityType,
-      board: boardQueries[i].data,
-      counts: boardCounts(boardQueries[i].data),
-      lists: listsQueries[i].data ?? ([] as TierListDto[]),
-    }))
+  const sections = donnees.univers
+    .map((u) => ({ entityType: u.entityType, board: u.board, counts: u.counts, lists: u.listes }))
     .filter((s) => s.counts.total > 0 || s.lists.length > 0)
 
-  const crossUniverseLists = crossUniverseQuery.data ?? ([] as TierListDto[])
+  const crossUniverseLists = donnees.listesTransverses
 
   return (
     <div className="flex flex-col gap-5">
@@ -108,7 +77,7 @@ export function TierListsScreen() {
         />
       </div>
 
-      {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
+      {donnees.erreur && <ErrorBanner message={donnees.erreur} />}
       {chargement && <p className="text-textDim">Chargement...</p>}
 
       {/* `!chargement` en garde : sans lui, l'état vide clignoterait à chaque
