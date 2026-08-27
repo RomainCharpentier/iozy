@@ -1360,6 +1360,38 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 48 — revenir à la recherche la retrouve
+
+« Quand je retourne sur la recherche depuis les détails je perds le résultat et
+ma recherche précédente. »
+
+Le type et le titre cherchés vivaient dans un `useState` : un état local meurt
+avec le composant, donc revenir rendait une page vierge. Ils vivent désormais
+dans l'URL - `/add?type=…&q=Naruto` - ce qui les fait survivre à l'aller-retour,
+au F5 **et** au partage. C'est la règle que ce dépôt s'était donnée au Lot 31
+(« quand un écran mérite d'être revu ou envoyé, lui donner une vraie URL »),
+simplement pas encore appliquée ici.
+
+**La frappe reste locale** : l'URL ne suit qu'après la même temporisation que la
+requête, et en `replace`. Sans ça, chaque lettre laisserait une entrée
+d'historique et le bouton Précédent remonterait le mot caractère par caractère.
+
+**Le lien de retour porte l'URL complète**, `search` compris - une constante
+`/add` ramenait bien à l'écran, mais vidé de ce qu'on y avait tapé. Il voyage
+aussi jusqu'à l'aperçu, qui le relaie à la fiche après un ajout : les trois
+chemins (résultat local → fiche, candidat externe → aperçu, aperçu → fiche
+créée) rendent la même recherche. `retourDepuis` valide déjà la forme du lien
+et refuse une URL absolue : une chaîne de requête ne change rien à ce garde.
+
+**Vérifié** sur les trois chemins, plus le bouton Précédent du navigateur :
+`/add?type=…&q=Naruto`, champ « Naruto » et résultats retrouvés.
+
+**Piège de mesure** : ma première sonde cherchait un lien contenant
+« Recherche » et tombait sur « **Recherche**r », l'entrée de NAVIGATION - qui
+pointe légitimement vers `/add` nu. J'ai failli conclure à une régression sur
+l'aperçu alors que son lien était juste. Filtrer sur `closest('nav, header')`
+avant de mesurer un lien de page.
+
 ### Lot 47 — ne rien affirmer tant que l'appel n'a pas répondu
 
 « Il faut revoir le chargement des données pour ne pas afficher "pas de
