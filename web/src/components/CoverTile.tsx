@@ -33,7 +33,7 @@ interface CoverTileProps {
   /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
    * défaut. À surcharger quand plusieurs tuiles partagent le même titre mais
    * doivent rester visuellement distinctes sans jaquette réelle (ex: les
-   * tomes d'une même série en vue non groupée - voir `aplatirEnTomes`, qui y
+   * tomes d'une même série en vue non groupée - voir `aplatirEnElements`, qui y
    * ajoute le sous-titre "Tome N" pour ne pas afficher le même dégradé sur
    * chaque tome faute de jaquette propre au tome). */
   gradientKey?: string

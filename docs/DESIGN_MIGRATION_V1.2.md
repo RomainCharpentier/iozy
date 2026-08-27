@@ -1360,6 +1360,33 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 44 — « Grouper / Dégrouper », parce que le tome est un mot de manga
+
+Remarque de l'utilisateur : « faut pas "grouper par tome", c'est trop
+spécifique aux mangas [...] il peut y avoir des groupes pour chaque type de
+collection ». La bascule disait « Voir les tomes » / « Regrouper » et
+supposait donc que tout groupe contienne des tomes.
+
+Elle dit maintenant **« Dégrouper » / « Grouper »**, et le nom accessible suit
+(« Dégrouper : afficher les éléments un par un »). Le décompte de la vue
+dégroupée perd son nom d'objet plutôt que d'en inventer un : « 12 possédés »
+et non « 12 tomes possédés » ni « 12 éléments possédés », qui sonne comme un
+mot de développeur. Le contraste avec « 6 titres possédés » de la vue groupée
+dit déjà ce qu'on compte.
+
+Le code suit, sans quoi la supposition serait revenue à la première retouche :
+`aplatirEnTomes` → `aplatirEnElements`, `TuileTome` → `TuileElement`,
+`GrilleTomesCollection` → `GrilleElements`, `libelleDuTome` →
+`libelleDeLElement`, et les commentaires avec.
+
+**Ce qui garde « tome », délibérément** : tout ce qui touche aux ÉDITIONS de
+manga - `formatTomeCount`, `indexEditionTotals`, « Plus que 2 tomes », le
+sous-titre « 3/72 tomes » d'une carte de série. Ces calculs lisent
+`MangaEditionDto` et l'attribut `edition` d'une variante : ils ne s'appliquent
+qu'à un manga, et les rendre neutres n'aurait rien généralisé, seulement
+brouillé ce qu'ils font. La fiche et sa grille de tomes non plus ne changent
+pas de vocabulaire : elles montrent bien des tomes.
+
 ### Lot 43 — l'en-tête de la grille de tomes tient sur une ligne
 
 Remarque de l'utilisateur en testant : « ça prend trop de place pour des infos
