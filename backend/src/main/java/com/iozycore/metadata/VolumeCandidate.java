@@ -19,4 +19,23 @@ package com.iozycore.metadata;
  *                     débogage éventuel - jamais affiché tel quel.
  */
 public record VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title) {
+
+    /**
+     * L'identité d'un tome dans une série : (édition, numéro), à la casse et
+     * aux espaces près. Une série a un tome 1 PAR édition - le numéro seul
+     * n'identifie rien.
+     *
+     * <p>Statique et prenant ses deux morceaux séparément parce que les deux
+     * appelants ne partent pas du même objet : {@link MetadataSearchService}
+     * dédoublonne des candidats, {@code MetadataController} compare un Variant
+     * déjà catalogué à ces candidats pour dire « déjà possédé ». Chacun en
+     * avait sa copie.
+     */
+    public static String key(String edition, int volumeNumber) {
+        return edition.trim().toLowerCase() + "|" + volumeNumber;
+    }
+
+    public String key() {
+        return key(edition, volumeNumber);
+    }
 }

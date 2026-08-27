@@ -283,7 +283,9 @@ public class MetadataController {
         return variantKey(edition == null ? "" : edition.toString(), number.intValue());
     }
 
+    /** La même identité que celle d'un {@link VolumeCandidate} - c'est
+     *  précisément ce qui permet de dire « ce tome-là, tu l'as déjà ». */
     private String variantKey(String edition, int volumeNumber) {
-        return edition.trim().toLowerCase() + "|" + volumeNumber;
+        return VolumeCandidate.key(edition, volumeNumber);
     }
 }
