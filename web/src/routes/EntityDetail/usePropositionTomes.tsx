@@ -176,15 +176,19 @@ export function usePropositionTomes({
       />
     ),
     section: (
-      <section className="flex flex-col gap-4 pt-7">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="font-display text-[17px] font-medium tracking-[-0.02em] text-textPrimary">
-            {editionActive || 'Édition non précisée'}
-          </h2>
-          <p className="text-[13px] text-faint">Quels tomes possèdes-tu ?</p>
-        </div>
-
+      <section className="flex flex-col gap-4 pt-5">
         <GrilleVolumes
+          enTete={
+            // Même en-tête d'une ligne que sur la fiche (voir GrilleTomes) :
+            // les deux écrans montrent la même chose, ils doivent l'annoncer
+            // de la même façon.
+            <h2 className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="font-display text-[14px] font-medium tracking-[-0.01em] text-textPrimary">
+                {editionActive || 'Édition non précisée'}
+              </span>
+              <span className="text-[12.5px] text-faint">Quels tomes possèdes-tu ?</span>
+            </h2>
+          }
           volumes={affiches.map(
             (candidat): VolumeAffiche => ({
               cle: volumeKey(candidat),
