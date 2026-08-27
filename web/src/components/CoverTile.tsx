@@ -12,9 +12,9 @@ interface CoverTileProps {
   imageUrl?: string | null
   showBadge?: boolean
   /** Ligne secondaire sous le titre (ex: "17/26 tomes" en vue groupée par
-   * série sur Ma collection, "Possédé" pour un type sans notion de tome) -
-   * absente par défaut, n'affecte pas les autres usages de ce composant
-   * (Wishlist, Relations). */
+   * série sur Ma collection, "Tome 3 · Perfect Edition" en vue non groupée,
+   * "Possédé" pour un type sans notion de tome) - absente par défaut,
+   * n'affecte pas les autres usages de ce composant (Relations). */
   subtitle?: string
   /** Petit badge de type ("Manga", "Jeu vidéo"...) sous le sous-titre - un
    * élément distinct de `subtitle`, jamais un repli l'un pour l'autre (voir
@@ -33,9 +33,9 @@ interface CoverTileProps {
   /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
    * défaut. À surcharger quand plusieurs tuiles partagent le même titre mais
    * doivent rester visuellement distinctes sans jaquette réelle (ex: les
-   * tomes d'une même série sur Ma collection - voir ShelfPage.flattenToTomes,
-   * qui y ajoute le sous-titre "Tome N" pour ne pas afficher le même
-   * dégradé sur chaque tome faute de jaquette propre au tome). */
+   * tomes d'une même série en vue non groupée - voir `aplatirEnTomes`, qui y
+   * ajoute le sous-titre "Tome N" pour ne pas afficher le même dégradé sur
+   * chaque tome faute de jaquette propre au tome). */
   gradientKey?: string
   onClick?: () => void
 }

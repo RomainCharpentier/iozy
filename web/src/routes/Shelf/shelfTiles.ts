@@ -1,5 +1,7 @@
 import { coverImageUrlFrom } from '../../lib/coverImage'
-import type { EntityResponse, EntityTypeDto } from '../../types/api'
+import { isOwned } from './ownership'
+import type { FiltreCollection } from '../../lib/preferencesCollection'
+import type { EntityResponse, EntityTypeDto, OwnershipResponse, VariantDto } from '../../types/api'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 
 export interface ShelfTile {
@@ -78,19 +80,44 @@ function nearCompletionSignal(missing: number): string | undefined {
   return missing > 0 && missing <= 3 ? `Plus que ${formatTomeCount(missing)}` : undefined
 }
 
-export function buildShelfTile(entity: EntityResponse, owned: Set<string>, editionTotals: Map<string, number>): ShelfTile {
+/**
+ * La carte d'une SÉRIE en vue groupée.
+ *
+ * `envie` décrit ce que le groupe contient de voulu. Sans elle, une série
+ * qu'on veut sans en posséder un seul tome s'annonçait « 0 tome » : un
+ * décompte de possession posé sur une carte qui n'est là que parce qu'on la
+ * veut. Et sous le filtre « Envies », c'est le nombre de tomes voulus qui est
+ * LE signal pertinent - il prend alors le pas sur « Plus que 2 tomes », pour
+ * respecter la règle d'un seul signal par carte, jamais empilé.
+ */
+export function buildShelfTile(
+  entity: EntityResponse,
+  owned: Set<string>,
+  editionTotals: Map<string, number>,
+  envie: { possede: boolean; tomesVoulus: number; prioritaire: boolean } = {
+    possede: true,
+    tomesVoulus: 0,
+    prioritaire: false,
+  },
+): ShelfTile {
+  const signalEnvie =
+    envie.tomesVoulus > 0 ? `${envie.tomesVoulus} tome${envie.tomesVoulus > 1 ? 's' : ''} voulu${envie.tomesVoulus > 1 ? 's' : ''}` : undefined
+
   if (entity.variants.length === 0) {
+    // Un type sans tome : l'œuvre EST l'objet, elle est donc possédée ou
+    // voulue - le décompte de tomes ne veut rien dire ici.
     return {
       key: entity.id,
       title: entity.title,
-      subtitle: 'Possédé',
+      subtitle: envie.possede ? 'Possédé' : 'Dans mes envies',
       imageUrl: coverImageUrlFrom(entity.attributes),
       entityId: entity.id,
     }
   }
   const ownedCount = entity.variants.filter((v) => owned.has(v.id)).length
   const total = editionTotalFor(entity, editionTotals)
-  const countPart = total !== null ? `${ownedCount}/${total} tomes` : formatTomeCount(ownedCount)
+  const countPart =
+    ownedCount === 0 ? 'aucun tome encore' : total !== null ? `${ownedCount}/${total} tomes` : formatTomeCount(ownedCount)
   const edition = singleNamedEdition(entity)
   return {
     key: entity.id,
@@ -98,7 +125,12 @@ export function buildShelfTile(entity: EntityResponse, owned: Set<string>, editi
     subtitle: edition ? `${edition} · ${countPart}` : countPart,
     imageUrl: coverImageUrlFrom(entity.attributes),
     entityId: entity.id,
-    signal: total !== null ? nearCompletionSignal(total - ownedCount) : undefined,
+    signal:
+      envie.prioritaire && signalEnvie
+        ? signalEnvie
+        : total !== null
+          ? (nearCompletionSignal(total - ownedCount) ?? signalEnvie)
+          : signalEnvie,
   }
 }
 
@@ -139,6 +171,11 @@ export function groupByEntityType(
   entityTypes: EntityTypeDto[],
   owned: Set<string>,
   editionTotals: Map<string, number>,
+  envieDe: (entity: EntityResponse) => { possede: boolean; tomesVoulus: number; prioritaire: boolean } = () => ({
+    possede: true,
+    tomesVoulus: 0,
+    prioritaire: false,
+  }),
 ): { entityType: EntityTypeDto; tiles: ShelfTile[] }[] {
   const sorted = [...entityTypes].sort((a, b) => {
     const ia = TYPE_ORDER.indexOf(a.code)
@@ -150,7 +187,154 @@ export function groupByEntityType(
       entityType,
       tiles: entities
         .filter((e) => e.entityTypeId === entityType.id)
-        .map((e) => buildShelfTile(e, owned, editionTotals)),
+        .map((e) => buildShelfTile(e, owned, editionTotals, envieDe(e))),
     }))
     .filter((section) => section.tiles.length > 0)
+}
+
+// ---------------------------------------------------------------------------
+// Trois filtres, deux vues (étude produit du 2026-08-27, §5 et §6)
+// ---------------------------------------------------------------------------
+
+/**
+ * L'état personnel d'une œuvre, résumé pour le filtrage.
+ *
+ * Une œuvre n'est ici qu'un GROUPE : ce sont les tomes qu'elle contient qui
+ * portent l'état. « Possédée » veut dire « au moins un tome possédé », et
+ * « voulue » « au moins un tome dans les envies » - jamais un état propre à
+ * la série, qui n'existe pas.
+ *
+ * <p>Pour un type sans notion de tome (jeu vidéo, jeu de société), l'œuvre
+ * EST l'objet collectionnable : la possession est rattachée à l'Entity, et
+ * l'envie aussi (voir lib/typeDeCollection).
+ */
+export interface EtatOeuvre {
+  possede: boolean
+  voulu: boolean
+}
+
+export function etatDeLOeuvre(
+  entity: EntityResponse,
+  ownerships: OwnershipResponse[],
+  owned: Set<string>,
+  tomesVoulus: Set<string>,
+  oeuvresVoulues: Set<string>,
+): EtatOeuvre {
+  return {
+    possede: isOwned(entity, ownerships, owned),
+    voulu:
+      oeuvresVoulues.has(entity.id) || entity.variants.some((variant) => tomesVoulus.has(variant.id)),
+  }
+}
+
+export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): boolean {
+  if (filtre === 'possedes') return etat.possede
+  if (filtre === 'envies') return etat.voulu
+  return etat.possede || etat.voulu
+}
+
+/**
+ * Un tome, tel que la vue NON GROUPÉE l'affiche : l'objet individuel, sorti
+ * du groupe qui ne servait qu'à le ranger.
+ *
+ * `etat` est ce qui distingue deux tuiles de même série sous le filtre
+ * « Tout » - sans lui, un tome voulu et un tome possédé se ressembleraient
+ * trait pour trait.
+ */
+export interface TuileTome extends ShelfTile {
+  etat: 'possede' | 'voulu'
+  typeLabel?: string
+  /** Le type porte le format de jaquette (2/3 pour un manga, carré pour un
+   *  jeu de société) : sans lui, la grille plate mélangerait les cadres. */
+  entityTypeId: string
+  /** Date de l'acquisition ou de l'envie - ce sur quoi porte le tri « récent ». */
+  depuis: string
+}
+
+function libelleDuTome(variant: VariantDto): string {
+  const numero = variant.attributes.volumeNumber
+  const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
+  const base = typeof numero === 'number' ? `Tome ${numero}` : variant.label
+  return edition ? `${base} · ${edition}` : base
+}
+
+/**
+ * Aplatit les œuvres retenues en tuiles de TOMES.
+ *
+ * Une œuvre sans tome (jeu vidéo, jeu de société) donne une seule tuile,
+ * elle-même : c'est déjà l'objet individuel de son type, il n'y a rien à
+ * aplatir.
+ */
+export function aplatirEnTomes(
+  entities: EntityResponse[],
+  filtre: FiltreCollection,
+  contexte: {
+    ownerships: OwnershipResponse[]
+    owned: Set<string>
+    tomesVoulus: Set<string>
+    oeuvresVoulues: Set<string>
+    /** Depuis quand ce tome est possédé, ou voulu - selon ce qu'il est. */
+    depuisTome: (variantId: string) => string
+    depuisOeuvre: (entityId: string) => string
+    libelleDuType: (entity: EntityResponse) => string | undefined
+  },
+): TuileTome[] {
+  const tuiles: TuileTome[] = []
+  for (const entity of entities) {
+    const typeLabel = contexte.libelleDuType(entity)
+    if (entity.variants.length === 0) {
+      const etat = isOwned(entity, ownershipsDe(entity, contexte.ownerships), contexte.owned) ? 'possede' : 'voulu'
+      if (retenu(etat, filtre)) {
+        tuiles.push({
+          key: entity.id,
+          title: entity.title,
+          subtitle: etat === 'possede' ? 'Possédé' : 'Dans mes envies',
+          typeLabel,
+          imageUrl: coverImageUrlFrom(entity.attributes),
+          entityId: entity.id,
+          entityTypeId: entity.entityTypeId,
+          etat,
+          depuis: contexte.depuisOeuvre(entity.id),
+        })
+      }
+      continue
+    }
+    for (const variant of entity.variants) {
+      const etat = contexte.owned.has(variant.id)
+        ? ('possede' as const)
+        : contexte.tomesVoulus.has(variant.id)
+          ? ('voulu' as const)
+          : null
+      if (etat === null || !retenu(etat, filtre)) continue
+      const sousTitre = libelleDuTome(variant)
+      tuiles.push({
+        key: variant.id,
+        title: entity.title,
+        subtitle: sousTitre,
+        typeLabel,
+        imageUrl: coverImageUrlFrom(variant.attributes) ?? coverImageUrlFrom(entity.attributes),
+        // Sans jaquette propre au tome, le dégradé de repli serait le même
+        // pour toute la série : le sous-titre le fait varier tome par tome.
+        gradientKey: `${entity.title} ${sousTitre}`,
+        entityId: entity.id,
+        entityTypeId: entity.entityTypeId,
+        etat,
+        depuis: contexte.depuisTome(variant.id),
+        signal: etat === 'voulu' ? 'Je le veux' : undefined,
+      })
+    }
+  }
+  return tuiles
+}
+
+function retenu(etat: 'possede' | 'voulu', filtre: FiltreCollection): boolean {
+  if (filtre === 'possedes') return etat === 'possede'
+  if (filtre === 'envies') return etat === 'voulu'
+  return true
+}
+
+/** Les possessions de CETTE œuvre - `isOwned` sans tome parcourt la liste
+ *  entière, autant ne lui donner que ce qui la concerne. */
+function ownershipsDe(entity: EntityResponse, ownerships: OwnershipResponse[]): OwnershipResponse[] {
+  return ownerships.filter((o) => o.entityId === entity.id)
 }

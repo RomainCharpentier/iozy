@@ -9,14 +9,26 @@ import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
-import { buildShelfTile, indexEditionTotals, matchesCompletionFilter, type CompletionFilter } from './shelfTiles'
+import {
+  aplatirEnTomes,
+  buildShelfTile,
+  correspondAuFiltre,
+  etatDeLOeuvre,
+  indexEditionTotals,
+  matchesCompletionFilter,
+  type CompletionFilter,
+} from './shelfTiles'
+import { BarreVues } from './BarreVues'
+import { GrilleTomesCollection } from './GrilleTomesCollection'
+import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
+import { useWishlist } from '../../lib/useWishlist'
 import { listAllEditions } from '../../api/purchaseAnalysis'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 
 /** Référence stable - voir ShelfPage pour la même précaution. */
 const EMPTY_EDITIONS: MangaEditionDto[] = []
 import { CollectionFilters } from './CollectionFilters'
-import { ownedVariantIds, isOwned } from './ownership'
+import { ownedVariantIds } from './ownership'
 import type { EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 import { CLASSE_CARTE } from '../../components/Carte'
 
@@ -24,16 +36,25 @@ const EMPTY_ENTITIES: EntityResponse[] = []
 const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
 const EMPTY_OWNERSHIPS: OwnershipResponse[] = []
 
-/** "Vue catégorie" (voir la maquette V1.2) - la grille complète d'un seul
- * type, accessible via "Tout voir" depuis une ligne de Ma collection. Même
- * filtre d'état que ShelfPage (voir CollectionFilters), propre à cette
- * page : filtrer "Incomplètes" ici ne doit pas affecter les autres rails
- * quand on revient en arrière. */
+/**
+ * "Vue catégorie" (voir la maquette V1.2) - la grille complète d'un seul type,
+ * accessible via "Tout voir" depuis une ligne de Ma collection.
+ *
+ * <h2>Deux réglages, deux portées</h2>
+ * Le filtre d'ÉTAT (Complètes/Incomplètes) est propre à cette page : filtrer
+ * "Incomplètes" ici ne doit pas affecter les autres rails quand on revient en
+ * arrière. Le filtre Tout/Possédés/Envies, la vue et le tri, eux, sont les
+ * préférences PARTAGÉES de Ma collection : arriver ici par "Tout voir" depuis
+ * « Envies » et retomber sur les possessions serait une rupture, pas un
+ * filtre local.
+ */
 export function CategoryPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
   const navigate = useNavigate()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState<CompletionFilter>('ALL')
+  const preferences = usePreferencesCollection()
+  const wishlist = useWishlist()
 
   const entitiesQuery = useQuery({ queryKey: queryKeys.entities.search({}), queryFn: () => searchEntities({}) })
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
@@ -51,22 +72,71 @@ export function CategoryPage() {
   const entityType = entityTypes.find((t) => t.id === entityTypeId)
   const visual = getEntityTypeVisual(entityType)
 
-  const entities = useMemo(
-    () =>
-      allEntities.filter(
-        (e) =>
-          e.entityTypeId === entityTypeId &&
-          isOwned(e, ownerships, owned) &&
-          matchesCompletionFilter(e, owned, status, editionTotals),
-      ),
-    [allEntities, entityTypeId, ownerships, owned, status, editionTotals],
+  const oeuvresVoulues = useMemo(
+    () => new Set(wishlist.entries.filter((e) => !e.variantId).map((e) => e.entityId)),
+    [wishlist.entries],
   )
-  const tiles = useMemo(
-    () => entities.map((e) => buildShelfTile(e, owned, editionTotals)),
-    [entities, owned, editionTotals],
+  const tomesVoulus = wishlist.variantsVoulus
+
+  const duType = useMemo(
+    () => allEntities.filter((e) => e.entityTypeId === entityTypeId),
+    [allEntities, entityTypeId],
   )
 
-  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading
+  const comptes = useMemo(() => {
+    const total: Record<FiltreCollection, number> = { tout: 0, possedes: 0, envies: 0 }
+    for (const entity of duType) {
+      const etat = etatDeLOeuvre(entity, ownerships, owned, tomesVoulus, oeuvresVoulues)
+      if (etat.possede) total.possedes++
+      if (etat.voulu) total.envies++
+      if (etat.possede || etat.voulu) total.tout++
+    }
+    return total
+  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues])
+
+  const entities = useMemo(() => {
+    const retenues = duType.filter((e) => {
+      const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
+      if (!correspondAuFiltre(etat, preferences.filtre)) return false
+      return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
+    })
+    return preferences.tri === 'titre'
+      ? [...retenues].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
+      : retenues
+  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, preferences.filtre, preferences.tri, status, editionTotals])
+
+  const tiles = useMemo(
+    () =>
+      entities.map((e) =>
+        buildShelfTile(e, owned, editionTotals, {
+          possede: etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues).possede,
+          tomesVoulus: e.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(e.id) ? 1 : 0),
+          prioritaire: preferences.filtre === 'envies',
+        }),
+      ),
+    [entities, owned, editionTotals, ownerships, tomesVoulus, oeuvresVoulues, preferences.filtre],
+  )
+
+  // Un seul type ici, donc un seul format de jaquette : la grille plate n'a pas
+  // besoin d'aller le chercher par tuile comme sur Ma collection.
+  const tuilesTomes = useMemo(
+    () =>
+      aplatirEnTomes(entities, preferences.filtre, {
+        ownerships,
+        owned,
+        tomesVoulus,
+        oeuvresVoulues,
+        depuisTome: () => '',
+        depuisOeuvre: () => '',
+        libelleDuType: () => undefined,
+      }),
+    [entities, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues],
+  )
+
+  const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
+  const affiches = preferences.vue === 'plate' ? tuilesTomes.length : tiles.length
+
+  const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
 
   return (
     <div className="flex flex-col gap-4">
@@ -80,8 +150,18 @@ export function CategoryPage() {
         <h1 className="font-display text-2xl font-bold tracking-[-0.025em]" style={{ color: entityType ? visual.color : undefined }}>
           {entityType?.label ?? '…'}
         </h1>
-        <span className="text-sm text-faint">{tiles.length}</span>
+        <span className="text-sm text-faint">{affiches}</span>
       </div>
+
+      <BarreVues
+        filtre={preferences.filtre}
+        onFiltre={(filtre) => preferences.definir({ filtre })}
+        vue={preferences.vue}
+        onVue={(vue) => preferences.definir({ vue })}
+        tri={preferences.tri}
+        onTri={(tri) => preferences.definir({ tri })}
+        comptes={comptes}
+      />
 
       <button
         type="button"
@@ -104,29 +184,39 @@ export function CategoryPage() {
       {ownershipsQuery.isError && <ErrorBanner message={ownershipsQuery.error.message} />}
       {isLoading && <p className="text-textDim">Chargement...</p>}
 
-      {!isLoading && entitiesQuery.isSuccess && tiles.length === 0 && (
+      {!isLoading && entitiesQuery.isSuccess && affiches === 0 && (
         <div className={CLASSE_CARTE}>
-          <p className="font-display text-base font-semibold text-textPrimary">Aucune série ne correspond à ces filtres.</p>
-          <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
-            Réinitialiser les filtres
-          </button>
+          <p className="font-display text-base font-semibold text-textPrimary">
+            {preferences.filtre === 'envies'
+              ? 'Aucune envie en cours dans cette catégorie.'
+              : 'Aucune série ne correspond à ces filtres.'}
+          </p>
+          {status !== 'ALL' && (
+            <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
+              Réinitialiser les filtres
+            </button>
+          )}
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
-        {tiles.map((tile) => (
-          <CoverTile
-            key={tile.key}
-            title={tile.title}
-            subtitle={tile.subtitle}
-            imageUrl={tile.imageUrl}
-            gradientKey={tile.gradientKey}
-            aspectClassName={visual.aspectClassName}
-            signal={tile.signal}
-            onClick={() => navigate(`/entity/${tile.entityId}`)}
-          />
-        ))}
-      </div>
+      {preferences.vue === 'plate' ? (
+        <GrilleTomesCollection tuiles={tuilesTomes} typesParId={typesParId} />
+      ) : (
+        <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
+          {tiles.map((tile) => (
+            <CoverTile
+              key={tile.key}
+              title={tile.title}
+              subtitle={tile.subtitle}
+              imageUrl={tile.imageUrl}
+              gradientKey={tile.gradientKey}
+              aspectClassName={visual.aspectClassName}
+              signal={tile.signal}
+              onClick={() => navigate(`/entity/${tile.entityId}`)}
+            />
+          ))}
+        </div>
+      )}
 
       <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
     </div>

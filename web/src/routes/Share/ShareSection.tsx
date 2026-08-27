@@ -17,13 +17,14 @@ import type { ShareDto } from '../../types/share'
  *
  * Ce composant est désormais le seul, monté à l'identique depuis Profil et
  * depuis Envies : les deux pilotent le **même** partage et le **même** jeton.
- * `miseEnAvant` ne change que l'ordre d'affichage des cases, jamais les
- * données - c'est un raccourci contextuel, pas un second mécanisme.
- *
  * Ma collection et mes envies sont deux vues du même espace : elles se
  * partagent ensemble ou séparément, mais par le même lien.
+ *
+ * <p>`miseEnAvant` a disparu avec l'écran Envies (lot C) : il ordonnait les
+ * deux cases selon l'écran d'où l'on venait, et il n'y a plus qu'un écran
+ * d'où venir.
  */
-export function ShareSection({ miseEnAvant = 'collection' }: { miseEnAvant?: 'collection' | 'wishlist' }) {
+export function ShareSection() {
   const queryClient = useQueryClient()
   const [copie, setCopie] = useState(false)
 
@@ -83,8 +84,6 @@ export function ShareSection({ miseEnAvant = 'collection' }: { miseEnAvant?: 'co
       basculer: (valeur: boolean) => updateMutation.mutate({ shareWishlist: valeur }),
     },
   ]
-  // L'écran d'où l'on vient passe en premier - même partage, même jeton.
-  const ordonnees = miseEnAvant === 'wishlist' ? [sections[1], sections[0]] : sections
 
   return (
     <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
@@ -115,7 +114,7 @@ export function ShareSection({ miseEnAvant = 'collection' }: { miseEnAvant?: 'co
           <p className="text-xs text-textDim">Choisis ce qui est visible avec ton lien.</p>
 
           <div className="flex flex-col gap-1">
-            {ordonnees.map((section) => {
+            {sections.map((section) => {
               const derniere = derniereSectionActive(section.cle)
               return (
                 <label
