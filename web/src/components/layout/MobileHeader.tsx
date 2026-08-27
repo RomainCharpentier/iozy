@@ -6,9 +6,10 @@ import { GlobalShortcuts } from './GlobalShortcuts'
  * réduit à ce que la barre du pouce ne peut pas porter : le nom de l'app, les
  * Envies et le Profil.
  * <p>
- * La navigation globale reste STRICTEMENT à trois destinations
- * (Collection / Rechercher / Découvrir, voir TabBar) : Envies et Profil ne sont
- * pas des destinations pairs et n'ont donc rien à faire dans la barre basse.
+ * La navigation globale est celle de NAV_ITEMS (voir navItems) : Envies et
+ * Profil n'en font pas partie - les Envies sont une lecture de Ma collection,
+ * le Profil n'est pas une intention - et n'ont donc rien à faire dans la
+ * barre basse.
  * Mais faute de tout en-tête en mobile, ils n'étaient accessibles nulle part -
  * et avec eux disparaissaient Paramètres, Administration, l'export, le bilan
  * annuel et les deux liens de partage (voir docs/USER_JOURNEYS.md §12.1).

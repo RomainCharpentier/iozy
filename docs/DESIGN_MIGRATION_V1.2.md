@@ -1303,6 +1303,73 @@ relue à chaque bascule ; `/wishlist` redirige en posant le filtre ; le cœur
 des en-têtes fait passer « Tout » à « Envies » sans quitter la page ; la vue
 catégorie suit ; aucun débordement horizontal à 1280 ni à 375 px.
 
+### Lot 39 — quatre entrées de navigation, une seule liste
+
+§4 de l'étude produit : **Ma collection · Rechercher · Découvrir · Analyser une
+annonce**. « Analyser une annonce » était cachée sous « Rechercher » ; c'est un
+parcours indépendant, qui commence par une URL d'annonce et ne crée ni
+possession ni envie. Il ne partageait avec la recherche que le fait de parler
+d'œuvres qu'on ne possède pas.
+
+#### La duplication qui attendait de nuire
+
+`DesktopHeader.PRIMARY` et `TabBar.TABS` portaient chacun sa copie de la liste,
+« gardée manuellement synchronisée » — c'est-à-dire garantie de diverger.
+Ajouter la quatrième entrée à l'une et pas à l'autre aurait rendu un parcours
+entier inatteignable au pouce, exactement ce qui était déjà arrivé aux Envies
+et au Profil (voir `GlobalShortcuts`, §12.1 de `USER_JOURNEYS`). Extraite en
+`components/layout/navItems.ts`, lue par les deux barres.
+
+Chaque entrée porte **deux libellés** : le complet pour la barre desktop, un
+court pour la barre du pouce — « Analyser une annonce » y devient « Annonce ».
+Quatre onglets tiennent alors sur 375 px (mesuré : 70 px chacun, aucun tronqué,
+FAB Scan conservé).
+
+Deux redondances disparaissent avec l'entrée : le raccourci « Évaluer un
+achat » de la barre d'outils de Ma collection et le lien « Évaluer une
+annonce » de Rechercher. Tous deux existaient parce que le parcours était trop
+loin ; il ne l'est plus. Le titre de la page suit le nom de l'entrée qui y
+mène — « Évaluer un achat » devient « Analyser une annonce », ici comme dans
+Profil et l'historique.
+
+### Lot 40 — le catalogue sort de l'interface, derrière une action nommée
+
+§3, §10 et §11. Ajouter une édition ou un tome relève de la **connaissance
+catalographique**, pas de la collection personnelle : ces actions n'ont rien à
+faire dans l'interface d'un utilisateur normal. Elles étaient déjà toutes
+derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomme**.
+
+- Le pinceau muet devient **« Éditer »** / **« Terminer »**, avec son libellé
+  écrit. Un pictogramme seul laissait deviner, et c'est précisément ce qui
+  avait rendu « Suivre cette édition » introuvable au Lot 36.
+- Le **« + »** d'ajout d'édition et la **tuile « + »** en fin de grille de
+  tomes portent désormais leur phrase entière. « Ajouter » doit toujours dire
+  OÙ : un « + » nu au bout d'une grille de tomes se confondait avec un ajout à
+  la collection alors qu'il alimente le catalogue.
+- Trois autres boutons disaient « Ajouter » tout court (Tags, Expériences,
+  Relations). Le titre de section les désambiguïsait à l'œil, mais un lecteur
+  d'écran annonce le bouton seul : devenus « Ajouter ce tag », « Ajouter une
+  expérience », « Ajouter une relation ».
+- Les actions **dangereuses** vivent maintenant dans un bloc **« Zone
+  sensible »** en bas de l'espace d'édition, encadré, teinté, et qui explique
+  ce que la suppression fait et pourquoi elle peut être refusée. Avant,
+  « Supprimer » était posé dans une simple rangée à côté de « Renommer la
+  série » — le définitif à hauteur du banal. La confirmation en deux temps
+  était déjà là et n'a pas bougé.
+
+Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
+`AdministrationPage` reste atteignable par son chemin propre.
+
+#### Vérifications (lots 39 et 40)
+
+`typecheck`, `lint`, `check:contrast`, `build` verts. Balayage en direct de
+**20 routes** : un `<h1>` chacune, aucune erreur console, aucun débordement
+horizontal — ni à 1280, ni à 375 px sur les sept écrans principaux. Les quatre
+entrées s'allument correctement (`aria-current` sur « Annonce » depuis
+`/purchase-analysis`). Sur la fiche : en lecture, « Éditer » est la SEULE
+action de catalogue visible ; en édition apparaissent « Terminer », « Ajouter
+une édition », « Ajouter un tome », « Renommer la série » et la zone sensible.
+
 ### Lot 11 — "Vagabond" se pré-remplissait en "Slam Dunk"
 
 Reproduit en direct avant correction (`GET /api/metadata/french-title?query=Vagabond&author=Takehiko Inoue`
@@ -2740,6 +2807,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Deux listes « gardées manuellement synchronisées » sont deux listes vouées à diverger : `DesktopHeader.PRIMARY` et `TabBar.TABS` le disaient dans leurs propres commentaires. Extraire AVANT d'ajouter la quatrième entrée, pas après avoir oublié une des deux (Lot 39).
+- Un bouton est annoncé SEUL par un lecteur d'écran : le titre de section au-dessus ne le désambiguïse pas. Trois « Ajouter » nus vivaient sous « Tags », « Expériences » et « Relations » (Lot 40).
 - Une nappe d'actions au survol (`absolute inset-0` + `group-hover:pointer-events-auto`) doit être gardée sur son CONTENEUR, pas seulement sur ses boutons : vide, elle couvre quand même sa cible et avale le clic. Se détecte avec `elementFromPoint` au centre de chaque tuile, jamais par `typecheck`/`lint`/`build` (Lot 37).
 - Le fanal d'une règle produit se pose à UN endroit : « pas de cœur sur un groupe » vit dans `WishlistToggle` lui-même (via `lib/typeDeCollection`), pas dans ses trois appelants - un quatrième appelant l'aurait reposé (Lot 37).
 - Un test peut CONSIGNER un comportement sans le protéger : `WishlistWithoutOwnershipIntegrationTest` affirmait « rien ne retire automatiquement une envie à l'achat, ce comportement est inchangé ». Lire l'intention du commentaire avant de conclure qu'un test bloque un changement produit (Lot 36).

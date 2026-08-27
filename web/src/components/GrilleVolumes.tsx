@@ -134,15 +134,18 @@ export function GrilleVolumes({
               onJeLeVeux={onJeLeVeux ? () => onJeLeVeux(volume.cle) : undefined}
             />
           ))}
+          {/* Le libellé est ÉCRIT, pas seulement dans un `title` : « ajouter »
+              doit toujours dire où, et un « + » nu au bout d'une grille de tomes
+              se confondait avec un ajout à la collection alors qu'il alimente le
+              catalogue (étude produit du 2026-08-27, §11). */}
           {action && (
             <button
               type="button"
               onClick={action.onClick}
-              title={action.libelle}
-              aria-label={action.libelle}
-              className="flex aspect-[2/3] items-center justify-center rounded-lg border border-dashed border-lineStrong text-faint transition-colors hover:border-accent hover:bg-accentTint hover:text-accentText"
+              className="flex aspect-[2/3] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-lineStrong px-1.5 text-center text-[10px] leading-tight font-medium text-faint transition-colors hover:border-accent hover:bg-accentTint hover:text-accentText"
             >
-              <Plus size={16} />
+              <Plus size={15} />
+              {action.libelle}
             </button>
           )}
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Scale, ScanBarcode, ScanLine } from 'lucide-react'
+import { Loader2, ScanBarcode, ScanLine } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
 import { listAllOwnerships } from '../../api/ownerships'
@@ -233,6 +233,10 @@ export function SearchPage() {
           à la collection (voir §24 du brief). */}
       <EnTeteSection niveau={1} titre="Rechercher" />
 
+      {/* Scanner reste ici : c'est la même intention que la recherche, saisie
+          autrement. « Analyser une annonce » en est parti - c'est un parcours
+          indépendant, qui a désormais sa propre entrée de navigation (étude
+          produit du 2026-08-27, §4). */}
       <div className="flex flex-wrap gap-2">
         <Link
           to="/scan"
@@ -240,13 +244,6 @@ export function SearchPage() {
         >
           <ScanLine size={16} />
           Scanner
-        </Link>
-        <Link
-          to="/purchase-analysis"
-          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-        >
-          <Scale size={16} />
-          Évaluer une annonce
         </Link>
       </div>
 

@@ -41,7 +41,7 @@ export function AnalysisHistoryPage() {
       {historyQuery.isLoading && <p className="text-textDim">Chargement...</p>}
       {historyQuery.isSuccess && sorted.length === 0 && (
         <p className="text-textDim">
-          Aucune analyse enregistrée pour l'instant - depuis "Évaluer un achat", chaque lot analysé vient s'ajouter
+          Aucune analyse enregistrée pour l'instant - depuis "Analyser une annonce", chaque lot analysé vient s'ajouter
           ici pour comparer une nouvelle annonce aux précédentes.
         </p>
       )}
