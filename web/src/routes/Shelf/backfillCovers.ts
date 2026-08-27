@@ -1,12 +1,13 @@
 import { coverImageUrlFrom } from '../../lib/coverImage'
 import type { EntityResponse, VariantDto, VolumeCandidateDto } from '../../types/api'
+import { editionDe, numeroDe } from '../../lib/attributsTome'
 
 /** Un Variant "manga" reconnaissable (porte un volumeNumber structuré) sans
  * jaquette propre - seuls ceux-là sont éligibles au repêchage (voir
  * "Retrouver les jaquettes manquantes", Ma collection). */
 export function variantsMissingCover(entity: EntityResponse): VariantDto[] {
   return entity.variants.filter(
-    (v) => typeof v.attributes.volumeNumber === 'number' && !coverImageUrlFrom(v.attributes),
+    (v) => numeroDe(v) !== null && !coverImageUrlFrom(v.attributes),
   )
 }
 
@@ -23,13 +24,15 @@ export function findBestCoverMatch(
    *  encore d'objet complet à offrir, et n'a pas à en fabriquer un faux. */
   variant: Pick<VariantDto, 'attributes'>,
 ): VolumeCandidateDto | undefined {
-  const volumeNumber = variant.attributes.volumeNumber
-  if (typeof volumeNumber !== 'number') return undefined
+  const volumeNumber = numeroDe(variant)
+  if (volumeNumber === null) return undefined
 
   const sameVolume = candidates.filter((c) => c.volumeNumber === volumeNumber && c.imageUrl)
   if (sameVolume.length === 0) return undefined
 
-  const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim().toLowerCase() : ''
+  // Casse abaissée ICI et nulle part ailleurs : on compare à l'édition telle
+  // que l'annonce un fournisseur externe, où « Kana » et « KANA » sont la même.
+  const edition = editionDe(variant).toLowerCase()
   if (edition) {
     const editionMatch = sameVolume.find((c) => c.edition.trim().toLowerCase() === edition)
     if (editionMatch) return editionMatch

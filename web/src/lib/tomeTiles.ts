@@ -1,4 +1,5 @@
 import type { EditionProgressDto, VariantDto } from '../types/api'
+import { editionDe, numeroDe } from './attributsTome'
 
 /**
  * La construction de la grille d'une edition : quels numeros existent, et
@@ -41,9 +42,8 @@ export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): T
   // édition précisée aussi bien que celui de l'édition nommée.
   const sourceSet = new Set(group.sourceEditions)
   for (const variant of variants) {
-    const num = variant.attributes.volumeNumber
-    const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
-    if (typeof num === 'number' && sourceSet.has(edition)) variantsByNumber.set(num, variant)
+    const num = numeroDe(variant)
+    if (num !== null && sourceSet.has(editionDe(variant))) variantsByNumber.set(num, variant)
   }
   const ownedSet = new Set(owned)
 
@@ -87,11 +87,4 @@ export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): T
     })
   }
   return tiles
-}
-
-/** "Tome 12" si un numéro de tome est exploitable, sinon le label brut - même
- *  règle que ShelfPage.variantSubtitle, gardée cohérente ici. */
-export function variantLabel(variant: VariantDto): string {
-  const volumeNumber = variant.attributes.volumeNumber
-  return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
 }

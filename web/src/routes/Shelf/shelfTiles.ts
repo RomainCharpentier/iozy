@@ -9,6 +9,7 @@ import type {
   OwnershipResponse,
   VariantDto,
 } from '../../types/api'
+import { editionDe, numeroDe } from '../../lib/attributsTome'
 
 export interface ShelfTile {
   key: string
@@ -242,9 +243,9 @@ export interface TuileElement extends ShelfTile {
 }
 
 function libelleDeLElement(variant: VariantDto): string {
-  const numero = variant.attributes.volumeNumber
-  const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
-  const base = typeof numero === 'number' ? `Tome ${numero}` : variant.label
+  const numero = numeroDe(variant)
+  const edition = editionDe(variant)
+  const base = numero !== null ? `Tome ${numero}` : variant.label
   return edition ? `${base} · ${edition}` : base
 }
 

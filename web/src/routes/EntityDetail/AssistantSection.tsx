@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
-import type { EditionProgressDto } from '../../types/api'
-import type { ExperienceResponse, VariantDto } from '../../types/api'
+import type { EditionProgressDto, ExperienceResponse, VariantDto } from '../../types/api'
 import type { PriceBasis } from '../../types/purchaseAnalysis'
+import { editionDe, numeroDe } from '../../lib/attributsTome'
 
 /**
  * Les réponses de l'assistant : deux questions FIXES, dont la réponse est
@@ -252,10 +252,11 @@ function ReadingAnswer({
   // tome, et les fondre dans le compteur mentirait sur l'avancement.
   const volumeNumberById = new Map<string, number>()
   for (const variant of variants) {
-    const raw = variant.attributes.volumeNumber
-    const volumeNumber = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
-    const edition = typeof variant.attributes.edition === 'string' ? variant.attributes.edition.trim() : ''
-    if (Number.isFinite(volumeNumber) && activeGroup?.sourceEditions.includes(edition)) {
+    // Le numéro se lit STRICTEMENT comme partout ailleurs (voir attributsTome) :
+    // cette boucle acceptait seule un numéro écrit en texte, si bien qu'un tome
+    // ainsi saisi aurait été compté ici et invisible dans la grille.
+    const volumeNumber = numeroDe(variant)
+    if (volumeNumber !== null && activeGroup?.sourceEditions.includes(editionDe(variant))) {
       volumeNumberById.set(variant.id, volumeNumber)
     }
   }
