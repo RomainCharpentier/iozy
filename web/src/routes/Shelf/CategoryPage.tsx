@@ -19,6 +19,7 @@ import {
   type CompletionFilter,
 } from './shelfTiles'
 import { BarreVues } from './BarreVues'
+import { indexerVenues, trierOeuvres } from './venues'
 import { GrilleTomesCollection } from './GrilleTomesCollection'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
@@ -94,16 +95,16 @@ export function CategoryPage() {
     return total
   }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues])
 
+  const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
+
   const entities = useMemo(() => {
     const retenues = duType.filter((e) => {
       const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
       if (!correspondAuFiltre(etat, preferences.filtre)) return false
       return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
     })
-    return preferences.tri === 'titre'
-      ? [...retenues].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
-      : retenues
-  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, preferences.filtre, preferences.tri, status, editionTotals])
+    return trierOeuvres(retenues, preferences.tri, venues)
+  }, [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, preferences.filtre, preferences.tri, status, editionTotals, venues])
 
   const tiles = useMemo(
     () =>
@@ -117,21 +118,23 @@ export function CategoryPage() {
     [entities, owned, editionTotals, ownerships, tomesVoulus, oeuvresVoulues, preferences.filtre],
   )
 
-  // Un seul type ici, donc un seul format de jaquette : la grille plate n'a pas
-  // besoin d'aller le chercher par tuile comme sur Ma collection.
-  const tuilesTomes = useMemo(
-    () =>
-      aplatirEnTomes(entities, preferences.filtre, {
-        ownerships,
-        owned,
-        tomesVoulus,
-        oeuvresVoulues,
-        depuisTome: () => '',
-        depuisOeuvre: () => '',
-        libelleDuType: () => undefined,
-      }),
-    [entities, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues],
-  )
+  // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
+  // partout et répéterait le titre de la page.
+  const tuilesTomes = useMemo(() => {
+    const tuiles = aplatirEnTomes(entities, preferences.filtre, {
+      ownerships,
+      owned,
+      tomesVoulus,
+      oeuvresVoulues,
+      depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
+      depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
+      libelleDuType: () => undefined,
+    })
+    // Par titre, l'ordre des œuvres suffit ; par récence, ce sont les TOMES
+    // qu'il faut réordonner - sinon « Récents d'abord » ne ferait rien de
+    // visible dans la vue qui délie justement les tomes de leur série.
+    return preferences.tri === 'titre' ? tuiles : [...tuiles].sort((a, b) => b.depuis.localeCompare(a.depuis))
+  }, [entities, preferences.filtre, preferences.tri, ownerships, owned, tomesVoulus, oeuvresVoulues, venues])
 
   const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
   const affiches = preferences.vue === 'plate' ? tuilesTomes.length : tiles.length

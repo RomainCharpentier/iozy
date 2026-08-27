@@ -21,6 +21,7 @@ import {
   indexEditionTotals,
   matchesCompletionFilter,
 } from './shelfTiles'
+import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
 import { useWishlist } from '../../lib/useWishlist'
 import { listAllEditions } from '../../api/purchaseAnalysis'
@@ -154,37 +155,10 @@ export function ShelfPage() {
     return total
   }, [etats])
 
-  // « Depuis quand », pour le tri : la date d'acquisition d'un tome possédé,
-  // celle de l'envie sinon. Deux index, plutôt qu'un parcours par tuile.
-  const depuisParTome = useMemo(() => {
-    const index = new Map<string, string>()
-    for (const o of ownerships) {
-      if (o.status === 'OWNED' && o.variantId) index.set(o.variantId, o.acquiredAt)
-    }
-    for (const entree of wishlist.entries) {
-      if (entree.variantId && !index.has(entree.variantId)) index.set(entree.variantId, entree.addedAt)
-    }
-    return index
-  }, [ownerships, wishlist.entries])
-
-  const depuisParOeuvre = useMemo(() => {
-    const index = new Map<string, string>()
-    for (const o of ownerships) {
-      if (o.status === 'OWNED' && !o.variantId) index.set(o.entityId, o.acquiredAt)
-    }
-    for (const entree of wishlist.entries) {
-      if (!entree.variantId && !index.has(entree.entityId)) index.set(entree.entityId, entree.addedAt)
-    }
-    return index
-  }, [ownerships, wishlist.entries])
+  const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
 
   const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
 
-  /**
-   * Le tri des ŒUVRES. Une œuvre « récente » est celle dont le dernier tome est
-   * arrivé le plus tard : c'est ce qui bouge quand on ajoute un tome à une
-   * vieille série, et donc ce qu'on s'attend à voir remonter.
-   */
   const triees = useMemo(() => {
     // Le filtre d'état (Complètes/Incomplètes) ne s'applique qu'à ce qui a une
     // complétude : une œuvre seulement voulue n'en a pas encore.
@@ -193,17 +167,8 @@ export function ShelfPage() {
       if (!etat || !correspondAuFiltre(etat, preferences.filtre)) return false
       return !etat.possede || matchesCompletionFilter(e, owned, status, editionTotals)
     })
-    if (preferences.tri === 'titre') {
-      return [...retenues].sort((a, b) => a.title.localeCompare(b.title, 'fr'))
-    }
-    const derniereVenue = (entity: EntityResponse) =>
-      [...entity.variants.map((v) => depuisParTome.get(v.id) ?? ''), depuisParOeuvre.get(entity.id) ?? '']
-        .sort()
-        .at(-1) ?? ''
-    return [...retenues].sort((a, b) => derniereVenue(b).localeCompare(derniereVenue(a)))
-  }, [allEntities, etats, preferences.filtre, preferences.tri, owned, status, editionTotals, depuisParTome, depuisParOeuvre])
-
-  const entities = triees
+    return trierOeuvres(retenues, preferences.tri, venues)
+  }, [allEntities, etats, preferences.filtre, preferences.tri, owned, status, editionTotals, venues])
 
   const envieDe = useMemo(
     () => (entity: EntityResponse) => ({
@@ -227,11 +192,11 @@ export function ShelfPage() {
         owned,
         tomesVoulus,
         oeuvresVoulues,
-        depuisTome: (variantId) => depuisParTome.get(variantId) ?? '',
-        depuisOeuvre: (entityId) => depuisParOeuvre.get(entityId) ?? '',
+        depuisTome: (variantId) => venues.parTome.get(variantId) ?? '',
+        depuisOeuvre: (entityId) => venues.parOeuvre.get(entityId) ?? '',
         libelleDuType: (entity) => typesParId.get(entity.entityTypeId)?.label,
       }),
-    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, depuisParTome, depuisParOeuvre, typesParId],
+    [triees, preferences.filtre, ownerships, owned, tomesVoulus, oeuvresVoulues, venues, typesParId],
   )
 
   // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce
@@ -248,10 +213,24 @@ export function ShelfPage() {
   // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
   // d'outils" (voir hubMenuOpen ci-dessous), l'action elle-même est
   // inchangée (voir backfillCovers.ts et son commentaire d'origine).
+  //
+  // Sur TOUTE la collection possédée, jamais sur la liste affichée : c'est un outil
+  // de maintenance, pas une action sur ce qui est affiché. Depuis que la page
+  // a des filtres, passer sur « Envies » lui aurait fait traiter trois séries
+  // en annonçant le faire pour la collection - et son compteur aurait chuté
+  // sans raison visible.
   const mangaType = entityTypes.find((t) => t.code === 'MANGA')
   const entitiesMissingCovers = useMemo(
-    () => (mangaType ? entities.filter((e) => e.entityTypeId === mangaType.id && variantsMissingCover(e).length > 0) : []),
-    [entities, mangaType],
+    () =>
+      mangaType
+        ? allEntities.filter(
+            (e) =>
+              e.entityTypeId === mangaType.id &&
+              (etats.get(e.id)?.possede ?? false) &&
+              variantsMissingCover(e).length > 0,
+          )
+        : [],
+    [allEntities, etats, mangaType],
   )
   const [backfill, setBackfill] = useState<
     { running: boolean; processed: number; total: number; found: number; quotaExceeded: boolean } | null
@@ -309,7 +288,7 @@ export function ShelfPage() {
   }, [ownerships])
 
   const isLoading = entitiesQuery.isLoading || ownershipsQuery.isLoading || wishlist.isLoading
-  const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : entities.length
+  const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
 
   const vide = messageVide(preferences.filtre, status !== 'ALL')
 

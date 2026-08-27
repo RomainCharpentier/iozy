@@ -1360,6 +1360,29 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 41 — revérification : deux défauts que le lot C avait introduits
+
+Relecture demandée après coup. Les deux défauts viennent du même geste : la
+variable `entities` de Ma collection signifiait « tout ce qui est possédé », et
+le lot C lui a fait signifier « ce qui est à l'écran ».
+
+**1. Un outil de maintenance devenu dépendant de la vue.** « Retrouver les
+jaquettes manquantes » lisait `entities` : passer le filtre sur « Envies » lui
+faisait traiter trois séries en annonçant le faire pour la collection, et son
+compteur chutait sans raison visible. Il repart de la collection possédée,
+comme avant le lot C. Vérifié : 3 sous les trois filtres, là où il donnait 4 / 3
+/ 3 selon la vue.
+
+**2. Un contrôle qui ne faisait rien.** La vue d'une catégorie offrait
+« Récents d'abord » sans pouvoir l'honorer : elle ne triait qu'à l'alphabétique
+et passait des dates VIDES à sa grille de tomes. Un contrôle inerte est pire
+que pas de contrôle - il enseigne que le réglage ne sert à rien.
+
+La cause est la même que celle du lot 39 : la logique des dates de venue vivait
+dans `ShelfPage`, donc l'autre écran ne pouvait pas s'en servir. Extraite en
+`routes/Shelf/venues.ts` (index des venues, « dernière venue » d'une œuvre, tri
+des œuvres), lue par les deux.
+
 #### Vérifications (lots 39 et 40)
 
 `typecheck`, `lint`, `check:contrast`, `build` verts. Balayage en direct de
@@ -2807,6 +2830,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- **`document.documentElement.clientWidth` peut valoir 0 dans ce navigateur de test** quand aucun viewport n'est émulé : toute sonde de débordement rapporte alors un faux positif, et `elementFromPoint` rend `null`. Appeler `resize_window` avec une taille EXPLICITE avant de mesurer, et se méfier d'un `deborde: true` accompagné d'un viewport nul (Lot 41).
+- Quand une variable change de SENS (`entities` : « tout ce qui est possédé » → « ce qui est à l'écran »), relire tous ses lecteurs, pas seulement ceux qu'on modifie : un outil de maintenance s'était mis à dépendre du filtre d'affichage (Lot 41).
 - Deux listes « gardées manuellement synchronisées » sont deux listes vouées à diverger : `DesktopHeader.PRIMARY` et `TabBar.TABS` le disaient dans leurs propres commentaires. Extraire AVANT d'ajouter la quatrième entrée, pas après avoir oublié une des deux (Lot 39).
 - Un bouton est annoncé SEUL par un lecteur d'écran : le titre de section au-dessus ne le désambiguïse pas. Trois « Ajouter » nus vivaient sous « Tags », « Expériences » et « Relations » (Lot 40).
 - Une nappe d'actions au survol (`absolute inset-0` + `group-hover:pointer-events-auto`) doit être gardée sur son CONTENEUR, pas seulement sur ses boutons : vide, elle couvre quand même sa cible et avale le clic. Se détecte avec `elementFromPoint` au centre de chaque tuile, jamais par `typecheck`/`lint`/`build` (Lot 37).
