@@ -1,6 +1,7 @@
 package com.iozycore.metadata.googlebooks;
 
 import com.iozycore.metadata.QuotaExceededException;
+import com.iozycore.metadata.SourceUnavailableException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -80,10 +81,38 @@ class GoogleBooksHttpClientTest {
         });
 
         GoogleBooksHttpClient client = new GoogleBooksHttpClient("primary", "backup");
-        String body = client.get(baseUrl());
 
-        assertThat(body).isNull();
+        assertThatThrownBy(() -> client.get(baseUrl())).isInstanceOf(SourceUnavailableException.class);
         assertThat(callCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    void a_source_that_did_not_answer_is_never_confused_with_an_empty_result() throws Exception {
+        // Défaut constaté le 2026-08-27 (voir Lot 58) : un 503 rendait null,
+        // que l'appelant traduisait en liste vide - donc en « aucun tome »,
+        // mis en cache durablement. Une panne doit LEVER.
+        start(exchange -> response(503, "{\"error\":\"backendError\"}"));
+
+        GoogleBooksHttpClient client = new GoogleBooksHttpClient("primary", "");
+
+        assertThatThrownBy(() -> client.get(baseUrl()))
+                .isInstanceOf(SourceUnavailableException.class)
+                .hasMessageContaining("503");
+        // Et surtout : ce n'est PAS un quota, le cooldown ne doit pas s'armer.
+        assertThat(client.isQuotaLikelyExhausted()).isFalse();
+    }
+
+    @Test
+    void an_unreachable_host_is_reported_as_an_unavailable_source() throws Exception {
+        // Coupure réseau / délai dépassé : même conclusion qu'un 503.
+        start(exchange -> response(200, "{}"));
+        String deadUrl = baseUrl();
+        server.stop(0);
+        server = null;
+
+        GoogleBooksHttpClient client = new GoogleBooksHttpClient("primary", "");
+
+        assertThatThrownBy(() -> client.get(deadUrl)).isInstanceOf(SourceUnavailableException.class);
     }
 
     @Test

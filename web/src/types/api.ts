@@ -210,8 +210,11 @@ export interface VolumeCandidateDto {
 
 /** Réponse de GET /metadata/volumes (voir VolumesResponse côté backend) -
  * `quotaExceeded` distingue une liste vide "aucune édition trouvée" d'un
- * quota Google Books dépassé sur toutes les clés configurées, pour afficher
- * un message adapté plutôt que de laisser croire à tort qu'il n'y a rien. */
+ * échec TRANSITOIRE du fournisseur : quota dépassé sur toutes les clés, ou
+ * source qui n'a pas répondu du tout (503, délai dépassé). Dans les deux cas
+ * l'écran doit dire "réessaie" plutôt que de laisser croire qu'il n'y a rien.
+ * Le nom du champ ne parle que du quota par compatibilité (il est décodé tel
+ * quel par le client iOS) - côté serveur il se nomme `providerUnavailable`. */
 export interface VolumesResponseDto {
   volumes: VolumeCandidateDto[]
   quotaExceeded: boolean

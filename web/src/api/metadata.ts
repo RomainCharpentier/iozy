@@ -85,8 +85,8 @@ export async function fetchFrenchTitle(
  * françaises d'une série (Google Books) - pour la sélection visuelle des
  * tomes possédés (voir VolumeSelectionGrid). `volumes` vide = rien trouvé,
  * jamais une erreur : l'appelant garde alors la saisie manuelle du tome -
- * `quotaExceeded` distingue ce cas d'un quota Google Books dépassé (voir
- * VolumesResponseDto). Résultat stocké durablement côté backend - un
+ * `quotaExceeded` distingue ce cas d'un échec transitoire du fournisseur -
+ * quota dépassé, ou source qui n'a pas répondu (voir VolumesResponseDto). Résultat stocké durablement côté backend - un
  * résultat une fois trouvé n'est plus jamais rappelé automatiquement,
  * `forceRefresh` (bouton "Actualiser") est le seul moyen de relancer les
  * requêtes couvertes par la recherche initiale (mots-clés d'édition les

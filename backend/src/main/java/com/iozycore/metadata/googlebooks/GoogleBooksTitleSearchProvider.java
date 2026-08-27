@@ -115,9 +115,6 @@ public class GoogleBooksTitleSearchProvider implements MetadataProvider {
         try {
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
             String body = httpClient.get(SEARCH_URL.formatted(encodedQuery));
-            if (body == null) {
-                return List.of();
-            }
             return parse(body);
         } catch (QuotaExceededException e) {
             // Best-effort par nature (complète Jikan/MyAnimeList, jamais leur

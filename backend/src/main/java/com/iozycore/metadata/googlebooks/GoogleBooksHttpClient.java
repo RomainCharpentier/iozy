@@ -1,6 +1,7 @@
 package com.iozycore.metadata.googlebooks;
 
 import com.iozycore.metadata.QuotaExceededException;
+import com.iozycore.metadata.SourceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -84,14 +85,16 @@ public class GoogleBooksHttpClient {
      * clé configurée du tout, une seule requête anonyme est tentée (quota
      * mondial partagé Google).
      *
-     * @return le corps de la réponse 200, ou {@code null} si l'appel a échoué
-     * pour une raison autre que le quota (l'appelant se comporte alors comme
-     * avant : log + résultat vide).
+     * @return le corps de la réponse 200 - jamais {@code null} : un appel qui
+     * n'aboutit pas LÈVE, pour que l'appelant ne puisse pas confondre « la
+     * source n'a pas répondu » avec « la source a répondu, il n'y a rien »
+     * (voir {@link SourceUnavailableException}).
      * @throws QuotaExceededException si toutes les clés essayées ont répondu 429.
+     * @throws SourceUnavailableException sur tout autre échec : statut HTTP
+     * inattendu, délai dépassé, coupure réseau.
      */
-    public String get(String urlWithoutKey) throws IOException, InterruptedException {
+    public String get(String urlWithoutKey) {
         List<String> keysToTry = apiKeys.isEmpty() ? List.of("") : apiKeys;
-        boolean quotaExceededOnEveryKeyTried = true;
 
         for (String key : keysToTry) {
             String url = key.isBlank() ? urlWithoutKey : urlWithoutKey + "&key=" + key;
@@ -101,7 +104,17 @@ public class GoogleBooksHttpClient {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response;
+            try {
+                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (IOException e) {
+                // Coupure réseau ou délai dépassé : la source n'a rien dit, ce
+                // n'est PAS une absence de résultat (voir la javadoc).
+                throw new SourceUnavailableException("Google Books injoignable pour '" + urlWithoutKey + "'", e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // ne jamais avaler l'interruption
+                throw new SourceUnavailableException("Appel Google Books interrompu pour '" + urlWithoutKey + "'", e);
+            }
             if (response.statusCode() == 200) {
                 return response.body();
             }
@@ -109,16 +122,17 @@ public class GoogleBooksHttpClient {
                 log.warn("Google Books a répondu 429 (quota) - tentative de la clé suivante s'il y en a une");
                 continue;
             }
-            quotaExceededOnEveryKeyTried = false;
+            // Autre statut (503, 500, 400...) : changer de clé n'y changerait
+            // rien, et surtout ce n'est pas une réponse - le distinguer d'une
+            // liste vide évite de mettre en cache une panne (voir Lot 58).
             log.warn("Google Books a répondu {} pour '{}'", response.statusCode(), urlWithoutKey);
-            return null;
+            throw new SourceUnavailableException(
+                    "Google Books a répondu " + response.statusCode() + " pour '" + urlWithoutKey + "'");
         }
 
-        if (quotaExceededOnEveryKeyTried) {
-            quotaExceededUntil = Instant.now().plus(COOLDOWN);
-            throw new QuotaExceededException(
-                    "Quota Google Books dépassé sur les " + keysToTry.size() + " clé(s) essayée(s)");
-        }
-        return null;
+        // Seul chemin restant : chaque clé essayée a répondu 429.
+        quotaExceededUntil = Instant.now().plus(COOLDOWN);
+        throw new QuotaExceededException(
+                "Quota Google Books dépassé sur les " + keysToTry.size() + " clé(s) essayée(s)");
     }
 }

@@ -173,8 +173,8 @@ export function usePropositionTomes({
           <p className="text-sm text-textDim">
             {proposes.enCours
               ? 'Recherche des tomes disponibles...'
-              : proposes.quotaDepasse
-                ? 'Quota Google Books dépassé pour le moment — impossible de vérifier les éditions françaises. Tu peux ajouter un tome à la main, ou réessayer plus tard.'
+              : proposes.fournisseurMuet
+                ? "Nos fournisseurs n'ont pas répondu pour le moment — impossible de vérifier les éditions françaises. Tu peux ajouter un tome à la main, ou réessayer plus tard."
                 : 'Aucun tome trouvé pour cette œuvre chez nos fournisseurs. Tu peux les ajouter à la main.'}
           </p>
           {/* La saisie manuelle ne suppose AUCUNE fiche : `quickAdd` la crée

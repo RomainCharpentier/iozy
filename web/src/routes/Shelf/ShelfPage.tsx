@@ -277,15 +277,15 @@ export function ShelfPage() {
     [allEntities, etats, mangaType],
   )
   const [backfill, setBackfill] = useState<
-    { running: boolean; processed: number; total: number; found: number; quotaExceeded: boolean } | null
+    { running: boolean; processed: number; total: number; found: number; fournisseurMuet: boolean } | null
   >(null)
 
   async function backfillMissingCovers() {
     if (!mangaType || entitiesMissingCovers.length === 0) return
     setHubMenuOpen(false)
-    setBackfill({ running: true, processed: 0, total: entitiesMissingCovers.length, found: 0, quotaExceeded: false })
+    setBackfill({ running: true, processed: 0, total: entitiesMissingCovers.length, found: 0, fournisseurMuet: false })
     let found = 0
-    let quotaExceeded = false
+    let fournisseurMuet = false
 
     // Séquentiel, jamais Promise.all : chaque série coûte potentiellement un
     // vrai appel Google Books (cache manquant), un lot en parallèle risquerait
@@ -302,14 +302,14 @@ export function ShelfPage() {
         (entityId, variantId, url) => mergeVariantAttributes(entityId, variantId, { coverImageUrl: url }),
       )
       found += resultat.trouvees
-      if (resultat.quotaDepasse) {
-        quotaExceeded = true
+      if (resultat.fournisseurMuet) {
+        fournisseurMuet = true
         break
       }
-      setBackfill({ running: true, processed: i + 1, total: entitiesMissingCovers.length, found, quotaExceeded })
+      setBackfill({ running: true, processed: i + 1, total: entitiesMissingCovers.length, found, fournisseurMuet })
     }
 
-    setBackfill({ running: false, processed: entitiesMissingCovers.length, total: entitiesMissingCovers.length, found, quotaExceeded })
+    setBackfill({ running: false, processed: entitiesMissingCovers.length, total: entitiesMissingCovers.length, found, fournisseurMuet })
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   }
 
@@ -426,8 +426,8 @@ export function ShelfPage() {
           {backfill.found > 0
             ? `${backfill.found} jaquette${backfill.found > 1 ? 's' : ''} retrouvée${backfill.found > 1 ? 's' : ''}.`
             : 'Aucune jaquette retrouvée cette fois.'}
-          {backfill.quotaExceeded &&
-            ` Quota Google Books dépassé - ${backfill.processed}/${backfill.total} séries traitées, réessaie plus tard pour les autres.`}
+          {backfill.fournisseurMuet &&
+            ` Le fournisseur n'a pas répondu - ${backfill.processed}/${backfill.total} séries traitées, réessaie plus tard pour les autres.`}
         </p>
       )}
 

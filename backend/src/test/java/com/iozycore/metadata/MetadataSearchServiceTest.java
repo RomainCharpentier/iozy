@@ -374,7 +374,7 @@ class MetadataSearchServiceTest {
 
         assertThat(result.volumes()).hasSize(1);
         assertThat(result.volumes().get(0).edition()).isEqualTo("Kana");
-        assertThat(result.quotaExceeded()).isFalse();
+        assertThat(result.providerUnavailable()).isFalse();
     }
 
     @Test
@@ -390,7 +390,31 @@ class MetadataSearchServiceTest {
         VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
         assertThat(result.volumes()).isEmpty();
-        assertThat(result.quotaExceeded()).isTrue();
+        assertThat(result.providerUnavailable()).isTrue();
+    }
+
+    @Test
+    void reports_a_provider_that_did_not_answer_at_all_and_never_caches_that_emptiness() {
+        // Défaut constaté le 2026-08-27 (voir Lot 58) : Google Books a répondu
+        // 503 pendant un « Retrouver 1 jaquette » sur Naruto. La liste vide qui
+        // en résultait était (a) affichée comme « Aucune trouvée cette fois. »,
+        // (b) mise en cache DURABLEMENT - le bouton restait donc impuissant même
+        // une fois la source rétablie. Une panne ne se mémorise pas.
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new SourceUnavailableException("503"));
+        MetadataSearchService service = new MetadataSearchService(
+                List.of(), List.of(), new FakeEntityRepository(List.of()), List.of(), List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Naruto", "Kishimoto");
+
+        assertThat(result.volumes()).isEmpty();
+        assertThat(result.providerUnavailable()).isTrue();
+        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty();
+
+        // Et la recherche suivante rappelle bien le fournisseur, au lieu d'être
+        // servie par un vide mémorisé.
+        service.searchVolumes(MANGA, "Naruto", "Kishimoto");
+        assertThat(provider.callCount).isEqualTo(2);
     }
 
     @Test
@@ -404,7 +428,7 @@ class MetadataSearchServiceTest {
         VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
         assertThat(result.volumes()).hasSize(1); // le résultat de "succeeding" n'est pas perdu
-        assertThat(result.quotaExceeded()).isTrue(); // mais le quota dépassé ailleurs reste signalé
+        assertThat(result.providerUnavailable()).isTrue(); // mais le quota dépassé ailleurs reste signalé
     }
 
     @Test
@@ -542,7 +566,7 @@ class MetadataSearchServiceTest {
         VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
 
         assertThat(result.volumes()).hasSize(1); // le résultat déjà connu reste renvoyé
-        assertThat(result.quotaExceeded()).isTrue();
+        assertThat(result.providerUnavailable()).isTrue();
         assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
                 volumes -> assertThat(volumes).hasSize(1)); // pas écrasé par un échec
     }
