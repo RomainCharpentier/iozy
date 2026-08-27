@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getCompleteness } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
-import { ownedVolumeNumbers, type EditionGroup } from '../../lib/editionGroups'
-import type { ExperienceResponse, OwnershipResponse, VariantDto } from '../../types/api'
+import type { EditionProgressDto } from '../../types/api'
+import type { ExperienceResponse, VariantDto } from '../../types/api'
 import type { PriceBasis } from '../../types/purchaseAnalysis'
 
 /**
@@ -42,7 +42,6 @@ export function ReponseAssistant({
   entityId,
   entityTitle,
   variants,
-  ownerships,
   experiences,
   activeGroup,
   question,
@@ -50,20 +49,26 @@ export function ReponseAssistant({
   entityId: string
   entityTitle: string
   variants: VariantDto[]
-  ownerships: OwnershipResponse[]
   experiences: ExperienceResponse[]
   /** null quand aucune édition n'est affichée (type sans tome, série sans
    *  aucun tome) : « que me manque-t-il » n'a alors rien sur quoi compter. */
-  activeGroup: EditionGroup | null
+  activeGroup: EditionProgressDto | null
   question: QuestionAssistant
 }) {
   const navigate = useNavigate()
-  const owned = activeGroup ? ownedVolumeNumbers(variants, ownerships, activeGroup.sourceEditions) : []
-  const editionName = activeGroup?.edition ?? ''
+  // Possédés et catalogués viennent du serveur avec le groupe (voir
+  // GET /insights/progress/{entityId}) : cette section les recomptait à partir
+  // des Ownership, avec sa propre idée de ce qui appartient à l'édition.
+  const owned = activeGroup?.ownedVolumeNumbers ?? []
+  const editionName = activeGroup?.editionName ?? ''
 
+  // La complétude reste, et c'est SA question : ce qui manque et ce que ça
+  // coûterait (prix du marché). La progression, elle, ne sait que compter -
+  // les deux ne se recouvrent pas.
   const completenessQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, editionName, owned),
-    queryFn: () => getCompleteness(entityTitle, editionName, owned, activeGroup?.volumeNumbers ?? [], entityId),
+    queryFn: () =>
+      getCompleteness(entityTitle, editionName, owned, activeGroup?.cataloguedVolumeNumbers ?? [], entityId),
     enabled: editionName !== '' && question === 'missing',
   })
 
@@ -239,7 +244,7 @@ function ReadingAnswer({
   ownedVolumes: number[]
   /** null pour un type sans notion de tome : les lectures existent toujours,
    *  elles ne se rattachent simplement a aucun numero. */
-  activeGroup: EditionGroup | null
+  activeGroup: EditionProgressDto | null
 }) {
   // Un tome lu est une Experience portant un variantId (voir Experience.
   // variantId, ajouté avec le sélecteur de tome) - les expériences SANS tome

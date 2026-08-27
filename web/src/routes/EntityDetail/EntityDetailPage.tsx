@@ -9,7 +9,8 @@ import { listExperiences } from '../../api/experiences'
 import { listTags } from '../../api/tags'
 import { relationshipsFrom, relationshipsTo } from '../../api/relationships'
 import { listEntityTypes } from '../../api/entityTypes'
-import { findEdition, getCompleteness } from '../../api/purchaseAnalysis'
+import { getEntityProgress } from '../../api/insights'
+import { findEdition } from '../../api/purchaseAnalysis'
 import { getEntityTierSummary } from '../../api/tierLists'
 import { followEdition, listFollowedEdition, unfollowEdition } from '../../api/followedEdition'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
@@ -19,8 +20,7 @@ import { useWishlist } from '../../lib/useWishlist'
 import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
-import { groupVariantsByEdition, resolveEditionView, variantLabel } from '../../lib/editionGroups'
-import { buildTiles, ownedVolumeNumbers } from '../../lib/tomeTiles'
+import { buildTiles, variantLabel } from '../../lib/tomeTiles'
 import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
@@ -312,15 +312,36 @@ export function EntityDetailPage() {
   const couvertureUrl = entity ? coverImageUrlFrom(entity.attributes) : null
   const teinte = useTeinteJaquette(couvertureUrl)
 
-  const groupes = entity && isManga ? resolveEditionView(groupVariantsByEdition(entity.variants)) : []
+  /**
+   * « X tomes possédés sur Y », demandé au serveur.
+   *
+   * <h2>Le dernier des trois calculs</h2>
+   * Cette page regroupait les tomes par édition, relisait les Ownership pour
+   * savoir lesquels sont possédés, puis renvoyait tout ça à la complétude pour
+   * obtenir un total. Trois dérivations pour une question que
+   * `CollectionProgressService` répond déjà - et dont l'absence d'UNE règle (un
+   * tome catalogué sans édition rejoint l'unique édition nommée de la série) a
+   * produit deux divergences réelles, aux lots 31 et 49. Ma collection a cessé
+   * de recalculer au lot 51 ; c'était la dernière.
+   *
+   * <p>Lancée en parallèle de la fiche (aucun `enabled` sur le type) : elle ne
+   * dépend que de l'identifiant, déjà dans l'URL. L'attendre ne coûte donc rien
+   * de plus que la plus lente des deux requêtes - et ne rien afficher tant
+   * qu'on ne sait pas est la règle du lot 47.
+   */
+  const progressQuery = useQuery({
+    queryKey: queryKeys.insights.progressOf(entityId),
+    queryFn: () => getEntityProgress(entityId),
+  })
+
+  const groupes = isManga ? (progressQuery.data?.editions ?? []) : []
   const editionSuivie = followedQuery.data?.[0]?.editionName ?? null
   // L'édition ouverte par défaut est celle qu'on SUIT - c'est tout l'intérêt
   // de l'avoir persistée. À défaut, la première du catalogue.
   const groupeActif =
-    groupes.find((g) => g.edition === editionAffichee) ??
-    groupes.find((g) => g.edition === editionSuivie) ??
+    groupes.find((g) => g.editionName === editionAffichee) ??
+    groupes.find((g) => g.editionName === editionSuivie) ??
     groupes[0]
-  const owned = groupeActif ? ownedVolumeNumbers(entity?.variants ?? [], ownerships, groupeActif.sourceEditions) : []
 
   // Une fiche peut exister sans le moindre tome - ajoutée en envies, ou
   // créée par un ajout qui n'a rien trouvé. C'est le même « quels tomes
@@ -331,36 +352,30 @@ export function EntityDetailPage() {
     titre: entity?.title ?? '',
     attributs: entity?.attributes ?? {},
     entityId,
-    actif: !!entity && isManga && groupes.length === 0,
+    // `progressQuery.isSuccess` autant que le décompte : les Hooks tournent
+    // AUSSI pendant que la progression est en vol, où `groupes` est encore
+    // vide - sans cette garde, une série qui a douze tomes déclencherait une
+    // recherche de tomes chez les fournisseurs à chaque ouverture de fiche.
+    actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0,
   })
 
-  const completenessQuery = useQuery({
-    queryKey: queryKeys.purchaseAnalysis.completeness(entity?.title ?? '', groupeActif?.edition ?? '', owned),
-    queryFn: () => getCompleteness(entity!.title, groupeActif!.edition, owned, groupeActif!.volumeNumbers, entityId),
-    enabled: !!entity && !!groupeActif && groupeActif.edition !== '',
-  })
   const editionInfoQuery = useQuery({
-    queryKey: queryKeys.purchaseAnalysis.edition(entity?.title ?? '', groupeActif?.edition ?? ''),
-    queryFn: () => findEdition(entity!.title, groupeActif!.edition, entityId),
-    enabled: !!entity && !!groupeActif && groupeActif.edition !== '',
+    queryKey: queryKeys.purchaseAnalysis.edition(entity?.title ?? '', groupeActif?.editionName ?? ''),
+    queryFn: () => findEdition(entity!.title, groupeActif!.editionName, entityId),
+    enabled: !!entity && !!groupeActif && groupeActif.editionName !== '',
     retry: false,
   })
   const editionInfo = editionInfoQuery.isSuccess ? editionInfoQuery.data : null
 
-  if (entityQuery.isPending) return <p className="text-textDim">Chargement...</p>
+  // La progression fait partie de ce qu'on attend : sans elle, la grille dirait
+  // « aucun tome » à une série qui en a douze (voir lot 47).
+  if (entityQuery.isPending || progressQuery.isPending) return <p className="text-textDim">Chargement...</p>
   if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
+  if (progressQuery.isError) return <ErrorBanner message={progressQuery.error.message} />
   if (!entity) return null
 
-  const totalTomes = completenessQuery.data?.totalVolumes ?? null
-  const tuiles = groupeActif
-    ? buildTiles(
-        groupeActif,
-        entity.variants,
-        owned,
-        totalTomes,
-        completenessQuery.data?.cataloguedMissingVolumeNumbers ?? [],
-      )
-    : []
+  const totalTomes = groupeActif?.totalVolumes ?? null
+  const tuiles = groupeActif ? buildTiles(groupeActif, entity.variants) : []
 
   const auteur = creatorFrom(entity.attributes)
   const ongoing = isSeriesOngoing(entity.attributes)
@@ -379,10 +394,10 @@ export function EntityDetailPage() {
   const tomesVoulus = wishlist.variantsVoulus
 
   const editionsAffichees: EditionAffichee[] = groupes.map((groupe) => ({
-    nom: groupe.edition,
-    editeur: groupe.edition === groupeActif?.edition ? (editionInfo?.publisher ?? null) : null,
-    total: groupe.edition === groupeActif?.edition ? totalTomes : groupe.volumeNumbers.length || null,
-    possedes: ownedVolumeNumbers(entity.variants, ownerships, groupe.sourceEditions).length,
+    nom: groupe.editionName,
+    editeur: groupe.editionName === groupeActif?.editionName ? (editionInfo?.publisher ?? null) : null,
+    total: groupe.totalVolumes ?? groupe.cataloguedVolumeNumbers.length ?? null,
+    possedes: groupe.ownedVolumeNumbers.length,
   }))
 
   async function basculerEnvies() {
@@ -402,7 +417,7 @@ export function EntityDetailPage() {
   function basculerEnvieDuTome(numero: number) {
     const tuile = tuiles.find((t) => t.volumeNumber === numero)
     const entree = tuile?.variant ? wishlist.entryForVariant(tuile.variant.id) : undefined
-    const cible = { entityId, volumeNumber: numero, edition: groupeActif?.edition || undefined }
+    const cible = { entityId, volumeNumber: numero, edition: groupeActif?.editionName || undefined }
     if (entree) wishlist.remove(entree.id, cible)
     else wishlist.add(cible)
   }
@@ -447,7 +462,7 @@ export function EntityDetailPage() {
           groupeActif
             ? () =>
                 navigate('/purchase-analysis', {
-                  state: { seriesTitle: entity.title, editionName: groupeActif.edition },
+                  state: { seriesTitle: entity.title, editionName: groupeActif.editionName },
                 })
             : null
         }
@@ -460,7 +475,7 @@ export function EntityDetailPage() {
           groupes.length > 0 ? (
             <CartesEditions
               editions={editionsAffichees}
-              editionAffichee={groupeActif?.edition ?? ''}
+              editionAffichee={groupeActif?.editionName ?? ''}
               editionSuivie={editionSuivie}
               onAfficher={(nom) => setEditionAffichee(nom)}
               onSuivre={(nom) => suivreMutation.mutate(nom)}
@@ -513,7 +528,7 @@ export function EntityDetailPage() {
       {groupeActif && (
         <>
           <GrilleTomes
-            titre={groupeActif.edition || 'Édition non précisée'}
+            titre={groupeActif.editionName || 'Édition non précisée'}
             plusieursEditions={groupes.length > 1}
             filtre={filtre}
             onFiltre={setFiltre}
@@ -527,11 +542,11 @@ export function EntityDetailPage() {
                   ownerships.filter((o) => o.variantId === tuile.variant!.id).map((o) => o.id),
                 )
               } else {
-                ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+                ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
               }
             }}
             onJeLAi={(numero) =>
-              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.edition || undefined })
+              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
             }
             tomesVoulus={tomesVoulus}
             onBasculerEnvie={basculerEnvieDuTome}
@@ -693,12 +708,12 @@ export function EntityDetailPage() {
               )}
               {editionInfo?.publisher && <RangeeInspecteur libelle="Éditeur">{editionInfo.publisher}</RangeeInspecteur>}
               {totalTomes !== null && <RangeeInspecteur libelle="Nombre de tomes">{totalTomes}</RangeeInspecteur>}
-              {groupeActif && groupeActif.edition !== '' && (
+              {groupeActif && groupeActif.editionName !== '' && (
                 <div className="flex flex-wrap items-center gap-2 pt-3">
                   <EditionCorrectionSection
                     entityId={entityId}
                     entityTitle={entity.title}
-                    editionName={groupeActif.edition}
+                    editionName={groupeActif.editionName}
                     editionInfo={editionInfo}
                   />
                 </div>
@@ -776,9 +791,9 @@ export function EntityDetailPage() {
                 ouvrirEdition={false}
                 onEditionOuverte={() => {}}
                 edition={
-                  groupeActif && groupeActif.edition !== ''
+                  groupeActif && groupeActif.editionName !== ''
                     ? {
-                        name: groupeActif.edition,
+                        name: groupeActif.editionName,
                         totalVolumes: totalTomes,
                         publisher: editionInfo?.publisher ?? null,
                         outOfPrint: editionInfo?.outOfPrint ?? false,
@@ -878,7 +893,6 @@ export function EntityDetailPage() {
               entityId={entityId}
               entityTitle={entity.title}
               variants={entity.variants}
-              ownerships={ownerships}
               experiences={experiences}
               activeGroup={groupeActif ?? null}
               question={question}

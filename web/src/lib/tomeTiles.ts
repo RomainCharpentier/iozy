@@ -1,5 +1,4 @@
-import type { VariantDto } from '../types/api'
-import { ownedVolumeNumbers, type EditionGroup } from './editionGroups'
+import type { EditionProgressDto, VariantDto } from '../types/api'
 
 /**
  * La construction de la grille d'une edition : quels numeros existent, et
@@ -23,13 +22,19 @@ export interface TomeTile {
  * connaît réellement (possédé ou catalogué) - jamais de tuile virtuelle
  * devinée sans un total sur lequel s'appuyer.
  *
- * <p>Un Variant existant vaut « catalogué » quoi qu'en dise
- * `cataloguedMissing`, qui vient d'une réponse réseau pouvant dater : c'est
- * ce qui fait qu'un tome mis en envies à l'instant (et donc catalogué à
- * l'instant, voir TomeResolver) porte immédiatement son état au lieu de
- * retomber en tuile purement déduite, sans identité à laquelle rattacher
- * l'envie. */
-export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: number[], totalVolumes: number | null, cataloguedMissing: number[]): TomeTile[] {
+ * <p>Tout vient du MÊME `groupe` (voir GET /insights/progress/{entityId}) :
+ * possédés, catalogués et total. Auparavant ces trois-là arrivaient de trois
+ * endroits - un regroupement refait ici, une lecture des Ownership refaite
+ * ici, et un appel à la complétude - qui pouvaient se contredire.
+ *
+ * <p>Un Variant existant vaut « catalogué » quoi qu'en dise la liste des
+ * catalogués, qui vient d'une réponse réseau pouvant dater : c'est ce qui fait
+ * qu'un tome mis en envies à l'instant (et donc catalogué à l'instant, voir
+ * TomeResolver) porte immédiatement son état au lieu de retomber en tuile
+ * purement déduite, sans identité à laquelle rattacher l'envie. */
+export function buildTiles(group: EditionProgressDto, variants: VariantDto[]): TomeTile[] {
+  const owned = group.ownedVolumeNumbers
+  const totalVolumes = group.totalVolumes
   const variantsByNumber = new Map<number, VariantDto>()
   // group.sourceEditions plutôt que group.edition seul : un groupe fusionné
   // (voir resolveEditionView) doit retrouver le Variant d'un tome sans
@@ -43,14 +48,16 @@ export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: n
   const ownedSet = new Set(owned)
 
   if (totalVolumes === null) {
-    return group.volumeNumbers.map((n) => ({
+    return group.cataloguedVolumeNumbers.map((n) => ({
       volumeNumber: n,
       status: ownedSet.has(n) ? ('owned' as const) : ('cataloguedMissing' as const),
       variant: variantsByNumber.get(n),
     }))
   }
 
-  const cataloguedMissingSet = new Set(cataloguedMissing)
+  // « Catalogué mais pas possédé » se déduit, plutôt que de se redemander au
+  // serveur : c'est exactement la différence des deux listes du groupe.
+  const cataloguedMissingSet = new Set(group.cataloguedVolumeNumbers.filter((n) => !ownedSet.has(n)))
   const tiles: TomeTile[] = []
   for (let n = 1; n <= totalVolumes; n++) {
     if (ownedSet.has(n)) {
@@ -68,7 +75,7 @@ export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: n
   // VariantNumberEditor) - les masquer rendait la donnée invisible ET
   // irrécupérable depuis l'écran. Un total d'édition peut aussi être faux :
   // mieux vaut montrer la contradiction que de la cacher.
-  const beyondTotal = [...new Set([...owned, ...group.volumeNumbers])]
+  const beyondTotal = [...new Set([...owned, ...group.cataloguedVolumeNumbers])]
     .filter((n) => n > totalVolumes)
     .sort((a, b) => a - b)
   for (const n of beyondTotal) {
@@ -81,7 +88,9 @@ export function buildTiles(group: EditionGroup, variants: VariantDto[], owned: n
   return tiles
 }
 
-/** Les numeros reellement possedes dans l'edition affichee - reexporte ici
- *  pour que les appelants n'aient pas a connaitre deux modules pour construire
- *  une grille. */
-export { ownedVolumeNumbers }
+/** "Tome 12" si un numéro de tome est exploitable, sinon le label brut - même
+ *  règle que ShelfPage.variantSubtitle, gardée cohérente ici. */
+export function variantLabel(variant: VariantDto): string {
+  const volumeNumber = variant.attributes.volumeNumber
+  return typeof volumeNumber === 'number' ? `Tome ${volumeNumber}` : variant.label
+}

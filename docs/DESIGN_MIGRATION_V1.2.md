@@ -1360,6 +1360,86 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 60 — la fiche cesse de recalculer sa progression
+
+Le dernier des trois calculs de « X tomes possédés sur Y ». Ma collection a
+cessé de le refaire au Lot 51 ; la fiche, elle, le refaisait encore, et en trois
+morceaux :
+
+1. `groupVariantsByEdition` + `resolveEditionView` regroupaient les tomes par
+   édition, avec leur propre règle de fusion ;
+2. `ownedVolumeNumbers` relisait les Ownership pour savoir lesquels sont
+   possédés ;
+3. le résultat repartait au serveur, dans `GET /purchase-analysis/completeness`,
+   pour en obtenir un total.
+
+Trois dérivations pour une question à laquelle `CollectionProgressService`
+répond déjà - et dont l'absence d'UNE règle (un tome catalogué sans édition
+précisée rejoint l'unique édition nommée de la série) a produit deux
+divergences réelles, aux Lots 31 et 49.
+
+`lib/editionGroups.ts` disparaît (99 lignes). `variantLabel`, seul rescapé,
+rejoint `lib/tomeTiles.ts`.
+
+#### Le seul ajout : la progression d'UNE œuvre
+
+`/insights/progress` les rend toutes ; une fiche n'en veut qu'une.
+`GET /insights/progress/{entityId}` appelle le même `compute(entityId)` qui
+existait déjà - **la règle ne bouge pas d'un pouce**, seule sa porte d'entrée
+est nouvelle. 404 sur une œuvre inconnue : « aucun tome » et « aucune œuvre »
+n'appellent pas le même écran.
+
+La clé de cache est `['insights', 'progress', entityId]`, **préfixée à
+dessein** : les invalidations existantes (`insights.progress`, posées à cinq
+endroits au Lot 51) l'emportent donc aussi, sans avoir à les recenser une
+seconde fois.
+
+#### Ce que la complétude garde
+
+Elle ne disparaît pas de la fiche - elle recule au seul endroit qui pose sa
+question. « Que me manque-t-il ? » veut les numéros manquants **et leur prix de
+marché** ; la progression ne sait que compter. Le partage est donc net : la
+progression possède « possédés / catalogués / total », la complétude possède
+« ce qui manque et ce que ça coûte ». L'assistant lui passe désormais les
+numéros du SERVEUR au lieu des siens.
+
+Au passage, `ReponseAssistant` perd la prop `ownerships` : elle ne servait qu'à
+recompter ce que la progression donne déjà.
+
+#### Le piège du « pas encore su »
+
+`groupes` venait d'un calcul synchrone ; il vient maintenant d'une requête. Deux
+endroits en dépendaient sans le savoir :
+
+- l'écran affichait la grille dès que l'œuvre était là. Il aurait annoncé
+  « aucun tome » à une série qui en a douze, le temps d'un aller-retour. La
+  progression fait donc partie de ce qu'on attend (Lot 47) - lancée **en
+  parallèle** de la fiche, sans `enabled`, puisqu'elle ne dépend que de
+  l'identifiant déjà présent dans l'URL ;
+- `usePropositionTomes` s'active quand une série n'a aucun tome. Les Hooks
+  tournent AUSSI pendant que la requête est en vol, où `groupes` est encore
+  vide : sans garde, chaque ouverture de fiche aurait déclenché une recherche de
+  tomes chez les fournisseurs. `progressQuery.isSuccess` autant que le décompte.
+
+#### Vérifications
+
+**Mesuré en direct, écran par écran, avant et après - texte rendu identique au
+caractère près** :
+
+- Death Note : « Black Édition / Kana · 6 tomes / 3/6 / Tous 6 · Manquants 3 ·
+  Possédés 3 », grille 01→06 avec le tome 3 catalogué non possédé.
+- Naruto : « Kana · 72 tomes / 3/72 / Manquants 69 ». C'est aussi le cas de
+  FUSION (un tome sans édition précisée, deux en « Kana ») : le serveur rend
+  bien `sourceEditions: ["Kana", ""]`, exactement ce que produisait
+  `resolveEditionView`.
+- Zelda (jeu vidéo) : aucune édition rendue, fiche inchangée.
+- « Que me manque-t-il ? » sur Death Note : « Il te manque 3 tomes sur 6 (tu en
+  as 3) : 3 à 4, 6 », dont un déjà catalogué, « environ 22.50 € pour
+  compléter » - la complétude fonctionne sur les numéros du serveur.
+
+**Vérifié** : suite backend complète, 1027 tests, 0 échec ; `typecheck`, `lint`,
+`check:contrast`, `build`.
+
 ### Lot 59 — recharger ce que la source sait, en un bouton
 
 « Je veux un bouton pour recharger les images ou les infos api. »
@@ -3637,6 +3717,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Remplacer un calcul SYNCHRONE par une requête crée un état qui n'existait pas : « je ne sais pas encore ». Chercher tous ses lecteurs, y compris ceux qui tournent pendant le vol - les Hooks s'exécutent avant le retour anticipé, et une condition du type « si la liste est vide » y devient vraie à tort (Lot 60).
 - Un endpoint peut porter un filtre qui rend une question IMPOSSIBLE à poser : `/metadata/search` écarte ce qu'on possède déjà, donc une fiche existante n'y trouvait jamais sa propre œuvre - zéro correspondance par construction, et un message d'écran parfaitement plausible pour le masquer. Avant de rapprocher deux données, vérifier que la source peut seulement rendre la bonne (Lot 59).
 - Rapprocher une œuvre d'un candidat par le TITRE est un piège quand la source indexe aussi les dérivés : Naruto rend huit spin-offs, Zelda rend un bundle en premier. L'identifiant externe est déjà stocké depuis l'ajout - s'en servir d'abord (Lot 59).
 - Un `return null` qui veut dire « ça n'a pas marché » finit toujours par vouloir dire « il n'y a rien » : deux étages plus haut, plus personne ne sait lequel des deux. Quand un échec et un vide légitime mènent à des conduites différentes (ici : mettre en cache, ou pas), c'est le TYPE qui doit les séparer, pas une convention (Lot 58).

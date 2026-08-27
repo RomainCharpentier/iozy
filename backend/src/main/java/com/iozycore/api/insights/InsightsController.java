@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/insights")
@@ -70,6 +72,14 @@ public class InsightsController {
     @GetMapping("/progress")
     public List<CollectionProgress> progress() {
         return collectionProgressService.computeAll();
+    }
+
+    @Operation(summary = "La même progression, pour UNE œuvre - ce dont a besoin sa fiche, "
+            + "sans télécharger celle de toute la collection. 404 si l'œuvre n'existe pas.")
+    @GetMapping("/progress/{entityId}")
+    public CollectionProgress progress(@PathVariable UUID entityId) {
+        return collectionProgressService.compute(entityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Œuvre inconnue : " + entityId));
     }
 
     @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
