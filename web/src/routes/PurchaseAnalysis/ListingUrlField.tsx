@@ -210,7 +210,7 @@ export function ListingPhotos({
         {imageUrls.length} photo{imageUrls.length > 1 ? 's' : ''} récupérée
         {imageUrls.length > 1 ? 's' : ''} — conservée{imageUrls.length > 1 ? 's' : ''} avec l'analyse
       </span>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="defilement-discret flex gap-2 overflow-x-auto pb-1">
         {imageUrls.map((imageUrl) => (
           <div key={imageUrl} className="relative shrink-0">
             <img src={imageUrl} alt="" className="h-20 w-14 rounded-lg object-cover" />

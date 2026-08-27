@@ -412,3 +412,38 @@ button:disabled {
     min-width: 0;
   }
 }
+
+/* Barre de défilement horizontale discrète, pour les rangées de Ma collection
+   et partout où un contenu défile latéralement.
+
+   La barre native de Windows est épaisse, opaque et toujours visible : posée
+   sous chaque rangée d'univers, elle attirait l'œil plus que les jaquettes
+   qu'elle sert. Ici elle devient un filet fin dans les tons de l'interface,
+   qui suit le thème clair/sombre comme le reste.
+
+   `scrollbar-width`/`scrollbar-color` couvrent Firefox, les sélecteurs
+   `::-webkit-scrollbar` couvrent Chrome/Safari - les deux syntaxes coexistent
+   sans se gêner, et un navigateur qui n'en comprend aucune garde simplement
+   sa barre d'origine. Jamais `display: none` : une barre invisible ôte le
+   seul indice qu'il reste du contenu à droite. */
+@utility defilement-discret {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-lineStrong) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-lineStrong);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-faint);
+  }
+}

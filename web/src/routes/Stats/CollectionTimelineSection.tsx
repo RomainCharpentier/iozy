@@ -26,7 +26,7 @@ export function CollectionTimelineSection() {
   return (
     <section className="flex flex-col gap-2">
       <h2 className="font-display text-lg font-semibold text-textPrimary">Évolution de ma collection</h2>
-      <div className="overflow-x-auto rounded-xl bg-surface p-3">
+      <div className="defilement-discret overflow-x-auto rounded-xl bg-surface p-3">
         <div className="flex h-32 min-w-fit items-end gap-2">
           {points.map((point) => (
             <div key={point.month} className="flex w-8 shrink-0 flex-col items-center gap-1">
