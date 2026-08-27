@@ -1,11 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
-import { searchEntities } from '../../api/entities'
-import { listAllOwnerships } from '../../api/ownerships'
-import { listEntityTypes } from '../../api/entityTypes'
-import { queryKeys } from '../../lib/queryKeys'
 import { CoverTile } from '../../components/CoverTile'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { getEntityTypeVisual } from '../../lib/entityTypeVisuals'
@@ -14,26 +9,17 @@ import {
   buildShelfTile,
   correspondAuFiltre,
   etatDeLOeuvre,
-  indexerProgression,
   matchesCompletionFilter,
   type CompletionFilter,
 } from './shelfTiles'
 import { BarreVues } from './BarreVues'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
-import { useWishlist } from '../../lib/useWishlist'
-import { getCollectionProgress } from '../../api/insights'
 
-/** Référence stable - voir ShelfPage pour la même précaution. */
-const EMPTY_PROGRESS: CollectionProgressDto[] = []
 import { CollectionFilters } from './CollectionFilters'
-import { ownedVariantIds } from './ownership'
-import type { CollectionProgressDto, EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { useDonneesCollection } from './useDonneesCollection'
 
-const EMPTY_ENTITIES: EntityResponse[] = []
-const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
-const EMPTY_OWNERSHIPS: OwnershipResponse[] = []
 
 /**
  * "Vue catégorie" (voir la maquette V1.2) - la grille complète d'un seul type,
@@ -53,28 +39,20 @@ export function CategoryPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState<CompletionFilter>('ALL')
   const preferences = usePreferencesCollection()
-  const wishlist = useWishlist()
 
-  const entitiesQuery = useQuery({ queryKey: queryKeys.entities.search({}), queryFn: () => searchEntities({}) })
-  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const ownershipsQuery = useQuery({ queryKey: queryKeys.allOwnerships, queryFn: listAllOwnerships })
-  // Même source que Ma collection, et même requête en cache : la progression
-  // vient du serveur, elle n'est pas re-dérivée ici.
-  const progressQuery = useQuery({ queryKey: queryKeys.insights.progress, queryFn: getCollectionProgress })
-  const progression = useMemo(() => indexerProgression(progressQuery.data ?? EMPTY_PROGRESS), [progressQuery.data])
-
-  const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
-  const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
-  const ownerships = ownershipsQuery.data ?? EMPTY_OWNERSHIPS
-  const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
+  const donnees = useDonneesCollection()
+  const {
+    entities: allEntities,
+    entityTypes,
+    ownerships,
+    progression,
+    owned,
+    oeuvresVoulues,
+    tomesVoulus,
+    wishlist,
+  } = donnees
   const entityType = entityTypes.find((t) => t.id === entityTypeId)
   const visual = getEntityTypeVisual(entityType)
-
-  const oeuvresVoulues = useMemo(
-    () => new Set(wishlist.entries.filter((e) => !e.variantId).map((e) => e.entityId)),
-    [wishlist.entries],
-  )
-  const tomesVoulus = wishlist.variantsVoulus
 
   const duType = useMemo(
     () => allEntities.filter((e) => e.entityTypeId === entityTypeId),
@@ -150,11 +128,9 @@ export function CategoryPage() {
   const tuilesAffichees = preferences.vue === 'plate' ? tuilesElements : tiles
   const affiches = tuilesAffichees.length
 
-  // Même règle que sur Ma collection : aucun chiffre tant que tout n'est pas
-  // arrivé, sans quoi la page annonce une catégorie vide qui ne l'est pas.
-  const donneesPretes =
-    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !progressQuery.isPending
-  const isLoading = !donneesPretes
+  // Aucun chiffre tant que tout n'est pas arrivé, sans quoi la page annonce une
+  // catégorie vide qui ne l'est pas - la règle vit dans useDonneesCollection.
+  const isLoading = donnees.chargement
 
   return (
     <div className="flex flex-col gap-4">
@@ -168,7 +144,7 @@ export function CategoryPage() {
         <h1 className="font-display text-2xl font-bold tracking-[-0.025em]" style={{ color: entityType ? visual.color : undefined }}>
           {entityType?.label ?? '…'}
         </h1>
-        {donneesPretes && <span className="text-sm text-faint">{affiches}</span>}
+        {!isLoading && <span className="text-sm text-faint">{affiches}</span>}
       </div>
 
       <BarreVues
@@ -178,7 +154,7 @@ export function CategoryPage() {
         onVue={(vue) => preferences.definir({ vue })}
         tri={preferences.tri}
         onTri={(tri) => preferences.definir({ tri })}
-        comptes={donneesPretes ? comptes : null}
+        comptes={!isLoading ? comptes : null}
       />
 
       <button
@@ -198,11 +174,12 @@ export function CategoryPage() {
         )}
       </button>
 
-      {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
-      {ownershipsQuery.isError && <ErrorBanner message={ownershipsQuery.error.message} />}
+      {donnees.erreurs.map((message) => (
+        <ErrorBanner key={message} message={message} />
+      ))}
       {isLoading && <p className="text-textDim">Chargement...</p>}
 
-      {!isLoading && entitiesQuery.isSuccess && affiches === 0 && (
+      {!isLoading && donnees.listeChargee && affiches === 0 && (
         <div className={CLASSE_CARTE}>
           <p className="font-display text-base font-semibold text-textPrimary">
             {preferences.filtre === 'envies'

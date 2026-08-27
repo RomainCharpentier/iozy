@@ -1,11 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { mergeVariantAttributes, searchEntities } from '../../api/entities'
+import { mergeVariantAttributes } from '../../api/entities'
 import { searchVolumes } from '../../api/metadata'
-import { listAllOwnerships } from '../../api/ownerships'
-import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
@@ -17,23 +15,17 @@ import {
   correspondAuFiltre,
   etatDeLOeuvre,
   groupByEntityType,
-  indexerProgression,
   matchesCompletionFilter,
   trierTypes,
 } from './shelfTiles'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '../../lib/preferencesCollection'
-import { useWishlist } from '../../lib/useWishlist'
-import { getCollectionProgress } from '../../api/insights'
 
-/** Référence stable : une liste vide recréée à chaque rendu invaliderait les
- * useMemo qui en dépendent (même raison que EMPTY_ENTITIES ci-dessous). */
-const EMPTY_PROGRESS: CollectionProgressDto[] = []
-import { ownedVariantIds } from './ownership'
 import { useModalA11y } from '../../lib/useModalA11y'
-import type { CollectionProgressDto, EntityResponse, EntityTypeDto, OwnershipResponse } from '../../types/api'
+import type { EntityResponse } from '../../types/api'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { useDonneesCollection } from './useDonneesCollection'
 
 /**
  * Ce que compte le sous-titre, selon ce qu'on regarde. Un décompte doit nommer
@@ -75,9 +67,6 @@ function messageVide(filtre: FiltreCollection, filtreEtatActif: boolean): { titr
 
 // Référence stable pour le fallback "pas encore chargé" - un `[]` inline
 // serait recréé à chaque render et invaliderait la mémoïsation.
-const EMPTY_ENTITIES: EntityResponse[] = []
-const EMPTY_ENTITY_TYPES: EntityTypeDto[] = []
-const EMPTY_OWNERSHIPS: OwnershipResponse[] = []
 
 /**
  * Structure V1.2 (voir docs/DESIGN_MIGRATION_V1.2.md, Lot 3) : une ligne par
@@ -114,33 +103,17 @@ export function ShelfPage() {
   // useModalA11y (Lot 9).
   const hubMenuRef = useModalA11y<HTMLDivElement>(hubMenuOpen, () => setHubMenuOpen(false))
 
-  const entitiesQuery = useQuery({
-    queryKey: queryKeys.entities.search({}),
-    queryFn: () => searchEntities({}),
-  })
-  const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
-  const ownershipsQuery = useQuery({
-    queryKey: queryKeys.allOwnerships,
-    queryFn: listAllOwnerships,
-  })
-  // La progression « X sur Y » vient du SERVEUR, en un appel pour toute la
-  // collection - même source que la fiche, l'analyse d'achat et les
-  // suggestions. Une seule requête, partagée en cache avec la vue d'une
-  // catégorie.
-  const progressQuery = useQuery({ queryKey: queryKeys.insights.progress, queryFn: getCollectionProgress })
-  const progression = useMemo(() => indexerProgression(progressQuery.data ?? EMPTY_PROGRESS), [progressQuery.data])
-
-  const wishlist = useWishlist()
-  const allEntities = entitiesQuery.data ?? EMPTY_ENTITIES
-  const entityTypes = entityTypesQuery.data ?? EMPTY_ENTITY_TYPES
-  const ownerships = ownershipsQuery.data ?? EMPTY_OWNERSHIPS
-  const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
-
-  const oeuvresVoulues = useMemo(
-    () => new Set(wishlist.entries.filter((e) => !e.variantId).map((e) => e.entityId)),
-    [wishlist.entries],
-  )
-  const tomesVoulus = wishlist.variantsVoulus
+  const donnees = useDonneesCollection()
+  const {
+    entities: allEntities,
+    entityTypes,
+    ownerships,
+    progression,
+    owned,
+    oeuvresVoulues,
+    tomesVoulus,
+    wishlist,
+  } = donnees
 
   // L'état de chaque œuvre, calculé une fois : les trois compteurs de la barre
   // et la liste affichée le lisent tous, au lieu de le redériver chacun.
@@ -328,9 +301,7 @@ export function ShelfPage() {
    * s'affichait juste en dessous). Le référentiel d'éditions en fait partie :
    * il décide de la complétude, donc du filtre Complètes/Incomplètes.
    */
-  const donneesPretes =
-    !entitiesQuery.isPending && !ownershipsQuery.isPending && !wishlist.isLoading && !progressQuery.isPending
-  const isLoading = !donneesPretes
+  const isLoading = donnees.chargement
   const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
 
   const vide = messageVide(preferences.filtre, status !== 'ALL')
@@ -343,7 +314,7 @@ export function ShelfPage() {
         niveau={1}
         titre="Ma collection"
         sousTitre={
-          donneesPretes ? (
+          !isLoading ? (
             <>
               {affiches} {LIBELLES_DECOMPTE[preferences.vue][preferences.filtre](affiches)}
               {preferences.filtre !== 'envies' &&
@@ -366,7 +337,7 @@ export function ShelfPage() {
           onVue={(vue) => preferences.definir({ vue })}
           tri={preferences.tri}
           onTri={(tri) => preferences.definir({ tri })}
-          comptes={donneesPretes ? comptes : null}
+          comptes={!isLoading ? comptes : null}
         />
       </div>
 
@@ -431,12 +402,13 @@ export function ShelfPage() {
         </p>
       )}
 
-      {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
-      {ownershipsQuery.isError && <ErrorBanner message={ownershipsQuery.error.message} />}
+      {donnees.erreurs.map((message) => (
+        <ErrorBanner key={message} message={message} />
+      ))}
 
       {isLoading && <p className="mt-6 text-textDim">Chargement...</p>}
 
-      {!isLoading && entitiesQuery.isSuccess && affiches === 0 && (
+      {!isLoading && donnees.listeChargee && affiches === 0 && (
         <div className={`mt-6 ${CLASSE_CARTE}`}>
           <p className="font-display text-base font-semibold text-textPrimary">{vide.titre}</p>
           <p className="mt-1 text-sm text-textDim">{vide.detail}</p>
