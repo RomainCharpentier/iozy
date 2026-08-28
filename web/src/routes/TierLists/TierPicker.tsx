@@ -8,7 +8,7 @@ import { Jaquette } from '../../components/Jaquette'
 
 /**
  * Popover desktop / bottom sheet mobile - même pattern responsive déjà
- * établi (VolumeInteractionPanel, CollectionFilters). Réutilisé par le
+ * établi (CollectionFilters). Réutilisé par le
  * board (clic sur une tuile) ET par "Classer cette œuvre" depuis la fiche
  * - un seul composant pour les deux entrées (voir §50 "Classer rapidement" :
  * même sélecteur, juste enchaîné élément par élément côté appelant).

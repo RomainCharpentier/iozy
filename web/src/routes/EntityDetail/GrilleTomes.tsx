@@ -20,7 +20,7 @@ export type { FiltreVolumes as FiltreTomes }
  * pas à la traduction, et c'est voulu : elle ne change rien à ce qu'on VOIT
  * (les deux sont des trous dans la collection). Elle continue d'exister là où
  * elle compte, au moment d'agir sur le tome - un tome catalogué se rattache,
- * un tome déduit doit d'abord être créé (voir VolumeInteractionPanel).
+ * un tome déduit doit d'abord être créé (voir AddVolumeSection).
  */
 export function GrilleTomes({
   titre,

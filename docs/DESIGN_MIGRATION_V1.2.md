@@ -1360,6 +1360,70 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 78 — le panneau d'aide s'ouvrait derrière le clavier
+
+Suite du balayage mesuré du Lot 77, sur une dimension qu'il n'avait pas
+couverte : le clavier.
+
+#### Huit surfaces `role="dialog"`, sept branchées sur le hook
+
+`useModalA11y` existe depuis le Lot 9 pour tenir un comportement clavier
+identique partout (Échap ferme et rend le focus au déclencheur, Tab reste
+piégé). Sept des huit surfaces `role="dialog"` de l'application l'utilisent.
+La huitième est `AideFlottante`, le panneau du bouton « Aide » d'une fiche.
+
+Et elle a raison de ne pas l'utiliser : ce panneau n'est **pas modal** - pas
+d'`aria-modal`, pas de voile, la page reste utilisable derrière - et enfermer
+le clavier dans une surface non modale serait un défaut de plus, pas un de
+moins. Il implémente d'ailleurs déjà Échap à la main, avec une nuance que le
+hook générique n'a pas : la première pression referme la réponse ouverte, la
+seconde le panneau.
+
+#### Ce qui manquait vraiment
+
+Le focus n'entrait jamais dans le panneau. Et comme celui-ci est rendu **avant**
+son déclencheur dans le DOM (colonne ancrée en bas, le bouton en dernier), Tab
+emmenait vers le reste de la page : le panneau qu'on venait d'ouvrir n'était
+atteignable qu'en revenant en arrière par Maj+Tab.
+
+**Mesuré avant** : après le clic sur « Aide », l'élément actif est toujours
+« Aide » (position 30 dans l'ordre de tabulation), le premier élément
+focalisable du panneau est en position **27** - derrière.
+
+**Mesuré après** : l'élément actif est « Que me manque-t-il ? », `dansLeDialogue
+: true`. Échap referme et rend le focus à « Aide ». Le repère de focus suit la
+convention de la maison (`data-modal-initial-focus`, posé sur la première
+question - jamais sur le bouton « Fermer » qui la précède visuellement).
+
+#### Six commentaires renvoyaient à un composant supprimé
+
+`VolumeInteractionPanel` a été supprimé au Lot 55. Six commentaires, dans six
+fichiers, disaient encore « voir VolumeInteractionPanel » - à un lecteur qui ne
+peut rien y voir. C'est la troisième strate du Lot 61 : « la fonction cliente,
+la route serveur, et la DOC qui le décrit encore ».
+
+Chacun pointe désormais vers un exemple vivant, vérifié plutôt que deviné :
+`AddVolumeSection` pour le parcours d'ajout d'un tome (`GrilleTomes`,
+`SearchPage`), `TierPicker` et `CollectionFilters` l'un pour l'autre sur le
+patron popover/bottom-sheet, et `useModalA11y` ne cite plus que ses deux
+exemples encore debout. `DiscoverPage` ne se compare plus à rien : c'est le
+seul jeu d'onglets de l'application, vérifié - un seul `role="tab"` dans tout
+le code.
+
+Les neuf mentions restantes vivent dans ce document-ci et n'ont **pas** été
+touchées : c'est un journal, les lots 25, 54 et 55 décrivent à juste titre ce
+qui existait alors.
+
+#### Une note d'outillage
+
+La touche Échap envoyée par le pilote du navigateur n'atteint pas le
+`document.addEventListener('keydown')` de la page : le panneau restait ouvert,
+ce qui ressemblait à un second défaut. Un vrai `KeyboardEvent` distribué depuis
+la page ferme bien le panneau et rend le focus. **Vérifier un raccourci clavier
+ici demande de distribuer l'événement, pas de simuler la frappe.**
+
+`typecheck`, `lint`, `check:contrast`, `build`.
+
 ### Lot 77 — la seule cible tactile sous le plancher
 
 Six lots d'affilée dans le moteur d'analyse : ce lot-ci change de terrain et
@@ -4578,6 +4642,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- La touche Échap envoyée par le pilote du navigateur n’atteint PAS un `document.addEventListener('keydown')` : le panneau reste ouvert et ça ressemble à un défaut. Distribuer un vrai `KeyboardEvent` depuis la page pour vérifier un raccourci clavier (Lot 78).
+- Une surface `role="dialog"` NON modale (pas d’`aria-modal`, pas de voile) ne doit pas recevoir le piège à focus de `useModalA11y` - mais elle doit quand même faire entrer le focus chez elle, surtout quand elle est rendue AVANT son déclencheur dans le DOM : Tab emmène alors ailleurs, et le panneau ne s’atteint qu’en Maj+Tab (Lot 78).
 - Ne JAMAIS déclencher des gestes en masse par correspondance de libellé sur des données réelles : au Lot 77 une sonde a cliqué tous les boutons « Modifier / Éditer / Ajouter » d’une fiche pour déplier ses panneaux. Rien n’a été écrit - vérifié après coup sur les six tables - mais un « Ajouter » peut être une bascule qui écrit (Lot 77).
 - Un bouton-icône sans classe de taille FAIT la taille de son icône : 13 x 13 px pour un `size={13}`. Le défaut ne se voit ni au typecheck ni à l’œil sur un grand écran, seulement en mesurant `getBoundingClientRect` à 375 px. La convention existait déjà dans deux autres boutons (`h-11 w-11` autour de la même icône) - chercher le patron maison avant d’inventer une taille (Lot 77).
 - Fermer une écriture peut OUVRIR un coût ailleurs : le Lot 75 a supprimé le relevé automatique, et comme l’avis de l’IA n’est demandé qu’en l’absence de relevé, chaque analyse s’est mise à rappeler le modèle. Après avoir retiré une donnée, chercher qui s’appuyait sur son EXISTENCE, pas seulement qui la lisait (Lot 76).
