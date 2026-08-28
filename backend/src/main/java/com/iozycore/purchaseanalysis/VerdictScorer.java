@@ -30,12 +30,13 @@ public class VerdictScorer {
                          boolean anyEditionMatched, boolean anyOutOfPrint, List<EditionTier> itemTiers,
                          boolean costToCompleteKnown, BigDecimal totalCostToComplete,
                          boolean anyBetterEditionAnnounced, NegotiationAdvice negotiationAdvice,
-                         boolean negotiationPriceDataAvailable) {
+                         boolean negotiationPriceDataAvailable, boolean anyComparableObservation) {
 
         /**
-         * Historical shape, kept so the existing call sites need no change: it assumes the
-         * negotiation advice REST ON price data, which is what {@code SKIP_LISTING} meant before
-         * {@link NegotiationRecommendation#skip(String)} split the two.
+         * Historical shape, kept so the existing call sites need no change. It assumes two things
+         * that were true before they were split apart: that the negotiation advice RESTS ON price
+         * data (see {@link NegotiationRecommendation#skip(String)}), and that any observed price is
+         * a COMPARABLE one (see {@link #scoreRealMarketAlignment}).
          */
         public Input(BigDecimal totalRealCost, BigDecimal totalFairValue, BigDecimal totalNewValue,
                      BigDecimal discountPercent, boolean anyObservedMarketData, Condition listingCondition,
@@ -46,7 +47,21 @@ public class VerdictScorer {
             this(totalRealCost, totalFairValue, totalNewValue, discountPercent, anyObservedMarketData,
                     listingCondition, conditionAppliesToContainer, completenessStatuses, anyEditionMatched,
                     anyOutOfPrint, itemTiers, costToCompleteKnown, totalCostToComplete, anyBetterEditionAnnounced,
-                    negotiationAdvice, true);
+                    negotiationAdvice, true, anyObservedMarketData);
+        }
+
+        /** Same, for the call sites that already say whether the negotiation rests on price data. */
+        public Input(BigDecimal totalRealCost, BigDecimal totalFairValue, BigDecimal totalNewValue,
+                     BigDecimal discountPercent, boolean anyObservedMarketData, Condition listingCondition,
+                     boolean conditionAppliesToContainer, List<CollectionStatus> completenessStatuses,
+                     boolean anyEditionMatched, boolean anyOutOfPrint, List<EditionTier> itemTiers,
+                     boolean costToCompleteKnown, BigDecimal totalCostToComplete,
+                     boolean anyBetterEditionAnnounced, NegotiationAdvice negotiationAdvice,
+                     boolean negotiationPriceDataAvailable) {
+            this(totalRealCost, totalFairValue, totalNewValue, discountPercent, anyObservedMarketData,
+                    listingCondition, conditionAppliesToContainer, completenessStatuses, anyEditionMatched,
+                    anyOutOfPrint, itemTiers, costToCompleteKnown, totalCostToComplete, anyBetterEditionAnnounced,
+                    negotiationAdvice, negotiationPriceDataAvailable, anyObservedMarketData);
         }
     }
 
@@ -192,9 +207,30 @@ public class VerdictScorer {
         return new FactorScore(score, rationale, ConfidenceLevel.MEDIUM);
     }
 
+    /**
+     * Le seul facteur qui parle d'ALIGNEMENT sur le marché - il lui faut donc un repère, et un
+     * repère suppose des relevés structurellement comparables au lot évalué.
+     * <p>
+     * Il s'appuyait sur {@code anyObservedMarketData}, c'est-à-dire sur l'existence d'un relevé
+     * quelconque rattaché à l'édition. Un tome seul y valorisait un lot de trois, et l'écran
+     * annonçait « prix réellement relevé, confiance haute » **juste sous** le bloc Prix qui venait
+     * de dire « Des prix existent pour cette édition, mais aucun sur un lot comparable » - les deux
+     * moitiés d'un même écran, en désaccord sur la même donnée. C'est exactement le défaut que
+     * {@link MarketComparableSelector} a été écrit pour supprimer, resté vivant de ce côté-ci.
+     * <p>
+     * Un relevé non comparable n'apprend rien sur l'alignement du prix DE CE LOT : il vaut donc ici
+     * la même note qu'aucun relevé, avec un message qui dit la différence - il y a quelque chose à
+     * faire (relever un prix sur un lot de taille voisine), et ce n'est pas la même chose que de
+     * n'avoir aucune donnée. Les deux autres lecteurs de {@code anyObservedMarketData}
+     * (la confiance du rapport prix/valeur, le signal de rareté) gardent le sens plus large :
+     * eux demandent seulement si un vrai prix a nourri la valorisation.
+     */
     private FactorScore scoreRealMarketAlignment(Input input) {
+        if (input.anyComparableObservation()) {
+            return new FactorScore(90, "Au moins un lot est valorisé à partir d'un prix réellement relevé sur un lot comparable.", ConfidenceLevel.HIGH);
+        }
         if (input.anyObservedMarketData()) {
-            return new FactorScore(90, "Au moins un lot est valorisé à partir d'un prix réellement relevé.", ConfidenceLevel.HIGH);
+            return new FactorScore(40, "Des prix relevés existent, mais aucun sur un lot comparable - ils ne disent rien du prix de CE lot.", ConfidenceLevel.LOW);
         }
         return new FactorScore(40, "Aucun prix relevé pour l'instant - la valorisation repose uniquement sur des estimations théoriques.", ConfidenceLevel.LOW);
     }
