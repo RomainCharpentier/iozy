@@ -68,7 +68,7 @@ curl http://localhost:8080/api/entities/00000000-0000-0000-0000-000000000000
 | Méthode | Ce que c'est | Comment |
 |---|---|---|
 | **Swagger UI** | Interface web pour tester chaque route à la main | Ouvrir `http://localhost:8080/swagger-ui.html` |
-| **`requests.http`** | 21 requêtes prêtes à l'emploi (ajout rapide + déduplication, recherche métadonnées, lookup ISBN, import BGG, recherche transversale, statistiques, découverte, wishlist, suppression bloquée...) | Extension "REST Client" (VS Code) ou client HTTP intégré (IntelliJ/DataGrip), clic sur "Send Request" |
+| **`requests.http`** | 25 requêtes prêtes à l'emploi (ajout rapide + déduplication, recherche métadonnées, lookup ISBN, import BGG, recherche transversale, statistiques, découverte, wishlist, suppression bloquée...) | Extension "REST Client" (VS Code) ou client HTTP intégré (IntelliJ/DataGrip), clic sur "Send Request" |
 | **curl** | Ligne de commande | Voir exemples dans `requests.http` ou le README backend |
 
 ### Lancer les tests automatisés
