@@ -1360,6 +1360,60 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 83 — « Bad Gateway », et une piste qui s'est retournée
+
+Parti d'une observation en gelant puis en arrêtant l'API : Ma collection et
+Statistiques restaient sur « Chargement… » **plus de quarante secondes**, sans
+jamais rien dire, pendant que la console accumulait des 502.
+
+#### Ce qui a été livré
+
+`502` et `504` manquaient à la table de traduction des statuts du client HTTP
+(`400/401/403/404/409/500/503` y étaient). Or ce sont exactement ceux que
+l'application rencontre en usage réel : déployée, elle passe par le nginx de
+`docker-compose`, qui répond **502** quand le conteneur API n'est pas démarré -
+la panne la plus ordinaire de ce projet. En développement (`npm run dev`),
+l'appel échoue avant d'aboutir et tombe dans `MESSAGE_HORS_LIGNE`, ce qui
+explique que le trou soit passé inaperçu : **les deux modes d'exécution ne
+tombent pas dans la même branche**.
+
+Sans ces deux lignes, le repli affichait la phrase de statut anglaise, « Bad
+Gateway », dans une interface entièrement en français - précisément le défaut
+que le commentaire de ce fichier dit avoir corrigé pour les autres statuts.
+
+#### Ce qui n'a PAS été livré, et pourquoi
+
+L'écran figé sur « Chargement… » n'a pas été corrigé : la sonde a retourné la
+piste.
+
+En instrumentant les quatre requêtes de `useDonneesCollection`, toutes
+ressortent en `fetchStatus: "paused"`. Dans TanStack Query, une requête ne se
+met en pause que si son `networkMode` vaut `online` **et** que le gestionnaire
+de connexion la croit hors ligne. Or :
+
+- le paquet livré contient bien
+  `new QueryClient({defaultOptions:{queries:{networkMode:"always"}...}})` -
+  vérifié en relisant le bundle servi, pas le source ;
+- avec `always`, une requête ne se met **jamais** en pause ;
+- `navigator.onLine` vaut `true` dans la page, et émettre un événement `online`
+  ne réveille rien.
+
+Autrement dit, l'état observé contredit la configuration réellement embarquée.
+La conclusion la plus probable est que le **navigateur de test** est en cause -
+il a déjà trois particularités documentées ici (aucune composition d'image,
+`clientWidth` à 0 sans viewport émulé, Échap synthétique non délivré). Corriger
+sur cette base reviendrait à bâtir sur du sable, comme la mise en page du
+Lot 80 refusée tant que l'application de l'utilisateur avait vingt-cinq lots de
+retard.
+
+**À vérifier sur un vrai navigateur** : arrêter le conteneur API, charger
+l'application, et regarder si un message d'erreur apparaît dans les dix
+secondes. S'il apparaît, il n'y a rien à corriger. S'il n'apparaît pas, le
+défaut est réel et la cause est à chercher du côté de `networkMode`.
+
+`typecheck`, `lint`, `check:contrast`, `build`. Conteneur `web` reconstruit,
+API redémarrée, collection réaffichée à l'identique.
+
 ### Lot 82 — les deux derniers gestes destructeurs sans filet
 
 Le Lot 81 a rendu le retrait d'un tome annulable. Recensement de tous les
@@ -4867,6 +4921,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- `npm run dev` et le conteneur `web` ne tombent pas dans la même branche d’erreur : en dev l’appel à une API éteinte échoue AVANT d’aboutir (réseau), déployé il traverse nginx qui répond **502**. Un statut non traduit ne se voit donc que dans le mode qu’on ne teste pas (Lot 83).
 - Un « Annuler » à l’écran n’est pas forcément le vôtre : celui d’une CONFIRMATION porte le même mot. Une sonde a cru avoir supprimé puis annulé une Tier List alors qu’elle avait seulement ouvert et refermé la confirmation - le journal réseau, où aucun `DELETE` n’était parti, l’a tranché. Vérifier qu’une requête a eu lieu avant de conclure sur son effet (Lot 82).
 - Une annulation qui abîme ce qu’elle restaure ne restaure rien : rajouter un tome retiré le datait d’aujourd’hui, donc le remède refaisait le mal. Avant de proposer « Annuler », vérifier que le chemin inverse rend VRAIMENT l’objet d’avant - ici il a fallu ouvrir `quick-add` à une date d’acquisition (Lot 81).
 - **Vérifier sur le serveur de développement (5173) ne dit rien de ce que l’utilisateur voit** : le conteneur `web` de docker-compose (8081) datait de vingt-cinq lots plus tôt et servait une interface d’un autre âge, d’où un défaut signalé introuvable dans le code actuel. Reconstruire `web` fait partie de la livraison, au même titre qu’`iozycore-api` - et le navigateur garde en plus l’ancien HTML en cache (Lot 80).
