@@ -144,19 +144,41 @@ public class PublicShareController {
      * deux sections - ce sont deux intentions différentes, pas un doublon.
      */
     private List<SharedWishlistItem> sharedWishlist() {
+        // Les œuvres chargées EN UNE FOIS, pas une requête par envie.
+        //
+        // Chaque entrée déclenchait son propre findById : une wishlist de
+        // cinquante lignes coûtait cinquante requêtes, sur la seule surface
+        // ouverte à l'extérieur - et sur un chemin que n'importe qui possédant
+        // le lien peut rappeler autant de fois qu'il veut. Même raisonnement
+        // qu'au Lot 35 pour la recherche de tomes, avec en plus le fait que
+        // celui-ci n'est pas authentifié.
+        //
+        // Trois requêtes suffisent (une par univers), et sharedCollection
+        // parcourt déjà les types de la même façon.
+        Map<UUID, Entity> oeuvresParId = toutesLesOeuvres();
         return wishlistEntryRepository.findAll().stream()
-                .map(this::toWishlistItem)
+                .map(entry -> toWishlistItem(entry, oeuvresParId.get(entry.entityId())))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .sorted(Comparator.comparing(SharedWishlistItem::title, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
 
+    private Map<UUID, Entity> toutesLesOeuvres() {
+        Map<UUID, Entity> parId = new LinkedHashMap<>();
+        for (EntityType type : entityTypeRepository.findAll()) {
+            for (Entity entity : entityRepository.findAllByType(type.id())) {
+                parId.put(entity.id(), entity);
+            }
+        }
+        return parId;
+    }
+
     /** Vide si l'œuvre référencée a disparu : une entrée orpheline ne doit pas casser la vue publique. */
-    private Optional<SharedWishlistItem> toWishlistItem(WishlistEntry entry) {
-        return entityRepository.findById(entry.entityId()).map(entity -> {
-            Object cover = entity.attributes().get(COVER_IMAGE_URL);
-            return new SharedWishlistItem(entity.title(), cover instanceof String url ? url : null, entry.addedAt());
+    private Optional<SharedWishlistItem> toWishlistItem(WishlistEntry entry, Entity entity) {
+        return Optional.ofNullable(entity).map(oeuvre -> {
+            Object cover = oeuvre.attributes().get(COVER_IMAGE_URL);
+            return new SharedWishlistItem(oeuvre.title(), cover instanceof String url ? url : null, entry.addedAt());
         });
     }
 
