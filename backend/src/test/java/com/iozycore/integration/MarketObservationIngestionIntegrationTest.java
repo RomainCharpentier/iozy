@@ -244,6 +244,35 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         assertThat(service.observationsOfEdition(edition.id())).isEmpty();
     }
 
+    @Test
+    void une_annonce_saisie_a_la_main_ne_produit_aucun_releve_automatique() {
+        MangaEdition edition = uneEdition(14);
+
+        // Aucune URL, aucun identifiant externe : c'est le cas NORMAL, aucun
+        // fournisseur public n'existant pour Vinted/Leboncoin/Rakuten.
+        analyser(edition, "80", null, null, null, null, INTEGRALE);
+
+        assertThat(service.observationsOfEdition(edition.id())).isEmpty();
+    }
+
+    @Test
+    void une_annonce_sans_identite_analysee_deux_fois_ne_se_certifie_pas_son_propre_prix() {
+        MangaEdition edition = uneEdition(14);
+
+        // Le pendant de une_annonce_reanalysee_ne_se_compare_pas_a_son_propre_prix_releve,
+        // sur le chemin qui n'a PAS d'identite. Sans le garde, la seconde analyse
+        // rendait un sampleSize de 1 et une reference egale au prix demande - donc
+        // une annonce declaree "au prix du marche" sur la foi d'elle-meme (constate
+        // en direct le 2026-08-28 : sampleSize 2, reference 33 EUR, FAIR_PRICE).
+        analyser(edition, "80", null, null, null, null, INTEGRALE);
+        PurchaseAnalysis seconde = analyser(edition, "80", null, null, null, null, INTEGRALE);
+
+        assertThat(service.observationsOfEdition(edition.id())).isEmpty();
+        assertThat(seconde.assessment().referencePrice()).isNull();
+        assertThat(seconde.assessment().referenceSampleSize()).isZero();
+        assertThat(seconde.assessment().pricePosition().name()).isEqualTo("REFERENCE_UNAVAILABLE");
+    }
+
     // ================================================================== J
 
     @Test
