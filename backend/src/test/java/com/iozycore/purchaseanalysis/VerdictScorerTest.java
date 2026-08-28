@@ -106,6 +106,31 @@ class VerdictScorerTest {
     }
 
     @Test
+    void how_much_the_collector_cares_about_condition_actually_moves_the_score() {
+        // Poor condition, everything else identical: a collector who says condition matters little
+        // must not get the same verdict score as one who says it matters a lot.
+        VerdictScorer.Input input = new VerdictScorer.Input(
+                new BigDecimal("50"), null, null, null, false, Condition.VISIBLE_DEFECTS, false, List.of(), false,
+                false, List.of(), false, null, false, NegotiationAdvice.ACCEPTABLE_AS_IS);
+
+        int low = scorer.score(input, withConditionImportance(WeightLevel.LOW)).score();
+        int medium = scorer.score(input, withConditionImportance(WeightLevel.MEDIUM)).score();
+        int high = scorer.score(input, withConditionImportance(WeightLevel.HIGH)).score();
+
+        assertThat(low).isGreaterThan(medium);
+        assertThat(medium).isGreaterThan(high);
+    }
+
+    private static CollectorPreferences withConditionImportance(WeightLevel importance) {
+        CollectorPreferences base = CollectorPreferences.defaults();
+        return new CollectorPreferences(base.preferCompletedSeries(), base.avoidOngoingSeries(),
+                base.preferOmnibusIntegral(), base.editionTierRanking(),
+                base.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), base.frenchLanguageOnly(),
+                base.preferEasyToCompleteCollections(), importance, base.minimumDiscountVsRetailPercent(),
+                base.factorWeights());
+    }
+
+    @Test
     void condition_weight_is_boosted_when_it_applies_to_a_box_or_slipcase() {
         VerdictScorer.Input containerInput = new VerdictScorer.Input(
                 new BigDecimal("50"), null, null, null, false, Condition.VISIBLE_DEFECTS, true, List.of(), false,

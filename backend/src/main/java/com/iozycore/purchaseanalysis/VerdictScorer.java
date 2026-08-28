@@ -138,11 +138,31 @@ public class VerdictScorer {
     private BigDecimal effectiveWeight(VerdictFactor factor, Input input, CollectorPreferences preferences) {
         int baseWeight = preferences.factorWeights()
                 .getOrDefault(factor, CollectorPreferences.SPECIFIED_FACTOR_WEIGHTS.getOrDefault(factor, 0));
-        if (factor == VerdictFactor.CONDITION && input.conditionAppliesToContainer()) {
-            // A box/slipcase's condition matters more than a single standard volume's.
-            return BigDecimal.valueOf(baseWeight).multiply(new BigDecimal("1.5"));
+        if (factor != VerdictFactor.CONDITION) {
+            return BigDecimal.valueOf(baseWeight);
         }
-        return BigDecimal.valueOf(baseWeight);
+        // Two independent reasons the condition can weigh more than its base 15, and they compose:
+        // WHAT is being judged (a box/slipcase's condition matters more than a single standard
+        // volume's), and HOW MUCH this collector cares about condition at all.
+        BigDecimal weight = BigDecimal.valueOf(baseWeight).multiply(importanceFactor(preferences.conditionImportance()));
+        return input.conditionAppliesToContainer() ? weight.multiply(new BigDecimal("1.5")) : weight;
+    }
+
+    /**
+     * {@code conditionImportance} was persisted, validated by the API and returned by
+     * {@code GET /preferences} without a single line of the engine ever reading it - the default
+     * profile announces "high importance on condition" and nothing acted on it. Its own enum says
+     * what it is for: "how much condition should matter".
+     * <p>
+     * Kept deliberately coarse (halve / leave / half again), on the same scale as the container
+     * boost right above, rather than inventing a finer scale nothing asked for.
+     */
+    private static BigDecimal importanceFactor(WeightLevel importance) {
+        return switch (importance) {
+            case LOW -> new BigDecimal("0.5");
+            case MEDIUM -> BigDecimal.ONE;
+            case HIGH -> new BigDecimal("1.5");
+        };
     }
 
     private FactorScore scoreFinalPriceVsFairValue(Input input) {
