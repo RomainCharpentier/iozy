@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, MoreHorizontal } from 'lucide-react'
 import { getEntity } from '../../api/entities'
-import { deleteRelationship, updateRelationshipType } from '../../api/relationships'
+import { createRelationship, deleteRelationship, updateRelationshipType } from '../../api/relationships'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { useToast } from '../../lib/toast'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { RELATIONSHIP_TYPE_PRESETS, relationshipTypeLabel } from '../../types/entityTypes'
 import type { RelationshipDto } from '../../types/api'
@@ -38,6 +39,7 @@ export function RelationshipRow({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [type, setType] = useState(relationship.relationshipType)
@@ -66,6 +68,21 @@ export function RelationshipRow({
     onSuccess: () => {
       invalidate()
       setMenuOpen(false)
+      // Même convention que les envies, les prix relevés et les expériences :
+      // un geste destructeur dit ce qu'il a fait et propose de revenir en
+      // arrière. Restauration réelle - source, cible et type sont tout ce qui
+      // définit une relation, et seul son identifiant technique change.
+      toast('Relation supprimée', {
+        label: 'Annuler',
+        onAction: async () => {
+          await createRelationship({
+            sourceEntityId: relationship.sourceEntityId,
+            targetEntityId: relationship.targetEntityId,
+            relationshipType: relationship.relationshipType,
+          })
+          invalidate()
+        },
+      })
     },
   })
 

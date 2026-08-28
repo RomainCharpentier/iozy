@@ -1360,6 +1360,61 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 82 — les deux derniers gestes destructeurs sans filet
+
+Le Lot 81 a rendu le retrait d'un tome annulable. Recensement de tous les
+gestes destructeurs de l'application, et de ce qui les protège :
+
+| geste | protection avant ce lot |
+|---|---|
+| retirer une envie | « Annuler » (`useWishlist`) |
+| supprimer un prix relevé | « Annuler », restauration fidèle |
+| supprimer une expérience | « Annuler », restauration fidèle |
+| retirer un tome | « Annuler » (Lot 81) |
+| supprimer la fiche d'une œuvre | zone sensible + refus si un exemplaire ou une lecture y est rattaché |
+| supprimer une Tier List | confirmation en deux temps (« Irréversible ») |
+| **retirer une œuvre d'une Tier List** | **rien - part au premier clic** |
+| **supprimer une relation** | **rien - part au premier clic** |
+
+Les deux derniers rejoignent la convention. Restauration fidèle dans les deux
+cas : pour une œuvre retirée d'une liste, l'appartenance **et son rang** (en
+deux appels, le second seulement si elle était classée) ; pour une relation,
+source, cible et type - tout ce qui la définit, seul l'identifiant technique
+change.
+
+Retirer une œuvre d'une liste prend donc désormais l'entrée entière et non son
+seul identifiant : c'est son **rang** qu'il faut pouvoir rendre, et il n'existe
+plus une fois l'œuvre retirée.
+
+#### Ce qui n'a délibérément PAS reçu d'annulation
+
+Supprimer une Tier List passe déjà par une confirmation en deux temps qui
+annonce « Irréversible ». Une annulation ferait mentir cette phrase, et
+protégerait une deuxième fois un geste que personne ne déclenche par mégarde.
+Le filet va aux gestes **nus**.
+
+Cette conclusion est venue d'une vérification qui a d'abord mal tourné : ma
+sonde a cliqué « Supprimer cette Tier List », vu apparaître un « Annuler », et
+l'a pris pour le message d'annulation - alors que c'était le bouton *Annuler de
+la confirmation*. Le journal réseau a tranché : aucun `DELETE /tier-lists/{id}`
+n'était parti. **Vérifier qu'une requête a bien eu lieu avant de conclure sur
+son effet.**
+
+#### Vérifié en direct, sur des données jetables
+
+Une Tier List de test et une relation de test, créées puis supprimées pour de
+bon - jamais les données de l'utilisateur.
+
+- Œuvre retirée d'une liste : « Œuvre retirée de la liste » + « Annuler », puis
+  en base `rank = S` - le rang, pas seulement l'appartenance.
+- Relation supprimée : « Annuler », puis en base la même source, la même cible
+  et le même type.
+
+État final identique à l'état initial : 9 œuvres, 12 possessions, 0 relation,
+0 Tier List, 2 relevés, 1 envie.
+
+`typecheck`, `lint`, `check:contrast`, `build`. Conteneur `web` reconstruit.
+
 ### Lot 81 — retirer un tome d'un clic était sans retour, et sans trace
 
 Trouvé en enquêtant sur un écart de données constaté dans la collection de
@@ -4812,6 +4867,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un « Annuler » à l’écran n’est pas forcément le vôtre : celui d’une CONFIRMATION porte le même mot. Une sonde a cru avoir supprimé puis annulé une Tier List alors qu’elle avait seulement ouvert et refermé la confirmation - le journal réseau, où aucun `DELETE` n’était parti, l’a tranché. Vérifier qu’une requête a eu lieu avant de conclure sur son effet (Lot 82).
 - Une annulation qui abîme ce qu’elle restaure ne restaure rien : rajouter un tome retiré le datait d’aujourd’hui, donc le remède refaisait le mal. Avant de proposer « Annuler », vérifier que le chemin inverse rend VRAIMENT l’objet d’avant - ici il a fallu ouvrir `quick-add` à une date d’acquisition (Lot 81).
 - **Vérifier sur le serveur de développement (5173) ne dit rien de ce que l’utilisateur voit** : le conteneur `web` de docker-compose (8081) datait de vingt-cinq lots plus tôt et servait une interface d’un autre âge, d’où un défaut signalé introuvable dans le code actuel. Reconstruire `web` fait partie de la livraison, au même titre qu’`iozycore-api` - et le navigateur garde en plus l’ancien HTML en cache (Lot 80).
 - `mvn test-compile` peut passer sur des classes PÉRIMÉES (`target/` vit dans le répertoire monté) : ajouter une méthode à un port a laissé un faux repository de test sans implémentation sans que rien ne le signale. Seule la construction de l’image Docker, qui compile depuis zéro, l’a levée - donc **ne jamais avaler la sortie de `docker compose build`** : elle disait « failed to solve » pendant que `up -d` répondait « Started » sur l’ANCIENNE image (Lot 79).
