@@ -1360,6 +1360,60 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 77 — la seule cible tactile sous le plancher
+
+Six lots d'affilée dans le moteur d'analyse : ce lot-ci change de terrain et
+reprend la méthode des Lots 10, 37 et 41 - **mesurer**, plutôt que regarder.
+
+#### Ce que le balayage a trouvé, et surtout ce qu'il n'a pas trouvé
+
+À 375 px de large, viewport émulé explicitement (sans quoi
+`document.documentElement.clientWidth` vaut 0 dans ce navigateur et toute sonde
+de débordement rapporte un faux positif - vérifié une fois de plus ici :
+`deborde: true` accompagné d'un `viewport: 0`) :
+
+- **Débordement horizontal** : aucun, sur Ma collection, Découvrir, Mon profil,
+  Statistiques, Évaluer une annonce, la fiche d'une œuvre. Le travail des
+  Lots 10 et 41 tient.
+- **Noms accessibles** : aucun bouton sans nom, aucun doublon de nom sur la
+  fiche - 33 éléments interactifs. Le Lot 40 tient.
+- **Cibles tactiles** : un seul élément interactif de toute l'application sous
+  le plancher de 24 px (WCAG 2.5.8) - le crayon « Modifier l'édition » de la
+  fiche, à **13 × 13 px**. Paramètres et Tier Lists : aucun.
+
+#### Un seul coupable, et la convention existait déjà
+
+Le crayon n'avait aucune classe de taille : le bouton faisait exactement
+l'icône. Or deux autres boutons-icônes de l'application, avec la même icône de
+13 px, portent bien leur surface : le bouton de suppression d'un prix relevé
+(`EditionObservations`, `flex h-11 w-11 items-center justify-center`) et le
+« Modifier » d'une annonce (`ListingSummaryCard`, `min-h-11`). C'est donc un
+oubli isolé, pas une règle absente - et le correctif est la convention de la
+maison, pas une invention.
+
+Le commentaire du bouton justifiait sa nudité par une ligne compacte à laquelle
+il s'accrocherait (« Black Édition · 6 tomes ») : cette ligne n'existe plus, le
+crayon est aujourd'hui seul dans son conteneur (`EntityDetailPage`, colonne
+inspecteur). L'agrandir ne bouscule donc rien.
+
+**Mesuré avant/après**, à 375 px : crayon **13 × 13 → 44 × 44**, éléments sous
+24 px sur la fiche **1 → 0**, aucun débordement. À 1280 px émulés : contenu
+1265 pour un viewport 1265, aucun débordement non plus. Le clic ouvre bien le
+formulaire d'édition (« Black Édition · Édition épuisée · Nouvelle édition
+annoncée · Enregistrer · Annuler ») - **sans** cliquer Enregistrer, pour ne rien
+écrire dans les données.
+
+`typecheck`, `lint`, `check:contrast`, `build`.
+
+#### Une prudence, notée pour la prochaine fois
+
+Une première sonde a ouvert huit panneaux d'un coup en cliquant tous les boutons
+dont le libellé contenait « Modifier », « Éditer » ou « Ajouter ». Aucune
+écriture n'a eu lieu - vérifié : 9 œuvres, 14 possessions, 1 envie, 0 relation,
+0 tag, 2 expériences, inchangés - mais c'était de la chance, pas de la méthode :
+un « Ajouter » peut être une bascule qui écrit. **Ne jamais déclencher des
+gestes en masse par correspondance de libellé sur des données réelles.**
+
 ### Lot 76 — la même question repartait chez l'IA à chaque analyse
 
 Conséquence directe du Lot 75, et il fallait la traiter. L'avis de l'IA sur le
@@ -4524,6 +4578,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Ne JAMAIS déclencher des gestes en masse par correspondance de libellé sur des données réelles : au Lot 77 une sonde a cliqué tous les boutons « Modifier / Éditer / Ajouter » d’une fiche pour déplier ses panneaux. Rien n’a été écrit - vérifié après coup sur les six tables - mais un « Ajouter » peut être une bascule qui écrit (Lot 77).
+- Un bouton-icône sans classe de taille FAIT la taille de son icône : 13 x 13 px pour un `size={13}`. Le défaut ne se voit ni au typecheck ni à l’œil sur un grand écran, seulement en mesurant `getBoundingClientRect` à 375 px. La convention existait déjà dans deux autres boutons (`h-11 w-11` autour de la même icône) - chercher le patron maison avant d’inventer une taille (Lot 77).
 - Fermer une écriture peut OUVRIR un coût ailleurs : le Lot 75 a supprimé le relevé automatique, et comme l’avis de l’IA n’est demandé qu’en l’absence de relevé, chaque analyse s’est mise à rappeler le modèle. Après avoir retiré une donnée, chercher qui s’appuyait sur son EXISTENCE, pas seulement qui la lisait (Lot 76).
 - Un test peut GARANTIR une règle sur un chemin que l’application n’emprunte jamais : les quinze tests d’ingestion des relevés passent tous une URL et un `externalId`, si bien que « une annonce réanalysée ne se compare pas à son propre prix » était vrai en test et faux en production, où les annonces se saisissent à la main. Quand une règle dépend d’une donnée OPTIONNELLE, écrire le test qui l’omet (Lot 75).
 - **Une analyse d’achat jetable N’EST PAS sans trace** : `releverLePrixDemande` écrit le prix demandé comme observation de marché, et supprimer l’analyse ne supprime pas l’observation. Vérifier un lot en créant des analyses exige donc de compter AUSSI `market_price_observation` avant/après, et de nettoyer par `DELETE /market-observations/{id}`. Six lignes s’étaient accumulées sur les lots 71-74 et faussaient déjà une mesure : elles se servaient de comparables les unes aux autres (Lot 74).

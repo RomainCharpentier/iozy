@@ -93,18 +93,22 @@ export function EditionCorrectionSection({
 
   if (!expanded) {
     // Icône seule (plus de libellé "Modifier l'édition" sur sa propre ligne) -
-    // pensée pour s'accrocher directement à la ligne compacte "Black Édition
-    // · 6 tomes" composée par le parent (voir TomesGridSection), même esprit
-    // que la correction de couverture/titre de la fiche (icône crayon
-    // directement associée à l'info qu'elle corrige, jamais une ligne à part
-    // qui ressemble à une interface de gestion).
+    // même esprit que la correction de couverture/titre de la fiche : une icône
+    // crayon directement associée à l'info qu'elle corrige, jamais une ligne à
+    // part qui ressemble à une interface de gestion.
+    //
+    // L'icône fait 13 px, la CIBLE 44 : sans surface autour, le bouton mesurait
+    // 13x13 - le seul élément interactif de toute l'application sous le plancher
+    // de 24 px, mesuré à 375 px de large. Le patron est déjà celui du bouton de
+    // suppression d'un prix relevé (voir EditionObservations) : une pastille
+    // h-11 w-11 centrée autour d'une icône de la même taille.
     return (
       <button
         type="button"
         onClick={openForm}
         aria-label="Modifier l'édition"
         title="Modifier l'édition"
-        className="shrink-0 text-textDim hover:text-textPrimary"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-surface2 hover:text-textPrimary"
       >
         <Pencil size={13} />
       </button>
