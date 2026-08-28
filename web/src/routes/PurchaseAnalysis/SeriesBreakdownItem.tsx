@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { CircleCheck, TriangleAlert, Info, CircleX, BookmarkPlus } from 'lucide-react'
 import { recordMarketObservation } from '../../api/purchaseAnalysis'
 import { ErrorBanner } from '../../components/ErrorBanner'
+import { libelleBaseCourt } from '../../lib/basePrix'
 import type { ItemAnalysisDto, ListingDto, WarningSeverity } from '../../types/purchaseAnalysis'
 import { EDITION_TIER_LABELS } from '../../types/purchaseAnalysis'
 
@@ -73,6 +74,8 @@ export function SeriesBreakdownItem({
       }),
   })
 
+  const baseCoutRestant = libelleBaseCourt(completeness.costToCompleteBasis)
+
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface p-3">
       <div className="flex items-start justify-between gap-2">
@@ -121,9 +124,7 @@ export function SeriesBreakdownItem({
                 <span className="text-textDim">
                   {' '}
                   (~{completeness.estimatedCostToComplete.toFixed(2)} €
-                  {completeness.costToCompleteBasis === 'OBSERVED_MARKET' && ', marché'}
-                  {completeness.costToCompleteBasis === 'AI_ESTIMATED' && ', estimation IA'}
-                  {completeness.costToCompleteBasis === 'THEORETICAL_ONLY' && ', théorique'})
+                  {baseCoutRestant === null ? ')' : `, ${baseCoutRestant})`}
                 </span>
               )}
             </span>

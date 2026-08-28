@@ -5,6 +5,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import type { EditionProgressDto, ExperienceResponse, VariantDto } from '../../types/api'
 import type { PriceBasis } from '../../types/purchaseAnalysis'
 import { editionDe, numeroDe } from '../../lib/attributsTome'
+import { libelleBaseLong } from '../../lib/basePrix'
 
 /**
  * Les réponses de l'assistant : deux questions FIXES, dont la réponse est
@@ -132,12 +133,6 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
   return count > 1 ? pluralForm : singular
 }
 
-function basisLabel(basis: PriceBasis | null): string {
-  if (basis === 'OBSERVED_MARKET') return 'prix de marché observés'
-  if (basis === 'AI_ESTIMATED') return 'estimation IA, non vérifiée'
-  return 'prix de référence théorique'
-}
-
 function MissingAnswer({
   editionName,
   ownedCount,
@@ -161,6 +156,8 @@ function MissingAnswer({
   costToCompleteBasis: PriceBasis | null
   onEvaluateListing: () => void
 }) {
+  const base = libelleBaseLong(costToCompleteBasis)
+
   // Édition non précisée : la complétude est TOUJOURS calculée par édition
   // (deux éditions d'une même série n'ont pas le même nombre de tomes, voir
   // CollectionStatus côté backend) - sans édition, il n'y a rien à comparer.
@@ -223,7 +220,7 @@ function MissingAnswer({
       )}
       {estimatedCostToComplete !== null && (
         <p className="text-xs text-textDim">
-          Environ {estimatedCostToComplete.toFixed(2)} € pour compléter ({basisLabel(costToCompleteBasis)}).
+          Environ {estimatedCostToComplete.toFixed(2)} € pour compléter{base === null ? '.' : ` (${base}).`}
         </p>
       )}
       <button type="button" onClick={onEvaluateListing} className="w-fit text-xs font-semibold text-accentText underline">

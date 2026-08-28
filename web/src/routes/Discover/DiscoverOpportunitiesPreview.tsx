@@ -5,18 +5,13 @@ import { getNearCompleteSuggestions } from '../../api/purchaseAnalysis'
 import { searchEntities } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { coverImageUrlFrom } from '../../lib/coverImage'
+import { libelleBaseCourt } from '../../lib/basePrix'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { CLASSE_CARTE } from '../../components/Carte'
 
 const MAX_PREVIEW = 3
-
-function basisLabel(basis: 'OBSERVED_MARKET' | 'AI_ESTIMATED' | 'THEORETICAL_ONLY' | null): string {
-  if (basis === 'OBSERVED_MARKET') return 'marché'
-  if (basis === 'AI_ESTIMATED') return 'estimation IA'
-  return 'théorique'
-}
 
 /**
  * Panneau "Opportunités" de Découvrir (voir DS v1.1 §44) - adapté du moteur
@@ -60,7 +55,9 @@ export function DiscoverOpportunitiesPreview() {
       )}
 
       <div className="flex flex-col gap-2">
-        {suggestions.map((s) => (
+        {suggestions.map((s) => {
+          const base = libelleBaseCourt(s.costToCompleteBasis)
+          return (
           <button
             key={`${s.entityId}-${s.editionName}`}
             type="button"
@@ -78,14 +75,16 @@ export function DiscoverOpportunitiesPreview() {
               {/* La raison, toujours écrite : sinon c'est une page de promos. */}
               <span className="text-xs font-semibold text-accentText">
                 {s.missingCount} tome{s.missingCount > 1 ? 's' : ''} manquant{s.missingCount > 1 ? 's' : ''} pour compléter
-                {s.estimatedCostToComplete !== null && ` · ~${s.estimatedCostToComplete.toFixed(2)} € (${basisLabel(s.costToCompleteBasis)})`}
+                {s.estimatedCostToComplete !== null &&
+                  ` · ~${s.estimatedCostToComplete.toFixed(2)} €${base === null ? '' : ` (${base})`}`}
               </span>
             </span>
             <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accentInk">
               {s.ownedCount}/{s.totalVolumes}
             </span>
           </button>
-        ))}
+          )
+        })}
       </div>
 
       {/* Le pendant naturel des opportunités : elles disent ce qu'il manque,
