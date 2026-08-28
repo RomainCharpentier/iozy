@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Heart, Scale } from 'lucide-react'
+import { Heart, Pencil, Scale } from 'lucide-react'
 import { Jaquette } from '../../components/Jaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '../../components/layout/AppShell'
 import { tonDe } from '../../lib/useTeinteJaquette'
@@ -34,6 +34,8 @@ export function FicheHero({
   onCouverture,
   onEvaluer,
   actionEnvies,
+  modeEdition = false,
+  onBasculerMode,
   editions,
   colleEnHaut = true,
 }: {
@@ -55,6 +57,23 @@ export function FicheHero({
   /** null pour un type sans notion d'annonce à évaluer, et à l'ajout. */
   onEvaluer?: (() => void) | null
   actionEnvies?: ReactNode
+  /**
+   * Le passage en mode édition, dans l'en-tête de la fiche - donc sur TOUTE
+   * fiche, quel que soit son type.
+   *
+   * <p>Il vivait dans la rangée « Éditions » (voir CartesEditions), qui n'est
+   * rendue que par une œuvre ayant des tomes. Un jeu vidéo, un jeu de société,
+   * une série dont aucun tome n'est encore catalogué n'avaient donc AUCUN
+   * accès au mode édition - ni renommer, ni recharger depuis la source, ni
+   * relations, ni champs techniques, ni supprimer. Le geste ne dépend pas des
+   * éditions : il ouvre le catalogue de l'œuvre entière.
+   *
+   * <p>Nommé, et pas un simple pinceau : « Éditer » dit dans quel espace on
+   * entre. Un pictogramme seul laissait deviner, et c'est ce qui avait rendu
+   * « Suivre cette édition » introuvable au Lot 36.
+   */
+  modeEdition?: boolean
+  onBasculerMode?: () => void
   /** La rangée « ÉDITIONS · n » (voir CartesEditions), absente pour un type
    *  qui n'a pas d'éditions. */
   editions?: ReactNode
@@ -135,8 +154,21 @@ export function FicheHero({
               )}
             </div>
 
-            {(onEvaluer || actionEnvies) && (
+            {(onEvaluer || actionEnvies || onBasculerMode) && (
             <div className="flex shrink-0 items-center gap-2">
+              {onBasculerMode && (
+                <button
+                  type="button"
+                  onClick={onBasculerMode}
+                  aria-pressed={modeEdition}
+                  className={`flex h-[42px] items-center gap-1.5 rounded-xl px-3.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors ${
+                    modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim hover:text-textPrimary'
+                  }`}
+                >
+                  <Pencil size={14} />
+                  {modeEdition ? 'Terminer' : 'Éditer'}
+                </button>
+              )}
               {onEvaluer && (
                 <button
                   type="button"

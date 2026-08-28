@@ -1,4 +1,4 @@
-import { Bookmark, Check, Pencil, Plus } from 'lucide-react'
+import { Bookmark, Check, Plus } from 'lucide-react'
 
 export interface EditionAffichee {
   /** Le nom de l'édition. `''` pour le groupe « édition non précisée », qui
@@ -37,7 +37,6 @@ export function CartesEditions({
   onNePlusSuivre,
   onAjouterEdition,
   modeEdition,
-  onBasculerMode,
   sensProgression = 'possession',
 }: {
   editions: EditionAffichee[]
@@ -57,7 +56,6 @@ export function CartesEditions({
    *  cette bascule, jamais saupoudrées dans la page. Absent des écrans qui
    *  n'ont rien à modifier : le bouton disparaît au lieu de rester inerte. */
   modeEdition?: boolean
-  onBasculerMode?: () => void
   /** Ce que la jauge d'une carte COMPTE. Sur la fiche, des tomes possédés ;
    *  à l'ajout, des tomes cochés. Même dessin, deux sens - et le sens doit
    *  être dit au lecteur d'écran, à qui « 3/27 » ne suffit pas. */
@@ -69,24 +67,13 @@ export function CartesEditions({
         <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">
           Éditions · {editions.length}
         </span>
-        {onBasculerMode && (
+        {/* Le passage en mode édition a quitté cette rangée pour l'en-tête de
+            la fiche (voir FicheHero) : il ouvre le catalogue de l'ŒUVRE, pas
+            celui de ses éditions, et cette rangée n'existe pas sur un type qui
+            n'en a aucune. Ne reste ici que ce qui parle vraiment d'éditions. */}
+        {modeEdition && (
           <div className="flex items-center gap-2">
-            {/* Nommé, et pas un simple pinceau : « Éditer » dit dans quel
-                espace on entre. Un pictogramme seul laissait deviner, et
-                c'est ce qui avait rendu « Suivre cette édition » introuvable
-                au Lot 36. */}
-            <button
-              type="button"
-              onClick={onBasculerMode}
-              aria-pressed={modeEdition}
-              className={`flex h-[34px] items-center gap-1.5 rounded-[10px] px-3 text-[12.5px] font-semibold transition-colors ${
-                modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim hover:text-textPrimary'
-              }`}
-            >
-              <Pencil size={14} />
-              {modeEdition ? 'Terminer' : 'Éditer'}
-            </button>
-            {modeEdition && onAjouterEdition && (
+            {onAjouterEdition && (
               // « Ajouter » doit toujours dire OÙ (§11) : un « + » nu ne
               // distinguait pas ce geste de catalogue d'un ajout à la
               // collection.
