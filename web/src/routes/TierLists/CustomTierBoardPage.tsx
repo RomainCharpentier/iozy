@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import {
+  addTierListItems,
   deleteTierList,
   getTierListDetail,
   removeTierListItem,
@@ -16,6 +17,7 @@ import { TierPicker } from './TierPicker'
 import { AddTierListItemsPanel } from './AddTierListItemsPanel'
 import { useQuickRank } from './useQuickRank'
 import { useModalA11y } from '../../lib/useModalA11y'
+import { useToast } from '../../lib/toast'
 import type { Rank, TierListEntryDto } from '../../types/tierList'
 import { EnTeteSection } from '../../components/EnTeteSection'
 
@@ -26,6 +28,7 @@ export function CustomTierBoardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -57,16 +60,33 @@ export function CustomTierBoardPage() {
   // AddTierListItemsPanel n'avait aucune sortie (DELETE /tier-lists/{id}/items/
   // {entityId} existait pourtant depuis le Lot 7).
   const removeItemMutation = useMutation({
-    mutationFn: (entityId: string) => removeTierListItem(id!, entityId),
-    onSuccess: (_result, entityId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
-      // La fiche de l'œuvre affiche ses appartenances (voir TomesGridSection) :
-      // sans cette invalidation, elle continuerait d'annoncer cette liste.
-      queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(entityId) })
+    // L'entrée entière, pas seulement son identifiant : son RANG est ce qu'on
+    // doit pouvoir rendre, et il n'existe plus une fois l'œuvre retirée.
+    mutationFn: (entree: TierListEntryDto) => removeTierListItem(id!, entree.entityId),
+    onSuccess: (_result, entree) => {
+      invaliderApresItem(entree.entityId)
       quickRank.stop()
       setActiveEntry(null)
+      // Même convention que les envies, les prix relevés et les expériences.
+      // Restauration réelle : l'appartenance ET le rang, en deux appels - le
+      // second n'a lieu que si l'œuvre était classée.
+      toast('Œuvre retirée de la liste', {
+        label: 'Annuler',
+        onAction: async () => {
+          await addTierListItems(id!, [entree.entityId])
+          if (entree.rank) await setTierListItemRank(id!, entree.entityId, entree.rank)
+          invaliderApresItem(entree.entityId)
+        },
+      })
     },
   })
+
+  /** La fiche de l'œuvre affiche ses appartenances (voir TomesGridSection) :
+   *  sans cette invalidation, elle continuerait d'annoncer cette liste. */
+  function invaliderApresItem(entityId: string) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
+    queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(entityId) })
+  }
 
   // PATCH /tier-lists/{id} existait sans appelant : une faute de frappe dans le
   // nom d'une liste était définitive, la seule sortie étant de la supprimer et
@@ -84,6 +104,11 @@ export function CustomTierBoardPage() {
     },
   })
 
+  // Pas d'« Annuler » ici, délibérément : supprimer une Tier List passe déjà par
+  // une confirmation en deux temps qui annonce « Irréversible ». Ajouter une
+  // annulation ferait mentir cette phrase, et protégerait une deuxième fois un
+  // geste que personne ne déclenche par mégarde. Le filet va aux gestes NUS -
+  // retirer une œuvre de la liste, ci-dessus, part au premier clic.
   const deleteMutation = useMutation({
     mutationFn: () => deleteTierList(id!),
     onSuccess: () => {
@@ -266,7 +291,7 @@ export function CustomTierBoardPage() {
           onSelect={(rank) => rankMutation.mutate({ entityId: selectedEntry.entityId, rank })}
           progress={quickRank.progress}
           onSkip={quickRank.isActive ? quickRank.next : undefined}
-          onRemoveFromList={() => removeItemMutation.mutate(selectedEntry.entityId)}
+          onRemoveFromList={() => removeItemMutation.mutate(selectedEntry)}
         />
       )}
     </div>
