@@ -1360,6 +1360,38 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 87 — une requête par envie, sur la seule porte ouverte à l'extérieur
+
+`PublicShareController.sharedWishlist()` chargeait chaque œuvre **une par une** :
+`wishlistEntryRepository.findAll()`, puis un `entityRepository.findById()` par
+entrée. Une liste d'envies de cinquante lignes coûtait cinquante requêtes.
+
+Ce qui rend celui-ci différent des autres N+1 du projet : c'est la **seule
+surface non authentifiée** de l'application. N'importe qui détenant le lien peut
+la rappeler autant de fois qu'il veut, et le coût suit la taille de la liste
+partagée. C'est le raisonnement du Lot 35 (« toute fonctionnalité qui voudrait
+le savoir POUR UNE LISTE doit passer par un seul appel »), avec l'absence
+d'authentification en plus.
+
+Les œuvres sont désormais chargées en une fois - trois requêtes, une par
+univers - exactement comme `sharedCollection()` le fait déjà juste au-dessus.
+Le repli « une entrée orpheline ne casse pas la vue publique » est conservé :
+il devient un `Optional.ofNullable` sur la carte au lieu d'un `findById` vide.
+
+#### Le même geste, une porte plus loin
+
+`POST /tier-lists/{id}/items` interrogeait la base **par œuvre ajoutée** pour
+savoir si elle était déjà là - or « Ajouter » en envoie autant qu'on en a
+cochées d'un coup. Un seul `findByTierListId` en amont, et le `Set` qui en sort
+fait office de garde : `!dejaPresentes.add(entityId)` remplace la requête ET
+protège des doublons à l'intérieur du même corps de requête, ce que la version
+d'avant ne faisait pas.
+
+**Vérifié en direct** : lien de partage créé, la vue publique rend les deux
+univers (Manga 5, Jeu vidéo 1) et l'envie (Jujutsu Kaisen, jaquette et date),
+puis lien révoqué - URL en 404, aucun jeton en base. 1013 tests backend depuis
+`clean`.
+
 ### Lot 86 — l'audit technique annonçait 458 tests, il y en a 1 013
 
 `AUDIT_TECHNIQUE.md` s'ouvre sur une volumétrie et un décompte qui font
