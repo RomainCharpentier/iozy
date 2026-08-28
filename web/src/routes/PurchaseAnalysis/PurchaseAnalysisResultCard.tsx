@@ -180,13 +180,31 @@ export function PurchaseAnalysisResultCard({
 
       <div className="rounded-xl bg-surface2 p-3">
         {negotiation.advice === 'SKIP_LISTING' ? (
-          <div className="flex items-start gap-2 text-sm text-danger">
-            <TriangleAlert size={16} className="mt-0.5 shrink-0" />
-            <div>
-              <p className="font-semibold">Passer l'annonce</p>
-              <p className="text-xs text-textDim">{negotiation.rationale}</p>
+          /* SKIP_LISTING recouvre DEUX situations que le moteur sépare par
+             `priceDataAvailable`, et qui n'autorisent pas le même ton : le prix
+             dépasse très largement une valeur estimée CONNUE (un jugement), ou
+             aucune valeur n'a pu être estimée du tout (une absence). Les rendre
+             identiques faisait dire « Passer l'annonce » en rouge à propos d'une
+             annonce dont on ne savait rien - un conseil tiré d'un vide, juste en
+             dessous du bloc Prix qui venait d'annoncer « Référence
+             insuffisante ». */
+          negotiation.priceDataAvailable ? (
+            <div className="flex items-start gap-2 text-sm text-danger">
+              <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">Passer l'annonce</p>
+                <p className="text-xs text-textDim">{negotiation.rationale}</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start gap-2 text-sm text-textDim">
+              <Info size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-textPrimary">Aucun conseil de prix possible</p>
+                <p className="text-xs text-textDim">{negotiation.rationale}</p>
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-3 gap-2 text-center">

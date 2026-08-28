@@ -57,5 +57,9 @@ class NegotiationEngineTest {
         assertThat(recommendation.recommendedOffer()).isNull();
         assertThat(recommendation.targetPriceMin()).isNull();
         assertThat(recommendation.maxPrice()).isNull();
+        // The prices are withheld on purpose, but the fair value WAS known - the rationale even
+        // quotes it. Reporting "no price data" here would make this skip indistinguishable from
+        // the one above, where nothing at all could be estimated.
+        assertThat(recommendation.priceDataAvailable()).isTrue();
     }
 }
