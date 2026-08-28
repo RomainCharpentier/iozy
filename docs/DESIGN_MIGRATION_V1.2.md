@@ -1360,6 +1360,60 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 80 — le même héritage sur toutes les fiches
+
+Signalé par l'utilisateur : « il faudrait avoir le même héritage sur chaque
+fiche en incluant le bouton "éditer" ».
+
+Le bouton « Éditer » vivait dans `CartesEditions`, la rangée « ÉDITIONS · n ».
+Or `EntityDetailPage` ne rend cette rangée que si l'œuvre a des groupes de
+tomes. Un **jeu vidéo**, un **jeu de société**, ou une série manga dont aucun
+tome n'est encore catalogué n'avaient donc aucun accès au mode édition - ni
+renommer, ni recharger depuis la source, ni relations, ni champs techniques,
+ni supprimer. Vérifié en direct sur la fiche Zelda : neuf boutons, aucun
+« Éditer », et « Terminer » n'apparaissait jamais.
+
+Le geste ne dépend pas des éditions : il ouvre le catalogue de l'**œuvre
+entière**. Il rejoint donc `FicheHero`, à côté d'« Évaluer » - l'en-tête que
+toute fiche possède, quel que soit son type. `CartesEditions` ne garde que ce
+qui parle vraiment d'éditions : « Ajouter une édition », toujours conditionné
+au mode.
+
+**Mesuré avant/après sur la fiche Zelda** (jeu vidéo) :
+
+| | avant | après |
+|---|---|---|
+| bouton « Éditer » | **absent** | présent |
+| en mode édition | inatteignable | Champs techniques (1), Ajouter une relation, Recharger depuis la source, Renommer la série, Supprimer |
+
+Et les gestes personnels restent : « Ajouter à mes envies », « Modifier :
+Tier list / Ma note / Mes remarques / Lectures / Tags ». Sur la fiche Death
+Note, rien n'a bougé - le mode ajoute toujours, ne retire jamais, et aucun
+débordement horizontal n'apparaît.
+
+Les deux autres appelants ne changent pas : `usePropositionTomes` (écran
+d'ajout) ne passait déjà pas de bascule, et `ApercuOeuvrePage` - l'aperçu d'une
+œuvre qu'on ne possède pas - n'en veut pas : il n'y a rien à éditer dans un
+catalogue où l'œuvre n'est pas encore entrée. La prop est optionnelle, le
+bouton n'y apparaît pas.
+
+#### Ce qui a permis de trouver
+
+Le défaut décrit ne se reproduisait pas. Cause : **le conteneur web de
+`docker-compose` datait du 23 août**, soit environ vingt-cinq lots de retard,
+et servait une fiche d'un autre âge (« Plus d'options », « Je cherche une
+meilleure édition » - une fonctionnalité retirée depuis). Toutes les
+vérifications de la session passaient par le serveur de développement
+(port 5173), donc l'écart n'était jamais apparu. Reconstruit ; le navigateur
+gardait en plus l'ancien HTML en cache, et il a fallu forcer l'URL pour qu'il
+prenne le nouveau paquet.
+
+**À retenir** : vérifier sur le port 5173 ne dit rien de ce que l'utilisateur
+voit sur le 8081. Reconstruire le conteneur `web` fait partie de la livraison,
+au même titre que `iozycore-api`.
+
+`typecheck`, `lint`, `check:contrast`, `build`.
+
 ### Lot 79 — l'export promettait une porte de sortie qu'il n'ouvrait qu'à moitié
 
 Le Lot 33 avait ajouté à l'export ce qui était « saisi à la main, irrécupérable,
@@ -4709,6 +4763,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- **Vérifier sur le serveur de développement (5173) ne dit rien de ce que l’utilisateur voit** : le conteneur `web` de docker-compose (8081) datait de vingt-cinq lots plus tôt et servait une interface d’un autre âge, d’où un défaut signalé introuvable dans le code actuel. Reconstruire `web` fait partie de la livraison, au même titre qu’`iozycore-api` - et le navigateur garde en plus l’ancien HTML en cache (Lot 80).
 - `mvn test-compile` peut passer sur des classes PÉRIMÉES (`target/` vit dans le répertoire monté) : ajouter une méthode à un port a laissé un faux repository de test sans implémentation sans que rien ne le signale. Seule la construction de l’image Docker, qui compile depuis zéro, l’a levée - donc **ne jamais avaler la sortie de `docker compose build`** : elle disait « failed to solve » pendant que `up -d` répondait « Started » sur l’ANCIENNE image (Lot 79).
 - Deux Maven en même temps sur le même `target/` monté se marchent dessus : une suite en tâche de fond et un `clean test` simultané ont rendu un `BUILD FAILURE` sans une seule ligne de test, vert au relancement seul (Lot 79).
 - La touche Échap envoyée par le pilote du navigateur n’atteint PAS un `document.addEventListener('keydown')` : le panneau reste ouvert et ça ressemble à un défaut. Distribuer un vrai `KeyboardEvent` depuis la page pour vérifier un raccourci clavier (Lot 78).

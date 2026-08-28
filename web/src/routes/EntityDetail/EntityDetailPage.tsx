@@ -463,6 +463,8 @@ export function EntityDetailPage() {
             <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
           )
         }
+        modeEdition={modeEdition}
+        onBasculerMode={() => setModeEdition((v) => !v)}
         editions={
           groupes.length > 0 ? (
             <CartesEditions
@@ -474,7 +476,6 @@ export function EntityDetailPage() {
               onNePlusSuivre={() => nePlusSuivreMutation.mutate()}
               onAjouterEdition={() => setAjoutTomeOuvert(true)}
               modeEdition={modeEdition}
-              onBasculerMode={() => setModeEdition((v) => !v)}
             />
           ) : (
             // Rien au catalogue : ce sont les éditions proposées par le
