@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,6 +26,27 @@ class VerdictScorerTest {
         VerdictScorer.Outcome outcome = scorer.score(input, defaults);
 
         assertThat(outcome.verdict()).isIn(Verdict.EXPENSIVE, Verdict.AVOID);
+    }
+
+    @Test
+    void a_profile_that_names_no_weight_falls_back_on_the_specified_ones_instead_of_silencing_every_factor() {
+        // Exactly the profile the live database held: booleans off, no ranking, no weight - the
+        // shape a partial write leaves behind. Every factor weighed 0, so weightTotal was 0, the
+        // "nothing could be computed" fallback fired, and every listing scored a flat 50 while its
+        // ten factor scores were displayed right above.
+        CollectorPreferences empty = new CollectorPreferences(false, false, false, List.of(), false, false, false,
+                WeightLevel.HIGH, 0, Map.of());
+        CollectionStatus complete = new CollectionStatus(null, 11, 0, List.of(), List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
+        VerdictScorer.Input input = new VerdictScorer.Input(
+                new BigDecimal("50"), new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("67"), true,
+                Condition.MINT_SEALED, false, List.of(complete), true, false, List.of(EditionTier.PERFECT), true,
+                BigDecimal.ZERO, false, NegotiationAdvice.ACCEPTABLE_AS_IS);
+
+        VerdictScorer.Outcome outcome = scorer.score(input, empty);
+
+        assertThat(outcome.factorBreakdown()).hasSize(10);
+        assertThat(outcome.score()).isNotEqualTo(50);
+        assertThat(outcome.verdict()).isEqualTo(Verdict.EXCELLENT_DEAL);
     }
 
     @Test

@@ -77,7 +77,11 @@ public class VerdictScorer {
         }
 
         int rawScore = weightTotal.signum() == 0
-                ? 50 // no factor could be computed at all - neutral fallback, never a crafted-looking number
+                // No factor could be computed, or the collector explicitly weighted every single
+                // one of them to zero. Neutral fallback, never a crafted-looking number - but it
+                // must stay unreachable for a profile that merely says nothing (see
+                // effectiveWeight), otherwise it hides ten computed factors behind a flat 50.
+                ? 50
                 : weightedSum.divide(weightTotal, 0, RoundingMode.HALF_UP).intValueExact();
 
         Verdict verdict = verdictFor(rawScore);
@@ -117,8 +121,23 @@ public class VerdictScorer {
         }
     }
 
+    /**
+     * A factor the profile says NOTHING about weighs what the specification says it weighs - not
+     * zero.
+     * <p>
+     * With {@code getOrDefault(factor, 0)}, a profile whose {@code factorWeights} map was empty
+     * silenced all ten factors at once: {@code weightTotal} came out at zero, the "no factor could
+     * be computed at all" fallback below fired, and EVERY listing scored exactly 50/100 while the
+     * screen displayed ten factor scores and their rationales just above it. That is what the live
+     * database held - a profile written with an empty map, which no interface can produce today,
+     * and which the defaults could never come back from once the row existed.
+     * <p>
+     * An explicit {@code 0} is still honoured: silencing a factor on purpose stays possible, it
+     * just has to be said.
+     */
     private BigDecimal effectiveWeight(VerdictFactor factor, Input input, CollectorPreferences preferences) {
-        int baseWeight = preferences.factorWeights().getOrDefault(factor, 0);
+        int baseWeight = preferences.factorWeights()
+                .getOrDefault(factor, CollectorPreferences.SPECIFIED_FACTOR_WEIGHTS.getOrDefault(factor, 0));
         if (factor == VerdictFactor.CONDITION && input.conditionAppliesToContainer()) {
             // A box/slipcase's condition matters more than a single standard volume's.
             return BigDecimal.valueOf(baseWeight).multiply(new BigDecimal("1.5"));
@@ -205,7 +224,11 @@ public class VerdictScorer {
         if (input.itemTiers().isEmpty()) {
             return null;
         }
-        List<EditionTier> ranking = preferences.editionTierRanking();
+        // Même règle que pour les poids : un classement vide n'est pas un classement, c'est une
+        // absence de classement - et sans lui toute gamme vaut 50, y compris une Perfect.
+        List<EditionTier> ranking = preferences.editionTierRanking().isEmpty()
+                ? CollectorPreferences.SPECIFIED_EDITION_TIER_RANKING
+                : preferences.editionTierRanking();
         double averageScore = input.itemTiers().stream()
                 .mapToInt(tier -> tierScore(tier, ranking))
                 .average().orElse(50);

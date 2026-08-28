@@ -1360,6 +1360,81 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 72 — le score du verdict valait 50 pour toutes les annonces
+
+Neuf analyses en base, deux créées pour vérifier le Lot 71 : **toutes notées
+exactement 50/100.** Ce n'est pas une coïncidence de jeu d'essai, c'est la
+seule note que le moteur pouvait rendre.
+
+`VerdictScorer` calcule dix facteurs, chacun avec son score et sa
+justification - tous affichés à l'écran - puis les pondère :
+
+```java
+int baseWeight = preferences.factorWeights().getOrDefault(factor, 0);
+...
+int rawScore = weightTotal.signum() == 0
+        ? 50 // no factor could be computed at all - neutral fallback
+        : weightedSum.divide(weightTotal, ...);
+```
+
+Le profil enregistré porte `factor_weights = {}`. Chaque poids valait donc
+**0**, le total aussi, et la branche « aucun facteur n'a pu être calculé »
+s'appliquait - alors que les dix venaient de l'être et s'affichaient
+au-dessus, sous la ligne « Confiance Haute · basée sur **10/10 critères
+disponibles** ». Un écran qui montre dix mesures et une note qui n'en tient
+compte d'aucune.
+
+#### Une absence de configuration n'est pas une configuration à zéro
+
+Le profil par défaut existe, documenté « straight from the specification »
+(poids 20/12/10/15/12/8/10/6/5/2, hiérarchie des gammes en sept rangs). Mais
+`find()` ne le rend que si **aucune ligne** n'existe. Une ligne existe - écrite
+avec des collections vides, la trace d'un `PATCH /preferences` partiel (cet
+endpoint REMPLACE le profil entier, voir Lot 28) - et depuis, les valeurs de la
+spécification ne pouvaient plus revenir : aucun écran ne règle ces préférences
+(l'écran envisagé au Lot 30 a été abandonné), donc aucune remise à zéro non
+plus.
+
+Deux champs seulement peuvent porter cette distinction, et ce sont exactement
+ceux qui étaient vides :
+
+- `factorWeights` : un facteur dont le profil ne dit RIEN pèse ce que la
+  spécification lui donne, plus zéro. Un `0` **explicite** reste honoré -
+  faire taire un facteur volontairement reste possible, il faut juste le dire.
+- `editionTierRanking` : un classement vide n'est pas un classement. Sans lui,
+  `tierScore` rendait 50 pour toutes les gammes, Perfect comme Standard.
+
+Les booléens et `minimumDiscountVsRetailPercent` ne sont **pas** repris :
+`false` et `0` y sont des choix légitimes, indiscernables d'une absence. C'est
+la limite du correctif, et elle se voit encore à l'écran - « Décote vis-à-vis
+du neuf : 33 % (minimum attendu : **0 %**) » vient de la même écriture
+partielle. La remettre à 20 serait réécrire les données de l'utilisateur, pas
+corriger du code.
+
+`defaults()` consomme désormais les deux mêmes constantes que ce repli :
+une seule liste, écrite une fois (même règle qu'au Lot 70).
+
+#### Ce que ça change, mesuré
+
+Même annonce que l'analyse Death Note du 24/08 (Black Édition, tomes 1-3,
+30 €, très bon état), rejouée après correction :
+
+| | avant | après |
+|---|---|---|
+| verdict | **Cher · 50/100** | **Bonne affaire · 75/100** |
+| EDITION_QUALITY | 50 (aucune gamme classée) | 60 (Deluxe, 4e rang sur 7) |
+
+Le test de non-régression `a_profile_that_names_no_weight_falls_back_on_the_specified_ones_instead_of_silencing_every_factor`
+reprend le profil exact de la base (booléens à faux, listes vides) et vérifie
+que les dix facteurs pèsent. **Confronté à l'ancien code** avant d'être gardé
+(`git stash` du correctif, test seul, `BUILD FAILURE`, puis restauration) -
+sinon rien ne dit qu'il protège quoi que ce soit.
+
+**Vérifié en direct**, analyse jetable créée puis supprimée (204), état revenu
+à l'identique : 9 analyses, et la ligne `collector_preferences` **inchangée**
+(`0 | [] | {}`) - le correctif se passe entièrement d'une reprise de données.
+1004 tests backend.
+
 ### Lot 71 — une absence de prix n'est pas un mauvais prix
 
 Sur une annonce dont **aucune valeur ne peut être estimée** - édition absente
@@ -4149,6 +4224,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un `getOrDefault(clé, 0)` sur une carte de POIDS transforme « non configuré » en « neutralisé », et le repli « rien n’était calculable » en dessous le masque : dix facteurs calculés, affichés, et une note constante à 50 pour toutes les annonces. Un défaut de CONFIGURATION ne se voit ni au typecheck ni aux tests, qui passent tous le profil par défaut - il faut lire ce que la base contient VRAIMENT. Et seul un champ dont le vide est ininterprétable (liste, carte) peut se replier ainsi : un booléen à `false` ou un entier à `0` sont des choix légitimes (Lot 72).
 - Une valeur d’enum qui recouvre DEUX situations finit par les rendre indistinguables chez son lecteur : `SKIP_LISTING` disait à la fois « trop cher » et « je ne sais rien du prix », et l’écran conseillait de passer une annonce sur la foi d’un vide. Le drapeau qui les séparait existait, mais la même fabrique servait aux deux cas - donc il mentait, et aucune interface ne le lisait. Même figure qu’au Lot 58, un étage plus haut (Lot 71).
 - Un enum du serveur qui gagne une valeur ne casse rien tout de suite : il casse les traductions écrites AVANT lui, et d’abord chez les surfaces qui ne peuvent pas encore la recevoir - donc silencieusement. Compter les valeurs traitées à chaque endroit qui le traduit, puis vérifier lesquelles de ces surfaces peuvent réellement la recevoir : c’est ce qui sépare un mensonge à l’écran d’une dette (Lot 70).
 - Quand deux écrans lisent la même donnée, c'est le CHARGEMENT qu'on partage, pas l'affichage : le hook rend les données et leur état, chaque écran garde son filtrage, son tri et sa mise en page. Factoriser plus loin les aurait fondus en un composant à options, et c'est ce que le Lot 28 avait justement démonté (Lot 66).
