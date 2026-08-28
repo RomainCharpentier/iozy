@@ -11,7 +11,7 @@ const STATUS_OPTIONS: { value: CompletionFilter; label: string }[] = [
 
 /**
  * Popover desktop / bottom sheet mobile - même contenu, un seul composant
- * responsive (voir VolumeInteractionPanel pour le même pattern déjà établi).
+ * responsive (même pattern que TierPicker).
  * Un seul filtre réel pour l'instant : "État de la collection" (calculable
  * dès aujourd'hui - même logique que Suggestions d'achats/complétude de
  * fiche). La maquette V1.2 prévoit aussi "Sortie annoncée" et "Classement"

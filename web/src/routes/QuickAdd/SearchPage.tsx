@@ -49,7 +49,7 @@ function candidateKey(candidate: MetadataCandidateDto): string {
  * la même page (voir l'ancien QuickAddPage.tsx, remplacé par ce découpage -
  * Lot 5, docs/DESIGN_MIGRATION_V1.2.md). Un résultat "déjà possédé" ouvre
  * directement sa fiche (le parcours contextuel d'ajout de tome y vit déjà,
- * voir VolumeInteractionPanel) plutôt que de repasser par ce formulaire.
+ * voir AddVolumeSection) plutôt que de repasser par ce formulaire.
  */
 /**
  * Toute fiche ou tout aperçu ouvert depuis cet écran propose d'y revenir (voir

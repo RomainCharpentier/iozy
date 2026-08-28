@@ -21,7 +21,7 @@ function focusableElements(container: HTMLElement | null): HTMLElement[] {
  * Deux façons d'appeler ce hook selon comment le composant gère déjà sa
  * visibilité :
  * - composant toujours monté, prop `open` bascule l'affichage interne (voir
- *   TierPicker/CollectionFilters/VolumeInteractionPanel) : passer le vrai
+ *   TierPicker/CollectionFilters) : passer le vrai
  *   booléen.
  * - composant seulement monté par le parent quand ouvert (voir
  *   CreateTierListModal/AddTierListItemsPanel, `{open && <Panel .../>}`) :

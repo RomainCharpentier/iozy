@@ -14,8 +14,8 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
 ]
 
 /** Sous 1100px (mobile ou desktop étroit) : 3 sous-onglets, un seul panneau
- * visible à la fois (role="tab"/aria-selected, même pattern que
- * VolumeInteractionPanel). À partir de 1100px sur desktop : composition
+ * visible à la fois (role="tab"/aria-selected - le seul jeu d'onglets de
+ * l'application). À partir de 1100px sur desktop : composition
  * éditoriale réelle - Tier Lists sur ~62%, Opportunités à côté (bordure de
  * séparation), Sorties en pleine largeur dessous - plus d'onglets à ce
  * stade (voir DS v1.1, commentaire source "Plus d'onglets à ce stade").
