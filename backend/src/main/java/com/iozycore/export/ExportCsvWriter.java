@@ -101,6 +101,46 @@ public class ExportCsvWriter {
                 document.tags(),
                 t -> List.of(str(t.id()), str(t.label()))));
 
+        files.put("market-observations.csv", writeCsv(
+                List.of("id", "mangaEditionId", "seriesTitle", "editionName", "volumeRangeStart", "volumeRangeEnd",
+                        "volumeCount", "observedPrice", "platform", "observedCondition", "observedAt", "origin",
+                        "sourceUrl", "note"),
+                document.marketObservations(),
+                o -> List.of(str(o.id()), str(o.mangaEditionId()), str(o.seriesTitle()), str(o.editionName()),
+                        str(o.volumeRangeStart()), str(o.volumeRangeEnd()), str(o.volumeCount()),
+                        str(o.observedPrice()), str(o.platform()), str(o.observedCondition()), str(o.observedAt()),
+                        str(o.origin()), str(o.sourceUrl()), str(o.note()))));
+
+        files.put("followed-editions.csv", writeCsv(
+                List.of("id", "entityId", "entityTitle", "editionName", "followedAt"),
+                document.followedEditions(),
+                f -> List.of(str(f.id()), str(f.entityId()), str(f.entityTitle()), str(f.editionName()),
+                        str(f.followedAt()))));
+
+        files.put("entity-types.csv", writeCsv(
+                List.of("id", "code", "label", "allowedExperienceTypes", "customFieldKeys", "colorKey", "iconKey",
+                        "aspectKey"),
+                document.entityTypes(),
+                t -> List.of(str(t.id()), str(t.code()), str(t.label()),
+                        String.join(";", t.allowedExperienceTypes()), String.join(";", t.customFieldKeys()),
+                        str(t.colorKey()), str(t.iconKey()), str(t.aspectKey()))));
+
+        // Une seule ligne : ce profil est unique (application mono-utilisateur,
+        // voir CollectorPreferences). Un CSV d'une ligne reste plus lisible
+        // qu'un JSON noye dans un autre fichier.
+        ExportDocument.CollectorPreferencesExport prefs = document.collectorPreferences();
+        files.put("collector-preferences.csv", writeCsv(
+                List.of("preferCompletedSeries", "avoidOngoingSeries", "preferOmnibusIntegral", "editionTierRanking",
+                        "avoidOutdatedEditionWhenBetterExistsOrAnnounced", "frenchLanguageOnly",
+                        "preferEasyToCompleteCollections", "conditionImportance", "minimumDiscountVsRetailPercent",
+                        "factorWeights"),
+                prefs == null ? List.<ExportDocument.CollectorPreferencesExport>of() : List.of(prefs),
+                p -> List.of(str(p.preferCompletedSeries()), str(p.avoidOngoingSeries()),
+                        str(p.preferOmnibusIntegral()), String.join(";", p.editionTierRanking()),
+                        str(p.avoidOutdatedEditionWhenBetterExistsOrAnnounced()), str(p.frenchLanguageOnly()),
+                        str(p.preferEasyToCompleteCollections()), str(p.conditionImportance()),
+                        str(p.minimumDiscountVsRetailPercent()), toJson(p.factorWeights()))));
+
         return files;
     }
 

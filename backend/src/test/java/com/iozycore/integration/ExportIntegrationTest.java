@@ -10,11 +10,21 @@ import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
+import com.iozycore.domain.followededition.FollowedEdition;
+import com.iozycore.domain.followededition.FollowedEditionRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.domain.catalog.MangaEdition;
+import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.purchaseanalysis.Condition;
+import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.purchaseanalysis.MarketPriceObservation;
+import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
+import com.iozycore.purchaseanalysis.VolumeRange;
 import com.iozycore.export.ExportDocument;
 import com.iozycore.export.ExportService;
 import org.junit.jupiter.api.Test;
@@ -45,7 +55,56 @@ class ExportIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private TagRepository tagRepository;
     @Autowired
+    private MangaEditionRepository mangaEditionRepository;
+    @Autowired
+    private MarketPriceObservationRepository marketPriceObservationRepository;
+    @Autowired
+    private FollowedEditionRepository followedEditionRepository;
+    @Autowired
     private ExportService exportService;
+
+    /**
+     * Le critère du Lot 33, appliqué à ce qui restait dehors : un prix relevé à
+     * la main, l'édition qu'on suit, un type de collection créé soi-même et le
+     * profil qui pondère les verdicts n'existent nulle part ailleurs. Un export
+     * qui les omet promet une porte de sortie qu'il n'ouvre pas.
+     */
+    @Test
+    void l_export_emporte_aussi_ce_qui_ne_se_reconstruit_nulle_part_ailleurs() {
+        Entity serie = Entity.create(EntityTypeFixtures.MANGA.id(), "Vinland " + UUID.randomUUID());
+        entityRepository.save(serie);
+
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create(
+                serie.title(), "Kurokawa", EditionTier.STANDARD, "Kurokawa", 27,
+                new BigDecimal("7.65"), false, false, null));
+        MarketPriceObservation releve = marketPriceObservationRepository.save(MarketPriceObservation.record_(
+                edition.id(), new VolumeRange(1, 3), new BigDecimal("21.00"), ListingPlatform.LEBONCOIN,
+                Condition.GOOD, LocalDate.now(), "vu en brocante"));
+        FollowedEdition suivie = followedEditionRepository.save(FollowedEdition.create(serie.id(), "Kurokawa"));
+
+        ExportDocument document = exportService.buildExportDocument();
+
+        ExportDocument.MarketObservationExport releveExporte = document.marketObservations().stream()
+                .filter(o -> o.id().equals(releve.id())).findFirst().orElseThrow();
+        // Dénormalisé comme le reste de l'export : lisible sans rejoindre une autre table.
+        assertThat(releveExporte.seriesTitle()).isEqualTo(serie.title());
+        assertThat(releveExporte.editionName()).isEqualTo("Kurokawa");
+        assertThat(releveExporte.observedPrice()).isEqualByComparingTo(new BigDecimal("21.00"));
+        assertThat(releveExporte.origin()).isEqualTo("MANUAL_ENTRY");
+        assertThat(releveExporte.note()).isEqualTo("vu en brocante");
+
+        ExportDocument.FollowedEditionExport suivieExportee = document.followedEditions().stream()
+                .filter(f -> f.id().equals(suivie.id())).findFirst().orElseThrow();
+        assertThat(suivieExportee.entityTitle()).isEqualTo(serie.title());
+        assertThat(suivieExportee.editionName()).isEqualTo("Kurokawa");
+
+        // Le code et le libellé voyagent déjà sur chaque œuvre ; ce qui manquait,
+        // c'est ce qu'un type personnalisé porte en propre.
+        assertThat(document.entityTypes()).extracting(ExportDocument.EntityTypeExport::code).contains("MANGA");
+
+        assertThat(document.collectorPreferences()).isNotNull();
+        assertThat(document.collectorPreferences().conditionImportance()).isNotBlank();
+    }
 
     @Test
     void the_export_document_denormalizes_every_resource_type_with_readable_titles() {

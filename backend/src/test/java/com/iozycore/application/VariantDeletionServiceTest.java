@@ -390,6 +390,11 @@ class VariantDeletionServiceTest {
         }
 
         @Override
+        public List<MarketPriceObservation> findAll() {
+            return List.copyOf(store);
+        }
+
+        @Override
         public List<MarketPriceObservation> findByEditionId(UUID mangaEditionId) {
             return store.stream().filter(o -> o.mangaEditionId().equals(mangaEditionId)).toList();
         }
