@@ -12,11 +12,23 @@ import java.util.Map;
  * {@link #defaults()} matches the default profile described in the
  * specification verbatim; every field is meant to be user-editable
  * afterwards via {@code PATCH /api/purchase-analysis/preferences}.
+ *
+ * <h2>Cinq preferences retirees (Lot 84)</h2>
+ * {@code preferCompletedSeries}, {@code avoidOngoingSeries},
+ * {@code preferOmnibusIntegral}, {@code frenchLanguageOnly} et
+ * {@code preferEasyToCompleteCollections} vivaient ici depuis la Phase 1 sans
+ * qu'AUCUNE ligne du moteur ne les lise - constate par comptage au Lot 73, et
+ * deja ce qui avait fait abandonner l'ecran de reglages au Lot 30. Elles
+ * etaient pourtant persistees, validees par l'API et rendues par
+ * {@code GET /preferences} : une surface de configuration qui promettait cinq
+ * leviers inertes.
+ * <p>
+ * Decision de l'utilisateur (2026-08-29) : les retirer plutot que d'inventer
+ * cinq regles de score qui n'existaient nulle part. Ce qui reste ici est
+ * exactement ce que le moteur lit.
  */
-public record CollectorPreferences(boolean preferCompletedSeries, boolean avoidOngoingSeries,
-                                    boolean preferOmnibusIntegral, List<EditionTier> editionTierRanking,
+public record CollectorPreferences(List<EditionTier> editionTierRanking,
                                     boolean avoidOutdatedEditionWhenBetterExistsOrAnnounced,
-                                    boolean frenchLanguageOnly, boolean preferEasyToCompleteCollections,
                                     WeightLevel conditionImportance, int minimumDiscountVsRetailPercent,
                                     Map<VerdictFactor, Integer> factorWeights) {
 
@@ -53,17 +65,14 @@ public record CollectorPreferences(boolean preferCompletedSeries, boolean avoidO
     }
 
     /**
-     * Default profile straight from the specification: prefer completed
-     * series and integrals, prefer premium tiers, avoid an outdated edition
-     * when a better one exists or is announced, French only, prefer
-     * easy-to-complete collections, high importance on condition, seek a
-     * real discount vs retail, never buy purely for a low price-per-volume
-     * (hence no RARITY-only or price-per-volume factor dominating the
-     * default weights below).
+     * Default profile straight from the specification, reduit a ce que le moteur
+     * lit reellement : preferer les gammes premium, eviter une edition depassee
+     * quand une meilleure existe ou est annoncee, forte importance de l'etat,
+     * chercher une vraie decote vis-a-vis du neuf, et ne jamais acheter pour le
+     * seul prix au tome (d'ou l'absence de facteur RARITY dominant ci-dessous).
      */
     public static CollectorPreferences defaults() {
-        return new CollectorPreferences(
-                true, true, true, SPECIFIED_EDITION_TIER_RANKING,
-                true, true, true, WeightLevel.HIGH, 20, SPECIFIED_FACTOR_WEIGHTS);
+        return new CollectorPreferences(SPECIFIED_EDITION_TIER_RANKING, true,
+                WeightLevel.HIGH, 20, SPECIFIED_FACTOR_WEIGHTS);
     }
 }

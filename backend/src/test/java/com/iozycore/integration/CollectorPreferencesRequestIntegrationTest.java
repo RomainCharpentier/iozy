@@ -31,22 +31,21 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
     private PurchaseAnalysisController controller;
 
     private static UpdateCollectorPreferencesRequest complete() {
-        return new UpdateCollectorPreferencesRequest(true, false, true, List.of("PERFECT", "STANDARD"),
-                true, true, false, "HIGH", 30, Map.of("CONDITION", 8));
+        return new UpdateCollectorPreferencesRequest(List.of("PERFECT", "STANDARD"), true, "HIGH", 30,
+                Map.of("CONDITION", 8));
     }
 
     @Test
     void un_corps_complet_est_accepte() {
         CollectorPreferences preferences = controller.updatePreferences(complete());
 
-        assertThat(preferences.preferCompletedSeries()).isTrue();
+        assertThat(preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced()).isTrue();
         assertThat(preferences.minimumDiscountVsRetailPercent()).isEqualTo(30);
     }
 
     @Test
     void un_classement_d_editions_absent_donne_un_400_qui_nomme_le_champ() {
-        UpdateCollectorPreferencesRequest sansClassement = new UpdateCollectorPreferencesRequest(
-                true, false, true, null, true, true, false, "HIGH", 30, Map.of());
+        UpdateCollectorPreferencesRequest sansClassement = new UpdateCollectorPreferencesRequest(null, true, "HIGH", 30, Map.of());
 
         assertThatThrownBy(() -> controller.updatePreferences(sansClassement))
                 .isInstanceOf(ResponseStatusException.class)
@@ -58,7 +57,7 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
     @Test
     void des_poids_de_facteurs_absents_donnent_un_400_qui_nomme_le_champ() {
         UpdateCollectorPreferencesRequest sansPoids = new UpdateCollectorPreferencesRequest(
-                true, false, true, List.of("STANDARD"), true, true, false, "HIGH", 30, null);
+                List.of("STANDARD"), true, "HIGH", 30, null);
 
         assertThatThrownBy(() -> controller.updatePreferences(sansPoids))
                 .isInstanceOf(ResponseStatusException.class)
@@ -72,7 +71,7 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
         // Le cas trouvé à l'audit : PATCH avec {} - toutes les collections
         // nulles d'un coup.
         UpdateCollectorPreferencesRequest vide = new UpdateCollectorPreferencesRequest(
-                false, false, false, null, false, false, false, null, 0, null);
+                null, false, null, 0, null);
 
         assertThatThrownBy(() -> controller.updatePreferences(vide))
                 .isInstanceOf(ResponseStatusException.class)
@@ -86,7 +85,7 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
     @Test
     void une_valeur_d_enum_invalide_reste_un_400_lisible() {
         UpdateCollectorPreferencesRequest mauvaisRang = new UpdateCollectorPreferencesRequest(
-                true, false, true, List.of("EDITION_INEXISTANTE"), true, true, false, "HIGH", 30, Map.of());
+                List.of("EDITION_INEXISTANTE"), true, "HIGH", 30, Map.of());
 
         assertThatThrownBy(() -> controller.updatePreferences(mauvaisRang))
                 .isInstanceOf(ResponseStatusException.class)
@@ -99,7 +98,7 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
         int avant = controller.preferences().minimumDiscountVsRetailPercent();
 
         assertThatThrownBy(() -> controller.updatePreferences(new UpdateCollectorPreferencesRequest(
-                false, false, false, null, false, false, false, "HIGH", 99, Map.of())))
+                null, false, "HIGH", 99, Map.of())))
                 .isInstanceOf(ResponseStatusException.class);
 
         // Le refus intervient AVANT toute écriture : un corps invalide ne doit

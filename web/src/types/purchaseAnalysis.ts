@@ -184,14 +184,12 @@ export interface MarketPriceObservationDto {
   sourceUrl: string | null
 }
 
+/** Le profil qui pondère chaque verdict d'analyse. Cinq préférences ont été
+ *  retirées au Lot 84 : aucune ligne du moteur ne les lisait. Ce qui reste est
+ *  exactement ce qu'il lit. */
 export interface CollectorPreferencesDto {
-  preferCompletedSeries: boolean
-  avoidOngoingSeries: boolean
-  preferOmnibusIntegral: boolean
   editionTierRanking: EditionTier[]
   avoidOutdatedEditionWhenBetterExistsOrAnnounced: boolean
-  frenchLanguageOnly: boolean
-  preferEasyToCompleteCollections: boolean
   conditionImportance: WeightLevel
   minimumDiscountVsRetailPercent: number
   factorWeights: Partial<Record<VerdictFactor, number>>

@@ -13,13 +13,10 @@ class CollectorPreferencesTest {
     void defaults_match_the_specification_verbatim() {
         CollectorPreferences defaults = CollectorPreferences.defaults();
 
-        assertThat(defaults.preferCompletedSeries()).isTrue();
-        assertThat(defaults.avoidOngoingSeries()).isTrue();
-        assertThat(defaults.preferOmnibusIntegral()).isTrue();
+        // Cinq preferences ont ete retirees au Lot 84 : elles n'etaient lues par
+        // aucune ligne du moteur. Ce qui reste ici est exactement ce qu'il lit.
         assertThat(defaults.editionTierRanking().get(0)).isEqualTo(EditionTier.PERFECT);
         assertThat(defaults.avoidOutdatedEditionWhenBetterExistsOrAnnounced()).isTrue();
-        assertThat(defaults.frenchLanguageOnly()).isTrue();
-        assertThat(defaults.preferEasyToCompleteCollections()).isTrue();
         assertThat(defaults.conditionImportance()).isEqualTo(WeightLevel.HIGH);
         assertThat(defaults.minimumDiscountVsRetailPercent()).isEqualTo(20);
     }
