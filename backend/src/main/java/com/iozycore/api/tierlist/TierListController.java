@@ -174,10 +174,17 @@ public class TierListController {
         if (request.entityIds() == null || request.entityIds().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucune œuvre à ajouter");
         }
+        // Les œuvres déjà présentes, lues EN UNE FOIS : la boucle interrogeait la
+        // base pour chacune, alors que « Ajouter » en envoie autant qu'on en a
+        // cochées d'un coup. findByTierListId est déjà le chemin utilisé par
+        // l'écran juste après (voir detail).
+        Set<UUID> dejaPresentes = tierListItemRepository.findByTierListId(id).stream()
+                .map(TierListItem::entityId)
+                .collect(Collectors.toSet());
         for (UUID entityId : request.entityIds()) {
             // Déjà présente : passée sous silence, c'est une idempotence voulue
             // (rajouter une œuvre déjà là n'est pas une erreur de l'appelant).
-            if (tierListItemRepository.findByTierListIdAndEntityId(id, entityId).isPresent()) continue;
+            if (!dejaPresentes.add(entityId)) continue;
             // Inconnue : refusée, jamais ignorée. Un ifPresent() renvoyait un 201
             // avec une liste inchangée - l'appelant croyait avoir ajouté une œuvre
             // qui n'existe pas (Lot 28).
