@@ -1360,6 +1360,84 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 74 — les deux moitiés de l'écran étaient en désaccord sur la même donnée
+
+Sur l'analyse Death Note du 24/08, le bloc **Prix** disait :
+
+> Référence insuffisante — *Des prix existent pour cette édition, mais aucun sur
+> un lot comparable — un tome seul et une intégrale ne se valent pas au tome.*
+
+et le détail du verdict, dans le même écran, comptait
+`REAL_MARKET_ALIGNMENT` **90/100, confiance haute**, au motif que « au moins un
+lot est valorisé à partir d'un prix réellement relevé ».
+
+`MarketComparableSelector` a été écrit exactement pour ça - son propre en-tête
+raconte le défaut qu'il supprime : « tout relevé rattaché à l'édition entrait
+dans la médiane, ramené à un prix au tome […] une annonce 1-14 héritait d'une
+référence de 70 € présentée comme solide ». Il n'a été branché que sur la
+`MarketReference` du bloc Prix. Le facteur du verdict, lui, s'appuyait toujours
+sur `anyObservedMarketData` : « existe-t-il un relevé, n'importe lequel ? »
+
+#### Portée du correctif, et ce qui reste volontairement en place
+
+Seul le facteur qui parle d'**alignement** change. Ses deux autres lecteurs -
+la confiance du rapport prix/valeur, le signal de rareté - gardent le sens
+large : eux demandent seulement si un vrai prix a nourri la valorisation, ce
+qui reste vrai. La valeur juste, la négociation et le coût de complétion ne
+bougent pas non plus : `referenceDeLot` dit lui-même que l'estimation et le
+prix neuf « restent utiles pour le coût de complétion, la négociation et le
+verdict global », et un prix AU TOME reste le bon repère pour chiffrer des
+tomes manquants achetés un par un.
+
+Un relevé non comparable n'apprend rien sur l'alignement du prix de CE lot : il
+vaut donc la même note qu'aucun relevé (40), avec un message qui les distingue
+- il y a quelque chose à faire, relever un prix sur un lot de taille voisine.
+Pas de troisième palier inventé pour l'occasion.
+
+`referenceDeLot` est calculée avant le verdict, et `reference.sampleSize() > 0`
+alimente le nouveau champ `anyComparableObservation`, ajouté par constructeur
+auxiliaire déléguant sur `anyObservedMarketData` - les sites d'appel existants
+n'ont pas bougé.
+
+#### Mesuré en direct, sur données propres
+
+Un tome seul de Black Édition (12 €), alors que les deux seuls relevés portent
+sur des lots de 5 et 6 tomes :
+
+| | avant | après |
+|---|---|---|
+| bloc Prix | `NO_COMPARABLE_SHAPE` | `NO_COMPARABLE_SHAPE` |
+| `REAL_MARKET_ALIGNMENT` | 90 · confiance haute | **40 · confiance faible** |
+| message | « prix réellement relevé » | « des prix relevés existent, mais aucun sur un lot comparable » |
+
+Le test de non-régression échoue bien contre l'ancien code, mais à la
+**compilation** : la distinction n'existait pas dans la signature d'avant. La
+différence de comportement est donc établie par la mesure en direct ci-dessus,
+pas par ce test - il faut le savoir en le lisant.
+
+#### Une erreur de méthode, trouvée en cours de route
+
+`PurchaseAnalysisService.releverLePrixDemande` enregistre automatiquement le
+prix demandé comme observation de marché (`origin = LISTING_ANALYSIS`) dès
+qu'une annonce mono-série a une édition reconnue et une forme comparable.
+C'est délibéré et documenté côté serveur.
+
+Conséquence : les analyses jetables des lots 71 à 74 ont écrit **six
+observations** dans les données de l'utilisateur, et supprimer une analyse ne
+supprime pas l'observation qu'elle a créée. Les vérifications de ces lots
+comptaient les analyses, les œuvres, les possessions et les envies - jamais les
+observations - et ont donc conclu « état revenu à l'identique » à tort. Les six
+lignes ont été supprimées (`DELETE /market-observations/{id}`), la table est
+revenue à ses deux lignes d'origine (45 € du 23/08, 40 € du 27/08).
+
+Elles avaient aussi faussé une mesure : la première vérification de ce lot-ci
+rendait `referenceGap: NONE` et 90/HIGH, parce que cinq de mes propres relevés
+à 30 € sur trois tomes servaient de comparables à un lot de trois tomes. La
+mesure ci-dessus a été refaite après nettoyage. **À retenir pour tout lot
+futur : une analyse jetable n'est pas sans trace.**
+
+1006 tests backend.
+
 ### Lot 73 — « l'état compte beaucoup pour moi » ne comptait pas
 
 Le Lot 72 a rebranché les poids du moteur. Restait à savoir ce que les
@@ -4299,6 +4377,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- **Une analyse d’achat jetable N’EST PAS sans trace** : `releverLePrixDemande` écrit le prix demandé comme observation de marché, et supprimer l’analyse ne supprime pas l’observation. Vérifier un lot en créant des analyses exige donc de compter AUSSI `market_price_observation` avant/après, et de nettoyer par `DELETE /market-observations/{id}`. Six lignes s’étaient accumulées sur les lots 71-74 et faussaient déjà une mesure : elles se servaient de comparables les unes aux autres (Lot 74).
+- Une règle branchée sur UN seul de ses lecteurs laisse l’autre affirmer le contraire, dans le même écran : `MarketComparableSelector` filtrait la référence du bloc Prix, pendant que le facteur `REAL_MARKET_ALIGNMENT` comptait n’importe quel relevé. Quand une classe dit dans son en-tête quel défaut elle supprime, chercher TOUS les endroits où ce défaut vivait (Lot 74).
 - Un réglage inerte se branche sans rien inventer QUAND sa règle est déjà écrite ailleurs : `conditionImportance` avait son sens dans son propre enum, son intention dans le profil par défaut, et un point de branchement existant (la majoration coffret). Les cinq autres préférences mortes n’ont aucune règle écrite : les brancher serait en inventer cinq, les retirer effacerait des données - ça se décide, ça ne se glisse pas dans un lot (Lot 73).
 - Un `getOrDefault(clé, 0)` sur une carte de POIDS transforme « non configuré » en « neutralisé », et le repli « rien n’était calculable » en dessous le masque : dix facteurs calculés, affichés, et une note constante à 50 pour toutes les annonces. Un défaut de CONFIGURATION ne se voit ni au typecheck ni aux tests, qui passent tous le profil par défaut - il faut lire ce que la base contient VRAIMENT. Et seul un champ dont le vide est ininterprétable (liste, carte) peut se replier ainsi : un booléen à `false` ou un entier à `0` sont des choix légitimes (Lot 72).
 - Une valeur d’enum qui recouvre DEUX situations finit par les rendre indistinguables chez son lecteur : `SKIP_LISTING` disait à la fois « trop cher » et « je ne sais rien du prix », et l’écran conseillait de passer une annonce sur la foi d’un vide. Le drapeau qui les séparait existait, mais la même fabrique servait aux deux cas - donc il mentait, et aucune interface ne le lisait. Même figure qu’au Lot 58, un étage plus haut (Lot 71).

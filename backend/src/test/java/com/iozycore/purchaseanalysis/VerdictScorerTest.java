@@ -29,6 +29,30 @@ class VerdictScorerTest {
     }
 
     @Test
+    void an_observed_price_that_is_not_comparable_does_not_count_as_market_alignment() {
+        // Un relevé existe pour l'édition (anyObservedMarketData), mais aucun sur un lot de forme
+        // et de taille voisines (anyComparableObservation) - le cas que MarketComparableSelector
+        // écarte, et que ce facteur annonçait comme "prix réellement relevé, confiance haute".
+        VerdictScorer.Input sansComparable = new VerdictScorer.Input(
+                new BigDecimal("50"), new BigDecimal("50"), null, null, true, Condition.GOOD, false, List.of(),
+                false, false, List.of(), false, null, false, NegotiationAdvice.ACCEPTABLE_AS_IS, true, false);
+        VerdictScorer.Input avecComparable = new VerdictScorer.Input(
+                new BigDecimal("50"), new BigDecimal("50"), null, null, true, Condition.GOOD, false, List.of(),
+                false, false, List.of(), false, null, false, NegotiationAdvice.ACCEPTABLE_AS_IS, true, true);
+
+        FactorScore sans = scorer.score(sansComparable, defaults).factorBreakdown().get(VerdictFactor.REAL_MARKET_ALIGNMENT);
+        FactorScore avec = scorer.score(avecComparable, defaults).factorBreakdown().get(VerdictFactor.REAL_MARKET_ALIGNMENT);
+
+        assertThat(sans.score()).isEqualTo(40);
+        assertThat(sans.confidence()).isEqualTo(ConfidenceLevel.LOW);
+        // Et le message ne se confond pas avec celui de l'absence totale de relevé : il y a quelque
+        // chose à faire - relever un prix sur un lot de taille voisine.
+        assertThat(sans.rationale()).contains("aucun sur un lot comparable");
+        assertThat(avec.score()).isEqualTo(90);
+        assertThat(avec.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+    }
+
+    @Test
     void a_profile_that_names_no_weight_falls_back_on_the_specified_ones_instead_of_silencing_every_factor() {
         // Exactly the profile the live database held: booleans off, no ranking, no weight - the
         // shape a partial write leaves behind. Every factor weighed 0, so weightTotal was 0, the

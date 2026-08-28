@@ -268,11 +268,19 @@ public class PurchaseAnalysisEngine {
 
         NegotiationRecommendation negotiation = negotiationEngine.recommend(listing.askingPrice(), finalFairValue);
 
+        // La reference marche se calcule AVANT le verdict : le facteur
+        // REAL_MARKET_ALIGNMENT a besoin de savoir si un releve structurellement
+        // COMPARABLE existe, pas seulement s'il existe un releve. Sans ca, il
+        // annoncait "prix reellement releve, confiance haute" sous un bloc Prix
+        // disant "aucun sur un lot comparable" (voir scoreRealMarketAlignment).
+        MarketReference reference = referenceDeLot(itemContexts, today, currentListingIdentity);
+
         VerdictScorer.Input verdictInput = new VerdictScorer.Input(
                 totalRealCost, finalFairValue, finalNewValue, discountPercent, anyObservedMarketData,
                 listing.condition(), listing.conditionAppliesToContainer(), List.copyOf(completenessStatuses),
                 anyEditionMatched, anyOutOfPrint, List.copyOf(itemTiers), costToCompleteFullyKnown, finalCostToComplete,
-                anyBetterEditionAnnounced, negotiation.advice(), negotiation.priceDataAvailable());
+                anyBetterEditionAnnounced, negotiation.advice(), negotiation.priceDataAvailable(),
+                reference.sampleSize() > 0);
         VerdictScorer.Outcome outcome = verdictScorer.score(verdictInput, preferences);
 
         BigDecimal finalMaxWorthwhile = maxWorthwhileFullyKnown ? totalMaxWorthwhile : null;
@@ -284,7 +292,6 @@ public class PurchaseAnalysisEngine {
         // paie) ; le prix se juge sur le PRIX DE L'ANNONCE (c'est ce que valent
         // les comparables, hors frais). Les deux bases ne s'echangent pas.
         CollectionFit fit = CollectionFit.fromItemBreakdown(itemAnalyses, wishlistedCount, totalRealCost);
-        MarketReference reference = referenceDeLot(itemContexts, today, currentListingIdentity);
         // La vigilance "prix tres bas" ne se declenche que sur une reference
         // exploitable : accuser une annonce sur la foi d'un repere qu'on refuse
         // par ailleurs d'utiliser serait deux poids, deux mesures.
