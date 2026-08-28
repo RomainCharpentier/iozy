@@ -1061,8 +1061,7 @@ n'appelant que l'endpoint public.
 ### 54. Consulter son profil
 **Résultat** : valeur estimée (ou « Pas encore de prix renseigné »), nombre de
 titres et de tomes possédés, aperçu des Tier Lists, partage de collection, et
-les entrées Évaluer un achat / Envies d'amélioration / Bilan annuel /
-Paramètres.
+les entrées Évaluer un achat / Bilan annuel / Paramètres.
 **Écrans** : `ProfilePage`, `ProfileValueHero`, `ProfileTierListsSection`
 **Statut** : `COMPLET`
 
@@ -1110,10 +1109,12 @@ renseigner se fait depuis la fiche.
 ### 60. Exporter sa collection
 **Étapes** : Administration ▸ Télécharger en JSON ou en CSV (.zip).
 **Résultat** : œuvres, tomes, possessions, expériences, envies, relations, tags,
-**éditions de référence, classements, Tier Lists et envies d'amélioration** —
-11 fichiers dans le ZIP.
-**Hors périmètre, volontairement** : historique d'analyses, préférences de
-collectionneur, jetons de partage.
+**éditions de référence, classements, Tier Lists**, et depuis le Lot 79 **prix
+relevés, édition suivie, types de collection et profil de collectionneur** —
+14 fichiers dans le ZIP.
+**Hors périmètre, volontairement** : historique d'analyses (une histoire
+calculée, instantané du moteur de son jour), caches, et jetons de partage (un
+secret vivant : l'exporter recopierait une URL-capacité dans un fichier).
 **Écrans** : `AdministrationPage`
 **Statut** : `COMPLET`
 
@@ -1196,21 +1197,21 @@ aucun débordement horizontal. Desktop inchangé.
 
 ## 14. Annulation et retour arrière
 
-**Annuler un formulaire** (aucune écriture n'a eu lieu) : correction d'édition, envie d'amélioration, prix payé, note, prêt, renommage de Tier List, suppression d'un exemplaire, suppression d'une Tier List, suppression d'une œuvre, menu du scan (« Passer » ou Échap).
+**Annuler un formulaire** (aucune écriture n'a eu lieu) : correction d'édition, prix payé, note, renommage de Tier List, suppression d'un exemplaire, suppression d'une Tier List, suppression d'une œuvre, menu du scan (« Passer » ou Échap).
 
 **Défaire une action déjà écrite** :
 
 | Action | Réversible ? |
 |---|---|
-| Ajouter un tome | Oui — supprimer l'exemplaire |
+| Ajouter un tome | Oui — recliquer la tuile le retire |
 | Classer une œuvre | Oui — « Retirer le classement » |
-| Ajouter à une Tier List | Oui — « Retirer de cette Tier List » |
+| Ajouter à une Tier List | Oui — « Retirer de cette Tier List », et ce retrait propose lui-même « Annuler », rang compris (Lot 82) |
 | Ajouter aux envies | Oui — retirer depuis Envies |
-| Envie d'amélioration | Oui — « Annuler » / « Retirer » |
+| Retirer un tome possédé | **Oui** — « Annuler » dans le message qui suit, qui rend la date d'acquisition d'origine et non celle du jour (Lot 81) |
 | Lien de partage | Oui — désactiver le partage, ou régénérer (l'ancien jeton cesse aussitôt) |
 | Marquer vendu / perdu | **Oui** — « Annuler » dans le message qui suit l'action (`POST /ownerships/{id}/restore`, ajouté le 2026-08-21) ; réversible aussi ensuite, l'exemplaire restant visible sous « Exemplaires passés » |
 | Expérience enregistrée | **Oui** — note et commentaire modifiables, suppression avec « Annuler » (2026-08-21) |
-| Relation créée | **Oui** — type modifiable, suppression (2026-08-21) ; ne touche à aucune des deux œuvres |
+| Relation créée | **Oui** — type modifiable, suppression avec « Annuler » (Lot 82) ; ne touche à aucune des deux œuvres |
 | Analyse d'achat | **Oui** — suppression avec confirmation (2026-08-21). Pas de modification : un résultat figé ne se corrige pas |
 | Prix relevé (observation) | **Oui** — suppression avec « Annuler » (2026-08-21). Pas de modification : un fait constaté ne se réécrit pas |
 | **Tag créé** | **Non** — détachable d'une œuvre, jamais supprimable |
@@ -1233,7 +1234,6 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 | Écran | Comportement actuel | Nature |
 |---|---|---|
 | Découvrir ▸ Prochaines sorties | Explique qu'aucune source ne fournit de date fiable par tome | Vide assumé et motivé — pas un faux-fini |
-| Profil ▸ Envies d'amélioration | Vide tant qu'aucune envie n'existe | État vide normal |
 | Envies | Vide tant qu'aucune œuvre n'a été souhaitée | État vide normal depuis la résolution d'UX-2 : cinq points d'entrée la remplissent, y compris pour une œuvre qu'on ne possède pas |
 
 ---
@@ -1275,9 +1275,9 @@ IozyCore
 │   └── 07 Ouvrir une oeuvre
 │       └── Fiche (/entity/:id)
 │           ├── 08 Progression · 09 Changer d'édition
-│           ├── 10 Édition de référence · 11 Envie d'amélioration
+│           ├── 10 Édition de référence
 │           ├── 12 Parcourir les tomes · 13 Ajouter un tome · 14 Ajouter à la main
-│           ├── 15 Prix/note · 16 Prêt · 17 Vendu/perdu · 18 Supprimer un exemplaire
+│           ├── 15 Prix/note · 17 Vendu/perdu · 18 Supprimer un exemplaire
 │           ├── 19 Jaquette · 20 Numéro de tome
 │           ├── 21 Classer · 22 Assistant · 23-24 Informations · 25 Tags/expériences/relations
 │           └── 26 Supprimer la fiche
@@ -1324,7 +1324,7 @@ IozyCore
 | 08 | Consulter la progression d'une édition | Fiche d'une œuvre | COMPLET | oui | oui |
 | 09 | Changer d'édition affichée | Fiche d'une œuvre | COMPLET | oui | oui |
 | 10 | Renseigner ou corriger l'édition de référence | Fiche d'une œuvre | COMPLET | oui | oui |
-| 11 | Signaler une envie d'amélioration d'édition | Fiche d'une œuvre | COMPLET | oui | oui |
+| 11 | ~~Signaler une envie d'amélioration d'édition~~ | — | **RETIRÉ** | — | — |
 | 12 | Parcourir les tomes d'une édition | Fiche d'une œuvre | COMPLET | oui | oui |
 | 13 | Ajouter un tome manquant | Fiche d'une œuvre | COMPLET | Drawer | Sheet |
 | 14 | Ajouter un tome à la main | Fiche d'une œuvre | COMPLET | oui | oui |
@@ -1455,7 +1455,7 @@ seule une fonctionnalité clairement remplacée ou abandonnée perd son accès.
 |---|---|---|
 | **Éditions de référence** (`/editions`) | `ACTIVE` | Porte le nombre de tomes de chaque édition — **toute** progression « X/Y » de l'app en dépend, sur tous les écrans. Reste un écran de maintenance sous Administration, pas une destination : renseigner se fait depuis la fiche, là où le manque se constate. |
 | **Bilan annuel** (`/recap`) | `SECONDARY` | Fonctionne sur données réelles, produit un PNG téléchargeable. Usage saisonnier, sa place sous Profil est cohérente. Conservé tel quel. |
-| **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu récemment aux éditions, classements, Tier Lists et envies d'amélioration (11 fichiers). Conservé sous Administration. |
+| **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu aux éditions, classements et Tier Lists (Lot 33), puis aux prix relevés, à l'édition suivie, aux types de collection et au profil de collectionneur (Lot 79) — 14 fichiers. Conservé sous Administration. |
 | **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Modifiables (note, commentaire) et supprimables depuis la fiche depuis le 2026-08-21. |
 | **Tags** | `SECONDARY` | Attachables et détachables depuis la fiche, remontés dans les statistiques (`topTags`). Le backend sait filtrer par tag (`GET /entities/search?tagId=`) mais **aucun écran ne l'expose** — sous-employés, pas abandonnés. Rien ne les a remplacés : les retirer serait arbitraire. |
 | **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche avec leur type et leur sens, exportées, corrigeables et supprimables depuis le 2026-08-21. Purement descriptives, aucun autre écran ne s'en sert. |

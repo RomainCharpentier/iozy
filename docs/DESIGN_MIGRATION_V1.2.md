@@ -1360,6 +1360,40 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 85 — un parcours retiré, encore annoncé COMPLET dans la même page
+
+`USER_JOURNEYS.md` se contredisait. Le parcours 11, « Signaler une envie
+d'amélioration d'édition », est **barré et daté comme supprimé** à la ligne 171
+- et le tableau de synthèse, huit cents lignes plus bas, le donnait encore
+`COMPLET | oui | oui`. La convention existe pourtant dans le même tableau : le
+parcours 16 (prêter un exemplaire) y est bien marqué **RETIRÉ**. C'est la
+troisième strate du Lot 61, cette fois à l'intérieur d'un seul document.
+
+Aligné : le tableau de synthèse, l'arbre des parcours (qui listait encore
+« 11 Envie d'amélioration » et « 16 Prêt »), l'écran Profil (qui annonçait une
+entrée disparue), la liste des formulaires annulables (« envie d'amélioration »,
+« prêt ») et le tableau des états vides.
+
+#### Le tableau de réversibilité avait pris trois lots de retard
+
+Il décrivait l'état d'avant les Lots 81 et 82 :
+
+| ligne | avant | après |
+|---|---|---|
+| Ajouter un tome | « supprimer l'exemplaire » | recliquer la tuile le retire |
+| *(nouvelle)* Retirer un tome possédé | absente | « Annuler », qui rend la date d'acquisition d'origine |
+| Ajouter à une Tier List | « Retirer de cette Tier List » | ce retrait propose lui-même « Annuler », rang compris |
+| Relation créée | « suppression » | suppression avec « Annuler » |
+
+Et la description de l'export annonçait onze fichiers et « envies
+d'amélioration » ; elle en annonce quatorze, avec ce que le Lot 79 y a ajouté,
+et dit désormais pourquoi l'historique d'analyses et les jetons de partage
+restent dehors.
+
+**Rien dans `DESIGN_MIGRATION_V1.2.md` n'a été touché** : c'est un journal, et
+les lots 27 et 79 y décrivent à juste titre ce qui existait alors. Seuls les
+documents qui décrivent l'application **au présent** ont été alignés.
+
 ### Lot 84 — cinq réglages qui ne réglaient rien
 
 Décision de l'utilisateur, prise sur le décompte du Lot 73 : **retirer** plutôt
@@ -4972,6 +5006,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- **Ne jamais sonder des POST à l’aveugle sur des données réelles** : `POST /share` avec un corps VIDE répond 201 et crée un lien public vers la collection. Un corps vide n’est pas une requête inoffensive - certaines routes n’attendent rien parce que le geste EST la requête. Lien révoqué aussitôt, URL publique repassée en 404 (Lot 85).
 - Retirer un champ d’un corps de requête ne casse pas les clients restés en arrière : Jackson ignore une propriété inconnue, donc un corps qui porte encore le champ retiré passe en 200 et le champ ne fait plus rien - ce qu’il faisait déjà. Garder le test qui l’envoie, en retournant son assertion : le champ doit être ABSENT de la réponse (Lot 84).
 - `npm run dev` et le conteneur `web` ne tombent pas dans la même branche d’erreur : en dev l’appel à une API éteinte échoue AVANT d’aboutir (réseau), déployé il traverse nginx qui répond **502**. Un statut non traduit ne se voit donc que dans le mode qu’on ne teste pas (Lot 83).
 - Un « Annuler » à l’écran n’est pas forcément le vôtre : celui d’une CONFIRMATION porte le même mot. Une sonde a cru avoir supprimé puis annulé une Tier List alors qu’elle avait seulement ouvert et refermé la confirmation - le journal réseau, où aucun `DELETE` n’était parti, l’a tranché. Vérifier qu’une requête a eu lieu avant de conclure sur son effet (Lot 82).
