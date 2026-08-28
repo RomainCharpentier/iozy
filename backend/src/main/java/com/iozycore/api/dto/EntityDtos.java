@@ -5,6 +5,7 @@ import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.OwnershipCondition;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,7 +28,7 @@ public final class EntityDtos {
      * deviné, reste modifiable après coup via PATCH /api/ownerships/{id}/purchase-price. */
     public record QuickAddRequest(UUID entityTypeId, String title, OwnershipCondition condition,
                                    Map<String, Object> attributes, Integer volumeNumber, String edition,
-                                   String volumeImageUrl, BigDecimal purchasePrice) {
+                                   String volumeImageUrl, BigDecimal purchasePrice, LocalDate acquiredAt) {
         public Map<String, Object> attributesOrEmpty() {
             return attributes == null ? Map.of() : attributes;
         }

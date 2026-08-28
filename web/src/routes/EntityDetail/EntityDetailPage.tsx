@@ -21,7 +21,8 @@ import { gradientFor } from '../../theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '../../lib/coverImage'
 import { creatorFrom } from '../../lib/creatorInfo'
 import { buildTiles } from '../../lib/tomeTiles'
-import { variantLabel } from '../../lib/attributsTome'
+import { numeroDe, variantLabel } from '../../lib/attributsTome'
+import type { OwnershipResponse } from '../../types/api'
 import { attributsARecharger, candidatCorrespondant } from './rechargerSource'
 import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from '../../lib/useTeinteJaquette'
@@ -43,6 +44,7 @@ import { EditionCorrectionSection } from './EditionCorrectionSection'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 import { retourDepuis } from './retourFiche'
+import { useToast } from '../../lib/toast'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { invaliderApresPossession } from '../../lib/invalidations'
 
@@ -83,6 +85,7 @@ export function EntityDetailPage() {
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
+  const toast = useToast()
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
   const [ajoutTomeOuvert, setAjoutTomeOuvert] = useState(false)
@@ -123,13 +126,25 @@ export function EntityDetailPage() {
    * partout ailleurs : rien de neuf n'est inventé ici.
    */
   const ajoutTome = useMutation({
-    mutationFn: async (tome: { entityTypeId: string; titre: string; numero: number; edition?: string }) => {
+    mutationFn: async (tome: {
+      entityTypeId: string
+      titre: string
+      numero: number
+      edition?: string
+      /** Renseignés uniquement quand cet ajout ANNULE un retrait : on rend
+       *  alors l'exemplaire tel qu'il était, pas un neuf daté d'aujourd'hui. */
+      condition?: string
+      acquiredAt?: string
+      purchasePrice?: number
+    }) => {
       const resultat = await quickAdd({
         entityTypeId: tome.entityTypeId,
         title: tome.titre,
-        condition: 'NEW',
+        condition: tome.condition ?? 'NEW',
         volumeNumber: tome.numero,
         edition: tome.edition,
+        acquiredAt: tome.acquiredAt,
+        purchasePrice: tome.purchasePrice,
       })
 
       // La jaquette du tome, cherchée tout de suite - et sans rien demander.
@@ -174,13 +189,56 @@ export function EntityDetailPage() {
    * « perdu » ont été retirés avec le panneau, il ne reste donc qu'un sens à
    * ce geste - je ne l'ai plus.
    */
+  /** Le numéro d'un tome depuis l'identifiant de sa variante - l'annulation
+   *  d'un retrait doit rajouter LE MÊME tome, et `quick-add` le désigne par son
+   *  numéro. Passe par `numeroDe`, seule lecture d'un sac d'attributs (Lot 62). */
+  function numeroDeVariant(variantId: string | null): number | null {
+    if (!variantId) return null
+    const variante = entity?.variants.find((v) => v.id === variantId)
+    return variante ? numeroDe(variante) : null
+  }
+
+  /**
+   * Retirer un tome, avec la possibilité de revenir en arrière.
+   *
+   * <p>Le retrait SUPPRIME l'Ownership : ni « vendu » ni « perdu » ne subsistent
+   * depuis le Lot 55, donc rien n'en garde trace. Un clic de trop sur une tuile
+   * effaçait ainsi la date d'acquisition réelle, et la seule façon de revenir
+   * en arrière - recliquer - en fabriquait une neuve, datée d'aujourd'hui.
+   * Constaté le 2026-08-28 sur un tome passé du 26/08 au 28/08.
+   *
+   * <p>Même convention que les envies (voir useWishlist) : un message bref et
+   * « Annuler ». L'annulation rend l'exemplaire tel qu'il était - sa date, son
+   * état, son prix d'achat. Sa note éventuelle, elle, ne repasse pas : le champ
+   * a perdu son écran au Lot 55 et `quick-add` ne le porte pas.
+   */
   const retraitTome = useMutation({
-    mutationFn: async (ownershipIds: string[]) => {
-      for (const id of ownershipIds) {
-        await deleteOwnership(id)
+    mutationFn: async (retires: OwnershipResponse[]) => {
+      for (const possession of retires) {
+        await deleteOwnership(possession.id)
       }
+      return retires
     },
-    onSuccess: () => invaliderApresPossession(queryClient),
+    onSuccess: (retires, _variables) => {
+      invaliderApresPossession(queryClient)
+      const premier = retires[0]
+      if (!premier || !entity) return
+      const numero = numeroDeVariant(premier.variantId)
+      if (numero === null) return
+      toast(retires.length > 1 ? `${retires.length} exemplaires retirés` : 'Tome retiré', {
+        label: 'Annuler',
+        onAction: () =>
+          ajoutTome.mutate({
+            entityTypeId: entity.entityTypeId,
+            titre: entity.title,
+            numero,
+            edition: groupeActif?.editionName || undefined,
+            condition: premier.condition,
+            acquiredAt: premier.acquiredAt,
+            purchasePrice: premier.purchasePrice ?? undefined,
+          }),
+      })
+    },
   })
 
   const renameMutation = useMutation({
@@ -531,9 +589,7 @@ export function EntityDetailPage() {
               // collection ou en sort. Plus de surface intermédiaire.
               const tuile = tuiles.find((t) => t.volumeNumber === numero)
               if (tuile?.status === 'owned' && tuile.variant) {
-                retraitTome.mutate(
-                  ownerships.filter((o) => o.variantId === tuile.variant!.id).map((o) => o.id),
-                )
+                retraitTome.mutate(ownerships.filter((o) => o.variantId === tuile.variant!.id))
               } else {
                 ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
               }

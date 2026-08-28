@@ -1360,6 +1360,55 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 81 — retirer un tome d'un clic était sans retour, et sans trace
+
+Trouvé en enquêtant sur un écart de données constaté dans la collection de
+l'utilisateur : un tome de Death Note était passé d'une acquisition au **26/08**
+à une au **28/08**, avec un identifiant d'exemplaire tout neuf. Un aller-retour
+sur la tuile, donc - et la date réelle d'acquisition détruite au passage.
+
+C'est structurel. Cliquer une tuile possédée SUPPRIME l'`Ownership` : depuis le
+Lot 55, ni « vendu » ni « perdu » ne subsistent, il ne reste qu'un sens à ce
+geste. Rien n'en garde trace. Et le seul retour en arrière offert - recliquer -
+crée un exemplaire neuf, daté d'aujourd'hui.
+
+Les envies, elles, ont depuis longtemps la bonne manière : `useWishlist`
+affiche un message bref et « Annuler », dans les deux sens, avec un drapeau
+`silencieux` pour ne pas faire boucler l'utilisateur entre deux messages. La
+possession d'un tome - un geste **plus** destructeur - n'avait rien.
+
+#### Une annulation qui abîme ce qu'elle restaure ne restaure rien
+
+`quick-add` datait toujours l'acquisition d'aujourd'hui. Proposer « Annuler »
+sans traiter ça aurait rendu le tome en effaçant quand même sa date : le défaut
+serait passé du geste à son remède.
+
+`QuickAddRequest` accepte donc une `acquiredAt` optionnelle, ajoutée par
+surcharge de service - les quatre signatures existantes n'ont pas bougé, même
+patron additif que `purchasePrice` juste au-dessus. Absente, c'est aujourd'hui,
+comme avant.
+
+L'annulation rend l'exemplaire tel qu'il était : sa date, son état, son prix
+d'achat. **Sa note éventuelle ne repasse pas** - le champ a perdu son écran au
+Lot 55 et `quick-add` ne le porte pas ; c'est dit dans le code plutôt que
+laissé à découvrir.
+
+#### Vérifié en direct, sur une œuvre jetable
+
+Une série de test créée par l'API avec une acquisition au **2020-01-15**, jamais
+la collection de l'utilisateur. Clic sur la tuile : le message « Tome retiré »
+et son bouton « Annuler » apparaissent. Clic sur « Annuler » : la tuile
+redevient « Tome 1, possédé », et en base la date est **2020-01-15**, pas celle
+du jour. Puis exemplaire, tome et fiche supprimés - 9 œuvres et 12 possessions,
+inchangées.
+
+Deux tests couvrent les deux sens : une date fournie est respectée, une date
+absente reste aujourd'hui. 1013 tests backend (depuis `clean`).
+
+**Note de méthode** : le message s'efface tout seul au bout de quelques
+secondes. Une première vérification a cliqué le retrait, attendu, puis cherché
+« Annuler » - déjà disparu. Enchaîner les deux dans le même lot d'actions.
+
 ### Lot 80 — le même héritage sur toutes les fiches
 
 Signalé par l'utilisateur : « il faudrait avoir le même héritage sur chaque
@@ -4763,6 +4812,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une annulation qui abîme ce qu’elle restaure ne restaure rien : rajouter un tome retiré le datait d’aujourd’hui, donc le remède refaisait le mal. Avant de proposer « Annuler », vérifier que le chemin inverse rend VRAIMENT l’objet d’avant - ici il a fallu ouvrir `quick-add` à une date d’acquisition (Lot 81).
 - **Vérifier sur le serveur de développement (5173) ne dit rien de ce que l’utilisateur voit** : le conteneur `web` de docker-compose (8081) datait de vingt-cinq lots plus tôt et servait une interface d’un autre âge, d’où un défaut signalé introuvable dans le code actuel. Reconstruire `web` fait partie de la livraison, au même titre qu’`iozycore-api` - et le navigateur garde en plus l’ancien HTML en cache (Lot 80).
 - `mvn test-compile` peut passer sur des classes PÉRIMÉES (`target/` vit dans le répertoire monté) : ajouter une méthode à un port a laissé un faux repository de test sans implémentation sans que rien ne le signale. Seule la construction de l’image Docker, qui compile depuis zéro, l’a levée - donc **ne jamais avaler la sortie de `docker compose build`** : elle disait « failed to solve » pendant que `up -d` répondait « Started » sur l’ANCIENNE image (Lot 79).
 - Deux Maven en même temps sur le même `target/` monté se marchent dessus : une suite en tâche de fond et un `clean test` simultané ont rendu un `BUILD FAILURE` sans une seule ligne de test, vert au relancement seul (Lot 79).
