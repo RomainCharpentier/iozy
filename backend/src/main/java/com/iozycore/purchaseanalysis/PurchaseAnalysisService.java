@@ -47,6 +47,7 @@ public class PurchaseAnalysisService {
     private final OwnershipRepository ownershipRepository;
     private final AiEditionAdvisor aiEditionAdvisor;
     private final AiMarketPriceAdvisor aiMarketPriceAdvisor;
+    private final AiPriceEstimateCacheRepository aiPriceEstimateCacheRepository;
     private final CollectionProgressService progressService;
     private final com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
@@ -62,6 +63,7 @@ public class PurchaseAnalysisService {
                                     OwnershipRepository ownershipRepository,
                                     AiEditionAdvisor aiEditionAdvisor,
                                     AiMarketPriceAdvisor aiMarketPriceAdvisor,
+                                    AiPriceEstimateCacheRepository aiPriceEstimateCacheRepository,
                                     CollectionProgressService progressService,
                                     com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository) {
         this.mangaEditionRepository = mangaEditionRepository;
@@ -74,6 +76,7 @@ public class PurchaseAnalysisService {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.aiEditionAdvisor = aiEditionAdvisor;
         this.aiMarketPriceAdvisor = aiMarketPriceAdvisor;
+        this.aiPriceEstimateCacheRepository = aiPriceEstimateCacheRepository;
         this.progressService = progressService;
         this.seriesMatcher = new SeriesMatcher(entityRepository, entityTypeRepository);
     }
@@ -137,9 +140,8 @@ public class PurchaseAnalysisService {
             // donnée réelle a toujours priorité, l'IA ne fait que combler l'absence de données, jamais
             // les compléter/contredire (voir AiMarketPriceAdvisor).
             AiPriceEstimate aiEstimate = observations.isEmpty()
-                    ? aiMarketPriceAdvisor.estimateMarketPrice(series.title(), itemCommand.editionName(),
+                    ? avisIA(series.title(), itemCommand.editionName(),
                             itemCommand.itemConditionOverride() != null ? itemCommand.itemConditionOverride() : command.condition())
-                            .orElse(null)
                     : null;
 
             itemContexts.add(new PurchaseAnalysisEngine.ItemContext(
@@ -218,6 +220,39 @@ public class PurchaseAnalysisService {
      * {@code MANUAL_ENTRY}, qu'il assume. Ce qui disparait, c'est la ligne que
      * personne n'a demandee et que personne ne peut plus rattacher.
      */
+    /**
+     * L'avis de l'IA sur le prix d'un tome, memorise.
+     *
+     * <p>Cet avis n'est demande que lorsqu'aucun releve reel n'existe pour
+     * l'edition - donc precisement sur les editions qu'on analyse en boucle en
+     * esperant s'en faire une idee. Sans memoire, chaque analyse reposait la
+     * meme question au meme modele : le palier gratuit de Gemini est un choix
+     * explicite de l'utilisateur, et c'est son quota qui payait. Meme
+     * raisonnement qu'au cache des recherches de tomes (V3).
+     *
+     * <p>Ce qui se memorise est une REPONSE, « je ne sais pas » compris (voir
+     * {@link AiPriceEstimate}). Un echec - cle absente, quota depasse, reseau -
+     * ne laisse rien : il sera retente, parce qu'une panne passagere ne doit
+     * pas devenir un « je ne sais pas » definitif.
+     */
+    private AiPriceEstimate avisIA(String seriesTitle, String editionName, Condition condition) {
+        String cleSerie = normaliserPourCache(seriesTitle);
+        String cleEdition = normaliserPourCache(editionName);
+        Optional<AiPriceEstimate> memorise = aiPriceEstimateCacheRepository.find(cleSerie, cleEdition, condition);
+        if (memorise.isPresent()) {
+            return memorise.get();
+        }
+        Optional<AiPriceEstimate> reponse = aiMarketPriceAdvisor.estimateMarketPrice(seriesTitle, editionName, condition);
+        reponse.ifPresent(estimate -> aiPriceEstimateCacheRepository.save(cleSerie, cleEdition, condition, estimate));
+        return reponse.orElse(null);
+    }
+
+    /** Meme regle que pour le cache des recherches de tomes : trim + minuscules,
+     * cle de cache uniquement, jamais reaffichee telle quelle. */
+    private static String normaliserPourCache(String valeur) {
+        return valeur == null ? "" : valeur.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
     private void releverLePrixDemande(PurchaseAnalysis analysis, String identiteAnnonce) {
         Listing listing = analysis.listing();
         if (identiteAnnonce == null || analysis.itemBreakdown().size() != 1
