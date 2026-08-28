@@ -1360,6 +1360,81 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 73 — « l'état compte beaucoup pour moi » ne comptait pas
+
+Le Lot 72 a rebranché les poids du moteur. Restait à savoir ce que les
+préférences elles-mêmes pilotent réellement. Comptage des lectures, hors leur
+propre déclaration :
+
+| préférence | lue par le moteur |
+|---|---|
+| `editionTierRanking` | 3 |
+| `avoidOutdatedEditionWhenBetterExistsOrAnnounced` | 2 |
+| `minimumDiscountVsRetailPercent` | 2 |
+| `factorWeights` | 1 |
+| `conditionImportance` | **0** |
+| `preferCompletedSeries` | **0** |
+| `avoidOngoingSeries` | **0** |
+| `preferOmnibusIntegral` | **0** |
+| `frenchLanguageOnly` | **0** |
+| `preferEasyToCompleteCollections` | **0** |
+
+Six interrupteurs sur dix ne sont lus par aucune ligne. C'est le constat qui
+avait fait **abandonner l'écran de réglages au Lot 30** - « six interrupteurs
+inertes auraient été pires que pas d'écran ». L'écran n'a pas été fait ; les
+six sont restés inertes, persistés, validés par l'API et rendus par
+`GET /preferences`.
+
+#### Celui qui se branche sans rien inventer
+
+`conditionImportance` est le seul des six dont le sens est déjà écrit dans le
+code (`WeightLevel` : « how much condition should matter »), annoncé par le
+profil par défaut (« high importance on condition ») **et** doté d'un point de
+branchement existant : `effectiveWeight` majorait déjà le poids de `CONDITION`
+d'un facteur 1,5 quand l'état porte sur un coffret.
+
+Deux raisons indépendantes pour que l'état pèse plus, et elles se composent :
+**ce qui** est jugé (un coffret plutôt qu'un tome standard) et **combien** ce
+collectionneur y tient. L'échelle reste grossière - 0,5 / 1 / 1,5, la même que
+la majoration coffret juste au-dessus - plutôt que d'inventer une graduation
+fine que personne n'a demandée.
+
+#### Mesuré en direct
+
+Même annonce qu'à la vérification du Lot 72 (Black Édition, tomes 1-3, 30 €,
+très bon état), le profil enregistré portant `condition_importance = HIGH` :
+
+| | Lot 72 | Lot 73 |
+|---|---|---|
+| poids de `CONDITION` | 15 | 22,5 |
+| verdict | Bonne affaire · **75**/100 | Bonne affaire · **71**/100 |
+
+La note baisse, et c'est cohérent : `CONDITION` vaut 70 pour un très bon état,
+sous la moyenne pondérée du lot - lui donner plus de poids tire vers le bas.
+Le levier, mesuré sur la même annonce en ne changeant que l'état :
+**scellé 77, défauts visibles 59**.
+
+Le test `how_much_the_collector_cares_about_condition_actually_moves_the_score`
+compare les trois niveaux sur une entrée identique et exige `LOW > MEDIUM >
+HIGH` sur un lot en mauvais état. **Confronté à l'ancien code** avant d'être
+gardé : `BUILD FAILURE`, les trois niveaux rendaient la même note.
+
+#### Les cinq autres attendent une décision, pas un lot
+
+`preferCompletedSeries`, `avoidOngoingSeries`, `preferOmnibusIntegral`,
+`frenchLanguageOnly`, `preferEasyToCompleteCollections` n'ont **pas** été
+branchés. Contrairement à `conditionImportance`, aucun ne dispose d'une règle
+de score écrite quelque part : les brancher, c'est en inventer cinq - donc
+ajouter, pas consolider. Les retirer touche le domaine, l'entité JPA, une
+migration et le contrat de l'API, et efface des données persistées.
+
+Les deux sont légitimes ; ce n'est pas au lot de trancher. Ce qui est acquis :
+le décompte est fait, il est écrit ici, et il ne sera plus à refaire.
+
+**Vérifié** : trois analyses jetables créées puis supprimées (204), état revenu
+à l'identique (9 analyses), ligne `collector_preferences` inchangée.
+1005 tests backend.
+
 ### Lot 72 — le score du verdict valait 50 pour toutes les annonces
 
 Neuf analyses en base, deux créées pour vérifier le Lot 71 : **toutes notées
@@ -4224,6 +4299,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un réglage inerte se branche sans rien inventer QUAND sa règle est déjà écrite ailleurs : `conditionImportance` avait son sens dans son propre enum, son intention dans le profil par défaut, et un point de branchement existant (la majoration coffret). Les cinq autres préférences mortes n’ont aucune règle écrite : les brancher serait en inventer cinq, les retirer effacerait des données - ça se décide, ça ne se glisse pas dans un lot (Lot 73).
 - Un `getOrDefault(clé, 0)` sur une carte de POIDS transforme « non configuré » en « neutralisé », et le repli « rien n’était calculable » en dessous le masque : dix facteurs calculés, affichés, et une note constante à 50 pour toutes les annonces. Un défaut de CONFIGURATION ne se voit ni au typecheck ni aux tests, qui passent tous le profil par défaut - il faut lire ce que la base contient VRAIMENT. Et seul un champ dont le vide est ininterprétable (liste, carte) peut se replier ainsi : un booléen à `false` ou un entier à `0` sont des choix légitimes (Lot 72).
 - Une valeur d’enum qui recouvre DEUX situations finit par les rendre indistinguables chez son lecteur : `SKIP_LISTING` disait à la fois « trop cher » et « je ne sais rien du prix », et l’écran conseillait de passer une annonce sur la foi d’un vide. Le drapeau qui les séparait existait, mais la même fabrique servait aux deux cas - donc il mentait, et aucune interface ne le lisait. Même figure qu’au Lot 58, un étage plus haut (Lot 71).
 - Un enum du serveur qui gagne une valeur ne casse rien tout de suite : il casse les traductions écrites AVANT lui, et d’abord chez les surfaces qui ne peuvent pas encore la recevoir - donc silencieusement. Compter les valeurs traitées à chaque endroit qui le traduit, puis vérifier lesquelles de ces surfaces peuvent réellement la recevoir : c’est ce qui sépare un mensonge à l’écran d’une dette (Lot 70).
