@@ -83,14 +83,18 @@ public class GeminiMarketPriceAdvisor implements AiMarketPriceAdvisor {
 
         JsonNode json = objectMapper.readTree(content);
         JsonNode priceNode = json.path("pricePerVolume");
-        if (priceNode.isNull() || priceNode.isMissingNode() || !priceNode.isNumber()) {
-            // Jamais deviner : pas de prix exploitable annoncé par le modèle -> pas de résultat, pas un 0€.
-            return Optional.empty();
-        }
-
         ConfidenceLevel confidence = parseEnum(json.path("confidence").asText(null), ConfidenceLevel.LOW);
         String rationale = json.path("rationale").isMissingNode() || json.path("rationale").isNull()
                 ? null : json.path("rationale").asText(null);
+
+        if (priceNode.isNull() || priceNode.isMissingNode() || !priceNode.isNumber()) {
+            // Jamais deviner : pas de prix exploitable annonce par le modele -> pas de chiffre, et
+            // surtout pas un 0 EUR. Mais c'est une REPONSE, pas une absence de reponse : l'invite
+            // demande explicitement ce « je ne sais pas ». La rendre vide la confondait avec une
+            // panne (quota, reseau, cle absente), donc l'empechait d'etre memorisee - et la meme
+            // question repartait chez le fournisseur a chaque analyse.
+            return Optional.of(new AiPriceEstimate(null, confidence, rationale));
+        }
 
         return Optional.of(new AiPriceEstimate(BigDecimal.valueOf(priceNode.asDouble()), confidence, rationale));
     }

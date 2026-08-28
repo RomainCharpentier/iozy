@@ -61,7 +61,14 @@ class GeminiMarketPriceAdvisorTest {
                 }
                 """);
 
-        assertThat(estimate).isEmpty();
+        // L'intention du test ne change pas - aucun chiffre n'est invente - mais un « je ne sais
+        // pas » est une REPONSE, que l'invite demande explicitement au modele de donner. La rendre
+        // vide la confondait avec une panne (quota, reseau, cle absente), donc l'empechait d'etre
+        // memorisee : la meme question repartait chez le fournisseur a chaque analyse.
+        assertThat(estimate).hasValueSatisfying(reponse -> {
+            assertThat(reponse.pricePerVolume()).isNull();
+            assertThat(reponse.confidence()).isEqualTo(ConfidenceLevel.LOW);
+        });
     }
 
     @Test

@@ -56,7 +56,10 @@ public class MarketPriceCalculator {
 
         BigDecimal theoretical = edition != null ? edition.retailPriceNewPerVolume() : null;
         if (perVolumePrices.isEmpty()) {
-            if (aiEstimate != null) {
+            // Un avis SANS chiffre ("je ne sais pas", voir AiPriceEstimate) est une reponse, mais
+            // pas un prix : il ne peut pas fonder une base AI_ESTIMATED. On retombe alors sur le
+            // theorique, exactement comme si l'IA n'avait pas ete consultee.
+            if (aiEstimate != null && aiEstimate.pricePerVolume() != null) {
                 return MarketPrice.aiEstimated(aiEstimate.pricePerVolume(), theoretical, aiEstimate.confidence());
             }
             return MarketPrice.noObservations(theoretical, ConfidenceLevel.LOW);

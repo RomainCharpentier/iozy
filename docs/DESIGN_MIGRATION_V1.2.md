@@ -1360,6 +1360,76 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 76 — la même question repartait chez l'IA à chaque analyse
+
+Conséquence directe du Lot 75, et il fallait la traiter. L'avis de l'IA sur le
+prix d'un tome n'est demandé que lorsqu'**aucun relevé réel n'existe** pour
+l'édition. Jusqu'ici, la première analyse d'une annonce saisie à la main créait
+un relevé, donc la suivante n'appelait plus l'IA. En fermant cette écriture,
+le Lot 75 a rendu l'appel **systématique** : chaque analyse repose la même
+question au même modèle.
+
+Le fournisseur est Gemini sur son palier gratuit - un choix explicite, pour ne
+pas payer un usage personnel. C'est donc un quota qui payait.
+
+#### « Je ne sais pas » n'est pas une panne
+
+`GeminiMarketPriceAdvisor` rendait `Optional.empty()` pour **cinq** situations
+différentes : clé absente, HTTP non-200, exception réseau, réponse illisible,
+et **le modèle qui répond « je ne sais pas »** - ce que l'invite lui demande
+pourtant explicitement de faire (« ne JAMAIS inventer un chiffre plausible.
+Mets null […] plutôt que de deviner »).
+
+C'est la note du Lot 58, transposée à un `Optional` : *« un `return null` qui
+veut dire "ça n'a pas marché" finit toujours par vouloir dire "il n'y a
+rien" »*. Et la confusion coûte cher ici : la seule réponse parfaitement
+**stable** - celle qui mérite le plus d'être mémorisée - était indiscernable
+d'une panne passagère, donc impossible à mémoriser sans figer un incident
+réseau en « je ne sais pas » définitif.
+
+`AiPriceEstimate.pricePerVolume` peut désormais être nul, et cela veut dire une
+chose précise : le modèle a répondu, il ne sait pas. `MarketPriceCalculator`
+retombe alors sur le théorique - un avis sans chiffre ne fonde pas une base
+`AI_ESTIMATED`.
+
+#### Le cache, sur le patron déjà en place
+
+`ai_price_estimate_cache` (V23) mémorise la réponse par (série, édition, état),
+clés normalisées. Même raison d'être et même forme que `volume_search_cache`
+(V3), qui existe parce que « savoir si une œuvre a des tomes coûte huit
+requêtes Google Books ».
+
+Ce qui se mémorise est une **réponse**, « je ne sais pas » compris. Jamais un
+**échec** : clé absente, quota dépassé, réseau coupé ne laissent rien et seront
+retentés.
+
+#### Mesuré en direct
+
+Deux analyses de la même annonce (Vinland Saga / Kurokawa, édition absente du
+catalogue donc aucun relevé) :
+
+| | 1re analyse | 2e analyse |
+|---|---|---|
+| durée | **7 050 ms** | **85 ms** |
+| appel Gemini | 1 | **0** |
+
+Une ligne en cache (`vinland saga | kurokawa | VERY_GOOD | 4.50 | HIGH`), et
+l'estimation continue de circuler : `basis AI_ESTIMATED`, 4,50 €/tome.
+
+Le test `la_meme_edition_analysee_deux_fois_ne_demande_l_avis_de_l_ia_qu_une_seule_fois`
+compte les appels d'un faux conseiller - même patron que `FakeMetadataProviders`,
+une classe de vingt lignes plutôt qu'une bibliothèque de doublures.
+**Confronté à l'ancien code** : « expected: 1 but was: 2 ».
+
+**Un test existant a changé d'assertion, pas d'intention** :
+`a_null_price_never_invents_a_figure` vérifiait `isEmpty()`. Aucun chiffre n'est
+toujours inventé - le prix reste nul - mais la réponse existe désormais. C'est
+le cas de figure prévu par la note du Lot 36 : un test peut consigner un
+comportement sans le protéger, et c'est l'intention de son nom qui fait foi.
+
+**Vérifié** : état revenu à l'identique - 9 analyses, 2 relevés, cache IA vidé
+de sa ligne de test. 1010 tests backend.
+
 ### Lot 75 — une annonce analysée deux fois certifiait son propre prix
 
 Suite directe du Lot 74, où mes analyses de vérification avaient laissé six
@@ -4454,6 +4524,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Fermer une écriture peut OUVRIR un coût ailleurs : le Lot 75 a supprimé le relevé automatique, et comme l’avis de l’IA n’est demandé qu’en l’absence de relevé, chaque analyse s’est mise à rappeler le modèle. Après avoir retiré une donnée, chercher qui s’appuyait sur son EXISTENCE, pas seulement qui la lisait (Lot 76).
 - Un test peut GARANTIR une règle sur un chemin que l’application n’emprunte jamais : les quinze tests d’ingestion des relevés passent tous une URL et un `externalId`, si bien que « une annonce réanalysée ne se compare pas à son propre prix » était vrai en test et faux en production, où les annonces se saisissent à la main. Quand une règle dépend d’une donnée OPTIONNELLE, écrire le test qui l’omet (Lot 75).
 - **Une analyse d’achat jetable N’EST PAS sans trace** : `releverLePrixDemande` écrit le prix demandé comme observation de marché, et supprimer l’analyse ne supprime pas l’observation. Vérifier un lot en créant des analyses exige donc de compter AUSSI `market_price_observation` avant/après, et de nettoyer par `DELETE /market-observations/{id}`. Six lignes s’étaient accumulées sur les lots 71-74 et faussaient déjà une mesure : elles se servaient de comparables les unes aux autres (Lot 74).
 - Une règle branchée sur UN seul de ses lecteurs laisse l’autre affirmer le contraire, dans le même écran : `MarketComparableSelector` filtrait la référence du bloc Prix, pendant que le facteur `REAL_MARKET_ALIGNMENT` comptait n’importe quel relevé. Quand une classe dit dans son en-tête quel défaut elle supprime, chercher TOUS les endroits où ce défaut vivait (Lot 74).
