@@ -15,6 +15,7 @@ import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -240,6 +241,49 @@ class QuickAddServiceTest {
 
         assertThat(result.variantId()).isNull();
         assertThat(result.matchedExistingVariant()).isFalse();
+    }
+
+    @Test
+    void une_date_d_acquisition_fournie_est_respectee_plutot_que_remplacee_par_aujourd_hui() {
+        // Le seul usage : annuler un retrait de tome. Sans ce champ, l'annulation
+        // rajoutait l'exemplaire AVEC LA DATE DU JOUR, effacant la vraie date
+        // d'acquisition - constate le 2026-08-28 sur un tome passe du 26/08 au
+        // 28/08 apres un aller-retour. Une annulation qui abime ce qu'elle
+        // restaure ne restaure rien.
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
+                new CatalogEntityResolver(entityRepository),
+                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()),
+                new InMemoryWishlistEntryRepository(), event -> {
+                });
+        LocalDate origine = LocalDate.of(2026, 8, 26);
+
+        QuickAddService.QuickAddResult resultat = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 2, "Black Edition",
+                null, null, origine);
+
+        assertThat(ownershipRepository.findByEntityId(resultat.entityId()))
+                .singleElement()
+                .satisfies(o -> assertThat(o.acquiredAt()).isEqualTo(origine));
+    }
+
+    @Test
+    void sans_date_fournie_l_ajout_reste_date_d_aujourd_hui() {
+        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
+        InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
+        QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
+                new CatalogEntityResolver(entityRepository),
+                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()),
+                new InMemoryWishlistEntryRepository(), event -> {
+                });
+
+        QuickAddService.QuickAddResult resultat = service.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), "Naruto", OwnershipCondition.NEW);
+
+        assertThat(ownershipRepository.findByEntityId(resultat.entityId()))
+                .singleElement()
+                .satisfies(o -> assertThat(o.acquiredAt()).isEqualTo(LocalDate.now()));
     }
 
     private QuickAddService newService() {

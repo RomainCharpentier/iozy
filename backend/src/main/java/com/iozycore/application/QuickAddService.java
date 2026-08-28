@@ -133,6 +133,27 @@ public class QuickAddService {
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition, String volumeImageUrl,
                                                       BigDecimal purchasePrice) {
+        return addNewEntityWithOwnership(entityTypeId, title, condition, prefilledAttributes, volumeNumber, edition,
+                volumeImageUrl, purchasePrice, null);
+    }
+
+    /**
+     * Variante acceptant une DATE d'acquisition, pour un seul usage : annuler un
+     * retrait.
+     * <p>
+     * Retirer un tome supprime son Ownership ; le rajouter en cree une neuve, donc
+     * datee d'aujourd'hui. Un aller-retour perdait ainsi la date reelle
+     * d'acquisition sans que rien ne le dise - constate le 2026-08-28 sur un tome
+     * passe du 26/08 au 28/08 apres un simple clic de trop. L'annulation propose
+     * par l'ecran (voir EntityDetailPage) rend donc la date d'origine plutot que
+     * d'en inventer une.
+     * <p>
+     * {@code null} = aujourd'hui, comme avant : c'est un ajout ordinaire.
+     */
+    public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
+                                                      Map<String, Object> prefilledAttributes,
+                                                      Integer volumeNumber, String edition, String volumeImageUrl,
+                                                      BigDecimal purchasePrice, LocalDate acquiredAt) {
         // « Faire exister la fiche catalogue » est désormais extrait dans
         // CatalogEntityResolver, partagé avec le parcours Envies : la règle de
         // déduplication (type + titre) et la fusion d'attributs ne vivent qu'à
@@ -165,7 +186,8 @@ public class QuickAddService {
                             && ownership.variantId().map(finalVariantId::equals).orElse(false));
         }
 
-        Ownership ownership = Ownership.acquire(entity.id(), variantId, condition, LocalDate.now(), null);
+        Ownership ownership = Ownership.acquire(entity.id(), variantId, condition,
+                acquiredAt != null ? acquiredAt : LocalDate.now(), null);
         if (purchasePrice != null) {
             ownership.updatePurchasePrice(purchasePrice);
         }

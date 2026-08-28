@@ -23,6 +23,10 @@ export interface QuickAddRequest {
   volumeImageUrl?: string
   // Optionnel, jamais deviné - reste modifiable après coup (voir ownerships.ts updatePurchasePrice).
   purchasePrice?: number
+  /** Un seul usage : annuler un retrait de tome en rendant sa date d'origine
+   *  plutôt qu'en la remplaçant par aujourd'hui (voir EntityDetailPage).
+   *  Absente = aujourd'hui, comme n'importe quel ajout. */
+  acquiredAt?: string
 }
 
 export interface QuickAddResponse {
