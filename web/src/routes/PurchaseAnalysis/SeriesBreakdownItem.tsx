@@ -165,9 +165,13 @@ export function SeriesBreakdownItem({
         )}
       </div>
 
-      {/* Rien n'est relevé automatiquement : le prix d'une annonce ne devient
-          une donnée de marché que si l'utilisateur le décide, un geste
-          explicite (même principe que le garde-fou sur les données IA). */}
+      {/* Le geste explicite : c'est LUI qui fait entrer un prix dans les données
+          de marché, et il reste le seul chemin pour une annonce saisie à la main
+          - c'est-à-dire le cas normal, aucun fournisseur public n'existant.
+          (Une annonce lue depuis un lien porte une identité : son prix est
+          relevé automatiquement, parce que là seulement le moteur sait
+          reconnaître deux analyses de la même annonce et l'exclure de sa propre
+          référence. Voir releverLePrixDemande côté serveur.) */}
       {observationPossible && (
         <div className="text-xs">
           {observationMutation.isSuccess ? (

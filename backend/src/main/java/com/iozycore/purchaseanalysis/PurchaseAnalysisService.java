@@ -192,13 +192,36 @@ public class PurchaseAnalysisService {
      *   <li><b>Composition inconnue</b> : sans nombre de tomes, la forme du lot
      *       est indeterminable, donc le releve incomparable.</li>
      *   <li><b>Prix nul</b> : rien a observer.</li>
+     *   <li><b>Annonce sans identite</b> : voir ci-dessous.</li>
      * </ul>
      * Ni estimation IA ni prix neuf catalogue n'arrivent jamais ici : cette
      * methode ne lit que le prix demande de l'annonce.
+     *
+     * <h2>Pourquoi une annonce sans identite ne produit RIEN</h2>
+     * Deux des six regles de {@link MarketComparableSelector} ne tiennent que
+     * par l'identite de l'annonce : « une annonce, un comparable » (regle 5) et
+     * « l'annonce en cours d'evaluation est exclue » (regle 6). Sans identite,
+     * ni l'une ni l'autre ne peut s'appliquer a la ligne ecrite ici.
+     * <p>
+     * Constate en direct le 2026-08-28 : une meme annonce saisie a la main
+     * (donc sans identite - c'est le cas NORMAL, aucun fournisseur public
+     * n'existe, voir l'en-tete de {@link PurchaseAnalysisEngine}) analysee deux
+     * fois se retrouvait comparee a elle-meme. La seconde analyse rendait
+     * {@code referenceSampleSize = 2} - des « annonces comparables
+     * INDEPENDANTES » qui etaient la meme -, une reference egale au prix
+     * demande, et un verdict de position « FAIR_PRICE » : l'annonce certifiait
+     * son propre prix. Trois passages auraient suffi a decrocher la confiance
+     * HIGH, exactement le defaut que le selecteur a ete ecrit pour supprimer.
+     * <p>
+     * Le geste explicite de l'utilisateur, lui, reste entier : le bouton
+     * « Relever ce prix comme observation de marche » ecrit un
+     * {@code MANUAL_ENTRY}, qu'il assume. Ce qui disparait, c'est la ligne que
+     * personne n'a demandee et que personne ne peut plus rattacher.
      */
     private void releverLePrixDemande(PurchaseAnalysis analysis, String identiteAnnonce) {
         Listing listing = analysis.listing();
-        if (analysis.itemBreakdown().size() != 1 || listing.askingPrice().signum() <= 0) {
+        if (identiteAnnonce == null || analysis.itemBreakdown().size() != 1
+                || listing.askingPrice().signum() <= 0) {
             return;
         }
         ItemAnalysis item = analysis.itemBreakdown().get(0);
@@ -214,7 +237,9 @@ public class PurchaseAnalysisService {
         LocalDate observeLe = LocalDate.ofInstant(analysis.requestedAt(), java.time.ZoneId.systemDefault());
         // Rien de neuf a dire : la meme annonce, au meme prix, deja relevee. Une
         // ligne de plus ne serait pas une observation supplementaire du marche.
-        if (identiteAnnonce != null && dejaReleveAuMemePrix(edition.id(), identiteAnnonce, listing.askingPrice())) {
+        // L'identite est desormais garantie non nulle par le garde d'entree -
+        // c'est justement ce qui rend ce test capable de faire son travail.
+        if (dejaReleveAuMemePrix(edition.id(), identiteAnnonce, listing.askingPrice())) {
             return;
         }
 

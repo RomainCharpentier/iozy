@@ -310,7 +310,13 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
     void deleting_an_analysis_keeps_the_edition_and_the_prices_it_recorded() throws Exception {
         MangaEdition edition = uneEdition(14);
         String corps = mockMvc.perform(post(BASE + "/analyze").contentType("application/json")
+                        // L'annonce porte une identité : c'est ce qui autorise le relevé
+                        // automatique du prix demandé, donc ce que ce test a besoin d'avoir en
+                        // place avant de vérifier que la suppression ne l'emporte pas. Sans
+                        // identité, plus rien n'est relevé - une annonce sans provenance ne peut
+                        // être ni dédoublonnée ni exclue de sa propre référence.
                         .content("{\"platform\":\"VINTED\",\"rawTitle\":\"Lot\",\"askingPrice\":60,"
+                                + "\"url\":\"https://www.vinted.fr/items/4242-lot\",\"externalListingId\":\"4242\","
                                 + "\"condition\":\"VERY_GOOD\",\"conditionAppliesToContainer\":false,"
                                 + "\"items\":[{\"seriesTitle\":\"" + edition.seriesTitle() + "\","
                                 + "\"editionName\":\"Standard\",\"includedVolumes\":"

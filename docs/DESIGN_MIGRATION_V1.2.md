@@ -1360,6 +1360,83 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 75 — une annonce analysée deux fois certifiait son propre prix
+
+Suite directe du Lot 74, où mes analyses de vérification avaient laissé six
+relevés en base. En cherchant pourquoi, le mécanisme s'est révélé plus grave
+que la trace qu'il laissait.
+
+`releverLePrixDemande` enregistre le prix demandé d'une annonce analysée comme
+un prix de marché. Deux des six règles de `MarketComparableSelector` ne
+tiennent que par **l'identité de l'annonce** : « une annonce, un comparable »
+(règle 5) et « l'annonce en cours d'évaluation est exclue » (règle 6). Or
+l'identité vient de l'URL ou de l'identifiant externe - et une annonce **saisie
+à la main n'en a aucune**. C'est le cas normal : l'en-tête de
+`PurchaseAnalysisEngine` explique lui-même qu'aucun fournisseur public
+n'existe pour Vinted, Leboncoin ou Rakuten, donc que tout se saisit à la main.
+
+**Mesuré en direct avant correction**, même annonce analysée deux fois :
+
+| | 1re analyse | 2e analyse |
+|---|---|---|
+| relevés créés | 1 (automatique) | 1 de plus |
+| `referenceSampleSize` | 0 | **2** |
+| `referencePrice` | — | **33,00 €**, le prix demandé |
+| `pricePosition` | `REFERENCE_UNAVAILABLE` | **`FAIR_PRICE`** |
+| `REAL_MARKET_ALIGNMENT` | 40 | **90** |
+
+L'annonce se déclarait au prix du marché sur la foi d'elle-même. Le champ
+s'appelle pourtant « annonces comparables **INDÉPENDANTES** ». Trois passages
+auraient suffi à décrocher la confiance HIGH - exactement le défaut que le
+sélecteur a été écrit pour supprimer.
+
+Le sampleSize valait 2 et non 1 parce que le bouton « Relever ce prix comme
+observation de marché » écrit une **seconde** ligne pour le même prix : le
+prix était déjà relevé automatiquement, sans que rien ne le dise. Le commentaire
+au-dessus de ce bouton affirmait même l'inverse - « Rien n'est relevé
+automatiquement ».
+
+#### La garantie était testée, sur un chemin que personne n'emprunte
+
+`MarketObservationIngestionIntegrationTest#une_annonce_reanalysee_ne_se_compare_pas_a_son_propre_prix_releve`
+vérifie précisément ce qui a échoué ici. Il passe - parce que les quinze tests
+de cette classe passent tous une URL et un `externalId`. La règle est donc
+garantie sur le chemin qui a une identité, et hors de portée sur celui que
+l'application utilise réellement.
+
+#### Le correctif
+
+Une annonce **sans identité ne produit plus aucun relevé automatique**. Ni
+déduplication ni auto-exclusion ne peuvent s'appliquer à une ligne dont on ne
+sait plus d'où elle vient : l'écrire, c'est fabriquer une donnée que son
+lecteur est documenté pour ne pas savoir traiter. Le geste explicite de
+l'utilisateur reste entier - le bouton écrit un `MANUAL_ENTRY`, qu'il assume -
+et le relevé automatique continue sur les annonces lues depuis un lien, où les
+deux règles fonctionnent.
+
+Le commentaire de l'écran, qui affirmait le contraire de ce que faisait le
+moteur, dit maintenant lequel des deux chemins fait quoi.
+
+Deux tests de non-régression, **confrontés à l'ancien code** : échec réel sur
+l'assertion (« Expecting empty but was: [MarketPriceObservation… origin=LISTING_ANALYSIS,
+listingIdentity=null] »), pas une erreur de compilation.
+
+**Vérifié en direct après correction** : deux analyses de la même annonce saisie
+à la main, `referenceSampleSize` **0**, `referencePrice` **null**,
+`REFERENCE_UNAVAILABLE`, alignement **40**, et **aucun relevé créé** - la table
+est restée à ses deux lignes d'origine. Les deux analyses jetables supprimées
+n'ont, cette fois, laissé aucune trace : c'est précisément l'objet du lot.
+
+**Un test a dû être ajusté** :
+`PurchaseAnalysisHttpContractTest#deleting_an_analysis_keeps_the_edition_and_the_prices_it_recorded`
+analysait une annonce sans identité et s'appuyait sur le relevé automatique
+pour poser son décor. Son vrai sujet - supprimer une analyse n'emporte pas les
+données de référence qu'elle a produites - est intact ; c'est sa mise en place
+qui reçoit désormais une URL et un identifiant externe, seul cas où le relevé
+automatique subsiste.
+
+1008 tests backend.
+
 ### Lot 74 — les deux moitiés de l'écran étaient en désaccord sur la même donnée
 
 Sur l'analyse Death Note du 24/08, le bloc **Prix** disait :
@@ -4377,6 +4454,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un test peut GARANTIR une règle sur un chemin que l’application n’emprunte jamais : les quinze tests d’ingestion des relevés passent tous une URL et un `externalId`, si bien que « une annonce réanalysée ne se compare pas à son propre prix » était vrai en test et faux en production, où les annonces se saisissent à la main. Quand une règle dépend d’une donnée OPTIONNELLE, écrire le test qui l’omet (Lot 75).
 - **Une analyse d’achat jetable N’EST PAS sans trace** : `releverLePrixDemande` écrit le prix demandé comme observation de marché, et supprimer l’analyse ne supprime pas l’observation. Vérifier un lot en créant des analyses exige donc de compter AUSSI `market_price_observation` avant/après, et de nettoyer par `DELETE /market-observations/{id}`. Six lignes s’étaient accumulées sur les lots 71-74 et faussaient déjà une mesure : elles se servaient de comparables les unes aux autres (Lot 74).
 - Une règle branchée sur UN seul de ses lecteurs laisse l’autre affirmer le contraire, dans le même écran : `MarketComparableSelector` filtrait la référence du bloc Prix, pendant que le facteur `REAL_MARKET_ALIGNMENT` comptait n’importe quel relevé. Quand une classe dit dans son en-tête quel défaut elle supprime, chercher TOUS les endroits où ce défaut vivait (Lot 74).
 - Un réglage inerte se branche sans rien inventer QUAND sa règle est déjà écrite ailleurs : `conditionImportance` avait son sens dans son propre enum, son intention dans le profil par défaut, et un point de branchement existant (la majoration coffret). Les cinq autres préférences mortes n’ont aucune règle écrite : les brancher serait en inventer cinq, les retirer effacerait des données - ça se décide, ça ne se glisse pas dans un lot (Lot 73).
