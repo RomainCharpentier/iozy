@@ -1360,6 +1360,34 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 86 — l'audit technique annonçait 458 tests, il y en a 1 013
+
+`AUDIT_TECHNIQUE.md` s'ouvre sur une volumétrie et un décompte qui font
+autorité dans le projet. Tous ses chiffres avaient dérivé, et deux étaient
+franchement faux :
+
+| | annoncé | mesuré |
+|---|---|---|
+| tests | 458 | **1 013** |
+| endpoints | 96 | 92 |
+| tables | 21 | 20 |
+| contrôleurs | 16 | 18 |
+| migrations Flyway | 17 | 24 |
+| backend `src/main` | 225 fichiers / 17 577 lignes | 269 / 24 339 |
+| backend `src/test` | 69 / 10 884 | 104 / 20 832 |
+| web `src` | 125 / 15 625 | 152 / 20 667 |
+| docs | ~3 300 lignes | ~9 493 |
+
+La liste des contextes citait encore `editionupgrade`, supprimé au Lot 27, et
+ignorait `followededition`, arrivé au Lot 26 - huit contextes, pas neuf. Le
+rapport test/production passe de 0,62 à **0,86 ligne de test par ligne de
+production**.
+
+Un document qui se donne pour la référence technique et qui annonce moins de la
+moitié des tests réels n'est pas une approximation : c'est une source qu'on ne
+peut plus citer. Les chiffres portent désormais leur date de mesure, pour que la
+prochaine dérive se voie.
+
 ### Lot 85 — un parcours retiré, encore annoncé COMPLET dans la même page
 
 `USER_JOURNEYS.md` se contredisait. Le parcours 11, « Signaler une envie
