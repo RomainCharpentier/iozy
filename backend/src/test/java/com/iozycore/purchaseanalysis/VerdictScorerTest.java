@@ -54,12 +54,11 @@ class VerdictScorerTest {
 
     @Test
     void a_profile_that_names_no_weight_falls_back_on_the_specified_ones_instead_of_silencing_every_factor() {
-        // Exactly the profile the live database held: booleans off, no ranking, no weight - the
-        // shape a partial write leaves behind. Every factor weighed 0, so weightTotal was 0, the
-        // "nothing could be computed" fallback fired, and every listing scored a flat 50 while its
-        // ten factor scores were displayed right above.
-        CollectorPreferences empty = new CollectorPreferences(false, false, false, List.of(), false, false, false,
-                WeightLevel.HIGH, 0, Map.of());
+        // Exactly the profile the live database held: no ranking, no weight - the shape a partial
+        // write leaves behind. Every factor weighed 0, so weightTotal was 0, the "nothing could be
+        // computed" fallback fired, and every listing scored a flat 50 while its ten factor scores
+        // were displayed right above.
+        CollectorPreferences empty = new CollectorPreferences(List.of(), false, WeightLevel.HIGH, 0, Map.of());
         CollectionStatus complete = new CollectionStatus(null, 11, 0, List.of(), List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
         VerdictScorer.Input input = new VerdictScorer.Input(
                 new BigDecimal("50"), new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("67"), true,
@@ -147,11 +146,9 @@ class VerdictScorerTest {
 
     private static CollectorPreferences withConditionImportance(WeightLevel importance) {
         CollectorPreferences base = CollectorPreferences.defaults();
-        return new CollectorPreferences(base.preferCompletedSeries(), base.avoidOngoingSeries(),
-                base.preferOmnibusIntegral(), base.editionTierRanking(),
-                base.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), base.frenchLanguageOnly(),
-                base.preferEasyToCompleteCollections(), importance, base.minimumDiscountVsRetailPercent(),
-                base.factorWeights());
+        return new CollectorPreferences(base.editionTierRanking(),
+                base.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), importance,
+                base.minimumDiscountVsRetailPercent(), base.factorWeights());
     }
 
     @Test

@@ -604,11 +604,15 @@ class PurchaseAnalysisHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.conditionImportance").isNotEmpty());
 
         mockMvc.perform(patch(BASE + "/preferences").contentType("application/json")
+                        // preferCompletedSeries n'existe plus (Lot 84) - laisse ici volontairement :
+                        // un corps qui porte encore un champ retire doit etre ACCEPTE, pas rejete,
+                        // sans quoi un client pas encore mis a jour casserait sur un reglage qui,
+                        // de toute facon, ne faisait rien.
                         .content("{\"preferCompletedSeries\":false,\"minimumDiscountVsRetailPercent\":15,"
                                 + "\"conditionImportance\":\"MEDIUM\","
                                 + "\"editionTierRanking\":[\"PERFECT\",\"STANDARD\"],\"factorWeights\":{}}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.preferCompletedSeries").value(false))
+                .andExpect(jsonPath("$.preferCompletedSeries").doesNotExist())
                 .andExpect(jsonPath("$.minimumDiscountVsRetailPercent").value(15))
                 .andExpect(jsonPath("$.editionTierRanking[0]").value("PERFECT"));
     }

@@ -191,13 +191,13 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         CollectorPreferences beforeAnySave = collectorPreferencesRepository.find();
         assertThat(beforeAnySave).isEqualTo(CollectorPreferences.defaults());
 
-        CollectorPreferences updated = new CollectorPreferences(false, false, true,
-                beforeAnySave.editionTierRanking(), true, true, true,
+        CollectorPreferences updated = new CollectorPreferences(beforeAnySave.editionTierRanking(), true,
                 com.iozycore.purchaseanalysis.WeightLevel.MEDIUM, 15, beforeAnySave.factorWeights());
         collectorPreferencesRepository.save(updated);
 
         CollectorPreferences reloaded = collectorPreferencesRepository.find();
-        assertThat(reloaded.preferCompletedSeries()).isFalse();
+        assertThat(reloaded.conditionImportance())
+                .isEqualTo(com.iozycore.purchaseanalysis.WeightLevel.MEDIUM);
         assertThat(reloaded.minimumDiscountVsRetailPercent()).isEqualTo(15);
     }
 

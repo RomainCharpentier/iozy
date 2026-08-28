@@ -323,10 +323,12 @@ public class PurchaseAnalysisController {
         return service.preferences();
     }
 
-    public record UpdateCollectorPreferencesRequest(boolean preferCompletedSeries, boolean avoidOngoingSeries,
-                                                     boolean preferOmnibusIntegral, List<String> editionTierRanking,
+    /** Cinq champs retirés au Lot 84 : aucune ligne du moteur ne les lisait
+     *  (voir CollectorPreferences). Un corps qui les porte encore n'échoue pas -
+     *  Jackson ignore les propriétés inconnues - il n'en sort simplement plus
+     *  rien, ce qui est exactement ce qu'elles faisaient déjà. */
+    public record UpdateCollectorPreferencesRequest(List<String> editionTierRanking,
                                                      boolean avoidOutdatedEditionWhenBetterExistsOrAnnounced,
-                                                     boolean frenchLanguageOnly, boolean preferEasyToCompleteCollections,
                                                      String conditionImportance, int minimumDiscountVsRetailPercent,
                                                      Map<String, Integer> factorWeights) {
     }
@@ -349,10 +351,8 @@ public class PurchaseAnalysisController {
         Map<VerdictFactor, Integer> weights = request.factorWeights().entrySet().stream()
                 .collect(java.util.stream.Collectors.toMap(
                         entry -> parseEnum(VerdictFactor.class, entry.getKey(), "factorWeights"), Map.Entry::getValue));
-        CollectorPreferences preferences = new CollectorPreferences(request.preferCompletedSeries(),
-                request.avoidOngoingSeries(), request.preferOmnibusIntegral(), ranking,
-                request.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), request.frenchLanguageOnly(),
-                request.preferEasyToCompleteCollections(),
+        CollectorPreferences preferences = new CollectorPreferences(ranking,
+                request.avoidOutdatedEditionWhenBetterExistsOrAnnounced(),
                 parseEnum(WeightLevel.class, request.conditionImportance(), "conditionImportance"),
                 request.minimumDiscountVsRetailPercent(), weights);
         return service.updatePreferences(preferences);

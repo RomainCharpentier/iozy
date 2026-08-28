@@ -179,11 +179,9 @@ public class ExportService {
 
         CollectorPreferences preferences = collectorPreferencesRepository.find();
         ExportDocument.CollectorPreferencesExport preferencesExport = new ExportDocument.CollectorPreferencesExport(
-                preferences.preferCompletedSeries(), preferences.avoidOngoingSeries(),
-                preferences.preferOmnibusIntegral(),
                 preferences.editionTierRanking().stream().map(Enum::name).toList(),
-                preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), preferences.frenchLanguageOnly(),
-                preferences.preferEasyToCompleteCollections(), preferences.conditionImportance().name(),
+                preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced(),
+                preferences.conditionImportance().name(),
                 preferences.minimumDiscountVsRetailPercent(),
                 preferences.factorWeights().entrySet().stream()
                         .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue)));

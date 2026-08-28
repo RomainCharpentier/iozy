@@ -109,10 +109,8 @@ public record ExportDocument(
     }
 
     /** Le profil qui pondere le verdict d'une analyse d'achat. */
-    public record CollectorPreferencesExport(boolean preferCompletedSeries, boolean avoidOngoingSeries,
-                                              boolean preferOmnibusIntegral, List<String> editionTierRanking,
+    public record CollectorPreferencesExport(List<String> editionTierRanking,
                                               boolean avoidOutdatedEditionWhenBetterExistsOrAnnounced,
-                                              boolean frenchLanguageOnly, boolean preferEasyToCompleteCollections,
                                               String conditionImportance, int minimumDiscountVsRetailPercent,
                                               Map<String, Integer> factorWeights) {
     }

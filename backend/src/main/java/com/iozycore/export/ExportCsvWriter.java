@@ -130,15 +130,11 @@ public class ExportCsvWriter {
         // qu'un JSON noye dans un autre fichier.
         ExportDocument.CollectorPreferencesExport prefs = document.collectorPreferences();
         files.put("collector-preferences.csv", writeCsv(
-                List.of("preferCompletedSeries", "avoidOngoingSeries", "preferOmnibusIntegral", "editionTierRanking",
-                        "avoidOutdatedEditionWhenBetterExistsOrAnnounced", "frenchLanguageOnly",
-                        "preferEasyToCompleteCollections", "conditionImportance", "minimumDiscountVsRetailPercent",
-                        "factorWeights"),
+                List.of("editionTierRanking", "avoidOutdatedEditionWhenBetterExistsOrAnnounced",
+                        "conditionImportance", "minimumDiscountVsRetailPercent", "factorWeights"),
                 prefs == null ? List.<ExportDocument.CollectorPreferencesExport>of() : List.of(prefs),
-                p -> List.of(str(p.preferCompletedSeries()), str(p.avoidOngoingSeries()),
-                        str(p.preferOmnibusIntegral()), String.join(";", p.editionTierRanking()),
-                        str(p.avoidOutdatedEditionWhenBetterExistsOrAnnounced()), str(p.frenchLanguageOnly()),
-                        str(p.preferEasyToCompleteCollections()), str(p.conditionImportance()),
+                p -> List.of(String.join(";", p.editionTierRanking()),
+                        str(p.avoidOutdatedEditionWhenBetterExistsOrAnnounced()), str(p.conditionImportance()),
                         str(p.minimumDiscountVsRetailPercent()), toJson(p.factorWeights()))));
 
         return files;

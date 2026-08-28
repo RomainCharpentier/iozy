@@ -1360,6 +1360,57 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 84 — cinq réglages qui ne réglaient rien
+
+Décision de l'utilisateur, prise sur le décompte du Lot 73 : **retirer** plutôt
+que brancher. `preferCompletedSeries`, `avoidOngoingSeries`,
+`preferOmnibusIntegral`, `frenchLanguageOnly` et
+`preferEasyToCompleteCollections` vivaient dans le profil de collectionneur
+depuis la Phase 1 sans qu'aucune ligne du moteur ne les lise. Elles étaient
+pourtant persistées en base, validées par l'API et rendues par
+`GET /preferences` : une surface de configuration qui promettait cinq leviers
+inertes.
+
+C'était déjà ce qui avait fait abandonner l'écran de réglages au Lot 30 - « six
+interrupteurs inertes auraient été pires que pas d'écran ». L'écran n'a pas été
+fait ; les préférences, elles, sont restées. Le lot referme ça par l'autre bout.
+
+Les brancher aurait voulu dire inventer cinq règles de score qui n'existent
+nulle part - de l'ajout, pas de la consolidation, et cinq occasions de se
+tromper sur le goût de quelqu'un d'autre.
+
+#### Ce qui a été retiré, et ce qui reste
+
+Retirées de bout en bout : le record de domaine, l'entité JPA, l'adaptateur, le
+corps de requête de l'API, l'export JSON et CSV, le type côté web, et les
+colonnes elles-mêmes (`V24__drop_inert_collector_preferences.sql`).
+
+Ce qui reste est **exactement ce que le moteur lit** : la hiérarchie des gammes
+d'édition, l'évitement d'une édition dépassée, l'importance de l'état (branchée
+au Lot 73), la décote minimale attendue, et les poids des dix facteurs.
+
+#### Un client pas encore à jour n'est pas cassé
+
+Le test de contrat envoie toujours un corps portant `preferCompletedSeries` et
+vérifie que la réponse est **200** - Jackson ignore une propriété inconnue. Un
+client resté en arrière continue donc de passer, et le champ ne fait
+simplement plus rien : exactement ce qu'il faisait déjà. L'assertion, elle, a
+changé de sens : elle exige désormais que le champ soit **absent** de la
+réponse.
+
+#### Vérifié en direct
+
+Migration appliquée au redémarrage : la table ne porte plus que six colonnes
+(`owner_id` compris). `GET /preferences` rend cinq champs au lieu de dix.
+L'export JSON porte le profil réduit. 1013 tests backend depuis `clean`,
+`typecheck`, `lint`, `build`. Conteneurs API et web reconstruits.
+
+**La ligne enregistrée n'a pas été retouchée**, conformément à la décision :
+elle garde `minimumDiscountVsRetailPercent = 0`, un classement de gammes vide
+et des poids vides. Les deux derniers sont rattrapés par le repli du Lot 72 ;
+le premier reste tel quel, et fait que RETAIL_DISCOUNT note 100 dès qu'une
+annonce est sous le prix neuf.
+
 ### Lot 83 — « Bad Gateway », et une piste qui s'est retournée
 
 Parti d'une observation en gelant puis en arrêtant l'API : Ma collection et
@@ -4921,6 +4972,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Retirer un champ d’un corps de requête ne casse pas les clients restés en arrière : Jackson ignore une propriété inconnue, donc un corps qui porte encore le champ retiré passe en 200 et le champ ne fait plus rien - ce qu’il faisait déjà. Garder le test qui l’envoie, en retournant son assertion : le champ doit être ABSENT de la réponse (Lot 84).
 - `npm run dev` et le conteneur `web` ne tombent pas dans la même branche d’erreur : en dev l’appel à une API éteinte échoue AVANT d’aboutir (réseau), déployé il traverse nginx qui répond **502**. Un statut non traduit ne se voit donc que dans le mode qu’on ne teste pas (Lot 83).
 - Un « Annuler » à l’écran n’est pas forcément le vôtre : celui d’une CONFIRMATION porte le même mot. Une sonde a cru avoir supprimé puis annulé une Tier List alors qu’elle avait seulement ouvert et refermé la confirmation - le journal réseau, où aucun `DELETE` n’était parti, l’a tranché. Vérifier qu’une requête a eu lieu avant de conclure sur son effet (Lot 82).
 - Une annulation qui abîme ce qu’elle restaure ne restaure rien : rajouter un tome retiré le datait d’aujourd’hui, donc le remède refaisait le mal. Avant de proposer « Annuler », vérifier que le chemin inverse rend VRAIMENT l’objet d’avant - ici il a fallu ouvrir `quick-add` à une date d’acquisition (Lot 81).
