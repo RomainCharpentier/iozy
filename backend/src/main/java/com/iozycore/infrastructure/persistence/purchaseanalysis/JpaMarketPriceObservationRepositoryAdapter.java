@@ -29,6 +29,13 @@ public class JpaMarketPriceObservationRepositoryAdapter implements MarketPriceOb
     }
 
     @Override
+    public List<MarketPriceObservation> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(MarketPriceObservationMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<MarketPriceObservation> findByEditionId(UUID mangaEditionId) {
         return jpaRepository.findByMangaEditionId(mangaEditionId).stream()
                 .map(MarketPriceObservationMapper::toDomain)

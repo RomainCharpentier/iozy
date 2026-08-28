@@ -11,6 +11,8 @@ import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.Experience;
+import com.iozycore.domain.followededition.FollowedEdition;
+import com.iozycore.domain.followededition.FollowedEditionRepository;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -19,6 +21,10 @@ import com.iozycore.domain.tierlist.TierList;
 import com.iozycore.domain.tierlist.TierListItemRepository;
 import com.iozycore.domain.tierlist.TierListRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
+import com.iozycore.purchaseanalysis.CollectorPreferences;
+import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
+import com.iozycore.purchaseanalysis.MarketPriceObservation;
+import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +55,9 @@ public class ExportService {
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
+    private final MarketPriceObservationRepository marketPriceObservationRepository;
+    private final FollowedEditionRepository followedEditionRepository;
+    private final CollectorPreferencesRepository collectorPreferencesRepository;
 
     public ExportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
                           OwnershipRepository ownershipRepository, ExperienceRepository experienceRepository,
@@ -57,7 +66,10 @@ public class ExportService {
                           MangaEditionRepository mangaEditionRepository,
                           EntityRankRepository entityRankRepository,
                           TierListRepository tierListRepository,
-                          TierListItemRepository tierListItemRepository) {
+                          TierListItemRepository tierListItemRepository,
+                          MarketPriceObservationRepository marketPriceObservationRepository,
+                          FollowedEditionRepository followedEditionRepository,
+                          CollectorPreferencesRepository collectorPreferencesRepository) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.ownershipRepository = ownershipRepository;
@@ -69,6 +81,9 @@ public class ExportService {
         this.entityRankRepository = entityRankRepository;
         this.tierListRepository = tierListRepository;
         this.tierListItemRepository = tierListItemRepository;
+        this.marketPriceObservationRepository = marketPriceObservationRepository;
+        this.followedEditionRepository = followedEditionRepository;
+        this.collectorPreferencesRepository = collectorPreferencesRepository;
     }
 
     public ExportDocument buildExportDocument() {
@@ -141,9 +156,53 @@ public class ExportService {
                                 .toList()))
                 .toList();
 
+        Map<UUID, com.iozycore.domain.catalog.MangaEdition> editionsById = mangaEditionRepository.findAll().stream()
+                .collect(Collectors.toMap(com.iozycore.domain.catalog.MangaEdition::id, e -> e));
+        List<ExportDocument.MarketObservationExport> observationExports = marketPriceObservationRepository.findAll()
+                .stream()
+                .map(o -> toObservationExport(o, editionsById))
+                .toList();
+
+        // findByEntityIdIn plutot qu'un findAll inexistant sur ce repository :
+        // meme geste que pour les classements generaux ci-dessus.
+        List<ExportDocument.FollowedEditionExport> followedExports = followedEditionRepository
+                .findByEntityIdIn(List.copyOf(entitiesById.keySet())).stream()
+                .map(f -> new ExportDocument.FollowedEditionExport(f.id(), f.entityId(),
+                        titleOf(f.entityId(), entitiesById), f.editionName(), f.followedAt()))
+                .toList();
+
+        List<ExportDocument.EntityTypeExport> typeExports = typesById.values().stream()
+                .map(t -> new ExportDocument.EntityTypeExport(t.id(), t.code(), t.label(),
+                        List.copyOf(t.allowedExperienceTypes()), List.copyOf(t.customFieldKeys()),
+                        t.colorKey(), t.iconKey(), t.aspectKey()))
+                .toList();
+
+        CollectorPreferences preferences = collectorPreferencesRepository.find();
+        ExportDocument.CollectorPreferencesExport preferencesExport = new ExportDocument.CollectorPreferencesExport(
+                preferences.preferCompletedSeries(), preferences.avoidOngoingSeries(),
+                preferences.preferOmnibusIntegral(),
+                preferences.editionTierRanking().stream().map(Enum::name).toList(),
+                preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced(), preferences.frenchLanguageOnly(),
+                preferences.preferEasyToCompleteCollections(), preferences.conditionImportance().name(),
+                preferences.minimumDiscountVsRetailPercent(),
+                preferences.factorWeights().entrySet().stream()
+                        .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue)));
+
         return new ExportDocument(Instant.now().toString(), entityExports, ownershipExports, experienceExports,
                 wishlistExports, relationshipExports, tagExports, editionExports, generalRankExports,
-                tierListExports);
+                tierListExports, observationExports, followedExports, typeExports, preferencesExport);
+    }
+
+    private static ExportDocument.MarketObservationExport toObservationExport(
+            MarketPriceObservation o, Map<UUID, com.iozycore.domain.catalog.MangaEdition> editionsById) {
+        com.iozycore.domain.catalog.MangaEdition edition = editionsById.get(o.mangaEditionId());
+        return new ExportDocument.MarketObservationExport(o.id(), o.mangaEditionId(),
+                edition != null ? edition.seriesTitle() : null, edition != null ? edition.editionName() : null,
+                o.scope() == null ? null : o.scope().from(), o.scope() == null ? null : o.scope().to(),
+                o.volumeCount(), o.observedPrice(),
+                o.platform() == null ? null : o.platform().name(),
+                o.observedCondition() == null ? null : o.observedCondition().name(),
+                o.observedAt(), o.origin() == null ? null : o.origin().name(), o.sourceUrl(), o.note());
     }
 
     private static ExportDocument.EntityExport toEntityExport(Entity entity, Map<UUID, EntityType> typesById,

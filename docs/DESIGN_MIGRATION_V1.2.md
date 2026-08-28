@@ -1360,6 +1360,73 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 79 — l'export promettait une porte de sortie qu'il n'ouvrait qu'à moitié
+
+Le Lot 33 avait ajouté à l'export ce qui était « saisi à la main, irrécupérable,
+et pourtant absent d'un export qui promet l'absence d'enfermement ». Le critère
+est bon ; il n'avait simplement pas été repassé depuis. Comparaison des tables
+de la base avec ce que `ExportDocument` emporte :
+
+| table | exportée avant ce lot |
+|---|---|
+| `market_price_observation` | **non** |
+| `followed_edition` | **non** |
+| `entity_type` | **non** (seuls le code et le libellé voyageaient sur chaque œuvre) |
+| `collector_preferences` | **non** |
+
+Les quatre répondent au critère du Lot 33. Un prix relevé à la main n'existe
+nulle part ailleurs ; l'édition qu'on suit est un choix, pas une fiche ; un type
+de collection créé depuis Administration porte sa couleur, son icône et son
+format de jaquette (Lots 17, 22, 23) que rien d'autre ne conserve ; le profil de
+collectionneur pondère chaque verdict (Lots 72 et 73).
+
+#### Ce qui reste dehors, et pourquoi
+
+- `share_settings` : un jeton de partage est un secret vivant. L'exporter
+  reviendrait à recopier une URL-capacité dans un fichier qu'on s'envoie par
+  mail.
+- `volume_search_cache`, `ai_price_estimate_cache` : des caches, reconstruits
+  au premier appel (Lot 76).
+- `purchase_analysis` : une histoire CALCULÉE, dont le contenu est un
+  instantané du moteur de son jour - les lots 71 à 76 l'ont montré à leurs
+  dépens. Ce qu'une annonce avait d'irremplaçable, son prix, est justement ce
+  que `market_price_observation` conserve désormais.
+
+#### Vérifié en direct
+
+L'export JSON rend maintenant `marketObservations: 2`, `followedEditions: 0`,
+`entityTypes: 3` et un objet `collectorPreferences` ; l'archive CSV passe de
+**10 à 14 fichiers**, et `market-observations.csv` sort dénormalisé comme le
+reste (`Death Note, Black Édition, 45.00, MANUAL_ENTRY`) - lisible sans
+rejoindre une autre table. Octets vérifiés : de l'UTF-8 correct
+(`Black \xc3\x89dition`), le charabia n'était que l'encodage de ma console.
+
+`MarketPriceObservationRepository.findAll()` a été ajouté au port - une méthode
+plutôt qu'une boucle par édition côté appelant. Les éditions suivies passent par
+`findByEntityIdIn`, même geste que les classements généraux au Lot 33 : toutes
+les œuvres sont déjà chargées, pas besoin d'élargir ce port-là.
+
+Test de contenu ajouté sur une vraie base : un relevé manuel, une édition suivie,
+les types et le profil sont retrouvés dans le document, titres dénormalisés
+compris. 1011 tests backend.
+
+#### Deux leçons d'outillage, payées comptant
+
+**`mvn test-compile` peut passer sur des classes périmées.** `target/` vit dans
+le répertoire monté et survit d'un conteneur à l'autre : l'ajout de `findAll()`
+au port a laissé un faux repository de test (`VariantDeletionServiceTest`) sans
+implémentation, et la compilation incrémentale ne l'a pas vu. C'est la
+construction de l'image Docker - qui compile depuis zéro - qui a levé l'erreur.
+Corollaire : **ne jamais avaler la sortie de `docker compose build`** ; elle
+disait « failed to solve » pendant que `up -d` répondait tranquillement
+« Started » sur l'ANCIENNE image, et l'export vérifié en direct ne montrait
+alors aucune des quatre familles.
+
+**Deux Maven en même temps sur le même `target/` monté se marchent dessus** :
+une suite complète lancée en tâche de fond et un `clean test` simultané ont
+produit un `BUILD FAILURE` sans une seule ligne de test. Relancé seul, le même
+`clean test` rend 1011 tests verts.
+
 ### Lot 78 — le panneau d'aide s'ouvrait derrière le clavier
 
 Suite du balayage mesuré du Lot 77, sur une dimension qu'il n'avait pas
@@ -4642,6 +4709,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- `mvn test-compile` peut passer sur des classes PÉRIMÉES (`target/` vit dans le répertoire monté) : ajouter une méthode à un port a laissé un faux repository de test sans implémentation sans que rien ne le signale. Seule la construction de l’image Docker, qui compile depuis zéro, l’a levée - donc **ne jamais avaler la sortie de `docker compose build`** : elle disait « failed to solve » pendant que `up -d` répondait « Started » sur l’ANCIENNE image (Lot 79).
+- Deux Maven en même temps sur le même `target/` monté se marchent dessus : une suite en tâche de fond et un `clean test` simultané ont rendu un `BUILD FAILURE` sans une seule ligne de test, vert au relancement seul (Lot 79).
 - La touche Échap envoyée par le pilote du navigateur n’atteint PAS un `document.addEventListener('keydown')` : le panneau reste ouvert et ça ressemble à un défaut. Distribuer un vrai `KeyboardEvent` depuis la page pour vérifier un raccourci clavier (Lot 78).
 - Une surface `role="dialog"` NON modale (pas d’`aria-modal`, pas de voile) ne doit pas recevoir le piège à focus de `useModalA11y` - mais elle doit quand même faire entrer le focus chez elle, surtout quand elle est rendue AVANT son déclencheur dans le DOM : Tab emmène alors ailleurs, et le panneau ne s’atteint qu’en Maj+Tab (Lot 78).
 - Ne JAMAIS déclencher des gestes en masse par correspondance de libellé sur des données réelles : au Lot 77 une sonde a cliqué tous les boutons « Modifier / Éditer / Ajouter » d’une fiche pour déplier ses panneaux. Rien n’a été écrit - vérifié après coup sur les six tables - mais un « Ajouter » peut être une bascule qui écrit (Lot 77).

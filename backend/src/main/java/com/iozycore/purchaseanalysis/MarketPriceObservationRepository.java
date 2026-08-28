@@ -11,6 +11,15 @@ public interface MarketPriceObservationRepository {
     List<MarketPriceObservation> findByEditionId(UUID mangaEditionId);
 
     /**
+     * Tout le journal, pour l'export complet - un relevé saisi a la main est
+     * irrecuperable ailleurs, et l'export promet l'absence d'enfermement
+     * (meme raison que les editions de reference au Lot 33). Une methode
+     * plutot qu'une boucle par edition cote appelant : l'export n'a aucune
+     * raison d'emettre une requete par edition.
+     */
+    List<MarketPriceObservation> findAll();
+
+    /**
      * Retire un relevé saisi par erreur (une virgule mal placée, la mauvaise
      * édition). C'est la SEULE écriture offerte en plus de l'ajout : un relevé
      * est un fait constaté à une date, pas un champ qu'on ajuste. Le corriger
