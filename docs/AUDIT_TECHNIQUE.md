@@ -14,18 +14,23 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 
 | | fichiers | lignes |
 |---|---|---|
-| backend `src/main` | 225 | 17 577 |
-| backend `src/test` | 69 | 10 884 |
-| web `src` | 125 | 15 625 |
+| backend `src/main` | 269 | 24 339 |
+| backend `src/test` | 104 | 20 832 |
+| web `src` | 152 | 20 667 |
 | iOS | 24 | 4 166 |
-| migrations Flyway | 17 | — |
-| docs | 5 | ~3 300 |
+| migrations Flyway | 24 | — |
+| docs | 5 | ~9 493 |
 
-**9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
-`editionupgrade`, `share`, `shared`) · **16 contrôleurs** ·
-**96 endpoints** · **21 tables** · **27 routes web** · **458 tests**.
+**8 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
+`followededition`, `share`, `shared`) · **18 contrôleurs** ·
+**92 endpoints** · **20 tables** · **27 routes web** · **1 013 tests**.
 
-Le rapport test/production est de **0,62 ligne de test par ligne de production**
+> Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
+> suppression de `editionupgrade` (Lot 27) et de `loan` (migration V19), et
+> annonçaient **458 tests** quand il y en a aujourd'hui plus du double. Le
+> contexte `followededition` les a rejoints depuis (Lot 26).
+
+Le rapport test/production est de **0,86 ligne de test par ligne de production**
 côté backend — élevé, et concentré sur le domaine et l'intégration.
 
 ---
