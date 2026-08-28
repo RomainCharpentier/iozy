@@ -29,7 +29,25 @@ public class VerdictScorer {
                          boolean conditionAppliesToContainer, List<CollectionStatus> completenessStatuses,
                          boolean anyEditionMatched, boolean anyOutOfPrint, List<EditionTier> itemTiers,
                          boolean costToCompleteKnown, BigDecimal totalCostToComplete,
-                         boolean anyBetterEditionAnnounced, NegotiationAdvice negotiationAdvice) {
+                         boolean anyBetterEditionAnnounced, NegotiationAdvice negotiationAdvice,
+                         boolean negotiationPriceDataAvailable) {
+
+        /**
+         * Historical shape, kept so the existing call sites need no change: it assumes the
+         * negotiation advice REST ON price data, which is what {@code SKIP_LISTING} meant before
+         * {@link NegotiationRecommendation#skip(String)} split the two.
+         */
+        public Input(BigDecimal totalRealCost, BigDecimal totalFairValue, BigDecimal totalNewValue,
+                     BigDecimal discountPercent, boolean anyObservedMarketData, Condition listingCondition,
+                     boolean conditionAppliesToContainer, List<CollectionStatus> completenessStatuses,
+                     boolean anyEditionMatched, boolean anyOutOfPrint, List<EditionTier> itemTiers,
+                     boolean costToCompleteKnown, BigDecimal totalCostToComplete,
+                     boolean anyBetterEditionAnnounced, NegotiationAdvice negotiationAdvice) {
+            this(totalRealCost, totalFairValue, totalNewValue, discountPercent, anyObservedMarketData,
+                    listingCondition, conditionAppliesToContainer, completenessStatuses, anyEditionMatched,
+                    anyOutOfPrint, itemTiers, costToCompleteKnown, totalCostToComplete, anyBetterEditionAnnounced,
+                    negotiationAdvice, true);
+        }
     }
 
     public record Outcome(Verdict verdict, int score, Map<VerdictFactor, FactorScore> factorBreakdown,
@@ -63,10 +81,15 @@ public class VerdictScorer {
                 : weightedSum.divide(weightTotal, 0, RoundingMode.HALF_UP).intValueExact();
 
         Verdict verdict = verdictFor(rawScore);
-        if (input.negotiationAdvice() == NegotiationAdvice.SKIP_LISTING
+        if (input.negotiationAdvice() == NegotiationAdvice.SKIP_LISTING && input.negotiationPriceDataAvailable()
                 && (verdict == Verdict.EXCELLENT_DEAL || verdict == Verdict.GOOD_DEAL || verdict == Verdict.FAIR_PRICE)) {
             // A price genuinely out of market range can never read as a good deal,
             // whatever the edition/completeness quality otherwise suggests.
+            //
+            // "Genuinely out of range" is the whole point, and it needs price data to be
+            // established. SKIP_LISTING also comes back when NO fair value could be computed at
+            // all, and downgrading on that meant an unpriceable listing was reported as expensive
+            // BECAUSE nothing was known about its price - a judgement drawn from an absence.
             verdict = Verdict.EXPENSIVE;
         }
 

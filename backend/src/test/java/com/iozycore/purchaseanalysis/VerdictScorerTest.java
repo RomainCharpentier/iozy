@@ -28,6 +28,22 @@ class VerdictScorerTest {
     }
 
     @Test
+    void a_skip_advice_that_rests_on_no_price_data_at_all_does_not_downgrade_the_verdict() {
+        // Exactly the excellent scenario below, except the negotiation came back SKIP_LISTING
+        // because NO fair value could be computed - not because the price is out of range. The
+        // downgrade would then report "expensive" about a listing whose price is unknown.
+        CollectionStatus complete = new CollectionStatus(null, 11, 0, List.of(), List.of(), BigDecimal.ZERO, PriceBasis.OBSERVED_MARKET);
+        VerdictScorer.Input input = new VerdictScorer.Input(
+                new BigDecimal("50"), new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("67"), true,
+                Condition.MINT_SEALED, false, List.of(complete), true, false, List.of(EditionTier.PERFECT), true,
+                BigDecimal.ZERO, false, NegotiationAdvice.SKIP_LISTING, false);
+
+        VerdictScorer.Outcome outcome = scorer.score(input, defaults);
+
+        assertThat(outcome.verdict()).isEqualTo(Verdict.EXCELLENT_DEAL);
+    }
+
+    @Test
     void a_factor_with_no_usable_data_is_excluded_rather_than_defaulted_to_a_neutral_score() {
         VerdictScorer.Input input = new VerdictScorer.Input(
                 new BigDecimal("50"), null, null, null, false, Condition.GOOD, false, List.of(), false, false,

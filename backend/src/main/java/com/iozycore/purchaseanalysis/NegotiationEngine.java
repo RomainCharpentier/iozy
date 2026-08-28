@@ -50,7 +50,7 @@ public class NegotiationEngine {
                     NegotiationAdvice.NEGOTIATE,
                     "Le prix demandé dépasse la valeur estimée - propose une offre proche de la fourchette juste.", true);
         }
-        return NegotiationRecommendation.unavailable(
+        return NegotiationRecommendation.skip(
                 "Le prix demandé (" + askingPrice + ") dépasse très largement la valeur estimée (" + fairValue
                         + ") - passer son tour est plus réaliste que négocier.");
     }

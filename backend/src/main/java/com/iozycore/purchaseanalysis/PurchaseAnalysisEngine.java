@@ -272,7 +272,7 @@ public class PurchaseAnalysisEngine {
                 totalRealCost, finalFairValue, finalNewValue, discountPercent, anyObservedMarketData,
                 listing.condition(), listing.conditionAppliesToContainer(), List.copyOf(completenessStatuses),
                 anyEditionMatched, anyOutOfPrint, List.copyOf(itemTiers), costToCompleteFullyKnown, finalCostToComplete,
-                anyBetterEditionAnnounced, negotiation.advice());
+                anyBetterEditionAnnounced, negotiation.advice(), negotiation.priceDataAvailable());
         VerdictScorer.Outcome outcome = verdictScorer.score(verdictInput, preferences);
 
         BigDecimal finalMaxWorthwhile = maxWorthwhileFullyKnown ? totalMaxWorthwhile : null;

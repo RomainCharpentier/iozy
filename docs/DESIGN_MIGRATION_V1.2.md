@@ -1360,6 +1360,80 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 71 — une absence de prix n'est pas un mauvais prix
+
+Sur une annonce dont **aucune valeur ne peut être estimée** - édition absente
+du catalogue, donc ni prix relevé ni prix neuf - l'application affichait, en
+rouge et en gras :
+
+> **Passer l'annonce**
+> Aucun prix relevé ni prix neuf connu pour cette édition - impossible
+> d'estimer une valeur juste.
+
+Un conseil tiré d'un vide. Et le verdict global disait **« Cher · 50/100 »**,
+pour la même raison : `VerdictScorer` rabat tout verdict favorable sur
+`EXPENSIVE` dès que la négociation rend `SKIP_LISTING`, sans distinguer les
+deux choses très différentes que cet avis recouvre.
+
+C'est la figure du Lot 58, transposée d'un `return null` à un enum : *« ça n'a
+pas marché »* et *« il n'y a rien »* rendus par la même valeur, et deux étages
+plus haut plus personne ne sait lequel des deux.
+
+#### Le drapeau qui devait les séparer existait, et mentait
+
+`NegotiationRecommendation.priceDataAvailable` est documenté noir sur blanc :
+« false when neither a market observation nor a retail price allowed computing
+a fair value at all ». Mais `NegotiationEngine` appelait la même fabrique
+`unavailable(...)` dans **les deux** cas - y compris celui où la valeur juste
+est parfaitement connue et **citée dans le message** (« dépasse très largement
+la valeur estimée (22.50) »). Le drapeau valait donc `false` sur une analyse
+qui affichait son prix de référence deux lignes plus bas.
+
+Et personne ne s'en apercevait : le champ est typé côté web
+(`types/purchaseAnalysis.ts`) et lu par **zéro ligne** d'interface. Livré,
+faux, muet.
+
+#### Ce qui a été fait
+
+- `NegotiationRecommendation.skip(rationale)` à côté de `unavailable(rationale)` :
+  même avis `SKIP_LISTING`, mêmes trois prix à `null` (le cahier des charges
+  refuse de fabriquer une offre sur un écart déraisonnable - inchangé), mais
+  `priceDataAvailable = true`, parce que la donnée était là.
+- `VerdictScorer.Input` gagne `negotiationPriceDataAvailable`, et le rabattement
+  ne s'applique plus qu'à un prix réellement hors marché. Ajouté par
+  **constructeur auxiliaire** délégant avec `true` : les six sites d'appel des
+  tests n'ont pas bougé d'une ligne.
+- L'écran distingue enfin les deux : « Passer l'annonce » en rouge quand une
+  valeur est connue, « Aucun conseil de prix possible » en gris neutre quand il
+  n'y en a pas - juste sous le bloc Prix qui vient de dire « Référence
+  insuffisante », qu'il contredisait.
+
+#### Deux tests de non-régression
+
+`asking_price_far_above_fair_value_...` vérifie désormais aussi
+`priceDataAvailable` ; et `a_skip_advice_that_rests_on_no_price_data_at_all_does_not_downgrade_the_verdict`
+reprend exactement le scénario excellent voisin en ne changeant que ce drapeau.
+
+**Vérifié en direct, deux analyses jetables créées puis supprimées.** Édition
+inconnue, 30 € : `priceDataAvailable: false`, écran « Aucun conseil de prix
+possible » en gris, verdict **« Prix correct · 50/100 · Confiance Faible ·
+basée sur 2/10 critères »** là où le même profil stocké en base affiche encore
+« Cher ». Death Note Black Édition, 200 € : `priceDataAvailable: true`, écran
+« Passer l'annonce » en rouge, verdict « Cher · 50/100 · Confiance Haute ·
+10/10 » - le rabattement fait toujours son travail quand il est fondé. Les deux
+analyses supprimées ensuite (204), état revenu à l'identique : 9 analyses,
+9 œuvres, 14 possessions, 1 envie.
+
+**Une conséquence à connaître** : les analyses **déjà en base** portent
+l'ancien drapeau dans leur `payload` (`false` dans les deux cas). L'analyse
+Death Note du 24/08, qui relève du dépassement de seuil, s'affiche donc
+désormais avec le libellé neutre. Rien n'a été réécrit dans les données de
+l'utilisateur pour le corriger - une reprise de données se décide, elle ne se
+glisse pas dans un lot.
+
+**Vérifié** : 1003 tests backend, `typecheck`, `lint`, `check:contrast`,
+`build`.
+
 ### Lot 70 — « d'où vient ce prix » ne se dit plus de quatre façons
 
 `PriceBasis` distingue trois origines de prix qui n'engagent pas la même
@@ -4075,6 +4149,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une valeur d’enum qui recouvre DEUX situations finit par les rendre indistinguables chez son lecteur : `SKIP_LISTING` disait à la fois « trop cher » et « je ne sais rien du prix », et l’écran conseillait de passer une annonce sur la foi d’un vide. Le drapeau qui les séparait existait, mais la même fabrique servait aux deux cas - donc il mentait, et aucune interface ne le lisait. Même figure qu’au Lot 58, un étage plus haut (Lot 71).
 - Un enum du serveur qui gagne une valeur ne casse rien tout de suite : il casse les traductions écrites AVANT lui, et d’abord chez les surfaces qui ne peuvent pas encore la recevoir - donc silencieusement. Compter les valeurs traitées à chaque endroit qui le traduit, puis vérifier lesquelles de ces surfaces peuvent réellement la recevoir : c’est ce qui sépare un mensonge à l’écran d’une dette (Lot 70).
 - Quand deux écrans lisent la même donnée, c'est le CHARGEMENT qu'on partage, pas l'affichage : le hook rend les données et leur état, chaque écran garde son filtrage, son tri et sa mise en page. Factoriser plus loin les aurait fondus en un composant à options, et c'est ce que le Lot 28 avait justement démonté (Lot 66).
 - Une liste de caches à invalider recopiée dans cinq écrans est cinq occasions d'en oublier un - et le coût d'un oubli est invisible : l'écran affiche simplement l'état d'avant. Quand les clés sont hiérarchiques, un préfixe remplace une énumération, et il n'y a plus rien à tenir à jour (Lot 65).
