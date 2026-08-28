@@ -35,7 +35,16 @@ const MESSAGES_PAR_STATUT: Record<number, string> = {
   404: "Introuvable - cette donnée n'existe plus, ou le lien est erroné.",
   409: "Opération impossible dans l'état actuel.",
   500: "Erreur du serveur.",
+  // 502/504 : le serveur applicatif ne répond pas DERRIÈRE le serveur web. En
+  // développement (`npm run dev`) l'appel échoue avant d'aboutir et tombe dans
+  // MESSAGE_HORS_LIGNE ; mais l'application telle qu'elle est déployée passe par
+  // le nginx de docker-compose, qui répond lui, avec un 502 - la panne la plus
+  // ordinaire de cette application (conteneur API pas encore démarré, ou
+  // arrêté). Sans ces deux lignes, le repli affichait la phrase de statut
+  // anglaise, « Bad Gateway », dans une interface entièrement en français.
+  502: "Le serveur de l'application ne répond pas - vérifiez qu'il est bien démarré.",
   503: "Service indisponible, réessayez dans un instant.",
+  504: "Le serveur de l'application ne répond pas - vérifiez qu'il est bien démarré.",
 }
 
 async function extractErrorMessage(response: Response): Promise<string> {
