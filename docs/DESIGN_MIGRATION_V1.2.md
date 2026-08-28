@@ -1360,6 +1360,64 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 70 — « d'où vient ce prix » ne se dit plus de quatre façons
+
+`PriceBasis` distingue trois origines de prix qui n'engagent pas la même
+confiance : relevé sur de vraies annonces, estimé par l'IA sans vérification,
+ou calculé depuis le prix neuf. Quatre écrans le traduisaient chacun dans son
+coin — Découvrir, Suggestions d'achats, l'assistant d'une fiche, le détail
+d'une analyse — et **l'un d'eux n'en connaissait que deux valeurs** :
+
+```
+suggestion.costToCompleteBasis === 'THEORETICAL_ONLY' ? ' (théorique)' : ' (marché)'
+```
+
+`SuggestionsPage` a été écrite avant que l'IA existe. Depuis, `AI_ESTIMATED`
+est entrée dans l'enum et tombe dans le `else` : une estimation produite par
+l'IA s'y annoncerait **« (marché) »**, exactement ce que le garde-fou de la
+fonctionnalité interdit — une donnée IA ne doit jamais être présentée comme
+une donnée réelle.
+
+#### Le défaut est LATENT, et il faut le dire
+
+`GET /purchase-analysis/near-complete-suggestions` et
+`GET /purchase-analysis/completeness` passent tous deux par
+`PurchaseAnalysisService.computeCompleteness`, qui appelle
+`marketPriceCalculator.computePerVolume(edition, observations)` — la surcharge
+**sans** estimation IA. Aucune de ces deux routes ne peut donc rendre
+`AI_ESTIMATED` aujourd'hui. Seule `analyze()` le peut, et c'est le seul des
+quatre écrans qui traitait la valeur correctement.
+
+Autrement dit : trois écrans traduisaient une valeur qu'ils ne reçoivent pas
+encore, chacun à sa manière, et le jour où `computeCompleteness` recevra
+l'avis de l'IA — l'endpoint derrière l'assistant d'une fiche, ce n'est pas une
+hypothèse lointaine — deux d'entre eux auraient menti sans que rien ne le
+signale. Même figure qu'au Lot 68 : refermé avant que ça se voie.
+
+#### Ce qui a été fait
+
+`lib/basePrix.ts` porte les deux registres — `libelleBaseCourt` (incise
+derrière un montant) et `libelleBaseLong` (phrase de l'assistant). Le sens est
+écrit une fois ; seule la ponctuation reste chez l'appelant.
+
+`null` (le backend le rend quand le coût est nul ou inconnu, voir
+`CollectionStatus`) ne se replie plus sur « théorique » : les deux helpers
+rendent `null` à leur tour et l'appelant n'écrit rien, plutôt que d'affirmer
+une origine inconnue. Les trois écrans qui repliaient sur « théorique »
+affirmaient une origine que personne ne leur avait donnée.
+
+**Vérifié en direct sur les quatre surfaces**, rendu identique à avant :
+Suggestions d'achats « ~22.50 € pour compléter (marché) » (Death Note) et
+« 4/6 tomes · 2 manquants » sans mention (Raw Hero, base nulle) ; Découvrir
+« ~22.50 € (marché) » ; le détail d'une analyse « (~22.50 €, marché) » ;
+l'assistant de la fiche Death Note « Environ 22.50 € pour compléter (prix de
+marché observés). » Aucune écriture, aucune donnée touchée.
+
+**Non vérifiée en direct** : la branche `AI_ESTIMATED`, précisément parce
+qu'elle est inatteignable depuis ces endpoints — la seule surface qui peut la
+recevoir est le détail par série d'une analyse, et son libellé (« estimation
+IA ») est repris mot pour mot. `typecheck`, `lint`, `check:contrast`, `build`.
+
 ### Lot 69 — le cœur « Envies » quitte l'en-tête
 
 « Le bouton envie en haut dans le menu semble inutile. » Le code le disait déjà
@@ -4017,6 +4075,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un enum du serveur qui gagne une valeur ne casse rien tout de suite : il casse les traductions écrites AVANT lui, et d’abord chez les surfaces qui ne peuvent pas encore la recevoir - donc silencieusement. Compter les valeurs traitées à chaque endroit qui le traduit, puis vérifier lesquelles de ces surfaces peuvent réellement la recevoir : c’est ce qui sépare un mensonge à l’écran d’une dette (Lot 70).
 - Quand deux écrans lisent la même donnée, c'est le CHARGEMENT qu'on partage, pas l'affichage : le hook rend les données et leur état, chaque écran garde son filtrage, son tri et sa mise en page. Factoriser plus loin les aurait fondus en un composant à options, et c'est ce que le Lot 28 avait justement démonté (Lot 66).
 - Une liste de caches à invalider recopiée dans cinq écrans est cinq occasions d'en oublier un - et le coût d'un oubli est invisible : l'écran affiche simplement l'état d'avant. Quand les clés sont hiérarchiques, un préfixe remplace une énumération, et il n'y a plus rien à tenir à jour (Lot 65).
 - Un sac d'attributs non typé se lit à un seul endroit, sinon chaque lecteur invente sa tolérance : quatre copies de « lire le numéro d'un tome », dont une acceptait `"12"` quand les trois autres l'ignoraient. Le défaut ne se voit pas tant que la donnée est propre - il attend (Lot 62).

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getNearCompleteSuggestions } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
+import { libelleBaseCourt } from '../../lib/basePrix'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EnTeteSection } from '../../components/EnTeteSection'
 
@@ -34,7 +35,9 @@ export function SuggestionsPage() {
       )}
 
       <ul className="flex flex-col gap-2">
-        {(suggestionsQuery.data ?? []).map((suggestion) => (
+        {(suggestionsQuery.data ?? []).map((suggestion) => {
+          const base = libelleBaseCourt(suggestion.costToCompleteBasis)
+          return (
           <li key={`${suggestion.entityId}-${suggestion.editionName}`}>
             <button
               type="button"
@@ -51,13 +54,14 @@ export function SuggestionsPage() {
                   <>
                     {' '}
                     · ~{suggestion.estimatedCostToComplete.toFixed(2)} € pour compléter
-                    {suggestion.costToCompleteBasis === 'THEORETICAL_ONLY' ? ' (théorique)' : ' (marché)'}
+                    {base !== null && ` (${base})`}
                   </>
                 )}
               </p>
             </button>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </div>
   )
