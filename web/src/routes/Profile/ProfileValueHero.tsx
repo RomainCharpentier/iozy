@@ -29,10 +29,15 @@ export function ProfileValueHero() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/stats')}
+      onClick={() => navigate('/stats', { state: { focusValeur: true } })}
       className="flex w-full flex-col items-start gap-2 rounded-[22px] bg-surface p-6 text-left shadow-token-elevated transition-transform hover:-translate-y-0.5"
     >
-      <span className="text-[11px] font-semibold tracking-widest text-textDim uppercase">Valeur estimée</span>
+      {/* Le MÊME nom que la section qu'il ouvre, et que le bouton de Ma
+          collection : « Valeur estimée » ici, « Valeur de la collection »
+          là-bas et « Statistiques » à l'arrivée faisaient trois noms pour
+          une idée (UX-6). Ce que « estimée » disait - une valeur partielle -
+          est déjà porté par la pastille de couverture juste en dessous. */}
+      <span className="text-[11px] font-semibold tracking-widest text-textDim uppercase">Valeur de la collection</span>
       <span className="flex flex-wrap items-baseline gap-3">
         {confidence === 'indisponible' ? (
           <span className="font-display text-2xl font-bold text-textPrimary">Pas encore de prix renseigné</span>

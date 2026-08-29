@@ -9,7 +9,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { CameraBarcodeScanner } from './CameraBarcodeScanner'
 import { ScanActionMenu, type ScanCandidate } from './ScanActionMenu'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
-import type { EtatFiche } from '../EntityDetail/retourFiche'
+import type { EtatRetour } from '../../lib/retour'
 import type { MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { EnTeteSection } from '../../components/EnTeteSection'
@@ -77,7 +77,7 @@ function parseVolumeNumberFromTitle(title: string): number | undefined {
  * pour la mécanique caméra/détection, purement mécanique, aucun lookup). */
 /** Une fiche ouverte depuis le scan propose de revenir scanner : on scanne
  *  une pile de tomes, pas un seul. */
-const RETOUR_SCAN: EtatFiche = { retour: { to: '/scan', libelle: 'Scan' } }
+const RETOUR_SCAN: EtatRetour = { retour: { to: '/scan', libelle: 'Scan' } }
 
 export function ScanPage() {
   const queryClient = useQueryClient()

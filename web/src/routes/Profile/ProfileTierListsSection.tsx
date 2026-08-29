@@ -43,6 +43,7 @@ export function ProfileTierListsSection() {
           <Link
             key={entityType.id}
             to={`/tier-lists/general/${entityType.id}`}
+            state={{ retour: { to: '/profile', libelle: 'Mon profil' } }}
             className="flex min-h-12 items-center gap-3 rounded-xl px-1.5 transition-colors hover:bg-rowHover"
           >
             <span className="flex shrink-0 gap-0.5">
@@ -66,6 +67,7 @@ export function ProfileTierListsSection() {
           <Link
             key={list.id}
             to={`/tier-lists/${list.id}`}
+            state={{ retour: { to: '/profile', libelle: 'Mon profil' } }}
             className="flex min-h-12 items-center gap-3 rounded-xl px-1.5 transition-colors hover:bg-rowHover"
           >
             <TexteCoupe texte={list.name} className="min-w-0 flex-1 truncate text-sm text-textPrimary" />

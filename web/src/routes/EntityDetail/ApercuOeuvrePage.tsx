@@ -16,7 +16,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { ColonneSource, InspecteurFiche, RangeeInspecteur } from './InspecteurFiche'
 import type { MetadataCandidateDto } from '../../types/api'
 import { FicheHero } from './FicheHero'
-import { retourDepuis } from './retourFiche'
+import { retourDepuis } from '../../lib/retour'
 import { useCollecteParTome } from '../../lib/typeDeCollection'
 import { usePropositionTomes } from './usePropositionTomes'
 

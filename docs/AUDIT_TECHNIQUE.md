@@ -16,7 +16,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 |---|---|---|
 | backend `src/main` | 280 | 25 536 |
 | backend `src/test` | 112 | 21 952 |
-| web `src` | 176 | 23 234 |
+| web `src` | 181 | 24 010 |
 | iOS | 24 | 4 166 |
 | migrations Flyway | 26 | — |
 | docs | 6 | ~9 614 |
@@ -24,7 +24,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
 **97 endpoints** · **21 tables** · **27 routes web** ·
-**1 057 tests backend** · **215 tests web** (Vitest) · **7 parcours de bout en
+**1 057 tests backend** · **219 tests web** (Vitest) · **7 parcours de bout en
 bout** (Playwright, sur pile jetable) — tous depuis le 2026-08-29.
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la

@@ -20,7 +20,7 @@ import type { EntityResponse, MetadataCandidateDto } from '../../types/api'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { Jaquette } from '../../components/Jaquette'
 import { EnTeteSection } from '../../components/EnTeteSection'
-import type { EtatFiche } from '../EntityDetail/retourFiche'
+import type { EtatRetour } from '../../lib/retour'
 import { indicesDe } from '../../lib/indicesOeuvre'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
@@ -59,7 +59,7 @@ function candidateKey(candidate: MetadataCandidateDto): string {
  * titre cherchés, donc c'est elle qu'il faut rouvrir. Une constante `/add`
  * ramenait bien à l'écran, mais vidé de ce qu'on y avait tapé.
  */
-function retourVersRecherche(search: string): EtatFiche {
+function retourVersRecherche(search: string): EtatRetour {
   return { retour: { to: `/add${search}`, libelle: 'Recherche' } }
 }
 

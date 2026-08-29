@@ -1360,6 +1360,77 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 98 — cinq incohérences, dont trois qui n’existaient plus
+
+Le §22 de `USER_JOURNEYS.md` listait cinq incohérences non traitées. Les
+reprendre une par une a donné un résultat inattendu : **trois avaient déjà
+disparu**, emportées par des lots ultérieurs qui ne les visaient pas. Elles
+ont été vérifiées, pas supposées.
+
+#### Les deux vraies
+
+**UX-6 — trois mots pour une idée.** « Valeur » (bouton de Ma collection)
+menait à un écran intitulé « Statistiques », où il fallait ensuite trouver la
+section « Valeur de la collection » ; le Profil, lui, affichait « Valeur
+estimée ». Un seul nom désormais - celui de la section - et les deux contrôles
+qui le prononcent **emmènent à la section**, au lieu de déposer en haut d'un
+écran qui parle
+d'autre chose. Même patron que Ma collection ▸ Partager, qui déroule déjà
+jusqu'au partage. Ce que « estimée » disait est porté par la pastille de
+couverture, juste sous le montant.
+
+**UX-8 — des retours arrière qui se contredisent.** La fiche avait déjà le bon
+mécanisme : l'origine voyage dans `location.state`, le lien **nomme** sa
+destination, et disparaît s'il ne la connaît pas. Quatre autres écrans, eux,
+codaient la leur en dur - un board de Tier List revenait toujours par
+« Tier Lists », même ouvert depuis Découvrir ou depuis le Profil. Le module
+monte donc dans `lib/retour`, et les écrans qui ouvrent un board disent
+d'où ils viennent. Vérifié en direct sur les trois chemins : Découvrir →
+« Découvrir », Profil → « Mon profil », Tier Lists → « Tier Lists ».
+
+Toujours pas de `navigate(-1)` : un « Retour » sans destination ment une fois
+sur deux, et le bouton Précédent du navigateur continue de faire son travail à
+côté.
+
+#### Les trois caduques, et comment on le sait
+
+- **UX-3** (« le scan demande, la recherche non ») : l'écran de brouillon dont
+  parlait le constat n'existe plus. Les deux chemins mènent au même aperçu,
+  avec le même bouton, et rien ne s'écrit avant ce clic. Ce qui reste au scan -
+  un menu - est une conséquence, pas une incohérence : le scan **devine** le
+  numéro de tome, la recherche non.
+- **UX-9** (« le panneau du tome mélange deux intentions ») : ses deux moitiés
+  ont disparu séparément. Le formulaire a quitté le panneau, et le « passé »
+  d'un tome non possédé ne peut plus exister - retirer un tome SUPPRIME la
+  possession depuis le Lot 55, rien n'en garde trace.
+- **UX-10** (« les analyses anciennes parlent anglais ») : **mesuré dans la
+  base réelle** plutôt que déduit. Les neuf analyses enregistrées portent en
+  tout **un seul** message distinct, et il est en français. Tout le reste de ce
+  qui s'affiche est un enum, traduit à l'affichage - donc jamais figé dans une
+  langue.
+
+Le §22 porte désormais son état en tête : plus aucune incohérence ouverte,
+UX-5 exceptée, délibérée et documentée comme telle. **Un constat qui cesse
+d'être vrai doit le dire** - c'est la même règle qu'aux Lots 85 et 86, où des
+chiffres et un statut avaient dérivé.
+
+#### Deux choses que la vérification a apprises
+
+Le recentrage sur la section ne marchait pas au premier essai : la section
+n'EXISTE pas avant que les statistiques arrivent, et l'effet cherchait une
+référence encore vide. Constaté en direct - le bouton promettait une section
+qu'il fallait quand même aller chercher.
+
+Et la vérification elle-même a demandé un détour : la fenêtre du navigateur de
+test a une hauteur de **zéro**, donc rien n'y est jamais défilable et `scrollY`
+reste à 0 quoi qu'il arrive. On mesure donc l'**intention** - un espion sur
+`scrollIntoView` confirme l'appel et sa cible (`#valeur`) - plutôt qu'un effet
+que ce navigateur ne peut pas produire.
+
+219 tests web (dont quatre neufs sur `lib/retour`, vérifiés par mutation : le
+refus d'une destination hors de l'application n'est gardé que par eux), plus
+`typecheck`, `lint` et `build`.
+
 ### Lot 97 — du clic à la base
 
 Le dernier trou du filet, laissé ouvert depuis le Lot 89 et nommé à chaque

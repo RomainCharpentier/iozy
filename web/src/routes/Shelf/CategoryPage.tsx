@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { retourDepuis } from '../../lib/retour'
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
 import { CoverTile } from '../../components/CoverTile'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -36,6 +37,8 @@ import { useDonneesCollection } from './useDonneesCollection'
 export function CategoryPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
   const navigate = useNavigate()
+  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  const retour = retourDepuis(useLocation().state) ?? { to: '/', libelle: 'Ma collection' }
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState<CompletionFilter>('ALL')
   const preferences = usePreferencesCollection()
@@ -132,11 +135,21 @@ export function CategoryPage() {
   // catégorie vide qui ne l'est pas - la règle vit dans useDonneesCollection.
   const isLoading = donnees.chargement
 
+
   return (
     <div className="flex flex-col gap-4">
-      <button type="button" onClick={() => navigate('/')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
+          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
+          revenait autrefois par Tier Lists, et le bouton Précédent du
+          navigateur disait alors autre chose que celui de la page (UX-8).
+          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
+      <button
+        type="button"
+        onClick={() => navigate(retour.to)}
+        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
+      >
         <ArrowLeft size={15} />
-        Ma collection
+        {retour.libelle}
       </button>
 
       <div className="flex items-center gap-2.5">

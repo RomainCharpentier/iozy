@@ -68,7 +68,7 @@ export function DiscoverTierPreview() {
             <button
               key={entityType.id}
               type="button"
-              onClick={() => navigate(`/tier-lists/general/${entityType.id}`)}
+              onClick={() => navigate(`/tier-lists/general/${entityType.id}`, { state: { retour: { to: '/discover', libelle: 'Découvrir' } } })}
               className="flex flex-col gap-3 rounded-2xl border border-surface2 bg-surface p-4 text-left shadow-token-sm transition-transform hover:-translate-y-0.5"
             >
               <span className="flex items-center gap-2.5">
@@ -113,7 +113,7 @@ export function DiscoverTierPreview() {
             <button
               key={list.id}
               type="button"
-              onClick={() => navigate(`/tier-lists/${list.id}`)}
+              onClick={() => navigate(`/tier-lists/${list.id}`, { state: { retour: { to: '/discover', libelle: 'Découvrir' } } })}
               className="flex min-w-[210px] flex-1 items-center gap-2.5 rounded-2xl border border-surface2 bg-surface px-3.5 py-2.5 text-left transition-transform hover:-translate-y-0.5"
             >
               <TexteCoupe texte={list.name} className="min-w-0 flex-1 truncate text-sm font-semibold text-textPrimary" />
@@ -132,7 +132,7 @@ export function DiscoverTierPreview() {
           // du board (voir GeneralTierBoardPage, state.quickRank) : "Classer
           // mes éléments" promet d'enchaîner, pas de rouvrir le sélecteur
           // œuvre par œuvre à la main.
-          onClick={() => navigate(`/tier-lists/general/${busiestUniverse.entityType.id}`, { state: { quickRank: true } })}
+          onClick={() => navigate(`/tier-lists/general/${busiestUniverse.entityType.id}`, { state: { quickRank: true, ...({ retour: { to: '/discover', libelle: 'Découvrir' } }) } })}
           className="flex w-full items-center gap-3 rounded-2xl bg-accentTint p-3.5 text-left transition-transform hover:-translate-y-0.5"
         >
           <Sparkles size={18} className="shrink-0 text-accentText" />
