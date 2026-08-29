@@ -1360,6 +1360,57 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 88 — « 70 € », sans rien pour en douter
+
+`MarketReference` sait quatre choses de plus que le prix qu'elle rend : combien
+de relevés ont été **examinés** avant filtrage, à quel point les comparables
+retenus **s'accordent** (l'écart haut/bas rapporté à la médiane), de quand date
+le **plus récent**, et sur combien d'annonces indépendantes elle repose. Seule
+la dernière voyageait jusqu'à l'écran. Les trois autres restaient dans le
+calcul : `ListingAssessment` — l'instantané figé, celui que l'historique relit —
+ne les portait pas.
+
+Conséquence à l'écran, deux fois :
+
+- **« Confiance bonne · 4 annonces comparables »** était à croire sur parole.
+  Quatre comparables qui vont de 4,50 € à 12 € le tome et quatre qui se tiennent
+  à 12 % près ne valent pas la même référence, et le second cas est le seul où
+  « 70 € » se discute vraiment. C'est le même raisonnement que la taille
+  d'échantillon au Lot 60 : *un chiffre affiché est un chiffre auquel on croit,
+  donc il doit se vérifier*.
+- **« Pas assez de prix relevés comparables »** se disait aussi quand trois
+  relevés existaient bel et bien pour cette édition, mais sur des lots d'une
+  autre forme. « Aucune donnée » et « des données, mais aucune comparable » ne
+  demandent pas le même geste : le second dit quoi relever ensuite.
+
+Les trois réserves sont donc devenues des composants de l'instantané —
+`referenceSpreadPercent`, `referenceMostRecentObservation`,
+`referenceExaminedCount` — figés au moment de l'analyse, comme le prix lui-même.
+Des accesseurs calculés se seraient sérialisés en JSONB sans pouvoir se relire :
+le piège de `CollectionStatus`, déjà documenté dans l'en-tête de la fabrique.
+
+#### La compatibilité ascendante est une propriété de la lecture, pas une surcharge
+
+Un instantané pris avant ce lot ne porte pas ces trois composants. Le contrat est
+celui que le record tenait déjà pour la provenance : **dire qu'on l'ignore
+plutôt que de l'inventer après coup** — nul, nul, zéro, jamais des valeurs
+reconstituées qui donneraient à un ancien verdict une assurance qu'il n'avait
+pas. Une première version ajoutait un constructeur « forme historique » à dix
+paramètres pour porter cette promesse : personne ne l'appelait, Jackson n'en a
+pas besoin (un composant absent du JSON vaut `null`, ou `0` pour un compte), et
+un constructeur sans appelant est exactement ce que l'audit de code mort
+traque. Il a été retiré au profit de `ListingAssessmentSnapshotTest`, qui relit
+un payload à dix champs et vérifie la promesse au lieu de la déclarer.
+
+**Vérifié** : `referenceMostRecentObservation` est la **première date** du
+payload — tout le reste de l'instantané est nombre, texte ou instant — donc son
+aller-retour réel dans la colonne JSONB est testé en intégration (`flush` +
+`clear`, pas de cache de session), et pas seulement en sérialisation isolée.
+1018 tests backend depuis `clean`, plus `typecheck`, `lint`, `build` et les 116
+combinaisons de contraste côté web. La volumétrie de `AUDIT_TECHNIQUE.md` suit
+(1 013 → 1 018 tests, 104 → 105 fichiers de test) ; au passage, sa ligne « docs »
+comptait 5 fichiers pour 6.
+
 ### Lot 87 — une requête par envie, sur la seule porte ouverte à l'extérieur
 
 `PublicShareController.sharedWishlist()` chargeait chaque œuvre **une par une** :

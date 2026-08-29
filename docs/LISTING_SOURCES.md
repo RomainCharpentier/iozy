@@ -424,6 +424,18 @@ deux poids, deux mesures.
 `INCOMPLETE_LOT_COVERAGE`. `referenceSampleSize` et `examinedCount` permettent
 de distinguer « aucune donnée » de « 3 relevés, aucun comparable ».
 
+#### Les réserves voyagent avec le prix
+
+Depuis le Lot 88, l'instantané (`ListingAssessment`) porte aussi
+`referenceSpreadPercent` (à quel point les comparables s'accordent),
+`referenceMostRecentObservation` (la fraîcheur) et `referenceExaminedCount` :
+elles étaient calculées dans `MarketReference` et s'y arrêtaient. La section
+Prix affiche donc « … · 4 annonces comparables · resserrés à 12 % près · le plus
+récent le 20/08/2026 », et l'absence de référence se dit « 3 prix relevés
+examinés pour cette édition, aucun sur un lot comparable ». Une analyse
+antérieure au Lot 88 les rend nulles (0 pour le compte) : jamais reconstituées
+après coup, comme pour la provenance.
+
 #### Le cas de référence
 
 *Platinum End 1-14* (intégrale, 14 tomes) face à un T.1 à 8 €, un lot 1-4 à

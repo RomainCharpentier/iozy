@@ -1,6 +1,7 @@
 package com.iozycore.purchaseanalysis;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Les trois questions d'une annonce, gardées distinctes, puis une synthèse.
@@ -32,16 +33,26 @@ import java.math.BigDecimal;
  * @param referenceSampleSize comparables retenus derrière {@code referencePrice} - 0 quand il n'y en a pas
  * @param referenceSource     d'où vient la référence, ou {@code NOT_RECORDED} pour une analyse antérieure
  * @param referenceGap        ce qui manque quand il n'y a pas de référence, pour le dire utilement
+ * @param referenceSpreadPercent    à quel point les comparables s'accordent - écart haut/bas rapporté à
+ *                                  la médiane, {@code null} sous deux comparables ou pour une analyse
+ *                                  antérieure au Lot 88
+ * @param referenceMostRecentObservation le plus récent des relevés retenus : la fraîcheur de la référence
+ * @param referenceExaminedCount    relevés EXAMINÉS avant filtrage - dire « 3 existent, 0 comparable »
+ *                                  plutôt que « aucune donnée ». 0 pour une analyse antérieure au Lot 88
  */
 public record ListingAssessment(CollectionFit collectionFit, PricePosition pricePosition,
                                  BigDecimal referencePrice, MarketReferenceConfidence referenceConfidence,
                                  Integer deviationPercent, ListingTrustAssessment trust, Headline headline,
                                  int referenceSampleSize, MarketReferenceSource referenceSource,
-                                 ReferenceGap referenceGap) {
+                                 ReferenceGap referenceGap, Integer referenceSpreadPercent,
+                                 LocalDate referenceMostRecentObservation, int referenceExaminedCount) {
 
     public ListingAssessment {
         // Analyses enregistrées avant que la provenance soit conservée : on dit
         // qu'on l'ignore plutôt que de leur inventer une source après coup.
+        // Même règle pour les trois réserves ajoutées au Lot 88 : un instantané
+        // ancien ne les portait pas, il les relit nulles (0 pour un compte),
+        // jamais reconstituées après coup.
         referenceConfidence = referenceConfidence == null ? MarketReferenceConfidence.UNAVAILABLE : referenceConfidence;
         referenceSource = referenceSource == null ? MarketReferenceSource.NOT_RECORDED : referenceSource;
         referenceGap = referenceGap == null ? ReferenceGap.NOT_RECORDED : referenceGap;
@@ -70,10 +81,17 @@ public record ListingAssessment(CollectionFit collectionFit, PricePosition price
         // on croit.
         BigDecimal prixReference = ref.isUsable() ? ref.price() : null;
         PricePosition position = DealAssessmentPolicy.positionOf(askingPrice, ref);
+        // Les réserves voyagent AVEC le prix, comme MarketReference le promet dans
+        // son propre en-tête : « 70 € » ne se discute pas, « 70 € à partir de
+        // 4 comparables, relevés récemment, resserrés à 12 % près » se discute -
+        // et se corrige. L'échantillon et la source voyageaient déjà ; la
+        // dispersion, la fraîcheur et le nombre de relevés EXAMINÉS restaient
+        // dans le calcul, donc invisibles.
         return new ListingAssessment(collectionFit, position, prixReference, ref.confidence(),
                 DealAssessmentPolicy.deviationPercent(askingPrice, prixReference), trust,
                 synthese(collectionFit, position, trust),
-                ref.sampleSize(), ref.source(), ref.gap());
+                ref.sampleSize(), ref.source(), ref.gap(),
+                ref.spreadPercent(), ref.mostRecentObservation(), ref.examinedCount());
     }
 
     /** La conclusion mise en avant. Elle nomme d'abord ce qui décide : l'apport, puis le prix. */
