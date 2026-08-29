@@ -45,6 +45,13 @@ class AuthServiceTest {
         }
 
         @Override
+        public Optional<AppUser> findByPseudo(String pseudo) {
+            return parId.values().stream()
+                    .filter(u -> AppUser.normaliserPseudo(u.pseudo()).equals(AppUser.normaliserPseudo(pseudo)))
+                    .findFirst();
+        }
+
+        @Override
         public Optional<AppUser> findById(UUID id) {
             return Optional.ofNullable(parId.get(id));
         }
@@ -142,9 +149,44 @@ class AuthServiceTest {
     }
 
     @Test
-    void un_nom_affiche_vide_retombe_sur_l_adresse_plutot_que_sur_du_vide() {
-        AppUser compte = service("").creer("romain@example.com", "un-mot-de-passe", "   ", null);
+    void un_pseudo_vide_ferme_la_porte_plutot_que_de_recopier_l_adresse() {
+        // Avant le pseudo, un nom laissé vide était remplacé par l'adresse
+        // e-mail. L'avatar du menu affichait alors l'adresse de quelqu'un, et
+        // deux comptes pouvaient porter le même nom : ce repli n'existe plus.
+        assertThatThrownBy(() -> service("").creer("romain@example.com", "un-mot-de-passe", "   ", null))
+                .isInstanceOf(AuthService.CreationRefusee.class)
+                .hasMessageContaining("pseudo");
+    }
 
-        assertThat(compte.displayName()).isEqualTo("romain@example.com");
+    @Test
+    void un_pseudo_mal_forme_est_refuse_avec_une_phrase_qui_dit_la_regle() {
+        AuthService service = service("");
+
+        // Trop court, une espace, une arobase, et un début qui ne se lit pas.
+        for (String refuse : new String[] { "ro", "jean dupont", "romain@local", "-romain" }) {
+            assertThatThrownBy(() -> service.creer("romain@example.com", "un-mot-de-passe", refuse, null))
+                    .as("pseudo refusé : %s", refuse)
+                    .isInstanceOf(AuthService.CreationRefusee.class)
+                    .hasMessageContaining("pseudo");
+        }
+    }
+
+    @Test
+    void un_pseudo_accentue_est_accepte() {
+        // Refuser « Rémi » dans une application française serait une règle
+        // technique déguisée en règle produit.
+        AppUser compte = service("").creer("remi@example.com", "un-mot-de-passe", "Rémi", null);
+
+        assertThat(compte.pseudo()).isEqualTo("Rémi");
+    }
+
+    @Test
+    void deux_comptes_ne_peuvent_pas_porter_le_meme_pseudo_a_la_casse_pres() {
+        AuthService service = service("le-code");
+        service.creer("premier@example.com", "un-mot-de-passe", "Romain", null);
+
+        assertThatThrownBy(() -> service.creer("second@example.com", "un-mot-de-passe", "romain", "le-code"))
+                .isInstanceOf(AuthService.CreationRefusee.class)
+                .hasMessageContaining("déjà pris");
     }
 }

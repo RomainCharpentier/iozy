@@ -27,13 +27,17 @@ setup('créer le premier compte de cette instance', async ({ page }) => {
 
   await page.getByLabel('Adresse e-mail').fill(COMPTE.email)
   await page.getByLabel('Mot de passe').fill(COMPTE.motDePasse)
-  await page.getByLabel('Nom affiché').fill(COMPTE.nomAffiche)
+  await page.getByLabel('Pseudo').fill(COMPTE.pseudo)
   await page.getByRole('button', { name: 'Créer mon compte' }).click()
 
   // Créer connecte du même geste : on arrive dans l'application, pas sur un
   // écran de connexion qui redemanderait ce qu'on vient de taper.
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
   await expect(page.getByText("Rien ici pour l'instant.")).toBeVisible()
+
+  // Et l'en-tête dit au nom de qui : l'avatar porte les initiales du pseudo,
+  // pas celles de l'application.
+  await expect(page.getByRole('link', { name: `Mon profil — ${COMPTE.pseudo}` })).toHaveText('CE')
 
   await page.context().storageState({ path: FICHIER_DE_SESSION })
 })

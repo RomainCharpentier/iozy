@@ -24,6 +24,13 @@ import java.util.regex.Pattern;
  * d'invitation, défini par l'exploitant de l'instance
  * ({@code IOZYCORE_INVITE_CODE}). <b>Non défini, la création est fermée</b> :
  * l'absence de configuration ne doit jamais ouvrir une porte - elle la ferme.
+ *
+ * <h2>Le pseudo est vérifié ICI, pas seulement en base</h2>
+ * L'index unique de la V27 garantit qu'aucun doublon ne s'écrit ; il ne
+ * garantit pas qu'on l'explique. Une violation d'index remonte en 500, avec un
+ * message qui parle de contrainte à quelqu'un qui voulait juste choisir un
+ * nom. La vérification préalable existe pour la PHRASE, l'index pour la
+ * certitude - deux besoins distincts, et aucun ne remplace l'autre.
  */
 @Service
 public class AuthService {
@@ -65,7 +72,7 @@ public class AuthService {
         return aucunCompte() || !codeInvitation.isEmpty();
     }
 
-    public AppUser creer(String email, String motDePasse, String nomAffiche, String codeFourni) {
+    public AppUser creer(String email, String motDePasse, String pseudo, String codeFourni) {
         String adresse = AppUser.normaliserEmail(email);
         if (!FORME_D_ADRESSE.matcher(adresse).matches()) {
             throw new CreationRefusee("Cette adresse e-mail n'a pas une forme valide.");
@@ -73,6 +80,11 @@ public class AuthService {
         if (motDePasse == null || motDePasse.length() < LONGUEUR_MINIMALE_MOT_DE_PASSE) {
             throw new CreationRefusee(
                     "Le mot de passe doit faire au moins " + LONGUEUR_MINIMALE_MOT_DE_PASSE + " caractères.");
+        }
+        String nom = pseudo == null ? "" : pseudo.trim();
+        if (!AppUser.estUnPseudoValide(nom)) {
+            throw new CreationRefusee("Le pseudo doit faire 3 à 24 caractères, sans espace ni arobase, "
+                    + "et commencer par une lettre ou un chiffre.");
         }
 
         boolean premier = comptes.isEmpty();
@@ -88,11 +100,14 @@ public class AuthService {
         if (comptes.findByEmail(adresse).isPresent()) {
             throw new CreationRefusee("Un compte existe déjà avec cette adresse.");
         }
+        if (comptes.findByPseudo(nom).isPresent()) {
+            throw new CreationRefusee("Ce pseudo est déjà pris.");
+        }
 
         String hache = encodeur.encode(motDePasse);
         AppUser compte = premier
-                ? AppUser.premier(adresse, hache, nomAffiche)
-                : AppUser.nouveau(adresse, hache, nomAffiche);
+                ? AppUser.premier(adresse, hache, nom)
+                : AppUser.nouveau(adresse, hache, nom);
         return comptes.save(compte);
     }
 

@@ -9,7 +9,8 @@
 export const COMPTE = {
   email: 'e2e@iozycore.test',
   motDePasse: 'un-mot-de-passe-e2e',
-  nomAffiche: 'Compte E2E',
+  // Un pseudo, donc sans espace ni arobase (voir AppUser côté serveur) : « Compte E2E » serait refusé.
+  pseudo: 'compte-e2e',
 }
 
 /** Rangée sur le disque, rejouée par chaque parcours (voir playwright.config.ts). */

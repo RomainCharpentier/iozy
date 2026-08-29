@@ -1360,6 +1360,78 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 105 — un pseudo unique, et un avatar qui dit enfin qui
+
+L'avatar en haut à droite affichait **« IO »**, en dur : les initiales de
+l'application, sur le bouton qui mène au compte de quelqu'un. Sur une instance
+à plusieurs personnes, c'était le seul endroit de l'écran qui aurait pu dire au
+nom de qui on travaille, et il disait le nom du logiciel.
+
+Il porte maintenant les initiales du **pseudo** — « jean-dupont » → JD,
+« kenshin » → KE — et s'annonce « Mon profil — kenshin » à un lecteur d'écran :
+deux lettres lues à voix haute n'apprennent rien à personne.
+
+#### Le champ existait ; les règles, non
+
+`display_name` était là depuis le Lot 94, et c'est justement ce qui manquait :
+**facultatif**, **non unique**, et rempli avec **l'adresse e-mail** quand on ne
+saisissait rien. Deux conséquences, toutes deux visibles : deux comptes
+pouvaient porter le même nom sans qu'on puisse les distinguer, et l'avatar
+affichait l'adresse de quelqu'un. Le compte de cette instance en était un
+exemple — son nom d'affichage valait `romain@iozycore.local`.
+
+La colonne est donc **renommée** en `pseudo`, pas doublée : c'est le même
+champ, avec des règles enfin posées. Une seconde colonne aurait laissé
+l'ancienne vivre, lue quelque part, et personne n'aurait su laquelle fait foi.
+
+#### Ce qu'un pseudo a le droit d'être
+
+3 à 24 caractères, lettres, chiffres, `.`, `-`, `_` ; il commence par une
+lettre ou un chiffre. **Les accents sont acceptés** : refuser « Rémi » dans une
+application française serait une règle technique déguisée en règle produit.
+Sont refusés l'espace — « jean dupont » et « jean  dupont » sont
+indistinguables à l'œil — et l'arobase, qui ferait passer un pseudo pour une
+adresse.
+
+L'unicité est posée **en base**, sur `lower(pseudo)`, et vérifiée **aussi**
+dans `AuthService`. Ce n'est pas une redondance : l'index rend le doublon
+impossible, la vérification rend le refus **explicable**. « Ce pseudo est déjà
+pris » se lit ; une violation de contrainte non.
+
+Et ce refus est **explicite**, contrairement à un échec de connexion qui ne dit
+jamais si l'adresse existe. Un pseudo est public par destination — il s'affiche
+sur l'avatar, il se lit dans un espace partagé : le taire n'apprendrait rien à
+un curieux et empêcherait la seule personne concernée d'en choisir un autre.
+
+#### La migration répare avant de contraindre
+
+`V27` renomme, puis **réécrit** les valeurs qui ne peuvent pas être des pseudos
+(une arobase, une espace, une longueur hors bornes) depuis la partie locale de
+l'adresse, puis **départage** les doublons — le plus ancien garde son nom —
+avant de poser l'index unique. Sans ce troisième temps, la migration échouerait
+sur la première instance à deux comptes homonymes, et une migration qui échoue
+chez quelqu'un d'autre est un défaut, pas une protection.
+
+Vérifié en direct sur la pile locale : `romain@iozycore.local` est devenu
+`romain`, l'avatar affiche **RO**, et le profil montre le pseudo au-dessus de
+l'adresse.
+
+#### Deux champs qui ne portaient pas leur nom
+
+En écrivant les tests, l'aide « Au moins 10 caractères » du mot de passe s'est
+révélée **dans le label** : le nom accessible du champ était donc « Mot de
+passe Au moins 10 caractères », et `getByLabelText('Mot de passe')` ne le
+trouvait pas. Un lecteur d'écran l'annonçait d'une traite au lieu de nommer
+puis décrire. Les deux règles (mot de passe, pseudo) vivent maintenant hors du
+label, reliées par `aria-describedby`.
+
+#### Le filet
+
+1063 tests backend, 244 web (28 modules). Cinq mutations rattrapées, dont
+l'index unique lui-même — passé en index ordinaire, le test d'intégration
+tombe. Le lien `aria-describedby` avait d'abord été posé **sans test** : la
+mutation l'a dit, et l'assertion manquante a été écrite.
+
 ### Lot 104 — « strictement mono-utilisateur », écrit deux jours après la fin
 
 Le Lot 95 a cloisonné les données par personne. Le README racine et celui du
@@ -5959,6 +6031,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une aide de saisie posée DANS le `<label>` devient une partie du NOM du champ : le lecteur d'écran annonce « Mot de passe Au moins 10 caractères » d'une traite, et `getByLabelText('Mot de passe')` ne trouve plus rien. Les règles se relient par `aria-describedby`, hors du label - et ce lien-là se teste (`toHaveAccessibleDescription`), sinon rien ne le garde (Lot 105).
+- Un champ FACULTATIF qui se replie sur une autre donnée finit par l'afficher là où elle n'a rien à faire : `display_name` vide valait l'adresse e-mail, qui s'est retrouvée sur l'avatar du menu. Avant d'ajouter un repli, regarder où la valeur sera LUE (Lot 105).
 - Après un changement STRUCTUREL, chercher la phrase qui le nie plutôt que les fichiers modifiés : `grep -rn "mono-utilisateur" --include=*.md` a trouvé trois documents intacts deux lots après la fin du cloisonnement, dont celui qu'on lit en premier. Le code a le compilateur, les tests ont leur échec ; une phrase fausse, elle, s'affiche comme une vraie (Lot 104).
 - Une donnée que l'utilisateur SAISIT et que personne ne relit est pire qu'une fonctionnalité absente : elle demande du travail en échange de rien. Chercher, pour chaque chose qu'un écran fait poser (tag, note, classement), l'écran qui s'en sert — `tagId` traversait `searchEntities` et les clés de cache sans un seul appelant, et rien dans le typage ne pouvait le dire (Lot 103).
 - Un contrôle qui n'existe qu'en **HTTP réel** (type MIME, en-tête de cache, code de refus d'une route ouverte) ne peut pas être un test : il dépend du serveur, pas du fichier. Un script de GET, sans compte et sans écriture, se lance sur la production comme sur la pile locale — et c'est la seule chose qui distingue un déploiement sain d'un conteneur périmé qui affiche exactement la même page (Lot 102).

@@ -21,8 +21,11 @@ public class AppUserJpaEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name = "display_name", nullable = false)
-    private String displayName;
+    // Unique sans tenir compte de la casse, par un index fonctionnel posé en
+    // V27 (`lower(pseudo)`) : `unique = true` ici décrirait une unicité
+    // sensible à la casse, que la base n'applique pas.
+    @Column(name = "pseudo", nullable = false)
+    private String pseudo;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -30,17 +33,17 @@ public class AppUserJpaEntity {
     protected AppUserJpaEntity() {
     }
 
-    public AppUserJpaEntity(UUID id, String email, String passwordHash, String displayName, Instant createdAt) {
+    public AppUserJpaEntity(UUID id, String email, String passwordHash, String pseudo, Instant createdAt) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
-        this.displayName = displayName;
+        this.pseudo = pseudo;
         this.createdAt = createdAt;
     }
 
     public UUID getId() { return id; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
-    public String getDisplayName() { return displayName; }
+    public String getPseudo() { return pseudo; }
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -27,7 +27,7 @@ export function AuthPage() {
   const [mode, setMode] = useState<'connexion' | 'creation' | null>(null)
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
-  const [nomAffiche, setNomAffiche] = useState('')
+  const [pseudo, setPseudo] = useState('')
   const [codeInvitation, setCodeInvitation] = useState('')
 
   // Le mode par défaut suit l'instance ; un clic explicite le remplace.
@@ -42,7 +42,7 @@ export function AuthPage() {
       creation.mutate({
         email: email.trim(),
         motDePasse,
-        nomAffiche: nomAffiche.trim(),
+        pseudo: pseudo.trim(),
         codeInvitation: codeInvitation.trim() || undefined,
       })
     } else {
@@ -79,35 +79,61 @@ export function AuthPage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-mot-de-passe">
-          Mot de passe
-          <input
-            id="auth-mot-de-passe"
-            type="password"
-            // Dit au gestionnaire de mots de passe s'il doit proposer d'en
-            // fabriquer un ou de relire celui qu'il a déjà.
-            autoComplete={enCreation ? 'new-password' : 'current-password'}
-            required
-            minLength={enCreation ? 10 : undefined}
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
-          />
-          {enCreation && <span className="text-xs text-textDim">Au moins 10 caractères.</span>}
-        </label>
-
-        {enCreation && (
-          <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-nom">
-            Nom affiché
+        {/* Même structure que le pseudo : la longueur minimale est une
+            DESCRIPTION, pas une partie du nom du champ. Dans le label, elle
+            faisait annoncer « Mot de passe Au moins 10 caractères » comme un
+            seul intitulé - et rendait le champ introuvable sous son nom. */}
+        <div className="flex flex-col gap-1.5">
+          <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-mot-de-passe">
+            Mot de passe
             <input
-              id="auth-nom"
-              autoComplete="nickname"
-              value={nomAffiche}
-              onChange={(e) => setNomAffiche(e.target.value)}
-              placeholder="Facultatif"
+              id="auth-mot-de-passe"
+              type="password"
+              // Dit au gestionnaire de mots de passe s'il doit proposer d'en
+              // fabriquer un ou de relire celui qu'il a déjà.
+              autoComplete={enCreation ? 'new-password' : 'current-password'}
+              required
+              minLength={enCreation ? 10 : undefined}
+              aria-describedby={enCreation ? 'auth-mot-de-passe-regle' : undefined}
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
               className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
             />
           </label>
+          {enCreation && (
+            <span id="auth-mot-de-passe-regle" className="text-xs text-textDim">
+              Au moins 10 caractères.
+            </span>
+          )}
+        </div>
+
+        {enCreation && (
+          // La règle vit HORS du label, reliée par `aria-describedby` : dans le
+          // label, elle ferait partie du NOM du champ, qu'un lecteur d'écran
+          // annonce alors d'une traite (« Pseudo 3 à 24 caractères sans
+          // espace c'est le nom… ») au lieu de le nommer puis de le décrire.
+          <div className="flex flex-col gap-1.5">
+            <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-pseudo">
+              Pseudo
+              <input
+                id="auth-pseudo"
+                autoComplete="nickname"
+                required
+                minLength={3}
+                maxLength={24}
+                aria-describedby="auth-pseudo-regle"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value)}
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+              />
+            </label>
+            {/* La règle est écrite AVANT la saisie, pas rendue en refus après :
+                le serveur reste seul juge (il connaît les pseudos déjà pris),
+                mais rien n'oblige à laisser découvrir les bornes par essais. */}
+            <span id="auth-pseudo-regle" className="text-xs text-textDim">
+              3 à 24 caractères, sans espace. C’est le nom sous lequel tu apparais.
+            </span>
+          </div>
         )}
 
         {/* Le code d'invitation ne concerne QUE les comptes suivants : le

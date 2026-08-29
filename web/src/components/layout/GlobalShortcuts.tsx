@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { initiales } from '../../lib/initiales'
+import { useAuth } from '../../lib/useAuth'
 
 /**
  * L'accès global qui n'est PAS une destination de navigation : le Profil
@@ -21,19 +23,35 @@ import { Link } from 'react-router-dom'
  *
  * <p>Le décompte n'est pas perdu : la barre de vues affiche « Envies · N » là
  * où le nombre se lit avec ce qu'il compte.
+ *
+ * <h2>L'avatar porte les initiales du PSEUDO (2026-08-29)</h2>
+ * Il affichait « IO » en dur - les initiales de l'application, sur un bouton
+ * qui mène au compte de quelqu'un. Sur une instance à plusieurs personnes,
+ * c'était le seul endroit de l'écran qui aurait pu dire au nom de qui on
+ * travaille, et il disait le nom du logiciel.
+ *
+ * <p>Le repli reste « IO », et il est atteignable : ce composant vit dans
+ * l'{@code AppShell}, qui ne se rend que connecté, mais le compte arrive par
+ * une requête - il y a donc un instant, au premier chargement, où il n'est pas
+ * encore là. Deux lettres qui changent valent mieux qu'un trou qui se remplit.
  */
 export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
+  const { compte } = useAuth()
   const avatarSize = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
+  const marque = initiales(compte?.pseudo ?? '') || 'IO'
+  // Le pseudo est DIT, pas seulement dessiné : « MC » lu à voix haute par un
+  // lecteur d'écran n'apprend rien à personne.
+  const intitule = compte ? `Mon profil — ${compte.pseudo}` : 'Mon profil'
 
   return (
     <div className="flex items-center gap-2">
       <Link
         to="/profile"
-        title="Mon profil"
-        aria-label="Mon profil"
+        title={intitule}
+        aria-label={intitule}
         className={`flex ${avatarSize} shrink-0 items-center justify-center rounded-xl bg-surface font-display text-xs font-semibold text-textDim shadow-token-sm`}
       >
-        IO
+        {marque}
       </Link>
     </div>
   )

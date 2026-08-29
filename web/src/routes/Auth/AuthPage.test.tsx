@@ -71,6 +71,56 @@ describe('une instance neuve', () => {
 
     await waitFor(() => expect(screen.getByText('Au moins 10 caractères.')).toBeInTheDocument())
   })
+
+  it('exige un pseudo, et dit à quoi il sert avant qu’on le tape', async () => {
+    await ecran({ aucunCompte: true, creationOuverte: true })
+
+    // Facultatif jusqu'au 2026-08-29 : laissé vide, il retombait sur l'adresse
+    // e-mail, qui s'affichait ensuite sur l'avatar du menu.
+    await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeRequired())
+    // La règle est RATTACHÉE au champ (aria-describedby), pas seulement posée
+    // à côté : sans ce lien, elle n'existe que pour qui voit l'écran.
+    expect(screen.getByLabelText('Pseudo')).toHaveAccessibleDescription(
+      /3 à 24 caractères, sans espace.*nom sous lequel tu apparais/,
+    )
+  })
+
+  it('transmet le pseudo saisi, débarrassé de ses espaces de bord', async () => {
+    await ecran({ aucunCompte: true, creationOuverte: true })
+    await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeInTheDocument())
+    api.creerCompte.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain' })
+
+    await userEvent.type(screen.getByLabelText('Adresse e-mail'), 'romain@example.com')
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe')
+    await userEvent.type(screen.getByLabelText('Pseudo'), '  romain  ')
+    await userEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    // Le premier argument seulement : TanStack Query en ajoute un second
+    // (son contexte de mutation), qui ne dit rien de ce qui a été saisi.
+    await waitFor(() => expect(api.creerCompte).toHaveBeenCalled())
+    expect(api.creerCompte.mock.calls[0][0]).toEqual({
+      email: 'romain@example.com',
+      motDePasse: 'un-mot-de-passe',
+      pseudo: 'romain',
+      codeInvitation: undefined,
+    })
+  })
+
+  it('affiche le refus du serveur quand le pseudo est déjà pris', async () => {
+    // Contrairement à un échec de connexion, ce refus est EXPLICITE : un
+    // pseudo est public par destination, le taire empêcherait seulement la
+    // personne concernée d'en choisir un autre.
+    await ecran({ aucunCompte: true, creationOuverte: true })
+    await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeInTheDocument())
+    api.creerCompte.mockRejectedValue(new Error('Ce pseudo est déjà pris.'))
+
+    await userEvent.type(screen.getByLabelText('Adresse e-mail'), 'romain@example.com')
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe')
+    await userEvent.type(screen.getByLabelText('Pseudo'), 'romain')
+    await userEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+
+    expect(await screen.findByText('Ce pseudo est déjà pris.')).toBeInTheDocument()
+  })
 })
 
 describe('une instance en service', () => {
@@ -101,7 +151,7 @@ describe('la connexion', () => {
   it('transmet ce qui a été saisi, et rien d’autre', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
-    api.seConnecter.mockResolvedValue({ id: 'u1', email: 'romain@example.com', nomAffiche: 'Romain' })
+    api.seConnecter.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain' })
 
     await userEvent.type(screen.getByLabelText('Adresse e-mail'), '  romain@example.com  ')
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe')
