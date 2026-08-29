@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -24,5 +24,16 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    // jsdom pour tout le monde : les modules purs n'en ont pas besoin, mais
+    // deux environnements dans la même suite obligeraient à se demander, à
+    // chaque nouveau fichier, dans lequel il tombe.
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    // Pas de `globals: true` : `describe`/`it`/`expect` s'importent, comme
+    // tout le reste du code de ce dépôt. Un test qui se lit sans savoir ce
+    // que la configuration injecte se relit des mois plus tard.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })

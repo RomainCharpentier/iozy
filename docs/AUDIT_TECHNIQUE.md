@@ -16,14 +16,15 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 |---|---|---|
 | backend `src/main` | 269 | 24 339 |
 | backend `src/test` | 105 | 20 987 |
-| web `src` | 152 | 20 667 |
+| web `src` | 158 | 21 364 |
 | iOS | 24 | 4 166 |
 | migrations Flyway | 24 | — |
 | docs | 6 | ~9 614 |
 
 **8 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`) · **18 contrôleurs** ·
-**92 endpoints** · **20 tables** · **27 routes web** · **1 018 tests**.
+**92 endpoints** · **20 tables** · **27 routes web** ·
+**1 018 tests backend** · **42 tests web** (Vitest, depuis le 2026-08-29).
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
 > suppression de `editionupgrade` (Lot 27) et de `loan` (migration V19), et

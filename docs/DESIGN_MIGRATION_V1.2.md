@@ -1360,6 +1360,57 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 89 — le web n'avait aucun filet : premières mailles
+
+1018 tests côté backend, **zéro** côté web. Toute règle qui décide de ce que
+l'écran affiche — et il y en a — ne tenait que par la relecture. Ce lot pose
+l'outillage et couvre les premières règles ; il ne prétend pas couvrir l'app.
+
+**Vitest + Testing Library**, `npm test`. Trois choix, chacun pour une raison :
+
+- **Les tests vivent à côté du module qu'ils vérifient**, pas dans un dossier
+  `__tests__` à part : un module et ses règles se déplacent ensemble.
+- **Pas de `globals: true`.** `describe`/`it`/`expect` s'importent comme tout le
+  reste du code de ce dépôt. Un test qui se lit sans savoir ce que la
+  configuration injecte se relit des mois plus tard.
+- **`src/test/fixtures.ts`** construit les objets du serveur (`oeuvre`, `tome`,
+  `possession`, `edition`). `EntityResponse` porte six champs dont un seul
+  intéresse un test donné : écrits à la main, les cas noieraient leur règle sous
+  du remplissage, et un champ ajouté au DTO rouvrirait tous les fichiers.
+
+#### Ce qui a été couvert, et pourquoi ceux-là
+
+Le critère : une règle qui **se casse en silence** — aucun type ne la protège,
+aucun écran ne devient blanc quand elle tombe, elle se contente de mentir.
+
+| Module | La règle qui se casse en silence |
+|---|---|
+| `shelfTiles` | un total d'édition **inconnu** ne range une série ni dans « complètes » ni dans « incomplètes » ; **un seul signal par carte**, et sous « Envies » ce sont les tomes voulus qui l'emportent ; un type sans titre n'ouvre pas de rail |
+| `ownership` | « possédé » = au moins une possession **active** — une série entièrement revendue quitte l'écran, le catalogue la garde |
+| `tomeTiles` | trois états jamais confondus, aucune tuile déduite sans total connu, et un tome **au-delà** du total annoncé reste visible plutôt qu'escamoté |
+| `ListingAssessmentCard` | un prix de référence ne s'affiche jamais seul, et l'absence de référence dit **laquelle** (Lot 88, vérifié cette fois par ce que l'utilisateur lit) |
+
+#### Un filet se vérifie en le cassant
+
+Un test qui passe ne prouve rien tant qu'on n'a pas vu ce qu'il fait quand la
+règle tombe. Chaque fichier a donc été confronté à une mutation de son module :
+`missing <= 3` devenu `<= 4`, le filtre sur `status === 'OWNED'` retiré, la
+reconnaissance d'un tome catalogué à l'instant supprimée, la dispersion effacée
+de la phrase. Les quatre mutations sont ressorties en échec, et chacune sur le
+test qui la nommait. Les sources ont été restaurées ensuite (`git checkout`).
+
+**Reste à faire, et dit explicitement** : aucun test **end-to-end**. Rien ne
+vérifie encore un parcours entier, du clic à l'écriture en base — les dix
+parcours de `USER_JOURNEYS.md` §21 restent les candidats. Et l'horizon
+multi-utilisateurs (décision du 2026-08-29) demandera d'y tester l'isolation par
+propriétaire : les quatre modules couverts ici sont des règles d'affichage, qui
+n'en portent aucune notion.
+
+42 tests web en 1,7 s, plus `typecheck`, `lint`, `build` (les tests ne partent
+pas dans le bundle : empreintes de `dist/` inchangées) et les 116 combinaisons
+de contraste. `npm audit` signalait au passage une faille `nanoid` héritée de
+`postcss` via Vite ; `npm audit fix` la referme sans changer de version majeure.
+
 ### Lot 88 — « 70 € », sans rien pour en douter
 
 `MarketReference` sait quatre choses de plus que le prix qu'elle rend : combien
