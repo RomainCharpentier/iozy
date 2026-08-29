@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Bell, ListOrdered, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Bell, ChevronRight, ListOrdered, PartyPopper, Sparkles } from 'lucide-react'
 import { DiscoverTierPreview } from './DiscoverTierPreview'
 import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
 import { DiscoverReleasesPanel } from './DiscoverReleasesPanel'
@@ -65,6 +66,29 @@ export function DiscoverPage() {
           <DiscoverReleasesPanel />
         </section>
       </div>
+
+      {/* Le bilan annuel a quitté la liste de liens de Profil le 2026-08-29 :
+          c'est une LECTURE de la collection, comme les trois panneaux
+          ci-dessus, pas un réglage.
+
+          Un LIEN et non un quatrième onglet : les trois panneaux composent une
+          mise en page éditoriale (1,65fr / 1fr, puis pleine largeur), et le
+          commentaire de cet écran dit « plus d'onglets à ce stade ». Le bilan
+          est d'ailleurs un écran entier, pas un panneau - il n'a rien à faire
+          dans une grille qui n'en attend pas. */}
+      <Link
+        to="/recap"
+        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
+          <PartyPopper size={18} />
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium text-textPrimary">Bilan annuel</span>
+          <span className="block text-xs text-textDim">Ton année en un coup d'œil, façon carte à partager</span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-textDim" />
+      </Link>
     </div>
   )
 }

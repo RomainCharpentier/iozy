@@ -42,8 +42,14 @@ appartient :
 - **Scan** — bouton dédié dans la barre du pouce (mobile) et lien « Scanner »
   en tête de Rechercher (les deux plateformes).
 - **Paramètres** → depuis Profil. **Administration** → depuis Paramètres.
-- **Types de collection** → deux chemins : Ma collection ▸ Plus d'outils, et
-  Administration.
+  Depuis le 2026-08-29, les deux écrans sont rangés par **ce que le réglage
+  concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
+  déconnexion) et « Cet appareil » (thème, langue des titres — dans le
+  `localStorage`, ils ne suivent pas le compte, et l'écran le dit) ;
+  Administration porte « Ma collection » (catégories, éditions de référence,
+  import) et « Cette instance » (comptes, pour un administrateur).
+- **Catégories de collection** → deux chemins : Ma collection ▸ Plus d'outils,
+  et Administration. (Nommées « Types de collection » jusqu'au 2026-08-29.)
 
 Les deux routes `/public/*` vivent **hors** de `AppShell` : un visiteur d'un
 lien de partage ne voit jamais la navigation privée.
@@ -1067,7 +1073,9 @@ n'appelant que l'endpoint public.
 ### 54. Consulter son profil
 **Résultat** : valeur estimée (ou « Pas encore de prix renseigné »), nombre de
 titres et de tomes possédés, aperçu des Tier Lists, partage de collection, et
-les entrées Évaluer un achat / Bilan annuel / Paramètres.
+l'entrée Paramètres. (« Évaluer un achat » et « Bilan annuel » en sont
+partis le 2026-08-29 : le premier est une destination de la barre de
+navigation, le second une lecture qui a rejoint Découvrir.)
 **Écrans** : `ProfilePage`, `ProfileValueHero`, `ProfileTierListsSection`
 **Statut** : `COMPLET`
 
@@ -1078,7 +1086,10 @@ Profil ▸ Partage reste le point d'entrée principal ; « Ma collection ▸ …
 Partager ma collection » y mène, sans créer de second jeton.
 
 ### 56. Générer le bilan annuel
-**Étapes** : Profil ▸ Bilan annuel → choisir l'année → « Télécharger l'image ».
+**Étapes** : Découvrir ▸ Bilan annuel → choisir l'année → « Télécharger l'image ».
+*(Sous Profil jusqu'au 2026-08-29 : c'est une lecture de la collection, pas un
+réglage — et un lien plutôt qu'un quatrième onglet, la composition éditoriale
+de Découvrir n'en attend pas.)*
 **Résultat** : carte rendue en `<canvas>` puis téléchargée en PNG — acquisitions
 et répartition par type, séries commencées, expériences et note moyenne,
 auteur le plus présent.
@@ -1113,7 +1124,12 @@ renseigner se fait depuis la fiche.
 **Statut** : `COMPLET`
 
 ### 60. Exporter sa collection
-**Étapes** : Administration ▸ Télécharger en JSON ou en CSV (.zip).
+**Étapes** : Paramètres ▸ **Mon compte** ▸ « Emporter ma collection » →
+Télécharger en JSON ou en CSV (.zip). *(Sous Administration jusqu'au
+2026-08-29, à côté des catégories de collection — comme si emporter ses
+données était de la configuration technique. C'est le contraire : c'est la
+garantie de pouvoir partir, et elle appartient au compte qui possède ces
+données.)*
 **Résultat** : œuvres, tomes, possessions, expériences, envies, relations, tags,
 **éditions de référence, classements, Tier Lists**, et depuis le Lot 79 **prix
 relevés, édition suivie, types de collection et profil de collectionneur** —
@@ -1121,7 +1137,7 @@ relevés, édition suivie, types de collection et profil de collectionneur** —
 **Hors périmètre, volontairement** : historique d'analyses (une histoire
 calculée, instantané du moteur de son jour), caches, et jetons de partage (un
 secret vivant : l'exporter recopierait une URL-capacité dans un fichier).
-**Écrans** : `AdministrationPage`
+**Écrans** : `SettingsPage`
 **Statut** : `COMPLET`
 
 ---
@@ -1249,7 +1265,7 @@ Le point de bascule est **768 px** (`AppShell.NAV_BREAKPOINT_PX`). Les deux navi
 | Menu du scan | Boîte centrée 360 px | Bottom-sheet pleine largeur |
 | Classer sur un board | Clic **ou glisser-déposer** vers une ligne de rang | Clic uniquement — **pas de glisser-déposer** |
 | Découvrir | Les 3 panneaux côte à côte au-delà de 1100 px | Un onglet à la fois |
-| Accès à Profil | Avatar « IO » du header | Avatar de `MobileHeader` |
+| Accès à Profil | Avatar du header, aux **initiales du pseudo** (« IO » jusqu'au 2026-08-29) | Même avatar dans `MobileHeader` |
 | Accès à Envies | Cœur du header, avec badge | Cœur de `MobileHeader`, même badge |
 
 ### 12.1. Accès mobile — rétabli le 2026-08-21
@@ -1343,9 +1359,9 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 
 1. **Relever un prix de marché** — n'apparaît que dans le détail d'une série d'un résultat d'analyse, et seulement si l'édition est reconnue *et* les tomes contigus. C'est pourtant le seul moyen d'alimenter la base de prix observés dont dépend la qualité de toutes les analyses suivantes. Les relevés déjà enregistrés sont, eux, visibles et retirables depuis **Éditions de référence** (2026-08-21).
 2. **Exemplaires passés** — un tome vendu ou perdu n'est visible qu'en ouvrant le panneau du tome correspondant, qui affiche par ailleurs un formulaire d'ajout.
-3. **Types de collection** — deux chemins ; le second est à trois niveaux de profondeur.
+3. **Catégories de collection** — deux chemins ; le second est à trois niveaux de profondeur.
 4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit tous les « X/Y » de l'app, rangé sous Administration.
-5. **Bilan annuel** — sous Profil, sans aucun rappel saisonnier.
+5. **Bilan annuel** — sous Découvrir depuis le 2026-08-29 (il était sous Profil, dans une liste de liens), toujours sans rappel saisonnier.
 6. **Classement rapide** — n'apparaît que s'il existe au moins une œuvre non classée.
 7. **Ordre des langues de titre** — décide du titre affiché partout, rangé dans Paramètres sans lien depuis les écrans concernés.
 8. **Analyse d'achat depuis une fiche** — pré-remplit la série, mais l'entrée est en bas du bloc d'identité.
@@ -1474,7 +1490,7 @@ IozyCore
 | 57 | Changer l'apparence et l'ordre des titres | Paramètres / Administration | COMPLET | oui | oui |
 | 58 | Gérer les types de collection | Paramètres / Administration | COMPLET | oui | oui |
 | 59 | Consulter et nettoyer les éditions de référence | Paramètres / Administration | COMPLET | oui | oui |
-| 60 | Exporter sa collection | Paramètres / Administration | COMPLET | oui | oui |
+| 60 | Exporter sa collection | Paramètres ▸ Mon compte | COMPLET | oui | oui |
 | 61 | Consulter une collection partagée | Lien public | COMPLET | oui | oui |
 | 62 | Consulter une liste d'envies partagée | Lien public | COMPLET | oui | oui |
 | 63 | Créer le premier compte | Porte (hors AppShell) | COMPLET | oui | oui |
@@ -1540,7 +1556,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-4 — ~~« Ajouter à ma wishlist » agit en masse et en silence~~ — RÉSOLU (2026-08-21).** L'ajout groupé passe par `addMany` : un seul message annonçant le nombre de séries ajoutées, avec Annuler, et rien n'est ajouté deux fois.
 
-**UX-5 — Deux chemins vers les types de collection.** Ma collection ▸ Plus d'outils, et Profil ▸ Paramètres ▸ Administration. C'est délibéré et documenté, mais c'est le seul écran de l'app dans ce cas.
+**UX-5 — Deux chemins vers les catégories de collection.** Ma collection ▸ Plus d'outils, et Profil ▸ Paramètres ▸ Administration. C'est délibéré et documenté, mais c'est le seul écran de l'app dans ce cas.
 
 **UX-6 — ~~Trois libellés pour la même idée de valeur~~ — RÉSOLU (2026-08-29).** Un seul nom, « **Valeur de la collection** » : c'est celui de la section, celui que le hero du Profil affiche désormais (il disait « Valeur estimée »), et celui que le bouton de Ma collection abrège. Et les deux contrôles qui le nomment **emmènent à la section**, au lieu de déposer en haut d'un écran intitulé « Statistiques » où il fallait ensuite la chercher — même patron que Ma collection ▸ Partager, qui déroule jusqu'au partage. Ce que « estimée » disait — une valeur partielle — est déjà porté par la pastille de couverture juste sous le montant.
 
@@ -1565,8 +1581,8 @@ seule une fonctionnalité clairement remplacée ou abandonnée perd son accès.
 | Fonctionnalité | Classement | Justification |
 |---|---|---|
 | **Éditions de référence** (`/editions`) | `ACTIVE` | Porte le nombre de tomes de chaque édition — **toute** progression « X/Y » de l'app en dépend, sur tous les écrans. Reste un écran de maintenance sous Administration, pas une destination : renseigner se fait depuis la fiche, là où le manque se constate. |
-| **Bilan annuel** (`/recap`) | `SECONDARY` | Fonctionne sur données réelles, produit un PNG téléchargeable. Usage saisonnier, sa place sous Profil est cohérente. Conservé tel quel. |
-| **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu aux éditions, classements et Tier Lists (Lot 33), puis aux prix relevés, à l'édition suivie, aux types de collection et au profil de collectionneur (Lot 79) — 14 fichiers. Conservé sous Administration. |
+| **Bilan annuel** (`/recap`) | `SECONDARY` | Fonctionne sur données réelles, produit un PNG téléchargeable. Usage saisonnier. Déplacé sous **Découvrir** (Lot 108) : c'est une lecture de la collection, au même titre que les trois panneaux de cet écran. |
+| **Export JSON / CSV** | `SECONDARY` | Sert la promesse d'« absence d'enfermement ». Étendu aux éditions, classements et Tier Lists (Lot 33), puis aux prix relevés, à l'édition suivie, aux types de collection et au profil de collectionneur (Lot 79) — 14 fichiers. Déplacé sous **Paramètres ▸ Mon compte** (Lot 108) : emporter ses données n'est pas de la configuration technique. |
 | **Expériences** | `ACTIVE` | Consommées par l'assistant de la fiche (« Où en suis-je dans mes lectures »), les statistiques par type, la note moyenne et le bilan annuel. Modifiables (note, commentaire) et supprimables depuis la fiche depuis le 2026-08-21. |
 | **Tags** | `SECONDARY` | Attachables et détachables depuis la fiche, remontés dans les statistiques (`topTags`). Le backend sait filtrer par tag (`GET /entities/search?tagId=`) mais **aucun écran ne l'expose** — sous-employés, pas abandonnés. Rien ne les a remplacés : les retirer serait arbitraire. |
 | **Relations entre œuvres** | `SECONDARY` | Créées et affichées sur la fiche avec leur type et leur sens, exportées, corrigeables et supprimables depuis le 2026-08-21. Purement descriptives, aucun autre écran ne s'en sert. |
@@ -1614,8 +1630,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (255 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (262 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **255 tests Vitest** sur trente modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **262 tests Vitest** sur trente-et-un modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.

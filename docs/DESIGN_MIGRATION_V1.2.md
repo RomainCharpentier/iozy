@@ -1360,6 +1360,71 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 108 — les choux et les carottes
+
+Trois écrans se partageaient les réglages sans qu'aucune règle ne dise lequel
+portait quoi. Le désordre avait une forme précise :
+
+- **Profil** contenait une lecture (valeur, Tier Lists), un réglage (partage),
+  une **destination déjà présente dans la barre de navigation** (« Analyser une
+  annonce » — doublon exact), et la section Compte tout en bas, *sous* le lien
+  « Paramètres » qui, lui, ne parlait pas du compte.
+- **Paramètres** ne contenait en réalité que des réglages **de cet appareil** :
+  thème et langue des titres vivent dans le `localStorage`, ils ne suivent pas
+  le compte et changer de machine les perd. Rien ne le disait.
+- **Administration avancée** mélangeait trois natures : le **contenu** de la
+  collection (catégories, éditions de référence, import), **les données de
+  l'utilisateur** (l'export JSON/CSV), et l'**instance** (les comptes, que le
+  Lot 107 venait d'y poser).
+
+#### L'axe : ce que le réglage concerne
+
+Quatre échelles, et chacune répond à « qui est touché si je change ça ».
+
+| | Où | Quoi |
+|---|---|---|
+| **Mon compte** | Paramètres | pseudo, adresse, emporter ma collection, se déconnecter |
+| **Cet appareil** | Paramètres | thème, langue des titres — et l'écran DIT qu'ils ne suivent pas le compte |
+| **Ma collection** | Administration | catégories, éditions de référence, import |
+| **Cette instance** | Administration | les comptes (administrateur seulement) |
+
+Deux écrans, quatre sections nommées — et nommées pour de bon : chaque
+`<section>` porte un `aria-labelledby`, sans quoi elle n'est pas un repère et
+un lecteur d'écran retraverse une liste plate.
+
+#### Trois déplacements, trois raisons différentes
+
+**L'export quitte Administration** pour « Mon compte ». Il était rangé à côté
+des catégories de collection, comme si emporter ses données était de la
+configuration technique. C'est le contraire : c'est la garantie de pouvoir
+partir, et elle appartient au compte qui possède ces données.
+
+**« Analyser une annonce » quitte Profil.** C'est l'une des quatre destinations
+de la barre de navigation (voir `navItems`) : le lien était un doublon exact,
+sur un écran qui n'est pas une liste de raccourcis.
+
+**« Bilan annuel » rejoint Découvrir.** C'est une lecture de la collection, pas
+un réglage — comme les trois panneaux de cet écran. Un **lien** et non un
+quatrième onglet : la composition éditoriale de Découvrir (1,65fr / 1fr, puis
+pleine largeur) n'en attend pas, son propre commentaire dit « plus d'onglets à
+ce stade », et le bilan est un écran entier, pas un panneau.
+
+**La section Compte quitte Profil** pour rejoindre l'export et la déconnexion :
+un seul endroit pour « mon compte » au lieu de deux moitiés. Profil garde le
+pseudo en sous-titre — un écran qui s'appelle « Mon profil » doit dire de qui.
+
+« Types de collection » devient **« Catégories de collection »** : le mot
+« type » est celui du modèle, pas celui de l'utilisateur.
+
+#### Le filet
+
+262 tests web (31 modules), 14 parcours. Le parcours de déconnexion emprunte
+désormais le **chemin** — Profil ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
+à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
+c'est lui qui a signalé le déplacement. Quatre mutations rattrapées, dont la
+phrase « ces réglages restent sur cet appareil » retirée : personne ne peut
+deviner qu'un thème ne suit pas son compte.
+
 ### Lot 107 — administrer l'instance, sans administrer les gens
 
 Depuis le Lot 95, plusieurs personnes peuvent avoir un compte ici. Personne ne
@@ -6142,6 +6207,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un écran de réglages se range par ce que le réglage CONCERNE (mon compte / cet appareil / ma collection / cette instance), jamais par « à quel point c'est technique » : la seconde échelle est une impression, et c'est elle qui avait mis l'export à côté des catégories de collection (Lot 108).
+- Un réglage qui vit dans le `localStorage` doit le DIRE : rien à l'écran ne distingue un interrupteur qui suit le compte d'un interrupteur qui reste sur la machine, et la personne qui ouvre l'app sur son téléphone conclut à une perte de réglage (Lot 108).
 - Une capacité qui doit voir PAR-DESSUS le cloisonnement ne s'écrit pas avec les dépôts ordinaires : `@TenantId` les filtre sur le propriétaire courant, en silence. Elle se pose dans un port séparé, en SQL, avec un seul appelant et une garde devant - visible, plutôt que glissée dans un dépôt qu'on croit ordinaire (Lot 107).
 - La liste des tables d'une suppression définitive s'écrit à la MAIN, jamais déduite du schéma : déduite, une table ajoutée demain serait effacée sans que personne ne l'ait décidé, et une table renommée disparaîtrait de la liste sans un mot (Lot 107).
 - Un repli « au cas où » sur une donnée INCONNUE produit une affirmation fausse et crédible : `totalVolumes ?? cataloguedVolumeNumbers.length` annonçait une collection complète à qui n'a jamais renseigné son édition. Quand un champ documente « null tant qu'aucune source ne le connaît », le repli est le bug (Lot 106).

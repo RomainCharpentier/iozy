@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, GripVertical, Moon, Sun, Wrench } from 'lucide-react'
+import { ChevronRight, Download, GripVertical, LogOut, Moon, Sun, Wrench } from 'lucide-react'
+import { useAuth } from '../../lib/useAuth'
 import {
   TITLE_LANGUAGE_LABELS,
   getTitleComposition,
@@ -10,13 +11,28 @@ import {
 import { useTheme } from '../../lib/theme'
 import { EnTeteSection } from '../../components/EnTeteSection'
 
-/** Réglage propre à cet appareil (localStorage, pas de compte/backend - voir
- * lib/titleLanguage.ts) : seule la recherche/ajout de manga (Jikan/MyAnimeList)
- * est concernée, ni Jikan ni MAL ne renvoyant de titre français nativement.
+/**
+ * Les réglages, rangés par <b>ce qu'ils concernent</b>.
  *
- * Glisser-déposer natif (HTML5 drag events, pas de librairie) : la première
- * langue active devient le titre sauvegardé, les suivantes actives suivent
- * entre parenthèses dans l'ordre choisi ici.
+ * <h2>Deux sections, et la frontière est réelle</h2>
+ * <b>Mon compte</b> te suit partout : il vit sur le serveur, et l'export en
+ * fait partie - télécharger sa collection n'est pas de la configuration
+ * technique, c'est la garantie de pouvoir partir. <b>Cet appareil</b> ne suit
+ * rien : le thème et la langue des titres vivent dans le {@code localStorage}
+ * de ce navigateur, et changer de machine les perd. La section le dit, parce
+ * que personne ne peut le deviner.
+ *
+ * <p>Ce qui n'est ici NI l'un NI l'autre - les catégories de collection, les
+ * éditions de référence, l'import - concerne le <b>contenu</b> de la
+ * collection et vit dans Administration : ce sont des choses qu'on configure
+ * une fois, pas des réglages qu'on ajuste.
+ *
+ * <h2>La langue des titres</h2>
+ * Seule la recherche/ajout de manga (Jikan/MyAnimeList) est concernée, ni
+ * Jikan ni MAL ne renvoyant de titre français nativement. Glisser-déposer
+ * natif (HTML5 drag events, pas de librairie) : la première langue active
+ * devient le titre sauvegardé, les suivantes actives suivent entre
+ * parenthèses dans l'ordre choisi ici.
  */
 export function SettingsPage() {
   // État local reflétant localStorage - setTitleComposition() persiste ET
@@ -25,6 +41,7 @@ export function SettingsPage() {
   const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const { theme, toggleTheme } = useTheme()
+  const { compte, deconnexion } = useAuth()
 
   function update(next: TitleComposition) {
     setComposition(next)
@@ -75,12 +92,82 @@ export function SettingsPage() {
     <div className="flex flex-col gap-5">
       <EnTeteSection niveau={1} titre="Paramètres" />
 
-      {/* Apparence : réglage minimal pour l'instant (voir Lot 1 de la
-          migration Design V1.2 - docs/DESIGN_MIGRATION_V1.2.md), sera
-          intégré à une refonte plus large de cet écran en Lot 8. Pattern
-          switch identique à celui utilisé pour "Suivre les sorties" dans la
-          maquette (role="switch" + aria-checked, jamais un simple bouton
-          texte pour un état à deux valeurs). */}
+      {compte && (
+        // Nommée pour un lecteur d'écran (aria-labelledby) : sans nom
+        // accessible, une <section> n'est pas un repère qu'on peut viser.
+        <section aria-labelledby="section-mon-compte" className="flex flex-col gap-3">
+          <h2 id="section-mon-compte" className="font-display text-lg font-semibold text-textPrimary">
+            Mon compte
+          </h2>
+
+          <div className="flex flex-col gap-3 rounded-xl bg-surface p-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium text-textPrimary">{compte.pseudo}</span>
+              {/* Le pseudo ne peut plus être l'adresse (voir AppUser) : les deux
+                  lignes ne se répètent jamais. */}
+              <span className="text-xs text-textDim">{compte.email}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => deconnexion.mutate()}
+              disabled={deconnexion.isPending}
+              className="flex items-center justify-center gap-2 self-start rounded-lg bg-surface2 px-4 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
+            >
+              <LogOut size={16} />
+              Se déconnecter
+            </button>
+          </div>
+
+          {/* L'export vivait dans « Administration avancée », à côté des
+              catégories de collection. Ce n'est pas de la configuration :
+              c'est ce qui garantit qu'on peut partir avec ses données, et ça
+              appartient au compte qui les possède. */}
+          <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
+            <span className="flex items-center gap-2 font-medium text-textPrimary">
+              <Download size={16} className="shrink-0 text-accentText" />
+              Emporter ma collection
+            </span>
+            <p className="text-sm text-textDim">
+              Séries, tomes, possessions, expériences, envies, relations et tags, plus ce que tu as saisi à la main
+              et qu'on ne peut pas recalculer : éditions de référence, classements et Tier Lists. Format ouvert,
+              lisible sans cette app - pour garantir l'absence d'enfermement, même auto-hébergé. Restent dehors,
+              volontairement : l'historique d'analyses d'achat (des instantanés, pas des données saisies) et les
+              jetons de partage, qui sont des secrets.
+            </p>
+            <div className="mt-1 flex gap-2">
+              <a
+                href="/api/export/json"
+                download
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+              >
+                Télécharger en JSON
+              </a>
+              <a
+                href="/api/export/csv"
+                download
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+              >
+                Télécharger en CSV (.zip)
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
+        Cet appareil
+      </h2>
+      {/* Dit une fois, pour les deux réglages qui suivent : ils vivent dans le
+          localStorage de ce navigateur, pas sur le compte. Sans cette phrase,
+          quelqu'un qui ouvre l'app sur son téléphone croit à une perte de
+          réglage. */}
+      <p className="-mt-3 text-sm text-textDim">
+        Ces deux réglages restent sur cet appareil : ils ne suivent pas ton compte d'un navigateur à l'autre.
+      </p>
+
+      {/* Pattern switch identique à celui de la maquette (role="switch" +
+          aria-checked, jamais un simple bouton texte pour un état à deux
+          valeurs). */}
       <section className="flex items-center gap-3 rounded-xl bg-surface p-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
           {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
@@ -117,7 +204,7 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Titre des mangas</h2>
+        <h3 className="font-display text-base font-semibold text-textPrimary">Titre des mangas</h3>
         <p className="text-sm text-textDim">
           Fais glisser pour choisir l'ordre, coche/décoche pour activer/désactiver. La première langue active
           disponible devient le titre ajouté à ta collection ; les suivantes actives apparaissent entre parenthèses.
@@ -158,11 +245,10 @@ export function SettingsPage() {
         </ul>
       </section>
 
-      {/* Types de collection/Import BGG/Export brut : configuration technique
-          touchée une fois puis oubliée, pas un réglage de confort d'usage
-          comme la langue des titres ci-dessus - regroupée à part (voir
-          AdministrationPage) plutôt que noyée ici (voir "réduction réelle de
-          la charge cognitive"). */}
+      {/* Ni « mon compte » ni « cet appareil » : le CONTENU de la collection
+          (ses catégories, ses éditions de référence, ce qu'on y importe) et
+          l'instance elle-même. On les configure une fois ; ce ne sont pas des
+          réglages qu'on ajuste. */}
       <Link
         to="/administration"
         className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
@@ -171,8 +257,8 @@ export function SettingsPage() {
           <Wrench size={18} />
         </span>
         <span className="flex-1">
-          <span className="block font-medium text-textPrimary">Administration avancée</span>
-          <span className="block text-xs text-textDim">Types de collection, import BGG, export brut des données</span>
+          <span className="block font-medium text-textPrimary">Administration</span>
+          <span className="block text-xs text-textDim">Catégories, éditions de référence, import - et les comptes</span>
         </span>
         <ChevronRight size={16} className="shrink-0 text-textDim" />
       </Link>

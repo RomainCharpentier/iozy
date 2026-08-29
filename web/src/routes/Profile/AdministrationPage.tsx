@@ -10,21 +10,42 @@ interface AdminLink {
   icon: typeof Tags
 }
 
-// "Administration avancée" (voir l'audit UX) : sépare ce qui configure
-// l'app/gère les données brutes (technique, touché une fois puis oublié) de
-// ce qu'on consulte pour sa collection (Profil) ou qu'on règle pour son
-// confort d'usage (Paramètres) - la personnalisation des types de fiches ou
-// l'import BGG n'ont pas leur place au même niveau qu'une wishlist ou des
-// statistiques. Accessible uniquement depuis Paramètres, pas d'entrée
-// dupliquée ailleurs (voir "réduction réelle de la charge cognitive").
-const LINKS: AdminLink[] = [
-  { to: '/types', label: 'Types de collection', description: 'Gérer les catégories (mangas, jeux vidéo...) et leurs champs', icon: Tags },
-  { to: '/import-bgg', label: 'Importer depuis BGG', description: 'Récupérer tes jeux de société depuis BoardGameGeek', icon: Upload },
+/**
+ * Ce qui n'est ni un réglage de compte, ni un réglage d'appareil.
+ *
+ * <h2>Deux sections, deux échelles</h2>
+ * <b>Ma collection</b> : ce qui décrit son CONTENU - les catégories qu'elle
+ * accepte, les éditions de référence qui rendent les « X/Y » possibles, ce
+ * qu'on y importe. Ça se configure une fois puis s'oublie, contrairement au
+ * thème ou à la langue des titres, qui restent dans Paramètres.
+ *
+ * <p><b>Cette instance</b> : la machine, pas les données. Une seule entrée -
+ * les comptes - et elle n'apparaît que pour un administrateur.
+ *
+ * <h2>Ce qui a quitté cet écran</h2>
+ * L'<b>export</b>. Il vivait ici, à côté des catégories de collection, comme
+ * si télécharger sa collection était de la configuration technique. C'est le
+ * contraire : c'est la garantie de pouvoir partir avec ses données, et ça
+ * appartient au compte qui les possède - donc à <b>Paramètres ▸ Mon compte</b>.
+ */
+const MA_COLLECTION: AdminLink[] = [
+  {
+    to: '/types',
+    label: 'Catégories de collection',
+    description: 'Mangas, jeux vidéo, jeux de société... et les champs de chacune',
+    icon: Tags,
+  },
   {
     to: '/editions',
     label: 'Éditions de référence',
     description: "Nombre de tomes et éditeur par édition - c'est de là que vient la progression X/Y",
     icon: BookMarked,
+  },
+  {
+    to: '/import-bgg',
+    label: 'Importer depuis BGG',
+    description: 'Récupérer tes jeux de société depuis BoardGameGeek',
+    icon: Upload,
   },
 ]
 
@@ -35,27 +56,43 @@ const LINKS: AdminLink[] = [
  * {@code /api/admin/**} quel que soit l'écran (voir SecurityConfig). Ce qui se
  * joue ici est autre chose - ne pas proposer une porte qui ne s'ouvrira pas.
  */
-const LIEN_COMPTES: AdminLink = {
-  to: '/administration/comptes',
-  label: 'Comptes',
-  description: "Qui a un compte sur cette instance, et en supprimer un - jamais le contenu de leur collection",
-  icon: Users,
-}
+const CETTE_INSTANCE: AdminLink[] = [
+  {
+    to: '/administration/comptes',
+    label: 'Comptes',
+    description: "Qui a un compte ici, et en supprimer un - jamais le contenu de leur collection",
+    icon: Users,
+  },
+]
 
 export function AdministrationPage() {
   const { compte } = useAuth()
-  const liens = compte?.admin ? [...LINKS, LIEN_COMPTES] : LINKS
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <EnTeteSection
-          niveau={1}
-          titre="Administration avancée"
-          sousTitre="Configuration technique et gestion des données — à toucher rarement."
-        />
-      </div>
+    <div className="flex flex-col gap-6">
+      <EnTeteSection
+        niveau={1}
+        titre="Administration"
+        sousTitre="Ce qui décrit ta collection, et la machine qui l'héberge — à toucher rarement."
+      />
 
+      <Groupe titre="Ma collection" liens={MA_COLLECTION} />
+      {compte?.admin && <Groupe titre="Cette instance" liens={CETTE_INSTANCE} />}
+    </div>
+  )
+}
+
+function Groupe({ titre, liens }: { titre: string; liens: AdminLink[] }) {
+  // `aria-labelledby` et non un simple titre visuel : sans nom accessible, une
+  // <section> n'est pas un repère - un lecteur d'écran la traverse sans pouvoir
+  // sauter d'un groupe à l'autre, et les deux échelles redeviennent une seule
+  // liste plate, exactement ce qu'on vient de démêler.
+  const id = `groupe-${titre.replace(/\s+/g, '-').toLowerCase()}`
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-2">
+      <h2 id={id} className="font-display text-lg font-semibold text-textPrimary">
+        {titre}
+      </h2>
       <ul className="flex flex-col gap-2">
         {liens.map(({ to, label, description, icon: Icon }) => (
           <li key={to}>
@@ -75,33 +112,6 @@ export function AdministrationPage() {
           </li>
         ))}
       </ul>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-display text-lg font-semibold text-textPrimary">Export de la collection</h2>
-        <p className="text-sm text-textDim">
-          Toute ta collection (séries, tomes, possessions, expériences, wishlist, relations, tags), plus ce que tu
-          as saisi à la main et qu'on ne peut pas recalculer : éditions de référence, classements et Tier Lists,
-          envies d'amélioration. Format ouvert, lisible sans cette app - pour garantir l'absence d'enfermement,
-          même auto-hébergé. Restent dehors, volontairement : l'historique d'analyses d'achat (des instantanés,
-          pas des données saisies) et les jetons de partage, qui sont des secrets.
-        </p>
-        <div className="mt-2 flex gap-2">
-          <a
-            href="/api/export/json"
-            download
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
-          >
-            Télécharger en JSON
-          </a>
-          <a
-            href="/api/export/csv"
-            download
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
-          >
-            Télécharger en CSV (.zip)
-          </a>
-        </div>
-      </section>
-    </div>
+    </section>
   )
 }
