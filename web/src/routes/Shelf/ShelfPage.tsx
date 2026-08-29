@@ -492,7 +492,10 @@ export function ShelfPage() {
               type="button"
               onClick={() => {
                 setHubMenuOpen(false)
-                navigate('/types')
+                // L'origine voyage avec la navigation : sans elle, le lien de
+                // retour de cet écran proposerait Administration, son parent
+                // naturel - un détour, pour quelqu'un qui vient d'ici.
+                navigate('/types', { state: { retour: { to: '/', libelle: 'Ma collection' } } })
               }}
               className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
             >

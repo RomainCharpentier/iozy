@@ -74,7 +74,7 @@ jamais par une classe CSS ou un `data-testid`.
 **Écrire un parcours de bout en bout** : dans `e2e/*.spec.ts`. Ils partent
 connectés (la session est ouverte une fois par `compte.setup.ts` et rejouée),
 sauf `porte.spec.ts` qui teste justement l'entrée et part anonyme. Ce qui
-mérite un parcours, ce n'est pas une règle - les 271 tests Vitest la couvrent
+mérite un parcours, ce n'est pas une règle - les 276 tests Vitest la couvrent
 déjà - c'est un **passage** : d'un écran au suivant, du clic à la base. Un
 formulaire branché sur la mauvaise route ou un cache qu'on oublie d'invalider
 ne casse aucune règle : l'écran reste simplement sur l'état d'avant.

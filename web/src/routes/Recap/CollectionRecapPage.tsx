@@ -7,6 +7,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { djb2Hash } from '../../theme/gradient'
 import { gradientPalettes } from '../../theme/tokens'
 import type { YearlyRecapDto } from '../../types/api'
+import { LienRetour } from '../../components/LienRetour'
 
 /** Même algorithme que gradientFor (theme/gradient.ts), mais renvoie les 2
  * couleurs hexadécimales brutes plutôt qu'une chaîne CSS - nécessaire pour
@@ -104,6 +105,8 @@ export function CollectionRecapPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/discover', libelle: 'Découvrir' }} />
+
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">Bilan annuel</h1>
         <select

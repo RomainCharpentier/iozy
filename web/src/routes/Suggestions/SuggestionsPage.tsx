@@ -5,6 +5,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { libelleBaseCourt } from '../../lib/basePrix'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
  * édition nommée est connue mais incomplète, les plus proches de la
@@ -19,6 +20,8 @@ export function SuggestionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/discover', libelle: 'Découvrir' }} />
+
       <EnTeteSection
         niveau={1}
         titre="Suggestions d'achats"

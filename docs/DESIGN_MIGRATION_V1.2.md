@@ -1360,6 +1360,47 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 109 — dix écrans sans sortie
+
+En rangeant les réglages, un défaut est apparu par contraste : **dix écrans
+n'avaient aucun lien de retour**. Paramètres, Administration ▸ Comptes,
+Éditions de référence, Catégories de collection et son formulaire, Import BGG,
+Statistiques, Suggestions d'achats, Bilan annuel, Historique des analyses.
+
+Tous s'ouvrent depuis un endroit précis, et depuis nulle part ailleurs. Leur
+seule sortie était le **bouton Précédent du navigateur** - qui n'existe pas
+dans une app installée sur l'écran d'accueil : le manifeste déclare
+`display: standalone`, et c'est précisément ce que le lot PWA a rendu
+possible. Le défaut ne s'est donc aggravé qu'après coup.
+
+#### Un composant, pas une onzième copie
+
+`LienRetour` prend le **parent naturel** en paramètre et propose l'**origine
+nommée** quand celui qui a ouvert l'écran l'a passée (voir `lib/retour`). Les
+deux sources dans le bon ordre : les catégories de collection s'ouvrent aussi
+depuis Ma collection ▸ Plus d'outils, et y revenir par Administration serait un
+détour que personne n'a demandé - ce chemin passe donc son origine.
+
+Toujours pas de `navigate(-1)` : un « Retour » sans destination ment une fois
+sur deux. Ouvrir deux écrans d'affilée ramènerait au précédent, pas à celui qui
+contient.
+
+Le composant apporte au passage les **44 px** de cible tactile que les six
+copies manuelles n'avaient pas : leur texte fait 20 px de haut, et c'est le
+premier élément interactif de la page, en haut, là où le pouce vise.
+
+#### Ce qui n'a pas de retour, et pourquoi
+
+Les écrans atteignables depuis l'en-tête ou la barre de navigation n'en ont
+pas : Ma collection, Rechercher, Découvrir, Analyser une annonce, Mon profil,
+et **Administration**, qui a son propre bouton depuis ce jour. Un lien de
+retour y désignerait un contenant qui n'existe pas.
+
+276 tests web. Le test de `LienRetour` a trouvé quelque chose immédiatement :
+la suite de `ComptesPage` n'avait pas de Router dans son enrobage, et huit
+tests sont tombés d'un coup - le composant a besoin d'un contexte de
+navigation, ce qu'aucun écran de cette suite n'exigeait avant.
+
 ### Lot 108 — les choux et les carottes
 
 Trois écrans se partageaient les réglages sans qu'aucune règle ne dise lequel
@@ -6239,6 +6280,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Le bouton Précédent du navigateur n'existe pas dans une app installée (`display: standalone`) : dès qu'une PWA devient installable, tout écran sans lien de retour devient un cul-de-sac. Le défaut n'existait pas avant le lot PWA, et rien ne l'a signalé (Lot 109).
 - Un écran de réglages se range par ce que le réglage CONCERNE (mon compte / cet appareil / ma collection / cette instance), jamais par « à quel point c'est technique » : la seconde échelle est une impression, et c'est elle qui avait mis l'export à côté des catégories de collection (Lot 108).
 - Un réglage qui vit dans le `localStorage` doit le DIRE : rien à l'écran ne distingue un interrupteur qui suit le compte d'un interrupteur qui reste sur la machine, et la personne qui ouvre l'app sur son téléphone conclut à une perte de réglage (Lot 108).
 - Une capacité qui doit voir PAR-DESSUS le cloisonnement ne s'écrit pas avec les dépôts ordinaires : `@TenantId` les filtre sur le propriétaire courant, en silence. Elle se pose dans un port séparé, en SQL, avec un seul appelant et une garde devant - visible, plutôt que glissée dans un dépôt qu'on croit ordinaire (Lot 107).

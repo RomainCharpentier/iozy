@@ -9,6 +9,7 @@ import { DiscoverySection } from './DiscoverySection'
 import { CollectionTimelineSection } from './CollectionTimelineSection'
 import { CollectionValueSection } from './CollectionValueSection'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 export function StatsPage() {
 
@@ -37,6 +38,8 @@ export function StatsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <LienRetour parDefaut={{ to: '/profile', libelle: 'Mon profil' }} />
+
       <EnTeteSection niveau={1} titre="Statistiques" />
 
       {statsQuery.isError && <ErrorBanner message={statsQuery.error.message} />}

@@ -4,6 +4,7 @@ import { importBggCollection } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /** Déplacé depuis Ma collection (audit UX : un import ponctuel n'a rien à
  * faire sur l'écran consulté à chaque session, voir "fonctionnalités à
@@ -21,6 +22,8 @@ export function ImportBggPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/add', libelle: 'Rechercher' }} />
+
       <EnTeteSection
         niveau={1}
         titre="Importer depuis BoardGameGeek"

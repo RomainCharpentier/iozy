@@ -9,6 +9,7 @@ import {
 } from '../../lib/titleLanguage'
 import { useTheme } from '../../lib/theme'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /**
  * Les réglages, rangés par <b>ce qu'ils concernent</b>.
@@ -91,6 +92,8 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/profile', libelle: 'Mon profil' }} />
+
       <EnTeteSection niveau={1} titre="Paramètres" />
 
       {compte && (

@@ -9,6 +9,7 @@ import { EditionObservations } from './EditionObservations'
 import type { MangaEditionDto } from '../../types/purchaseAnalysis'
 import { TexteCoupe } from '../../components/TexteCoupe'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /**
  * "Éditions de référence" - la seule vue d'ensemble du référentiel
@@ -55,6 +56,8 @@ export function EditionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/administration', libelle: 'Administration' }} />
+
       <div>
         <EnTeteSection
           niveau={1}
