@@ -1360,6 +1360,48 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 99 — les parcours qui n’existent que sur un manga
+
+Trois parcours structurants de plus (6 sur 10) : la **progression « X/Y »**
+d'une édition et le tome coché depuis la grille, et une **Tier List** créée,
+remplie, puis classée.
+
+#### Un compromis, écrit plutôt que subi
+
+Ces parcours n'existent que sur un manga - et un manga ne s'ajoute pas à la
+main : les univers livrés exigent une correspondance chez un fournisseur
+externe, et la pile de test n'a volontairement aucune clé. L'état de départ
+est donc posé **par l'API** (`e2e/amorcage.ts`), et tout ce qui est vérifié
+ensuite passe par l'écran. Ce qui est testé reste le parcours ; ce qui est
+simulé, c'est l'existence d'une collection - exactement ce qu'un utilisateur
+aurait déjà en arrivant.
+
+L'amorçage a appris quelque chose au passage : l'ajout rapide **crée déjà**
+l'édition, sans son nombre de tomes. La recréer part en 409, et le serveur a
+raison. On la complète donc - ce qui est exactement l'état d'une vraie
+collection avant que la fiche de référence soit renseignée.
+
+#### Ce que le test a découvert sur un geste quotidien
+
+Cocher un tome manquant a résisté trois fois, et chaque échec disait quelque
+chose :
+
+- cliquer la **tuile** échoue à la souris - survoler fait apparaître un calque
+  à deux boutons (« Je l'ai » / « Je le veux ») qui la recouvre entièrement et
+  intercepte le clic ;
+- survoler la tuile pour atteindre ce calque échoue aussi, pour la même raison
+  - dès qu'il apparaît, c'est lui qui reçoit le pointeur ;
+- il faut survoler le **conteneur**, qui contient les deux.
+
+Autrement dit : **deux gestes, deux publics**. À la souris, on passe par le
+calque ; au doigt, il n'y a pas de survol, le calque ne se montre jamais et
+c'est la tuile qui reçoit le geste. Les deux appellent le même ajout - aucun
+chemin ne manque, et c'est écrit dans le test plutôt que redécouvert.
+
+9 parcours en 35 s. Restent hors de portée sans fournisseur ni caméra : le
+scan, l'analyse d'une annonce, les séries presque complètes et la fiche
+d'édition de référence.
+
 ### Lot 98 — cinq incohérences, dont trois qui n’existaient plus
 
 Le §22 de `USER_JOURNEYS.md` listait cinq incohérences non traitées. Les
