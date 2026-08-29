@@ -28,8 +28,9 @@
 
 ## Le projet
 
-IozyCore est une base de connaissances personnelle, auto-hébergée et
-mono-utilisateur : cataloguer une collection (mangas, jeux vidéo, jeux de
+IozyCore est une base de connaissances personnelle, auto-hébergée, où
+**chaque personne a sa collection** (depuis le 2026-08-29 ; le catalogue des
+œuvres, lui, est commun) : cataloguer une collection (mangas, jeux vidéo, jeux de
 société), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
 joué, terminé, avec note et commentaire), enrichi automatiquement via des
 API publiques gratuites. Ce dossier est le client iOS ; le backend (Spring
