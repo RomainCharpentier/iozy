@@ -25,6 +25,14 @@ services:
       DB_NAME: iozycore
       DB_USER: iozycore
       DB_PASSWORD: iozycore_dev
+      # Code d'invitation exigé pour créer un compte APRÈS le premier (le
+      # premier est libre, et reprend la collection déjà en base). Laissé
+      # vide, la création est FERMÉE une fois le premier compte créé :
+      # l'absence de configuration ferme la porte, elle ne l'ouvre pas.
+      IOZYCORE_INVITE_CODE: ${IOZYCORE_INVITE_CODE:-}
+      # `true` dès qu'il y a du TLS devant : un cookie de session `Secure` ne
+      # part pas en clair. Faux en local, où tout passe en http://localhost.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       # Optionnel - voir .env.example. Sans token, les appels BGG restent
       # fonctionnels pour tester en local mais ne sont pas conformes aux
       # conditions actuelles de BGG (voir README, section "Statistiques").

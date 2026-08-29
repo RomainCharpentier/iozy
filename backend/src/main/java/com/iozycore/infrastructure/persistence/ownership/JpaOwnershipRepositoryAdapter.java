@@ -30,7 +30,7 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
 
     @Override
     public Optional<Ownership> findById(UUID id) {
-        return jpaRepository.findById(id).map(JpaOwnershipRepositoryAdapter::toDomain);
+        return jpaRepository.findOneById(id).map(JpaOwnershipRepositoryAdapter::toDomain);
     }
 
     @Override
@@ -54,7 +54,12 @@ public class JpaOwnershipRepositoryAdapter implements OwnershipRepository {
 
     @Override
     public void deleteById(UUID id) {
-        jpaRepository.deleteById(id);
+        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
+        // charge par clé primaire sans requête, donc sans le cloisonnement par
+        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
+        // sans trace (constaté par le test d'isolation). Rien à supprimer est
+        // aussi le cas normal : le contrat du port est idempotent.
+        jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 
     private static OwnershipJpaEntity toJpa(Ownership ownership) {

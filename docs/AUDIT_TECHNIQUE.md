@@ -14,17 +14,17 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 
 | | fichiers | lignes |
 |---|---|---|
-| backend `src/main` | 278 | 25 157 |
-| backend `src/test` | 109 | 21 485 |
+| backend `src/main` | 280 | 25 536 |
+| backend `src/test` | 112 | 21 952 |
 | web `src` | 176 | 23 234 |
 | iOS | 24 | 4 166 |
-| migrations Flyway | 25 | — |
+| migrations Flyway | 26 | — |
 | docs | 6 | ~9 614 |
 
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
 **97 endpoints** · **21 tables** · **27 routes web** ·
-**1 040 tests backend** · **215 tests web** (Vitest, depuis le 2026-08-29).
+**1 057 tests backend** · **215 tests web** (Vitest, depuis le 2026-08-29).
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
 > suppression de `editionupgrade` (Lot 27) et de `loan` (migration V19), et
@@ -47,10 +47,11 @@ côté backend — élevé, et concentré sur le domaine et l'intégration.
 
 **21 contraintes de clé étrangère** déclarées. Les seules colonnes en `_id`
 sans FK sont les `owner_id`. La table `app_user` existe depuis le 2026-08-29
-(`V25`), mais **aucune clé étrangère ne pointe encore vers elle** : ces colonnes
-portent toutes le propriétaire par défaut, et une contrainte posée maintenant
-refuserait toute écriture tant que le premier compte n'existe pas. Elle sera
-posée avec l'isolation par propriétaire.
+(`V25`), mais **aucune clé étrangère ne pointe vers elle**, et c'est délibéré :
+ces colonnes portent le propriétaire par défaut sur toute base antérieure aux
+comptes, et une contrainte refuserait alors toute écriture tant que le premier
+compte n'a pas été créé. Le cloisonnement, lui, ne repose pas sur ces
+contraintes mais sur `@TenantId` (voir Sécurité).
 
 ### Robustesse de l'API — 96 endpoints sondés
 
@@ -97,11 +98,19 @@ injecté lirait), CSRF par cookie + en-tête, mots de passe en BCrypt, session
 renouvelée à chaque connexion (fixation), et même réponse pour une adresse
 inconnue que pour un mot de passe faux.
 
-**Ce qui n'est pas encore fait, et se voit ici** : l'isolation par
-propriétaire. Les écritures portent toujours `DefaultOwner.ID` et les lectures
-ne filtrent pas par compte — un second compte verrait la collection du premier.
-La création de comptes supplémentaires est fermée par défaut
-(`IOZYCORE_INVITE_CODE` vide), ce qui contient le risque en attendant.
+**Le cloisonnement par propriétaire a suivi le 2026-08-29** (Lot 95). Chaque
+table privée porte une colonne `owner_id` annotée `@TenantId` : Hibernate
+l'ajoute au `WHERE` de toute requête et la remplit à l'insertion. Sans compte
+connu, le propriétaire vaut `PERSONNE` - un identifiant qu'aucun compte ne
+porte : un oubli fait voir **rien**, jamais la collection du premier compte.
+
+Deux angles morts, trouvés en écrivant le test d'isolation et refermés :
+`findById` charge par clé primaire **sans requête**, donc sans filtre ; et
+`deleteById` comme les suppressions en masse avaient le même défaut - elles
+**effaçaient** les lignes d'un autre compte. Tout passe désormais par une
+lecture filtrée. Quatorze tests d'isolation couvrent chaque agrégat privé,
+lecture et suppression, plus le lien de partage - seul franchissement
+légitime, explicite via `AuNomDe`.
 
 ### Code mort backend
 

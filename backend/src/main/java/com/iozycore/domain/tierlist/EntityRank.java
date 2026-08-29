@@ -1,6 +1,5 @@
 package com.iozycore.domain.tierlist;
 
-import com.iozycore.domain.shared.DefaultOwner;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -36,7 +35,7 @@ public class EntityRank {
     }
 
     public static EntityRank assign(UUID entityId, Rank rank) {
-        return new EntityRank(entityId, DefaultOwner.ID, rank, Instant.now());
+        return new EntityRank(entityId, null, rank, Instant.now());
     }
 
     public static EntityRank reconstitute(UUID entityId, UUID ownerId, Rank rank, Instant rankedAt) {

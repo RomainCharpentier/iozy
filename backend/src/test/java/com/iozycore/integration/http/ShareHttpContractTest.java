@@ -1,5 +1,6 @@
 package com.iozycore.integration.http;
 
+import com.iozycore.domain.shared.DefaultOwner;
 import com.iozycore.application.CatalogEntityResolver;
 import com.iozycore.application.QuickAddService;
 import com.iozycore.domain.catalog.Entity;
@@ -70,7 +71,7 @@ class ShareHttpContractTest extends HttpContractTestBase {
     }
 
     private String jetonAvecSections(boolean collection, boolean envies, boolean tierLists) {
-        ShareSettings settings = ShareSettings.withNewToken()
+        ShareSettings settings = ShareSettings.withNewToken(DefaultOwner.ID)
                 .withSections(collection, envies)
                 .withTierLists(tierLists);
         return shareSettingsRepository.save(settings).token();
@@ -80,7 +81,7 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
     @Test
     void reports_no_active_link_before_anything_is_generated() throws Exception {
-        shareSettingsRepository.save(ShareSettings.noLink());
+        shareSettingsRepository.save(ShareSettings.noLink(DefaultOwner.ID));
 
         mockMvc.perform(get("/api/share"))
                 .andExpect(status().isOk())

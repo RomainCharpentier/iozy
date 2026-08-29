@@ -1,6 +1,5 @@
 package com.iozycore.domain.wishlist;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import com.iozycore.domain.shared.DomainEvent;
 
 import java.time.Instant;
@@ -16,9 +15,11 @@ import java.util.UUID;
  * (la conversion elle-même est orchestrée en couche application, qui
  * crée l'Ownership puis supprime l'entrée de wishlist).
  * <p>
- * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - préparation au multi-utilisateur, voir
- * DefaultOwner.
+ * Porte un ownerId, mais ne le CHOISIT pas : à la création il vaut
+ * null - « pas encore attribué ». C'est la session qui
+ * tranche, à l'écriture, via la colonne marquée @TenantId (voir
+ * ProprietaireCourant). Relu depuis la base, il porte le vrai propriétaire
+ * de la ligne.
  * <p>
  * <b>Sur quoi porte une envie.</b> Sur l'objet réellement collectionnable du
  * type, pas sur son groupe (voir l'étude produit du 2026-08-27). Pour un
@@ -72,7 +73,7 @@ public class WishlistEntry {
         if (entityId == null) {
             throw new IllegalArgumentException("Une entrée de wishlist doit référencer une œuvre");
         }
-        WishlistEntry entry = new WishlistEntry(UUID.randomUUID(), entityId, variantId, DefaultOwner.ID, addedAt);
+        WishlistEntry entry = new WishlistEntry(UUID.randomUUID(), entityId, variantId, null, addedAt);
         entry.pendingEvents.add(new EntityAddedToWishlist(entry.id, entityId, Instant.now()));
         return entry;
     }

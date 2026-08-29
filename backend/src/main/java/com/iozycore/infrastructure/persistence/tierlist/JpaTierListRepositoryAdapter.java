@@ -16,6 +16,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 interface TierListJpaRepository extends JpaRepository<TierListJpaEntity, UUID> {
+
+    /**
+     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     *
+     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
+     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
+     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte -
+     * constaté en écrivant le test d'isolation, qui passait sur les listes et
+     * échouait sur les chargements par identifiant. Cette variante est une
+     * requête dérivée, donc filtrée comme les autres.
+     */
+    Optional<TierListJpaEntity> findOneById(UUID id);
     List<TierListJpaEntity> findByEntityTypeId(UUID entityTypeId);
 
     List<TierListJpaEntity> findByEntityTypeIdIsNull();
@@ -38,7 +50,7 @@ class JpaTierListRepositoryAdapter implements TierListRepository {
 
     @Override
     public Optional<TierList> findById(UUID id) {
-        return jpaRepository.findById(id).map(JpaTierListRepositoryAdapter::toDomain);
+        return jpaRepository.findOneById(id).map(JpaTierListRepositoryAdapter::toDomain);
     }
 
     @Override
@@ -57,7 +69,12 @@ class JpaTierListRepositoryAdapter implements TierListRepository {
 
     @Override
     public void deleteById(UUID id) {
-        jpaRepository.deleteById(id);
+        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
+        // charge par clé primaire sans requête, donc sans le cloisonnement par
+        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
+        // sans trace (constaté par le test d'isolation). Rien à supprimer est
+        // aussi le cas normal : le contrat du port est idempotent.
+        jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 
     static String serializeRanks(Set<Rank> ranks) {

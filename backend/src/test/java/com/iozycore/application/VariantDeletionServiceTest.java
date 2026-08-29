@@ -398,5 +398,12 @@ class VariantDeletionServiceTest {
         public List<MarketPriceObservation> findByEditionId(UUID mangaEditionId) {
             return store.stream().filter(o -> o.mangaEditionId().equals(mangaEditionId)).toList();
         }
+
+        @Override
+        public int countByEditionIdAllOwners(UUID mangaEditionId) {
+            // En mémoire, il n'y a qu'un seul propriétaire : les deux
+            // questions se confondent.
+            return findByEditionId(mangaEditionId).size();
+        }
     }
 }

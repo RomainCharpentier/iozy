@@ -1,5 +1,6 @@
 package com.iozycore.api.share;
 
+import com.iozycore.application.auth.UtilisateurCourant;
 import com.iozycore.api.dto.ShareDtos.ShareResponse;
 import com.iozycore.api.dto.ShareDtos.UpdateShareRequest;
 import com.iozycore.domain.share.ShareSettings;
@@ -27,9 +28,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class ShareController {
 
     private final ShareSettingsRepository repository;
+    private final UtilisateurCourant utilisateurCourant;
 
-    public ShareController(ShareSettingsRepository repository) {
+    public ShareController(ShareSettingsRepository repository, UtilisateurCourant utilisateurCourant) {
         this.repository = repository;
+        this.utilisateurCourant = utilisateurCourant;
     }
 
     @Operation(summary = "État courant du partage (token null = aucun lien actif)")
@@ -43,7 +46,7 @@ public class ShareController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShareResponse generate() {
-        return toResponse(repository.save(ShareSettings.withNewToken()));
+        return toResponse(repository.save(ShareSettings.withNewToken(utilisateurCourant.proprietaire())));
     }
 
     @Operation(summary = "Changer les sections visibles SANS toucher au lien déjà distribué. Champ absent (null) "
@@ -73,7 +76,7 @@ public class ShareController {
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove() {
-        repository.save(ShareSettings.noLink());
+        repository.save(ShareSettings.noLink(utilisateurCourant.proprietaire()));
     }
 
     private static ShareResponse toResponse(ShareSettings settings) {

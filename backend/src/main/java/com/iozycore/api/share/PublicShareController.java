@@ -1,5 +1,6 @@
 package com.iozycore.api.share;
 
+import com.iozycore.infrastructure.multitenance.AuNomDe;
 import com.iozycore.api.dto.ShareDtos.*;
 import com.iozycore.application.TierListService;
 import com.iozycore.domain.catalog.Entity;
@@ -106,10 +107,14 @@ public class PublicShareController {
         ShareSettings settings = shareSettingsRepository.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
 
-        return new SharedSpaceResponse(
+        // Le destinataire d'un lien n'a pas de compte : le cloisonnement ne
+        // peut pas venir de la session. Il vient du JETON, qui nomme son
+        // propriétaire - et c'est écrit ici, à l'endroit où la lecture au nom
+        // d'autrui se produit, plutôt que déduit de l'endroit d'où l'on vient.
+        return AuNomDe.executer(settings.ownerId(), () -> new SharedSpaceResponse(
                 settings.sharesCollection() ? sharedCollection() : null,
                 settings.sharesWishlist() ? sharedWishlist() : null,
-                settings.sharesTierLists() ? sharedTierLists() : null);
+                settings.sharesTierLists() ? sharedTierLists() : null));
     }
 
     /** Ce qui est réellement possédé, groupé par univers - jamais le simple catalogue. */

@@ -1,6 +1,5 @@
 package com.iozycore.domain.share;
 
-import com.iozycore.domain.shared.DefaultOwner;
 
 import java.util.UUID;
 
@@ -40,8 +39,8 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
     }
 
     /** Aucun lien. Les sections restent à leur valeur la plus ouverte pour le prochain lien créé. */
-    public static ShareSettings noLink() {
-        return new ShareSettings(DefaultOwner.ID, null, true, true, false);
+    public static ShareSettings noLink(UUID proprietaire) {
+        return new ShareSettings(proprietaire, null, true, true, false);
     }
 
     /**
@@ -52,8 +51,8 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
      * d'une énumération ({@code /share/1}, {@code /share/2}…). C'est le
      * mécanisme déjà en place dans le projet, conservé tel quel.
      */
-    public static ShareSettings withNewToken() {
-        return new ShareSettings(DefaultOwner.ID, UUID.randomUUID().toString(), true, true, false);
+    public static ShareSettings withNewToken(UUID proprietaire) {
+        return new ShareSettings(proprietaire, UUID.randomUUID().toString(), true, true, false);
     }
 
     /**

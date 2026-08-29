@@ -1548,7 +1548,7 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 GET /insights/progress/{entityId} (une fiche) - aucun client
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
-Tests           backend/src/test/java/**  (1040 tests)
+Tests           backend/src/test/java/**  (1057 tests)
                 web/src/**/*.test.ts(x)   (215 tests, Vitest - voir web/README)
 ```
 

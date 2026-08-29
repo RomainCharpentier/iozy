@@ -1360,6 +1360,99 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 95 — chacun chez soi
+
+Le Lot 94 a posé la porte. Une porte qui laisse entrer plusieurs personnes
+dans la même pièce ne protège rien : ce lot cloisonne, agrégat par agrégat.
+
+#### Le cloisonnement ne vit pas dans les requêtes
+
+L'alternative était d'ajouter un `ownerId` à chaque méthode des huit dépôts
+privés — quatre-vingts appels, et surtout **une règle à se rappeler à chaque
+nouvelle requête écrite un an plus tard**. Une seule oubliée, et un écran
+montre la collection de quelqu'un d'autre sans que rien ne le signale.
+
+Hibernate sait le faire lui-même : une colonne marquée `@TenantId` est ajoutée
+au `WHERE` de toute requête sur l'entité, et remplie à l'insertion depuis
+`ProprietaireCourant`. Ce n'est pas un filtre qu'on pense à poser, c'est un
+filtre qu'on ne peut pas retirer. Il refuse même une valeur déjà posée qui
+diffère de la sienne — d'où les fabriques du domaine qui laissent ce champ à
+`null` : elles ne choisissent pas de propriétaire, la session tranche.
+
+**Le défaut est « personne », jamais « le premier ».** Hors requête
+authentifiée, le propriétaire vaut un identifiant qu'aucun compte ne porte,
+donc auquel aucune ligne ne répond. Un chemin qui oublierait de dire au nom de
+qui il travaille ne voit **rien** ; il ne voit pas la collection du premier
+compte. Se tromper doit produire un écran vide — un défaut visible — jamais
+une fuite silencieuse.
+
+#### Ce que le test d'isolation a trouvé, et que rien d'autre n'aurait vu
+
+Écrit agrégat par agrégat — le cloisonnement se pose colonne par colonne, en
+oublier une ne casse rien ailleurs — il a immédiatement montré **deux angles
+morts de `@TenantId`** :
+
+- **`findById` charge par clé primaire, sans requête** : pas de filtre. Bob,
+  connaissant l'identifiant d'une possession d'Alice, la lisait. Les dépôts
+  utilisent désormais un `findOneById` dérivé — qui est, lui, une requête.
+- **Les suppressions avaient le même angle mort, et il coûte bien plus cher.**
+  `deleteById` charge par clé primaire puis supprime : Bob **effaçait** la
+  possession d'Alice, sans erreur et sans trace. Les suppressions en masse
+  (`deleteBy…`) de même. Toutes passent maintenant par une lecture filtrée,
+  puis la suppression de ce qui a été trouvé.
+
+Une lecture qui traverse la frontière montre ce qu'elle ne devrait pas ; une
+écriture qui la traverse **détruit** ce qui appartient à un autre. Les cinq
+suppressions sont donc testées depuis le mauvais compte, identifiants exacts en
+main.
+
+#### Le test a dû sortir de la transaction
+
+Premier jet : sept tests sur huit passaient... parce qu'Hibernate lit le
+propriétaire à l'**ouverture d'une session**. Dans une transaction unique —
+le montage de tous les autres tests d'intégration — changer de compte en cours
+de route ne change rien, et le test se croyait cloisonné alors qu'il ne
+l'était pas. Il tourne donc hors transaction, chaque appel ouvrant sa propre
+session, comme deux requêtes de deux personnes — et il nettoie derrière lui,
+puisque rien ne sera annulé pour lui.
+
+#### Le seul franchissement légitime, écrit en toutes lettres
+
+Un lien de partage : son destinataire n'a pas de compte, et ce qu'il doit voir
+appartient à quelqu'un d'autre. Le cloisonnement ne peut donc pas venir de la
+session — il vient du **jeton**, qui nomme son propriétaire.
+`AuNomDe.executer(settings.ownerId(), …)` le dit à l'endroit où ça se produit,
+plutôt que de le déduire de l'endroit d'où l'on vient. Un test vérifie qu'un
+lien montre bien la collection de SON propriétaire, et pas celle du voisin.
+
+#### Vérifié à deux comptes, en direct
+
+Sur l'application réelle, code d'invitation posé : le premier compte retrouve
+ses 9 œuvres et 12 possessions ; un second compte créé dans la foulée voit
+**0 possession, 0 envie, 0 analyse**, et « Rien ici pour l'instant » à l'écran.
+Son lien de partage, ouvert sans session, rend une collection **vide** - pas
+celle du premier. Puis retour sur le premier compte : ses 12 possessions sont
+intactes. Le catalogue, lui, reste visible des deux côtés : c'est le parti pris,
+et il se voit ici plutôt que de se découvrir plus tard.
+
+1057 tests backend depuis `clean`, dont **14 tests d'isolation** - un par
+agrégat privé, en lecture et en suppression, plus le lien de partage.
+
+#### Ce qui reste partagé, et pourquoi
+
+Le catalogue (œuvres, tomes, tags, relations) : une œuvre est la même pour
+tout le monde, parti pris depuis la V2. Les **éditions de référence** : de la
+donnée d'univers, enrichie collectivement, et c'est elle qui rend tous les
+« X/Y » possibles. Les **caches** devant les fournisseurs externes à quota :
+les cloisonner ferait payer deux fois le même appel pour la même question.
+
+Trois tables privées manquaient à l'appel et les ont rejoints (`V26`) : les
+analyses d'achat, les prix relevés — toute l'app les présente comme « **tes**
+prix relevés » — et l'appartenance d'une œuvre à un classement, colonne
+redondante avec sa liste parente et délibérément dupliquée : sans elle, « dans
+quels classements se trouve cette œuvre ? » devrait se souvenir de passer par
+la liste pour ne pas répondre sur celles des autres.
+
 ### Lot 94 — la porte
 
 L'API n'était protégée par **rien**. N'importe qui l'atteignant pouvait tout

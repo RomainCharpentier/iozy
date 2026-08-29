@@ -1,6 +1,7 @@
 package com.iozycore.integration;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
  */
 @SpringBootTest
 @Transactional
+// Hors requête, ces tests parlent au nom du premier compte : voir
+// ComptePourLesTests pour pourquoi le repli de production (« personne »)
+// rendrait une centaine de tests aveugles à ce qu’ils viennent d’écrire.
+@Import(ComptePourLesTests.class)
 public abstract class PostgresIntegrationTest {
 
     protected static final PostgreSQLContainer<?> POSTGRES =

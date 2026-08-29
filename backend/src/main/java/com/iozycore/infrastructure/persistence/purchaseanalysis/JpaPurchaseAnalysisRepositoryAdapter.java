@@ -26,7 +26,7 @@ public class JpaPurchaseAnalysisRepositoryAdapter implements PurchaseAnalysisRep
 
     @Override
     public Optional<PurchaseAnalysis> findById(UUID id) {
-        return jpaRepository.findById(id).map(PurchaseAnalysisMapper::toDomain);
+        return jpaRepository.findOneById(id).map(PurchaseAnalysisMapper::toDomain);
     }
 
     @Override

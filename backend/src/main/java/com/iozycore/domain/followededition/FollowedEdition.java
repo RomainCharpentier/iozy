@@ -1,6 +1,5 @@
 package com.iozycore.domain.followededition;
 
-import com.iozycore.domain.shared.DefaultOwner;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -19,8 +18,9 @@ import java.util.UUID;
  * de tomes). Suivre une édition ne doit pas exiger de l'avoir d'abord
  * documentée.
  * <p>
- * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - même préparation qu'Ownership/WishlistEntry.
+ * Porte un ownerId, mais ne le CHOISIT pas : null à la création, la session
+ * tranche à l'écriture via la colonne marquée @TenantId (voir
+ * ProprietaireCourant). Même règle que Ownership.
  */
 public class FollowedEdition {
 
@@ -47,7 +47,7 @@ public class FollowedEdition {
     }
 
     public static FollowedEdition create(UUID entityId, String editionName) {
-        return new FollowedEdition(UUID.randomUUID(), entityId, DefaultOwner.ID, editionName, LocalDate.now());
+        return new FollowedEdition(UUID.randomUUID(), entityId, null, editionName, LocalDate.now());
     }
 
     public static FollowedEdition reconstitute(UUID id, UUID entityId, UUID ownerId, String editionName,

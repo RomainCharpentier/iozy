@@ -12,18 +12,17 @@ import java.util.UUID;
  * Qui écrit, en ce moment même.
  *
  * <h2>Le seul endroit qui interroge la session</h2>
- * Toute la suite du chantier multi-utilisateur passera par ici : remplacer
- * {@link DefaultOwner#ID} à la création d'une possession, d'une envie, d'un
- * classement. Un seul endroit qui sait lire la session, et le reste de
- * l'application qui demande simplement « à qui ». Le jour où la session
- * change de forme (jeton, en-tête, autre), c'est ce fichier qui change.
+ * Le reste de l'application demande simplement « à qui », sans savoir d'où la
+ * réponse vient. Le jour où la session change de forme (jeton, en-tête,
+ * autre), c'est ce fichier qui change, et lui seul.
  *
- * <h2>Pourquoi un repli existe encore</h2>
- * {@link #proprietaire()} rend {@link DefaultOwner#ID} hors de toute requête
- * authentifiée - un import lancé en tâche de fond, un test qui appelle un
- * service directement. Ce repli disparaîtra avec l'isolation par propriétaire,
- * quand chaque écriture saura nommer son auteur ; le laisser aujourd'hui évite
- * de faire échouer du code qui n'a pas encore été rattaché.
+ * <h2>Sans compte connu : personne, jamais « le premier »</h2>
+ * {@link #proprietaire()} rend {@link DefaultOwner#PERSONNE} hors d'une
+ * requête authentifiée. Aucune ligne ne lui appartient : un chemin qui
+ * oublierait de dire au nom de qui il travaille ne voit <b>rien</b>. Un repli
+ * sur {@link DefaultOwner#ID} - l'identifiant du premier compte, celui qui a
+ * repris la collection d'origine - aurait fait exactement l'inverse, et sans
+ * bruit.
  */
 @Component
 public class UtilisateurCourant {
@@ -40,8 +39,8 @@ public class UtilisateurCourant {
         return Optional.empty();
     }
 
-    /** Le propriétaire auquel rattacher une écriture. */
+    /** Le propriétaire auquel rattacher une écriture, ou dont lire les données. */
     public UUID proprietaire() {
-        return id().orElse(DefaultOwner.ID);
+        return id().orElse(DefaultOwner.PERSONNE);
     }
 }

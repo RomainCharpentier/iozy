@@ -1,6 +1,5 @@
 package com.iozycore.domain.experience;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import com.iozycore.domain.shared.DomainEvent;
 
 import java.time.Instant;
@@ -28,9 +27,11 @@ import java.util.UUID;
  * Volontairement simplifié : une seule note + un commentaire libre par
  * entrée, pas de suivi détaillé de sessions/parties.
  * <p>
- * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - préparation au multi-utilisateur, voir
- * DefaultOwner.
+ * Porte un ownerId, mais ne le CHOISIT pas : à la création il vaut
+ * null - « pas encore attribué ». C'est la session qui
+ * tranche, à l'écriture, via la colonne marquée @TenantId (voir
+ * ProprietaireCourant). Relu depuis la base, il porte le vrai propriétaire
+ * de la ligne.
  */
 public class Experience {
 
@@ -79,7 +80,7 @@ public class Experience {
     public static Experience record_(UUID entityId, UUID variantId, String experienceType, LocalDate occurredAt,
                                       Integer rating, String comment) {
         Experience experience = new Experience(
-                UUID.randomUUID(), entityId, variantId, DefaultOwner.ID, experienceType, occurredAt, rating, comment);
+                UUID.randomUUID(), entityId, variantId, null, experienceType, occurredAt, rating, comment);
         experience.pendingEvents.add(new ExperienceRecorded(experience.id, entityId, experienceType, Instant.now()));
         return experience;
     }
