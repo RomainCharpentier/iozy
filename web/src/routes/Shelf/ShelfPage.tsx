@@ -7,7 +7,7 @@ import { searchVolumes } from '../../api/metadata'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
-import { CollectionFilters, type CompletionFilter } from './CollectionFilters'
+import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
 import { rattraperJaquettes, variantsMissingCover } from './backfillCovers'
 import {
@@ -26,6 +26,7 @@ import type { EntityResponse } from '../../types/api'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
 import { useDonneesCollection } from './useDonneesCollection'
+import { useFiltresCollection } from './useFiltresCollection'
 
 /**
  * Ce que compte le sous-titre, selon ce qu'on regarde. Un décompte doit nommer
@@ -49,8 +50,8 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
 }
 
 /** Un écran vide doit dire POURQUOI il l'est, et par où en sortir. */
-function messageVide(filtre: FiltreCollection, filtreEtatActif: boolean): { titre: string; detail: string } {
-  if (filtreEtatActif) {
+function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
+  if (filtresActifs) {
     return { titre: 'Aucune série ne correspond à ces filtres.', detail: '' }
   }
   if (filtre === 'envies') {
@@ -95,8 +96,7 @@ function messageVide(filtre: FiltreCollection, filtreEtatActif: boolean): { titr
 export function ShelfPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [status, setStatus] = useState<CompletionFilter>('ALL')
+  const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
   // Escape + piège de focus + focus rendu au déclencheur - voir
@@ -128,15 +128,17 @@ export function ShelfPage() {
 
   /** Les œuvres que CE filtre retient - le filtre d'état (Complètes /
    *  Incomplètes) ne s'appliquant qu'à ce qui a une complétude, une œuvre
-   *  seulement voulue n'en ayant pas encore. */
+   *  seulement voulue n'en ayant pas encore. Le tag, lui, vaut pour toutes :
+   *  il se pose sur l'œuvre, possédée ou non. */
   const retenuesPour = useCallback(
     (filtre: FiltreCollection) =>
       allEntities.filter((e) => {
         const etat = etats.get(e.id)
         if (!etat || !correspondAuFiltre(etat, filtre)) return false
-        return !etat.possede || matchesCompletionFilter(e, status, progression)
+        if (!filtres.porteLeTag(e)) return false
+        return !etat.possede || matchesCompletionFilter(e, filtres.status, progression)
       }),
-    [allEntities, etats, status, progression],
+    [allEntities, etats, filtres, progression],
   )
 
   const contexteAplatissement = useMemo(
@@ -304,7 +306,7 @@ export function ShelfPage() {
   const isLoading = donnees.chargement
   const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
 
-  const vide = messageVide(preferences.filtre, status !== 'ALL')
+  const vide = messageVide(preferences.filtre, filtres.nombreActifs > 0)
 
   return (
     <div className="flex flex-col gap-1">
@@ -348,17 +350,19 @@ export function ShelfPage() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => setFiltersOpen(true)}
-          aria-expanded={filtersOpen}
+          onClick={filtres.ouvrir}
+          aria-expanded={filtres.ouverts}
           className={`flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
-            status !== 'ALL' ? 'border-transparent bg-accentTint text-accentText' : 'border-fieldBorder text-textDim hover:bg-rowHover'
+            filtres.nombreActifs > 0
+              ? 'border-transparent bg-accentTint text-accentText'
+              : 'border-fieldBorder text-textDim hover:bg-rowHover'
           }`}
         >
           <SlidersHorizontal size={15} />
           Filtres
-          {status !== 'ALL' && (
+          {filtres.nombreActifs > 0 && (
             <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-              1
+              {filtres.nombreActifs}
             </span>
           )}
         </button>
@@ -417,8 +421,8 @@ export function ShelfPage() {
         <div className={`mt-6 ${CLASSE_CARTE}`}>
           <p className="font-display text-base font-semibold text-textPrimary">{vide.titre}</p>
           <p className="mt-1 text-sm text-textDim">{vide.detail}</p>
-          {status !== 'ALL' && (
-            <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
+          {filtres.nombreActifs > 0 && (
+            <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">
               Réinitialiser les filtres
             </button>
           )}
@@ -431,7 +435,16 @@ export function ShelfPage() {
         ))}
       </div>
 
-      <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
+      <CollectionFilters
+        open={filtres.ouverts}
+        onClose={filtres.fermer}
+        status={filtres.status}
+        onStatusChange={filtres.definirStatus}
+        tags={filtres.tags}
+        tagId={filtres.tagId}
+        onTagChange={filtres.definirTag}
+        onReset={filtres.reinitialiser}
+      />
 
       {hubMenuOpen && (
         <>

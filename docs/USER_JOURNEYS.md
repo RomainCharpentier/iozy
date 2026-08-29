@@ -339,11 +339,17 @@ concernée, même patron qu'un exemplaire possédé :
   corriger cette relation mais en décrire une autre. Supprimer un lien ne
   touche à aucune des deux œuvres.
 
+**Se servir de ses tags** (depuis le 2026-08-29) — **Ma collection ▸ Filtres ▸
+Tag**, et de même dans la vue d'une catégorie. Jusque-là, un tag se posait et ne
+se relisait nulle part : le classement existait, il n'avait aucun lecteur. Un
+seul tag à la fois, comme le paramètre du serveur, et la section n'apparaît que
+si des tags existent.
+
 **Branches** : type d'expérience non autorisé pour ce type de collection → 400 ;
 relation vers une œuvre inexistante → 400 ; note hors de 0-10 → 400 ; type de
 relation vide → 400. Les deux suppressions sont idempotentes.
 **Écrans** : `MoreOptionsSection`, `TagsSection`, `ExperiencesSection`,
-`ExperienceRow`, `RelationshipsSection`, `RelationshipRow`
+`ExperienceRow`, `RelationshipsSection`, `RelationshipRow`, `CollectionFilters`
 **Backend** : `PATCH`/`DELETE /experiences/{id}`, `PATCH`/`DELETE /relationships/{id}`
 **Statut** : `COMPLET`
 
@@ -1556,8 +1562,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (219 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (231 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **219 tests Vitest** sur vingt-quatre modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, et une Tier List créée puis remplie puis classée. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. Six des dix parcours structurants de la §21 sont couverts ; manquent le scan (caméra), l'analyse d'une annonce, les séries presque complètes et la fiche d'édition de référence.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **231 tests Vitest** sur vingt-six modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, et une Tier List créée puis remplie puis classée. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. Six des dix parcours structurants de la §21 sont couverts ; manquent le scan (caméra), l'analyse d'une annonce, les séries presque complètes et la fiche d'édition de référence.
