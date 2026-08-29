@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, ScanBarcode, ScanLine } from 'lucide-react'
+import { Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
 import { listAllOwnerships } from '../../api/ownerships'
@@ -278,7 +278,13 @@ export function SearchPage() {
       {/* Scanner reste ici : c'est la même intention que la recherche, saisie
           autrement. « Analyser une annonce » en est parti - c'est un parcours
           indépendant, qui a désormais sa propre entrée de navigation (étude
-          produit du 2026-08-27, §4). */}
+          produit du 2026-08-27, §4).
+
+          L'import BGG les a rejoints le 2026-08-29. Il vivait sous
+          Administration, ce qui n'a jamais eu de sens : récupérer ses jeux
+          depuis BoardGameGeek, c'est AJOUTER à sa collection - la même
+          intention que taper un titre ou scanner un code-barres, avec une
+          troisième source. Rien d'administratif là-dedans. */}
       <div className="flex flex-wrap gap-2">
         <Link
           to="/scan"
@@ -286,6 +292,13 @@ export function SearchPage() {
         >
           <ScanLine size={16} />
           Scanner
+        </Link>
+        <Link
+          to="/import-bgg"
+          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+        >
+          <Upload size={16} />
+          Importer depuis BGG
         </Link>
       </div>
 

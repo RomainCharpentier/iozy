@@ -15,6 +15,9 @@ import { useAuth } from '../../lib/useAuth'
  * pas un réglage personnel : c'est l'outillage de l'application, et il ne se
  * trouve pas en cherchant son profil.
  *
+ * <p>Ce qu'elle ne contient pas, en revanche : l'import BGG, qui AJOUTE à la
+ * collection et vit donc dans Rechercher, à côté de Scanner.
+ *
  * <h2>Deux liens, et aucun menu</h2>
  * L'avatar mène droit à Profil - un clic, pas un panneau à ouvrir puis à
  * refermer pour un choix entre deux entrées. Les réglages se rejoignent depuis

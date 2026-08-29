@@ -43,13 +43,13 @@ function section(titre: string) {
 }
 
 describe('« Ma collection »', () => {
-  it('regroupe ce qui décrit le contenu de la collection', () => {
+  it('ne regroupe que ce qui DÉCRIT la collection', () => {
     ecranPour(false)
 
     const maCollection = section('Ma collection')
     expect(within(maCollection).getByRole('link', { name: /Catégories de collection/ })).toBeInTheDocument()
     expect(within(maCollection).getByRole('link', { name: /Éditions de référence/ })).toBeInTheDocument()
-    expect(within(maCollection).getByRole('link', { name: /Importer depuis BGG/ })).toBeInTheDocument()
+    expect(within(maCollection).getAllByRole('link')).toHaveLength(2)
   })
 
   it('ne contient plus l’export, qui appartient au compte', () => {
@@ -59,6 +59,15 @@ describe('« Ma collection »', () => {
 
     expect(screen.queryByText(/Télécharger en JSON/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Télécharger en CSV/)).not.toBeInTheDocument()
+  })
+
+  it('ne contient plus l’import BGG, qui AJOUTE à la collection', () => {
+    // Récupérer ses jeux depuis BoardGameGeek est la même intention que taper
+    // un titre ou scanner un code-barres, avec une troisième source. C'est
+    // Rechercher, pas de l'administration.
+    ecranPour(true)
+
+    expect(screen.queryByRole('link', { name: /Importer depuis BGG/ })).not.toBeInTheDocument()
   })
 })
 
