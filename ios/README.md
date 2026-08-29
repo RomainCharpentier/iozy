@@ -1,5 +1,31 @@
 # IozyCore — squelette iOS
 
+> ## ⚠️ Hors service depuis le 2026-08-29
+>
+> L'API demande une **session** depuis cette date (comptes, connexion,
+> cloisonnement par propriétaire — voir `../backend/README.md`), et ce client
+> n'en ouvre aucune : **tous ses appels reçoivent 401**, dès le premier écran.
+>
+> Ce n'est pas une régression subie : c'est la conséquence assumée d'avoir
+> fermé une API qui ne l'était pas du tout. Elle est écrite ici plutôt que
+> découverte au prochain lancement.
+>
+> **Ce qu'il faudrait** — moins qu'il n'y paraît, parce que `URLSession` en
+> configuration `.default` gère déjà les cookies (`HTTPCookieStorage.shared`) :
+> une fois la session ouverte, elle repart seule à chaque appel.
+>
+> 1. quatre routes : `GET /auth/etat`, `POST /auth/login`, `GET /auth/me`,
+>    `POST /auth/logout` ;
+> 2. le cookie `XSRF-TOKEN` renvoyé en en-tête `X-XSRF-TOKEN` sur les
+>    écritures — les quatre helpers de `APIClient.swift` (`post`, `patch`,
+>    `postEmpty`, `delete`) passent tous au même endroit ;
+> 3. un écran de connexion, et une porte dans `IozyCoreApp.swift`.
+>
+> Trois issues possibles — le rattraper, le geler explicitement, le retirer du
+> dépôt — et leurs conséquences respectives sont pesées dans
+> `../docs/AUDIT_TECHNIQUE.md`, constat **C4**. Aucune n'a été prise : c'est
+> une décision de produit, pas une décision technique.
+
 ## Le projet
 
 IozyCore est une base de connaissances personnelle, auto-hébergée et
