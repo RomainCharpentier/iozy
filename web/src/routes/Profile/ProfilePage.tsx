@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Settings2, ChevronRight } from 'lucide-react'
+import { Settings2, ChevronRight, Wrench } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
@@ -32,13 +32,24 @@ interface ProfileLink {
 // LECTURE de la collection, pas un réglage : il a rejoint Découvrir, avec les
 // autres lectures.
 //
-// Ce qui reste est le seul chemin qui n'existe nulle part ailleurs.
+// Ce qui reste, ce sont les deux chemins qui n'existent nulle part ailleurs -
+// et ils sont SŒURS, pas emboîtés. Administration a vécu sous Paramètres
+// jusqu'au 2026-08-29 : régler son thème et déclarer les catégories de sa
+// collection n'ont rien à voir, et l'un ne se trouve pas en cherchant l'autre.
+// Trois niveaux de profondeur pour atteindre les éditions de référence, c'est
+// aussi ce que le §16 reprochait déjà à cet écran.
 const LINKS: ProfileLink[] = [
   {
     to: '/settings',
     label: 'Paramètres',
     description: 'Ton compte, emporter ta collection, apparence',
     icon: Settings2,
+  },
+  {
+    to: '/administration',
+    label: 'Administration',
+    description: 'Catégories, éditions de référence, import - et les comptes',
+    icon: Wrench,
   },
 ]
 

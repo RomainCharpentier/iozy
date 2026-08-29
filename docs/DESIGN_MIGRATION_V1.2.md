@@ -1388,7 +1388,15 @@ Quatre échelles, et chacune répond à « qui est touché si je change ça ».
 | **Ma collection** | Administration | catégories, éditions de référence, import |
 | **Cette instance** | Administration | les comptes (administrateur seulement) |
 
-Deux écrans, quatre sections nommées — et nommées pour de bon : chaque
+**Les deux écrans sont SŒURS**, atteints l'un et l'autre depuis Profil.
+Administration a d'abord été laissée sous Paramètres, par habitude ; c'était
+reconduire le mélange qu'on venait de défaire, à un niveau au-dessus. Régler
+son thème et déclarer les catégories de sa collection n'ont rien à voir, et
+l'un ne se trouve pas en cherchant l'autre. Emboîtée, Administration mettait
+aussi les éditions de référence à **trois niveaux** de profondeur - ce que le
+§16 des parcours reprochait déjà à cet écran.
+
+Quatre sections nommées — et nommées pour de bon : chaque
 `<section>` porte un `aria-labelledby`, sans quoi elle n'est pas un repère et
 un lecteur d'écran retraverse une liste plate.
 
@@ -1418,7 +1426,7 @@ pseudo en sous-titre — un écran qui s'appelle « Mon profil » doit dire de q
 
 #### Le filet
 
-262 tests web (31 modules), 14 parcours. Le parcours de déconnexion emprunte
+267 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
 désormais le **chemin** — Profil ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
 à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
 c'est lui qui a signalé le déplacement. Quatre mutations rattrapées, dont la
