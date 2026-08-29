@@ -1,19 +1,19 @@
 /**
- * <b>Les deux sorties de Profil, et ce qui n'y est plus.</b>
+ * <b>Ce que Profil n'est plus.</b>
  *
  * <p>Cet écran a longtemps servi de liste de raccourcis : il a porté « Analyser
  * une annonce » (déjà l'une des quatre destinations de la barre de navigation),
- * « Bilan annuel » (une lecture, pas un réglage) et la section Compte (dont la
- * déconnexion et l'export vivaient ailleurs). Chacun rendait l'écran un peu
- * moins lisible, sans jamais rien casser.
+ * « Bilan annuel » (une lecture, pas un réglage), la section Compte (dont la
+ * déconnexion et l'export vivaient ailleurs), puis les liens vers Paramètres et
+ * Administration. Chacun rendait l'écran un peu moins lisible, sans jamais rien
+ * casser.
  *
- * <p>Il ne reste que ses deux <b>sorties</b> - Paramètres et Administration -
- * et elles sont sœurs : régler son thème et déclarer les catégories de sa
- * collection n'ont rien à voir, et l'un ne se trouve pas en cherchant l'autre.
- * Emboîter la seconde dans la première (ce qu'elle a été jusqu'au 2026-08-29)
- * mettait les éditions de référence à trois niveaux de profondeur.
+ * <p>Il n'est plus un <b>couloir</b> : les trois écrans du compte sont sœurs,
+ * dans le menu de l'avatar (voir GlobalShortcuts), à égale distance et depuis
+ * partout. Ce qui reste ici parle de CETTE collection - sa valeur, ses
+ * classements, son partage.
  */
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -38,15 +38,13 @@ beforeEach(() => {
   render(<ProfilePage />, { wrapper: enrobage })
 })
 
-describe('les sorties de Profil', () => {
-  it('mène aux Paramètres et à l’Administration, côte à côte', () => {
-    const liste = screen.getByRole('list')
-
-    expect(within(liste).getByRole('link', { name: /Paramètres/ })).toHaveAttribute('href', '/settings')
-    expect(within(liste).getByRole('link', { name: /Administration/ })).toHaveAttribute('href', '/administration')
-    // Deux sorties, et rien d'autre : cet écran n'est pas une liste de
-    // raccourcis vers ce qui existe déjà ailleurs.
-    expect(within(liste).getAllByRole('link')).toHaveLength(2)
+describe('ce que Profil ne porte plus', () => {
+  it('n’est plus un couloir vers les réglages ni l’administration', () => {
+    // Les trois écrans du compte vivent dans le menu de l'avatar, sœurs et à
+    // égale distance. Un lien de plus ici referait de cet écran un passage
+    // obligé, et remettrait l'administration derrière quelque chose.
+    expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
   })
 
   it('ne double plus une destination de la barre de navigation', () => {
