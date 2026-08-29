@@ -31,7 +31,12 @@ import java.util.regex.Pattern;
  * @param pseudo       le seul nom sous lequel une personne apparaît. Unique
  *                     (voir la migration V27), obligatoire, et jamais
  *                     l'adresse e-mail : celle-ci sert à se connecter, pas à
- *                     se montrer
+ *                     se montrer. <b>Fixé à l'inscription</b> et jamais
+ *                     modifié - décision produit, pas une fonctionnalité
+ *                     remise à plus tard : un pseudo qu'on peut reprendre
+ *                     désigne quelqu'un d'autre demain, et aucune surface qui
+ *                     l'a affiché ne le saura. Aucune route ne l'écrit après
+ *                     {@code POST /api/auth/register}
  */
 public record AppUser(UUID id, String email, String passwordHash, String pseudo, Instant createdAt) {
 

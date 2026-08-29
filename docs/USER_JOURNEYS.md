@@ -1159,8 +1159,11 @@ du même geste : redemander ce qu'on vient de taper deux fois n'apprendrait rien
 **Le pseudo** (depuis le 2026-08-29) : obligatoire, unique sur l'instance,
 3 à 24 caractères sans espace ni arobase. La règle est écrite **sous le champ**,
 pas rendue en refus après coup. C'est le seul nom sous lequel on apparaît :
-l'adresse e-mail sert à se connecter, jamais à se montrer. Il n'est pas
-modifiable après création — pas encore d'écran pour ça.
+l'adresse e-mail sert à se connecter, jamais à se montrer. Il se **fixe à
+l'inscription** et ne change plus : décision produit du 2026-08-29, pas un
+écran qui manque. Un pseudo qu'on peut reprendre est un pseudo qui désigne
+quelqu'un d'autre demain — dans un espace partagé, dans une capture, dans la
+mémoire de celui qui l'a lu.
 **Branches** : mot de passe sous 10 caractères → refus avec la raison ; adresse
 mal formée → refus ; pseudo mal formé → refus avec la règle ; **pseudo déjà
 pris → refus explicite**, contrairement à un échec de connexion : un pseudo est
