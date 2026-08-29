@@ -76,9 +76,9 @@ public class AuthController {
     }
 
     /** Ce qu'un client apprend d'un compte : jamais le hachage, jamais l'adresse d'un autre. */
-    public record CompteReponse(UUID id, String email, String pseudo) {
+    public record CompteReponse(UUID id, String email, String pseudo, boolean admin) {
         static CompteReponse de(AppUser compte) {
-            return new CompteReponse(compte.id(), compte.email(), compte.pseudo());
+            return new CompteReponse(compte.id(), compte.email(), compte.pseudo(), compte.admin());
         }
     }
 
@@ -115,7 +115,7 @@ public class AuthController {
                                 HttpServletResponse reponseHttp) {
         AppUserDetailsService.Principal principal =
                 ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp);
-        return new CompteReponse(principal.id(), principal.email(), principal.pseudo());
+        return new CompteReponse(principal.id(), principal.email(), principal.pseudo(), principal.admin());
     }
 
     @Operation(summary = "Le compte connecté, ou 401.")
@@ -124,7 +124,7 @@ public class AuthController {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
-        return new CompteReponse(principal.id(), principal.email(), principal.pseudo());
+        return new CompteReponse(principal.id(), principal.email(), principal.pseudo(), principal.admin());
     }
 
     @Operation(summary = "Fermer la session.")

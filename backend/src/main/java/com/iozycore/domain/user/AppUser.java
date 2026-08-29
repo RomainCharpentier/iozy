@@ -9,12 +9,17 @@ import java.util.regex.Pattern;
 /**
  * Un compte, et rien d'autre.
  *
- * <h2>Ce qu'il ne porte pas</h2>
- * Ni rôle, ni permission, ni statut. Tous les comptes de cette application
- * peuvent exactement la même chose - chacun sur SA collection. Un système de
- * rôles n'aurait rien à distinguer, et une colonne « admin » posée « au cas
- * où » finirait par être lue quelque part sans qu'aucune règle ne dise
- * jamais ce qu'elle change.
+ * <h2>Une seule distinction, et ce qu'elle ne donne PAS</h2>
+ * Ni rôle, ni permission, ni statut : un seul drapeau, {@code admin}. Tous les
+ * comptes peuvent exactement la même chose sur les données - chacun sur SA
+ * collection. Ce que l'administration ajoute ne concerne que l'<b>instance</b>
+ * : voir qui a un compte, et en supprimer un. <b>Un administrateur n'a aucun
+ * accès à la collection de qui que ce soit</b> - l'isolation par propriétaire
+ * est intacte, et rien ici ne l'ouvre.
+ * <p>
+ * Un booléen plutôt qu'une table de rôles : il n'y a qu'une distinction à
+ * faire, et une machinerie à deux valeurs possibles dont personne ne lirait
+ * jamais la seconde ligne.
  *
  * <h2>L'identifiant EST le propriétaire</h2>
  * Les colonnes {@code owner_id} existent depuis la migration V2, remplies
@@ -28,6 +33,9 @@ import java.util.regex.Pattern;
  * @param passwordHash le hachage, jamais le mot de passe. Ce record traverse
  *                     l'application ; le mot de passe en clair, lui, ne vit que
  *                     le temps d'un appel à l'encodeur
+ * @param admin        peut administrer l'INSTANCE (voir la migration V28), pas
+ *                     les données des autres. Le premier compte l'est ; les
+ *                     suivants ne le deviennent qu'en SQL
  * @param pseudo       le seul nom sous lequel une personne apparaît. Unique
  *                     (voir la migration V27), obligatoire, et jamais
  *                     l'adresse e-mail : celle-ci sert à se connecter, pas à
@@ -38,7 +46,8 @@ import java.util.regex.Pattern;
  *                     l'a affiché ne le saura. Aucune route ne l'écrit après
  *                     {@code POST /api/auth/register}
  */
-public record AppUser(UUID id, String email, String passwordHash, String pseudo, Instant createdAt) {
+public record AppUser(UUID id, String email, String passwordHash, String pseudo, boolean admin,
+                       Instant createdAt) {
 
     /**
      * Ce qu'un pseudo a le droit d'être.
@@ -120,10 +129,14 @@ public record AppUser(UUID id, String email, String passwordHash, String pseudo,
      * identifiant neuf, donc une collection vide.
      */
     public static AppUser premier(String email, String passwordHash, String pseudo) {
-        return new AppUser(DefaultOwner.ID, email, passwordHash, pseudo, Instant.now());
+        // Administrateur d'office : sur une instance neuve, personne d'autre ne
+        // pourrait le devenir, et l'écran d'administration n'aurait aucun
+        // ouvreur. Voir aussi la V28, qui fait la même chose sur les instances
+        // déjà en service.
+        return new AppUser(DefaultOwner.ID, email, passwordHash, pseudo, true, Instant.now());
     }
 
     public static AppUser nouveau(String email, String passwordHash, String pseudo) {
-        return new AppUser(UUID.randomUUID(), email, passwordHash, pseudo, Instant.now());
+        return new AppUser(UUID.randomUUID(), email, passwordHash, pseudo, false, Instant.now());
     }
 }

@@ -88,7 +88,7 @@ describe('une instance neuve', () => {
   it('transmet le pseudo saisi, débarrassé de ses espaces de bord', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
     await waitFor(() => expect(screen.getByLabelText('Pseudo')).toBeInTheDocument())
-    api.creerCompte.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain' })
+    api.creerCompte.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain', admin: true })
 
     await userEvent.type(screen.getByLabelText('Adresse e-mail'), 'romain@example.com')
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe')
@@ -151,7 +151,7 @@ describe('la connexion', () => {
   it('transmet ce qui a été saisi, et rien d’autre', async () => {
     await ecran({ aucunCompte: false, creationOuverte: false })
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
-    api.seConnecter.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain' })
+    api.seConnecter.mockResolvedValue({ id: 'u1', email: 'romain@example.com', pseudo: 'romain', admin: true })
 
     await userEvent.type(screen.getByLabelText('Adresse e-mail'), '  romain@example.com  ')
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'un-mot-de-passe')

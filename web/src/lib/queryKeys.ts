@@ -78,6 +78,10 @@ export const queryKeys = {
     compte: ['auth', 'compte'] as const,
     etat: ['auth', 'etat'] as const,
   },
+  /** L'administration de l'instance - jamais les données de quelqu'un. */
+  admin: {
+    comptes: ['admin', 'comptes'] as const,
+  },
   tierLists: {
     general: (entityTypeId: string) => ['tierLists', 'general', entityTypeId] as const,
     // null = les listes transverses "toutes catégories" (voir TierListDto.entityTypeId) -

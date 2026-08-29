@@ -72,7 +72,19 @@ public abstract class HttpContractTestBase extends PostgresIntegrationTest {
      * déjà en base.
      */
     protected static final AppUserDetailsService.Principal IDENTITE_DE_TEST =
-            new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test");
+            new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test",
+                    false);
+
+    /**
+     * Le même compte, administrateur. Réservé aux tests de {@code /api/admin/**} :
+     * l'identité par défaut ci-dessus ne l'est PAS, sans quoi toute la suite
+     * HTTP franchirait sans le dire une porte qui n'est ouverte qu'à un compte
+     * sur beaucoup - et le refus opposé aux autres ne serait plus testé nulle
+     * part.
+     */
+    protected static final AppUserDetailsService.Principal IDENTITE_ADMIN =
+            new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test",
+                    true);
 
     @Autowired
     protected MockMvc mockMvc;

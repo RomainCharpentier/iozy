@@ -1,5 +1,6 @@
 package com.iozycore.domain.user;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +22,17 @@ public interface AppUserRepository {
 
     /** Vrai tant qu'aucun compte n'existe : c'est ce qui ouvre la création du premier. */
     boolean isEmpty();
+
+    /**
+     * Tous les comptes, du plus ancien au plus récent - l'ordre dans lequel une
+     * instance s'est peuplée, et le seul qui ait un sens ici.
+     * <p>
+     * Réservé à l'administration de l'instance (voir {@code GestionDesComptes}) :
+     * un compte ordinaire n'a aucune raison de savoir qui d'autre existe.
+     */
+    List<AppUser> lister();
+
+    /** Retire le compte lui-même. Ses DONNÉES se suppriment ailleurs, et avant
+     *  (voir {@code SuppressionDeCompte}) : ce port ne connaît que la table des comptes. */
+    void supprimer(UUID id);
 }

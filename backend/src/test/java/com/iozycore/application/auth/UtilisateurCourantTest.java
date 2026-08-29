@@ -47,7 +47,7 @@ class UtilisateurCourantTest {
     void une_session_ouverte_donne_l_identifiant_du_compte() {
         UUID compte = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                new AppUserDetailsService.Principal(compte, "moi@example.com", "{noop}x", "Moi"), null, List.of()));
+                new AppUserDetailsService.Principal(compte, "moi@example.com", "{noop}x", "Moi", false), null, List.of()));
 
         assertThat(utilisateurCourant.id()).contains(compte);
         assertThat(utilisateurCourant.proprietaire()).isEqualTo(compte);

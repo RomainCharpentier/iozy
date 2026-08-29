@@ -1198,6 +1198,34 @@ se remplit.
 **Backend** : `GET /api/auth/me`
 **Statut** : `COMPLET`
 
+### 64 ter. Administrer les comptes de l'instance
+*(2026-08-29 — réservé aux administrateurs)*
+
+**Point de départ** : Profil ▸ Paramètres ▸ Administration ▸ **Comptes**
+(l'entrée n'apparaît que pour un administrateur ; le lien masqué ne protège
+rien, c'est le serveur qui répond 403)
+**Résultat** : la liste des comptes, du plus ancien au plus récent — pseudo,
+adresse, date d'inscription, et **ce que chaque compte pèse** (« 412
+possessions · 7 envies · 2 classements », ou « Aucune donnée »). Rien du
+**contenu** d'une collection n'apparaît : l'isolation par propriétaire est
+entière, et l'administration porte sur l'instance, pas sur les données.
+
+**Supprimer un compte** — confirmation en deux temps, même patron que la
+suppression d'une fiche. La phrase nomme ce qui part et ce qui reste : les
+œuvres du **catalogue** sont partagées et ne bougent pas. Définitif : ni
+corbeille, ni annulation.
+
+**Branches** : son propre compte → aucun bouton, et 409 si la requête est
+forgée — c'est ce qui garantit qu'il reste toujours un administrateur ; compte
+inconnu → 404 ; compte ordinaire sur ces routes → **403**.
+
+**Qui est administrateur** : le premier compte de l'instance l'est d'office.
+Les suivants ne le deviennent qu'en SQL — un geste rare, dont un bouton
+demanderait de décider qui peut appuyer dessus.
+**Écrans** : `ComptesPage`, `AdministrationPage`
+**Backend** : `GET`/`DELETE /api/admin/comptes`
+**Statut** : `COMPLET`
+
 ### 65. Se déconnecter
 **Point de départ** : Profil ▸ Compte
 **Résultat** : la session est invalidée côté serveur, le cache client vidé, la
@@ -1586,8 +1614,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (244 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (255 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **244 tests Vitest** sur vingt-huit modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **255 tests Vitest** sur trente modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
