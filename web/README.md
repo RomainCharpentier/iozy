@@ -69,6 +69,18 @@ pas deviner, un seul signal par carte, une phrase qui promet quelque chose à
 l'utilisateur. Les composants se vérifient par le **texte lu à l'écran**,
 jamais par une classe CSS ou un `data-testid`.
 
+**Vérifier qu'un test sert à quelque chose** : casse la règle exprès et
+regarde si un test tombe.
+
+```bash
+node scripts/mutation.mjs src/routes/Shelf/shelfTiles.ts "missing <= 3" "missing <= 4"
+```
+
+Le script mute **toutes** les occurrences, lance la suite, restaure le fichier
+et sort en erreur si rien n'a échoué — c'est-à-dire si cette règle n'est gardée
+par rien. Il refuse de conclure quand le texte cherché est introuvable : une
+mutation non appliquée se lit exactement comme un test inutile.
+
 **Tous les appels du client passent par une URL relative** (`/api/...`),
 jamais une URL absolue vers le backend — en dev, `vite.config.ts` proxy
 `/api` vers `http://localhost:8080` ; en prod (Docker), `nginx.conf` fait
