@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { retourDepuis } from '../../lib/retour'
 import { ArrowLeft, Zap } from 'lucide-react'
 import { getGeneralBoard, setGeneralRank } from '../../api/tierLists'
 import { listEntityTypes } from '../../api/entityTypes'
@@ -18,6 +19,8 @@ import { RANKS, type Rank, type TierListEntryDto } from '../../types/tierList'
 export function GeneralTierBoardPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
   const navigate = useNavigate()
+  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  const retour = retourDepuis(useLocation().state) ?? { to: '/tier-lists', libelle: 'Tier Lists' }
   const queryClient = useQueryClient()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
   const quickRank = useQuickRank()
@@ -59,11 +62,21 @@ export function GeneralTierBoardPage() {
 
   const selectedEntry = quickRank.isActive ? quickRank.current : activeEntry
 
+
   return (
     <div className="flex flex-col gap-4">
-      <button type="button" onClick={() => navigate('/tier-lists')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
+          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
+          revenait autrefois par Tier Lists, et le bouton Précédent du
+          navigateur disait alors autre chose que celui de la page (UX-8).
+          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
+      <button
+        type="button"
+        onClick={() => navigate(retour.to)}
+        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
+      >
         <ArrowLeft size={15} />
-        Tier Lists
+        {retour.libelle}
       </button>
 
       <div className="flex flex-wrap items-center gap-2.5">

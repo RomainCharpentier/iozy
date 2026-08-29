@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { retourDepuis } from '../../lib/retour'
 import { ArrowLeft, MoreHorizontal, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import {
   addTierListItems,
@@ -27,6 +28,8 @@ import { EnTeteSection } from '../../components/EnTeteSection'
 export function CustomTierBoardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  const retour = retourDepuis(useLocation().state) ?? { to: '/tier-lists', libelle: 'Tier Lists' }
   const queryClient = useQueryClient()
   const toast = useToast()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
@@ -124,11 +127,21 @@ export function CustomTierBoardPage() {
   const rankedByRank = Object.fromEntries(list.activeRanks.map((r) => [r, ranked.filter((e) => e.rank === r)]))
   const selectedEntry = quickRank.isActive ? quickRank.current : activeEntry
 
+
   return (
     <div className="flex flex-col gap-4">
-      <button type="button" onClick={() => navigate('/tier-lists')} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim">
+      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
+          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
+          revenait autrefois par Tier Lists, et le bouton Précédent du
+          navigateur disait alors autre chose que celui de la page (UX-8).
+          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
+      <button
+        type="button"
+        onClick={() => navigate(retour.to)}
+        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
+      >
         <ArrowLeft size={15} />
-        Tier Lists
+        {retour.libelle}
       </button>
 
       <div className="flex items-start justify-between gap-3">

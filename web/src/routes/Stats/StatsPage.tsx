@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { getStats } from '../../api/insights'
 import { queryKeys } from '../../lib/queryKeys'
 import { StatCard } from '../../components/StatCard'
@@ -9,6 +11,7 @@ import { CollectionValueSection } from './CollectionValueSection'
 import { EnTeteSection } from '../../components/EnTeteSection'
 
 export function StatsPage() {
+
   // Toujours à jour, jamais de cache - une donnée périmée n'a pas de sens
   // pour des statistiques (même choix explicite que côté iOS).
   const statsQuery = useQuery({
@@ -17,6 +20,20 @@ export function StatsPage() {
     staleTime: 0,
     gcTime: 0,
   })
+
+  // Arriver par « Valeur » (Ma collection) ou par le hero du Profil doit
+  // montrer la valeur tout de suite : ces contrôles la NOMMENT, et déposer
+  // quelqu'un en haut d'un écran intitulé « Statistiques » lui laisse la
+  // chercher. Même patron que Profil ▸ Partager (voir ProfilePage).
+  const valeurRef = useRef<HTMLDivElement>(null)
+  const focusValeur = (useLocation().state as { focusValeur?: boolean } | null)?.focusValeur
+  useEffect(() => {
+    if (focusValeur) valeurRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // La section n'EXISTE pas avant que les statistiques arrivent : sans
+    // cette dépendance, l'effet cherchait une référence encore vide et
+    // laissait la page en haut - le bouton « Valeur » promettait alors une
+    // section qu'il fallait quand même aller chercher (constaté en direct).
+  }, [focusValeur, statsQuery.data])
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,7 +56,9 @@ export function StatsPage() {
             <StatCard value={String(statsQuery.data.experiencesThisYear)} label="Expériences cette année" />
           </div>
 
-          <CollectionValueSection />
+          <div id="valeur" ref={valeurRef} className="scroll-mt-4">
+            <CollectionValueSection />
+          </div>
 
           <CollectionTimelineSection />
 

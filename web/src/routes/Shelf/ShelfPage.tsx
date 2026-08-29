@@ -362,9 +362,14 @@ export function ShelfPage() {
             </span>
           )}
         </button>
+        {/* « Valeur » menait à un écran intitulé « Statistiques », où il
+            fallait ensuite trouver la section - trois mots pour une seule
+            idée (UX-6). Le bouton emmène désormais À la section qui porte
+            ce nom, exactement comme « Partager » déroule jusqu'au partage
+            depuis Ma collection. */}
         <button
           type="button"
-          onClick={() => navigate('/stats')}
+          onClick={() => navigate('/stats', { state: { focusValeur: true } })}
           className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
         >
           <BarChart3 size={15} />

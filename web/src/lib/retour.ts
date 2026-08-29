@@ -1,6 +1,12 @@
 /**
- * D'où l'on vient en arrivant sur une fiche, quand ça vaut la peine de
- * proposer d'y retourner.
+ * D'où l'on vient, quand ça vaut la peine de proposer d'y retourner.
+ *
+ * <h2>Un seul mécanisme, pour tous les écrans qui s'ouvrent depuis ailleurs</h2>
+ * La fiche le faisait déjà bien ; quatre autres écrans codaient leur
+ * destination en dur - un board de Tier List revenait TOUJOURS à
+ * `/tier-lists`, même ouvert depuis Découvrir, et un rayon toujours à Ma
+ * collection (voir docs/USER_JOURNEYS.md, UX-8). Le bouton de l'écran et le
+ * bouton Précédent du navigateur disaient alors deux choses différentes.
  *
  * <h2>Pourquoi par `location.state`, alors que le reste n'en dépend plus</h2>
  * Le Lot 29 a retiré tout `location.state` de la fiche, et pour une bonne
@@ -18,23 +24,23 @@
  * c'est promettre exactement ce qu'on tient - et le bouton Précédent du
  * navigateur continue de faire son travail à côté.
  */
-export interface RetourFiche {
+export interface Retour {
   /** La route à rouvrir - `/add`, `/scan`… */
   to: string
   /** Ce que le lien annonce. Le nom de l'écran, jamais « Retour » seul. */
   libelle: string
 }
 
-export interface EtatFiche {
-  retour?: RetourFiche
+export interface EtatRetour {
+  retour?: Retour
 }
 
 /** Lit l'origine d'une navigation sans jamais faire confiance à sa forme :
  *  `location.state` est un sac libre, qu'un lien forgé ou une version
  *  antérieure de l'app peut remplir autrement. */
-export function retourDepuis(state: unknown): RetourFiche | null {
+export function retourDepuis(state: unknown): Retour | null {
   if (!state || typeof state !== 'object') return null
-  const retour = (state as EtatFiche).retour
+  const retour = (state as EtatRetour).retour
   if (!retour || typeof retour.to !== 'string' || typeof retour.libelle !== 'string') return null
   // Une route interne, jamais une URL absolue : ce lien ne doit pas pouvoir
   // devenir une redirection vers l'extérieur.
