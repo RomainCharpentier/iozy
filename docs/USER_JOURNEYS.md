@@ -41,8 +41,11 @@ appartient :
   rétablit sans toucher à la barre du pouce, qui garde ses trois destinations.
 - **Scan** — bouton dédié dans la barre du pouce (mobile) et lien « Scanner »
   en tête de Rechercher (les deux plateformes).
-- **Paramètres** → depuis Profil. **Administration** → depuis Paramètres.
-  Depuis le 2026-08-29, les deux écrans sont rangés par **ce que le réglage
+- **Paramètres** et **Administration** → depuis Profil, **côte à côte**.
+  Administration a été une sous-partie de Paramètres jusqu'au 2026-08-29 :
+  régler son thème et déclarer les catégories de sa collection n'ont rien à
+  voir, et emboîter le second mettait les éditions de référence à trois niveaux
+  de profondeur. Les deux écrans sont rangés par **ce que le réglage
   concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
   déconnexion) et « Cet appareil » (thème, langue des titres — dans le
   `localStorage`, ils ne suivent pas le compte, et l'écran le dit) ;
@@ -1217,7 +1220,7 @@ se remplit.
 ### 64 ter. Administrer les comptes de l'instance
 *(2026-08-29 — réservé aux administrateurs)*
 
-**Point de départ** : Profil ▸ Paramètres ▸ Administration ▸ **Comptes**
+**Point de départ** : Profil ▸ Administration ▸ **Comptes**
 (l'entrée n'apparaît que pour un administrateur ; le lien masqué ne protège
 rien, c'est le serveur qui répond 403)
 **Résultat** : la liste des comptes, du plus ancien au plus récent — pseudo,
@@ -1284,7 +1287,9 @@ raccourci Scan — Envies et Profil ne sont pas des destinations pairs.
 
 Vérifié à **375, 390 et 430 px** : avatar présent (et cœur, à l'époque), chaîne
 complète parcourue (Cœur → Envies → retour ; Avatar → Profil → Paramètres →
-Administration → liens d'export), les deux « Générer un lien » atteignables,
+Administration → liens d'export ; ces deux derniers écrans ont été réorganisés
+le 2026-08-29 — l'export vit désormais dans Paramètres, et Administration est
+une sœur de Paramètres, plus une sous-partie), les deux « Générer un lien » atteignables,
 aucun débordement horizontal. Desktop inchangé.
 
 ---
@@ -1359,8 +1364,8 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 
 1. **Relever un prix de marché** — n'apparaît que dans le détail d'une série d'un résultat d'analyse, et seulement si l'édition est reconnue *et* les tomes contigus. C'est pourtant le seul moyen d'alimenter la base de prix observés dont dépend la qualité de toutes les analyses suivantes. Les relevés déjà enregistrés sont, eux, visibles et retirables depuis **Éditions de référence** (2026-08-21).
 2. **Exemplaires passés** — un tome vendu ou perdu n'est visible qu'en ouvrant le panneau du tome correspondant, qui affiche par ailleurs un formulaire d'ajout.
-3. **Catégories de collection** — deux chemins ; le second est à trois niveaux de profondeur.
-4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit tous les « X/Y » de l'app, rangé sous Administration.
+3. **Catégories de collection** — deux chemins ; le second est passé de trois à deux niveaux le 2026-08-29 (Administration n'est plus sous Paramètres).
+4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit tous les « X/Y » de l'app, rangé sous Administration (Profil ▸ Administration depuis le 2026-08-29, un niveau de moins qu'avant).
 5. **Bilan annuel** — sous Découvrir depuis le 2026-08-29 (il était sous Profil, dans une liste de liens), toujours sans rappel saisonnier.
 6. **Classement rapide** — n'apparaît que s'il existe au moins une œuvre non classée.
 7. **Ordre des langues de titre** — décide du titre affiché partout, rangé dans Paramètres sans lien depuis les écrans concernés.
@@ -1556,7 +1561,7 @@ Ceux qui portent l'usage réel, pas les plus complexes techniquement.
 
 **UX-4 — ~~« Ajouter à ma wishlist » agit en masse et en silence~~ — RÉSOLU (2026-08-21).** L'ajout groupé passe par `addMany` : un seul message annonçant le nombre de séries ajoutées, avec Annuler, et rien n'est ajouté deux fois.
 
-**UX-5 — Deux chemins vers les catégories de collection.** Ma collection ▸ Plus d'outils, et Profil ▸ Paramètres ▸ Administration. C'est délibéré et documenté, mais c'est le seul écran de l'app dans ce cas.
+**UX-5 — Deux chemins vers les catégories de collection.** Ma collection ▸ Plus d'outils, et Profil ▸ Administration. C'est délibéré et documenté, mais c'est le seul écran de l'app dans ce cas.
 
 **UX-6 — ~~Trois libellés pour la même idée de valeur~~ — RÉSOLU (2026-08-29).** Un seul nom, « **Valeur de la collection** » : c'est celui de la section, celui que le hero du Profil affiche désormais (il disait « Valeur estimée »), et celui que le bouton de Ma collection abrège. Et les deux contrôles qui le nomment **emmènent à la section**, au lieu de déposer en haut d'un écran intitulé « Statistiques » où il fallait ensuite la chercher — même patron que Ma collection ▸ Partager, qui déroule jusqu'au partage. Ce que « estimée » disait — une valeur partielle — est déjà porté par la pastille de couverture juste sous le montant.
 
@@ -1630,8 +1635,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (262 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (267 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **262 tests Vitest** sur trente-et-un modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **267 tests Vitest** sur trente-deux modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.

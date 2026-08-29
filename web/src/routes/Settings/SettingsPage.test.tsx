@@ -82,13 +82,18 @@ describe('« Cet appareil »', () => {
   })
 })
 
-describe('le lien vers l’administration', () => {
-  it('nomme ce qui s’y trouve, et rien de ce qui a déménagé', () => {
-    const lien = screen.getByRole('link', { name: /Administration/ })
+describe('l’administration', () => {
+  it('n’est plus une sous-partie des réglages', () => {
+    // Elle a vécu ici jusqu'au 2026-08-29, en bas de page. Régler son thème et
+    // déclarer les catégories de sa collection n'ont rien à voir : ce sont deux
+    // écrans SŒURS, atteints tous deux depuis Profil. Emboîtée, elle mettait
+    // les éditions de référence à trois niveaux de profondeur.
+    expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
+  })
 
-    expect(lien).toHaveAttribute('href', '/administration')
-    // Le libellé annonçait « export brut des données » alors que l'export est
-    // désormais ici : une description périmée est un mensonge d'un clic.
-    expect(lien).not.toHaveTextContent(/export/i)
+  it('n’emporte pas les réglages de cet appareil avec elle', () => {
+    // Le déplacement ne doit vider ni l'une ni l'autre des deux sections.
+    expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Thème sombre' })).toBeInTheDocument()
   })
 })

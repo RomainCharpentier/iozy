@@ -1,6 +1,5 @@
 import { useState, type DragEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Download, GripVertical, LogOut, Moon, Sun, Wrench } from 'lucide-react'
+import { Download, GripVertical, LogOut, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import {
   TITLE_LANGUAGE_LABELS,
@@ -23,9 +22,11 @@ import { EnTeteSection } from '../../components/EnTeteSection'
  * que personne ne peut le deviner.
  *
  * <p>Ce qui n'est ici NI l'un NI l'autre - les catégories de collection, les
- * éditions de référence, l'import - concerne le <b>contenu</b> de la
- * collection et vit dans Administration : ce sont des choses qu'on configure
- * une fois, pas des réglages qu'on ajuste.
+ * éditions de référence, l'import, les comptes - concerne le <b>contenu</b> de
+ * la collection ou l'<b>instance</b>, et vit dans Administration, un écran
+ * SŒUR atteint depuis Profil. Pas depuis ici : il y a vécu jusqu'au
+ * 2026-08-29, et régler son thème n'a rien à voir avec déclarer les catégories
+ * de sa collection - l'un ne se trouve pas en cherchant l'autre.
  *
  * <h2>La langue des titres</h2>
  * Seule la recherche/ajout de manga (Jikan/MyAnimeList) est concernée, ni
@@ -245,23 +246,6 @@ export function SettingsPage() {
         </ul>
       </section>
 
-      {/* Ni « mon compte » ni « cet appareil » : le CONTENU de la collection
-          (ses catégories, ses éditions de référence, ce qu'on y importe) et
-          l'instance elle-même. On les configure une fois ; ce ne sont pas des
-          réglages qu'on ajuste. */}
-      <Link
-        to="/administration"
-        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
-          <Wrench size={18} />
-        </span>
-        <span className="flex-1">
-          <span className="block font-medium text-textPrimary">Administration</span>
-          <span className="block text-xs text-textDim">Catégories, éditions de référence, import - et les comptes</span>
-        </span>
-        <ChevronRight size={16} className="shrink-0 text-textDim" />
-      </Link>
     </div>
   )
 }
