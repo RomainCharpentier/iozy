@@ -1360,6 +1360,34 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 104 — « strictement mono-utilisateur », écrit deux jours après la fin
+
+Le Lot 95 a cloisonné les données par personne. Le README racine et celui du
+backend l'ont dit le jour même ; **trois documents ne l'ont jamais su** :
+
+- `docs/CONCEPTION.md`, qui ouvre sur « strictement mono-utilisateur » et
+  justifie ses quatre personas par cette phrase — le document qu'on lit en
+  premier pour comprendre le produit ;
+- `web/README.md` et `ios/README.md`, même phrase en tête de « Le projet ».
+
+Aucun n'est un journal : ils décrivent ce que l'application **est**, pas ce
+qu'elle a été. Ils disent maintenant que chaque personne a sa collection et que
+le catalogue des œuvres, lui, reste commun — la distinction qui compte, et la
+seule chose que « multi-utilisateurs » ne dit pas.
+
+Les mentions de `DESIGN_MIGRATION_V1.2.md` restent telles quelles : un journal
+raconte des états passés, et les siennes étaient vraies quand elles ont été
+écrites (même raisonnement que le constat C5).
+
+#### Ce que ça dit du reste
+
+Un changement structurel se propage dans le code par le compilateur et dans les
+tests par leur échec. Dans la documentation, **rien ne le pousse** : une phrase
+fausse s'affiche exactement comme une phrase vraie. Les documents qui décrivent
+un ÉTAT (README, conception, audit) sont donc à rouvrir au même titre que le
+code — et la liste des fichiers touchés par un lot n'y suffit pas, puisque le
+défaut est précisément dans ceux qu'on n'a pas ouverts.
+
 ### Lot 103 — un classement qu'on posait sans jamais s'en servir
 
 On pouvait créer un tag et l'attacher à une œuvre depuis sa fiche. Et ensuite,
@@ -5931,6 +5959,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Après un changement STRUCTUREL, chercher la phrase qui le nie plutôt que les fichiers modifiés : `grep -rn "mono-utilisateur" --include=*.md` a trouvé trois documents intacts deux lots après la fin du cloisonnement, dont celui qu'on lit en premier. Le code a le compilateur, les tests ont leur échec ; une phrase fausse, elle, s'affiche comme une vraie (Lot 104).
 - Une donnée que l'utilisateur SAISIT et que personne ne relit est pire qu'une fonctionnalité absente : elle demande du travail en échange de rien. Chercher, pour chaque chose qu'un écran fait poser (tag, note, classement), l'écran qui s'en sert — `tagId` traversait `searchEntities` et les clés de cache sans un seul appelant, et rien dans le typage ne pouvait le dire (Lot 103).
 - Un contrôle qui n'existe qu'en **HTTP réel** (type MIME, en-tête de cache, code de refus d'une route ouverte) ne peut pas être un test : il dépend du serveur, pas du fichier. Un script de GET, sans compte et sans écriture, se lance sur la production comme sur la pile locale — et c'est la seule chose qui distingue un déploiement sain d'un conteneur périmé qui affiche exactement la même page (Lot 102).
 - Un test de performance doit mesurer la **pente**, pas un nombre : sur une base d'intégration partagée, un seuil absolu de requêtes se périme au premier test voisin ajouté, tandis que « le même appel coûte autant avec 11 séries qu'avec 5 » reste vrai quoi qu'on ajoute autour. Et il se vérifie comme les autres, en le confrontant au code d'avant (Lot 101).

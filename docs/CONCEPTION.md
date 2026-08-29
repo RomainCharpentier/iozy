@@ -6,7 +6,7 @@
 
 ## 1. Vision produit
 
-IozyCore est une base de connaissances personnelle, auto-hébergée et strictement mono-utilisateur, construite autour d'un moteur générique d'Entités (Type → Entité → Version → Possession(s) → Expérience(s) → Média(s) → Relations → Tags).
+IozyCore est une base de connaissances personnelle, auto-hébergée et **cloisonnée par personne** — le catalogue des œuvres est commun, tout ce qui est personnel (possessions, envies, classements, analyses) appartient à un compte et à lui seul (voir `backend/README.md`, section « L'isolation »). Le projet a été strictement mono-utilisateur jusqu'au 2026-08-29 ; ce document décrivait encore cet état. Il est construit autour d'un moteur générique d'Entités (Type → Entité → Version → Possession(s) → Expérience(s) → Média(s) → Relations → Tags).
 
 Le MVP couvre 3 types métier codés en dur — **Manga, Jeu vidéo, Jeu de société** — chacun distinct, construits sur ce moteur commun. L'ajout d'éléments ne dépend d'aucune IA au MVP (scan code-barres/ISBN, recherche via API publiques, saisie manuelle).
 
@@ -34,7 +34,7 @@ La généricité complète des types/champs/relations (éditeur no-code) et les 
 
 ## 3. Contextes d'usage (personas contextuels)
 
-IozyCore étant mono-utilisateur, les "personas" sont en réalité des **contextes d'usage** :
+Chaque personne a sa propre collection, et rien de ce document ne suppose qu'elles se croisent : les "personas" sont donc des **contextes d'usage** d'une même personne :
 
 1. **Le collectionneur pressé** — ajout rapide en boutique (< 5 secondes).
 2. **Le curateur du soir** — enrichissement approfondi (notes, commentaires, photos).
