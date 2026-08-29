@@ -1,16 +1,18 @@
 /**
- * <b>Le bouton « RO », et le menu qu'il ouvre.</b>
+ * <b>Les deux boutons de l'en-tête : l'administration, et le compte.</b>
  *
  * <p>C'est le seul accès, depuis n'importe quel écran, à ce qui n'appartient à
- * aucune des quatre intentions quotidiennes : son profil, ses réglages,
- * l'administration. Trois écrans <b>sœurs</b> - et c'est la règle qui vient
- * d'être posée : l'administration a vécu sous les réglages de l'utilisateur,
- * puis sous Profil, et dans les deux cas configurer sa machine se trouvait en
- * cherchant autre chose.
+ * aucune des quatre intentions quotidiennes. Et ce sont <b>deux</b> boutons,
+ * pas un : l'administration a mis trois essais à trouver sa place - sous
+ * Paramètres, puis en lien sur Profil, puis dans le menu de l'avatar - trois
+ * fois rangée derrière quelque chose qui appartient à l'utilisateur. Déclarer
+ * les catégories de sa collection n'est pas un réglage personnel, et ne se
+ * trouve pas en cherchant son profil.
  *
- * <p>Rien ici ne casse bruyamment. L'avatar affiche les mauvaises lettres, ou
- * le menu perd une entrée : l'application continue de fonctionner, un écran
- * devient simplement introuvable autrement qu'en tapant son URL.
+ * <p>Rien ici ne casse bruyamment. L'avatar affiche les mauvaises lettres, un
+ * bouton disparaît, une entrée du menu change de cible : l'application continue
+ * de fonctionner, un écran devient simplement introuvable autrement qu'en
+ * tapant son URL.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
@@ -92,16 +94,33 @@ describe('l’avatar', () => {
   })
 })
 
-describe('le menu', () => {
-  it('mène aux trois écrans, à égale distance', async () => {
+describe('le bouton Administration', () => {
+  it('est un accès direct, à côté de l’avatar et non dedans', async () => {
+    await avatarDe('kenshin')
+
+    const administration = screen.getByRole('link', { name: 'Administration' })
+    expect(administration).toHaveAttribute('href', '/administration')
+    // Une icône seule : l'en-tête reste calme, et le nom est porté par
+    // aria-label - un title seul ne nomme rien au doigt.
+    expect(administration).toHaveAccessibleName('Administration')
+  })
+
+  it('n’est pas rangé dans le menu du compte', async () => {
+    // Trois fois de suite, elle y a été mise. Ce test est là pour la
+    // quatrième.
+    const menu = await menuDe('kenshin')
+
+    expect(within(menu).queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('le menu du compte', () => {
+  it('ne porte que ce qui est personnel', async () => {
     const menu = await menuDe('kenshin')
 
     expect(within(menu).getByRole('link', { name: /Mon profil/ })).toHaveAttribute('href', '/profile')
     expect(within(menu).getByRole('link', { name: /Paramètres/ })).toHaveAttribute('href', '/settings')
-    // La raison d'être de ce menu : l'administration n'est PAS sous les
-    // réglages de l'utilisateur, ni sous Profil. Elle est leur sœur.
-    expect(within(menu).getByRole('link', { name: /Administration/ })).toHaveAttribute('href', '/administration')
-    expect(within(menu).getAllByRole('link')).toHaveLength(3)
+    expect(within(menu).getAllByRole('link')).toHaveLength(2)
   })
 
   it('rappelle de qui est ce compte', async () => {
