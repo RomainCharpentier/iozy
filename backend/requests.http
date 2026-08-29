@@ -5,6 +5,35 @@
 
 @baseUrl = http://localhost:8080/api
 
+### 0. À FAIRE EN PREMIER - l'API demande une session depuis le 2026-08-29.
+### Sans elle, toutes les requêtes ci-dessous répondent 401. Le client HTTP
+### garde ensuite le cookie de session et le renvoie tout seul.
+###
+### Sur une instance neuve (aucun compte), utiliser `register` : il crée le
+### compte, le connecte du même geste, et ce premier compte REPREND la
+### collection déjà en base. Sur une instance déjà en service, utiliser `login`.
+### Vérifier laquelle avec /auth/etat.
+GET {{baseUrl}}/auth/etat
+
+### 0bis. Créer le premier compte (instance neuve uniquement)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "moi@example.com",
+  "motDePasse": "un-mot-de-passe",
+  "nomAffiche": "Moi"
+}
+
+### 0ter. Se connecter (instance déjà en service)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "moi@example.com",
+  "motDePasse": "un-mot-de-passe"
+}
+
 ### 1. Ajout rapide d'un manga (parcours 1) - UUID = EntityType.MANGA (voir EntityType.java)
 ### Réponse : { "entityId": "...", "matchedExistingEntity": false } - remplacer
 ### REMPLACER_PAR_UUID_RETOURNE ci-dessous par la valeur de entityId.

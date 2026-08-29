@@ -1,8 +1,10 @@
-import { Suspense, lazy, type ComponentType } from 'react'
+import { Suspense, lazy, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PageIntrouvable } from './routes/PageIntrouvable'
 import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
+import { AuthPage } from './routes/Auth/AuthPage'
+import { useAuth } from './lib/useAuth'
 import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
 import { useScrollToTopOnNavigation } from './lib/useScrollToTop'
 import { definirPreferencesCollection } from './lib/preferencesCollection'
@@ -84,6 +86,28 @@ function EnAttente() {
   return <div className="min-h-[50vh]" aria-hidden="true" />
 }
 
+/**
+ * Rien de l'application privée ne s'affiche sans compte.
+ *
+ * <h2>Pourquoi ici, et pas dans chaque écran</h2>
+ * Le serveur refuse déjà chaque appel en 401 - c'est lui qui protège les
+ * données, et lui seul. Mais sans cette porte, l'app monterait quand même sa
+ * navigation, ses en-têtes et ses écrans vides par-dessus une pile de refus :
+ * quelqu'un de déconnecté verrait une collection qui a l'air cassée plutôt
+ * qu'une raison. Un seul endroit décide, et il décide avant le routage.
+ *
+ * <p>Tant que la question n'a pas de réponse, on ne montre <b>ni</b> l'app
+ * <b>ni</b> l'écran de connexion : afficher « Se connecter » à quelqu'un qui a
+ * une session valide, le temps d'un aller-retour, le ferait douter à chaque
+ * ouverture.
+ */
+function PorteFermee({ children }: { children: ReactNode }) {
+  const { compte, enCoursDeVerification } = useAuth()
+  if (enCoursDeVerification) return <EnAttente />
+  if (!compte) return <AuthPage />
+  return <>{children}</>
+}
+
 /** La route /public/share/:token vit hors AppShell (voir SharedSpacePage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de
  * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
@@ -101,7 +125,11 @@ export default function App() {
   // shell, et gardait donc le titre de la page précédente - « Manga ·
   // IozyCore » sur un espace partagé. App couvre les deux branches.
   const { pathname } = useLocation()
-  useDocumentTitleFromHeading(pathname)
+  // La porte d'authentification remplace tout l'écran SANS changer d'URL : le
+  // titre doit donc suivre les deux, sinon l'onglet garde « IozyCore » une
+  // fois la collection affichée.
+  const { compte } = useAuth()
+  useDocumentTitleFromHeading(`${pathname}|${compte ? 'connecte' : 'anonyme'}`)
   // Posé ici pour la même raison : App couvre les deux branches de routage, y
   // compris la page de partage public qui vit hors du shell.
   useScrollToTopOnNavigation(pathname)
@@ -113,6 +141,7 @@ export default function App() {
         <Route
           path="/*"
           element={
+            <PorteFermee>
             <AppShell>
               <Suspense fallback={<EnAttente />}>
                 <Routes>
@@ -153,6 +182,7 @@ export default function App() {
                 </Routes>
               </Suspense>
             </AppShell>
+            </PorteFermee>
           }
         />
       </Routes>

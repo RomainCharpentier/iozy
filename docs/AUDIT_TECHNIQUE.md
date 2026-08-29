@@ -14,17 +14,17 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 
 | | fichiers | lignes |
 |---|---|---|
-| backend `src/main` | 269 | 24 339 |
-| backend `src/test` | 105 | 20 987 |
+| backend `src/main` | 278 | 25 157 |
+| backend `src/test` | 109 | 21 485 |
 | web `src` | 176 | 23 234 |
 | iOS | 24 | 4 166 |
-| migrations Flyway | 24 | — |
+| migrations Flyway | 25 | — |
 | docs | 6 | ~9 614 |
 
-**8 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
-`followededition`, `share`, `shared`) · **18 contrôleurs** ·
-**92 endpoints** · **20 tables** · **27 routes web** ·
-**1 018 tests backend** · **199 tests web** (Vitest, depuis le 2026-08-29).
+**9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
+`followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
+**97 endpoints** · **21 tables** · **27 routes web** ·
+**1 040 tests backend** · **215 tests web** (Vitest, depuis le 2026-08-29).
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
 > suppression de `editionupgrade` (Lot 27) et de `loan` (migration V19), et
@@ -46,9 +46,11 @@ côté backend — élevé, et concentré sur le domaine et l'intégration.
 `market_price_observation` vers `manga_edition`. **Aucune ligne orpheline.**
 
 **21 contraintes de clé étrangère** déclarées. Les seules colonnes en `_id`
-sans FK sont les `owner_id` — attendu : il n'existe pas de table `users`,
-l'application est mono-utilisateur (`DefaultOwner.ID`). Ce n'est pas un oubli,
-c'est le modèle.
+sans FK sont les `owner_id`. La table `app_user` existe depuis le 2026-08-29
+(`V25`), mais **aucune clé étrangère ne pointe encore vers elle** : ces colonnes
+portent toutes le propriétaire par défaut, et une contrainte posée maintenant
+refuserait toute écriture tant que le premier compte n'existe pas. Elle sera
+posée avec l'isolation par propriétaire.
 
 ### Robustesse de l'API — 96 endpoints sondés
 
@@ -79,10 +81,27 @@ Deux réserves, toutes deux hors du travail récent :
 Aucun secret en dur dans les sources suivies. `.env` non suivi et couvert par
 `.gitignore`. La récupération d'annonce externe est bornée par une liste
 blanche d'hôtes, HTTPS seul, refus des adresses internes et redirections
-revalidées (voir `LISTING_SOURCES.md`). La seule surface publique non
-authentifiée est `GET /public/share/{token}`, dont le filtrage est fait
-côté serveur et couvert par un test qui cherche les données privées dans la
-réponse sérialisée.
+revalidées (voir `LISTING_SOURCES.md`).
+
+**L'API est fermée depuis le 2026-08-29** (Lot 94). Elle ne l'était pas du
+tout : n'importe qui l'atteignant pouvait tout lire et tout écrire — acceptable
+tant qu'elle ne sortait pas de localhost, intenable dès qu'elle en sort. Il
+faut désormais une session pour tout, **Swagger compris**. Restent ouvertes :
+l'état de l'instance, la connexion, la création de compte, et
+`GET /api/public/share/{token}` — dont le filtrage est fait côté serveur et
+couvert par un test qui cherche les données privées dans la réponse
+sérialisée.
+
+Session en cookie `HttpOnly` (pas de jeton dans `localStorage`, qu'un script
+injecté lirait), CSRF par cookie + en-tête, mots de passe en BCrypt, session
+renouvelée à chaque connexion (fixation), et même réponse pour une adresse
+inconnue que pour un mot de passe faux.
+
+**Ce qui n'est pas encore fait, et se voit ici** : l'isolation par
+propriétaire. Les écritures portent toujours `DefaultOwner.ID` et les lectures
+ne filtrent pas par compte — un second compte verrait la collection du premier.
+La création de comptes supplémentaires est fermée par défaut
+(`IOZYCORE_INVITE_CODE` vide), ce qui contient le risque en attendant.
 
 ### Code mort backend
 

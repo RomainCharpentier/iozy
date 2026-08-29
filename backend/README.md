@@ -380,18 +380,55 @@ Les attributs pré-remplis (issus d'une recherche Metadata Enrichment) ne
 remplacent jamais un attribut déjà renseigné sur l'Entity existante — ils
 ne comblent que ce qui manque.
 
-## Préparation multi-utilisateur (option B)
+## Comptes et session (depuis le 2026-08-29)
 
-`ownership`, `experience` et `wishlist_entry` portent désormais une colonne
-`owner_id` (migration `V2__add_owner_id.sql`), remplie avec un UUID nul par
-défaut (`DefaultOwner.ID`) tant qu'aucun vrai système d'utilisateurs n'existe.
-Le `Catalog` (Entity/Variant/Relationship/Tag) reste volontairement partagé,
-sans `owner_id` — cohérent avec l'idée qu'une œuvre est la même pour tout le
-monde, seules les possessions/expériences sont privées. Aucune API ni
-comportement visible ne change aujourd'hui : c'est une préparation de schéma,
-pas une fonctionnalité. Le jour où un vrai système d'auth est ajouté, il
-suffira de cesser d'utiliser `DefaultOwner.ID` à la création et de migrer les
-lignes existantes — pas de nouvelle colonne à ajouter.
+L'API **demande une session**. Sans elle, tout répond 401 sauf trois choses :
+`GET /api/auth/etat`, `POST /api/auth/login` et `POST /api/auth/register` (il
+faut bien pouvoir entrer), et `/api/public/**` — les liens de partage, dont le
+destinataire n'a par définition pas de compte. **Swagger aussi est fermé** :
+une documentation qui liste 92 routes est une carte, et elle n'apporte rien à
+qui n'a pas le droit de les appeler. On se connecte dans le navigateur, la
+session vaut ensuite pour Swagger.
+
+**Le premier compte est libre**, et il **reprend l'identifiant du propriétaire
+par défaut** (`DefaultOwner.ID`) : la collection déjà en base devient la
+sienne, sans qu'une ligne ne bouge. Les suivants exigent un code d'invitation
+(`IOZYCORE_INVITE_CODE`) ; **non défini, la création est fermée** après le
+premier — l'absence de configuration ferme la porte, elle ne l'ouvre pas.
+
+Trois détails qui ont coûté du temps, et qu'il vaut mieux lire que
+redécouvrir :
+
+- **Le jeton CSRF part dans un cookie lisible** (`XSRF-TOKEN`), que le client
+  renvoie en en-tête `X-XSRF-TOKEN`. Le gestionnaire par défaut de Spring
+  Security masque ce jeton (protection BREACH) et rejette la valeur brute du
+  cookie : toute écriture partait en 403, connexion comprise. D'où le
+  `CsrfTokenRequestAttributeHandler` explicite dans `SecurityConfig`.
+- **Un 404 passe par une redirection interne vers la page d'erreur**, qui
+  retraverse la chaîne de sécurité depuis Spring Security 6. Sans
+  `dispatcherTypeMatchers(ERROR).permitAll()`, un lien de partage inconnu
+  répondait 401 à un visiteur anonyme. MockMvc ne rejoue pas cette
+  redirection : seul un test sur un vrai serveur le voit
+  (`PorteSurUnVraiServeurTest`).
+- **Les sessions vivent en mémoire** : un redémarrage déconnecte tout le monde.
+  Assumé — se reconnecter après une mise à jour coûte moins qu'un magasin de
+  sessions à administrer.
+
+### Le schéma multi-utilisateur (option B, posée dès la V2)
+
+`ownership`, `experience` et `wishlist_entry` portent une colonne `owner_id`
+depuis `V2__add_owner_id.sql`, rejointes depuis par `tier_list`, `entity_rank`,
+`followed_edition`, `collector_preferences` et `share_settings`. Le `Catalog`
+(Entity/Variant/Relationship/Tag) reste volontairement **partagé** : une œuvre
+est la même pour tout le monde, seules les possessions et les envies sont
+privées.
+
+`V25__app_user.sql` ajoute la table des comptes. **L'isolation par
+propriétaire n'est pas encore branchée** : les écritures portent toujours
+`DefaultOwner.ID`, et les lectures ne filtrent pas encore par compte. Un
+deuxième compte verrait donc la collection du premier — c'est l'objet du lot
+suivant, et la raison pour laquelle `IOZYCORE_INVITE_CODE` doit rester vide
+jusque-là.
 
 ## Renommer le projet
 

@@ -72,6 +72,12 @@ export const queryKeys = {
    *  la fiche, la grille de tomes et les cartes d'édition la lisent toutes,
    *  une seule requête pour les trois. */
   followedEdition: (entityId: string) => ['followedEdition', entityId] as const,
+  /** Qui est connecté, et ce que l'instance permet (voir lib/useAuth). Deux
+   *  clés distinctes : l'état de l'instance se lit sans compte, le compte non. */
+  auth: {
+    compte: ['auth', 'compte'] as const,
+    etat: ['auth', 'etat'] as const,
+  },
   tierLists: {
     general: (entityTypeId: string) => ['tierLists', 'general', entityTypeId] as const,
     // null = les listes transverses "toutes catégories" (voir TierListDto.entityTypeId) -

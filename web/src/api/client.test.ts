@@ -16,7 +16,7 @@
  * injoignable » à chaque frappe dans la recherche.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, buildQuery, get, post, postForm } from './client'
+import { ApiError, EVENEMENT_SESSION_PERDUE, buildQuery, get, post, postForm } from './client'
 
 const fetchMock = vi.fn()
 
@@ -187,6 +187,83 @@ describe('les corps de requête', () => {
     fetchMock.mockResolvedValue(succes(undefined, 204))
 
     await expect(get('/wishlist/x')).resolves.toBeUndefined()
+  })
+})
+
+describe('la session et son jeton', () => {
+  /** Le cookie que le serveur dépose, et que seul le JavaScript de cette origine peut lire. */
+  function poserJetonCsrf(valeur: string) {
+    Object.defineProperty(document, 'cookie', { configurable: true, get: () => `XSRF-TOKEN=${valeur}` })
+  }
+
+  afterEach(() => {
+    Object.defineProperty(document, 'cookie', { configurable: true, get: () => '' })
+  })
+
+  it('renvoie le jeton en en-tête sur une écriture', () => {
+    // C'est ce qu'une page tierce ne peut pas faire : elle ne lit pas ce
+    // cookie, donc elle ne peut pas forger cet en-tête.
+    poserJetonCsrf('un-jeton')
+    fetchMock.mockResolvedValue(succes({}))
+
+    return post('/wishlist', {}).then(() => {
+      const [, init] = fetchMock.mock.calls[0]
+      expect((init.headers as Record<string, string>)['X-XSRF-TOKEN']).toBe('un-jeton')
+    })
+  })
+
+  it('ne l’envoie pas sur une lecture, qui ne modifie rien', async () => {
+    poserJetonCsrf('un-jeton')
+    fetchMock.mockResolvedValue(succes({}))
+
+    await get('/entities/search')
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Record<string, string>)['X-XSRF-TOKEN']).toBeUndefined()
+  })
+
+  it('omet l’en-tête tant que le serveur n’a pas déposé de jeton', async () => {
+    fetchMock.mockResolvedValue(succes({}))
+
+    await post('/wishlist', {})
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Record<string, string>)['X-XSRF-TOKEN']).toBeUndefined()
+  })
+
+  it('emmène toujours le cookie de session', async () => {
+    fetchMock.mockResolvedValue(succes({}))
+
+    await get('/entities/search')
+
+    expect(fetchMock.mock.calls[0][1].credentials).toBe('include')
+  })
+
+  it('annonce une seule fois que la session est perdue, sur n’importe quel appel', async () => {
+    // Le 401 peut tomber sur n'importe quelle requête : serveur redémarré,
+    // session expirée, déconnexion depuis un autre onglet. Chaque écran ne
+    // peut pas deviner ce que veut dire le sien.
+    const annonces: Event[] = []
+    const ecouter = (e: Event) => annonces.push(e)
+    window.addEventListener(EVENEMENT_SESSION_PERDUE, ecouter)
+    fetchMock.mockResolvedValue(echec(401, undefined, 'Unauthorized'))
+
+    await get('/entities/search').catch(() => {})
+
+    expect(annonces).toHaveLength(1)
+    window.removeEventListener(EVENEMENT_SESSION_PERDUE, ecouter)
+  })
+
+  it('ne l’annonce PAS pour « suis-je connecté ? », dont le 401 est une réponse', async () => {
+    const annonces: Event[] = []
+    const ecouter = (e: Event) => annonces.push(e)
+    window.addEventListener(EVENEMENT_SESSION_PERDUE, ecouter)
+    fetchMock.mockResolvedValue(echec(401, undefined, 'Unauthorized'))
+
+    await get('/auth/me').catch(() => {})
+
+    expect(annonces).toHaveLength(0)
+    window.removeEventListener(EVENEMENT_SESSION_PERDUE, ecouter)
   })
 })
 

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Scale, PartyPopper, Settings2, ChevronRight } from 'lucide-react'
+import { Scale, PartyPopper, Settings2, ChevronRight, LogOut } from 'lucide-react'
+import { useAuth } from '../../lib/useAuth'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
 import { ShareSection } from '../Share/ShareSection'
@@ -75,6 +76,42 @@ export function ProfilePage() {
           </li>
         ))}
       </ul>
+
+      <SectionCompte />
     </div>
+  )
+}
+
+/**
+ * Qui est connecté, et comment sortir.
+ *
+ * <p>Sur Profil et nulle part ailleurs : se déconnecter est un geste rare, et
+ * un bouton posé dans un en-tête permanent se cliquerait par erreur bien plus
+ * souvent qu'à dessein. L'adresse est affichée parce que c'est la seule chose
+ * qui distingue deux comptes sur une même instance - sans elle, on ne sait pas
+ * de quelle collection on regarde les chiffres.
+ */
+function SectionCompte() {
+  const { compte, deconnexion } = useAuth()
+  if (!compte) return null
+  return (
+    <section className="flex flex-col gap-3 rounded-xl bg-surface p-4">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs tracking-wide text-textDim uppercase">Compte</span>
+        <span className="font-medium text-textPrimary">{compte.nomAffiche}</span>
+        {/* Un compte créé sans nom affiché retombe sur son adresse (voir
+            AppUser) : l'écrire deux fois de suite ne dirait rien de plus. */}
+        {compte.email !== compte.nomAffiche && <span className="text-xs text-textDim">{compte.email}</span>}
+      </div>
+      <button
+        type="button"
+        onClick={() => deconnexion.mutate()}
+        disabled={deconnexion.isPending}
+        className="flex items-center justify-center gap-2 self-start rounded-lg bg-surface2 px-4 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
+      >
+        <LogOut size={16} />
+        Se déconnecter
+      </button>
+    </section>
   )
 }

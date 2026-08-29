@@ -1,0 +1,57 @@
+package com.iozycore.infrastructure.persistence.user;
+
+import com.iozycore.domain.user.AppUser;
+import com.iozycore.domain.user.AppUserRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.UUID;
+
+interface AppUserJpaRepository extends JpaRepository<AppUserJpaEntity, UUID> {
+    Optional<AppUserJpaEntity> findByEmail(String email);
+}
+
+@Repository
+@Transactional
+class JpaAppUserRepositoryAdapter implements AppUserRepository {
+
+    private final AppUserJpaRepository jpaRepository;
+
+    JpaAppUserRepositoryAdapter(AppUserJpaRepository jpaRepository) {
+        this.jpaRepository = jpaRepository;
+    }
+
+    @Override
+    public AppUser save(AppUser user) {
+        return toDomain(jpaRepository.save(toJpa(user)));
+    }
+
+    @Override
+    public Optional<AppUser> findByEmail(String email) {
+        return jpaRepository.findByEmail(AppUser.normaliserEmail(email)).map(JpaAppUserRepositoryAdapter::toDomain);
+    }
+
+    @Override
+    public Optional<AppUser> findById(UUID id) {
+        return jpaRepository.findById(id).map(JpaAppUserRepositoryAdapter::toDomain);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        // `count() == 0` plutôt qu'un `findAll().isEmpty()` : la question posée
+        // est « y a-t-il déjà quelqu'un », pas « qui ».
+        return jpaRepository.count() == 0;
+    }
+
+    private static AppUserJpaEntity toJpa(AppUser user) {
+        return new AppUserJpaEntity(user.id(), user.email(), user.passwordHash(), user.displayName(),
+                user.createdAt());
+    }
+
+    private static AppUser toDomain(AppUserJpaEntity jpa) {
+        return new AppUser(jpa.getId(), jpa.getEmail(), jpa.getPasswordHash(), jpa.getDisplayName(),
+                jpa.getCreatedAt());
+    }
+}

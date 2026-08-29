@@ -1136,6 +1136,49 @@ existé.
 
 ---
 
+## 18 bis. Parcours — Entrer et sortir (ajoutés le 2026-08-29, Lot 94)
+
+Ces trois parcours précèdent tous les autres : sans session, chaque écran de
+l'application privée est remplacé par la porte, et chaque appel d'API répond
+401. Vérifiés en direct sur l'app réelle (création du premier compte,
+déconnexion, reconnexion), pas seulement en test.
+
+### 63. Créer le premier compte
+**Point de départ** : ouvrir l'app sur une instance où personne n'a de compte
+**Résultat** : l'écran annonce que *« le premier créé reprend la collection
+déjà enregistrée »*, et c'est exactement ce qui se passe : le compte adopte
+l'identifiant du propriétaire par défaut, donc la collection existante est la
+sienne — vérifié, 6 titres et 12 tomes retrouvés après création. Créer connecte
+du même geste : redemander ce qu'on vient de taper deux fois n'apprendrait rien.
+**Branches** : mot de passe sous 10 caractères → refus avec la raison ; adresse
+mal formée → refus ; une instance qui a déjà un compte demande un **code
+d'invitation**, et n'offre même pas l'écran si aucun code n'est configuré.
+**Écrans** : `AuthPage`, `App.PorteFermee`
+**Backend** : `GET /api/auth/etat`, `POST /api/auth/register`
+**Statut** : `COMPLET`
+
+### 64. Se connecter
+**Point de départ** : ouvrir l'app sans session
+**Résultat** : la collection, à l'endroit où on l'avait laissée.
+**Branches** : adresse inconnue et mot de passe faux rendent **le même**
+message — distinguer offrirait un test d'existence de compte. Session perdue en
+cours de route (serveur redémarré, expiration) : le premier appel qui reçoit un
+401 ramène la porte, sans qu'aucun écran n'ait à s'en occuper.
+**Écrans** : `AuthPage`, `lib/useAuth`
+**Backend** : `POST /api/auth/login`, `GET /api/auth/me`
+**Statut** : `COMPLET`
+
+### 65. Se déconnecter
+**Point de départ** : Profil ▸ Compte
+**Résultat** : la session est invalidée côté serveur, le cache client vidé, la
+porte revient. Sur Profil et nulle part ailleurs : un bouton posé dans un
+en-tête permanent se cliquerait par erreur plus souvent qu'à dessein.
+**Écrans** : `ProfilePage` (section Compte)
+**Backend** : `POST /api/auth/logout`
+**Statut** : `COMPLET`
+
+---
+
 ## 12. Différences de parcours desktop / mobile
 
 Le point de bascule est **768 px** (`AppShell.NAV_BREAKPOINT_PX`). Les deux navigations ne coexistent jamais.
@@ -1376,21 +1419,24 @@ IozyCore
 | 60 | Exporter sa collection | Paramètres / Administration | COMPLET | oui | oui |
 | 61 | Consulter une collection partagée | Lien public | COMPLET | oui | oui |
 | 62 | Consulter une liste d'envies partagée | Lien public | COMPLET | oui | oui |
+| 63 | Créer le premier compte | Porte (hors AppShell) | COMPLET | oui | oui |
+| 64 | Se connecter | Porte (hors AppShell) | COMPLET | oui | oui |
+| 65 | Se déconnecter | Profil ▸ Compte | COMPLET | oui | oui |
 
 ---
 
 ## 20. Statistiques
 
 ```text
-Nombre total de parcours identifiés : 61   (62 lignes, dont 1 retirée du produit)
-Parcours COMPLETS                   : 59
+Nombre total de parcours identifiés : 64   (65 lignes, dont 1 retirée du produit)
+Parcours COMPLETS                   : 62
 Parcours PARTIELS                   :  2   (44 Prochaines sorties, 50 Partage des Tier Lists)
 Parcours CASSÉS                     :  0
 Parcours MOCK / DÉMO                :  0
 
-Parcours principaux                 : 24   (atteints en 2 gestes au plus depuis une des
+Parcours principaux                 : 26   (atteints en 2 gestes au plus depuis une des
                                             3 destinations ou de l'avatar)
-Parcours secondaires                : 37
+Parcours secondaires                : 38
 
 Parcours sans aucun accès en mobile :  0   (10 avant le 2026-08-21, voir §12.1)
 ```
@@ -1502,8 +1548,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 GET /insights/progress/{entityId} (une fiche) - aucun client
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
-Tests           backend/src/test/java/**  (1018 tests)
-                web/src/**/*.test.ts(x)   (199 tests, Vitest - voir web/README)
+Tests           backend/src/test/java/**  (1040 tests)
+                web/src/**/*.test.ts(x)   (215 tests, Vitest - voir web/README)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **199 tests Vitest** sur vingt-deux modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Il reste **aucun test end-to-end** : rien ne vérifie encore un parcours entier, du clic à l'écriture en base. Ce document reste la base naturelle pour les écrire — les dix parcours de la §21 en premier.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **215 tests Vitest** sur vingt-trois modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Il reste **aucun test end-to-end** : rien ne vérifie encore un parcours entier, du clic à l'écriture en base. Ce document reste la base naturelle pour les écrire — les dix parcours de la §21 en premier.
