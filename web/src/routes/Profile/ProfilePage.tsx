@@ -98,10 +98,10 @@ function SectionCompte() {
     <section className="flex flex-col gap-3 rounded-xl bg-surface p-4">
       <div className="flex flex-col gap-0.5">
         <span className="text-xs tracking-wide text-textDim uppercase">Compte</span>
-        <span className="font-medium text-textPrimary">{compte.nomAffiche}</span>
-        {/* Un compte créé sans nom affiché retombe sur son adresse (voir
-            AppUser) : l'écrire deux fois de suite ne dirait rien de plus. */}
-        {compte.email !== compte.nomAffiche && <span className="text-xs text-textDim">{compte.email}</span>}
+        <span className="font-medium text-textPrimary">{compte.pseudo}</span>
+        {/* Toujours affichée, désormais : un pseudo ne peut plus être l'adresse
+            (voir AppUser), donc les deux lignes ne se répètent jamais. */}
+        <span className="text-xs text-textDim">{compte.email}</span>
       </div>
       <button
         type="button"

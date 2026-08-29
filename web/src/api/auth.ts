@@ -20,7 +20,8 @@ export interface EtatAuth {
 export interface Compte {
   id: string
   email: string
-  nomAffiche: string
+  /** Unique sur l'instance, et le seul nom sous lequel on apparaît - jamais l'adresse. */
+  pseudo: string
 }
 
 export function lireEtatAuth(): Promise<EtatAuth> {
@@ -39,7 +40,7 @@ export function seConnecter(email: string, motDePasse: string): Promise<Compte> 
 export function creerCompte(params: {
   email: string
   motDePasse: string
-  nomAffiche: string
+  pseudo: string
   codeInvitation?: string
 }): Promise<Compte> {
   return post<Compte>('/auth/register', params)

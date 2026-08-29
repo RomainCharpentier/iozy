@@ -93,7 +93,7 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
         var creation = mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType("application/json")
                         .content(json(Map.of("email", "premier@example.com", "motDePasse", "un-mot-de-passe",
-                                "nomAffiche", "Premier"))))
+                                "pseudo", "Premier"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("premier@example.com"))
                 // Le hachage ne sort jamais vers un client.
@@ -116,7 +116,7 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
         var connexion = mockMvc.perform(post("/api/auth/register").session(avant).with(csrf())
                         .contentType("application/json")
                         .content(json(Map.of("email", "fixation@example.com", "motDePasse", "un-mot-de-passe",
-                                "nomAffiche", "Fixation"))))
+                                "pseudo", "Fixation"))))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -158,7 +158,7 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
 
         mockMvc.perform(post("/api/auth/register").with(csrf()).contentType("application/json")
                         .content(json(Map.of("email", "second@example.com", "motDePasse", "un-mot-de-passe",
-                                "nomAffiche", "Second"))))
+                                "pseudo", "Second"))))
                 .andExpect(status().isForbidden());
     }
 
@@ -181,7 +181,7 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
         var creation = mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType("application/json")
                         .content(json(Map.of("email", "connecte@example.com", "motDePasse", "un-mot-de-passe",
-                                "nomAffiche", "Connecté"))))
+                                "pseudo", "Connecte"))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return sessionOuverte(creation);

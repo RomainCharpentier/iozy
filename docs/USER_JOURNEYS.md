@@ -1156,8 +1156,16 @@ déjà enregistrée »*, et c'est exactement ce qui se passe : le compte adopte
 l'identifiant du propriétaire par défaut, donc la collection existante est la
 sienne — vérifié, 6 titres et 12 tomes retrouvés après création. Créer connecte
 du même geste : redemander ce qu'on vient de taper deux fois n'apprendrait rien.
+**Le pseudo** (depuis le 2026-08-29) : obligatoire, unique sur l'instance,
+3 à 24 caractères sans espace ni arobase. La règle est écrite **sous le champ**,
+pas rendue en refus après coup. C'est le seul nom sous lequel on apparaît :
+l'adresse e-mail sert à se connecter, jamais à se montrer. Il n'est pas
+modifiable après création — pas encore d'écran pour ça.
 **Branches** : mot de passe sous 10 caractères → refus avec la raison ; adresse
-mal formée → refus ; une instance qui a déjà un compte demande un **code
+mal formée → refus ; pseudo mal formé → refus avec la règle ; **pseudo déjà
+pris → refus explicite**, contrairement à un échec de connexion : un pseudo est
+public par destination, le taire n'empêcherait que la personne concernée d'en
+choisir un autre. Une instance qui a déjà un compte demande un **code
 d'invitation**, et n'offre même pas l'écran si aucun code n'est configuré.
 **Écrans** : `AuthPage`, `App.PorteFermee`
 **Backend** : `GET /api/auth/etat`, `POST /api/auth/register`
@@ -1172,6 +1180,19 @@ cours de route (serveur redémarré, expiration) : le premier appel qui reçoit 
 401 ramène la porte, sans qu'aucun écran n'ait à s'en occuper.
 **Écrans** : `AuthPage`, `lib/useAuth`
 **Backend** : `POST /api/auth/login`, `GET /api/auth/me`
+**Statut** : `COMPLET`
+
+### 64 bis. Savoir au nom de qui on travaille
+**Point de départ** : n'importe quel écran de l'app
+**Résultat** : l'avatar en haut à droite porte les **initiales du pseudo**
+(« jean-dupont » → JD, « kenshin » → KE) et s'annonce « Mon profil — kenshin »
+à un lecteur d'écran. Il affichait « IO » en dur jusqu'au 2026-08-29 : les
+initiales de l'application, sur le bouton qui mène au compte de quelqu'un.
+**Branches** : tant que le compte n'est pas arrivé (une requête, donc un
+instant), l'avatar affiche « IO » — deux lettres stables plutôt qu'un trou qui
+se remplit.
+**Écrans** : `GlobalShortcuts` (les deux en-têtes), `lib/initiales`
+**Backend** : `GET /api/auth/me`
 **Statut** : `COMPLET`
 
 ### 65. Se déconnecter
@@ -1562,8 +1583,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (231 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (244 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **231 tests Vitest** sur vingt-six modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, et une Tier List créée puis remplie puis classée. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. Six des dix parcours structurants de la §21 sont couverts ; manquent le scan (caméra), l'analyse d'une annonce, les séries presque complètes et la fiche d'édition de référence.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **244 tests Vitest** sur vingt-huit modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, et une Tier List créée puis remplie puis classée. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. Six des dix parcours structurants de la §21 sont couverts ; manquent le scan (caméra), l'analyse d'une annonce, les séries presque complètes et la fiche d'édition de référence.

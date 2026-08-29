@@ -34,7 +34,7 @@ public class AppUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         AppUser compte = comptes.findByEmail(AppUser.normaliserEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("Compte inconnu"));
-        return new Principal(compte.id(), compte.email(), compte.passwordHash(), compte.displayName());
+        return new Principal(compte.id(), compte.email(), compte.passwordHash(), compte.pseudo());
     }
 
     /**
@@ -43,7 +43,7 @@ public class AppUserDetailsService implements UserDetailsService {
      * passe fourni à celui-ci ; il ne sort jamais vers un client (voir
      * {@code AuthController}, qui rend une vue explicite du compte).
      */
-    public record Principal(UUID id, String email, String motDePasseHache, String displayName) implements UserDetails {
+    public record Principal(UUID id, String email, String motDePasseHache, String pseudo) implements UserDetails {
 
         @Override
         public List<org.springframework.security.core.GrantedAuthority> getAuthorities() {

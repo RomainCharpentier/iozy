@@ -11,6 +11,9 @@ import java.util.UUID;
 
 interface AppUserJpaRepository extends JpaRepository<AppUserJpaEntity, UUID> {
     Optional<AppUserJpaEntity> findByEmail(String email);
+
+    /** `IgnoreCase` et non une égalité : l'unicité en base est posée sur `lower(pseudo)`. */
+    Optional<AppUserJpaEntity> findByPseudoIgnoreCase(String pseudo);
 }
 
 @Repository
@@ -34,6 +37,12 @@ class JpaAppUserRepositoryAdapter implements AppUserRepository {
     }
 
     @Override
+    public Optional<AppUser> findByPseudo(String pseudo) {
+        return jpaRepository.findByPseudoIgnoreCase(AppUser.normaliserPseudo(pseudo))
+                .map(JpaAppUserRepositoryAdapter::toDomain);
+    }
+
+    @Override
     public Optional<AppUser> findById(UUID id) {
         return jpaRepository.findById(id).map(JpaAppUserRepositoryAdapter::toDomain);
     }
@@ -46,12 +55,12 @@ class JpaAppUserRepositoryAdapter implements AppUserRepository {
     }
 
     private static AppUserJpaEntity toJpa(AppUser user) {
-        return new AppUserJpaEntity(user.id(), user.email(), user.passwordHash(), user.displayName(),
+        return new AppUserJpaEntity(user.id(), user.email(), user.passwordHash(), user.pseudo(),
                 user.createdAt());
     }
 
     private static AppUser toDomain(AppUserJpaEntity jpa) {
-        return new AppUser(jpa.getId(), jpa.getEmail(), jpa.getPasswordHash(), jpa.getDisplayName(),
+        return new AppUser(jpa.getId(), jpa.getEmail(), jpa.getPasswordHash(), jpa.getPseudo(),
                 jpa.getCreatedAt());
     }
 }

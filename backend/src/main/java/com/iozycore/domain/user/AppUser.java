@@ -4,6 +4,7 @@ import com.iozycore.domain.shared.DefaultOwner;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Un compte, et rien d'autre.
@@ -27,8 +28,36 @@ import java.util.UUID;
  * @param passwordHash le hachage, jamais le mot de passe. Ce record traverse
  *                     l'application ; le mot de passe en clair, lui, ne vit que
  *                     le temps d'un appel à l'encodeur
+ * @param pseudo       le seul nom sous lequel une personne apparaît. Unique
+ *                     (voir la migration V27), obligatoire, et jamais
+ *                     l'adresse e-mail : celle-ci sert à se connecter, pas à
+ *                     se montrer
  */
-public record AppUser(UUID id, String email, String passwordHash, String displayName, Instant createdAt) {
+public record AppUser(UUID id, String email, String passwordHash, String pseudo, Instant createdAt) {
+
+    /**
+     * Ce qu'un pseudo a le droit d'être.
+     *
+     * <h2>Trois à vingt-quatre caractères</h2>
+     * En dessous de trois, il ne distingue plus rien ; au-delà de vingt-quatre,
+     * il ne tient plus dans les endroits qui l'affichent, à commencer par
+     * l'avatar du menu.
+     *
+     * <h2>Lettres, chiffres, et trois séparateurs</h2>
+     * Les <b>accents sont acceptés</b> ({@code \p{L}} et non {@code [a-z]}) :
+     * refuser « Rémi » dans une application française serait une règle
+     * technique déguisée en règle produit. Sont refusés l'espace - qui rend
+     * deux pseudos indistinguables à l'œil, « jean dupont » et
+     * « jean  dupont » - et l'arobase, qui ferait passer un pseudo pour une
+     * adresse.
+     *
+     * <h2>Il commence par une lettre ou un chiffre</h2>
+     * Sinon {@code ...} et {@code ---} seraient des pseudos valides, et deux
+     * personnes seraient distinguées par un motif que personne ne peut lire à
+     * voix haute.
+     */
+    private static final Pattern FORME_DE_PSEUDO =
+            Pattern.compile("^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]{2,23}$", Pattern.UNICODE_CHARACTER_CLASS);
 
     public AppUser {
         if (id == null) {
@@ -41,8 +70,31 @@ public record AppUser(UUID id, String email, String passwordHash, String display
         if (passwordHash == null || passwordHash.isBlank()) {
             throw new IllegalArgumentException("Un compte doit porter un mot de passe haché");
         }
-        displayName = displayName == null || displayName.isBlank() ? email : displayName.trim();
+        pseudo = pseudo == null ? "" : pseudo.trim();
+        if (!estUnPseudoValide(pseudo)) {
+            throw new IllegalArgumentException("Un compte doit porter un pseudo valide");
+        }
         createdAt = createdAt == null ? Instant.now() : createdAt;
+    }
+
+    /**
+     * Vrai quand ce texte peut servir de pseudo.
+     * <p>
+     * Publique parce que la porte doit pouvoir <b>expliquer</b> un refus à
+     * l'utilisateur (400 avec une phrase) plutôt que de laisser remonter une
+     * exception de construction, qui n'est jamais destinée à être lue.
+     */
+    public static boolean estUnPseudoValide(String pseudo) {
+        return pseudo != null && FORME_DE_PSEUDO.matcher(pseudo.trim()).matches();
+    }
+
+    /**
+     * La forme sous laquelle deux pseudos se comparent : la casse ne distingue
+     * pas deux personnes, exactement comme pour l'adresse (voir la migration
+     * V27, qui pose l'index unique sur {@code lower(pseudo)}).
+     */
+    public static String normaliserPseudo(String pseudo) {
+        return pseudo == null ? "" : pseudo.trim().toLowerCase();
     }
 
     /**
@@ -62,11 +114,11 @@ public record AppUser(UUID id, String email, String passwordHash, String display
      * la collection déjà saisie devient la sienne. Les suivants reçoivent un
      * identifiant neuf, donc une collection vide.
      */
-    public static AppUser premier(String email, String passwordHash, String displayName) {
-        return new AppUser(DefaultOwner.ID, email, passwordHash, displayName, Instant.now());
+    public static AppUser premier(String email, String passwordHash, String pseudo) {
+        return new AppUser(DefaultOwner.ID, email, passwordHash, pseudo, Instant.now());
     }
 
-    public static AppUser nouveau(String email, String passwordHash, String displayName) {
-        return new AppUser(UUID.randomUUID(), email, passwordHash, displayName, Instant.now());
+    public static AppUser nouveau(String email, String passwordHash, String pseudo) {
+        return new AppUser(UUID.randomUUID(), email, passwordHash, pseudo, Instant.now());
     }
 }

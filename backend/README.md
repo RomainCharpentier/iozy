@@ -399,6 +399,16 @@ sienne, sans qu'une ligne ne bouge. Les suivants exigent un code d'invitation
 (`IOZYCORE_INVITE_CODE`) ; **non défini, la création est fermée** après le
 premier — l'absence de configuration ferme la porte, elle ne l'ouvre pas.
 
+**Chaque compte porte un pseudo unique** (`pseudo`, depuis `V27`) : 3 à 24
+caractères, lettres (accents compris), chiffres, `.`, `-`, `_` ; ni espace ni
+arobase, et il commence par une lettre ou un chiffre. C'est le seul nom sous
+lequel quelqu'un apparaît — l'adresse e-mail sert à se connecter, jamais à se
+montrer. L'unicité est posée en base sur `lower(pseudo)`, donc insensible à la
+casse ; `AuthService` la vérifie AUSSI avant d'écrire, non par redondance mais
+pour pouvoir dire « Ce pseudo est déjà pris » plutôt que de laisser remonter
+une violation d'index. Et contrairement à un échec de connexion, ce refus est
+explicite : un pseudo est public par destination.
+
 Trois détails qui ont coûté du temps, et qu'il vaut mieux lire que
 redécouvrir :
 
@@ -428,7 +438,9 @@ privées.
 
 `V25__app_user.sql` ajoute la table des comptes, `V26` complète les trois
 tables privées qui n'avaient pas encore de `owner_id` (analyses d'achat, prix
-relevés, appartenance à un classement).
+relevés, appartenance à un classement), et `V27` fait du nom d'affichage un
+**pseudo** : colonne renommée, valeurs réparées (celles qui recopiaient une
+adresse e-mail), doublons départagés, puis index unique.
 
 ### L'isolation, et pourquoi elle ne vit pas dans les requêtes
 

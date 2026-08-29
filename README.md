@@ -79,8 +79,13 @@ elle propose « Créer un compte » tant que personne n'en a. Ce premier compte
 
 En ligne de commande, si tu testes l'API seule :
 ```bash
-curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -d '{"email":"moi@example.com","motDePasse":"un-mot-de-passe","nomAffiche":"Moi"}'
+curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -d '{"email":"moi@example.com","motDePasse":"un-mot-de-passe","pseudo":"moi"}'
 ```
+
+Le **pseudo** est obligatoire et unique sur l'instance : 3 à 24 caractères,
+lettres (accents compris), chiffres, `.`, `-`, `_`, sans espace ni arobase.
+C'est le seul nom sous lequel quelqu'un apparaît — l'adresse e-mail sert à se
+connecter, jamais à se montrer.
 
 Les comptes **suivants** exigent un code d'invitation, à définir dans
 l'environnement (`IOZYCORE_INVITE_CODE`). Non défini, la création est **fermée**

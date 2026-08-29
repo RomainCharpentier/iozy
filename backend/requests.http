@@ -22,7 +22,7 @@ Content-Type: application/json
 {
   "email": "moi@example.com",
   "motDePasse": "un-mot-de-passe",
-  "nomAffiche": "Moi"
+  "pseudo": "moi"
 }
 
 ### 0ter. Se connecter (instance déjà en service)

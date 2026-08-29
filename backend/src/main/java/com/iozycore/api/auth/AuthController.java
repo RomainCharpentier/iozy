@@ -41,6 +41,13 @@ import java.util.UUID;
  * Une adresse inconnue et un mot de passe faux rendent <b>le même</b> 401 et le
  * même message. Distinguer les deux offrirait un test d'existence de compte à
  * qui n'en a pas.
+ *
+ * <h2>Le pseudo, lui, dit tout</h2>
+ * « Ce pseudo est déjà pris » est un 400 explicite, et c'est volontaire : un
+ * pseudo est <b>public par destination</b> - il s'affiche sur l'avatar, il se
+ * lit dans un espace partagé. Le taire n'apprendrait rien à un curieux et
+ * empêcherait la seule personne concernée d'en choisir un autre. Une adresse
+ * e-mail, elle, n'est publique nulle part : d'où les deux traitements.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -62,16 +69,16 @@ public class AuthController {
     public record EtatReponse(boolean aucunCompte, boolean creationOuverte) {
     }
 
-    public record CreationRequete(String email, String motDePasse, String nomAffiche, String codeInvitation) {
+    public record CreationRequete(String email, String motDePasse, String pseudo, String codeInvitation) {
     }
 
     public record ConnexionRequete(String email, String motDePasse) {
     }
 
     /** Ce qu'un client apprend d'un compte : jamais le hachage, jamais l'adresse d'un autre. */
-    public record CompteReponse(UUID id, String email, String nomAffiche) {
+    public record CompteReponse(UUID id, String email, String pseudo) {
         static CompteReponse de(AppUser compte) {
-            return new CompteReponse(compte.id(), compte.email(), compte.displayName());
+            return new CompteReponse(compte.id(), compte.email(), compte.pseudo());
         }
     }
 
@@ -89,7 +96,7 @@ public class AuthController {
                                    HttpServletResponse reponseHttp) {
         AppUser compte;
         try {
-            compte = comptes.creer(requete.email(), requete.motDePasse(), requete.nomAffiche(),
+            compte = comptes.creer(requete.email(), requete.motDePasse(), requete.pseudo(),
                     requete.codeInvitation());
         } catch (AuthService.CreationInterdite interdite) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, interdite.getMessage());
@@ -108,7 +115,7 @@ public class AuthController {
                                 HttpServletResponse reponseHttp) {
         AppUserDetailsService.Principal principal =
                 ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp);
-        return new CompteReponse(principal.id(), principal.email(), principal.displayName());
+        return new CompteReponse(principal.id(), principal.email(), principal.pseudo());
     }
 
     @Operation(summary = "Le compte connecté, ou 401.")
@@ -117,7 +124,7 @@ public class AuthController {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
-        return new CompteReponse(principal.id(), principal.email(), principal.displayName());
+        return new CompteReponse(principal.id(), principal.email(), principal.pseudo());
     }
 
     @Operation(summary = "Fermer la session.")
