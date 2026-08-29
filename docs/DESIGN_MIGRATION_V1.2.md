@@ -1388,13 +1388,22 @@ Quatre échelles, et chacune répond à « qui est touché si je change ça ».
 | **Ma collection** | Administration | catégories, éditions de référence, import |
 | **Cette instance** | Administration | les comptes (administrateur seulement) |
 
-**Les deux écrans sont SŒURS**, atteints l'un et l'autre depuis Profil.
-Administration a d'abord été laissée sous Paramètres, par habitude ; c'était
-reconduire le mélange qu'on venait de défaire, à un niveau au-dessus. Régler
-son thème et déclarer les catégories de sa collection n'ont rien à voir, et
-l'un ne se trouve pas en cherchant l'autre. Emboîtée, Administration mettait
-aussi les éditions de référence à **trois niveaux** de profondeur - ce que le
-§16 des parcours reprochait déjà à cet écran.
+**Les deux écrans sont SŒURS**, et ils sont atteints depuis le **menu de
+l'avatar** - le bouton aux initiales, en haut à droite.
+
+Il a fallu deux essais pour y arriver, et l'erreur est instructive :
+Administration a d'abord été laissée **sous Paramètres**, par habitude - c'était
+reconduire, un niveau au-dessus, le mélange qu'on venait de défaire. Puis posée
+en lien sur **Profil**, ce qui la rangeait encore derrière un écran de
+l'utilisateur. Régler son thème, consulter son profil et déclarer les
+catégories de sa collection n'ont rien à voir : aucun des trois ne se trouve en
+cherchant les deux autres.
+
+L'avatar cesse donc d'être un lien vers Profil pour devenir un **menu** à trois
+entrées, à égale distance et depuis n'importe quel écran. Profil redevient un
+écran comme un autre - il a servi de couloir, avec jusqu'à cinq liens vers
+ailleurs. Les éditions de référence passent de **trois niveaux à un** ; le §16
+des parcours reprochait précisément leur profondeur.
 
 Quatre sections nommées — et nommées pour de bon : chaque
 `<section>` porte un `aria-labelledby`, sans quoi elle n'est pas un repère et
@@ -1426,12 +1435,18 @@ pseudo en sous-titre — un écran qui s'appelle « Mon profil » doit dire de q
 
 #### Le filet
 
-267 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
-désormais le **chemin** — Profil ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
+271 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
+désormais le **chemin** — avatar ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
 à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
-c'est lui qui a signalé le déplacement. Quatre mutations rattrapées, dont la
-phrase « ces réglages restent sur cet appareil » retirée : personne ne peut
-deviner qu'un thème ne suit pas son compte.
+c'est lui qui a signalé chaque déplacement, les deux fois. Six mutations
+rattrapées, dont la phrase « ces réglages restent sur cet appareil » retirée
+(personne ne peut deviner qu'un thème ne suit pas son compte) et l'entrée
+Administration du menu pointée ailleurs.
+
+`ProfilePage` a enfin ses propres tests, et ils gardent surtout ce qui a
+**quitté** cet écran : le doublon de la barre de navigation, le bilan annuel,
+les actions du compte, et maintenant les deux sorties. C'est le genre de chose
+qui revient en douce.
 
 ### Lot 107 — administrer l'instance, sans administrer les gens
 

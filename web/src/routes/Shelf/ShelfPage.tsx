@@ -481,8 +481,8 @@ export function ShelfPage() {
                 <span className="ml-auto text-xs font-normal text-textDim">{entitiesMissingCovers.length}</span>
               )}
             </button>
-            {/* "Types de collection" ici plutôt qu'uniquement sous Profil >
-                Paramètres > Administration avancée : un type STRUCTURE cet
+            {/* « Catégories de collection » ici plutôt qu'uniquement sous
+                Administration : une catégorie STRUCTURE cet
                 écran (un rail par type), c'est donc ici qu'on se rend compte
                 qu'il en manque un - signalé par l'utilisateur, "pas logique de
                 passer par le profil". L'écran reste atteignable depuis
@@ -497,7 +497,7 @@ export function ShelfPage() {
               className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
             >
               <Layers size={17} />
-              Types de collection
+              Catégories de collection
               <span className="ml-auto text-xs font-normal text-textDim">{entityTypes.length}</span>
             </button>
             {/* Raccourci vers le partage commun, pas un second mécanisme :
