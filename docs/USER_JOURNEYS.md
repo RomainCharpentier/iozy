@@ -42,13 +42,14 @@ appartient :
 - **Scan** — bouton dédié dans la barre du pouce (mobile) et lien « Scanner »
   en tête de Rechercher (les deux plateformes).
 - **Administration** → son **propre bouton** dans l'en-tête (icône clé), à
-  côté de l'avatar et pas dedans. **Mon profil** et **Paramètres** → le **menu
-  de l'avatar** (le bouton aux initiales). Deux boutons, parce que ce sont deux
-  choses : l'administration a été une sous-partie de Paramètres, puis un lien
-  de Profil, puis une entrée du menu de l'avatar — trois fois rangée derrière
-  quelque chose qui appartient à l'utilisateur, alors que déclarer les
-  catégories de sa collection n'est pas un réglage personnel. Les deux écrans
-  de réglages sont rangés par **ce que le réglage concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
+  côté de l'avatar et pas dedans. **Mon profil** → l'avatar (le bouton aux
+  initiales), d'un clic. **Paramètres** → depuis Profil, le seul autre écran
+  qui parle de la même personne. Deux boutons dans l'en-tête, parce que ce sont
+  deux choses : l'administration a été une sous-partie de Paramètres, puis un
+  lien de Profil, puis une entrée d'un menu déroulant de l'avatar — trois fois
+  rangée derrière quelque chose qui appartient à l'utilisateur, alors que
+  déclarer les catégories de sa collection n'est pas un réglage personnel. Les
+  deux écrans de réglages sont rangés par **ce que le réglage concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
   déconnexion) et « Cet appareil » (thème, langue des titres — dans le
   `localStorage`, ils ne suivent pas le compte, et l'écran le dit) ;
   Administration porte « Ma collection » (catégories, éditions de référence,
@@ -1271,7 +1272,7 @@ Le point de bascule est **768 px** (`AppShell.NAV_BREAKPOINT_PX`). Les deux navi
 | Classer sur un board | Clic **ou glisser-déposer** vers une ligne de rang | Clic uniquement — **pas de glisser-déposer** |
 | Découvrir | Les 3 panneaux côte à côte au-delà de 1100 px | Un onglet à la fois |
 | Accès à Administration | Bouton dédié de l'en-tête (icône clé) | Le même, dans `MobileHeader` |
-| Accès à Profil / Paramètres | Menu de l'avatar, aux **initiales du pseudo** — popover ancré à droite | Même menu, en feuille depuis le bas |
+| Accès à Profil | Avatar de l'en-tête, aux **initiales du pseudo** | Le même, dans `MobileHeader` |
 | Accès à Envies | Cœur du header, avec badge | Cœur de `MobileHeader`, même badge |
 
 ### 12.1. Accès mobile — rétabli le 2026-08-21
@@ -1638,8 +1639,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (273 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (270 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **273 tests Vitest** sur trente-deux modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **270 tests Vitest** sur trente-deux modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.

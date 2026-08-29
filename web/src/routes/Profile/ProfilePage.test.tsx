@@ -8,10 +8,10 @@
  * Administration. Chacun rendait l'écran un peu moins lisible, sans jamais rien
  * casser.
  *
- * <p>Il n'est plus un <b>couloir</b> : les trois écrans du compte sont sœurs,
- * dans le menu de l'avatar (voir GlobalShortcuts), à égale distance et depuis
- * partout. Ce qui reste ici parle de CETTE collection - sa valeur, ses
- * classements, son partage.
+ * <p>Il n'est plus un <b>couloir</b> : l'administration a son propre bouton
+ * dans l'en-tête (voir GlobalShortcuts), et cet écran ne mène plus qu'aux
+ * réglages - le seul autre écran qui parle de la même personne. Le reste
+ * concerne CETTE collection : sa valeur, ses classements, son partage.
  */
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -38,12 +38,15 @@ beforeEach(() => {
   render(<ProfilePage />, { wrapper: enrobage })
 })
 
-describe('ce que Profil ne porte plus', () => {
-  it('n’est plus un couloir vers les réglages ni l’administration', () => {
-    // Les trois écrans du compte vivent dans le menu de l'avatar, sœurs et à
-    // égale distance. Un lien de plus ici referait de cet écran un passage
-    // obligé, et remettrait l'administration derrière quelque chose.
-    expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
+describe('la seule sortie de Profil', () => {
+  it('mène aux réglages, qui parlent de la même personne', () => {
+    expect(screen.getByRole('link', { name: /Paramètres/ })).toHaveAttribute('href', '/settings')
+  })
+
+  it('ne remet pas l’administration derrière le profil', () => {
+    // Elle y a déjà été rangée, comme sous Paramètres et dans un menu de
+    // l'avatar. Elle a maintenant son bouton dans l'en-tête, et l'y remettre
+    // ici serait la quatrième fois.
     expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
   })
 

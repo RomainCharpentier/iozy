@@ -37,7 +37,7 @@ setup('créer le premier compte de cette instance', async ({ page }) => {
 
   // Et l'en-tête dit au nom de qui : l'avatar porte les initiales du pseudo,
   // pas celles de l'application.
-  await expect(page.getByRole('button', { name: `Mon compte — ${COMPTE.pseudo}` })).toHaveText('CE')
+  await expect(page.getByRole('link', { name: `Mon profil — ${COMPTE.pseudo}` }).first()).toHaveText('CE')
 
   await page.context().storageState({ path: FICHIER_DE_SESSION })
 })
