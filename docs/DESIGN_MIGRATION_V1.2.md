@@ -1360,6 +1360,53 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 91 — le clavier, l'onglet, la barre : ce que personne ne voit à la souris
+
+Trois des quatre modules de ce lot ne produisent aucun pixel. Ils décident de
+ce qui arrive **au clavier**, dans **l'historique du navigateur** et dans ce
+qu'un **lecteur d'écran annonce** — c'est-à-dire précisément la part de l'app
+qu'aucune relecture visuelle ne peut vérifier. 124 → **164 tests**.
+
+| Module | La règle qui se casse en silence |
+|---|---|
+| `useModalA11y` | Échap ferme, Tab reste piégé, et le focus **revient au déclencheur** à la fermeture. Sans le dernier, on ferme un panneau et le curseur repart en haut de page |
+| `useDocumentTitle` | une navigation SPA **n'annonce rien** : la page ne se recharge pas. Le titre mis à jour est le remède conventionnel - et il ne doit jamais rester celui de la page précédente pendant un chargement |
+| `navItems` | `activeWhen` est écrit à la main, route par route : une route oubliée n'allume rien, une route trop large en allume deux. Chaque route réelle est donc vérifiée : **exactement une** entrée s'allume |
+| `entityTypeVisuals` | une couleur d'univers sert aussi de TEXTE : les listes sont fermées, et une clé inconnue retombe sur le visuel de base plutôt que de blanchir un écran |
+
+#### Une prothèse assumée, et dite
+
+jsdom ne fait **aucune mise en page** : `offsetParent` y vaut toujours `null`,
+or c'est ce que `useModalA11y` regarde pour ignorer les éléments cachés. Sans
+prothèse, le hook n'aurait trouvé aucun élément focusable et les tests seraient
+passés **en ne vérifiant rien** - le pire des cas. Le test redéfinit donc
+`offsetParent` pour les éléments réellement dans le document, et le dit dans son
+propre en-tête : c'est le seul endroit où ces tests s'écartent d'un vrai
+navigateur.
+
+#### Le contrôle par mutation devient un outil
+
+Les deux mutations manquées du Lot 90 n'étaient pas un accident : muter à la
+main, en shell, dans du code qui contient des `/` et des apostrophes, échoue
+silencieusement. `web/scripts/mutation.mjs` fait maintenant le geste en entier -
+il mute **toutes** les occurrences, lance la suite, restaure le fichier, et
+**refuse de conclure** quand le texte cherché est introuvable. Il sort en erreur
+si rien n'a échoué, c'est-à-dire si la règle n'est gardée par rien :
+
+```bash
+node scripts/mutation.mjs src/routes/Shelf/shelfTiles.ts "missing <= 3" "missing <= 4"
+```
+
+Vérifié dans les deux sens : sur une règle couverte il rattrape la mutation, et
+sur `queryKeys.experiences` - que rien ne teste - il sort en 1 avec « cette
+règle n'est gardée par rien ». Les quatre mutations de ce lot (une route de
+`/tier-lists` retirée, le titre de la page précédente laissé en place, le piège
+à Tab inversé, le format de jaquette d'un univers changé) sont toutes ressorties
+en échec.
+
+164 tests en 4,3 s, plus `typecheck`, `lint`, `build` et les 116 combinaisons de
+contraste.
+
 ### Lot 90 — le filet s'étend là où l'utilisateur lit, pas seulement là où l'app calcule
 
 Le Lot 89 couvrait ce que l'app **calcule** pour l'affichage. Ce lot va chercher
