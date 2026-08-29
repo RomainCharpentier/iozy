@@ -539,6 +539,14 @@ export interface ListingAssessmentDto {
   referenceSampleSize: number
   referenceSource: MarketReferenceSource
   referenceGap: ReferenceGap
+  /** Écart haut/bas rapporté à la médiane. `null` sous deux comparables, ou
+   *  pour une analyse antérieure au Lot 88. */
+  referenceSpreadPercent: number | null
+  /** Le plus récent des relevés retenus - la fraîcheur de la référence. */
+  referenceMostRecentObservation: string | null
+  /** Relevés EXAMINÉS avant filtrage : dire « 3 existent, 0 comparable »
+   *  plutôt que « aucune donnée ». 0 pour une analyse antérieure au Lot 88. */
+  referenceExaminedCount: number
   trust: ListingTrustAssessmentDto
   headline: AssessmentHeadline
 }

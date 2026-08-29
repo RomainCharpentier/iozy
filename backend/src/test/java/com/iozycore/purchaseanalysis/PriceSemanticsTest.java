@@ -319,6 +319,47 @@ class PriceSemanticsTest {
         assertThat(assessment.referenceGap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
         // Et pas de "prix nettement en dessous" tire d'une reference inexistante.
         assertThat(assessment.trust().signals()).doesNotContain(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
+        // « Aucune donnee » et « des relevés, mais aucun comparable » ne se disent
+        // pas pareil : les trois relevés existent, c'est leur FORME qui ne
+        // correspond pas. L'écran a besoin du compte pour le dire.
+        assertThat(assessment.referenceExaminedCount()).isEqualTo(3);
+        assertThat(assessment.referenceSampleSize()).isZero();
+    }
+
+    /**
+     * Un prix de référence ne se relit pas seul : ce qui permet de le
+     * <i>discuter</i> - combien de comparables, à quel point ils s'accordent, de
+     * quand date le plus récent - doit être figé DANS l'analyse. Ces trois
+     * réserves existaient déjà dans {@link MarketReference}, mais s'arrêtaient au
+     * calcul : l'écran affichait « confiance bonne » à croire sur parole.
+     */
+    @Test
+    void les_reserves_de_la_reference_sont_figees_avec_le_prix() {
+        MangaEdition edition = MangaEdition.create("Vagabond", "Standard", EditionTier.STANDARD, "Tonkam",
+                37, new BigDecimal("7.60"), false, false, null);
+        LocalDate plusRecent = LocalDate.now().minusDays(9);
+        // Trois lots de 10 tomes a 4,50 / 5,00 / 5,50 EUR le tome : mediane 5,00,
+        // dispersion (5,50 - 4,50) / 5,00 = 20 %.
+        List<MarketPriceObservation> comparables = List.of(
+                observation(edition, 10, "45.00"), observation(edition, 10, "55.00"),
+                MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 10), new BigDecimal("50.00"),
+                        ListingPlatform.VINTED, Condition.VERY_GOOD, plusRecent, null));
+
+        ListingItem item = new ListingItem(new MangaSeries("Vagabond", null), "Standard",
+                Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), null);
+        Listing listing = new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot Vagabond", null,
+                new BigDecimal("48"), BigDecimal.ZERO, ShippingEstimateKind.FREE, BigDecimal.ZERO,
+                Condition.VERY_GOOD, false, List.of(item), List.of(), Instant.now());
+
+        ListingAssessment assessment = new PurchaseAnalysisEngine().analyze(listing,
+                List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), comparables, Set.of())),
+                CollectorPreferences.defaults()).assessment();
+
+        assertThat(assessment.referencePrice()).isEqualByComparingTo("50.00");
+        assertThat(assessment.referenceSampleSize()).isEqualTo(3);
+        assertThat(assessment.referenceExaminedCount()).isEqualTo(3);
+        assertThat(assessment.referenceSpreadPercent()).isEqualTo(20);
+        assertThat(assessment.referenceMostRecentObservation()).isEqualTo(plusRecent);
     }
 
     /** Un lot de {@code tomes} tomes a partir du tome 1, releve il y a deux mois. */

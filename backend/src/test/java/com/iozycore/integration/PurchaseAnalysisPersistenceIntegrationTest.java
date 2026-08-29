@@ -229,6 +229,38 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
     }
 
     @Test
+    void les_reserves_de_la_reference_traversent_le_jsonb_comme_le_prix() {
+        // La fraîcheur de la référence est la PREMIÈRE date du payload : tout le
+        // reste de l'instantané est nombre, texte ou instant. Un aller-retour
+        // réel est le seul endroit où ça se vérifie - sérialisée de travers, une
+        // analyse ne se relirait plus du tout.
+        MangaEdition edition = mangaEditionRepository.save(MangaEdition.create("Blame " + UUID.randomUUID(),
+                "Master Edition", EditionTier.DELUXE, "Glénat", 6, new BigDecimal("22"), false, false, null));
+        LocalDate plusRecent = LocalDate.now().minusDays(3);
+        marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 6),
+                new BigDecimal("120"), ListingPlatform.VINTED, Condition.VERY_GOOD, LocalDate.now().minusDays(20), null));
+        marketPriceObservationRepository.save(MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 6),
+                new BigDecimal("132"), ListingPlatform.VINTED, Condition.VERY_GOOD, plusRecent, null));
+
+        PurchaseAnalysis analysis = purchaseAnalysisService.analyze(new AnalyzeListingCommand(
+                ListingPlatform.VINTED, null, "Lot Blame", null, new BigDecimal("110"), BigDecimal.ZERO,
+                ShippingEstimateKind.FREE, BigDecimal.ZERO, Condition.VERY_GOOD, false,
+                List.of(new AnalyzeListingItemCommand(edition.seriesTitle(), edition.editionName(),
+                        Set.of(1, 2, 3, 4, 5, 6), null)),
+                List.of()));
+        assertThat(analysis.assessment().referenceMostRecentObservation()).isEqualTo(plusRecent);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        var relue = purchaseAnalysisService.findAnalysisById(analysis.id()).orElseThrow().assessment();
+        assertThat(relue.referenceMostRecentObservation()).isEqualTo(plusRecent);
+        assertThat(relue.referenceExaminedCount()).isEqualTo(2);
+        assertThat(relue.referenceSpreadPercent())
+                .isEqualTo(analysis.assessment().referenceSpreadPercent());
+    }
+
+    @Test
     void un_port_saisi_a_la_main_se_relit_toujours_comme_une_estimation() {
         // La lecture historique ne doit jamais promouvoir une saisie en tarif
         // ferme : « 5,90 € estimés » aujourd'hui, « 5,90 € estimés » dans un an.

@@ -187,6 +187,18 @@ export function ListingAssessmentCard({
                 } — référence insuffisante pour juger le prix. Un ou deux relevés de plus suffiraient.`
               : (MANQUES[assessment.referenceGap] ??
                 'Pas assez de prix relevés comparables pour situer cette offre.')}
+            {/* « Aucune donnée » et « des données, mais aucune comparable » ne
+                se disent pas pareil : le second dit à l'utilisateur que ses
+                relevés existent et que c'est leur FORME qui ne correspond pas -
+                donc quoi relever ensuite. */}
+            {assessment.referenceExaminedCount > 0 && assessment.referenceSampleSize === 0 && (
+              <>
+                {' '}
+                {assessment.referenceExaminedCount} prix relevé
+                {assessment.referenceExaminedCount > 1 ? 's' : ''} examiné
+                {assessment.referenceExaminedCount > 1 ? 's' : ''} pour cette édition, aucun sur un lot comparable.
+              </>
+            )}
           </p>
         ) : assessment.referenceSource === 'OBSERVED_COMPARABLES' ? (
           <p className="text-xs text-textDim">
@@ -203,6 +215,13 @@ export function ListingAssessmentCard({
               ` · ${assessment.referenceSampleSize} annonce${assessment.referenceSampleSize > 1 ? 's' : ''} comparable${
                 assessment.referenceSampleSize > 1 ? 's' : ''
               }`}
+            {/* Ce qui rend une référence DISCUTABLE, et donc corrigeable : à
+                quel point les comparables s'accordent, et de quand date le plus
+                récent. Sans ça, « confiance bonne » reste à croire sur parole. */}
+            {assessment.referenceSpreadPercent !== null &&
+              ` · resserrés à ${assessment.referenceSpreadPercent} % près`}
+            {assessment.referenceMostRecentObservation !== null &&
+              ` · le plus récent le ${new Date(assessment.referenceMostRecentObservation).toLocaleDateString('fr-FR')}`}
             {/* Dire d'où vient le chiffre, toujours : ce sont des prix relevés
                 dans IozyCore, pas des transactions réelles. */}
             {' — tes prix relevés sur des lots de même forme et de taille voisine, pas des ventes conclues.'}
