@@ -642,7 +642,7 @@ la fonction ; l'import d'`EntityTypeDto` devenu orphelin aussi.
 *(Les ~35 autres « exports orphelins » détectés sont des faux positifs : des
 types composés à l'intérieur de leur propre fichier.)*
 
-### C4 — Le client iOS reste en arrière · **à décider**
+### C4 — Le client iOS est **hors service** depuis le Lot 94 · **à décider**
 
 Dernier commit le 2026-08-10. Il couvre 8 écrans et ignore entièrement :
 Tier Lists, Analyse d'achat, lecture d'annonce, partage, envies d'amélioration.
@@ -661,6 +661,45 @@ Mais l'écart grandit à chaque passe, et il vaut mieux le nommer que le
 découvrir. À noter pour qui s'y attellera : la chaîne de reconnaissance est
 entièrement côté serveur, et le client iOS scanne déjà des codes-barres — le
 rapprochement demanderait moins de travail qu'il n'y paraît.
+
+#### Ce qui a changé le 2026-08-29 : il ne fonctionne plus du tout
+
+L'écart n'est plus une question de fonctionnalités : **l'API demande une
+session depuis le Lot 94**, et `APIClient.swift` n'en ouvre aucune. Chacun de
+ses appels reçoit désormais **401**. Les huit écrans du client affichent donc
+une erreur, y compris le premier. Ce n'est pas une régression subie : c'est la
+conséquence directe et prévisible d'avoir fermé une API qui ne l'était pas, et
+elle est écrite ici plutôt que découverte au prochain lancement.
+
+**Ce qu'il faudrait, et c'est plus court qu'il n'y paraît.** `URLSession` en
+configuration `.default` gère déjà les cookies (`HTTPCookieStorage.shared`) :
+une fois la session ouverte, elle repart toute seule à chaque appel. Restent
+trois choses :
+
+1. **quatre routes** à ajouter au client — `GET /auth/etat`, `POST
+   /auth/login`, `GET /auth/me`, `POST /auth/logout` ;
+2. **l'en-tête anti-CSRF** sur les écritures : lire le cookie `XSRF-TOKEN`
+   dans `HTTPCookieStorage.shared` et le renvoyer en `X-XSRF-TOKEN`. Les
+   quatre helpers (`post`, `patch`, `postEmpty`, `delete`) passent tous au
+   même endroit, une seule ligne à ajouter à chacun ;
+3. **un écran de connexion**, et une porte dans `IozyCoreApp.swift` — même
+   règle que côté web : tant qu'on ne sait pas, on ne montre ni l'app ni la
+   connexion.
+
+#### Trois issues, et ce qui les sépare
+
+- **Le rattraper** : les trois points ci-dessus le remettent en marche. Reste
+  qu'il ignore toujours Tier Lists, analyse d'achat, partage et envies, et
+  qu'il continuera de diverger à chaque lot web.
+- **Le geler explicitement** : dire dans son README qu'il ne fonctionne plus
+  et à quelle condition il redémarrerait. Honnête, coût nul, mais le dépôt
+  garde 4 166 lignes que personne ne compile.
+- **Le retirer** : le dossier `ios/` sort du dépôt (il reste dans son
+  historique). C'est la seule option qui supprime vraiment l'écart.
+
+**Aucune n'a été prise, et aucune ne peut l'être ici** : c'est une décision de
+produit. Ce qui a été fait, en revanche, est de ne pas laisser la situation
+implicite.
 
 ### C6 — Cibles tactiles et un token fantôme · **traité**
 

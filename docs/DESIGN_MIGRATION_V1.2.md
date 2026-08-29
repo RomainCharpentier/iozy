@@ -1360,6 +1360,38 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 100 — le client iOS ne démarre plus, et il fallait le dire
+
+Le Lot 94 a fermé l'API. Le client iOS, lui, n'ouvre aucune session : **chacun
+de ses appels reçoit 401**, dès le premier écran. Ce n'est pas une régression
+subie - c'est la conséquence directe et prévisible d'avoir fermé une API qui
+ne l'était pas du tout. Ce qui aurait été une faute, c'est de la laisser
+implicite.
+
+L'audit disait « le client n'est donc **pas cassé**, seulement en retrait ».
+Cette phrase est devenue fausse le jour même où j'ai posé la porte, et le
+constat C4 la corrige : titre, cause, et **ce qu'il faudrait** - trois points,
+plus courts qu'il n'y paraît, parce que `URLSession` en configuration
+`.default` gère déjà les cookies. Quatre routes, un en-tête anti-CSRF sur les
+quatre helpers qui écrivent, un écran de connexion.
+
+Le même avertissement ouvre `ios/README.md` et la partie iOS du guide de
+démarrage : quelqu'un qui lance l'app doit le lire **avant**, pas le déduire
+d'un écran d'erreur.
+
+#### Ce que je n’ai pas fait, et pourquoi
+
+Je n'ai pas écrit ce correctif. Il tient en une centaine de lignes de Swift,
+et je n'ai ici **ni Xcode ni macOS** : je ne peux ni le compiler, ni le lancer,
+ni le voir échouer. Livrer du code non compilé dans un client que personne
+n'ouvre depuis trois semaines produirait surtout une chose : la croyance que
+c'est réglé. Tout le reste de ce dépôt tient parce que chaque affirmation a
+été vérifiée ; ce serait la première à ne pas l'être.
+
+Les trois issues - rattraper, geler explicitement, retirer du dépôt - sont
+pesées dans C4 avec ce que chacune coûte et supprime. **Aucune ne peut se
+prendre ici** : c'est une décision de produit.
+
 ### Lot 99 — les parcours qui n’existent que sur un manga
 
 Trois parcours structurants de plus (6 sur 10) : la **progression « X/Y »**
