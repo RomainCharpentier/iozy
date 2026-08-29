@@ -11,6 +11,10 @@ comment ajouter une fonctionnalité) — humain ou IA — chaque README a une
 section "Le projet" en tout début de fichier, pensée pour ça spécifiquement.
 Ce guide-ci reste volontairement pratique (lancer/tester), pas architectural.
 
+**Pour mettre l'app en ligne** (Vercel pour l'app, Railway pour l'API et la
+base) : `docs/DEPLOIEMENT.md`. Chaque étape y dit comment vérifier qu'elle a
+marché avant de passer à la suivante.
+
 ## Vue d'ensemble
 
 ```
@@ -455,20 +459,19 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   3 codes historiques (`MANGA`/`BOARD_GAME`/`VIDEO_GAME`) — un type créé
   par l'utilisateur n'a accès à aucun de ces trois, intrinsèquement liés à
   des API externes spécifiques.
-- Pas d'**authentification applicative** (JWT) sur les appels réseau —
-  cohérent avec le choix mono-utilisateur strict de la conception. Le schéma
-  de base est déjà préparé pour ça (`owner_id` sur les possessions/
-  expériences/wishlist, Catalog partagé) sans que ce soit encore exploité.
-  **En déploiement Synology, c'est le proxy qui protège l'app** : Traefik
-  exige une authentification HTTP Basic (`BASIC_AUTH_USERS`, voir
-  `backend/.env.example`) sur l'app web comme sur l'API, à la seule exception
-  des deux surfaces de partage (`/public/*`, `/api/public/*`), dont le jeton
-  fait lui-même office de mot de passe. Sans ce garde-fou, publier
-  `docker-compose.synology.yml` sur Internet rendrait toute la collection
-  lisible **et modifiable** par qui connaît le domaine — CORS n'y change rien,
-  `allowedOrigins` n'étant vérifié que par un navigateur, jamais par `curl`.
-  Le proxy plutôt que l'app : une SPA ne peut pas garder un secret, alors que
-  Basic est géré nativement par le navigateur.
+- **L'authentification vit désormais dans l'application** (depuis le
+  2026-08-29) : comptes, session en cookie, et chaque compte cloisonné sur sa
+  propre collection. Tout demande une session, Swagger compris ; restent
+  ouvertes la connexion, l'état de l'instance, et les liens de partage
+  (`/public/*`, `/api/public/*`) dont le jeton fait office de mot de passe.
+  Voir `backend/README.md` (« Comptes et session », « L'isolation ») et
+  `docs/DEPLOIEMENT.md`.
+
+  Le HTTP Basic de Traefik (`BASIC_AUTH_USERS`) date d'avant : il protégeait
+  une application qui n'avait aucune authentification en propre. Sur un
+  déploiement Synology, il devient une seconde demande de mot de passe devant
+  la première — et il casse les liens de partage, dont le destinataire est
+  censé n'avoir rien à saisir.
 - Le sous-domaine Traefik de l'app Web dans `docker-compose.synology.yml`
   (`app.iozycore.mondomaine.tld`) est un exemple à adapter à ton propre
   domaine/DDNS, comme celui de l'API — voir "Renommer le projet" plus haut

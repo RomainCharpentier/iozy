@@ -1360,6 +1360,49 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 96 — de quoi mettre en ligne, sans mettre en ligne à la place de quelqu’un
+
+Dernier morceau du chantier « sortir du localhost » : la configuration et la
+procédure. Le déploiement lui-même demande des comptes et des secrets qui ne
+m'appartiennent pas — ce lot prépare tout ce qui peut l'être, et s'arrête là.
+
+**Vercel devant, Railway derrière**, avec une **réécriture `/api/*`** plutôt
+qu'un appel direct à l'API. Ce n'est pas un détail d'installation : la session
+est un cookie, et deux domaines en feraient un cookie *cross-site*, qui exige
+`SameSite=None` — de moins en moins bien traité, et ouvert aux écritures
+déclenchées depuis une autre page. La réécriture garde **une seule origine**,
+exactement comme le proxy Vite en développement et le nginx du build Docker :
+trois environnements, un seul comportement.
+
+#### Trois réglages sans lesquels le déploiement échoue en silence
+
+- **`server.port` suit `PORT`.** Les hébergeurs gérés imposent le port et y
+  acheminent le trafic. Fixé à 8080, le contrôle de santé interroge un port
+  qui ne répond pas — et le service reste « en cours de démarrage » sans
+  qu'aucune ligne de journal n'explique pourquoi.
+- **`forward-headers-strategy: framework`.** Derrière un proxy TLS, la requête
+  arrive en clair : sans lire les `X-Forwarded-*`, l'application se croit en
+  HTTP et refuse de poser un cookie `Secure`. Personne ne resterait connecté,
+  et rien ne le dirait.
+- **Une seule réplique.** Les sessions vivent en mémoire (choix assumé du Lot
+  94) : deux instances renverraient les gens à la connexion une requête sur
+  deux. `railway.json` fixe donc `numReplicas: 1` — et le dit.
+
+#### Ce que la documentation corrige au passage
+
+`.env.example` et le README racine affirmaient que **l'application n'a aucune
+authentification en propre**, et que c'est le HTTP Basic de Traefik qui la
+protège en déploiement Synology. C'était vrai il y a deux lots. Ce Basic est
+devenu une seconde demande de mot de passe devant la première — et il **casse
+les liens de partage**, dont le destinataire est précisément censé n'avoir
+rien à saisir.
+
+`docs/DEPLOIEMENT.md` est écrit comme une procédure : chaque étape dit
+**comment vérifier qu'elle a marché** avant de passer à la suivante. La
+vérification de la réécriture, par exemple, n'est pas « la page s'affiche »
+mais « l'écran dit *Personne n'a encore de compte ici* » - cette phrase-là ne
+peut venir que d'un appel à `/api/auth/etat` réellement acheminé.
+
 ### Lot 95 — chacun chez soi
 
 Le Lot 94 a posé la porte. Une porte qui laisse entrer plusieurs personnes
