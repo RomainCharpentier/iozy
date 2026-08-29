@@ -24,7 +24,16 @@ spring:
       max-request-size: 13MB
 
 server:
-  port: 8080
+  # `PORT` est la convention des hébergeurs gérés (Railway, Render, Fly) :
+  # ils l'imposent et acheminent le trafic vers CE port. Sans la variable,
+  # le contrôle de santé échouerait sur un port qui ne répond pas. 8080
+  # reste le défaut local, celui de docker-compose.
+  port: ${PORT:8080}
+  # Derrière un proxy TLS (Vercel devant, ou le routeur de l'hébergeur), la
+  # requête arrive à l'application en clair : sans lire les en-têtes
+  # `X-Forwarded-*`, elle se croit en HTTP et refuse de poser un cookie de
+  # session `Secure`. Personne ne resterait connecté, sans erreur nulle part.
+  forward-headers-strategy: framework
   servlet:
     session:
       cookie:
