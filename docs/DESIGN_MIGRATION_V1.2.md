@@ -1388,22 +1388,26 @@ Quatre échelles, et chacune répond à « qui est touché si je change ça ».
 | **Ma collection** | Administration | catégories, éditions de référence, import |
 | **Cette instance** | Administration | les comptes (administrateur seulement) |
 
-**Les deux écrans sont SŒURS**, et ils sont atteints depuis le **menu de
-l'avatar** - le bouton aux initiales, en haut à droite.
+**Administration a son propre bouton dans l'en-tête**, à côté de l'avatar et
+pas dedans.
 
-Il a fallu deux essais pour y arriver, et l'erreur est instructive :
-Administration a d'abord été laissée **sous Paramètres**, par habitude - c'était
-reconduire, un niveau au-dessus, le mélange qu'on venait de défaire. Puis posée
-en lien sur **Profil**, ce qui la rangeait encore derrière un écran de
-l'utilisateur. Régler son thème, consulter son profil et déclarer les
-catégories de sa collection n'ont rien à voir : aucun des trois ne se trouve en
-cherchant les deux autres.
+Il a fallu **trois essais** pour y arriver, et l'erreur est instructive parce
+qu'elle est toujours la même. Administration a d'abord été laissée **sous
+Paramètres**, par habitude - c'était reconduire, un niveau au-dessus, le
+mélange qu'on venait de défaire. Puis posée en lien sur **Profil**. Puis dans le
+**menu de l'avatar**. Trois fois rangée derrière quelque chose qui appartient à
+l'utilisateur, alors que déclarer les catégories de sa collection ou renseigner
+une édition de référence n'est pas un réglage personnel : c'est l'outillage de
+l'application, et il ne se trouve pas en cherchant son profil.
 
-L'avatar cesse donc d'être un lien vers Profil pour devenir un **menu** à trois
-entrées, à égale distance et depuis n'importe quel écran. Profil redevient un
-écran comme un autre - il a servi de couloir, avec jusqu'à cinq liens vers
-ailleurs. Les éditions de référence passent de **trois niveaux à un** ; le §16
-des parcours reprochait précisément leur profondeur.
+L'en-tête porte donc **deux** contrôles : une icône clé pour l'administration,
+et l'avatar pour ce qui est vraiment personnel - un menu à deux entrées, Mon
+profil et Paramètres. Profil redevient un écran comme un autre : il a servi de
+couloir, avec jusqu'à cinq liens vers ailleurs, et ne parle plus que de cette
+collection.
+
+Les éditions de référence passent de **trois niveaux de profondeur à zéro** ; le
+§16 des parcours reprochait précisément leur profondeur.
 
 Quatre sections nommées — et nommées pour de bon : chaque
 `<section>` porte un `aria-labelledby`, sans quoi elle n'est pas un repère et
@@ -1435,7 +1439,7 @@ pseudo en sous-titre — un écran qui s'appelle « Mon profil » doit dire de q
 
 #### Le filet
 
-271 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
+273 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
 désormais le **chemin** — avatar ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
 à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
 c'est lui qui a signalé chaque déplacement, les deux fois. Six mutations
@@ -1445,8 +1449,9 @@ Administration du menu pointée ailleurs.
 
 `ProfilePage` a enfin ses propres tests, et ils gardent surtout ce qui a
 **quitté** cet écran : le doublon de la barre de navigation, le bilan annuel,
-les actions du compte, et maintenant les deux sorties. C'est le genre de chose
-qui revient en douce.
+les actions du compte, et les deux sorties. C'est le genre de chose qui revient
+en douce - et un test s'appelle précisément « n'est pas rangé dans le menu du
+compte », pour la quatrième fois.
 
 ### Lot 107 — administrer l'instance, sans administrer les gens
 

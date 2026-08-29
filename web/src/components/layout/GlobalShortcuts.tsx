@@ -6,24 +6,24 @@ import { useAuth } from '../../lib/useAuth'
 import { useModalA11y } from '../../lib/useModalA11y'
 
 /**
- * L'avatar, et le menu qu'il ouvre.
+ * Les deux accès de l'en-tête : l'<b>administration</b>, et le compte.
  *
- * <h2>Ce qu'il n'est pas</h2>
- * Pas une destination de navigation : les quatre intentions quotidiennes
- * vivent dans {@code NAV_ITEMS} et nulle part ailleurs. Ce bouton donne accès
- * à ce qui n'appartient à aucune d'elles - son profil, ses réglages,
- * l'administration.
+ * <h2>Deux boutons, et c'est le sujet</h2>
+ * L'administration a son <b>propre bouton</b>, à côté de l'avatar et pas
+ * dedans. Elle a mis trois essais à trouver sa place : d'abord sous
+ * Paramètres, puis en lien sur Profil, puis dans le menu de l'avatar - trois
+ * fois rangée derrière quelque chose qui appartient à l'utilisateur. Or
+ * déclarer les catégories de sa collection ou renseigner une édition de
+ * référence n'est pas un réglage personnel : c'est l'outillage de
+ * l'application. Il ne se trouve pas en cherchant son profil.
  *
- * <h2>Un MENU, pas un lien vers Profil (2026-08-29)</h2>
- * L'avatar menait droit à {@code /profile}, qui servait alors de hub : on y
- * passait pour atteindre les réglages, puis l'administration - trois niveaux
- * pour déclarer une catégorie de collection. Et surtout, l'administration se
- * trouvait <b>sous les réglages de l'utilisateur</b> : configurer sa machine
- * et choisir son thème n'ont rien à voir.
+ * <p>L'avatar, lui, garde ce qui est vraiment personnel : son profil et ses
+ * réglages. Deux entrées, un menu qui tient en deux lignes.
  *
- * <p>Les trois sont donc <b>sœurs</b>, à égale distance, dans un menu ouvert
- * depuis l'avatar. Profil redevient un écran comme un autre, et cesse d'être
- * un couloir.
+ * <h2>Ce que ces boutons ne sont pas</h2>
+ * Des destinations de navigation. Les quatre intentions quotidiennes vivent
+ * dans {@code NAV_ITEMS} et nulle part ailleurs ; ceci est ce qui n'appartient
+ * à aucune d'elles.
  *
  * <h2>Le cœur « Envies » a été retiré (2026-08-28)</h2>
  * Il ne menait plus à un écran à lui depuis le Lot 38 : les envies sont une
@@ -48,15 +48,10 @@ interface EntreeDuMenu {
   icon: typeof User
 }
 
+/** Ce qui est PERSONNEL, et rien d'autre : l'administration a son bouton. */
 const ENTREES: EntreeDuMenu[] = [
   { to: '/profile', label: 'Mon profil', description: 'Valeur, classements, partage', icon: User },
   { to: '/settings', label: 'Paramètres', description: 'Ton compte, emporter ta collection, apparence', icon: Settings2 },
-  {
-    to: '/administration',
-    label: 'Administration',
-    description: 'Catégories, éditions de référence, import - et les comptes',
-    icon: Wrench,
-  },
 ]
 
 export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
@@ -67,14 +62,35 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   const menuRef = useModalA11y<HTMLDivElement>(ouvert, () => setOuvert(false))
   const { pathname } = useLocation()
 
-  const avatarSize = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
+  const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
   const marque = initiales(compte?.pseudo ?? '') || 'IO'
   // Le pseudo est DIT, pas seulement dessiné : « RO » lu à voix haute par un
   // lecteur d'écran n'apprend rien à personne.
   const intitule = compte ? `Mon compte — ${compte.pseudo}` : 'Mon compte'
+  const surAdministration = pathname.startsWith('/administration')
 
   return (
     <div className="flex items-center gap-2">
+      {/* L'outillage de l'application, sur son propre bouton. Une icône seule :
+          l'en-tête doit rester calme, et « Administration » à côté d'un avatar
+          ferait deux libellés pour deux choses qu'on ouvre rarement. Le nom est
+          porté par `aria-label` ET `title` - le title seul est le dernier
+          recours de l'algorithme de nom accessible, et n'existe pas au doigt
+          (voir Lot 29). */}
+      <Link
+        to="/administration"
+        title="Administration"
+        aria-label="Administration"
+        aria-current={surAdministration ? 'page' : undefined}
+        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl transition-colors ${
+          surAdministration
+            ? 'bg-surface text-textPrimary shadow-token-sm'
+            : 'text-textDim hover:bg-rowHover hover:text-textPrimary'
+        }`}
+      >
+        <Wrench size={17} />
+      </Link>
+
       <button
         type="button"
         onClick={() => setOuvert(true)}
@@ -82,7 +98,7 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
         aria-expanded={ouvert}
         title={intitule}
         aria-label={intitule}
-        className={`flex ${avatarSize} shrink-0 items-center justify-center rounded-xl bg-surface font-display text-xs font-semibold text-textDim shadow-token-sm hover:text-textPrimary`}
+        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl bg-surface font-display text-xs font-semibold text-textDim shadow-token-sm hover:text-textPrimary`}
       >
         {marque}
       </button>
