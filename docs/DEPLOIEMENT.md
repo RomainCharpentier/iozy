@@ -126,6 +126,32 @@ analyses et prix relevés sont cloisonnés (voir `backend/README.md`, section
 
 ---
 
+## Tout vérifier d'un coup
+
+```
+cd web && npm run check:deploiement https://<ton-app>.vercel.app
+```
+
+Onze contrôles, tous en GET, aucun compte requis - le script ne laisse rien
+derrière lui et peut se relancer à tout moment, y compris sur une mise en ligne
+qui sert déjà des gens :
+
+| ce qu'il regarde | ce qu'un échec signifie |
+|---|---|
+| `/api/auth/etat` répond 200, en JSON, avec les deux drapeaux attendus | la réécriture `/api/*` ne part pas vers l'API — c'est le repli SPA qui a répondu, en HTML, avec un 200 parfaitement trompeur |
+| `/api/entities/search` refuse en **401** | 200 : la porte est ouverte. 404 : la réécriture ne couvre pas toutes les routes, et ça ne se verrait qu'une fois connecté |
+| un jeton de partage inventé répond **404**, pas 401 | le destinataire d'un lien n'a pas de compte : un 401 lui demanderait de se connecter pour voir une collection qui n'est pas la sienne (défaut réel du Lot 94) |
+| le manifeste sort en `application/manifest+json` | l'invite d'installation disparaît, sans un message ; le type vient du serveur, pas du fichier |
+| `sw.js` interdit la mise en cache | les visiteurs restent sur l'ancienne coquille, parfois des jours, sans moyen de le savoir |
+| `/tier-lists` rend du HTML en 200 | pas de repli SPA : l'app marche tant qu'on navigue et casse au premier F5 ou au premier lien partagé |
+
+Les mêmes contrôles valent sur la pile Docker locale
+(`npm run check:deploiement http://localhost:8081`) : c'est là qu'ils ont été
+mis au point, et ils y ont immédiatement trouvé un conteneur nginx périmé qui
+servait encore la configuration d'avant les règles PWA - manifeste en
+`text/html`, `sw.js` sans en-tête de cache. Exactement le genre d'écart que la
+page, elle, ne montre pas.
+
 ## Pourquoi la réécriture, et pas un appel direct à l'API
 
 Parce que la session est un **cookie**. Servir l'app et l'API sous deux domaines
