@@ -1360,6 +1360,64 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 93 — l'app s'installe sur l'écran d'accueil
+
+Premier pas du chantier « sortir du localhost » (décision du 2026-08-29), et le
+seul qui ne dépende d'aucune décision d'hébergement. Une app de collection
+mobile-first qu'on ne peut pas ouvrir d'un pouce en brocante rate l'essentiel de
+son usage.
+
+**Le manifeste sort du même script que la marque.** `make-icons.mjs` déclarait
+déjà la géométrie une fois pour le SVG et le PNG ; il produit maintenant aussi
+`icon-192`, `icon-512`, une **maskable** 512 et `manifest.webmanifest`. La
+raison est la même que pour les deux icônes : une icône promise et absente ne
+rend pas l'app moins jolie, elle la rend **non installable**, sans message nulle
+part - le navigateur retire simplement l'invite.
+
+L'icône maskable n'est pas la même image en plus grand : un lanceur Android
+découpe à la forme qu'il veut et ne garantit que le disque central de 80 %. Le
+dessin y est donc réduit à 62 % et le fond remplit tout le carré. Servie en
+`any`, elle aurait le défaut inverse - une tuile flottant au milieu de rien.
+
+**Le service worker met en cache la coquille, jamais `/api`.** Ce n'est pas un
+revirement sur le hors-ligne écarté au Lot 1 : des données servies depuis un
+cache seraient une collection périmée présentée comme la vraie, exactement ce
+que tout le reste de l'app refuse. Sa raison d'être est l'installation - un
+navigateur ne la propose pas sans gestionnaire `fetch`. Deux stratégies : cache
+d'abord pour `/assets/` (noms empreintés, contenu immuable), réseau d'abord pour
+tout le reste, ce qui rend un déploiement visible dès la visite suivante.
+
+#### Deux pièges qui n'existent qu'en production
+
+Le serveur de dev Vite fait ce qu'il faut tout seul ; `nginx:alpine`, non.
+
+- Sa table `mime.types` n'a **aucune entrée** pour `.webmanifest` - vérifié dans
+  l'image : le fichier partait en `application/octet-stream`.
+- `sw.js` servi depuis un cache HTTP continuerait d'appliquer les règles d'un
+  déploiement précédent, puisque c'est lui qui décide de ce que le navigateur
+  garde.
+
+Les deux sont corrigés dans `nginx.conf`, et **vérifiés sur l'image réellement
+construite** (`docker build`, puis les en-têtes lues depuis l'intérieur du
+conteneur) : `application/manifest+json`, `Cache-Control: no-cache`, et le repli
+SPA toujours intact sur `/entity/abc`.
+
+#### Vérifié dans un vrai navigateur, pas seulement en test
+
+Sur le build de production servi en local : manifeste lié et analysé, trois
+icônes, les deux `theme-color` (claire et sombre), service worker actif. Après
+un premier chargement le cache contient la coquille (`/`, le manifeste, une
+police) ; après un rechargement, **11 entrées dont 9 `assets` - et zéro `/api`**,
+y compris après avoir laissé une requête d'API passer.
+
+`npm run check:pwa` garde tout ça : il relit les dimensions des PNG dans leur
+en-tête plutôt que de les déduire du nom, et refuse une icône promise mais
+absente. Vérifié dans les deux sens en retirant `icon-192.png`. Six tests
+Vitest gardent en plus le tri du service worker - dont `/apercu`, qui ne doit
+pas se faire prendre pour `/api`.
+
+199 tests web, `typecheck`, `lint`, `build`, contraste et `check:pwa`.
+
 ### Lot 92 — le seul module qui peut écraser une donnée de l'utilisateur
 
 164 → **193 tests**. Ce lot ferme la couche `lib/` et prend le module le plus

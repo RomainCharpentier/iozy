@@ -32,6 +32,22 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { networkMode: 'always' }, mutations: { networkMode: 'always' } },
 })
 
+// Le service worker ne sert PAS à travailler hors ligne (il ne met en cache
+// que la coquille de l'app, jamais /api - voir public/sw.js) : il sert à ce
+// que le navigateur propose d'installer IozyCore sur l'écran d'accueil, ce
+// qu'il refuse sans gestionnaire `fetch`. Uniquement dans le build de prod :
+// en développement, un cache d'app shell se mettrait en travers du
+// rechargement à chaud, et le serveur de dev ne sert de toute façon pas
+// `/sw.js` depuis `public/` avec les mêmes URL qu'en production.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Un échec d'enregistrement (HTTP sans TLS, stockage refusé, navigation
+    // privée) ne doit pas empêcher l'app de démarrer : elle marche
+    // exactement pareil sans, elle ne s'installe simplement pas.
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

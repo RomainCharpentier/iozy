@@ -126,6 +126,27 @@ offline/hors-ligne (TanStack Query sert de cache mémoire pendant la
 session, mais rien n'est persisté - cet outil est pensé pour tester avec
 le backend lancé, pas pour un usage nomade comme l'iOS).
 
+### Installable sur l'écran d'accueil
+
+Depuis le 2026-08-29, le build de production est une **PWA installable** :
+`public/manifest.webmanifest` et ses trois icônes sont générés par
+`npm run icons` (même dessin que le favicon), et `public/sw.js` est enregistré
+depuis `main.tsx` — **uniquement en production**, un cache d'app shell se
+mettant en travers du rechargement à chaud en développement.
+
+Le service worker met en cache **la coquille de l'app, jamais `/api`**. Ce
+n'est pas un revirement sur le hors-ligne ci-dessus : des données servies
+depuis un cache seraient une collection périmée présentée comme la vraie. Sa
+raison d'être est l'installation elle-même — un navigateur ne la propose pas
+sans gestionnaire `fetch`.
+
+**Deux pièges côté serveur**, tous deux corrigés dans `nginx.conf` et invisibles
+en développement (Vite fait ce qu'il faut tout seul) : la table `mime.types` de
+nginx n'a **aucune entrée** pour `.webmanifest` (servi en
+`application/octet-stream`), et `sw.js` doit sortir en `Cache-Control:
+no-cache` — c'est lui qui décide de ce que le navigateur garde, une version
+figée continuerait d'appliquer les règles d'un déploiement précédent.
+
 ## Lancer
 
 Le backend doit déjà tourner (`cd ../backend && docker compose up --build`
@@ -153,6 +174,9 @@ Ouvre `http://localhost:5173`.
 - `npm test` — la suite Vitest, une fois (`npm run test:watch` pour itérer)
 - `npm run check:contrast` — vérifie que tous les couples de couleurs des deux
   thèmes tiennent le 4.5:1 de WCAG AA
+- `npm run check:pwa` — vérifie que l'app est réellement installable (manifeste,
+  icônes présentes et aux dimensions annoncées, service worker en place)
+- `npm run icons` — régénère la marque **et** le manifeste (`public/`)
 
 ## Déploiement (Docker)
 

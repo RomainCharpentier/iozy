@@ -11,6 +11,17 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/apple-touch-icon.png" type="image/png" sizes="180x180" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Installable sur l'écran d'accueil : le manifeste et ses icônes sortent
+         du même script que la marque ci-dessus (`npm run icons`), pour qu'une
+         icône promise ne soit jamais absente - une icône manquante ne rend pas
+         l'app moins jolie, elle la rend NON installable, sans message nulle
+         part. Le service worker, lui, est enregistré depuis main.tsx. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- La couleur de la barre système, posée AVANT le premier octet de CSS.
+         Deux déclarations, parce que l'app a deux thèmes et que le navigateur
+         choisit la première qui correspond. -->
+    <meta name="theme-color" content="#16120f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf6f2" media="(prefers-color-scheme: light)" />
     <title>IozyCore</title>
   </head>
   <body>
