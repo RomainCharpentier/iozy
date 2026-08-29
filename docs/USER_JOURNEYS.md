@@ -1503,7 +1503,7 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1018 tests)
-                web/src/**/*.test.ts(x)   (42 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (124 tests, Vitest - voir web/README)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **42 tests Vitest** sur les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`) et sur les phrases que la carte du verdict d'achat promet à l'utilisateur. Il reste **aucun test end-to-end** : rien ne vérifie encore un parcours entier, du clic à l'écriture en base. Ce document reste la base naturelle pour les écrire — les dix parcours de la §21 en premier.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **124 tests Vitest** sur treize modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`) et les invalidations de cache. Il reste **aucun test end-to-end** : rien ne vérifie encore un parcours entier, du clic à l'écriture en base. Ce document reste la base naturelle pour les écrire — les dix parcours de la §21 en premier.

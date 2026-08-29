@@ -1360,6 +1360,45 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 90 — le filet s'étend là où l'utilisateur lit, pas seulement là où l'app calcule
+
+Le Lot 89 couvrait ce que l'app **calcule** pour l'affichage. Ce lot va chercher
+les trois autres endroits où une règle se casse en silence : ce que l'utilisateur
+**lit quand ça rate**, ce qu'un **bouton promet**, et ce que l'app **relit** d'un
+`localStorage` qu'elle ne contrôle pas. 42 → **124 tests**, neuf modules de plus.
+
+| Module | La règle qui se casse en silence |
+|---|---|
+| `api/client` | « Bad Gateway » et « Failed to fetch » ont été vus en anglais dans une interface française. Le piège : l'enveloppe générique de Spring porte elle aussi un champ `error`, qui n'y contient que la phrase de statut. Et une **annulation n'est pas une panne** - la traduire ferait clignoter « serveur injoignable » à chaque frappe |
+| `useWishlist` | deux index jamais confondus (une série n'est pas voulue parce qu'un tome l'est), une annulation qui remet **le tome et pas sa série**, et un refus 409 qui **n'interrompt pas** un ajout groupé |
+| `preferencesCollection` | validation **champ par champ** : un réglage corrompu ne fait pas retomber les autres ; et un stockage refusé (navigation privée) n'abat pas la page |
+| `titleLanguage` | quel titre est **écrit** (`resolvePrimaryTitle`) et quel titre n'est qu'**affiché** : les confondre enregistrerait une chaîne à parenthèses |
+| `attributsTome` | `"12"` n'est pas 12 — la divergence qui rendait un tome compté d'un côté, invisible de l'autre |
+| `venues` | avoir est postérieur à vouloir ; une œuvre remonte à la venue de son tome **le plus récent** |
+| `backfillCovers` | rien à chercher ⇒ aucun appel ; la seconde recherche (qui coûte le quota) seulement si la première ne suffit pas ; « muet » ≠ « il n'a pas cette jaquette » |
+| `basePrix` | une estimation IA ne doit **jamais** se présenter comme un prix de marché — l'écran qui l'a fait ne connaissait que deux valeurs de l'enum sur trois |
+| `invalidations` | une envie posée sur un tome **fait exister ce tome** : la fiche et la progression changent sans qu'aucune possession n'ait bougé |
+
+**Ce qui se teste ici, et ce qui reste simulé.** Le réseau est simulé
+(`fetch` et le module `api/wishlist`), le reste ne l'est pas : vrai
+`QueryClient`, vrai contexte de messages, vrai `localStorage` de jsdom. Ce qui
+est vérifié, ce sont les **appels réellement partis** et le **message réellement
+affiché** — pas l'implémentation qui les produit.
+
+**Les neuf mutations sont ressorties en échec**, chacune sur le test qui la
+nommait : `typeof === 'number'` relâché, `lire()` remplacé par les valeurs par
+défaut à l'écriture, le repli du titre supprimé, la possession qui cesse de
+l'emporter sur l'envie, la clé `entities` retirée des invalidations d'envie, le
+`catch` de l'ajout groupé qui relance, la traduction du 502 effacée, l'estimation
+IA rebaptisée « marché », et la seconde recherche de jaquettes rendue
+systématique. Deux d'entre elles ont d'abord été **manquées par la mesure** : un
+`perl s///` sans `/g` avait muté la seule des deux occurrences que le test ne
+regardait pas. Une mutation qui ne fait rien échouer se vérifie donc elle-même
+avant de conclure quoi que ce soit du test.
+
+124 tests en 3,7 s, plus `typecheck`, `lint`, `build` (empreintes de `dist/`
+inchangées) et les 116 combinaisons de contraste.
+
 ### Lot 89 — le web n'avait aucun filet : premières mailles
 
 1018 tests côté backend, **zéro** côté web. Toute règle qui décide de ce que
