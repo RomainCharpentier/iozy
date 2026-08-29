@@ -2,8 +2,9 @@
 
 ## Le projet
 
-IozyCore est une base de connaissances personnelle, auto-hébergée et
-mono-utilisateur : cataloguer une collection (mangas, jeux vidéo, jeux de
+IozyCore est une base de connaissances personnelle, auto-hébergée, où
+**chaque personne a sa collection** (depuis le 2026-08-29 ; le catalogue des
+œuvres, lui, est commun) : cataloguer une collection (mangas, jeux vidéo, jeux de
 société), suivre ce qu'on possède indépendamment de ce qu'on a vécu (lu,
 joué, terminé, avec note et commentaire), enrichi automatiquement via des
 API publiques gratuites. Ce dossier est le client Web (React) ; le backend
@@ -62,7 +63,8 @@ cohérent avec le reste de l'app et avec le client iOS.
 **Écrire un test** : Vitest + Testing Library, dans un `*.test.ts(x)` posé
 **à côté du module qu'il vérifie** — pas dans un dossier `__tests__` à part,
 pour qu'un module et ses règles se déplacent ensemble. `src/test/fixtures.ts`
-construit les objets du serveur (`oeuvre`, `tome`, `possession`, `edition`)
+construit les objets du serveur (`oeuvre`, `tome`, `possession`, `edition`,
+`tag`)
 afin qu'un test ne nomme que ce qui le concerne. Ce qui mérite un test ici,
 c'est une **règle qui se casse en silence** : un total inconnu qu'on ne doit
 pas deviner, un seul signal par carte, une phrase qui promet quelque chose à
@@ -72,7 +74,7 @@ jamais par une classe CSS ou un `data-testid`.
 **Écrire un parcours de bout en bout** : dans `e2e/*.spec.ts`. Ils partent
 connectés (la session est ouverte une fois par `compte.setup.ts` et rejouée),
 sauf `porte.spec.ts` qui teste justement l'entrée et part anonyme. Ce qui
-mérite un parcours, ce n'est pas une règle - les 215 tests Vitest la couvrent
+mérite un parcours, ce n'est pas une règle - les 231 tests Vitest la couvrent
 déjà - c'est un **passage** : d'un écran au suivant, du clic à la base. Un
 formulaire branché sur la mauvaise route ou un cache qu'on oublie d'invalider
 ne casse aucune règle : l'écran reste simplement sur l'état d'avant.

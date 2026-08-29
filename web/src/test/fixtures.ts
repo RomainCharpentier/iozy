@@ -18,6 +18,7 @@ import type {
   EntityResponse,
   EntityTypeDto,
   OwnershipResponse,
+  TagDto,
   VariantDto,
 } from '../types/api'
 
@@ -47,15 +48,21 @@ export function oeuvre(options: {
   typeId?: string
   tomes?: VariantDto[]
   jaquette?: string
+  tags?: string[]
 }): EntityResponse {
   return {
     id: idDe(options.titre),
     entityTypeId: options.typeId ?? 'type-manga',
     title: options.titre,
     attributes: options.jaquette !== undefined ? { coverImageUrl: options.jaquette } : {},
-    tagIds: [],
+    tagIds: options.tags ?? [],
     variants: options.tomes ?? [],
   }
+}
+
+/** Un tag, tel que `GET /tags` le renvoie. */
+export function tag(label: string): TagDto {
+  return { id: idDe(label), label }
 }
 
 /** Une possession, active sauf mention contraire - c'est le cas courant. */

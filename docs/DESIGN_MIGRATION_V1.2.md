@@ -1360,6 +1360,63 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 103 — un classement qu'on posait sans jamais s'en servir
+
+On pouvait créer un tag et l'attacher à une œuvre depuis sa fiche. Et ensuite,
+rien : **aucun écran ne relisait ces tags**. Le paramètre existait pourtant de
+bout en bout — `tagId` sur `GET /entities/search`, dans `searchEntities`,
+jusque dans les clés de cache — et n'avait **pas un seul appelant**. Un
+classement sans lecteur, c'est du travail demandé à l'utilisateur en échange de
+rien.
+
+**Ma collection ▸ Filtres** gagne donc une section « Tag », et la vue d'une
+catégorie avec elle.
+
+#### Trois décisions, et ce qu'elles écartent
+
+**Le tri se fait en mémoire**, sans repasser `tagId` au serveur. Ces deux écrans
+tiennent déjà toute la collection et `tagIds` est dans chaque œuvre : une
+requête qui redemanderait un sous-ensemble de ce qu'on a sous la main serait
+strictement plus lente. Même parti pris que le filtre d'état, qui se calcule là
+depuis le premier jour. Le paramètre du serveur reste donc sans appelant, et
+c'est un choix, pas un oubli.
+
+**Un seul tag à la fois**, comme le paramètre du serveur. Une sélection
+multiple obligerait à trancher entre « au moins un » et « tous », et à le faire
+comprendre dans un panneau de quatre lignes. Ça se décide ; ça ne se glisse pas
+dans un lot.
+
+**La section n'apparaît que si des tags existent.** Le composant refusait déjà
+d'afficher « Sortie annoncée » et « Classement » faute de données derrière ;
+une liste de tags vide serait exactement le même défaut, en pire — elle
+suggère qu'il manque quelque chose sans dire quoi.
+
+#### Ce que le lot consolide au passage
+
+Les deux écrans déclaraient chacun leur `status`, leur panneau, leur pastille
+et leur bouton « Réinitialiser » : une dizaine de lignes en double, et deux
+occasions de diverger dès qu'un filtre s'ajoute — ce qui arrivait précisément
+maintenant. `useFiltresCollection` les porte, comme `useDonneesCollection`
+porte les données un étage plus haut. La pastille, qui annonçait **« 1 » en
+dur**, compte désormais.
+
+#### Le filet
+
+Douze tests neufs (231 au total, 26 modules). Le panneau a les siens ; l'écran
+a les siens, et ils vérifient ce que le panneau ne peut pas prouver : qu'il
+s'en **sert**. Un `porteLeTag` oublié dans le filtrage laisse un panneau
+parfaitement fonctionnel devant une grille qui ne bouge pas — c'est exactement
+l'état dans lequel les tags ont vécu jusqu'ici.
+
+Quatre mutations, toutes rattrapées : le filtre retiré de l'écran (3 échecs),
+le compte de filtres actifs figé (2), la section affichée sans tags (1), et
+« Tous » remontant un identifiant au lieu de rien (5).
+
+`setup.ts` gagne un bouchon `ResizeObserver` : jsdom ne l'implémente pas, et
+tout écran qui affiche un titre passe par `TexteCoupe`. Il ne notifie jamais —
+jsdom ne fait aucune mise en page, donc un rappel inventerait une mesure. Ces
+tests affirment le **texte**, jamais sa troncature.
+
 ### Lot 102 — onze contrôles sur une app en ligne, sans y toucher
 
 Le Lot 96 a préparé la mise en ligne (`vercel.json`, `railway.json`,
@@ -5874,6 +5931,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une donnée que l'utilisateur SAISIT et que personne ne relit est pire qu'une fonctionnalité absente : elle demande du travail en échange de rien. Chercher, pour chaque chose qu'un écran fait poser (tag, note, classement), l'écran qui s'en sert — `tagId` traversait `searchEntities` et les clés de cache sans un seul appelant, et rien dans le typage ne pouvait le dire (Lot 103).
 - Un contrôle qui n'existe qu'en **HTTP réel** (type MIME, en-tête de cache, code de refus d'une route ouverte) ne peut pas être un test : il dépend du serveur, pas du fichier. Un script de GET, sans compte et sans écriture, se lance sur la production comme sur la pile locale — et c'est la seule chose qui distingue un déploiement sain d'un conteneur périmé qui affiche exactement la même page (Lot 102).
 - Un test de performance doit mesurer la **pente**, pas un nombre : sur une base d'intégration partagée, un seuil absolu de requêtes se périme au premier test voisin ajouté, tandis que « le même appel coûte autant avec 11 séries qu'avec 5 » reste vrai quoi qu'on ajoute autour. Et il se vérifie comme les autres, en le confrontant au code d'avant (Lot 101).
 - Une méthode de LECTURE qui appelle un helper partagé hérite de ses ÉCRITURES : `findEdition` rattache au passage une édition à sa série, ce qu'un écran de suggestions n'a aucune raison de faire. Avant de grouper des appels, lire ce que chacun faisait d'autre que rendre une valeur (Lot 101).

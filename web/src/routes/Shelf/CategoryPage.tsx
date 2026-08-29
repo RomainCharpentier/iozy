@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { retourDepuis } from '../../lib/retour'
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
@@ -11,7 +11,6 @@ import {
   correspondAuFiltre,
   etatDeLOeuvre,
   matchesCompletionFilter,
-  type CompletionFilter,
 } from './shelfTiles'
 import { BarreVues } from './BarreVues'
 import { indexerVenues, trierOeuvres } from './venues'
@@ -20,6 +19,7 @@ import { usePreferencesCollection, type FiltreCollection } from '../../lib/prefe
 import { CollectionFilters } from './CollectionFilters'
 import { CLASSE_CARTE } from '../../components/Carte'
 import { useDonneesCollection } from './useDonneesCollection'
+import { useFiltresCollection } from './useFiltresCollection'
 
 
 /**
@@ -39,8 +39,7 @@ export function CategoryPage() {
   const navigate = useNavigate()
   // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
   const retour = retourDepuis(useLocation().state) ?? { to: '/', libelle: 'Ma collection' }
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [status, setStatus] = useState<CompletionFilter>('ALL')
+  const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
 
   const donnees = useDonneesCollection()
@@ -69,9 +68,10 @@ export function CategoryPage() {
       duType.filter((e) => {
         const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
         if (!correspondAuFiltre(etat, filtre)) return false
-        return !etat.possede || matchesCompletionFilter(e, status, progression)
+        if (!filtres.porteLeTag(e)) return false
+        return !etat.possede || matchesCompletionFilter(e, filtres.status, progression)
       }),
-    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, status, progression],
+    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, filtres, progression],
   )
 
   const contexteAplatissement = useMemo(
@@ -172,17 +172,19 @@ export function CategoryPage() {
 
       <button
         type="button"
-        onClick={() => setFiltersOpen(true)}
-        aria-expanded={filtersOpen}
+        onClick={filtres.ouvrir}
+        aria-expanded={filtres.ouverts}
         className={`flex w-fit min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
-          status !== 'ALL' ? 'border-transparent bg-accentTint text-accentText' : 'border-fieldBorder text-textDim hover:bg-rowHover'
+          filtres.nombreActifs > 0
+            ? 'border-transparent bg-accentTint text-accentText'
+            : 'border-fieldBorder text-textDim hover:bg-rowHover'
         }`}
       >
         <SlidersHorizontal size={15} />
         Filtres
-        {status !== 'ALL' && (
+        {filtres.nombreActifs > 0 && (
           <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-            1
+            {filtres.nombreActifs}
           </span>
         )}
       </button>
@@ -199,8 +201,8 @@ export function CategoryPage() {
               ? 'Aucune envie en cours dans cette catégorie.'
               : 'Aucune série ne correspond à ces filtres.'}
           </p>
-          {status !== 'ALL' && (
-            <button type="button" onClick={() => setStatus('ALL')} className="mt-3 w-fit text-sm font-semibold text-accentText">
+          {filtres.nombreActifs > 0 && (
+            <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">
               Réinitialiser les filtres
             </button>
           )}
@@ -222,7 +224,16 @@ export function CategoryPage() {
         ))}
       </div>
 
-      <CollectionFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} status={status} onStatusChange={setStatus} />
+      <CollectionFilters
+        open={filtres.ouverts}
+        onClose={filtres.fermer}
+        status={filtres.status}
+        onStatusChange={filtres.definirStatus}
+        tags={filtres.tags}
+        tagId={filtres.tagId}
+        onTagChange={filtres.definirTag}
+        onReset={filtres.reinitialiser}
+      />
     </div>
   )
 }

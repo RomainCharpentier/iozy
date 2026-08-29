@@ -16,7 +16,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 |---|---|---|
 | backend `src/main` | 280 | 25 536 |
 | backend `src/test` | 113 | 22 069 |
-| web `src` | 181 | 24 010 |
+| web `src` | 185 | 24 857 |
 | iOS | 24 | 4 166 |
 | migrations Flyway | 26 | — |
 | docs | 6 | ~9 614 |
@@ -24,7 +24,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
 **97 endpoints** · **21 tables** · **27 routes web** ·
-**1 058 tests backend** · **219 tests web** (Vitest) · **9 parcours de bout en
+**1 058 tests backend** · **231 tests web** (Vitest) · **9 parcours de bout en
 bout** (Playwright, sur pile jetable) — tous depuis le 2026-08-29.
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
@@ -118,12 +118,17 @@ légitime, explicite via `AuNomDe`.
 **Aucune méthode de repository sans appelant.** Les ports du domaine sont tous
 réellement utilisés.
 
-### Client iOS — non cassé
+### Client iOS — ses routes existent toutes (mais il ne démarre plus)
 
 Les 21 routes appelées par l'application iOS **existent toutes encore**. Les
-refontes récentes (suppression des deux contrôleurs de partage séparés, retrait
-des endpoints de partage de la wishlist) ne l'ont pas touchée, parce qu'elle ne
-les utilisait pas.
+refontes (suppression des deux contrôleurs de partage séparés, retrait des
+endpoints de partage de la wishlist) ne l'ont pas touchée, parce qu'elle ne les
+utilisait pas.
+
+> Ce paragraphe disait « **non cassé** » jusqu'au Lot 100. C'est faux depuis
+> que le Lot 94 a fermé l'API : les routes sont là, mais le client n'ouvre
+> aucune session et **chacun de ses appels reçoit 401**. Aucune route ne
+> manque ; c'est la porte qui a changé. Voir **C4**.
 
 ---
 
