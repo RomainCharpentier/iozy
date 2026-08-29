@@ -20,7 +20,10 @@ export default defineConfig({
     // pour le filet de sécurité côté serveur, non requis ici).
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        // Configurable pour les tests de bout en bout, qui font tourner leur
+        // propre pile sur un autre port (voir backend/docker-compose.e2e.yml) :
+        // sans ça, ils écriraient dans la base de tous les jours.
+        target: process.env.IOZYCORE_API ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },

@@ -1,0 +1,68 @@
+# Une pile JETABLE, pour les tests de bout en bout.
+#
+# ## Pourquoi une pile à part, et pas l'instance de développement
+# Les tests E2E écrivent : ils créent des œuvres, des possessions, des envies.
+# Les faire tourner sur l'instance de tous les jours polluerait une vraie
+# collection - et le cloisonnement par propriétaire n'y suffirait pas, le
+# CATALOGUE étant partagé par construction (une œuvre est la même pour tout le
+# monde). Les séries inventées par les tests apparaîtraient donc dans
+# « Rechercher ▸ Déjà dans IozyCore ».
+#
+# D'où : sa propre base, son propre port, et un volume anonyme qui disparaît
+# avec `down -v`. Rien à nettoyer, rien à se rappeler.
+#
+# ## Usage
+#   docker compose -p iozycore-e2e -f docker-compose.e2e.yml up -d --wait
+#   docker compose -p iozycore-e2e -f docker-compose.e2e.yml down -v
+#
+# `npm run test:e2e` (dans web/) fait les deux autour des tests.
+
+services:
+  iozycore-api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: iozycore_e2e
+      DB_USER: iozycore
+      DB_PASSWORD: iozycore_e2e
+      # Les tests créent le PREMIER compte, qui est libre : aucun code
+      # d'invitation n'est nécessaire, et n'en poser aucun vérifie au passage
+      # que la porte reste fermée aux comptes suivants.
+      IOZYCORE_INVITE_CODE: ""
+      # Pas de TLS devant en local : un cookie `Secure` ne serait jamais posé.
+      SESSION_COOKIE_SECURE: "false"
+      # L'origine du serveur de dev lancé par Playwright (voir
+      # playwright.config.ts) - sans elle, toute écriture repartirait en 403.
+      WEB_ALLOWED_ORIGINS: http://localhost:5174
+      # Aucune clé de fournisseur : les tests ne doivent dépendre d'aucun
+      # service externe, ni consommer de quota. Les écrans qui en dépendent
+      # s'absentent proprement, c'est le comportement voulu.
+    ports:
+      # 8090 et non 8080 : la pile de développement peut tourner en même temps.
+      - "8090:8080"
+    # Sondé sur la seule route ouverte sans compte : `--wait` attend donc une
+    # API qui RÉPOND, pas un conteneur qui a démarré. Les migrations Flyway
+    # tournent avant que Tomcat accepte une requête.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/auth/etat || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: iozycore_e2e
+      POSTGRES_USER: iozycore
+      POSTGRES_PASSWORD: iozycore_e2e
+    # Aucun volume nommé : la base vit et meurt avec la pile.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iozycore -d iozycore_e2e"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

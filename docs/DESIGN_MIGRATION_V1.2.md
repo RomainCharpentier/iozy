@@ -1360,6 +1360,76 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 97 — du clic à la base
+
+Le dernier trou du filet, laissé ouvert depuis le Lot 89 et nommé à chaque
+fois : **aucun test ne parcourait un chemin entier**. Les 215 tests Vitest
+vérifient une règle à la fois, dans un module ; ce qui se casse entre deux
+écrans - un formulaire branché sur la mauvaise route, une invalidation de
+cache oubliée - ne casse aucune règle. L'écran reste simplement sur l'état
+d'avant, et rien ne le signale.
+
+#### Une pile jetable, jamais les vraies données
+
+`npm run test:e2e` démarre sa propre base et sa propre API (`:8090`), joue les
+parcours, puis éteint tout **volumes compris**. Le cloisonnement par
+propriétaire du Lot 95 n'y aurait pas suffi : le catalogue, lui, est partagé
+par construction, et les séries inventées par les tests seraient apparues dans
+« Rechercher ▸ Déjà dans IozyCore » de la vraie collection.
+
+`--wait` attend les **contrôles de santé**, pas le démarrage des conteneurs :
+l'API n'est déclarée prête que lorsqu'elle répond, migrations comprises. Et le
+`-v` de la fin est ce qui rend la suite reproductible - sans lui, le deuxième
+lancement échouerait sur « créer le premier compte », un test vert qui devient
+rouge sans qu'une ligne de code n'ait bougé.
+
+#### Ce que les parcours couvrent, et pourquoi ceux-là
+
+- **La porte** : créer le premier compte sur une instance neuve, se connecter,
+  un mot de passe faux qui ne dit pas si l'adresse existe, se déconnecter -
+  et vérifier que la session est morte **côté serveur**, pas juste effacée à
+  l'écran.
+- **Le parcours fondateur** : créer un univers, y ajouter une œuvre, la
+  retrouver dans Ma collection avec son rail et ses compteurs, puis la
+  rechercher à nouveau et la voir reconnue plutôt que proposée en double.
+- **Le lien de partage** : généré depuis Profil, ouvert **dans un contexte de
+  navigateur neuf** (aucun cookie hérité - c'est la seule façon de vraiment
+  jouer le destinataire), puis désactivé et devenu inopérant. C'est la seule
+  surface dont une régression est irréversible : un lien distribué ne se
+  rappelle pas.
+
+Les trois univers livrés exigent une correspondance chez un fournisseur
+externe ; la pile de test n'a **aucune clé d'API**, à dessein - un parcours qui
+dépend de Jikan échoue le jour où Jikan tousse, pour une raison qui ne regarde
+pas l'application. Les tests passent donc par un type de collection créé pour
+l'occasion, sans fournisseur, donc en saisie libre : ce qui exerce en prime
+l'éditeur de types.
+
+#### Deux fois, le test avait tort
+
+Le premier jet affirmait qu'une œuvre déjà en collection fait **disparaître**
+le bouton « Ajouter ». Faux : sur un type sans fournisseur, ce bouton est le
+seul chemin, et deux œuvres peuvent porter des titres proches. Ce qui protège
+du doublon, c'est l'**ordre** - ce qu'on possède se montre AVANT de proposer de
+créer. Le test dit désormais cette règle-là, en comparant les positions.
+
+Le second jet séparait « ajouter » et « ne pas dupliquer » en deux tests, le
+second cherchant ce que le premier avait créé. Playwright **redémarre son
+worker après un échec** : les constantes du module sont alors recalculées, et
+le second test cherchait un univers au nom légèrement différent. Un parcours
+qui se lit d'un bout à l'autre n'a pas ce problème.
+
+#### Vérifié en cassant la porte
+
+`PorteFermee` mutée pour laisser passer tout le monde : les **215 tests Vitest
+restent verts** - aucun ne connaît `App` - et les parcours tombent aussitôt.
+C'est exactement la démonstration de ce que cette suite ajoute.
+
+7 parcours en 32 s, plus `typecheck` (les fichiers E2E ont leur propre
+`tsconfig` : Playwright les transpile lui-même et accepte les imports sans
+extension, que le `nodenext` des fichiers de configuration refuserait), `lint`
+et `build`.
+
 ### Lot 96 — de quoi mettre en ligne, sans mettre en ligne à la place de quelqu’un
 
 Dernier morceau du chantier « sortir du localhost » : la configuration et la
