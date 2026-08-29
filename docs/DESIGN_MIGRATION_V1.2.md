@@ -1360,6 +1360,57 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 106 — trois parcours de plus, et deux défauts qu'ils ont trouvés
+
+Neuf des dix parcours structurants sont désormais joués de bout en bout (14
+parcours Playwright). Ne manque que le **scan**, qui demande une caméra.
+
+Les trois ajoutés sont ceux qui touchent à l'argent et au calcul :
+
+- **Renseigner l'édition de référence** (parcours 8) — deux champs sur une
+  fiche, et c'est la progression de toute l'application qui devient calculable ;
+- **Voir les séries presque complètes** (parcours 7), depuis **Découvrir** et
+  non depuis l'URL : les deux surfaces lisent le même endpoint, et « Tout voir »
+  est le chemin réel entre elles ;
+- **Évaluer une annonce** (parcours 6) — le seul écran où l'application dit à
+  quelqu'un s'il doit dépenser de l'argent, et où ce qui compte est qu'elle
+  confronte le lot à la **collection** : deux tomes déjà possédés, quatre tomes
+  utiles, 7,50 € par tome réellement gagné et non 5 €.
+
+#### Ce qu'ils ont trouvé
+
+**Une collection déclarée complète sans que rien ne le sache.** Sur une fiche,
+le total d'une édition retombait sur le nombre de tomes CATALOGUÉS quand
+l'édition n'était pas renseignée : deux tomes ajoutés à la main, et la carte
+annonçait « 2/2 », soit « 2 tomes possédés sur 2 » à un lecteur d'écran. Ce
+repli contredisait à la fois le commentaire de `CartesEditions` juste à côté
+(« le déduire du nombre de tomes qu'une recherche a RAMENÉS empoisonnerait le
+moteur de complétude ») et la documentation du champ lui-même (« null tant
+qu'aucune source ne le connaît »). Il ne se voyait pas : l'écran affichait un
+ratio parfaitement plausible.
+
+**Le formulaire écrivait, l'écran n'en savait rien.** `EditionCorrectionSection`
+invalidait la complétude et l'édition, mais pas la **progression** — qui est
+pourtant la raison d'être de ce formulaire, et qui vient du serveur en un seul
+appel pour toute la collection. On renseignait 18 tomes, le serveur les
+enregistrait, et la carte continuait d'afficher l'état d'avant. Aucune erreur
+nulle part.
+
+Les deux sont exactement ce que ces parcours existent pour attraper : rien ne
+casse, l'écran montre simplement autre chose que la vérité.
+
+#### Un test dont la vérité dépendait de l'ordre des fichiers
+
+`collection.spec.ts` affirmait « 1 titre suivi » — le total de la collection.
+Vrai tant que ce fichier passait en premier ; faux dès qu'un parcours au nom
+alphabétiquement antérieur (`annonce.spec.ts`) a semé ses propres séries dans
+la même pile. Il compte désormais le rail de l'univers qu'il vient de créer,
+qui ne dépend que de lui.
+
+`amorcage.ts` gagne `serieSansReference` — une série et ses tomes **sans**
+fiche d'édition, c'est-à-dire l'état réel d'une collection avant le parcours 8.
+`serieAvecEdition` s'appuie dessus.
+
 ### Lot 105 — un pseudo unique, et un avatar qui dit enfin qui
 
 L'avatar en haut à droite affichait **« IO »**, en dur : les initiales de
@@ -6031,6 +6082,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un repli « au cas où » sur une donnée INCONNUE produit une affirmation fausse et crédible : `totalVolumes ?? cataloguedVolumeNumbers.length` annonçait une collection complète à qui n'a jamais renseigné son édition. Quand un champ documente « null tant qu'aucune source ne le connaît », le repli est le bug (Lot 106).
+- Un parcours de bout en bout qui affirme un TOTAL de collection dépend de l'ordre des fichiers de test : ils partagent une pile. Compter ce que le test vient lui-même de créer, jamais l'état global (Lot 106).
 - Une aide de saisie posée DANS le `<label>` devient une partie du NOM du champ : le lecteur d'écran annonce « Mot de passe Au moins 10 caractères » d'une traite, et `getByLabelText('Mot de passe')` ne trouve plus rien. Les règles se relient par `aria-describedby`, hors du label - et ce lien-là se teste (`toHaveAccessibleDescription`), sinon rien ne le garde (Lot 105).
 - Un champ FACULTATIF qui se replie sur une autre donnée finit par l'afficher là où elle n'a rien à faire : `display_name` vide valait l'adresse e-mail, qui s'est retrouvée sur l'avatar du menu. Avant d'ajouter un repli, regarder où la valeur sera LUE (Lot 105).
 - Après un changement STRUCTUREL, chercher la phrase qui le nie plutôt que les fichiers modifiés : `grep -rn "mono-utilisateur" --include=*.md` a trouvé trois documents intacts deux lots après la fin du cloisonnement, dont celui qu'on lit en premier. Le code a le compilateur, les tests ont leur échec ; une phrase fausse, elle, s'affiche comme une vraie (Lot 104).

@@ -87,6 +87,15 @@ export function EditionCorrectionSection({
       // qui est possédé) - un tableau vide ici ne matcherait aucune requête
       // réellement en cache, voir queryKeys.purchaseAnalysis.completeness.
       queryClient.invalidateQueries({ queryKey: ['purchaseAnalysis', 'completeness', entityTitle, editionName] })
+      // Et la PROGRESSION, qui est la vraie raison d'être de ce formulaire :
+      // le nombre de tomes d'une édition est ce qui rend « X/Y » possible, et
+      // il vient du serveur (`insights/progress`, un appel pour toute la
+      // collection - voir CollectionProgressService, règle 4). Sans cette
+      // invalidation, l'écriture réussissait et l'écran continuait d'afficher
+      // l'état d'avant : ni la carte d'édition, ni Ma collection ne
+      // découvraient le total qu'on venait de renseigner. Le préfixe
+      // `insights.progress` emporte aussi `progressOf(entityId)`.
+      queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       setExpanded(false)
     },
   })

@@ -443,10 +443,18 @@ export function EntityDetailPage() {
   const dansEnvies = !!wishlist.entryFor(entityId)
   const tomesVoulus = wishlist.variantsVoulus
 
+  // `totalVolumes` SEUL, jamais le nombre de tomes catalogués en repli : ce
+  // repli-là annonçait « 2 tomes possédés sur 2 » à quelqu'un dont l'édition
+  // n'a jamais été renseignée - une collection déclarée complète alors que
+  // l'application ne sait rien de sa taille. Il contredisait le commentaire de
+  // CartesEditions juste à côté (« le déduire du nombre de tomes qu'une
+  // recherche a RAMENÉS empoisonnerait le moteur de complétude ») et la
+  // documentation de EditionAffichee.total (« null tant qu'aucune source ne le
+  // connaît »). Trouvé par le parcours de bout en bout du parcours 8.
   const editionsAffichees: EditionAffichee[] = groupes.map((groupe) => ({
     nom: groupe.editionName,
     editeur: groupe.editionName === groupeActif?.editionName ? (editionInfo?.publisher ?? null) : null,
-    total: groupe.totalVolumes ?? groupe.cataloguedVolumeNumbers.length ?? null,
+    total: groupe.totalVolumes ?? null,
     possedes: groupe.ownedVolumeNumbers.length,
   }))
 
