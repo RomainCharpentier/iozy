@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/useAuth'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { LienRetour } from '../../components/LienRetour'
 
 /**
  * Les comptes de l'instance — pour qui en répond.
@@ -46,6 +47,8 @@ export function ComptesPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/administration', libelle: 'Administration' }} />
+
       <EnTeteSection
         niveau={1}
         titre="Comptes"

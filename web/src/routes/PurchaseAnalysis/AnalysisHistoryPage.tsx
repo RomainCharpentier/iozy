@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { VerdictBadge } from './VerdictBadge'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /** "Comparer les annonces" (prévu dès le plan initial de l'Analyse d'achat,
  * jamais construit jusqu'ici) - liste toutes les analyses passées (les plus
@@ -34,6 +35,8 @@ export function AnalysisHistoryPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/purchase-analysis', libelle: 'Analyser une annonce' }} />
+
       <EnTeteSection niveau={1} titre="Historique des analyses" />
 
       {historyQuery.isError && <ErrorBanner message={historyQuery.error.message} />}

@@ -8,6 +8,7 @@ import { ApiError } from '../../api/client'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { iconFor } from '../../theme/icon'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 /** Éditeur de types dynamique : liste des catégories de la collection (les
  * 3 types MVP historiques + tout type créé par l'utilisateur). Accessible
@@ -48,6 +49,8 @@ export function EntityTypesPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <LienRetour parDefaut={{ to: '/administration', libelle: 'Administration' }} />
+
       <EnTeteSection
         niveau={1}
         titre="Gérer les types"

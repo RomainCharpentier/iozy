@@ -7,6 +7,7 @@ import { queryKeys } from '../../lib/queryKeys'
 import { UNIVERSE_ASPECTS, UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from '../../lib/entityTypeVisuals'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { LienRetour } from '../../components/LienRetour'
 
 interface EntityTypeFormPageProps {
   mode: 'create' | 'edit'
@@ -126,6 +127,8 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
   if (mode === 'edit' && entityTypesQuery.isLoading) {
     return (
       <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
+        <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
         <EnTeteSection niveau={1} titre="Modifier le type" />
         <p className="text-textDim">Chargement...</p>
       </div>
