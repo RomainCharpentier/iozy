@@ -1,6 +1,6 @@
 package com.iozycore.infrastructure.persistence.purchaseanalysis;
 
-import com.iozycore.domain.shared.DefaultOwner;
+import com.iozycore.application.auth.UtilisateurCourant;
 import com.iozycore.purchaseanalysis.CollectorPreferences;
 import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
 import com.iozycore.purchaseanalysis.WeightLevel;
@@ -12,14 +12,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class JpaCollectorPreferencesRepositoryAdapter implements CollectorPreferencesRepository {
 
     private final CollectorPreferencesJpaRepository jpaRepository;
+    private final UtilisateurCourant utilisateurCourant;
 
-    public JpaCollectorPreferencesRepositoryAdapter(CollectorPreferencesJpaRepository jpaRepository) {
+    public JpaCollectorPreferencesRepositoryAdapter(CollectorPreferencesJpaRepository jpaRepository,
+                                                     UtilisateurCourant utilisateurCourant) {
         this.jpaRepository = jpaRepository;
+        this.utilisateurCourant = utilisateurCourant;
     }
 
     @Override
     public CollectorPreferences find() {
-        return jpaRepository.findById(DefaultOwner.ID)
+        // La clé primaire EST le propriétaire : pas de @TenantId ici, la
+        // question « celles de qui ? » est déjà celle de la ligne à lire.
+        return jpaRepository.findById(utilisateurCourant.proprietaire())
                 .map(this::toDomain)
                 .orElseGet(CollectorPreferences::defaults);
     }
@@ -27,7 +32,7 @@ public class JpaCollectorPreferencesRepositoryAdapter implements CollectorPrefer
     @Override
     public CollectorPreferences save(CollectorPreferences preferences) {
         CollectorPreferencesJpaEntity jpa = new CollectorPreferencesJpaEntity(
-                DefaultOwner.ID, preferences.editionTierRanking(),
+                utilisateurCourant.proprietaire(), preferences.editionTierRanking(),
                 preferences.avoidOutdatedEditionWhenBetterExistsOrAnnounced(),
                 preferences.conditionImportance().name(),
                 preferences.minimumDiscountVsRetailPercent(), preferences.factorWeights());

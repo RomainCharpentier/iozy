@@ -2,6 +2,7 @@ package com.iozycore.infrastructure.persistence.purchaseanalysis;
 
 import com.iozycore.purchaseanalysis.PurchaseAnalysis;
 import jakarta.persistence.Column;
+import org.hibernate.annotations.TenantId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -25,6 +26,13 @@ public class PurchaseAnalysisJpaEntity {
 
     @Id
     private UUID id;
+
+    // Cloisonnement par propriétaire (V26) : Hibernate ajoute cette colonne
+    // à la clause WHERE de toute requête sur cette entité, et la remplit à
+    // l'insertion depuis ProprietaireCourant.
+    @TenantId
+    @Column(name = "owner_id", nullable = false)
+    private UUID ownerId;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

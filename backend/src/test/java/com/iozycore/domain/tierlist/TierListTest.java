@@ -1,6 +1,5 @@
 package com.iozycore.domain.tierlist;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -13,10 +12,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TierListTest {
 
     @Test
-    void creating_a_tier_list_assigns_the_default_owner_and_now() {
+    void creer_une_tier_list_la_date_et_laisse_le_proprietaire_a_la_session() {
         TierList list = TierList.create("Mes mangas préférés", UUID.randomUUID(), EnumSet.of(Rank.S, Rank.A), "Test");
 
-        assertThat(list.ownerId()).isEqualTo(DefaultOwner.ID);
+        // Pas de propriétaire choisi ici : la session tranche à l'écriture.
+        assertThat(list.ownerId()).isNull();
         assertThat(list.name()).isEqualTo("Mes mangas préférés");
         assertThat(list.activeRanks()).containsExactlyInAnyOrder(Rank.S, Rank.A);
         assertThat(list.description()).contains("Test");

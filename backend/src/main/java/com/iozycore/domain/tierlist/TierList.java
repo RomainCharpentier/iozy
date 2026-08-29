@@ -1,6 +1,5 @@
 package com.iozycore.domain.tierlist;
 
-import com.iozycore.domain.shared.DefaultOwner;
 
 import java.time.Instant;
 import java.util.EnumSet;
@@ -29,8 +28,9 @@ import java.util.UUID;
  * personnalisées, dont l'appartenance est toujours volontaire (voir
  * TierListItem).
  * <p>
- * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - même préparation que Ownership.
+ * Porte un ownerId, mais ne le CHOISIT pas : null à la création, la session
+ * tranche à l'écriture via la colonne marquée @TenantId (voir
+ * ProprietaireCourant). Même règle que Ownership.
  */
 public class TierList {
 
@@ -67,7 +67,7 @@ public class TierList {
      *                     transverse "toutes catégories" (voir javadoc de classe). */
     public static TierList create(String name, UUID entityTypeId, Set<Rank> activeRanks, String description) {
         Set<Rank> ranks = (activeRanks == null || activeRanks.isEmpty()) ? EnumSet.allOf(Rank.class) : activeRanks;
-        return new TierList(UUID.randomUUID(), DefaultOwner.ID, name.trim(), entityTypeId, ranks,
+        return new TierList(UUID.randomUUID(), null, name.trim(), entityTypeId, ranks,
                 blankToNull(description), Instant.now());
     }
 

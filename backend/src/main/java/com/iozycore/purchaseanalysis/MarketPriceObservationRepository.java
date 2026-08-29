@@ -11,6 +11,20 @@ public interface MarketPriceObservationRepository {
     List<MarketPriceObservation> findByEditionId(UUID mangaEditionId);
 
     /**
+     * Combien de relevés se réfèrent à cette édition, <b>tous comptes
+     * confondus</b>.
+     *
+     * <p>Seule question de ce dépôt qui ignore délibérément le cloisonnement,
+     * parce qu'elle n'est pas une question de propriété mais d'intégrité :
+     * les éditions de référence sont PARTAGÉES, et en supprimer une que les
+     * relevés d'un autre compte utilisent encore casserait ses analyses. Sans
+     * ce compte global, le refus poli laisserait place à une violation de clé
+     * étrangère - une erreur de base de données affichée à quelqu'un qui n'a
+     * rien fait de mal.
+     */
+    int countByEditionIdAllOwners(UUID mangaEditionId);
+
+    /**
      * Tout le journal, pour l'export complet - un relevé saisi a la main est
      * irrecuperable ailleurs, et l'export promet l'absence d'enfermement
      * (meme raison que les editions de reference au Lot 33). Une methode

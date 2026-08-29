@@ -1,6 +1,5 @@
 package com.iozycore.domain.ownership;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import com.iozycore.domain.shared.DomainEvent;
 
 import java.math.BigDecimal;
@@ -28,9 +27,11 @@ import java.util.UUID;
  * toujours la couverture connue du total réel plutôt que de sous-entendre
  * une valeur totale complète).
  * <p>
- * Porte un ownerId (DefaultOwner.ID tant qu'aucun vrai système
- * multi-utilisateur n'existe) - préparation au multi-utilisateur, voir
- * DefaultOwner.
+ * Porte un ownerId, mais ne le CHOISIT pas : à la création il vaut
+ * null - « pas encore attribué ». C'est la session qui
+ * tranche, à l'écriture, via la colonne marquée @TenantId (voir
+ * ProprietaireCourant). Relu depuis la base, il porte le vrai propriétaire
+ * de la ligne.
  */
 public class Ownership {
 
@@ -60,7 +61,7 @@ public class Ownership {
     public static Ownership acquire(UUID entityId, UUID variantId, OwnershipCondition condition,
                                      LocalDate acquiredAt, String note) {
         Ownership ownership = new Ownership(
-                UUID.randomUUID(), entityId, variantId, DefaultOwner.ID, condition, acquiredAt, note);
+                UUID.randomUUID(), entityId, variantId, null, condition, acquiredAt, note);
         ownership.pendingEvents.add(new OwnershipAdded(ownership.id, entityId, Instant.now()));
         return ownership;
     }

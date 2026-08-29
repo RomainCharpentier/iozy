@@ -2,7 +2,7 @@ package com.iozycore.infrastructure.persistence.share;
 
 import com.iozycore.domain.share.ShareSettings;
 import com.iozycore.domain.share.ShareSettingsRepository;
-import com.iozycore.domain.shared.DefaultOwner;
+import com.iozycore.application.auth.UtilisateurCourant;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -62,22 +62,27 @@ interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntit
 class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
 
     private final ShareSettingsJpaRepository jpaRepository;
+    private final UtilisateurCourant utilisateurCourant;
 
-    JpaShareSettingsRepositoryAdapter(ShareSettingsJpaRepository jpaRepository) {
+    JpaShareSettingsRepositoryAdapter(ShareSettingsJpaRepository jpaRepository, UtilisateurCourant utilisateurCourant) {
         this.jpaRepository = jpaRepository;
+        this.utilisateurCourant = utilisateurCourant;
     }
 
     @Override
     public ShareSettings find() {
-        return jpaRepository.findById(DefaultOwner.ID)
+        // La clé primaire EST le propriétaire : la question « celui de qui ? »
+        // est déjà celle de la ligne à lire.
+        UUID proprietaire = utilisateurCourant.proprietaire();
+        return jpaRepository.findById(proprietaire)
                 .map(JpaShareSettingsRepositoryAdapter::toDomain)
-                .orElseGet(ShareSettings::noLink);
+                .orElseGet(() -> ShareSettings.noLink(proprietaire));
     }
 
     @Override
     public ShareSettings save(ShareSettings settings) {
         return toDomain(jpaRepository.save(new ShareSettingsJpaEntity(
-                DefaultOwner.ID, settings.token(), settings.shareCollection(), settings.shareWishlist(),
+                utilisateurCourant.proprietaire(), settings.token(), settings.shareCollection(), settings.shareWishlist(),
                 settings.includeTierLists())));
     }
 

@@ -41,4 +41,9 @@ public class JpaMarketPriceObservationRepositoryAdapter implements MarketPriceOb
                 .map(MarketPriceObservationMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public int countByEditionIdAllOwners(UUID mangaEditionId) {
+        return jpaRepository.countByEditionIdAllOwners(mangaEditionId);
+    }
 }

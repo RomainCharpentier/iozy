@@ -27,7 +27,7 @@ public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
 
     @Override
     public Optional<Experience> findById(UUID id) {
-        return jpaRepository.findById(id).map(JpaExperienceRepositoryAdapter::toDomain);
+        return jpaRepository.findOneById(id).map(JpaExperienceRepositoryAdapter::toDomain);
     }
 
     @Override
@@ -39,9 +39,12 @@ public class JpaExperienceRepositoryAdapter implements ExperienceRepository {
 
     @Override
     public void deleteById(UUID id) {
-        // deleteById de Spring Data est déjà silencieux sur un id absent -
-        // c'est exactement le contrat idempotent documenté sur le port.
-        jpaRepository.deleteById(id);
+        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
+        // charge par clé primaire sans requête, donc sans le cloisonnement par
+        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
+        // sans trace (constaté par le test d'isolation). Rien à supprimer est
+        // aussi le cas normal : le contrat du port est idempotent.
+        jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 
     @Override

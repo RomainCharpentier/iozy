@@ -53,7 +53,10 @@ class JpaFollowedEditionRepositoryAdapter implements FollowedEditionRepository {
 
     @Override
     public void deleteByEntityId(UUID entityId) {
-        jpaRepository.deleteByEntityId(entityId);
+        // Une suppression EN MASSE (deleteBy…) ne passe pas non plus par le
+        // cloisonnement : elle efface les lignes de tout le monde. On lit
+        // d'abord - la lecture, elle, est filtrée - puis on supprime.
+        jpaRepository.findByEntityId(entityId).ifPresent(jpaRepository::delete);
     }
 
     private static FollowedEditionJpaEntity toJpa(FollowedEdition followedEdition) {

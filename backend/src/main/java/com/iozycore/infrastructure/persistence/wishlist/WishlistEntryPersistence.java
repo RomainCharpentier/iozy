@@ -12,6 +12,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 interface WishlistEntryJpaRepository extends JpaRepository<WishlistEntryJpaEntity, UUID> {
+
+    /**
+     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     *
+     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
+     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
+     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte.
+     */
+    Optional<WishlistEntryJpaEntity> findOneById(UUID id);
     Optional<WishlistEntryJpaEntity> findByEntityIdAndVariantIdIsNull(UUID entityId);
 
     Optional<WishlistEntryJpaEntity> findByVariantId(UUID variantId);
@@ -73,10 +82,11 @@ class JpaWishlistEntryRepositoryAdapter implements WishlistEntryRepository {
 
     @Override
     public void deleteById(UUID id) {
-        // existsById d'abord : JpaRepository#deleteById lève EmptyResultDataAccessException si la ligne
-        // n'existe déjà plus, ce qui casserait le contrat idempotent du port (voir WishlistEntryRepository).
-        if (jpaRepository.existsById(id)) {
-            jpaRepository.deleteById(id);
-        }
+        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
+        // charge par clé primaire sans requête, donc sans le cloisonnement par
+        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
+        // sans trace (constaté par le test d'isolation). Rien à supprimer est
+        // aussi le cas normal : le contrat du port est idempotent.
+        jpaRepository.findOneById(id).ifPresent(jpaRepository::delete);
     }
 }

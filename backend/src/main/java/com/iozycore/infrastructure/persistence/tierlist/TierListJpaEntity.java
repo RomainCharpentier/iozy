@@ -1,6 +1,7 @@
 package com.iozycore.infrastructure.persistence.tierlist;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TenantId;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +12,21 @@ public class TierListJpaEntity {
 
     @Id
     private UUID id;
+
+    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
+
+
+    // clause WHERE de toute requête sur cette entité, et la remplit à
+
+
+    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
+
+
+    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+
+
+    @TenantId
+
 
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;

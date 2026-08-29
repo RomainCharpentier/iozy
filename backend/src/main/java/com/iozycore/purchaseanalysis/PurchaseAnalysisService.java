@@ -432,7 +432,9 @@ public class PurchaseAnalysisService {
                 .flatMap(entity -> entity.variants().stream())
                 .filter(variant -> editionId.equals(variant.mangaEditionId()))
                 .count();
-        int linkedObservations = marketPriceObservationRepository.findByEditionId(editionId).size();
+        // Tous comptes confondus : une édition est partagée, et la supprimer
+        // casserait les relevés d'un autre autant que les siens.
+        int linkedObservations = marketPriceObservationRepository.countByEditionIdAllOwners(editionId);
         if (linkedVolumes > 0 || linkedObservations > 0) {
             return new EditionDeletionBlockers((int) linkedVolumes, linkedObservations);
         }

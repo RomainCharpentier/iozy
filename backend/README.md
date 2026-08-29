@@ -2,8 +2,8 @@
 
 ## Le projet
 
-IozyCore est une base de connaissances personnelle, auto-hébergée et
-mono-utilisateur : un "second cerveau" pour cataloguer une collection
+IozyCore est une base de connaissances personnelle et auto-hébergée : un
+"second cerveau" pour cataloguer une collection
 (aujourd'hui : mangas, jeux vidéo, jeux de société), suivre ce qu'on
 possède (`Ownership`) indépendamment de ce qu'on a vécu (`Experience` —
 lu/joué/terminé, note, commentaire), avec enrichissement automatique des
@@ -27,7 +27,8 @@ domain/            agrégats métier purs (aucune dépendance Spring/JPA)
   ownership/        Ownership (possession d'un exemplaire)
   experience/        Experience (vécu : lu/joué/terminé)
   wishlist/          WishlistEntry
-  shared/            DomainEvent, DefaultOwner (préparation multi-utilisateur)
+  shared/            DomainEvent, DefaultOwner (le compte d'origine, et « personne »)
+  user/              AppUser (les comptes, depuis le 2026-08-29)
 application/        orchestration des cas d'usage (QuickAddService, EntityDeletionService...)
 infrastructure/     adaptateurs JPA qui implémentent les ports du domaine
   persistence/       une paire {Xxx}JpaEntity + Jpa{Xxx}RepositoryAdapter par agrégat
@@ -85,7 +86,7 @@ Construit : éditeur de types dynamique (`entity-types`, plus de 3 types
 figés en dur - voir section dédiée), ajout rapide avec déduplication,
 Ownership/Experience/Wishlist/Tag/Relationship, recherche transversale,
 statistiques, découverte heuristique (Jikan/BGG/IGDB), import de collection
-BGG, préparation multi-utilisateur (`owner_id`, non exploitée).
+BGG, comptes et cloisonnement par propriétaire (voir « Comptes et session »).
 
 `GET /api/wishlist` (liste complète, à ne pas confondre avec
 `GET /api/wishlist/lookup` qui vérifie une seule Entity) a été ajouté pour
@@ -93,9 +94,8 @@ l'onglet Wishlist du client Web (`../web`) - `WishlistEntryRepository.findAll()`
 et son implémentation JPA existaient déjà (utilisés par Insights), seule la
 route de contrôleur manquait.
 
-Volontairement pas construit : authentification réelle, validation serveur
-des `customFieldKeys` d'un type contre les attributs d'une Entity (reste
-descriptif).
+Volontairement pas construit : validation serveur des `customFieldKeys` d'un
+type contre les attributs d'une Entity (reste descriptif).
 
 ## Prérequis
 
@@ -118,15 +118,18 @@ Premier démarrage : le build Maven télécharge les dépendances, compte
 
 **Vérifier que ça tourne :**
 ```bash
-curl http://localhost:8080/api/entities/00000000-0000-0000-0000-000000000000
-# 404 attendu (Entity inexistante) -> confirme que l'API répond
+curl http://localhost:8080/api/auth/etat
+# {"aucunCompte":true,...} -> l'API répond. Tout le reste demande un compte,
+# voir « Comptes et session » plus bas.
 ```
 
 ## 2. Tester l'API
 
 **Option A — Swagger UI (le plus simple, aucun outil à installer) :**
-Ouvre http://localhost:8080/swagger-ui.html dans ton navigateur. Toutes les
-routes sont listées, testables directement depuis la page (bouton "Try it out").
+Ouvre http://localhost:8080/swagger-ui.html dans ton navigateur. **Connecte-toi
+d'abord** (l'app web, ou `POST /api/auth/register` sur une instance neuve) :
+Swagger est fermé comme le reste, et le cookie de session du navigateur vaut
+pour lui aussi.
 
 **Option B — fichier `requests.http` fourni :**
 Si tu utilises VS Code, installe l'extension "REST Client" et ouvre
@@ -423,12 +426,39 @@ depuis `V2__add_owner_id.sql`, rejointes depuis par `tier_list`, `entity_rank`,
 est la même pour tout le monde, seules les possessions et les envies sont
 privées.
 
-`V25__app_user.sql` ajoute la table des comptes. **L'isolation par
-propriétaire n'est pas encore branchée** : les écritures portent toujours
-`DefaultOwner.ID`, et les lectures ne filtrent pas encore par compte. Un
-deuxième compte verrait donc la collection du premier — c'est l'objet du lot
-suivant, et la raison pour laquelle `IOZYCORE_INVITE_CODE` doit rester vide
-jusque-là.
+`V25__app_user.sql` ajoute la table des comptes, `V26` complète les trois
+tables privées qui n'avaient pas encore de `owner_id` (analyses d'achat, prix
+relevés, appartenance à un classement).
+
+### L'isolation, et pourquoi elle ne vit pas dans les requêtes
+
+Chaque table privée porte une colonne `owner_id` annotée **`@TenantId`** :
+Hibernate l'ajoute au `WHERE` de toute requête sur l'entité et la remplit à
+l'insertion, depuis `ProprietaireCourant`. L'alternative - un `ownerId` en
+paramètre des quatre-vingts appels de dépôt - aurait surtout laissé une règle à
+se rappeler à chaque requête écrite plus tard. Une seule oubliée, et un écran
+montre la collection de quelqu'un d'autre sans que rien ne le signale.
+
+**Sans compte connu, le propriétaire vaut `PERSONNE`** (voir `DefaultOwner`),
+un identifiant qu'aucun compte ne porte : un chemin qui oublierait de dire au
+nom de qui il travaille ne voit **rien**. Se tromper doit faire voir rien,
+jamais la collection du premier compte.
+
+**Deux trous que `@TenantId` ne bouche pas**, découverts par le test
+d'isolation et à connaître avant d'écrire un dépôt :
+
+- `findById` de JPA charge **par clé primaire, sans requête** : pas de filtre,
+  donc la ligne d'un autre compte remonte. D'où les `findOneById` dérivés dans
+  les dépôts JPA - qui sont, eux, des requêtes.
+- `deleteById` et les suppressions **en masse** (`deleteBy…`) ont le même
+  angle mort, et il coûte plus cher : elles effaçaient les lignes d'un autre
+  compte. Toutes passent désormais par une lecture filtrée, puis une
+  suppression de ce qui a été trouvé.
+
+**Le seul franchissement légitime** est le lien de partage : son destinataire
+n'a pas de compte, et ce qu'il doit voir appartient à quelqu'un d'autre. Il
+passe par `AuNomDe.executer(proprietaire, …)`, écrit en toutes lettres dans
+`PublicShareController`.
 
 ## Renommer le projet
 

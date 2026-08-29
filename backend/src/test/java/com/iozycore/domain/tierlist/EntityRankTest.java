@@ -1,6 +1,5 @@
 package com.iozycore.domain.tierlist;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -12,12 +11,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class EntityRankTest {
 
     @Test
-    void assigning_a_rank_sets_the_default_owner_and_now() {
+    void classer_date_le_classement_et_laisse_le_proprietaire_a_la_session() {
         UUID entityId = UUID.randomUUID();
         EntityRank rank = EntityRank.assign(entityId, Rank.S);
 
         assertThat(rank.entityId()).isEqualTo(entityId);
-        assertThat(rank.ownerId()).isEqualTo(DefaultOwner.ID);
+        // Pas de propriétaire choisi ici : la session tranche à l'écriture.
+        assertThat(rank.ownerId()).isNull();
         assertThat(rank.rank()).isEqualTo(Rank.S);
         assertThat(rank.rankedAt()).isNotNull();
     }

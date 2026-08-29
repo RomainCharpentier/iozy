@@ -1,6 +1,5 @@
 package com.iozycore.domain.ownership;
 
-import com.iozycore.domain.shared.DefaultOwner;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -9,6 +8,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -24,11 +24,15 @@ class OwnershipTest {
     }
 
     @Test
-    void acquiring_assigns_the_default_owner_until_multi_user_exists() {
+    void acquerir_ne_choisit_pas_de_proprietaire_la_session_le_fera() {
+        // Le domaine ne sait pas qui écrit, et ne doit pas le deviner : le
+        // propriétaire est posé à l'écriture, depuis la session (@TenantId,
+        // voir ProprietaireCourant). Hibernate refuse même une valeur déjà
+        // fixée qui différerait de la sienne.
         Ownership ownership = Ownership.acquire(UUID.randomUUID(), null,
                 OwnershipCondition.NEW, LocalDate.now(), null);
 
-        assertEquals(DefaultOwner.ID, ownership.ownerId());
+        assertNull(ownership.ownerId());
     }
 
     @Test

@@ -56,12 +56,15 @@ class JpaTierListItemRepositoryAdapter implements TierListItemRepository {
 
     @Override
     public void deleteByTierListIdAndEntityId(UUID tierListId, UUID entityId) {
-        jpaRepository.deleteByTierListIdAndEntityId(tierListId, entityId);
+        // Lecture filtrée puis suppression : une suppression en masse
+        // (deleteBy…) ne passe pas par le cloisonnement par propriétaire.
+        jpaRepository.findByTierListIdAndEntityId(tierListId, entityId).ifPresent(jpaRepository::delete);
     }
 
     @Override
     public void deleteByTierListId(UUID tierListId) {
-        jpaRepository.deleteByTierListId(tierListId);
+        // Idem : on efface ce que CE compte voit dans cette liste.
+        jpaRepository.deleteAll(jpaRepository.findByTierListId(tierListId));
     }
 
     private static TierListItemJpaEntity toJpa(TierListItem item) {
