@@ -15,7 +15,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 | | fichiers | lignes |
 |---|---|---|
 | backend `src/main` | 280 | 25 536 |
-| backend `src/test` | 112 | 21 952 |
+| backend `src/test` | 113 | 22 069 |
 | web `src` | 181 | 24 010 |
 | iOS | 24 | 4 166 |
 | migrations Flyway | 26 | — |
@@ -24,7 +24,7 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
 **97 endpoints** · **21 tables** · **27 routes web** ·
-**1 057 tests backend** · **219 tests web** (Vitest) · **9 parcours de bout en
+**1 058 tests backend** · **219 tests web** (Vitest) · **9 parcours de bout en
 bout** (Playwright, sur pile jetable) — tous depuis le 2026-08-29.
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
@@ -129,32 +129,54 @@ les utilisait pas.
 
 ## 3. Constats
 
-### C1 — N+1 mesuré sur les suggestions d'achat · **important**
+### C1 — N+1 mesuré sur les suggestions d'achat · **traité**
 
 `GET /purchase-analysis/near-complete-suggestions` :
 
-| catalogue manga | requêtes SQL |
-|---|---|
-| 5 séries | **88** |
-| 11 séries | **148** |
+| catalogue manga | requêtes SQL (avant) | après |
+|---|---|---|
+| 5 séries | **88** | — |
+| 11 séries | **148** | — |
 
 Soit **~10 requêtes par série supplémentaire**, linéairement. Sur une
-collection de 200 séries, l'ordre de grandeur est de **2 000 requêtes par
+collection de 200 séries, l'ordre de grandeur était de **2 000 requêtes par
 appel**.
 
 Cause, dans `PurchaseAnalysisService.findNearCompleteSuggestions()` : une
-boucle sur toutes les séries qui appelle `progressService.compute(entity.id())`
+boucle sur toutes les séries qui appelait `progressService.compute(entity.id())`
 **une fois par série**, puis `computeCompleteness(...)` une fois par couple
 (série × édition). Or `CollectionProgressService.computeAll()` existe — c'est
-la version groupée, déjà utilisée par le partage public — et n'est pas employée
-ici.
+la version groupée, déjà utilisée par le partage public — et n'était pas
+employée ici.
 
 Cet endpoint alimente **Profil ▸ Suggestions d'achats** et le panneau
-**Découvrir ▸ Opportunités**. Sur le jeu de données actuel il répond en 29 ms,
-donc rien ne se voit ; c'est un problème d'échelle, pas de justesse.
+**Découvrir ▸ Opportunités**. Sur le jeu de données du moment il répondait en
+29 ms, donc rien ne se voyait ; c'était un problème d'échelle, pas de justesse.
 
-C'est la même famille que les trois N+1 corrigés au Lot 33 ; celui-ci avait
+C'était la même famille que les trois N+1 corrigés au Lot 33 ; celui-ci avait
 échappé.
+
+#### Ce qui a été fait (Lot 101)
+
+Les trois sources sont lues **une seule fois** : la progression par
+`computeAll()`, le référentiel d'éditions, et les prix relevés groupés par
+édition. Le reste se calcule en mémoire.
+
+La résolution de l'édition de référence est refaite en mémoire
+(`editionDeLaListe`) plutôt que par `findEdition`, qui **écrit** au passage
+(rattachement d'une édition à sa série connue). Mêmes règles de résolution,
+sans la réparation : un écran qui liste lit, il ne répare pas. C'est le seul
+écart de comportement, et il est délibéré.
+
+`SuggestionsSansN1Test` garde la propriété : il compte les requêtes
+(`Statistics` d'Hibernate) sur le même appel à deux tailles de catalogue et
+exige l'**égalité**. Il ne fige aucun nombre absolu — la base d'intégration est
+partagée, un seuil exact se périmerait au premier test voisin ajouté ; ce qui
+avait été violé, c'est la pente.
+
+Témoin mesuré sur ce jeu-là (des séries plus petites que celles du relevé
+ci-dessus, donc des nombres plus petits) : **38 puis 70** requêtes avant,
+**10 puis 10** après. Le test échoue bien sur le code d'avant.
 
 ### C2 — couverture HTTP des contrôleurs · **RISQUE TRAITÉ**
 
