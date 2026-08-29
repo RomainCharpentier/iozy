@@ -1400,10 +1400,14 @@ l'utilisateur, alors que déclarer les catégories de sa collection ou renseigne
 une édition de référence n'est pas un réglage personnel : c'est l'outillage de
 l'application, et il ne se trouve pas en cherchant son profil.
 
-L'en-tête porte donc **deux** contrôles : une icône clé pour l'administration,
-et l'avatar pour ce qui est vraiment personnel - un menu à deux entrées, Mon
-profil et Paramètres. Profil redevient un écran comme un autre : il a servi de
-couloir, avec jusqu'à cinq liens vers ailleurs, et ne parle plus que de cette
+L'en-tête porte donc **deux** contrôles, et ce sont **deux liens**, pas un
+menu : une icône clé pour l'administration, l'avatar pour le profil. Un panneau
+à ouvrir puis à refermer pour un choix entre deux entrées coûte plus qu'il ne
+range - il a existé une heure, le temps de s'en rendre compte.
+
+Profil ne garde qu'une sortie, vers **Paramètres** : les deux écrans parlent de
+la même personne, et c'est le seul emboîtement qui ne mélange rien. Il a servi
+de couloir avec jusqu'à cinq liens vers ailleurs ; le reste concerne cette
 collection.
 
 Les éditions de référence passent de **trois niveaux de profondeur à zéro** ; le
@@ -1439,9 +1443,9 @@ pseudo en sous-titre — un écran qui s'appelle « Mon profil » doit dire de q
 
 #### Le filet
 
-273 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
-désormais le **chemin** — avatar ▸ Paramètres ▸ Se déconnecter — au lieu d'aller
-à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
+270 tests web (32 modules), 14 parcours. Le parcours de déconnexion emprunte
+désormais le **chemin** — avatar ▸ Profil ▸ Paramètres ▸ Se déconnecter — au
+lieu d'aller à l'URL : c'est ce qui vérifie que la nouvelle organisation est navigable, et
 c'est lui qui a signalé chaque déplacement, les deux fois. Six mutations
 rattrapées, dont la phrase « ces réglages restent sur cet appareil » retirée
 (personne ne peut deviner qu'un thème ne suit pas son compte) et l'entrée
@@ -1450,8 +1454,8 @@ Administration du menu pointée ailleurs.
 `ProfilePage` a enfin ses propres tests, et ils gardent surtout ce qui a
 **quitté** cet écran : le doublon de la barre de navigation, le bilan annuel,
 les actions du compte, et les deux sorties. C'est le genre de chose qui revient
-en douce - et un test s'appelle précisément « n'est pas rangé dans le menu du
-compte », pour la quatrième fois.
+en douce - et un test s'appelle précisément « ne remet pas l'administration
+derrière le profil », pour la quatrième fois.
 
 ### Lot 107 — administrer l'instance, sans administrer les gens
 
