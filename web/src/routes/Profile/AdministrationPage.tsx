@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Tags, Upload, ChevronRight, BookMarked, Users } from 'lucide-react'
+import { Tags, ChevronRight, BookMarked, Users } from 'lucide-react'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { useAuth } from '../../lib/useAuth'
 
@@ -14,19 +14,27 @@ interface AdminLink {
  * Ce qui n'est ni un réglage de compte, ni un réglage d'appareil.
  *
  * <h2>Deux sections, deux échelles</h2>
- * <b>Ma collection</b> : ce qui décrit son CONTENU - les catégories qu'elle
- * accepte, les éditions de référence qui rendent les « X/Y » possibles, ce
- * qu'on y importe. Ça se configure une fois puis s'oublie, contrairement au
- * thème ou à la langue des titres, qui restent dans Paramètres.
+ * <b>Ma collection</b> : ce qui la DÉCRIT - les catégories qu'elle accepte, et
+ * les éditions de référence qui rendent les « X/Y » possibles. Ça se configure
+ * une fois puis s'oublie, contrairement au thème ou à la langue des titres,
+ * qui restent dans Paramètres.
  *
  * <p><b>Cette instance</b> : la machine, pas les données. Une seule entrée -
  * les comptes - et elle n'apparaît que pour un administrateur.
  *
  * <h2>Ce qui a quitté cet écran</h2>
- * L'<b>export</b>. Il vivait ici, à côté des catégories de collection, comme
+ * L'<b>export</b> : il vivait ici, à côté des catégories de collection, comme
  * si télécharger sa collection était de la configuration technique. C'est le
- * contraire : c'est la garantie de pouvoir partir avec ses données, et ça
- * appartient au compte qui les possède - donc à <b>Paramètres ▸ Mon compte</b>.
+ * contraire - c'est la garantie de pouvoir partir avec ses données, et ça
+ * appartient au compte qui les possède, donc à <b>Paramètres ▸ Mon compte</b>.
+ *
+ * <p>L'<b>import BGG</b> : récupérer ses jeux depuis BoardGameGeek, c'est
+ * AJOUTER à sa collection - la même intention que taper un titre ou scanner un
+ * code-barres, avec une troisième source. Il a rejoint <b>Rechercher</b>, à
+ * côté de Scanner. Rien d'administratif là-dedans.
+ *
+ * <p>Ces deux départs disent la même chose : cet écran décrit ou configure, il
+ * ne fait rien à la place de l'utilisateur.
  */
 const MA_COLLECTION: AdminLink[] = [
   {
@@ -40,12 +48,6 @@ const MA_COLLECTION: AdminLink[] = [
     label: 'Éditions de référence',
     description: "Nombre de tomes et éditeur par édition - c'est de là que vient la progression X/Y",
     icon: BookMarked,
-  },
-  {
-    to: '/import-bgg',
-    label: 'Importer depuis BGG',
-    description: 'Récupérer tes jeux de société depuis BoardGameGeek',
-    icon: Upload,
   },
 ]
 

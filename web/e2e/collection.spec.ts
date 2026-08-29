@@ -42,6 +42,13 @@ test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la du
 
   // --- 2. L'ajouter depuis Rechercher
   await page.goto('/add')
+
+  // Les trois façons d'ajouter à sa collection sont réunies ici : taper un
+  // titre, scanner, importer. L'import BGG a vécu sous Administration jusqu'au
+  // 2026-08-29 - il n'a jamais rien eu d'administratif.
+  await expect(page.getByRole('link', { name: 'Scanner' })).toHaveAttribute('href', '/scan')
+  await expect(page.getByRole('link', { name: 'Importer depuis BGG' })).toHaveAttribute('href', '/import-bgg')
+
   await page.getByRole('button', { name: univers }).click()
   await page.getByLabel(/Titre|Un titre/).fill(oeuvre)
 
