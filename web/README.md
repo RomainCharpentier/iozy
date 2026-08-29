@@ -59,6 +59,16 @@ classes Tailwind générées depuis `src/index.css` : `bg-surface`,
 `text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
 cohérent avec le reste de l'app et avec le client iOS.
 
+**Écrire un test** : Vitest + Testing Library, dans un `*.test.ts(x)` posé
+**à côté du module qu'il vérifie** — pas dans un dossier `__tests__` à part,
+pour qu'un module et ses règles se déplacent ensemble. `src/test/fixtures.ts`
+construit les objets du serveur (`oeuvre`, `tome`, `possession`, `edition`)
+afin qu'un test ne nomme que ce qui le concerne. Ce qui mérite un test ici,
+c'est une **règle qui se casse en silence** : un total inconnu qu'on ne doit
+pas deviner, un seul signal par carte, une phrase qui promet quelque chose à
+l'utilisateur. Les composants se vérifient par le **texte lu à l'écran**,
+jamais par une classe CSS ou un `data-testid`.
+
 **Tous les appels du client passent par une URL relative** (`/api/...`),
 jamais une URL absolue vers le backend — en dev, `vite.config.ts` proxy
 `/api` vers `http://localhost:8080` ; en prod (Docker), `nginx.conf` fait
@@ -126,7 +136,11 @@ Ouvre `http://localhost:5173`.
 - `npm run dev` — serveur de dev avec rechargement à chaud
 - `npm run build` — vérification TypeScript + build de production dans `dist/`
 - `npm run preview` — sert le build de production en local
+- `npm run typecheck` — TypeScript seul, sans build
 - `npm run lint` — oxlint
+- `npm test` — la suite Vitest, une fois (`npm run test:watch` pour itérer)
+- `npm run check:contrast` — vérifie que tous les couples de couleurs des deux
+  thèmes tiennent le 4.5:1 de WCAG AA
 
 ## Déploiement (Docker)
 
