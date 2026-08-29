@@ -37,11 +37,11 @@ class PseudoUniqueTest extends PostgresIntegrationTest {
     @Test
     void la_base_refuse_deux_pseudos_identiques_a_la_casse_pres() {
         String pseudo = "kenshin" + UUID.randomUUID().toString().substring(0, 8);
-        comptes.save(new AppUser(UUID.randomUUID(), "un-" + pseudo + "@example.com", "hache", pseudo, null));
+        comptes.save(new AppUser(UUID.randomUUID(), "un-" + pseudo + "@example.com", "hache", pseudo, false, null));
         entityManager.flush();
 
         comptes.save(new AppUser(UUID.randomUUID(), "deux-" + pseudo + "@example.com", "hache",
-                pseudo.toUpperCase(), null));
+                pseudo.toUpperCase(), false, null));
 
         // Le flush est explicite : sans lui, l'écriture attendrait la fin de la
         // transaction et l'échec tomberait hors du test, là où plus personne ne
@@ -52,7 +52,7 @@ class PseudoUniqueTest extends PostgresIntegrationTest {
     @Test
     void le_pseudo_se_relit_par_sa_forme_normalisee() {
         String pseudo = "Rémi" + UUID.randomUUID().toString().substring(0, 8);
-        comptes.save(new AppUser(UUID.randomUUID(), pseudo + "@example.com", "hache", pseudo, null));
+        comptes.save(new AppUser(UUID.randomUUID(), pseudo + "@example.com", "hache", pseudo, false, null));
         entityManager.flush();
 
         // Chercher « RÉMI... » doit trouver « Rémi... » : c'est cette lecture

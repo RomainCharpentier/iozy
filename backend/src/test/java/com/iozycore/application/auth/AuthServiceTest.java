@@ -57,6 +57,16 @@ class AuthServiceTest {
         }
 
         @Override
+        public java.util.List<AppUser> lister() {
+            return java.util.List.copyOf(parId.values());
+        }
+
+        @Override
+        public void supprimer(UUID id) {
+            parId.remove(id);
+        }
+
+        @Override
         public boolean isEmpty() {
             return parId.isEmpty();
         }

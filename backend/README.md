@@ -409,6 +409,31 @@ pour pouvoir dire « Ce pseudo est déjà pris » plutôt que de laisser remonte
 une violation d'index. Et contrairement à un échec de connexion, ce refus est
 explicite : un pseudo est public par destination.
 
+### Administrer l'instance (depuis le 2026-08-29)
+
+Un compte peut porter `is_admin` (migration `V28`). Il donne accès
+à **deux** routes, `GET` et `DELETE /api/admin/comptes` : voir qui a un compte,
+et en supprimer un. **Rien d'autre** - un administrateur n'a aucun accès à la
+collection de quiconque, l'isolation par propriétaire est intacte, et ce qui
+sort de ces routes est fait de métadonnées et de **nombres**.
+
+Le premier compte l'est d'office (`AppUser.premier`), et la V28 marque le plus
+ancien sur une instance déjà en service : sans quoi l'écran existerait sans
+personne pour l'ouvrir. Nommer un second administrateur se fait en SQL,
+délibérément - c'est un geste rare, et lui donner un bouton demanderait de
+décider qui peut appuyer dessus.
+
+```sql
+UPDATE app_user SET is_admin = true WHERE lower(pseudo) = 'kenshin';
+```
+
+La suppression efface les **onze tables** cloisonnées puis le compte
+(`JdbcDonneesParProprietaire`, le seul endroit du dépôt qui lise et écrive
+par-dessus la cloison - en SQL, parce qu'un dépôt JPA serait filtré sur le
+propriétaire courant). Le catalogue n'est pas touché : il est partagé. Un
+administrateur **ne peut pas supprimer son propre compte** (409) - c'est ce qui
+garantit qu'il en reste toujours un.
+
 Trois détails qui ont coûté du temps, et qu'il vaut mieux lire que
 redécouvrir :
 

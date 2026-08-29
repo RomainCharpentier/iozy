@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Tags, Upload, ChevronRight, BookMarked } from 'lucide-react'
+import { Tags, Upload, ChevronRight, BookMarked, Users } from 'lucide-react'
 import { EnTeteSection } from '../../components/EnTeteSection'
+import { useAuth } from '../../lib/useAuth'
 
 interface AdminLink {
   to: string
@@ -27,7 +28,24 @@ const LINKS: AdminLink[] = [
   },
 ]
 
+/**
+ * Réservé aux administrateurs, et absent pour les autres.
+ * <p>
+ * Le masquer n'est PAS ce qui protège : le serveur répond 403 sur
+ * {@code /api/admin/**} quel que soit l'écran (voir SecurityConfig). Ce qui se
+ * joue ici est autre chose - ne pas proposer une porte qui ne s'ouvrira pas.
+ */
+const LIEN_COMPTES: AdminLink = {
+  to: '/administration/comptes',
+  label: 'Comptes',
+  description: "Qui a un compte sur cette instance, et en supprimer un - jamais le contenu de leur collection",
+  icon: Users,
+}
+
 export function AdministrationPage() {
+  const { compte } = useAuth()
+  const liens = compte?.admin ? [...LINKS, LIEN_COMPTES] : LINKS
+
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -39,7 +57,7 @@ export function AdministrationPage() {
       </div>
 
       <ul className="flex flex-col gap-2">
-        {LINKS.map(({ to, label, description, icon: Icon }) => (
+        {liens.map(({ to, label, description, icon: Icon }) => (
           <li key={to}>
             <Link
               to={to}

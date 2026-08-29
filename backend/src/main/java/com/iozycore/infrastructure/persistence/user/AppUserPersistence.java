@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,6 +50,19 @@ class JpaAppUserRepositoryAdapter implements AppUserRepository {
     }
 
     @Override
+    public List<AppUser> lister() {
+        return jpaRepository.findAll().stream()
+                .map(JpaAppUserRepositoryAdapter::toDomain)
+                .sorted(Comparator.comparing(AppUser::createdAt).thenComparing(AppUser::id))
+                .toList();
+    }
+
+    @Override
+    public void supprimer(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public boolean isEmpty() {
         // `count() == 0` plutôt qu'un `findAll().isEmpty()` : la question posée
         // est « y a-t-il déjà quelqu'un », pas « qui ».
@@ -55,12 +70,12 @@ class JpaAppUserRepositoryAdapter implements AppUserRepository {
     }
 
     private static AppUserJpaEntity toJpa(AppUser user) {
-        return new AppUserJpaEntity(user.id(), user.email(), user.passwordHash(), user.pseudo(),
+        return new AppUserJpaEntity(user.id(), user.email(), user.passwordHash(), user.pseudo(), user.admin(),
                 user.createdAt());
     }
 
     private static AppUser toDomain(AppUserJpaEntity jpa) {
-        return new AppUser(jpa.getId(), jpa.getEmail(), jpa.getPasswordHash(), jpa.getPseudo(),
+        return new AppUser(jpa.getId(), jpa.getEmail(), jpa.getPasswordHash(), jpa.getPseudo(), jpa.isAdmin(),
                 jpa.getCreatedAt());
     }
 }

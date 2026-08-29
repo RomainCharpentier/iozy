@@ -21,7 +21,12 @@ import java.util.UUID;
 @Service
 public class AppUserDetailsService implements UserDetailsService {
 
-    /** Aucun rôle dans cette application : tous les comptes peuvent la même chose. */
+    /** Le seul rôle de cette application. Il ne donne accès à rien des données
+     *  d'autrui - uniquement à l'administration de l'instance (voir V28). */
+    private static final List<org.springframework.security.core.GrantedAuthority> ADMINISTRATEUR =
+            List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
+
+    /** Le cas courant : un compte ordinaire, qui peut tout sur SA collection. */
     private static final List<org.springframework.security.core.GrantedAuthority> AUCUN_ROLE = List.of();
 
     private final AppUserRepository comptes;
@@ -34,7 +39,7 @@ public class AppUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         AppUser compte = comptes.findByEmail(AppUser.normaliserEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("Compte inconnu"));
-        return new Principal(compte.id(), compte.email(), compte.passwordHash(), compte.pseudo());
+        return new Principal(compte.id(), compte.email(), compte.passwordHash(), compte.pseudo(), compte.admin());
     }
 
     /**
@@ -43,11 +48,12 @@ public class AppUserDetailsService implements UserDetailsService {
      * passe fourni à celui-ci ; il ne sort jamais vers un client (voir
      * {@code AuthController}, qui rend une vue explicite du compte).
      */
-    public record Principal(UUID id, String email, String motDePasseHache, String pseudo) implements UserDetails {
+    public record Principal(UUID id, String email, String motDePasseHache, String pseudo, boolean admin)
+            implements UserDetails {
 
         @Override
         public List<org.springframework.security.core.GrantedAuthority> getAuthorities() {
-            return AUCUN_ROLE;
+            return admin ? ADMINISTRATEUR : AUCUN_ROLE;
         }
 
         @Override

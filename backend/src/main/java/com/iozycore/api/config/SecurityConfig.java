@@ -147,6 +147,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/etat").permitAll()
                         // Les liens de partage : leur destinataire n'a pas de compte.
                         .requestMatchers("/api/public/**").permitAll()
+                        // L'administration de l'INSTANCE - qui a un compte, et
+                        // en supprimer un. Déclarée AVANT `anyRequest`, sans
+                        // quoi « authentifié » suffirait : la première règle
+                        // qui correspond gagne. Rien ici n'ouvre les données
+                        // d'autrui, qui restent filtrées par propriétaire.
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Une API répond 401, elle ne redirige pas vers une page de
                 // connexion : c'est le client qui décide quoi montrer.

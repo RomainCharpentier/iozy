@@ -1360,6 +1360,66 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 107 — administrer l'instance, sans administrer les gens
+
+Depuis le Lot 95, plusieurs personnes peuvent avoir un compte ici. Personne ne
+pouvait savoir **qui**. `AppUser` disait même, en toutes lettres : « ni rôle,
+ni permission, ni statut ». C'était vrai tant que personne n'avait à répondre
+de l'instance elle-même.
+
+**Profil ▸ Paramètres ▸ Administration ▸ Comptes** : la liste, et la
+suppression d'un compte.
+
+#### La ligne que ce lot ne franchit pas
+
+Un administrateur n'a **aucun accès** à la collection de qui que ce soit.
+L'isolation par propriétaire est intacte, et ce qui sort de ces deux routes est
+fait de métadonnées et de **nombres** : « 412 possessions · 7 envies ». Ces
+nombres ne décorent pas - ce sont eux qu'on lit avant de supprimer, et un écran
+qui montrerait seulement des pseudos ferait prendre la décision à l'aveugle.
+
+C'est aussi ce qui distingue un administrateur d'un super-utilisateur : il
+répond de la machine, pas des collections qui y vivent.
+
+#### Un booléen, et une porte nommée
+
+`is_admin`, pas une table de rôles : il n'y a qu'une distinction à faire, et
+une machinerie à deux valeurs dont personne ne lirait jamais la seconde ligne.
+Le premier compte l'est d'office, et la V28 marque le plus ancien sur une
+instance déjà en service - sans quoi l'écran existerait sans personne pour
+l'ouvrir. Nommer un second administrateur se fait en SQL, délibérément : c'est
+un geste rare, et lui donner un bouton demanderait de décider qui peut appuyer
+dessus.
+
+Compter les possessions de quelqu'un d'autre, ou les effacer, c'est
+littéralement sortir de sa propre cloison - un dépôt JPA en est incapable, le
+filtre de `@TenantId` s'applique. D'où `JdbcDonneesParProprietaire` : du SQL
+direct, **le seul endroit du dépôt** qui regarde par-dessus la cloison, avec un
+seul appelant et le rôle `ADMIN` devant. Pas un contournement glissé dans un
+dépôt ordinaire : une porte qui porte son nom.
+
+La liste des onze tables y est **écrite à la main**. On pourrait la déduire du
+schéma (« toute table portant `owner_id` ») ; une suppression définitive ne doit
+pas dépendre d'une découverte - une table ajoutée demain serait effacée sans que
+personne ne l'ait décidé.
+
+#### Deux refus, et pourquoi ils protègent
+
+**On ne se supprime pas soi-même** (409, et aucun bouton sur sa propre ligne) :
+c'est ce qui garantit qu'il reste toujours quelqu'un pour administrer. **Le
+catalogue n'est pas touché** : il est partagé, et supprimer les œuvres d'un
+compte les retirerait de la collection des autres. La phrase de confirmation le
+dit, parce que c'est exactement la crainte qu'on a le doigt sur le bouton.
+
+#### Le filet
+
+1076 tests backend, 255 web. Cinq mutations rattrapées, dont les trois qui
+comptent vraiment : la table `ownership` retirée de la liste (des possessions
+survivent à leur propriétaire, invisibles pour toujours), le `DELETE` privé de
+son filtre (il emporte les voisins de ligne), et `hasRole("ADMIN")` ramené à
+« authentifié » (n'importe quel compte peut lister puis supprimer tout le
+monde). Aucune des trois ne casse un écran.
+
 ### Lot 106 — trois parcours de plus, et deux défauts qu'ils ont trouvés
 
 Neuf des dix parcours structurants sont désormais joués de bout en bout (14
@@ -6082,6 +6142,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Une capacité qui doit voir PAR-DESSUS le cloisonnement ne s'écrit pas avec les dépôts ordinaires : `@TenantId` les filtre sur le propriétaire courant, en silence. Elle se pose dans un port séparé, en SQL, avec un seul appelant et une garde devant - visible, plutôt que glissée dans un dépôt qu'on croit ordinaire (Lot 107).
+- La liste des tables d'une suppression définitive s'écrit à la MAIN, jamais déduite du schéma : déduite, une table ajoutée demain serait effacée sans que personne ne l'ait décidé, et une table renommée disparaîtrait de la liste sans un mot (Lot 107).
 - Un repli « au cas où » sur une donnée INCONNUE produit une affirmation fausse et crédible : `totalVolumes ?? cataloguedVolumeNumbers.length` annonçait une collection complète à qui n'a jamais renseigné son édition. Quand un champ documente « null tant qu'aucune source ne le connaît », le repli est le bug (Lot 106).
 - Un parcours de bout en bout qui affirme un TOTAL de collection dépend de l'ordre des fichiers de test : ils partagent une pile. Compter ce que le test vient lui-même de créer, jamais l'état global (Lot 106).
 - Une aide de saisie posée DANS le `<label>` devient une partie du NOM du champ : le lecteur d'écran annonce « Mot de passe Au moins 10 caractères » d'une traite, et `getByLabelText('Mot de passe')` ne trouve plus rien. Les règles se relient par `aria-describedby`, hors du label - et ce lien-là se teste (`toHaveAccessibleDescription`), sinon rien ne le garde (Lot 105).

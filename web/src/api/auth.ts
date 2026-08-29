@@ -22,6 +22,12 @@ export interface Compte {
   email: string
   /** Unique sur l'instance, et le seul nom sous lequel on apparaît - jamais l'adresse. */
   pseudo: string
+  /**
+   * Peut administrer l'INSTANCE - voir qui a un compte, en supprimer un.
+   * Aucun accès aux données de quiconque : l'isolation par propriétaire est
+   * entière (voir `api/admin`).
+   */
+  admin: boolean
 }
 
 export function lireEtatAuth(): Promise<EtatAuth> {

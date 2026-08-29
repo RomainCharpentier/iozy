@@ -42,7 +42,7 @@ beforeEach(() => {
 
 /** Rend l'en-tête pour un compte donné, une fois celui-ci connu. */
 async function avatarDe(pseudo: string) {
-  api.lireCompte.mockResolvedValue({ id: 'u1', email: 'qui@example.com', pseudo })
+  api.lireCompte.mockResolvedValue({ id: 'u1', email: 'qui@example.com', pseudo, admin: false })
   render(<GlobalShortcuts />, { wrapper: enrobage })
   return screen.findByRole('link', { name: `Mon profil — ${pseudo}` })
 }

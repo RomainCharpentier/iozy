@@ -104,7 +104,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     /** Ouvre une session, comme le filtre de sécurité le fait sur une vraie requête. */
     private void connecte(UUID compte) {
         AppUserDetailsService.Principal principal =
-                new AppUserDetailsService.Principal(compte, compte + "@example.com", "{noop}x", "Compte");
+                new AppUserDetailsService.Principal(compte, compte + "@example.com", "{noop}x", "Compte", false);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
     }
