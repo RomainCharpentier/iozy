@@ -75,6 +75,31 @@ describe('quand le titre arrive après', () => {
   })
 })
 
+describe('quand l’écran change sans que l’URL bouge', () => {
+  it('suit le nouveau titre - la porte d’authentification est au même endroit', () => {
+    // Se connecter remplace tout l'écran sans changer d'URL : sans clé qui en
+    // tienne compte, l'onglet garderait « IozyCore » sur la collection.
+    poser('<main><h1>IozyCore</h1></main>')
+    const { rerender } = renderHook(({ cle }) => useDocumentTitleFromHeading(cle), {
+      initialProps: { cle: '/|anonyme' },
+    })
+    expect(document.title).toBe('IozyCore')
+
+    poser('<main><h1>Ma collection</h1></main>')
+    rerender({ cle: '/|connecte' })
+
+    expect(document.title).toBe('Ma collection · IozyCore')
+  })
+
+  it('ne suffixe pas le nom de l’application par lui-même', () => {
+    poser('<main><h1>IozyCore</h1></main>')
+
+    renderHook(() => useDocumentTitleFromHeading('/'))
+
+    expect(document.title).toBe('IozyCore')
+  })
+})
+
 describe('quand il n’y a pas de titre du tout', () => {
   it('retombe sur le nom de l’application', () => {
     poser('<main></main>')

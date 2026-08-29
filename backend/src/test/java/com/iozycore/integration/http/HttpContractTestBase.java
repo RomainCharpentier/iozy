@@ -3,8 +3,11 @@ package com.iozycore.integration.http;
 import com.iozycore.integration.PostgresIntegrationTest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iozycore.application.auth.AppUserDetailsService;
+import com.iozycore.domain.shared.DefaultOwner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -45,8 +48,31 @@ import org.springframework.test.web.servlet.MockMvc;
  * remontent donc d'un cran, et ce socle n'ajoute plus que ce qui lui est
  * propre - {@code MockMvc}.
  */
+/**
+ * <h2>Ces tests parlent au nom d'un compte connecté</h2>
+ * Depuis que l'API est protégée (Lot 94), une requête anonyme reçoit 401 avant
+ * d'atteindre le moindre contrôleur : les 86 endpoints couverts ici ne
+ * testeraient plus que la page de refus. Chaque requête part donc authentifiée
+ * et porte son jeton CSRF, posés <b>en un seul endroit</b> plutôt qu'ajoutés à
+ * la main sur des centaines d'appels - une ligne oubliée quelque part se
+ * lirait comme un défaut du contrôleur.
+ * <p>
+ * Ce que ce socle NE fait pas : vérifier la porte elle-même. C'est l'objet de
+ * {@code AuthHttpContractTest}, qui envoie ses requêtes en anonyme.
+ */
 @AutoConfigureMockMvc
+@Import(RequetesAuthentifiees.class)
 public abstract class HttpContractTestBase extends PostgresIntegrationTest {
+
+    /**
+     * Le compte au nom duquel ces tests écrivent. Il porte l'identifiant du
+     * propriétaire par défaut : les données créées par les migrations et par
+     * les tests d'intégration existants lui appartiennent donc, exactement
+     * comme le premier compte créé sur une instance reprend la collection
+     * déjà en base.
+     */
+    protected static final AppUserDetailsService.Principal IDENTITE_DE_TEST =
+            new AppUserDetailsService.Principal(DefaultOwner.ID, "test@iozycore.local", "{noop}sans-objet", "Test");
 
     @Autowired
     protected MockMvc mockMvc;

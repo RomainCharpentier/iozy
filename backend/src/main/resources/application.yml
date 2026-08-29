@@ -25,6 +25,23 @@ spring:
 
 server:
   port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # `Lax` et non `None` : l'API est servie sous la MÊME origine que l'app
+        # (proxy Vite en dev, nginx en production). Le cookie n'a donc jamais
+        # à voyager cross-site, et `Lax` bloque au passage les écritures
+        # déclenchées par une page tierce.
+        same-site: lax
+        # À passer à `true` dès qu'il y a du TLS devant (déploiement) : un
+        # cookie `Secure` ne part pas en clair. Faux par défaut, sans quoi le
+        # développement en http://localhost ne retiendrait aucune session.
+        secure: ${SESSION_COOKIE_SECURE:false}
+      # Une session dort huit heures : de quoi traverser une journée sans se
+      # reconnecter, sans laisser un téléphone posé sur une table ouvert
+      # indéfiniment.
+      timeout: 8h
   error:
     # Les refus explicites levés par les contrôleurs (ResponseStatusException)
     # portent un message écrit POUR l'utilisateur - "Impossible de supprimer
@@ -35,6 +52,14 @@ server:
     # Application personnelle auto-hébergée : aucune exposition indésirable,
     # ces messages sont précisément écrits pour être lus.
     include-message: always
+
+auth:
+  # Code d'invitation exigé pour créer un compte APRÈS le premier (le premier
+  # est libre : il faut bien que quelqu'un entre, et il reprend la collection
+  # déjà en base). Laissé vide, la création est FERMÉE une fois le premier
+  # compte créé - l'absence de configuration ferme la porte, elle ne l'ouvre
+  # pas. Voir AuthService.
+  invite-code: ${IOZYCORE_INVITE_CODE:}
 
 web:
   # Origines autorisées pour les requêtes POST/PATCH/DELETE du client web

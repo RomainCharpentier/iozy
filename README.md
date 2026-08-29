@@ -59,15 +59,35 @@ l'API seule, ignore ce port.
 
 **Vérifier que ça tourne :**
 ```bash
-curl http://localhost:8080/api/entities/00000000-0000-0000-0000-000000000000
-# 404 attendu -> l'API répond bien
+curl http://localhost:8080/api/auth/etat
+# {"aucunCompte":true,"creationOuverte":true} -> l'API répond bien
 ```
+
+### Le premier compte
+
+Depuis le 2026-08-29, **l'API demande un compte** : sans session, tout répond
+401, sauf trois choses — l'état ci-dessus, la connexion, et les liens de
+partage (dont le destinataire n'a par définition pas de compte).
+
+Le plus simple est de créer ce premier compte **depuis l'app web** : ouvre-la,
+elle propose « Créer un compte » tant que personne n'en a. Ce premier compte
+**reprend la collection déjà en base** — rien à migrer.
+
+En ligne de commande, si tu testes l'API seule :
+```bash
+curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -d '{"email":"moi@example.com","motDePasse":"un-mot-de-passe","nomAffiche":"Moi"}'
+```
+
+Les comptes **suivants** exigent un code d'invitation, à définir dans
+l'environnement (`IOZYCORE_INVITE_CODE`). Non défini, la création est **fermée**
+après le premier compte : une instance déployée sans y penser ne devient pas
+une base ouverte à qui passe.
 
 ### Tester
 
 | Méthode | Ce que c'est | Comment |
 |---|---|---|
-| **Swagger UI** | Interface web pour tester chaque route à la main | Ouvrir `http://localhost:8080/swagger-ui.html` |
+| **Swagger UI** | Interface web pour tester chaque route à la main | Ouvrir `http://localhost:8080/swagger-ui.html` — **connecte-toi d'abord** (le navigateur garde le cookie de session, Swagger en profite) |
 | **`requests.http`** | 25 requêtes prêtes à l'emploi (ajout rapide + déduplication, recherche métadonnées, lookup ISBN, import BGG, recherche transversale, statistiques, découverte, wishlist, suppression bloquée...) | Extension "REST Client" (VS Code) ou client HTTP intégré (IntelliJ/DataGrip), clic sur "Send Request" |
 | **curl** | Ligne de commande | Voir exemples dans `requests.http` ou le README backend |
 

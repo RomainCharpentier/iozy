@@ -1,0 +1,154 @@
+import { useState, type FormEvent } from 'react'
+import { ErrorBanner } from '../../components/ErrorBanner'
+import { CLASSE_CARTE } from '../../components/Carte'
+import { useAuth } from '../../lib/useAuth'
+
+/**
+ * La porte, côté écran.
+ *
+ * <h2>Un seul écran, trois situations</h2>
+ * Une instance neuve n'a aucun compte : elle propose d'en <b>créer le
+ * premier</b>, qui reprendra la collection déjà en base. Une instance en
+ * service propose de <b>se connecter</b>, et n'ouvre la création que si
+ * l'exploitant a configuré un code d'invitation. Trois écrans séparés
+ * auraient trois fois la même erreur à afficher.
+ *
+ * <h2>Ce qui n'est pas dit</h2>
+ * Un refus de connexion dit « adresse ou mot de passe incorrect » et rien de
+ * plus : c'est le serveur qui en décide, et il rend volontairement le même
+ * message dans les deux cas - distinguer offrirait un test d'existence de
+ * compte à qui n'en a pas.
+ *
+ * <p>Hors de {@code AppShell} : quelqu'un qui n'est pas connecté ne doit voir
+ * ni la navigation, ni le moindre compteur de collection.
+ */
+export function AuthPage() {
+  const { aucunCompteSurLInstance, creationOuverte, connexion, creation } = useAuth()
+  const [mode, setMode] = useState<'connexion' | 'creation' | null>(null)
+  const [email, setEmail] = useState('')
+  const [motDePasse, setMotDePasse] = useState('')
+  const [nomAffiche, setNomAffiche] = useState('')
+  const [codeInvitation, setCodeInvitation] = useState('')
+
+  // Le mode par défaut suit l'instance ; un clic explicite le remplace.
+  const modeCourant = mode ?? (aucunCompteSurLInstance ? 'creation' : 'connexion')
+  const enCreation = modeCourant === 'creation'
+  const enCours = connexion.isPending || creation.isPending
+  const echec = connexion.error ?? creation.error
+
+  function envoyer(evenement: FormEvent) {
+    evenement.preventDefault()
+    if (enCreation) {
+      creation.mutate({
+        email: email.trim(),
+        motDePasse,
+        nomAffiche: nomAffiche.trim(),
+        codeInvitation: codeInvitation.trim() || undefined,
+      })
+    } else {
+      connexion.mutate({ email: email.trim(), motDePasse })
+    }
+  }
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="font-display text-2xl font-bold text-textPrimary">IozyCore</h1>
+        <p className="text-sm text-textDim">
+          {aucunCompteSurLInstance
+            ? 'Personne n’a encore de compte ici. Le premier créé reprend la collection déjà enregistrée.'
+            : 'Ta collection, ce qu’il te manque, et ce que vaut une annonce.'}
+        </p>
+      </div>
+
+      <form onSubmit={envoyer} className={`flex flex-col gap-3 ${CLASSE_CARTE}`}>
+        <h2 className="font-display text-lg font-bold text-textPrimary">
+          {enCreation ? 'Créer un compte' : 'Se connecter'}
+        </h2>
+
+        <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-email">
+          Adresse e-mail
+          <input
+            id="auth-email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-mot-de-passe">
+          Mot de passe
+          <input
+            id="auth-mot-de-passe"
+            type="password"
+            // Dit au gestionnaire de mots de passe s'il doit proposer d'en
+            // fabriquer un ou de relire celui qu'il a déjà.
+            autoComplete={enCreation ? 'new-password' : 'current-password'}
+            required
+            minLength={enCreation ? 10 : undefined}
+            value={motDePasse}
+            onChange={(e) => setMotDePasse(e.target.value)}
+            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+          />
+          {enCreation && <span className="text-xs text-textDim">Au moins 10 caractères.</span>}
+        </label>
+
+        {enCreation && (
+          <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-nom">
+            Nom affiché
+            <input
+              id="auth-nom"
+              autoComplete="nickname"
+              value={nomAffiche}
+              onChange={(e) => setNomAffiche(e.target.value)}
+              placeholder="Facultatif"
+              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            />
+          </label>
+        )}
+
+        {/* Le code d'invitation ne concerne QUE les comptes suivants : le
+            premier n'en a pas besoin, et l'afficher alors laisserait croire
+            qu'il en faut un. */}
+        {enCreation && !aucunCompteSurLInstance && (
+          <label className="flex flex-col gap-1.5 text-sm text-textDim" htmlFor="auth-invitation">
+            Code d’invitation
+            <input
+              id="auth-invitation"
+              required
+              value={codeInvitation}
+              onChange={(e) => setCodeInvitation(e.target.value)}
+              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            />
+          </label>
+        )}
+
+        <button
+          type="submit"
+          disabled={enCours}
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+        >
+          {enCours ? 'Un instant…' : enCreation ? 'Créer mon compte' : 'Se connecter'}
+        </button>
+
+        {echec && <ErrorBanner message={echec.message} />}
+      </form>
+
+      {/* Bascule proposée seulement quand elle mène quelque part : sur une
+          instance fermée aux nouveaux comptes, « créer un compte » n'ouvrirait
+          qu'un refus. */}
+      {!aucunCompteSurLInstance && creationOuverte && (
+        <button
+          type="button"
+          onClick={() => setMode(enCreation ? 'connexion' : 'creation')}
+          className="self-center text-sm text-accentText underline underline-offset-4"
+        >
+          {enCreation ? 'J’ai déjà un compte' : 'Créer un compte avec une invitation'}
+        </button>
+      )}
+    </main>
+  )
+}

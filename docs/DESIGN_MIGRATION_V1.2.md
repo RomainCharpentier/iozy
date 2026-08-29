@@ -1360,6 +1360,90 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 94 — la porte
+
+L'API n'était protégée par **rien**. N'importe qui l'atteignant pouvait tout
+lire et tout écrire : acceptable tant qu'elle ne sortait pas de localhost,
+intenable dès qu'elle en sort. Décision du 2026-08-29 : plusieurs personnes,
+chacune sa collection, sur un hébergeur géré. Ce lot pose la porte ; l'isolation
+par propriétaire vient ensuite.
+
+#### Le premier compte reprend la collection
+
+Les colonnes `owner_id` existent depuis la V2, remplies avec `DefaultOwner.ID`
+« pour le jour où ». Ce jour est arrivé, et la migration la plus délicate n'a
+pas eu lieu : le **premier compte adopte cet identifiant**. La collection déjà
+saisie devient la sienne sans qu'une seule ligne ne bouge — vérifié en direct,
+6 titres et 12 tomes retrouvés juste après la création du compte.
+
+Les comptes **suivants** exigent un code d'invitation, et **l'absence de code
+configuré ferme la porte** au lieu de l'ouvrir. C'est le sens de la mesure :
+une instance déployée sans y penser ne doit pas devenir une base ouverte à qui
+passe.
+
+#### Une session, pas un jeton dans le navigateur
+
+Un cookie `HttpOnly` n'est pas lisible par du JavaScript ; un jeton rangé dans
+`localStorage` l'est par n'importe quel script injecté. Et l'architecture sert
+déjà l'API sous la **même origine** que l'app (proxy Vite, nginx) : le cookie
+voyage sans configuration cross-site. Contrepartie assumée : les sessions
+vivent en mémoire, un redémarrage déconnecte tout le monde.
+
+Contrepartie *technique* du cookie : il part tout seul, y compris quand une
+autre page déclenche la requête — c'est la définition d'une CSRF. D'où le jeton
+en cookie lisible, renvoyé en en-tête par `api/client.ts`.
+
+#### Deux pièges que seul le direct a révélés
+
+Les deux ont coûté un aller-retour, et les deux passaient les tests.
+
+- **Le jeton CSRF masqué.** Le gestionnaire par défaut de Spring Security 6
+  masque le jeton (protection BREACH) et attend en retour la valeur masquée
+  qu'il a exposée dans la page — pas celle du cookie. Un client qui lit le
+  cookie renvoie donc une valeur que le démasquage rejette : **403 sur toute
+  écriture**, à commencer par la première connexion. Constaté en cliquant sur
+  « Créer mon compte », pas en test.
+- **Le 404 qui répondait 401.** Un 404 ne s'écrit pas directement : le
+  conteneur le redirige en interne vers la page d'erreur, et cette redirection
+  retraverse la chaîne de sécurité depuis Spring Security 6. Un lien de partage
+  inconnu répondait donc **401 à un visiteur anonyme** — sur la seule surface
+  dont le destinataire n'a, par définition, pas de compte. MockMvc ne rejoue
+  pas cette redirection : il rendait 404, et les tests passaient.
+
+Le second a donné un test qui ne pouvait pas s'écrire autrement :
+`PorteSurUnVraiServeurTest` démarre un **vrai serveur** (`RANDOM_PORT` +
+`TestRestTemplate`) et vérifie les trois seules réponses dont la redirection
+d'erreur change le sens. Vérifié par mutation : la ligne
+`dispatcherTypeMatchers(ERROR).permitAll()` retirée, il tombe.
+
+#### Les 86 endpoints déjà couverts n'ont pas eu à changer
+
+Une requête anonyme reçoit 401 avant d'atteindre le moindre contrôleur : sans
+rien faire, tous les tests de contrat n'auraient plus testé que la page de
+refus. Ils partent donc au nom d'un compte connecté, avec leur jeton CSRF,
+posés **en un seul endroit** (`RequetesAuthentifiees`) plutôt qu'ajoutés à la
+main sur des centaines d'appels — un `.with(csrf())` oublié quelque part se
+lirait comme un défaut du contrôleur. Ce compte de test porte
+`DefaultOwner.ID`, exactement comme le premier compte d'une vraie instance.
+
+#### Ce qui n'est pas fait, et qui est dit
+
+**L'isolation par propriétaire n'est pas branchée** : les écritures portent
+toujours `DefaultOwner.ID`, les lectures ne filtrent pas encore par compte. Un
+deuxième compte verrait la collection du premier. C'est pour ça que la création
+de comptes supplémentaires est **fermée par défaut**, et c'est écrit dans
+`backend/README.md` comme dans l'audit technique plutôt que laissé à découvrir.
+
+`UtilisateurCourant` est la couture prévue pour ça : le seul endroit qui sait
+lire la session, avec un repli sur `DefaultOwner.ID` qui disparaîtra quand
+chaque écriture saura nommer son auteur.
+
+**Vérifié en direct** : instance neuve → écran « créer le premier compte » →
+collection retrouvée → déconnexion → écran « se connecter » (sans proposer de
+créer, faute de code d'invitation) → reconnexion → collection. Puis, en
+anonyme : collection 401, lien de partage créé lisible **200**, révoqué **404**.
+1040 tests backend depuis `clean`, 215 tests web.
+
 ### Lot 93 — l'app s'installe sur l'écran d'accueil
 
 Premier pas du chantier « sortir du localhost » (décision du 2026-08-29), et le

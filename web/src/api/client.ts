@@ -94,16 +94,54 @@ async function extractErrorMessage(response: Response): Promise<string> {
 const MESSAGE_HORS_LIGNE =
   "Impossible de joindre IozyCore. Vérifie que le serveur est démarré, puis réessaie."
 
+/**
+ * Le jeton anti-CSRF, tel que le serveur vient de le déposer.
+ *
+ * <h2>Pourquoi ce va-et-vient</h2>
+ * La session est un cookie, et un cookie part TOUT SEUL avec la requête - y
+ * compris quand c'est une autre page qui la déclenche. C'est la définition
+ * d'une CSRF. Le serveur dépose donc un second cookie, celui-ci LISIBLE par
+ * le JavaScript de cette origine, qu'on lui renvoie en en-tête : une page
+ * tierce ne peut pas le lire, donc pas forger l'en-tête.
+ *
+ * <p>Absent avant le tout premier appel (le serveur ne l'a pas encore posé) :
+ * l'en-tête est alors simplement omis, et c'est le serveur qui tranche.
+ */
+function jetonCsrf(): string | undefined {
+  const brut = document.cookie
+    .split('; ')
+    .find((morceau) => morceau.startsWith('XSRF-TOKEN='))
+    ?.slice('XSRF-TOKEN='.length)
+  return brut ? decodeURIComponent(brut) : undefined
+}
+
+/**
+ * Ce qui est annoncé quand la session n'est plus valable.
+ *
+ * Un 401 peut tomber sur N'IMPORTE quel appel : session expirée, serveur
+ * redémarré, déconnexion depuis un autre onglet. Plutôt que de laisser chaque
+ * écran inventer sa réaction, le client l'annonce une fois, et l'écran de
+ * connexion se remet en place de lui-même (voir lib/useAuth).
+ */
+export const EVENEMENT_SESSION_PERDUE = 'iozycore:session-perdue'
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
+  const methode = (init?.method ?? 'GET').toUpperCase()
+  const jeton = methode === 'GET' || methode === 'HEAD' ? undefined : jetonCsrf()
   try {
     response = await fetch(`/api${path}`, {
       ...init,
+      // La session voyage dans un cookie : sans ceci, un appel vers une autre
+      // origine que la page (déploiement où l'app et l'API sont sur deux
+      // domaines) partirait sans lui, donc en 401 - alors qu'on est connecté.
+      credentials: 'include',
       headers: {
         // Surtout PAS sur un FormData : le navigateur doit poser lui-même
         // `multipart/form-data; boundary=…`, et l'écraser par `application/json`
         // rendrait le corps illisible côté serveur (415, sans indice).
         ...(init?.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+        ...(jeton ? { 'X-XSRF-TOKEN': jeton } : {}),
         ...init?.headers,
       },
     })
@@ -117,6 +155,13 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
+    // La session a sauté : l'annoncer UNE fois, ici, plutôt que de laisser
+    // chaque écran deviner ce que veut dire son 401. `/auth/me` est exclu -
+    // c'est justement la question « suis-je connecté ? », et son 401 est une
+    // réponse, pas un incident.
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      window.dispatchEvent(new CustomEvent(EVENEMENT_SESSION_PERDUE))
+    }
     throw new ApiError(response.status, await extractErrorMessage(response))
   }
 

@@ -34,11 +34,20 @@ const BASE = 'IozyCore'
  * {@link MutationObserver} attend donc son apparition, se débranche dès qu'il
  * l'a trouvé, et abandonne après un délai plutôt que d'observer indéfiniment.
  */
-export function useDocumentTitleFromHeading(pathname: string): void {
+/**
+ * @param cle ce qui, en changeant, peut changer le `h1` affiché. La route,
+ *            évidemment - mais pas seulement : la porte d'authentification
+ *            remplace tout l'écran <b>sans</b> changer d'URL, et le titre
+ *            restait alors celui de l'écran de connexion (« IozyCore ») une
+ *            fois la collection affichée. Une clé, pas un chemin.
+ */
+export function useDocumentTitleFromHeading(cle: string): void {
   useEffect(() => {
     const appliquer = (titre: string | null | undefined) => {
       const propre = (titre ?? '').replace(/\s+/g, ' ').trim()
-      document.title = propre ? `${propre} · ${BASE}` : BASE
+      // « IozyCore · IozyCore » : le titre d'un écran qui porte le nom de
+      // l'application ne se suffixe pas de lui-même.
+      document.title = !propre || propre === BASE ? BASE : `${propre} · ${BASE}`
     }
 
     // `main h1` d'abord, puis n'importe quel `h1` : la page de partage public
@@ -78,5 +87,5 @@ export function useDocumentTitleFromHeading(pathname: string): void {
       observateur.disconnect()
       clearTimeout(abandon)
     }
-  }, [pathname])
+  }, [cle])
 }

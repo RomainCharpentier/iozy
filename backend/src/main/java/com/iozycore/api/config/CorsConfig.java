@@ -36,6 +36,14 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(allowedOriginsCsv.split(","))
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
-                .allowedHeaders("*");
+                .allowedHeaders("*")
+                // Depuis qu'il y a une session : sans ceci, un navigateur
+                // n'envoie PAS le cookie sur un appel cross-origin, et
+                // n'accepte pas celui qu'on lui renvoie - la connexion
+                // paraîtrait réussir puis chaque appel repartirait en 401.
+                // Sans effet dans le montage habituel (l'app et l'API sont
+                // servies sous la même origine), décisif si elles se
+                // retrouvent un jour sur deux domaines.
+                .allowCredentials(true);
     }
 }
