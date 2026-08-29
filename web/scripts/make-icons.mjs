@@ -136,9 +136,25 @@ function bloc(type, donnees) {
 /** Rendu 4x4 par pixel : sans ça les coins arrondis crénellent à 180px. */
 const SOUS_ECHANTILLON = 4
 
-function png(taille) {
+/**
+ * Part de la largeur qu'occupe le dessin dans une icône « maskable ».
+ *
+ * Un lanceur Android découpe l'icône à la forme qu'il veut - cercle, goutte,
+ * carré arrondi - en ne garantissant que le disque central de 80 % de côté.
+ * Le dessin est donc réduit dans cette zone sûre, et le fond, lui, remplit
+ * TOUT le carré : c'est la seule façon qu'une découpe circulaire ne laisse pas
+ * apparaître un coin transparent. La même icône servie en `any` aurait
+ * l'inverse du défaut - une tuile flottant au milieu de rien.
+ */
+const ZONE_SURE = 0.62
+
+function png(taille, { masquable = false } = {}) {
   const octets = Buffer.alloc(taille * (taille * 4 + 1))
   const echelle = DESSIN.cote / taille
+  // En masquable, le dessin est ramené au centre : un point du canevas se
+  // projette dans l'espace du dessin en s'éloignant du centre d'autant.
+  const projeter = (v) =>
+    masquable ? ((v / taille - 0.5) * DESSIN.cote) / ZONE_SURE + DESSIN.cote / 2 : v * echelle
   for (let py = 0; py < taille; py++) {
     const debutLigne = py * (taille * 4 + 1)
     octets[debutLigne] = 0 // filtre « None »
@@ -147,9 +163,10 @@ function png(taille) {
       let dansEncre = 0
       for (let sy = 0; sy < SOUS_ECHANTILLON; sy++) {
         for (let sx = 0; sx < SOUS_ECHANTILLON; sx++) {
-          const x = (px + (sx + 0.5) / SOUS_ECHANTILLON) * echelle
-          const y = (py + (sy + 0.5) / SOUS_ECHANTILLON) * echelle
-          if (dansForme(x, y, DESSIN.tuile)) dansTuile++
+          const x = projeter(px + (sx + 0.5) / SOUS_ECHANTILLON)
+          const y = projeter(py + (sy + 0.5) / SOUS_ECHANTILLON)
+          // Fond plein bord à bord en masquable : c'est le lanceur qui découpe.
+          if (masquable || dansForme(x, y, DESSIN.tuile)) dansTuile++
           if (DESSIN.formes.some((f) => dansForme(x, y, f))) dansEncre++
         }
       }
@@ -181,6 +198,44 @@ function png(taille) {
   ])
 }
 
+// ============================================ Le manifeste
+
+/**
+ * Le manifeste sort d'ICI, avec les icônes qu'il déclare.
+ *
+ * Une icône promise et absente ne rend pas l'app moins jolie : elle la rend
+ * **non installable**, sans message d'erreur nulle part - le navigateur retire
+ * simplement l'invite. Les deux fichiers doivent donc naître du même geste,
+ * exactement comme le SVG et le PNG plus haut naissent de la même géométrie.
+ *
+ * `background_color` et `theme_color` reprennent le fond du thème sombre
+ * (`--color-background`, voir index.css) : c'est le thème par défaut de l'app,
+ * et ces deux couleurs habillent l'écran de démarrage et la barre système
+ * AVANT que la moindre ligne de CSS ne soit chargée.
+ */
+const FOND_SOMBRE = '#16120f'
+
+function manifeste(icones) {
+  return {
+    name: 'IozyCore',
+    // Ce qui tient sous une icône d'écran d'accueil, où l'espace est compté.
+    short_name: 'IozyCore',
+    description: 'Ta collection, ce qu’il te manque, et ce que vaut une annonce.',
+    lang: 'fr',
+    dir: 'ltr',
+    start_url: '/',
+    scope: '/',
+    // « standalone » et non « fullscreen » : l'app garde la barre d'état du
+    // téléphone (heure, batterie, réseau) - on l'ouvre en brocante, on a
+    // besoin de savoir l'heure qu'il est.
+    display: 'standalone',
+    orientation: 'portrait',
+    background_color: FOND_SOMBRE,
+    theme_color: FOND_SOMBRE,
+    icons: icones,
+  }
+}
+
 // ============================================ Écriture
 
 const racine = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
@@ -189,4 +244,39 @@ writeFileSync(join(racine, 'favicon.svg'), svg())
 // 180 : la taille demandée par iOS pour l'écran d'accueil, et largement assez
 // pour servir aussi de repli raster aux navigateurs sans favicon SVG.
 writeFileSync(join(racine, 'apple-touch-icon.png'), png(180))
-console.log('favicon.svg et apple-touch-icon.png (180x180) écrits dans public/')
+
+/**
+ * 192 et 512 sont les deux tailles qu'un navigateur exige pour proposer
+ * l'installation ; la 512 masquable est celle que les lanceurs Android
+ * découpent. Trois fichiers, un seul dessin.
+ */
+const ICONES = [
+  { fichier: 'icon-192.png', taille: 192, purpose: 'any' },
+  { fichier: 'icon-512.png', taille: 512, purpose: 'any' },
+  { fichier: 'icon-512-maskable.png', taille: 512, purpose: 'maskable', masquable: true },
+]
+
+for (const icone of ICONES) {
+  writeFileSync(join(racine, icone.fichier), png(icone.taille, { masquable: icone.masquable }))
+}
+
+writeFileSync(
+  join(racine, 'manifest.webmanifest'),
+  JSON.stringify(
+    manifeste(
+      ICONES.map((i) => ({
+        src: `/${i.fichier}`,
+        sizes: `${i.taille}x${i.taille}`,
+        type: 'image/png',
+        purpose: i.purpose,
+      })),
+    ),
+    null,
+    2,
+  ) + '\n',
+)
+
+console.log(
+  ['favicon.svg', 'apple-touch-icon.png (180)', ...ICONES.map((i) => `${i.fichier} (${i.taille})`), 'manifest.webmanifest']
+    .join(', ') + ' écrits dans public/',
+)

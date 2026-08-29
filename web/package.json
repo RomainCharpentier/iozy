@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "lint": "oxlint",
     "check:contrast": "node scripts/check-contrast.mjs",
+    "check:pwa": "node scripts/check-pwa.mjs",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs"
   },
