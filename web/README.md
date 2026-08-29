@@ -198,6 +198,13 @@ Ouvre `http://localhost:5173`.
   thèmes tiennent le 4.5:1 de WCAG AA
 - `npm run check:pwa` — vérifie que l'app est réellement installable (manifeste,
   icônes présentes et aux dimensions annoncées, service worker en place)
+- `npm run check:deploiement <url>` — vérifie une app **déjà en ligne**, depuis
+  l'extérieur : la réécriture `/api/*` atteint bien l'API, les routes protégées
+  refusent en 401, un lien de partage inconnu répond 404 (et non 401), le
+  manifeste sort en `application/manifest+json`, `sw.js` interdit la mise en
+  cache, une route profonde rend la coquille. Que des GET, aucun compte requis :
+  il ne laisse rien derrière lui. Marche aussi sur la pile Docker locale
+  (`http://localhost:8081`).
 - `npm run icons` — régénère la marque **et** le manifeste (`public/`)
 
 ## Déploiement (Docker)

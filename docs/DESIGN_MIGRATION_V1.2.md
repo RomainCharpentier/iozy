@@ -1360,6 +1360,49 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 102 — onze contrôles sur une app en ligne, sans y toucher
+
+Le Lot 96 a préparé la mise en ligne (`vercel.json`, `railway.json`,
+`docs/DEPLOIEMENT.md`) et le document dit, à chaque étape, comment vérifier
+qu'elle a marché — à la main, écran par écran. `npm run check:deploiement <url>`
+fait les six vérifications d'un coup, depuis l'extérieur.
+
+Ce qu'elles ont en commun : **elles échouent sans rien casser de visible**.
+
+- Une réécriture `/api/*` mal orthographiée dans `vercel.json` : le repli SPA
+  répond, en **200**, en HTML. L'écran de connexion s'affiche normalement et
+  attend une réponse qui ne viendra jamais. Le script exige donc du JSON avec
+  les deux drapeaux attendus, pas seulement un 200.
+- Une route protégée qui répond 200 : la porte est ouverte, et personne ne s'en
+  plaint. Qu'elle réponde **404** est un autre défaut — la réécriture ne couvre
+  pas tout — et il ne se verrait qu'une fois connecté.
+- Un lien de partage inconnu qui répond **401** au lieu de 404 : c'est le défaut
+  réel du Lot 94, où la redirection interne d'erreur retraversait la chaîne de
+  sécurité. Il n'était visible que sur un vrai serveur, jamais en MockMvc.
+- Le manifeste servi en `text/html` ou en `application/octet-stream` : l'invite
+  d'installation disparaît, sans un message. Le type vient du **serveur**, pas
+  du fichier — `check-pwa.mjs` lit le disque, celui-ci lit ce que le serveur en
+  fait.
+- `sw.js` mis en cache : les visiteurs gardent l'ancienne coquille, parfois des
+  jours, sans moyen de le savoir.
+- `/tier-lists` en 404 : l'app marche tant qu'on navigue et casse au premier F5.
+
+Que des GET, sur des routes ouvertes ou censées refuser. Aucun compte, aucune
+écriture : il peut se lancer sur une mise en ligne qui sert déjà des gens.
+
+#### Il a trouvé quelque chose au premier essai
+
+Mis au point sur la pile Docker locale, il a signalé deux échecs : manifeste en
+`text/html`, `sw.js` sans en-tête de cache. Or `nginx.conf` porte les deux
+règles depuis le lot PWA. Le conteneur servait une image **antérieure** — la
+configuration à l'intérieur n'avait aucun des deux blocs. Après
+`docker compose build web` puis `up -d --force-recreate web` : onze contrôles,
+aucun problème.
+
+C'est la meilleure démonstration qu'on pouvait en attendre : le défaut était
+là depuis des jours, la page s'affichait parfaitement, et rien d'autre dans le
+dépôt ne pouvait le voir.
+
 ### Lot 101 — dix requêtes, quelle que soit la taille de la collection
 
 Le constat **C1** de l'audit était le seul « important » jamais traité :
@@ -5831,6 +5874,7 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un contrôle qui n'existe qu'en **HTTP réel** (type MIME, en-tête de cache, code de refus d'une route ouverte) ne peut pas être un test : il dépend du serveur, pas du fichier. Un script de GET, sans compte et sans écriture, se lance sur la production comme sur la pile locale — et c'est la seule chose qui distingue un déploiement sain d'un conteneur périmé qui affiche exactement la même page (Lot 102).
 - Un test de performance doit mesurer la **pente**, pas un nombre : sur une base d'intégration partagée, un seuil absolu de requêtes se périme au premier test voisin ajouté, tandis que « le même appel coûte autant avec 11 séries qu'avec 5 » reste vrai quoi qu'on ajoute autour. Et il se vérifie comme les autres, en le confrontant au code d'avant (Lot 101).
 - Une méthode de LECTURE qui appelle un helper partagé hérite de ses ÉCRITURES : `findEdition` rattache au passage une édition à sa série, ce qu'un écran de suggestions n'a aucune raison de faire. Avant de grouper des appels, lire ce que chacun faisait d'autre que rendre une valeur (Lot 101).
 

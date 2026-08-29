@@ -12,6 +12,7 @@
     "lint": "oxlint",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:pwa": "node scripts/check-pwa.mjs",
+    "check:deploiement": "node scripts/verifier-deploiement.mjs",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs",
     "test:e2e": "playwright test",
