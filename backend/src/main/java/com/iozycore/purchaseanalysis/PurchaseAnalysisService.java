@@ -27,6 +27,7 @@ import com.iozycore.insights.CollectionProgressService;
 
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Entry point of the Purchase Analysis feature - reads {@code catalog}
@@ -526,6 +527,28 @@ public class PurchaseAnalysisService {
                                           BigDecimal estimatedCostToComplete, PriceBasis costToCompleteBasis) {
     }
 
+    /**
+     * <h2>Tout est chargé EN MASSE, et c'est le sujet de cette méthode</h2>
+     * Cet écran parle de TOUTES les séries à la fois. Écrit série par série, il
+     * demandait la progression une fois par série, puis, pour chaque couple
+     * (série × édition), retrouvait l'édition de référence et relisait ses prix
+     * relevés : mesuré à 88 requêtes pour 5 séries et 148 pour 11, soit une
+     * dizaine de plus par série ajoutée (constat C1 de l'audit technique). Sur
+     * 200 séries, l'ordre de grandeur devenait deux mille requêtes par appel.
+     * <p>
+     * Les trois sources sont donc lues une seule fois - la progression par
+     * {@code computeAll()}, qui existait déjà et servait au partage public ; le
+     * référentiel d'éditions, petit par nature ; les prix relevés, groupés par
+     * édition. Le reste se calcule en mémoire.
+     *
+     * <h2>Une réparation qui n'a pas sa place ici</h2>
+     * {@link #findEdition} rattache au passage une édition retrouvée par son
+     * titre à la série connue (voir {@code linkToKnownEntityIfNeeded}) - une
+     * ÉCRITURE, utile là où l'utilisateur agit sur une édition précise. Un écran
+     * qui liste des suggestions ne répare rien : il lit. La résolution ci-dessous
+     * suit donc les mêmes règles (par identifiant d'abord, par titre ensuite,
+     * sans tenir compte de la casse) sans écrire.
+     */
     public List<NearCompleteSuggestion> findNearCompleteSuggestions() {
         Optional<EntityType> mangaType = entityTypeRepository.findByCode("MANGA");
         if (mangaType.isEmpty()) {
@@ -533,21 +556,35 @@ public class PurchaseAnalysisService {
         }
         List<Entity> mangaEntities = entityRepository.findAllByType(mangaType.get().id());
 
+        // Les groupes et le possédé viennent de CollectionProgressService, source
+        // unique de la progression : ce moteur les recalculait pour son compte et
+        // ignorait les tomes sans édition précisée, d'où une série annoncée 2/72
+        // ici et 3/72 sur Ma collection (audit du 2026-08-21, Lot 31).
+        Map<UUID, CollectionProgress> progressionParSerie = progressService.computeAll().stream()
+                .collect(Collectors.toMap(CollectionProgress::entityId, progression -> progression));
+
+        List<MangaEdition> toutesLesEditions = mangaEditionRepository.findAll();
+        Map<UUID, List<MarketPriceObservation>> relevesParEdition = marketPriceObservationRepository.findAll()
+                .stream().collect(Collectors.groupingBy(MarketPriceObservation::mangaEditionId));
+
         List<NearCompleteSuggestion> suggestions = new ArrayList<>();
         for (Entity entity : mangaEntities) {
-            // Les groupes et le possédé viennent de CollectionProgressService, source
-            // unique de la progression : ce moteur les recalculait pour son compte et
-            // ignorait les tomes sans édition précisée, d'où une série annoncée 2/72
-            // ici et 3/72 sur Ma collection (audit du 2026-08-21, Lot 31).
-            for (CollectionProgress.EditionProgress group : progressService.compute(entity.id())
-                    .map(CollectionProgress::editions).orElse(List.of())) {
+            CollectionProgress progression = progressionParSerie.get(entity.id());
+            if (progression == null) {
+                continue;
+            }
+            for (CollectionProgress.EditionProgress group : progression.editions()) {
                 String editionName = group.editionName();
                 if (editionName.isEmpty()) {
                     continue; // sans édition nommée, rien à confronter à manga_edition
                 }
+                MangaEdition edition = editionDeLaListe(toutesLesEditions, entity, editionName);
                 Set<Integer> cataloguedVolumes = new TreeSet<>(group.cataloguedVolumeNumbers());
                 Set<Integer> ownedVolumes = new TreeSet<>(group.ownedVolumeNumbers());
-                CollectionStatus status = computeCompleteness(entity.id(), entity.title(), editionName, ownedVolumes, cataloguedVolumes);
+                MarketPrice prixAuTome = marketPriceCalculator.computePerVolume(edition,
+                        edition == null ? List.of() : relevesParEdition.getOrDefault(edition.id(), List.of()));
+                CollectionStatus status = completenessCalculator.compute(ownedVolumes, cataloguedVolumes,
+                        edition, prixAuTome);
                 if (status.isKnown() && !status.isComplete()) {
                     suggestions.add(new NearCompleteSuggestion(entity.id(), entity.title(), editionName,
                             ownedVolumes.size(), status.totalVolumes(), status.missingCount(),
@@ -558,6 +595,31 @@ public class PurchaseAnalysisService {
         }
         suggestions.sort(Comparator.comparingInt(NearCompleteSuggestion::missingCount));
         return suggestions;
+    }
+
+    /**
+     * L'édition de référence d'un couple (série, nom d'édition), cherchée dans
+     * une liste déjà chargée plutôt qu'en base.
+     * <p>
+     * Mêmes règles que {@link #findEdition} : le rattachement structurel
+     * (entityId) fait foi, le titre ne sert qu'à défaut - et sans tenir compte de
+     * la casse, comme les requêtes correspondantes. {@code null} quand aucune
+     * édition de référence n'existe : la complétude est alors inconnue, jamais
+     * devinée.
+     */
+    private static MangaEdition editionDeLaListe(List<MangaEdition> editions, Entity entity, String editionName) {
+        for (MangaEdition edition : editions) {
+            if (entity.id().equals(edition.entityId()) && edition.editionName().equalsIgnoreCase(editionName)) {
+                return edition;
+            }
+        }
+        for (MangaEdition edition : editions) {
+            if (edition.seriesTitle().equalsIgnoreCase(entity.title())
+                    && edition.editionName().equalsIgnoreCase(editionName)) {
+                return edition;
+            }
+        }
+        return null;
     }
 
     /**

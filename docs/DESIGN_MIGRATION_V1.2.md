@@ -1360,6 +1360,47 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 101 — dix requêtes, quelle que soit la taille de la collection
+
+Le constat **C1** de l'audit était le seul « important » jamais traité :
+`GET /purchase-analysis/near-complete-suggestions` demandait **88 requêtes SQL
+pour 5 séries et 148 pour 11**, soit une dizaine de plus par série ajoutée.
+Sur 200 séries, l'ordre de grandeur devenait deux mille requêtes par appel -
+pour un écran (**Profil ▸ Suggestions d'achats**, **Découvrir ▸ Opportunités**)
+qui répondait en 29 ms sur le jeu de données du moment. Rien ne se voyait :
+c'est un problème d'échelle, pas de justesse, et c'est exactement le genre de
+défaut qui ne se signale jamais tout seul.
+
+La cause tenait en une boucle : la progression demandée **une fois par série**,
+puis, pour chaque couple (série × édition), l'édition de référence retrouvée
+et ses prix relevés relus. Or `CollectionProgressService.computeAll()` existe
+depuis le Lot 33 - c'est la version groupée, déjà employée par Ma collection et
+le partage public. Les trois sources sont désormais lues **une seule fois**, et
+le reste se calcule en mémoire.
+
+#### Une réparation qui n'avait pas sa place ici
+
+`findEdition` ne se contente pas de lire : elle **rattache** au passage une
+édition retrouvée par son titre à la série connue. C'est une écriture, utile
+là où l'utilisateur agit sur une édition précise ; un écran qui liste des
+suggestions ne répare rien. La résolution en mémoire (`editionDeLaListe`) suit
+donc les mêmes règles - par identifiant d'abord, par titre ensuite, sans tenir
+compte de la casse - **sans écrire**. C'est le seul écart de comportement du
+lot, et il est délibéré.
+
+#### Le test mesure la pente, pas un nombre
+
+`SuggestionsSansN1Test` compte les requêtes (`Statistics` d'Hibernate) sur le
+**même appel** pour deux tailles de catalogue, et exige qu'elles soient
+égales. Figer un nombre absolu se serait périmé au premier test voisin ajouté -
+la base d'intégration est partagée. Ce qui a été violé, c'est la croissance.
+
+Témoin, sur des séries plus petites que celles de l'audit : **38 puis 70**
+requêtes avec le code d'avant, **10 puis 10** après. Le test échoue bien sur
+le code d'avant (vérifié par `git stash` du seul fichier corrigé).
+
+1058 tests backend depuis `clean`.
+
 ### Lot 100 — le client iOS ne démarre plus, et il fallait le dire
 
 Le Lot 94 a fermé l'API. Le client iOS, lui, n'ouvre aucune session : **chacun
@@ -5789,6 +5830,9 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 "Vagabond" (Takehiko Inoue) en "Slam Dunk".
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
+
+- Un test de performance doit mesurer la **pente**, pas un nombre : sur une base d'intégration partagée, un seuil absolu de requêtes se périme au premier test voisin ajouté, tandis que « le même appel coûte autant avec 11 séries qu'avec 5 » reste vrai quoi qu'on ajoute autour. Et il se vérifie comme les autres, en le confrontant au code d'avant (Lot 101).
+- Une méthode de LECTURE qui appelle un helper partagé hérite de ses ÉCRITURES : `findEdition` rattache au passage une édition à sa série, ce qu'un écran de suggestions n'a aucune raison de faire. Avant de grouper des appels, lire ce que chacun faisait d'autre que rendre une valeur (Lot 101).
 
 - **Ne jamais sonder des POST à l’aveugle sur des données réelles** : `POST /share` avec un corps VIDE répond 201 et crée un lien public vers la collection. Un corps vide n’est pas une requête inoffensive - certaines routes n’attendent rien parce que le geste EST la requête. Lien révoqué aussitôt, URL publique repassée en 404 (Lot 85).
 - Retirer un champ d’un corps de requête ne casse pas les clients restés en arrière : Jackson ignore une propriété inconnue, donc un corps qui porte encore le champ retiré passe en 200 et le champ ne fait plus rien - ce qu’il faisait déjà. Garder le test qui l’envoie, en retournant son assertion : le champ doit être ABSENT de la réponse (Lot 84).
