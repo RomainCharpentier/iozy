@@ -1360,6 +1360,49 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 92 — le seul module qui peut écraser une donnée de l'utilisateur
+
+164 → **193 tests**. Ce lot ferme la couche `lib/` et prend le module le plus
+dangereux de l'app.
+
+**`rechargerSource`** redemande à un fournisseur ce qu'il sait d'une œuvre déjà
+en collection, puis réécrit ses attributs. C'est le seul endroit où une erreur
+détruit du travail au lieu d'afficher un chiffre faux, et deux s'y logent :
+**se tromper d'œuvre** (un « à peu près » sur le titre recopierait les
+informations d'un spin-off sur la série mère) et **écraser un choix** - la
+remarque de l'utilisateur, et surtout la jaquette qu'il a posée à la main, seule
+donnée d'origine externe qu'il édite couramment. Une troisième, plus discrète,
+est testée aussi : réécrire une valeur identique, ce qui ferait mentir le
+« tout est déjà à jour » rendu à l'écran.
+
+**Un test faux, corrigé par le code et non l'inverse.** Le premier jet
+affirmait que la reconnaissance par titre ignore la ponctuation : `l attaque des
+titans` devait retrouver `L'Attaque des Titans`. Le test est tombé, et il avait
+tort - `normaliser` s'arrête aux accents, à la casse et aux espaces. C'est la
+bonne règle : plus large, elle finirait par rapprocher deux titres réellement
+différents, ce que tout le module s'attache à éviter. Le test dit désormais
+cette limite au lieu de la contredire.
+
+Le reste ferme les « jamais deviné » du catalogue : `seriesInfo` (`null` n'est
+pas « en cours » ; 0 tome n'est pas un total), `indicesOeuvre` (le `studio` d'un
+jeu vidéo n'est pas l'auteur d'un manga - un indice faux, pas un indice en plus)
+et `theme` (passer au clair **retire** l'attribut ; lui affecter `undefined`
+le fixerait à la chaîne `"undefined"`, et le clair ne marcherait plus que par
+accident).
+
+**Ce qui n'a délibérément pas de fichier** : `volumeKey`, `creatorFrom` et
+`coverImageUrlFrom` sont des lignes uniques déjà exercées par les tests des
+modules qui les appellent (`tomeTiles`, `backfillCovers`, `shelfTiles`). Leur
+donner un fichier ajouterait du volume, pas du filet.
+
+Les quatre mutations sont ressorties en échec, cette fois via
+`scripts/mutation.mjs` : la jaquette posée sans vérifier qu'elle manque, un
+total de 0 tome accepté, le studio promu auteur, et `delete dataset.theme`
+remplacé par une affectation à `undefined`.
+
+193 tests en 4,7 s, plus `typecheck`, `lint`, `build` et les 116 combinaisons de
+contraste.
+
 ### Lot 91 — le clavier, l'onglet, la barre : ce que personne ne voit à la souris
 
 Trois des quatre modules de ce lot ne produisent aucun pixel. Ils décident de
