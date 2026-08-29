@@ -24,7 +24,8 @@ révélées fausses sont signalées à la fin, parce qu'elles se reproduiront.
 **9 contextes** (`catalog`, `ownership`, `wishlist`, `experience`, `tierlist`,
 `followededition`, `share`, `shared`, `user`) · **19 contrôleurs** ·
 **97 endpoints** · **21 tables** · **27 routes web** ·
-**1 057 tests backend** · **215 tests web** (Vitest, depuis le 2026-08-29).
+**1 057 tests backend** · **215 tests web** (Vitest) · **7 parcours de bout en
+bout** (Playwright, sur pile jetable) — tous depuis le 2026-08-29.
 
 > Chiffres remesurés le 2026-08-29 (Lot 86). Les précédents dataient d'avant la
 > suppression de `editionupgrade` (Lot 27) et de `loan` (migration V19), et

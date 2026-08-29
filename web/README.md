@@ -69,6 +69,25 @@ pas deviner, un seul signal par carte, une phrase qui promet quelque chose à
 l'utilisateur. Les composants se vérifient par le **texte lu à l'écran**,
 jamais par une classe CSS ou un `data-testid`.
 
+**Écrire un parcours de bout en bout** : dans `e2e/*.spec.ts`. Ils partent
+connectés (la session est ouverte une fois par `compte.setup.ts` et rejouée),
+sauf `porte.spec.ts` qui teste justement l'entrée et part anonyme. Ce qui
+mérite un parcours, ce n'est pas une règle - les 215 tests Vitest la couvrent
+déjà - c'est un **passage** : d'un écran au suivant, du clic à la base. Un
+formulaire branché sur la mauvaise route ou un cache qu'on oublie d'invalider
+ne casse aucune règle : l'écran reste simplement sur l'état d'avant.
+
+La pile de test **n'a aucune clé de fournisseur** : un parcours qui dépendrait
+de Jikan ou de Google Books échouerait le jour où ils toussent, pour une raison
+qui n'a rien à voir avec l'application. Les parcours passent donc par un type
+de collection créé pour l'occasion - sans fournisseur, donc en saisie libre.
+
+Garder la pile debout après un échec, pour aller regarder :
+
+```bash
+IOZYCORE_E2E_GARDER_LA_PILE=1 npm run test:e2e
+```
+
 **Vérifier qu'un test sert à quelque chose** : casse la règle exprès et
 regarde si un test tombe.
 
@@ -172,6 +191,9 @@ Ouvre `http://localhost:5173`.
 - `npm run typecheck` — TypeScript seul, sans build
 - `npm run lint` — oxlint
 - `npm test` — la suite Vitest, une fois (`npm run test:watch` pour itérer)
+- `npm run test:e2e` — les parcours de bout en bout (Playwright). Démarre sa
+  **propre pile Docker** (base + API sur `:8090`), joue les parcours, éteint
+  tout, volumes compris. Rien à lancer avant, rien à nettoyer après.
 - `npm run check:contrast` — vérifie que tous les couples de couleurs des deux
   thèmes tiennent le 4.5:1 de WCAG AA
 - `npm run check:pwa` — vérifie que l'app est réellement installable (manifeste,
