@@ -60,36 +60,75 @@ async function ecrire<T>(page: Page, chemin: string, corps: unknown): Promise<T>
 }
 
 /**
- * Une série avec un tome possédé, et son édition de référence.
+ * Une série et ses tomes possédés, <b>sans</b> fiche d'édition renseignée.
  *
- * @param totalVolumes ce qui rend « X/Y » possible - sans lui, l'application
- *                     compte les tomes sans jamais inventer de dénominateur.
+ * <p>C'est l'état réel d'une collection avant le parcours 8 : l'ajout rapide a
+ * créé l'édition au passage, mais personne ne lui a encore donné son nombre de
+ * tomes - et sans lui, aucun « X/Y » n'est possible nulle part. Un parcours qui
+ * veut VOIR ce manque part d'ici ; les autres passent par
+ * {@link serieAvecEdition}.
+ *
+ * <p>Les tomes s'ajoutent un par un par le même ajout rapide : il déduplique
+ * par titre (voir QuickAddService), donc le deuxième appel rattache un tome à
+ * la série du premier au lieu d'en créer une seconde.
  */
-export async function serieAvecEdition(
+export async function serieSansReference(
   page: Page,
-  options: { titre: string; edition: string; totalVolumes: number; tomePossede: number },
+  options: { titre: string; edition: string; tomesPossedes: number[] },
 ) {
-  const { entityId } = await ecrire<{ entityId: string }>(page, '/entities/quick-add', {
-    entityTypeId: TYPE_MANGA,
-    title: options.titre,
-    condition: 'NEW',
-    volumeNumber: options.tomePossede,
-    edition: options.edition,
-  })
+  let entityId = ''
+  for (const tome of options.tomesPossedes) {
+    const ajout = await ecrire<{ entityId: string }>(page, '/entities/quick-add', {
+      entityTypeId: TYPE_MANGA,
+      title: options.titre,
+      condition: 'NEW',
+      volumeNumber: tome,
+      edition: options.edition,
+    })
+    entityId = ajout.entityId
+  }
 
-  // L'ajout rapide a DÉJÀ créé l'édition, sans son nombre de tomes : c'est
-  // exactement l'état d'une vraie collection avant qu'on renseigne la fiche
-  // de référence (parcours 8). On la complète donc, on ne la recrée pas -
-  // le serveur refuse un doublon en 409, et il a raison.
   const edition = await lire<{ id: string }>(
     page,
     `/purchase-analysis/editions?entityId=${entityId}&seriesTitle=${encodeURIComponent(options.titre)}` +
       `&editionName=${encodeURIComponent(options.edition)}`,
   )
-  await modifier(page, `/purchase-analysis/editions/${edition.id}`, {
-    publisher: 'Éditeur de test',
-    totalVolumes: options.totalVolumes,
+  return { entityId, editionId: edition.id }
+}
+
+/**
+ * Une série avec ses tomes possédés, et son édition de référence renseignée.
+ *
+ * @param totalVolumes ce qui rend « X/Y » possible - sans lui, l'application
+ *                     compte les tomes sans jamais inventer de dénominateur.
+ * @param prixNeufAuTome facultatif : ce qui donne une référence de prix, donc
+ *                       un coût pour compléter et un verdict d'annonce
+ *                       autre que « je ne sais rien du prix ».
+ */
+export async function serieAvecEdition(
+  page: Page,
+  options: {
+    titre: string
+    edition: string
+    totalVolumes: number
+    tomePossede?: number
+    tomesPossedes?: number[]
+    prixNeufAuTome?: number
+  },
+) {
+  const { entityId, editionId } = await serieSansReference(page, {
+    titre: options.titre,
+    edition: options.edition,
+    tomesPossedes: options.tomesPossedes ?? [options.tomePossede ?? 1],
   })
 
-  return { entityId }
+  // On COMPLÈTE l'édition créée par l'ajout rapide, on ne la recrée pas - le
+  // serveur refuse un doublon en 409, et il a raison.
+  await modifier(page, `/purchase-analysis/editions/${editionId}`, {
+    publisher: 'Éditeur de test',
+    totalVolumes: options.totalVolumes,
+    ...(options.prixNeufAuTome === undefined ? {} : { retailPriceNewPerVolume: options.prixNeufAuTome }),
+  })
+
+  return { entityId, editionId }
 }

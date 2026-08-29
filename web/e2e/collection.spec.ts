@@ -57,9 +57,18 @@ test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la du
   await expect(page.getByRole('heading', { name: oeuvre })).toBeVisible()
 
   // --- 5. Ma collection la montre, avec son rail et ses compteurs
+  //
+  //     Le décompte lu ici est celui du RAIL de cet univers, pas le total de
+  //     la collection : ce test partage sa pile avec les autres parcours, qui
+  //     y sèment leurs propres séries. La première version affirmait « 1 titre
+  //     suivi » et ne tenait que tant que ce fichier passait en premier - elle
+  //     est tombée le jour où un parcours au nom alphabétiquement antérieur
+  //     est arrivé. Un test dont la vérité dépend de l'ordre des fichiers ne
+  //     vérifie pas ce qu'il croit.
   await page.goto('/')
-  await expect(page.getByText('1 titre suivi')).toBeVisible()
+  await expect(page.getByText(/\d+ titres? suivis?/)).toBeVisible()
   await expect(page.getByRole('heading', { name: univers })).toBeVisible()
+  await expect(page.getByRole('button', { name: new RegExp(`^${univers} 1 Tout voir$`) })).toBeVisible()
   // La tuile porte le titre ET son état : « Possédé » plutôt qu'un décompte de
   // tomes, parce que pour un type sans notion de tome, l'œuvre EST l'objet
   // collectionnable.
