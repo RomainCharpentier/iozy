@@ -1360,6 +1360,40 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 113 — le même N+1, sur le premier chiffre qu'on voit
+
+Le constat C1 a été corrigé au Lot 101 sur les suggestions d'achat. **La même
+figure vivait quarante lignes plus loin**, dans `computeCollectionValue()` -
+celui qui alimente le hero du Profil (« Valeur de la collection ») et l'écran
+Statistiques.
+
+Deux boucles, deux N+1 :
+
+- une lecture du catalogue **par possession** (`entityRepository.findById` dans
+  un `computeIfAbsent`) ;
+- la progression demandée **une fois par série** (`progressService.compute(id)`),
+  exactement l'appel que le Lot 101 avait remplacé ailleurs.
+
+Mesuré avant : **28 requêtes pour 5 séries, 58 pour 11**. Après : **constant**.
+
+C'est la leçon du Lot 49 qui se répète - « quand un calcul est rebranché sur
+une source unique, chercher TOUS ses jumeaux dans le même fichier ». Cette
+fois, le jumeau était dans un autre fichier, et il a fallu aller le chercher.
+
+#### Un faux dépôt qui mentait
+
+`StatsServiceTest` a échoué en annonçant **0 €** pour une collection qui en vaut
+29,80. Le coupable n'était pas le code : son `EntityRepository` en mémoire
+rendait `List.of()` pour `search(...)`, avec le commentaire « non exercé par ce
+test ». C'était vrai jusqu'à ce que la valeur cesse de lire les œuvres une par
+une.
+
+Un faux dépôt qui ment sur une méthode ne se signale que le jour où quelqu'un
+l'appelle - et ce jour-là, il accuse le code. `search` est désormais
+réellement implémentée.
+
+1083 tests backend.
+
 ### Lot 112 — un tag décrit une œuvre, pas une collection
 
 En cherchant quoi faire des tags, trois faits ont décidé du lot - et aucun
@@ -6453,6 +6487,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un faux dépôt qui rend `List.of()` avec « non exercé par ce test » est une bombe à retardement : le jour où le code l'appelle, le test échoue en accusant le CODE. Quand une correction fait tomber un test unitaire, regarder d'abord si le faux dit la vérité (Lot 113).
+- Corriger un N+1 ne clôt pas le sujet : chercher le même APPEL ailleurs, pas seulement dans le même fichier. `progressService.compute(id)` dans une boucle vivait dans deux services, corrigé dans l'un au Lot 101 et dans l'autre douze lots plus tard (Lot 113).
 - Avant de décider du sort d'une fonctionnalité, COMPTER ce qu'elle contient en base : les tags avaient un écran, une API, un filtre - et zéro ligne. Le fait le plus décisif du lot n'était dans aucun fichier (Lot 112).
 - Une table sans `owner_id` dans une application cloisonnée est un choix, jamais un oubli à corriger machinalement : `tag` est partagée parce qu'un tag décrit l'ŒUVRE. La bonne question n'est pas « faut-il la cloisonner » mais « de quoi cette donnée parle-t-elle » - et la réponse décide ensuite qui a le droit d'écrire (Lot 112).
 - Un `if (liste.length === 0) return null` transforme un écran de gestion en écran fantôme là où l'on en a le plus besoin : le bloc des prix relevés disparaissait exactement sur les éditions qui n'en avaient aucun. Avant de masquer un bloc vide, se demander s'il porte le geste qui le remplirait (Lot 110).
