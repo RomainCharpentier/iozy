@@ -4,35 +4,27 @@ version: "3.9"
 # 3 services : API, base de données, reverse proxy HTTPS.
 # PostgreSQL n'est jamais exposé directement à l'extérieur.
 #
-# ─── Authentification ────────────────────────────────────────────────────
-# L'application n'en a AUCUNE en propre : mono-utilisateur strict, aucun
-# owner_id exploité, aucun Spring Security (choix documenté dans README.md,
-# "cohérent avec le choix mono-utilisateur, à ajouter si l'app doit un jour
-# être exposée au-delà du réseau local"). Or ce fichier-ci fait exactement
-# cela : il publie l'API ET l'app web sur Internet via Traefik + Let's
-# Encrypt. Sans le garde-fou ci-dessous, qui connaît l'hôte peut lire et
-# écrire toute la collection (GET /api/export/json, DELETE /api/entities/
-# {id}), Swagger UI comprise. CORS n'y change rien : allowedOrigins n'est
-# vérifié que par un navigateur, jamais par curl.
+# ─── Authentification (simplifiée le 2026-08-30) ─────────────────────────
+# Ce fichier portait une authentification HTTP Basic au niveau de Traefik,
+# et c'était juste : l'application n'en avait AUCUNE en propre. Sans elle,
+# qui connaissait l'hôte lisait et écrivait toute la collection
+# (GET /api/export/json, DELETE /api/entities/{id}), Swagger comprise - CORS
+# n'y change rien, allowedOrigins n'est vérifié que par un navigateur, jamais
+# par curl.
 #
-# D'où une authentification HTTP Basic portée par le proxy, pas par
-# l'application : une SPA ne peut pas garder un secret (tout jeton embarqué
-# dans le bundle JS est lisible par qui charge la page), alors que Basic est
-# géré nativement par le navigateur et se transmet ensuite tout seul aux
-# appels /api same-origin.
+# Ce n'est plus vrai depuis le Lot 94 : l'API est fermée par Spring Security,
+# tout répond 401 sans session, et les données sont cloisonnées par compte
+# (Lot 95). Le Basic était donc devenu une SECONDE demande de mot de passe
+# devant la première - et surtout il cassait les liens de partage, dont le
+# destinataire est censé n'avoir rien à saisir. Il est retiré.
 #
-# Les DEUX pages de partage restent délibérément hors authentification -
-# c'est toute leur raison d'être (voir PublicWishlistController /
-# PublicCollectionController : le jeton fait office de mot de passe) :
-#   - /public/*      les deux écrans partagés (rendus hors AppShell)
-#   - /assets/*      le bundle JS/CSS sans lequel ces écrans sont blancs
-#   - /api/public/*  les deux seuls endpoints non authentifiés
-# Tout le reste exige les identifiants.
+# Ce qui reste ouvert, et c'est le serveur qui le décide (voir SecurityConfig,
+# pas ce fichier) : la connexion, l'état de l'instance, et
+# GET /api/public/share/{jeton} - dont le jeton fait office de mot de passe.
 #
-# Définir BASIC_AUTH_USERS dans .env, au format htpasswd :
-#   docker run --rm httpd:alpine htpasswd -nbB monlogin 'mot-de-passe'
-# (bcrypt, -B). La valeur venant de .env, ses "$" n'ont PAS à être doublés,
-# contrairement à un htpasswd écrit en dur dans un label.
+# Conséquence pratique : deux routeurs Traefik au lieu de quatre. Les
+# exceptions de chemin n'ont plus lieu d'être puisqu'il n'y a plus de porte
+# à contourner.
 
 services:
   iozycore-api:
@@ -54,6 +46,15 @@ services:
       MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
       GOOGLE_BOOKS_BACKUP_API_KEYS: ${GOOGLE_BOOKS_BACKUP_API_KEYS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Il y a du TLS devant (Traefik + Let's Encrypt) : le cookie de session
+      # ne doit jamais repartir en clair.
+      SESSION_COOKIE_SECURE: "true"
+      # Vide = la création de compte est FERMÉE après le premier. C'est le
+      # défaut voulu : une instance exposée sans y penser ne devient pas une
+      # base ouverte à qui passe. Le définir ouvre « Créer un compte avec une
+      # invitation » sur l'écran de connexion.
+      IOZYCORE_INVITE_CODE: ${IOZYCORE_INVITE_CODE:-}
       # Doit correspondre au domaine du service "web" ci-dessous - requis
       # même si nginx proxy /api en apparence "same-origin" pour le
       # navigateur : les requêtes POST/PATCH/DELETE envoient toujours un
@@ -73,21 +74,11 @@ services:
       # Labels Traefik : routage HTTPS automatique avec Let's Encrypt.
       # Remplacer iozycore.mondomaine.tld par ton propre domaine/DDNS Synology.
       - "traefik.enable=true"
-      # Middleware d'authentification, défini une fois ici et réutilisé par le
-      # service web ci-dessous (voir l'en-tête du fichier).
-      - "traefik.http.middlewares.iozycore-auth.basicauth.users=${BASIC_AUTH_USERS:?erreur - définir BASIC_AUTH_USERS dans .env (format htpasswd, voir l'en-tête de ce fichier)}"
-      # Sous-domaine API : tout est authentifié...
+      # Un seul routeur : c'est l'application qui décide ce qui est ouvert,
+      # pas le proxy (voir l'en-tête).
       - "traefik.http.routers.iozycore.rule=Host(`iozycore.mondomaine.tld`)"
       - "traefik.http.routers.iozycore.entrypoints=websecure"
       - "traefik.http.routers.iozycore.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.iozycore.middlewares=iozycore-auth@docker"
-      # ...sauf les deux endpoints de partage, dont le jeton EST le mot de
-      # passe. Priorité explicite : ce routeur doit gagner sur celui ci-dessus,
-      # qui couvre le même hôte.
-      - "traefik.http.routers.iozycore-public.rule=Host(`iozycore.mondomaine.tld`) && PathPrefix(`/api/public`)"
-      - "traefik.http.routers.iozycore-public.priority=100"
-      - "traefik.http.routers.iozycore-public.entrypoints=websecure"
-      - "traefik.http.routers.iozycore-public.tls.certresolver=letsencrypt"
       - "traefik.http.services.iozycore.loadbalancer.server.port=8080"
 
   web:
@@ -107,22 +98,11 @@ services:
       # pour le navigateur, mais les requêtes d'écriture (POST/PATCH/DELETE)
       # envoient quand même un header Origin que Spring vérifie.
       - "traefik.enable=true"
-      # L'app entière derrière l'authentification : le navigateur demande les
-      # identifiants une fois, puis les renvoie seul sur les appels /api que
-      # nginx proxifie en interne (même origine).
+      # L'app se protège elle-même : écran de connexion, session en cookie,
+      # et les liens de partage qui s'ouvrent sans compte. Rien à filtrer ici.
       - "traefik.http.routers.iozycore-web.rule=Host(`app.iozycore.mondomaine.tld`)"
       - "traefik.http.routers.iozycore-web.entrypoints=websecure"
       - "traefik.http.routers.iozycore-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.iozycore-web.middlewares=iozycore-auth@docker"
-      # Exception : les deux écrans de partage et ce dont ils ont besoin pour
-      # s'afficher. /assets/* est le bundle Vite - il ne contient aucune
-      # donnée, seulement le code de l'app, et sans lui la page partagée reste
-      # blanche. Un visiteur sans identifiants n'obtient donc rien d'autre que
-      # ce que son jeton lui ouvre.
-      - "traefik.http.routers.iozycore-web-public.rule=Host(`app.iozycore.mondomaine.tld`) && (PathPrefix(`/public`) || PathPrefix(`/assets`) || PathPrefix(`/api/public`))"
-      - "traefik.http.routers.iozycore-web-public.priority=100"
-      - "traefik.http.routers.iozycore-web-public.entrypoints=websecure"
-      - "traefik.http.routers.iozycore-web-public.tls.certresolver=letsencrypt"
       - "traefik.http.services.iozycore-web.loadbalancer.server.port=80"
 
   postgres:
