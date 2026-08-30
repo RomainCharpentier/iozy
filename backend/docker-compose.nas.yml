@@ -1,0 +1,116 @@
+version: "3.9"
+
+# Déploiement sur NAS Synology, DERRIÈRE le reverse proxy de DSM.
+#
+# ─── Pourquoi ce fichier, et pas docker-compose.yml ──────────────────────
+# Deux différences, une seule idée : le NAS ne compile rien.
+#
+#   1. `image:` au lieu de `build:`. Construire ici demanderait Maven et Node
+#      sur un Celeron J3455 - faisable, long, et à recommencer à chaque mise
+#      à jour. Les images se construisent sur la machine de développement,
+#      s'exportent (`docker save`) et se chargent ici (`docker load`).
+#   2. Un seul port publié, 8081. L'API (8080) et PostgreSQL (5432) restent
+#      dans le réseau interne : nginx atteint l'API par le nom du service, et
+#      rien d'autre n'a de raison d'être joignable depuis le LAN.
+#
+# ─── Pourquoi pas docker-compose.synology.yml ────────────────────────────
+# Celui-là embarque Traefik et réclame les ports 80 et 443, que DSM occupe.
+# Ici, c'est le reverse proxy de DSM qui fait le travail - il gère déjà les
+# certificats Let's Encrypt, et il ne demande qu'un enregistrement :
+#
+#   HTTPS · ton-nom.synology.me · 443   →   HTTP · localhost · 8081
+#
+# Un seul, parce que nginx (conteneur `web`) achemine déjà /api vers l'API en
+# interne : le navigateur ne voit qu'UNE origine, ce dont le cookie de session
+# dépend (voir docs/DEPLOIEMENT.md, « Pourquoi la réécriture »).
+#
+# ─── Mise en route ───────────────────────────────────────────────────────
+#   1. Charger les images :   docker load -i iozycore-images.tar
+#   2. Créer .env à côté de ce fichier (voir .env.example) :
+#        DB_PASSWORD=...
+#        WEB_ALLOWED_ORIGINS=https://ton-nom.synology.me
+#        SESSION_COOKIE_SECURE=true
+#   3. docker-compose -f docker-compose.nas.yml up -d
+#
+# ─── Deux pièges, rencontrés pour de vrai ────────────────────────────────
+#   - `DB_PASSWORD` ne change QUE ce que l'API présente. Le mot de passe réel
+#     est fixé à la PREMIÈRE création du volume et n'en bouge plus : le
+#     modifier ensuite donne « password authentication failed ». Aligner
+#     l'existant plutôt que de recréer le volume (on y perdrait la collection) :
+#       docker exec -e PGPASSWORD=<ancien> <conteneur-postgres> \
+#         psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<nouveau>';"
+#   - Après avoir recréé le conteneur `iozycore-api`, redémarrer `web`. nginx
+#     résout le nom `iozycore-api` AU DÉMARRAGE et garde l'ancienne adresse :
+#     l'API répond 200 en direct sur :8080 pendant que :8081 rend 502.
+
+services:
+  iozycore-api:
+    image: iozycore-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-iozycore}
+      DB_USER: ${DB_USER:-iozycore}
+      DB_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
+      # Le domaine servi par le reverse proxy de DSM. Sans lui, la lecture
+      # passe et TOUTE écriture part en 403 : le défaut se remarque au premier
+      # ajout, pas au premier chargement.
+      WEB_ALLOWED_ORIGINS: "${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://ton-nom.synology.me)}"
+      # Il y a du TLS devant : le cookie de session ne repart jamais en clair.
+      SESSION_COOKIE_SECURE: "true"
+      # Vide = création de compte FERMÉE après le premier. C'est le défaut
+      # voulu pour une instance exposée : l'absence de configuration ferme la
+      # porte, elle ne l'ouvre pas.
+      IOZYCORE_INVITE_CODE: ${IOZYCORE_INVITE_CODE:-}
+      # Toutes facultatives : sans elles, les fonctionnalités correspondantes
+      # s'absentent proprement (voir .env.example, qui dit ce que chacune coupe).
+      BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID:-}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET:-}
+      MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      GOOGLE_BOOKS_BACKUP_API_KEYS: ${GOOGLE_BOOKS_BACKUP_API_KEYS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - media_data:/app/media
+    networks:
+      - internal
+
+  web:
+    image: iozycore-web:latest
+    restart: unless-stopped
+    depends_on:
+      - iozycore-api
+    # Le SEUL port publié. C'est lui que le reverse proxy de DSM vise.
+    ports:
+      - "8081:80"
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-iozycore}
+      POSTGRES_USER: ${DB_USER:-iozycore}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-iozycore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  internal:
+
+volumes:
+  postgres_data:
+  media_data:
