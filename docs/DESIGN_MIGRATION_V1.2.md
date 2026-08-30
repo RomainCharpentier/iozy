@@ -1392,7 +1392,23 @@ Un faux dépôt qui ment sur une méthode ne se signale que le jour où quelqu'u
 l'appelle - et ce jour-là, il accuse le code. `search` est désormais
 réellement implémentée.
 
-1083 tests backend.
+#### Les deux autres boucles, mesurées plutôt que supposées
+
+Restaient deux boucles dans le même fichier. Mesurées, pas relues :
+
+- **`computeSummary`** (tout l'écran Statistiques) boucle sur les **types de
+  collection**, pas sur les séries : son coût suit le nombre de catégories
+  qu'on a créées - une poignée - et pas la taille de la collection. **Aucun
+  défaut**, et c'est maintenant fixé par un test.
+- **`computeYearlyRecap`** portait la même lecture par série que la valeur :
+  **13 requêtes pour 5 séries, 25 pour 11**. Corrigé de la même façon.
+
+Trois occurrences de la figure du constat C1 dans deux fichiers, sur douze
+lots. La leçon du Lot 49 - « chercher tous les jumeaux » - ne suffisait pas :
+il fallait **mesurer** chaque boucle, parce que celle de `computeSummary` a
+exactement la même forme et n'est pas un défaut.
+
+1085 tests backend.
 
 ### Lot 112 — un tag décrit une œuvre, pas une collection
 

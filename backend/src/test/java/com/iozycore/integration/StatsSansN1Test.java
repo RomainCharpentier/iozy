@@ -25,24 +25,29 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>« Valeur de la collection » ne doit pas coûter plus cher à mesure qu'elle
- * grandit.</b>
+ * <b>Les trois lectures de {@code StatsService} ne doivent pas coûter plus cher
+ * à mesure que la collection grandit.</b>
  *
- * <p>Ce calcul alimente le <b>hero du Profil</b> - le premier chiffre qu'on voit
- * en arrivant - et l'écran Statistiques. C'est exactement la figure du constat
- * C1, au même endroit du code : une boucle sur les séries qui demande la
- * progression <b>une fois par série</b>, plus une lecture du catalogue par
- * possession. Les deux versions groupées existent
- * ({@code CollectionProgressService.computeAll()} et
- * {@code EntityRepository.search}) et n'étaient pas employées.
+ * <ul>
+ *   <li><b>La valeur</b> alimente le hero du Profil - le premier chiffre qu'on
+ *       voit en arrivant - et l'écran Statistiques ;</li>
+ *   <li><b>le résumé</b> est tout le reste de cet écran ;</li>
+ *   <li><b>le bilan annuel</b> est saisonnier, mais se lit sur toute une année
+ *       d'acquisitions.</li>
+ * </ul>
  *
- * <p>Comme pour C1, ce test compare le <b>même appel</b> sur deux tailles de
- * collection et exige que le nombre de requêtes ne <b>croisse pas</b>. Pas de
- * seuil absolu : la base d'intégration est partagée, et un nombre exact se
- * périmerait au premier test voisin ajouté. Ce qui compte, et ce qui était
- * violé, c'est la pente.
+ * <p>Les trois sont de la même famille que le constat C1 : une boucle sur les
+ * séries qui rouvre les mêmes tables à chaque tour. Les versions groupées
+ * existent ({@code CollectionProgressService.computeAll()},
+ * {@code EntityRepository.search}) - il s'agissait de les employer.
+ *
+ * <p>Chaque test compare le <b>même appel</b> sur deux tailles de collection et
+ * exige que le nombre de requêtes ne <b>croisse pas</b>. Pas de seuil absolu :
+ * la base d'intégration est partagée, et un nombre exact se périmerait au
+ * premier test voisin ajouté. Ce qui compte, et ce qui était violé, c'est la
+ * pente.
  */
-class ValeurSansN1Test extends PostgresIntegrationTest {
+class StatsSansN1Test extends PostgresIntegrationTest {
 
     @Autowired
     private StatsService stats;
@@ -60,30 +65,48 @@ class ValeurSansN1Test extends PostgresIntegrationTest {
     private EntityManager entityManager;
 
     @Test
-    void le_nombre_de_requetes_ne_grandit_pas_avec_le_nombre_de_series() {
+    void la_valeur_de_la_collection_ne_coute_pas_plus_cher_avec_plus_de_series() {
+        mesurerLaPente(stats::computeCollectionValue);
+    }
+
+    @Test
+    void le_resume_des_statistiques_ne_coute_pas_plus_cher_avec_plus_de_series() {
+        // Cette lecture-ci boucle sur les TYPES de collection, pas sur les
+        // séries : son coût suit le nombre de catégories qu'on a créées, une
+        // poignée, et pas la taille de la collection. Ce test le fixe.
+        mesurerLaPente(stats::computeSummary);
+    }
+
+    @Test
+    void le_bilan_annuel_ne_coute_pas_plus_cher_avec_plus_de_series() {
+        mesurerLaPente(() -> stats.computeYearlyRecap(java.time.LocalDate.now().getYear()));
+    }
+
+    /** Le même appel, deux tailles de collection, et l'égalité exigée. */
+    private void mesurerLaPente(Runnable lecture) {
         Statistics statistiques = entityManager.getEntityManagerFactory()
                 .unwrap(SessionFactory.class).getStatistics();
         statistiques.setStatisticsEnabled(true);
 
         poserDesSeries(5);
-        long avec5Series = requetesPourUnAppel(statistiques);
+        long avec5Series = requetesPourUnAppel(statistiques, lecture);
 
-        poserDesSeries(6); // 11 au total
-        long avec11Series = requetesPourUnAppel(statistiques);
+        poserDesSeries(6); // 11 de plus au total
+        long avec11Series = requetesPourUnAppel(statistiques, lecture);
 
         assertThat(avec11Series)
                 .as("6 séries de plus ne doivent coûter aucune requête de plus")
                 .isEqualTo(avec5Series);
     }
 
-    private long requetesPourUnAppel(Statistics statistiques) {
+    private long requetesPourUnAppel(Statistics statistiques, Runnable lecture) {
         // Vider le contexte : les entités déjà chargées masqueraient une partie
         // des lectures de la seconde mesure, et la pente paraîtrait plus plate
         // qu'elle ne l'est.
         entityManager.flush();
         entityManager.clear();
         long avant = statistiques.getPrepareStatementCount();
-        stats.computeCollectionValue();
+        lecture.run();
         return statistiques.getPrepareStatementCount() - avant;
     }
 

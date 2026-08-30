@@ -148,10 +148,16 @@ public class StatsService {
                 .toList();
 
         Set<UUID> entityIdsThisYear = ownershipsThisYear.stream().map(Ownership::entityId).collect(Collectors.toSet());
-        Map<UUID, Entity> entitiesById = new HashMap<>();
-        for (UUID entityId : entityIdsThisYear) {
-            entityRepository.findById(entityId).ifPresent(e -> entitiesById.put(entityId, e));
-        }
+        // Le catalogue en UNE requête, puis restreint à l'année demandée.
+        //
+        // Une lecture par série acquise dans l'année, c'était le même N+1 que
+        // la valeur de la collection - mesuré à 13 requêtes pour 5 séries et 25
+        // pour 11. Troisième occurrence de la figure du constat C1, et la
+        // dernière de ce fichier : `computeSummary` boucle sur les TYPES, dont
+        // le nombre ne suit pas la collection (vérifié, voir StatsSansN1Test).
+        Map<UUID, Entity> entitiesById = entityRepository.search(null, null, null).stream()
+                .filter(entity -> entityIdsThisYear.contains(entity.id()))
+                .collect(Collectors.toMap(Entity::id, entity -> entity));
         Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(EntityType::id, t -> t));
 
