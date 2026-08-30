@@ -136,6 +136,34 @@ for (const [theme, palette] of [['clair', clair], ['sombre', sombre]]) {
   for (const r of RANGS) verifier(theme, palette, encreRang, r, `lettre de rang sur ${r}`)
 }
 
+// ──────────────────────────────────────── Les pastilles d'avatar
+//
+// Elles ne viennent d'AUCUN token : leur teinte est déduite du pseudo, la même
+// dans les deux thèmes (voir src/theme/avatar.ts) - une couleur d'identité ne
+// change pas avec l'apparence. Ce qui compte est donc le contraste INTERNE de
+// la pastille, entre son fond et ses deux lettres.
+//
+// L'encre est choisie par le code, pas fixée : sur la teinte verte, le blanc
+// tombe à 4,46 - juste sous le seuil. Ce contrôle vérifie que ce choix tient
+// pour les six teintes, quel que soit le pseudo qui y mène.
+// Relue depuis sa source : une septième teinte ajoutée à `gradientPalettes`
+// serait vérifiée sans que personne y pense, et une teinte modifiée ferait
+// tomber ce contrôle plutôt que de passer inaperçue.
+const AVATARS = [...readFileSync(join(RACINE, 'src/theme/tokens.ts'), 'utf8')
+  .slice(readFileSync(join(RACINE, 'src/theme/tokens.ts'), 'utf8').indexOf('gradientPalettes'))
+  .matchAll(/\['([0-9A-Fa-f]{6})',/g)].map((m) => `#${m[1]}`)
+if (AVATARS.length === 0) {
+  console.error("Palette d'avatars introuvable dans src/theme/tokens.ts")
+  process.exit(2)
+}
+for (const fond of AVATARS) {
+  const encre = rapport(fond, '#ffffff') >= rapport(fond, '#000000') ? '#ffffff' : '#000000'
+  const ratio = rapport(fond, encre)
+  if (ratio < SEUIL) {
+    echecs.push(`  avatar ${fond} sur ${encre} : ${ratio.toFixed(2)}:1`)
+  }
+}
+
 // ─────────────────────────────────────────────────────── Rapport
 
 const compte = TEXTES.length * FONDS.length + ENCRES.length + RANGS.length
@@ -153,4 +181,7 @@ if (echecs.length > 0) {
   process.exit(1)
 }
 
-console.log(`Contraste AA : ${compte * 2} combinaisons vérifiées sur les deux thèmes, aucune sous ${SEUIL}:1.`)
+console.log(
+  `Contraste AA : ${compte * 2} combinaisons vérifiées sur les deux thèmes plus ${AVATARS.length} pastilles ` +
+    `d'avatar, aucune sous ${SEUIL}:1.`,
+)

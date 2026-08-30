@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Wrench } from 'lucide-react'
 import { initiales } from '../../lib/initiales'
+import { couleurDuPseudo } from '../../theme/avatar'
 import { useAuth } from '../../lib/useAuth'
 
 /**
@@ -36,12 +37,18 @@ import { useAuth } from '../../lib/useAuth'
  * tous les écrans. Le décompte n'est pas perdu : la barre de vues affiche
  * « Envies · N » là où le nombre se lit avec ce qu'il compte.
  *
- * <h2>Les initiales du pseudo (2026-08-29)</h2>
+ * <h2>Les initiales du pseudo, et sa couleur (2026-08-29)</h2>
  * L'avatar affichait « IO » en dur - les initiales de l'application, sur le
- * bouton qui mène au compte de quelqu'un. Le repli reste « IO », et il est
- * atteignable : ce composant vit dans l'{@code AppShell}, qui ne se rend que
- * connecté, mais le compte arrive par une requête - il y a donc un instant, au
- * premier chargement, où il n'est pas encore là.
+ * bouton qui mène au compte de quelqu'un. Il porte maintenant les initiales du
+ * pseudo, sur une teinte déduite de lui (voir {@code theme/avatar}) : sur une
+ * instance à plusieurs, deux comptes ne se distinguent plus seulement par
+ * deux lettres qu'on lit, mais par une couleur qu'on reconnaît sans lire.
+ *
+ * <p>Le repli reste « IO », <b>sans couleur</b>, et il est atteignable : ce
+ * composant vit dans l'{@code AppShell}, qui ne se rend que connecté, mais le
+ * compte arrive par une requête - il y a donc un instant, au premier
+ * chargement, où il n'est pas encore là. Une couleur qui apparaîtrait alors se
+ * lirait comme un changement d'identité.
  */
 export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   const { compte } = useAuth()
@@ -52,6 +59,7 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   // Le pseudo est DIT, pas seulement dessiné : « RO » lu à voix haute par un
   // lecteur d'écran n'apprend rien à personne.
   const intitule = compte ? `Mon profil — ${compte.pseudo}` : 'Mon profil'
+  const couleur = couleurDuPseudo(compte?.pseudo ?? '')
   const surAdministration = pathname.startsWith('/administration')
 
   return (
@@ -81,8 +89,12 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
         title={intitule}
         aria-label={intitule}
         aria-current={pathname === '/profile' ? 'page' : undefined}
-        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl bg-surface font-display text-xs font-semibold shadow-token-sm transition-colors ${
-          pathname === '/profile' ? 'text-textPrimary' : 'text-textDim hover:text-textPrimary'
+        // La couleur est posée en style INLINE, pas en classe : elle vient
+        // d'une donnée (le pseudo), pas d'un état d'interface. Tailwind ne
+        // génère que les classes qu'il voit écrites.
+        style={couleur ? { background: couleur.fond, color: couleur.encre } : undefined}
+        className={`flex ${taille} shrink-0 items-center justify-center rounded-xl font-display text-xs font-semibold shadow-token-sm transition-colors ${
+          couleur ? '' : 'bg-surface text-textDim hover:text-textPrimary'
         }`}
       >
         {marque}
