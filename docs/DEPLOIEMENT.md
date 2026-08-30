@@ -78,7 +78,7 @@ les fonctionnalités correspondantes s'absentent proprement (voir
 
 **Vérifier** : `https://<ton-api>.up.railway.app/api/auth/etat` répond
 `{"aucunCompte":true,"creationOuverte":true}`. Et dans les journaux, Flyway
-annonce ses 26 migrations. Si la réponse est un 502, c'est le contrôle de santé :
+annonce ses 28 migrations. Si la réponse est un 502, c'est le contrôle de santé :
 regarder les journaux avant de toucher à autre chose.
 
 ---
@@ -103,12 +103,25 @@ coup que la réécriture marche : cet écran vient d'un appel à `/api/auth/etat
 
 ## 4. Le premier compte
 
-Le créer **depuis l'app**. Il reprend l'identifiant du propriétaire par défaut,
-donc toute donnée déjà présente en base lui appartient (sur une base neuve, il
-n'y a rien à reprendre — c'est le cas normal ici).
+Le créer **depuis l'app**. Trois choses le distinguent de tous les suivants :
 
-**Vérifier** : après création, on arrive sur « Ma collection ». Puis, dans un
-onglet privé, ouvrir la même URL : l'écran de connexion doit apparaître, et
+- il **reprend l'identifiant du propriétaire par défaut**, donc toute donnée
+  déjà présente en base lui appartient (sur une base neuve, il n'y a rien à
+  reprendre — c'est le cas normal ici) ;
+- il est **administrateur d'office** (voir la migration V28) : sans lui,
+  personne ne pourrait ouvrir l'écran d'administration ;
+- il n'a **pas besoin de code d'invitation**, contrairement aux suivants.
+
+Trois champs : adresse, mot de passe (**10 caractères minimum**), et **pseudo**
+— 3 à 24 caractères, lettres (accents compris), chiffres, `.`, `-`, `_`, sans
+espace ni arobase. Le pseudo est **unique sur l'instance** et **ne se change
+pas** : c'est le seul nom sous lequel tu apparais, et il donne aussi les
+initiales et la couleur de l'avatar.
+
+**Vérifier** : après création, on arrive sur « Ma collection », l'avatar en haut
+à droite porte tes initiales, et le bouton clé (Administration) mène à
+« Comptes ». Puis, dans un onglet privé, ouvrir la même URL : l'écran de
+connexion doit apparaître, et
 `https://<ton-api>.up.railway.app/api/entities/search` doit répondre **401**.
 
 ---
@@ -123,6 +136,18 @@ Chaque compte a **sa** collection : le catalogue des œuvres est partagé (une
 œuvre est la même pour tout le monde), mais possessions, envies, classements,
 analyses et prix relevés sont cloisonnés (voir `backend/README.md`, section
 « L'isolation »).
+
+Ce qui est **partagé et administré** : les catégories de collection, les
+éditions de référence et les **tags**. Un compte ordinaire les lit, seul un
+administrateur les pose. Le second compte n'est donc pas administrateur — le
+devenir se fait en SQL, délibérément :
+
+```sql
+UPDATE app_user SET is_admin = true WHERE lower(pseudo) = 'le-pseudo';
+```
+
+Et **on ne supprime pas son propre compte** : c'est ce qui garantit qu'il reste
+toujours quelqu'un pour administrer l'instance.
 
 ---
 
