@@ -1371,14 +1371,52 @@ Les seuls écrans sans action sont des **vides honnêtes** :
 
 ## 16. Capacités existantes mais difficiles à découvrir
 
-1. **Relever un prix de marché** — n'apparaît que dans le détail d'une série d'un résultat d'analyse, et seulement si l'édition est reconnue *et* les tomes contigus. C'est pourtant le seul moyen d'alimenter la base de prix observés dont dépend la qualité de toutes les analyses suivantes. Les relevés déjà enregistrés sont, eux, visibles et retirables depuis **Éditions de référence** (2026-08-21).
-2. **Exemplaires passés** — un tome vendu ou perdu n'est visible qu'en ouvrant le panneau du tome correspondant, qui affiche par ailleurs un formulaire d'ajout.
-3. **Catégories de collection** — deux chemins ; le second est passé de trois niveaux à **zéro** le 2026-08-29 : Administration a son bouton dans l'en-tête.
-4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit tous les « X/Y » de l'app, rangé sous Administration — à un clic de l'en-tête depuis le 2026-08-29, contre trois niveaux auparavant.
-5. **Bilan annuel** — sous Découvrir depuis le 2026-08-29 (il était sous Profil, dans une liste de liens), toujours sans rappel saisonnier.
-6. **Classement rapide** — n'apparaît que s'il existe au moins une œuvre non classée.
-7. **Ordre des langues de titre** — décide du titre affiché partout, rangé dans Paramètres sans lien depuis les écrans concernés.
-8. **Analyse d'achat depuis une fiche** — pré-remplit la série, mais l'entrée est en bas du bloc d'identité.
+> **Revue du 2026-08-29** : les huit constats relus **un par un dans le code**,
+> pas de mémoire. Deux étaient caducs, trois ont été corrigés, un est
+> délibéré, deux restent ouverts.
+
+1. **Relever un prix de marché** — ~~n'apparaît que dans le détail d'une série
+   d'un résultat d'analyse~~ — **RÉSOLU (2026-08-29)**. C'est la seule source
+   de prix réellement constatés, dont dépend la qualité de toutes les analyses
+   suivantes : la capacité la plus déterminante était la plus cachée. Elle
+   exigeait d'analyser une annonce, d'ouvrir le détail d'une de ses séries, et
+   seulement si l'édition était reconnue *et* les tomes contigus. Pire : quand
+   une édition n'avait aucun relevé, le bloc qui les liste **ne s'affichait pas
+   du tout** — rien ne disait que ces prix existaient. **Éditions de
+   référence** porte désormais « Relever un prix » sur chaque édition, et
+   annonce le vide plutôt que de le taire. La portée reste facultative, et
+   l'écran dit ce que le prix décrira avant qu'on l'enregistre.
+2. **~~Exemplaires passés~~ — CADUC (vérifié le 2026-08-29).** Vérifié dans le
+   code, pas déduit : **aucun composant** ne rend « SOLD » ni « LOST », et le
+   panneau de tome qui les montrait n'existe plus. Retirer un tome le
+   **supprime** depuis le Lot 55 — il n'y a plus d'exemplaire passé à
+   découvrir. Seul le type du DTO porte encore ces statuts, parce que le
+   serveur les expose.
+3. **Catégories de collection** — deux chemins ; le second est passé de trois
+   niveaux à **zéro** le 2026-08-29 : Administration a son bouton dans
+   l'en-tête.
+4. **Éditions de référence** — seul écran d'ensemble du référentiel qui produit
+   tous les « X/Y » de l'app, rangé sous Administration — à un clic de
+   l'en-tête depuis le 2026-08-29, contre trois niveaux auparavant.
+5. **Bilan annuel** — sous Découvrir depuis le 2026-08-29 (il était sous
+   Profil, dans une liste de liens), toujours **sans rappel saisonnier**. Reste
+   ouvert : un écran qu'on ne pense à ouvrir qu'une fois par an ne se trouve
+   pas, il se rappelle.
+6. **Classement rapide** — n'apparaît que s'il existe au moins une œuvre non
+   classée. **Délibéré, pas un défaut** : proposer « classer ce qui n'est pas
+   classé » quand tout l'est ouvrirait un écran vide. C'est la même règle que
+   les rails vides de Ma collection.
+7. **Ordre des langues de titre** — ~~rangé dans Paramètres sans lien depuis
+   les écrans concernés~~ — **RÉSOLU (2026-08-29)**. On voyait un titre en
+   romaji sans savoir que c'était un choix, encore moins où le changer. La
+   liste des **Suggestions** de Rechercher — la seule surface que ce réglage
+   gouverne — porte désormais « Langue des titres » à côté de son titre, et
+   passe son origine pour que le retour ramène à Rechercher.
+8. **~~Analyse d'achat depuis une fiche~~ — CADUC (vérifié le 2026-08-29).**
+   « Évaluer » n'est pas en bas du bloc d'identité : c'est un **bouton
+   principal** de la bande haute (FicheHero), à côté d'« Éditer », en aplat
+   d'accent. Une seconde entrée, contextuelle, existe dans l'assistant de
+   fiche.
 
 ---
 
@@ -1644,8 +1682,8 @@ Progression     backend .../insights/CollectionProgressService.java  (source uni
                 ne recalcule (Lots 51 et 60)
 Envies          web/src/lib/useWishlist.ts (source unique) + components/WishlistToggle.tsx
 Tests           backend/src/test/java/**  (1057 tests)
-                web/src/**/*.test.ts(x)   (276 tests, Vitest - voir web/README)
+                web/src/**/*.test.ts(x)   (286 tests, Vitest - voir web/README)
                 web/e2e/*.spec.ts         (9 parcours, Playwright)
 ```
 
-**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **276 tests Vitest** sur trente-trois modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
+**À noter pour la suite** : le web a désormais un filet, amorcé le 2026-08-29 — **286 tests Vitest** sur trente-cinq modules. Ils couvrent les règles qui décident de ce qui s'affiche (`shelfTiles`, `ownership`, `tomeTiles`, `venues`, `attributsTome`), ce que l'utilisateur lit quand ça rate (`api/client` : les erreurs traduites), ce que les boutons « Envies » promettent (`useWishlist`), les réglages qui survivent à un `localStorage` corrompu (`preferencesCollection`, `titleLanguage`), le quota du fournisseur de jaquettes (`backfillCovers`), le garde-fou de l'IA (`basePrix`), les invalidations de cache, et le clavier — Échap, le piège à Tab et le focus rendu au déclencheur (`useModalA11y`), le titre d'onglet qui annonce une navigation à un lecteur d'écran (`useDocumentTitle`), le surlignage de la barre de navigation (`navItems`) et l'identité visuelle d'un univers (`entityTypeVisuals`) ; enfin le seul module qui peut écraser des données de l'utilisateur (`rechargerSource`) et les « jamais deviné » du catalogue (`seriesInfo`, `indicesOeuvre`, `theme`). Et depuis le 2026-08-29, **des parcours de bout en bout** (Playwright, **14**) : la porte (créer le premier compte, se connecter, un mot de passe faux qui ne dit rien, se déconnecter pour de bon), créer un univers puis y ajouter une œuvre et la retrouver plutôt que la dupliquer, le lien de partage — généré, lu **sans aucune session**, puis repris —, la progression « X/Y tomes » d'une édition et le tome coché depuis la grille, une Tier List créée puis remplie puis classée, **renseigner l'édition de référence et voir « X/Y » apparaître**, **repérer une série presque complète depuis Découvrir**, et **évaluer une annonce dont deux tomes sont déjà possédés**. Ils tournent sur une **pile jetable** (base et API à eux, `backend/docker-compose.e2e.yml`) : jamais sur les vraies données. **Neuf des dix** parcours structurants de la §21 sont couverts ; ne manque que le **scan**, qui demande une caméra.
