@@ -478,11 +478,13 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   Voir `backend/README.md` (« Comptes et session », « L'isolation ») et
   `docs/DEPLOIEMENT.md`.
 
-  Le HTTP Basic de Traefik (`BASIC_AUTH_USERS`) date d'avant : il protégeait
-  une application qui n'avait aucune authentification en propre. Sur un
-  déploiement Synology, il devient une seconde demande de mot de passe devant
-  la première — et il casse les liens de partage, dont le destinataire est
-  censé n'avoir rien à saisir.
+  Le HTTP Basic de Traefik (`BASIC_AUTH_USERS`) a été **retiré** le
+  2026-08-30 : il protégeait une application qui n'avait aucune
+  authentification en propre. Il était devenu une seconde demande de mot de
+  passe devant la première — et il cassait les liens de partage, dont le
+  destinataire est censé n'avoir rien à saisir. `docker-compose.synology.yml`
+  porte désormais deux routeurs Traefik au lieu de quatre : les exceptions de
+  chemin n'ont plus lieu d'être puisqu'il n'y a plus de porte à contourner.
 - Le sous-domaine Traefik de l'app Web dans `docker-compose.synology.yml`
   (`app.iozycore.mondomaine.tld`) est un exemple à adapter à ton propre
   domaine/DDNS, comme celui de l'API — voir "Renommer le projet" plus haut
