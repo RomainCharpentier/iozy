@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
+import { Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
 import { listAllOwnerships } from '../../api/ownerships'
@@ -414,7 +414,23 @@ export function SearchPage() {
 
       {showSuggestions && (
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Suggestions</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Suggestions</span>
+            {/* Le réglage qui décide de CES titres, à côté d'eux.
+                « Ordre des langues de titre » vivait dans Paramètres, sans
+                aucun lien depuis l'écran qu'il gouverne (§16 des parcours) :
+                on voyait un titre en romaji sans savoir que c'était un choix,
+                encore moins où le changer. Le lien ne dit pas « Paramètres »,
+                il dit ce qu'on va y régler. */}
+            <Link
+              to="/settings"
+              state={{ retour: { to: '/add', libelle: 'Rechercher' } }}
+              className="flex min-h-11 items-center gap-1.5 text-xs font-semibold text-accentText"
+            >
+              <Languages size={13} />
+              Langue des titres
+            </Link>
+          </div>
           <ul className="flex flex-col gap-1.5">
             {suggestionsQuery.data!.map((candidate) => (
               <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">

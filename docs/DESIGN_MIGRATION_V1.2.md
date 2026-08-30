@@ -1360,6 +1360,79 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 110 — les huit capacités cachées, relues une par une
+
+Le §16 des parcours liste ce qui existe mais ne se trouve pas. Huit constats,
+dont certains dataient du 2026-08-21. Relus **dans le code**, pas de mémoire -
+la même discipline qui avait montré que trois constats d'UX étaient caducs.
+
+Résultat : **deux caducs, trois corrigés, un délibéré, deux ouverts**.
+
+#### Le plus grave était le premier
+
+**Relever un prix de marché** était la capacité la plus déterminante de
+l'application et la plus cachée. Ces relevés sont la seule source de prix
+réellement constatés, dont dépend la qualité de **toutes** les analyses
+suivantes. Pour en enregistrer un, il fallait analyser une annonce, ouvrir le
+détail d'une de ses séries, et seulement si l'édition était reconnue *et* les
+tomes contigus.
+
+Pire, et c'est ce que la relecture a trouvé : l'écran **Éditions de référence**
+listait déjà ces prix et permettait d'en retirer un faux - mais son bloc
+commençait par `if (observations.length === 0) return null`. Sur une édition
+sans relevé, **rien ne s'affichait**. L'endroit exact où l'on aurait voulu en
+saisir un était l'endroit où l'application ne disait pas que ces prix
+existaient.
+
+Le bloc annonce désormais le vide, et porte « Relever un prix ». Le formulaire
+demande le prix et la plateforme - « 45 € » ne veut pas dire la même chose sur
+Vinted et chez un libraire - et pré-remplit la date à aujourd'hui, un relevé
+étant un fait daté. La **portée** reste facultative, et l'écran dit ce que le
+prix décrira **avant** qu'on l'enregistre : sans tomes, il couvre l'édition
+entière. L'**état** aussi reste facultatif : inventer « Bon état » par défaut
+fausserait toutes les comparaisons dans le sens optimiste.
+
+#### Le réglage qui gouvernait un écran sans y être
+
+**L'ordre des langues de titre** décide de ce que la liste de suggestions
+affiche et de ce qui sera enregistré. Il vivait dans Paramètres, sans aucun lien
+depuis l'écran qu'il gouverne : on voyait un titre en romaji sans savoir que
+c'était un choix, encore moins où le changer. La liste des suggestions porte
+maintenant « Langue des titres » à côté de son titre - et passe son origine,
+pour que le retour ramène à Rechercher.
+
+Il n'apparaît **que** quand il y a des suggestions : un réglage proposé devant
+une liste vide serait du bruit permanent sur le seul écran d'ajout.
+
+#### Deux constats qui décrivaient un état révolu
+
+**« Exemplaires passés »** : aucun composant ne rend `SOLD` ni `LOST`, et le
+panneau de tome qui les montrait n'existe plus. Retirer un tome le **supprime**
+depuis le Lot 55 - il n'y a plus d'exemplaire passé à découvrir. Seul le type
+du DTO porte encore ces statuts, parce que le serveur les expose.
+
+**« Analyse d'achat depuis une fiche »** disait « l'entrée est en bas du bloc
+d'identité ». C'est un **bouton principal** de la bande haute, en aplat
+d'accent, à côté d'« Éditer ».
+
+#### Un qui n'en est pas un
+
+**« Classement rapide » n'apparaît que s'il existe au moins une œuvre non
+classée** - c'est délibéré, pas un défaut de découverte. Proposer « classer ce
+qui n'est pas classé » quand tout l'est ouvrirait un écran vide. Même règle que
+les rails vides de Ma collection.
+
+#### Le filet
+
+286 tests web (35 modules), 14 parcours. `SearchPage` et `EditionObservations`
+ont enfin les leurs. Quatre mutations rattrapées, dont la portée envoyée à
+moitié et l'état par défaut inventé.
+
+Le test de `SearchPage` a trouvé quelque chose immédiatement, dans le test
+lui-même : le candidat de métadonnées que je lui donnais n'avait pas
+d'`attributes` - le champ que ce réglage gouverne précisément - et le rendu
+plantait. Une fixture qui n'est pas ce qu'elle prétend être ne teste rien.
+
 ### Lot 109 — dix écrans sans sortie
 
 En rangeant les réglages, un défaut est apparu par contraste : **dix écrans
@@ -6280,6 +6353,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Un `if (liste.length === 0) return null` transforme un écran de gestion en écran fantôme là où l'on en a le plus besoin : le bloc des prix relevés disparaissait exactement sur les éditions qui n'en avaient aucun. Avant de masquer un bloc vide, se demander s'il porte le geste qui le remplirait (Lot 110).
+- Un réglage se propose DEPUIS la surface qu'il gouverne, pas seulement depuis Paramètres : l'ordre des langues de titre décidait de chaque ligne d'une liste sans que rien n'y indique que c'était un choix. Et conditionné à cette surface, il ne devient jamais du bruit permanent (Lot 110).
 - Le bouton Précédent du navigateur n'existe pas dans une app installée (`display: standalone`) : dès qu'une PWA devient installable, tout écran sans lien de retour devient un cul-de-sac. Le défaut n'existait pas avant le lot PWA, et rien ne l'a signalé (Lot 109).
 - Un écran de réglages se range par ce que le réglage CONCERNE (mon compte / cet appareil / ma collection / cette instance), jamais par « à quel point c'est technique » : la seconde échelle est une impression, et c'est elle qui avait mis l'export à côté des catégories de collection (Lot 108).
 - Un réglage qui vit dans le `localStorage` doit le DIRE : rien à l'écran ne distingue un interrupteur qui suit le compte d'un interrupteur qui reste sur la machine, et la personne qui ouvre l'app sur son téléphone conclut à une perte de réglage (Lot 108).
