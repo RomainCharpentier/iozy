@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -153,6 +154,16 @@ public class SecurityConfig {
                         // qui correspond gagne. Rien ici n'ouvre les données
                         // d'autrui, qui restent filtrées par propriétaire.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Les tags décrivent une ŒUVRE, pas une collection :
+                        // ils vivent dans le catalogue PARTAGÉ, comme les
+                        // catégories et les éditions de référence. Tout le
+                        // monde les LIT - c'est ce qui rend le filtre de Ma
+                        // collection utilisable - et seul un administrateur
+                        // les pose, les renomme ou les retire. Sans cette
+                        // règle, n'importe quel compte étiquetterait les
+                        // œuvres de tous les autres.
+                        .requestMatchers(HttpMethod.GET, "/api/tags/**").authenticated()
+                        .requestMatchers("/api/tags/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Une API répond 401, elle ne redirige pas vers une page de
                 // connexion : c'est le client qui décide quoi montrer.

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { attachTag, createTag, detachTag } from '../../api/tags'
 import { queryKeys } from '../../lib/queryKeys'
 import { Chip } from '../../components/Chip'
+import { useAuth } from '../../lib/useAuth'
 import type { TagDto } from '../../types/api'
 
 interface TagsSectionProps {
@@ -11,12 +12,27 @@ interface TagsSectionProps {
   allTags: TagDto[]
 }
 
-/** Miroir de ManageTagsSheet : chips des tags attachés (cliquer = détacher),
- * chips des tags disponibles (cliquer = attacher), + création + attache en
- * une action pour un nouveau label. */
+/**
+ * Les tags d'une œuvre : lus par tous, posés par un administrateur.
+ *
+ * <h2>Pourquoi cette asymétrie</h2>
+ * Un tag décrit l'ŒUVRE - « seinen », « one-shot » - pas la collection de
+ * celui qui le pose : il vit donc dans le catalogue partagé, où une œuvre est
+ * la même pour tout le monde. Sans cette règle, n'importe quel compte
+ * étiquetterait les œuvres de tous les autres, et rien à l'écran ne le
+ * montrerait (décision du 2026-08-30).
+ *
+ * <p>Ce n'est pas ce composant qui protège : le serveur répond 403 sur toute
+ * écriture (voir SecurityConfig). Ici, on évite seulement de proposer des
+ * gestes qui ne mèneraient qu'à un refus - un compte ordinaire VOIT les tags
+ * de l'œuvre, en lecture, parce qu'ils la décrivent et qu'ils lui servent à
+ * filtrer sa collection.
+ */
 export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionProps) {
   const queryClient = useQueryClient()
+  const { compte } = useAuth()
   const [newLabel, setNewLabel] = useState('')
+  const peutEtiqueter = compte?.admin === true
 
   const invalidateEntity = () => queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
 
@@ -48,13 +64,25 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
         {attached.length === 0 && <span className="text-[13px] text-faint">Aucun tag pour l'instant</span>}
       </div>
 
+      {/* Les tags posés, toujours visibles : ils décrivent l'œuvre, et ils
+          servent à filtrer sa collection. Cliquables seulement pour qui peut
+          les retirer. */}
       <div className="flex flex-wrap gap-2 empty:hidden">
-        {attached.map((tag) => (
-          <Chip key={tag.id} label={tag.label} isActive onClick={() => detachMutation.mutate(tag.id)} />
-        ))}
+        {attached.map((tag) =>
+          peutEtiqueter ? (
+            <Chip key={tag.id} label={tag.label} isActive onClick={() => detachMutation.mutate(tag.id)} />
+          ) : (
+            <span
+              key={tag.id}
+              className="rounded-full bg-accentTint px-3 py-1.5 text-[13px] font-medium text-accentText"
+            >
+              {tag.label}
+            </span>
+          ),
+        )}
       </div>
 
-      {available.length > 0 && (
+      {peutEtiqueter && available.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {available.map((tag) => (
             <Chip key={tag.id} label={`+ ${tag.label}`} onClick={() => attachMutation.mutate(tag.id)} />
@@ -62,6 +90,13 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
         </div>
       )}
 
+      {!peutEtiqueter && (
+        <span className="text-[13px] text-faint">
+          Les tags décrivent l'œuvre et sont communs à tous les comptes : seul un administrateur les pose.
+        </span>
+      )}
+
+      {peutEtiqueter && (
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -83,6 +118,7 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
           Ajouter ce tag
         </button>
       </form>
+      )}
     </section>
   )
 }

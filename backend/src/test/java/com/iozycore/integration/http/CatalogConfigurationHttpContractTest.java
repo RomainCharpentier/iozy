@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -28,7 +29,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Le contrat HTTP de la <b>configuration du catalogue</b> : les types d'œuvres
- * ({@code /api/entity-types}) et les tags personnels ({@code /api/tags}).
+ * ({@code /api/entity-types}) et les tags ({@code /api/tags}).
+ *
+ * <p><b>Les écritures partent au nom d'un administrateur depuis le
+ * 2026-08-30</b> : les tags décrivent une œuvre du catalogue PARTAGÉ, et les
+ * poser engage tous les comptes. Le refus opposé aux autres est vérifié
+ * ailleurs, par {@code TagsAdministresHttpContractTest} - ici on décrit ce que
+ * fait la route, pas qui a le droit de l'appeler.
  *
  * <h2>Ce que ces deux surfaces ont en commun</h2>
  * Elles écrivent des données <b>structurantes ou personnelles</b> sans passer
@@ -202,7 +209,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
     void creates_a_tag_and_returns_the_same_one_when_the_label_already_exists() throws Exception {
         String label = "à relire " + UUID.randomUUID();
 
-        String premier = mockMvc.perform(post("/api/tags").contentType("application/json")
+        String premier = mockMvc.perform(post("/api/tags").with(user(IDENTITE_ADMIN)).contentType("application/json")
                         .content(json(Map.of("label", label))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.label").value(label))
@@ -210,7 +217,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
         // Contrat existant : un label déjà pris rend le tag existant plutôt
         // qu'un 409. Un tag est un mot, pas une ressource qu'on se dispute.
-        String second = mockMvc.perform(post("/api/tags").contentType("application/json")
+        String second = mockMvc.perform(post("/api/tags").with(user(IDENTITE_ADMIN)).contentType("application/json")
                         .content(json(Map.of("label", label))))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -233,7 +240,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
     @Test
     void rejects_a_tag_without_a_label_with_400_and_never_500() throws Exception {
         for (String corps : new String[] {"{}", "{\"label\":\"   \"}", "", "{pas du json"}) {
-            mockMvc.perform(post("/api/tags").contentType("application/json").content(corps))
+            mockMvc.perform(post("/api/tags").with(user(IDENTITE_ADMIN)).contentType("application/json").content(corps))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -243,12 +250,12 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         Entity oeuvre = uneOeuvre("Berserk");
         Tag tag = tagRepository.save(new Tag(UUID.randomUUID(), "chef-d'œuvre " + UUID.randomUUID()));
 
-        mockMvc.perform(post("/api/tags/entities/{e}/{t}", oeuvre.id(), tag.id()))
+        mockMvc.perform(post("/api/tags/entities/{e}/{t}", oeuvre.id(), tag.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/entities/{id}", oeuvre.id()))
                 .andExpect(jsonPath("$.tagIds[?(@=='" + tag.id() + "')]").exists());
 
-        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), tag.id()))
+        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), tag.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isOk());
 
         // Un tag personnel ne touche jamais l'œuvre catalogue elle-même : après
@@ -267,7 +274,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
         // table, et le client recevait « Cette donnée entre en conflit avec une
         // donnée existante » - alors que le tag est ABSENT. La ligne au-dessus
         // rendait déjà, pour l'entité, le 404 que ce cas mérite tout autant.
-        mockMvc.perform(post("/api/tags/entities/{e}/{t}", oeuvre.id(), ABSENT))
+        mockMvc.perform(post("/api/tags/entities/{e}/{t}", oeuvre.id(), ABSENT).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isNotFound());
 
         // Et rien n'a été écrit au passage.
@@ -276,9 +283,9 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
     @Test
     void returns_404_when_tagging_a_work_that_does_not_exist_and_400_for_a_malformed_id() throws Exception {
-        mockMvc.perform(post("/api/tags/entities/{e}/{t}", ABSENT, ABSENT)).andExpect(status().isNotFound());
-        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", ABSENT, ABSENT)).andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/tags/entities/{e}/{t}", MALFORME, ABSENT)).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/tags/entities/{e}/{t}", ABSENT, ABSENT).with(user(IDENTITE_ADMIN))).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", ABSENT, ABSENT).with(user(IDENTITE_ADMIN))).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/tags/entities/{e}/{t}", MALFORME, ABSENT).with(user(IDENTITE_ADMIN))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -288,7 +295,7 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
 
         // Idempotent : rejouer un détachement hors ligne ne doit pas devenir
         // une erreur.
-        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), jamaisAttache.id()))
+        mockMvc.perform(delete("/api/tags/entities/{e}/{t}", oeuvre.id(), jamaisAttache.id()).with(user(IDENTITE_ADMIN)))
                 .andExpect(status().isOk());
         assertThat(entityRepository.findById(oeuvre.id())).isPresent();
     }

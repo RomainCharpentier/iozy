@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Tags, ChevronRight, BookMarked, Users } from 'lucide-react'
+import { Tags, ChevronRight, BookMarked, Users, Hash } from 'lucide-react'
 import { EnTeteSection } from '../../components/EnTeteSection'
 import { useAuth } from '../../lib/useAuth'
 
@@ -14,10 +14,15 @@ interface AdminLink {
  * Ce qui n'est ni un réglage de compte, ni un réglage d'appareil.
  *
  * <h2>Deux sections, deux échelles</h2>
- * <b>Ma collection</b> : ce qui la DÉCRIT - les catégories qu'elle accepte, et
- * les éditions de référence qui rendent les « X/Y » possibles. Ça se configure
- * une fois puis s'oublie, contrairement au thème ou à la langue des titres,
- * qui restent dans Paramètres.
+ * <b>Ma collection</b> : ce qui la DÉCRIT - les catégories qu'elle accepte, les
+ * éditions de référence qui rendent les « X/Y » possibles, et les tags posés
+ * sur les œuvres. Ça se configure une fois puis s'oublie, contrairement au
+ * thème ou à la langue des titres, qui restent dans Paramètres.
+ * <p>
+ * Les <b>tags</b> n'y sont que pour un administrateur, contrairement aux deux
+ * autres : ils décrivent une œuvre du catalogue PARTAGÉ, et les poser engage
+ * donc tous les comptes (voir TagController). Les lire, en revanche, est
+ * ouvert - c'est ce qui rend le filtre de Ma collection utilisable.
  *
  * <p><b>Cette instance</b> : la machine, pas les données. Une seule entrée -
  * les comptes - et elle n'apparaît que pour un administrateur.
@@ -58,6 +63,15 @@ const MA_COLLECTION: AdminLink[] = [
  * {@code /api/admin/**} quel que soit l'écran (voir SecurityConfig). Ce qui se
  * joue ici est autre chose - ne pas proposer une porte qui ne s'ouvrira pas.
  */
+/** Réservé aux administrateurs, comme les comptes - et pour la même raison :
+ *  ce qu'on y fait engage les autres. */
+const TAGS: AdminLink = {
+  to: '/administration/tags',
+  label: 'Tags',
+  description: "Les étiquettes posées sur les œuvres - renommer, supprimer, voir ce qu'elles servent",
+  icon: Hash,
+}
+
 const CETTE_INSTANCE: AdminLink[] = [
   {
     to: '/administration/comptes',
@@ -78,7 +92,7 @@ export function AdministrationPage() {
         sousTitre="Ce qui décrit ta collection, et la machine qui l'héberge — à toucher rarement."
       />
 
-      <Groupe titre="Ma collection" liens={MA_COLLECTION} />
+      <Groupe titre="Ma collection" liens={compte?.admin ? [...MA_COLLECTION, TAGS] : MA_COLLECTION} />
       {compte?.admin && <Groupe titre="Cette instance" liens={CETTE_INSTANCE} />}
     </div>
   )
