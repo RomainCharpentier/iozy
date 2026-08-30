@@ -62,6 +62,11 @@ class JpaTagRepositoryAdapter implements TagRepository {
     }
 
     @Override
+    public void supprimer(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public Optional<Tag> findByLabel(String label) {
         return jpaRepository.findByLabel(label).map(e -> new Tag(e.getId(), e.getLabel()));
     }

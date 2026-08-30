@@ -480,6 +480,11 @@ class StatsServiceTest {
         public List<Tag> findAll() {
             return new ArrayList<>(store.values());
         }
+
+        @Override
+        public void supprimer(UUID id) {
+            store.remove(id);
+        }
     }
 
     private static class InMemoryMangaEditionRepository implements MangaEditionRepository {

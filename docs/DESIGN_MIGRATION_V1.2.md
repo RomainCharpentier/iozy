@@ -1360,6 +1360,74 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 112 — un tag décrit une œuvre, pas une collection
+
+En cherchant quoi faire des tags, trois faits ont décidé du lot - et aucun
+n'était connu avant de regarder :
+
+1. **Il n'y en avait aucun.** Zéro ligne dans `tag`, zéro dans `entity_tag`.
+   La fonctionnalité existe depuis le début et n'a jamais servi. C'est aussi
+   pourquoi le filtre ajouté au Lot 103 ne montrait rien : sa section
+   n'apparaît que s'il existe des tags.
+2. **Les tags vivent dans le catalogue PARTAGÉ.** `tag` et `entity_tag` n'ont
+   pas de colonne `owner_id`, contrairement aux possessions, envies et
+   classements. Sur une instance à plusieurs, tout le monde voyait les tags de
+   tout le monde - et pouvait les modifier.
+3. **`ON DELETE CASCADE` était déjà là**, donc supprimer un tag détache
+   proprement.
+
+Le deuxième point posait une vraie question de produit, et elle a été
+tranchée : **un tag décrit l'ŒUVRE** - « seinen », « one-shot », « adapté en
+animé » - au même titre que sa catégorie ou son édition de référence. Il reste
+donc partagé, et **seul un administrateur le pose**.
+
+Ce qui suit de ce choix, et qui compte autant : un tag n'est pas l'endroit où
+noter « prêté à Marc » ou « à revendre ». Ces choses-là sont personnelles,
+elles n'ont rien à faire dans un catalogue commun, et rien n'accueille cet
+usage - c'est explicite plutôt que laissé à l'interprétation.
+
+#### Lire est ouvert, écrire ne l'est pas
+
+\`\`\`
+.requestMatchers(HttpMethod.GET, "/api/tags/**").authenticated()
+.requestMatchers("/api/tags/**").hasRole("ADMIN")
+\`\`\`
+
+Deux lignes, et l'ordre compte. Fermer la lecture viderait le filtre de Ma
+collection sans un mot ; l'ouvrir en écriture laisserait n'importe quel compte
+étiqueter les œuvres de tous les autres, sans que rien à l'écran ne le montre.
+
+Sur la fiche, un compte ordinaire **voit** les tags - ils décrivent l'œuvre, et
+ils lui servent à filtrer - mais ne peut ni les retirer ni en poser. L'écran le
+**dit** au lieu de laisser chercher.
+
+#### Ce qui manquait vraiment
+
+`PATCH` et `DELETE` sur un tag n'existaient pas : une faute de frappe était
+définitive, et la liste du filtre ne pouvait que grossir. Même défaut « poser
+sans pouvoir gérer » que les prix relevés du Lot 110.
+
+**Administration ▸ Ma collection ▸ Tags** les liste avec **ce qu'ils portent**.
+Le décompte n'est pas décoratif : « supprimer un tag posé sur 12 œuvres » et
+« supprimer un tag qui ne sert à rien » ne sont pas le même geste. Il vient des
+œuvres déjà en cache, pas d'une route de plus - payer un endpoint pour un
+nombre affiché sur un écran d'administration serait payer pour ce qu'on a sous
+la main.
+
+Renommer ne détache rien, et l'écran le dit : le tag garde son identité, seul
+son nom change, sur toutes les œuvres d'un coup.
+
+#### Le filet
+
+1082 tests backend, 292 web. Six tests de contrat pour la nouvelle porte, et
+une mutation qui la ramène à « authentifié » : rattrapée.
+
+Six tests existants de `CatalogConfigurationHttpContractTest` sont tombés au
+passage, et c'était **juste** : ils écrivaient des tags au nom d'un compte
+ordinaire. Ils partent désormais au nom d'un administrateur, et leur en-tête
+dit pourquoi - ils décrivent ce que fait la route, pas qui a le droit de
+l'appeler.
+
 ### Lot 111 — l'avatar prend la couleur du pseudo
 
 Le Lot 105 avait posé les initiales et laissé la couleur de côté, faute de
@@ -6385,6 +6453,8 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 
 ## Notes de calibrage (pour éviter de refaire ce travail de lecture)
 
+- Avant de décider du sort d'une fonctionnalité, COMPTER ce qu'elle contient en base : les tags avaient un écran, une API, un filtre - et zéro ligne. Le fait le plus décisif du lot n'était dans aucun fichier (Lot 112).
+- Une table sans `owner_id` dans une application cloisonnée est un choix, jamais un oubli à corriger machinalement : `tag` est partagée parce qu'un tag décrit l'ŒUVRE. La bonne question n'est pas « faut-il la cloisonner » mais « de quoi cette donnée parle-t-elle » - et la réponse décide ensuite qui a le droit d'écrire (Lot 112).
 - Un `if (liste.length === 0) return null` transforme un écran de gestion en écran fantôme là où l'on en a le plus besoin : le bloc des prix relevés disparaissait exactement sur les éditions qui n'en avaient aucun. Avant de masquer un bloc vide, se demander s'il porte le geste qui le remplirait (Lot 110).
 - Un réglage se propose DEPUIS la surface qu'il gouverne, pas seulement depuis Paramètres : l'ordre des langues de titre décidait de chaque ligne d'une liste sans que rien n'y indique que c'était un choix. Et conditionné à cette surface, il ne devient jamais du bruit permanent (Lot 110).
 - Le bouton Précédent du navigateur n'existe pas dans une app installée (`display: standalone`) : dès qu'une PWA devient installable, tout écran sans lien de retour devient un cul-de-sac. Le défaut n'existait pas avant le lot PWA, et rien ne l'a signalé (Lot 109).

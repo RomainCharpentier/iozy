@@ -57,6 +57,7 @@ const ProfilePage = page(() => import('./routes/Profile/ProfilePage'), 'ProfileP
 const ImportBggPage = page(() => import('./routes/Profile/ImportBggPage'), 'ImportBggPage')
 const AdministrationPage = page(() => import('./routes/Profile/AdministrationPage'), 'AdministrationPage')
 const ComptesPage = page(() => import('./routes/Profile/ComptesPage'), 'ComptesPage')
+const TagsPage = page(() => import('./routes/Profile/TagsPage'), 'TagsPage')
 const SuggestionsPage = page(() => import('./routes/Suggestions/SuggestionsPage'), 'SuggestionsPage')
 const CollectionRecapPage = page(() => import('./routes/Recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('./routes/Scan/ScanPage'), 'ScanPage')
@@ -164,6 +165,7 @@ export default function App() {
                   <Route path="/import-bgg" element={<ImportBggPage />} />
                   <Route path="/administration" element={<AdministrationPage />} />
                   <Route path="/administration/comptes" element={<ComptesPage />} />
+                  <Route path="/administration/tags" element={<TagsPage />} />
                   <Route path="/suggestions" element={<SuggestionsPage />} />
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
