@@ -59,7 +59,7 @@ services:
       # Le domaine servi par le reverse proxy de DSM. Sans lui, la lecture
       # passe et TOUTE écriture part en 403 : le défaut se remarque au premier
       # ajout, pas au premier chargement.
-      WEB_ALLOWED_ORIGINS: "${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://iozycore.synology.me)}"
+      WEB_ALLOWED_ORIGINS: "${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://ton-nom.synology.me)}"
       # Il y a du TLS devant : le cookie de session ne repart jamais en clair.
       SESSION_COOKIE_SECURE: "true"
       # Vide = création de compte FERMÉE après le premier. C'est le défaut
