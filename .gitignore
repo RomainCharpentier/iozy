@@ -13,6 +13,11 @@ ios/.build/
 ios/xcuserdata/
 ios/*.xcuserstate
 
+# --- Notes personnelles (adresses, identifiants, réglages d'une
+#     installation précise). Le dépôt est PUBLIC : ces fichiers restent
+#     sur la machine, et la documentation en est écrite sans eux. ---
+*.local.md
+
 # --- Secrets ---
 .env
 *.env

@@ -11,9 +11,13 @@ comment ajouter une fonctionnalité) — humain ou IA — chaque README a une
 section "Le projet" en tout début de fichier, pensée pour ça spécifiquement.
 Ce guide-ci reste volontairement pratique (lancer/tester), pas architectural.
 
-**Pour mettre l'app en ligne** (Vercel pour l'app, Railway pour l'API et la
-base) : `docs/DEPLOIEMENT.md`. Chaque étape y dit comment vérifier qu'elle a
-marché avant de passer à la suivante.
+**Pour mettre l'app en ligne** : `docs/DEPLOIEMENT.md` — sur un NAS Synology
+(gratuit, l'app a été pensée pour ça) ou chez un hébergeur. Chaque étape y dit
+comment vérifier qu'elle a marché avant de passer à la suivante.
+
+**Pour la faire tourner ensuite** — démarrer, arrêter, lire une panne,
+sauvegarder : `docs/EXPLOITATION.md`, écrit pour se passer entièrement de la
+ligne de commande.
 
 ## Vue d'ensemble
 
