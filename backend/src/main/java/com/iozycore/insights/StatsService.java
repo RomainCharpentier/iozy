@@ -222,10 +222,17 @@ public class StatsService {
 
         Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(EntityType::id, t -> t));
-        Map<UUID, Entity> entitiesById = new HashMap<>();
-        for (Ownership ownership : activeOwnerships) {
-            entitiesById.computeIfAbsent(ownership.entityId(), id -> entityRepository.findById(id).orElse(null));
-        }
+        // Le catalogue en UNE requête, puis restreint à ce qui est possédé.
+        //
+        // Une lecture par possession, c'était une requête par série possédée -
+        // mesuré à 28 requêtes pour 5 séries et 58 pour 11, sur le calcul qui
+        // alimente le hero du Profil. Même figure que le constat C1, corrigé
+        // au Lot 101 sur les suggestions d'achat : la version groupée existait
+        // déjà, elle n'était pas employée ici.
+        Set<UUID> possedees = activeOwnerships.stream().map(Ownership::entityId).collect(Collectors.toSet());
+        Map<UUID, Entity> entitiesById = entityRepository.search(null, null, null).stream()
+                .filter(entity -> possedees.contains(entity.id()))
+                .collect(Collectors.toMap(Entity::id, entity -> entity));
 
         // Prix NEUF de l'édition, jamais le prix payé (décision utilisateur du
         // 2026-08-27). Ce que vaut une collection ne dépend pas de ce qu'elle a
@@ -257,14 +264,22 @@ public class StatsService {
         // neuf, et c'est CollectionProgressService qui sait quels tomes lui
         // appartiennent - y compris ceux catalogués sans édition précisée (voir
         // Lot 49, où refaire ce calcul de son côté avait déjà mal tourné).
+        //
+        // La progression de TOUTE la collection en une passe : `compute(id)`
+        // par série rouvrait les mêmes tables à chaque tour, et c'est la moitié
+        // du N+1 mesuré ci-dessus.
+        Map<UUID, CollectionProgress> progressionParSerie = progressService.computeAll().stream()
+                .collect(Collectors.toMap(CollectionProgress::entityId, progression -> progression));
+
         for (Entity entity : entitiesById.values()) {
             if (entity == null) {
                 continue;
             }
             String typeLabel = typesById.containsKey(entity.entityTypeId())
                     ? typesById.get(entity.entityTypeId()).label() : "?";
-            for (CollectionProgress.EditionProgress groupe : progressService.compute(entity.id())
-                    .map(CollectionProgress::editions).orElse(List.of())) {
+            CollectionProgress progression = progressionParSerie.get(entity.id());
+            for (CollectionProgress.EditionProgress groupe :
+                    progression == null ? List.<CollectionProgress.EditionProgress>of() : progression.editions()) {
                 BigDecimal prixNeuf = prixNeufParEdition.get(CollectionProgressService.editionKey(entity.id(), groupe.editionName()));
                 if (prixNeuf == null || groupe.ownedVolumeNumbers().isEmpty()) {
                     continue;

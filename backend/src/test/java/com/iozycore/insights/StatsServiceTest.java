@@ -303,7 +303,18 @@ class StatsServiceTest {
 
         @Override
         public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            return List.of(); // non exercé par ce test
+            // Rendait List.of() avec le commentaire « non exercé par ce test ».
+            // Ça a cessé d'être vrai le jour où la valeur de la collection a
+            // arrêté de lire les œuvres une par une (Lot 113) : le test a
+            // annoncé 0 € pour une collection qui en vaut 29,80. Un faux
+            // dépôt qui ment sur une méthode ne se signale que le jour où
+            // quelqu'un l'appelle.
+            return store.values().stream()
+                    .filter(e -> titleQuery == null
+                            || e.title().toLowerCase().contains(titleQuery.toLowerCase()))
+                    .filter(e -> entityTypeId == null || entityTypeId.equals(e.entityTypeId()))
+                    .filter(e -> tagId == null || e.tagIds().contains(tagId))
+                    .toList();
         }
 
         @Override
