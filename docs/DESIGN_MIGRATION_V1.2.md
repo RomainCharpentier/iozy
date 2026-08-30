@@ -1360,6 +1360,38 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 111 — l'avatar prend la couleur du pseudo
+
+Le Lot 105 avait posé les initiales et laissé la couleur de côté, faute de
+savoir garantir le contraste. Deux comptes se distinguaient donc par deux
+lettres qu'il faut lire ; ils se distinguent maintenant par une teinte qu'on
+reconnaît sans lire.
+
+**La palette existe déjà** : les six teintes des « couvertures » sans jaquette,
+et le même hash déterministe. Inventer une seconde gamme pour deux lettres
+aurait fait entrer une palette de plus dans une application qui en a une, et
+deux gammes finissent toujours par jurer ensemble.
+
+#### L'encre est choisie, pas décidée d'avance
+
+Le blanc passe le 4,5:1 sur **cinq** des six teintes. Sur la sixième - la verte,
+`6B7D5A` - il tombe à **4,46** : juste en dessous, invisible à l'œil et bien
+réel pour qui lit mal. Le code prend donc, pour chaque teinte, celle du blanc ou
+du noir qui contraste le mieux ; le minimum garanti passe à **4,71**, quel que
+soit le pseudo.
+
+`check-contrast.mjs` vérifie désormais ces six pastilles, et **relit la palette
+depuis `tokens.ts`** au lieu de la recopier : une septième teinte serait
+vérifiée sans que personne y pense, et une teinte modifiée ferait tomber le
+contrôle plutôt que de passer inaperçue.
+
+#### Ce qui n'a pas de couleur
+
+Le repli « IO », tant que le compte n'est pas arrivé. Une couleur qui
+apparaîtrait alors se lirait comme un changement d'identité.
+
+Vérifié en direct : `romain` rend `#8A6A3A` sur blanc, mesuré à **5,00:1**.
+
 ### Lot 110 — les huit capacités cachées, relues une par une
 
 Le §16 des parcours liste ce qui existe mais ne se trouve pas. Huit constats,
