@@ -24,7 +24,10 @@ services:
       DB_PORT: 5432
       DB_NAME: iozycore
       DB_USER: iozycore
-      DB_PASSWORD: iozycore_dev
+      # Le défaut vaut pour la machine de développement, et pour elle seule.
+      # Sur un NAS derrière un reverse proxy, le définir dans .env - c'est le
+      # seul secret qui protège la base si un port se retrouve exposé.
+      DB_PASSWORD: ${DB_PASSWORD:-iozycore_dev}
       # Code d'invitation exigé pour créer un compte APRÈS le premier (le
       # premier est libre, et reprend la collection déjà en base). Laissé
       # vide, la création est FERMÉE une fois le premier compte créé :
@@ -33,6 +36,12 @@ services:
       # `true` dès qu'il y a du TLS devant : un cookie de session `Secure` ne
       # part pas en clair. Faux en local, où tout passe en http://localhost.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # Les origines autorisées à ÉCRIRE. Le défaut couvre le dev (:5173) et le
+      # build Docker local (:8081) ; derrière un reverse proxy - celui de DSM,
+      # par exemple - il faut y mettre le vrai domaine, sinon toute écriture
+      # part en 403. La lecture, elle, passerait : le défaut se remarque au
+      # premier ajout, pas au premier chargement.
+      WEB_ALLOWED_ORIGINS: ${WEB_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8081}
       # Optionnel - voir .env.example. Sans token, les appels BGG restent
       # fonctionnels pour tester en local mais ne sont pas conformes aux
       # conditions actuelles de BGG (voir README, section "Statistiques").
@@ -76,7 +85,7 @@ services:
     environment:
       POSTGRES_DB: iozycore
       POSTGRES_USER: iozycore
-      POSTGRES_PASSWORD: iozycore_dev
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-iozycore_dev}
     ports:
       - "5432:5432"   # exposé en local uniquement, pratique pour un client SQL
     volumes:

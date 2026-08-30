@@ -1,14 +1,120 @@
-# Déployer IozyCore — Vercel (app) + Railway (API et base)
+# Déployer IozyCore
 
-Ce document est une **procédure**, pas une présentation : chaque étape a ce
-qu'il faut faire, et **comment vérifier** qu'elle a marché avant de passer à la
-suivante. Établi le 2026-08-29, en préparant les fichiers de configuration que
-le dépôt porte désormais (`web/vercel.json`, `backend/railway.json`).
+Deux chemins, et **le premier ne coûte rien** si tu as déjà un NAS. Chaque
+étape dit **comment vérifier** qu'elle a marché avant de passer à la suivante.
 
-> Ce que ce document ne fait pas : déployer à ta place. La création des comptes
-> et la saisie des secrets se font avec tes identifiants, chez toi.
+> Ce document ne déploie pas à ta place : la création des comptes et la saisie
+> des secrets se font avec tes identifiants, chez toi.
+
+| | Coût | Pour qui |
+|---|---|---|
+| **A · NAS Synology** (ci-dessous) | rien | tu as déjà le NAS, tes données restent chez toi |
+| **B · Vercel + Railway** (plus bas) | Railway est payant depuis 2026 | pas de machine à soi |
 
 ---
+
+# A · Sur un NAS Synology
+
+L'application a été pensée pour ça : auto-hébergée, une seule machine, tes
+données chez toi. Le dépôt porte deux fichiers pour ce cas.
+
+## Traefik, ou le reverse proxy de DSM ?
+
+`docker-compose.synology.yml` embarque **Traefik** et gère Let's Encrypt tout
+seul - mais il réclame les ports **80 et 443**, que DSM occupe déjà. Il faut
+donc déplacer les ports de DSM, ce qui touche à l'accès au NAS lui-même.
+
+Le chemin le plus simple est l'inverse : **le reverse proxy de DSM devant le
+`docker-compose.yml` ordinaire**. DSM garde 80/443, gère les certificats
+Let's Encrypt dans son interface, et l'application n'expose qu'un port local.
+C'est ce qui suit.
+
+## 1. Le domaine
+
+Control Panel → **External Access** → **DDNS** : un nom en `.synology.me`
+suffit, il est gratuit et le certificat suivra.
+
+**Vérifier** : le nom résout vers ton IP publique, et les ports **80 et 443**
+sont redirigés vers le NAS sur ta box. Let's Encrypt a besoin du 80.
+
+## 2. Les conteneurs
+
+Copier le dépôt sur le NAS, puis créer `backend/.env` :
+
+```
+DB_PASSWORD=un-mot-de-passe-long
+WEB_ALLOWED_ORIGINS=https://ton-nom.synology.me
+SESSION_COOKIE_SECURE=true
+```
+
+Puis, dans **Container Manager** (ou en SSH depuis `backend/`) :
+
+```bash
+docker compose up -d --build
+```
+
+> **Attention si la base existe déjà.** `DB_PASSWORD` ne change QUE ce que
+> l'API présente ; le mot de passe réel a été fixé à la **première**
+> initialisation du volume et n'en bouge plus. Changer la variable sur une base
+> déjà créée donne `password authentication failed`. Aligner l'existant :
+>
+> ```bash
+> docker exec -e PGPASSWORD=<ancien> <conteneur-postgres> \
+>   psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<nouveau>';"
+> ```
+
+**Vérifier** : `http://<ip-du-nas>:8081` affiche l'écran de connexion.
+
+> **Après tout `--force-recreate` de l'API, redémarrer `web`.** nginx résout
+> le nom `iozycore-api` **au démarrage** et garde l'ancienne adresse : l'API
+> répond 200 en direct sur :8080 pendant que :8081 rend 502. Un
+> `docker compose restart web` suffit.
+
+## 3. Le reverse proxy de DSM
+
+Control Panel → **Login Portal** → **Advanced** → **Reverse Proxy** → *Create* :
+
+| | |
+|---|---|
+| Source | HTTPS · `ton-nom.synology.me` · port **443** |
+| Destination | HTTP · `localhost` · port **8081** |
+
+Un seul enregistrement suffit : nginx, dans le conteneur `web`, achemine déjà
+`/api` vers l'API en interne. Le navigateur ne voit **qu'une seule origine** -
+exactement ce que le cookie de session suppose (voir « Pourquoi la réécriture »
+plus bas).
+
+Puis Control Panel → **Security** → **Certificate** → *Add* → **Let's
+Encrypt**, pour ce même nom, et *Configure* pour l'assigner au reverse proxy.
+
+**Vérifier** :
+
+```bash
+cd web && npm run check:deploiement https://ton-nom.synology.me
+```
+
+Onze contrôles, tous en GET, aucun compte requis.
+
+## 4. Le premier compte
+
+Identique au chemin B : voir **« 4. Le premier compte »** plus bas - il est
+administrateur d'office, exige un pseudo, et reprend la collection déjà en
+base.
+
+## Ce que ce chemin ne fait pas
+
+Il **n'ouvre pas** l'API sur un sous-domaine séparé : Swagger et l'accès direct
+restent sur le réseau local (`:8080`). C'est volontaire - une surface de moins
+sur Internet, et l'app web n'en a pas besoin. `docker-compose.synology.yml` le
+fait, si tu veux ce sous-domaine et que tu acceptes de déplacer les ports DSM.
+
+---
+
+# B · Vercel (app) + Railway (API et base)
+
+> **Railway n'a plus d'offre gratuite** depuis 2026 : son essai expire et
+> demande un plan payant. Ce chemin reste décrit parce qu'il vaut pour tout
+> hébergeur qui sert du Docker, mais si tu as un NAS, prends le chemin A.
 
 ## Le montage, en une phrase
 
