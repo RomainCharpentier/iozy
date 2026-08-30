@@ -5,6 +5,10 @@ Deux chemins, et **le premier ne coûte rien** si tu as déjà un NAS. Chaque
 
 > Ce document ne déploie pas à ta place : la création des comptes et la saisie
 > des secrets se font avec tes identifiants, chez toi.
+>
+> **Une fois installé**, la suite - démarrer, arrêter, comprendre une panne,
+> sauvegarder - est dans **`EXPLOITATION.md`**, écrit pour se passer entièrement
+> de la ligne de commande.
 
 | | Coût | Pour qui |
 |---|---|---|
