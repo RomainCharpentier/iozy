@@ -24,6 +24,8 @@ export const queryKeys = {
     all: ['wishlist'] as const,
 
   },
+  /** La livraison du serveur : elle ne change qu'au redéploiement. */
+  version: ['version'] as const,
   // Partage d'espace - une seule clé, parce qu'il n'y a plus qu'un partage :
   // collection et envies en sont deux sections, pas deux liens.
   share: ['share'] as const,

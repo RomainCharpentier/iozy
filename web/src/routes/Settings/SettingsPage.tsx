@@ -1,6 +1,9 @@
 import { useState, type DragEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Download, GripVertical, LogOut, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
+import { VERSION_INTERFACE, lireVersionServeur, versionCourte } from '../../api/version'
+import { queryKeys } from '../../lib/queryKeys'
 import {
   TITLE_LANGUAGE_LABELS,
   getTitleComposition,
@@ -44,6 +47,16 @@ export function SettingsPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const { theme, toggleTheme } = useTheme()
   const { compte, deconnexion } = useAuth()
+
+  // Ne change qu'au redéploiement : la redemander à chaque retour d'onglet
+  // n'apprendrait rien. Un échec reste muet - ne pas savoir quelle version
+  // tourne n'est pas une panne à annoncer en rouge au milieu des réglages.
+  const versionServeur = useQuery({
+    queryKey: queryKeys.version,
+    queryFn: lireVersionServeur,
+    staleTime: Infinity,
+    retry: false,
+  })
 
   function update(next: TitleComposition) {
     setComposition(next)
@@ -249,6 +262,50 @@ export function SettingsPage() {
         </ul>
       </section>
 
+      <VersionDeployee serveur={versionServeur.data?.version ?? null} />
     </div>
+  )
+}
+
+/**
+ * Quelle livraison tourne.
+ *
+ * <h2>Pourquoi cette ligne existe</h2>
+ * Depuis que les mises à jour arrivent toutes seules, on ne sait plus de
+ * mémoire ce qui est en ligne. Devant un comportement inattendu, la première
+ * question devient « est-ce que ma correction est seulement déployée ? » - et
+ * sans réponse, on cherche un défaut dans du code qui n'est pas encore là.
+ *
+ * <h2>Discrète, et en bas</h2>
+ * Ce n'est pas un réglage : on ne la lit qu'en la cherchant. Elle ne prend donc
+ * ni titre de section ni encadré - une ligne grise en pied d'écran, comme un
+ * numéro de série.
+ *
+ * <h2>Deux versions, mais une seule ligne quand elles s'accordent</h2>
+ * L'interface et le serveur sont deux images distinctes, tirées séparément.
+ * Les afficher toutes les deux en permanence donnerait deux fois la même chose
+ * dans le cas normal ; ne montrer que celle du serveur mentirait dans le cas
+ * qui compte. La seconde n'apparaît donc QUE si elle diffère - et alors elle
+ * dit quoi faire, parce qu'un écart se répare presque toujours en rechargeant.
+ */
+function VersionDeployee({ serveur }: { serveur: string | null }) {
+  const memeLivraison = serveur !== null && serveur === VERSION_INTERFACE
+
+  return (
+    <p className="pt-1 text-center text-xs text-textDim">
+      Version {versionCourte(VERSION_INTERFACE)}
+      {serveur !== null && !memeLivraison && (
+        <>
+          {' '}· serveur {versionCourte(serveur)} —{' '}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="underline underline-offset-2"
+          >
+            recharger
+          </button>
+        </>
+      )}
+    </p>
   )
 }
