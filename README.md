@@ -98,22 +98,25 @@ une base ouverte à qui passe.
 
 #### Visiter sans compte
 
-Depuis **Profil → Partage**, la case « Ouvrir aux visiteurs » ajoute un bouton
-« Visiter sans compte » à l'écran de connexion : n'importe qui atteignant
-l'instance peut alors parcourir **ta** collection — les fiches, les
-classements, les statistiques — sans rien créer.
+L'écran de connexion propose **« Visiter sans compte »** dès qu'un compte
+existe sur l'instance : n'importe qui peut alors parcourir la collection du
+**premier compte** — les fiches, les classements, les statistiques — sans rien
+créer et sans que personne ait à l'autoriser.
 
 C'est une **lecture seule**, et pas seulement à l'affichage : une session de
 visite se voit refuser toute requête autre qu'un `GET`, quelle que soit la
 route (voir `SecurityConfig`). Les écrans d'écriture — ajout, scan, analyse
 d'annonce, administration — ne lui sont même pas proposés.
 
-Deux choses à savoir avant de cocher : c'est ouvert à **qui atteint
-l'application**, sans lien ni jeton à distribuer — donc à tout Internet si
-l'instance y est exposée ; et c'est **indépendant du lien de partage**, qui
-reste la bonne réponse quand on veut montrer une sélection à quelqu'un en
-particulier. Décocher referme aussitôt : les visites en cours n'ont plus rien
-à lire. Fermé par défaut, y compris sur une instance déjà en service.
+**Ouvert par défaut**, et c'est le point à peser : sans lien ni jeton à
+distribuer, la collection est lisible par **qui atteint l'application** — donc
+par tout Internet si l'instance y est exposée. Pour refermer, décoche
+« Ouverte aux visiteurs » dans **Profil → Partage** ; l'accès est repris
+immédiatement, y compris pour les visites déjà en cours.
+
+C'est **indépendant du lien de partage**, qui reste la bonne réponse quand on
+veut montrer une sélection à quelqu'un en particulier : supprimer le lien ne
+referme pas la porte, et l'ouvrir ne crée aucun jeton.
 
 ### Tester
 

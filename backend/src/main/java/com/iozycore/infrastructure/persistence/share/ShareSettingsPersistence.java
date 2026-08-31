@@ -60,11 +60,6 @@ class ShareSettingsJpaEntity {
 
 interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntity, UUID> {
     Optional<ShareSettingsJpaEntity> findByToken(String token);
-
-    /** Ordonnée par identifiant : voir {@code ShareSettingsRepository} pour
-     *  pourquoi la réponse doit être stable, et pourquoi c'est le premier
-     *  compte qui gagne. */
-    Optional<ShareSettingsJpaEntity> findFirstByOpenToGuestsTrueOrderByOwnerIdAsc();
 }
 
 @Repository
@@ -108,12 +103,17 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
     }
 
     @Override
-    public Optional<ShareSettings> premierOuvertAuxVisiteurs() {
+    public ShareSettings pour(UUID proprietaire) {
         // Aucune notion de propriétaire courant ici, à dessein : cette question
         // est posée par quelqu'un qui n'a pas encore de session, et c'est la
         // RÉPONSE qui lui en donnera une (voir Visite).
-        return jpaRepository.findFirstByOpenToGuestsTrueOrderByOwnerIdAsc()
-                .map(JpaShareSettingsRepositoryAdapter::toDomain);
+        //
+        // L'absence de ligne n'est PAS un refus : c'est un espace dont personne
+        // n'a jamais réglé le partage, donc les valeurs par défaut - portes
+        // ouvertes comprises (voir ShareSettings.noLink).
+        return jpaRepository.findById(proprietaire)
+                .map(JpaShareSettingsRepositoryAdapter::toDomain)
+                .orElseGet(() -> ShareSettings.noLink(proprietaire));
     }
 
     private static ShareSettings toDomain(ShareSettingsJpaEntity jpa) {

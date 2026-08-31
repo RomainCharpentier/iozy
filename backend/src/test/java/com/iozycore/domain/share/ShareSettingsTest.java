@@ -128,6 +128,15 @@ class ShareSettingsTest {
     }
 
     @Test
+    void un_espace_dont_personne_n_a_rien_regle_est_visitable() {
+        // Le defaut a ete inverse : la case sert a REFERMER, pas a autoriser.
+        // Un inconnu arrivant sur l'ecran de connexion doit pouvoir entrer,
+        // pas attendre que quelqu'un l'y autorise.
+        assertThat(ShareSettings.noLink(DefaultOwner.ID).openToGuests()).isTrue();
+        assertThat(ShareSettings.noLink(DefaultOwner.ID).withGuests(false).openToGuests()).isFalse();
+    }
+
+    @Test
     void ouvrir_aux_visiteurs_ne_cree_aucun_lien() {
         ShareSettings ouverte = ShareSettings.noLink(DefaultOwner.ID).withGuests(true);
 

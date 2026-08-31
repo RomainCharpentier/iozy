@@ -24,11 +24,16 @@ import type { ShareDto } from '../../types/share'
  * deux cases selon l'écran d'où l'on venait, et il n'y a plus qu'un écran
  * d'où venir.
  *
- * <h2>Et une seconde porte, en dessous</h2>
- * « Ouvrir aux visiteurs » n'est pas une option du lien, c'est l'autre façon
- * d'être vu : le lien s'ENVOIE et montre une page ; la visite s'OUVRE, et
- * donne à parcourir l'application entière en lecture seule à qui atteint
- * l'instance. Les deux se règlent ici parce qu'ils répondent à la même
+ * <h2>Et une seconde porte, en dessous - déjà ouverte</h2>
+ * « Ouverte aux visiteurs » n'est pas une option du lien, c'est l'autre façon
+ * d'être vu : le lien s'ENVOIE et montre une page ; la visite est une porte
+ * laissée ouverte à qui atteint l'instance, et donne à parcourir
+ * l'application entière en lecture seule.
+ *
+ * <p>La case est cochée <b>par défaut</b>, et c'est un renversement assumé :
+ * elle a d'abord servi à ouvrir, ce qui plaçait une autorisation devant
+ * l'écran de connexion - exactement ce qu'on ne voulait pas. Elle sert
+ * maintenant à <b>refermer</b>. Les deux se règlent ici parce qu'ils répondent à la même
  * question - « qu'est-ce que je montre, et à qui ? » - mais ils ne se
  * commandent pas l'un l'autre : supprimer le lien ne referme pas la porte.
  *
@@ -241,10 +246,11 @@ export function ShareSection() {
           <span className="flex min-w-0 flex-col">
             <span className="flex items-center gap-1.5 text-sm font-medium text-textPrimary">
               <Eye size={14} className="shrink-0 text-textDim" aria-hidden="true" />
-              Ouvrir aux visiteurs
+              Ouverte aux visiteurs
             </span>
             <span className="text-xs text-textDim">
               N'importe qui ouvrant IozyCore peut parcourir ta collection sans compte, en lecture seule.
+              Décoche pour refermer.
             </span>
           </span>
         </label>

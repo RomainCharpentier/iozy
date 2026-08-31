@@ -28,7 +28,11 @@ import java.util.UUID;
  * classement personnel est un jugement, pas un inventaire, il ne part jamais
  * avec le reste sans avoir été demandé à part.
  * <p>
- * <b>{@code openToGuests} est une SECONDE porte, pas une option du lien.</b>
+ * <b>{@code openToGuests} est une SECONDE porte, pas une option du lien</b>, et
+ * elle est <b>ouverte par défaut</b> - c'est une case pour REFERMER, pas pour
+ * autoriser. Elle a d'abord été l'inverse, et c'était une étape de trop :
+ * l'idée est qu'un inconnu arrivant sur l'écran de connexion puisse entrer,
+ * pas qu'il attende que quelqu'un l'y autorise.
  * Le lien s'envoie à quelqu'un et tient dans son jeton ; la visite est une
  * porte laissée ouverte à qui atteint l'instance, et donne à voir l'application
  * entière en lecture seule plutôt qu'une page. Les deux sont donc
@@ -47,11 +51,18 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
         }
     }
 
-    /** Aucun lien, et portes fermées : l'état d'un espace dont personne n'a
-     *  jamais rien réglé. Les sections restent à leur valeur la plus ouverte
-     *  pour le prochain lien créé. */
+    /**
+     * L'état d'un espace dont personne n'a jamais rien réglé : aucun lien, et
+     * portes OUVERTES.
+     * <p>
+     * C'est aussi ce que rend la lecture d'un propriétaire sans ligne en base
+     * (voir {@code ShareSettingsRepository.pour}) : ne rien avoir réglé vaut
+     * donc « visitable », et il faut un geste explicite pour fermer. Les
+     * sections, elles, restent à leur valeur la plus ouverte pour le prochain
+     * lien créé - elles n'exposent rien tant qu'aucun jeton n'existe.
+     */
     public static ShareSettings noLink(UUID proprietaire) {
-        return new ShareSettings(proprietaire, null, true, true, false, false);
+        return new ShareSettings(proprietaire, null, true, true, false, true);
     }
 
     /**
@@ -63,7 +74,7 @@ public record ShareSettings(UUID ownerId, String token, boolean shareCollection,
      * mécanisme déjà en place dans le projet, conservé tel quel.
      */
     public static ShareSettings withNewToken(UUID proprietaire) {
-        return new ShareSettings(proprietaire, UUID.randomUUID().toString(), true, true, false, false);
+        return new ShareSettings(proprietaire, UUID.randomUUID().toString(), true, true, false, true);
     }
 
     /**
