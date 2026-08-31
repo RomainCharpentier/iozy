@@ -145,6 +145,9 @@ jobs:
         with:
           context: backend
           push: true
+          # Le SHA est grave DANS l'image, et c'est le meme que son etiquette :
+          # ce que l'app affiche se retrouve tel quel dans GHCR et sur GitHub.
+          build-args: VERSION=${{ github.sha }}
           tags: |
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:latest
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:${{ github.sha }}
@@ -156,6 +159,7 @@ jobs:
         with:
           context: web
           push: true
+          build-args: VERSION=${{ github.sha }}
           tags: |
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:latest
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:${{ github.sha }}

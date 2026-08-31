@@ -64,6 +64,26 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void la_version_du_serveur_ne_se_lit_pas_avant_de_s_etre_connecte() throws Exception {
+        // Connaître la version exacte d'un serveur sert autant à l'exploiter
+        // qu'à l'attaquer, et personne n'a besoin de la lire AVANT d'entrer :
+        // elle s'affiche dans les Paramètres, pas sur la porte.
+        mockMvc.perform(get("/api/version")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void une_fois_connecte_la_version_dit_quelle_livraison_tourne() throws Exception {
+        MockHttpSession session = connecter();
+
+        // « dev » hors conteneur : c'est la valeur par défaut, et le fait
+        // qu'elle sorte prouve que la propriété est bien câblée jusqu'ici. En
+        // production, l'image y grave le SHA du commit livré.
+        mockMvc.perform(get("/api/version").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value("dev"));
+    }
+
+    @Test
     void la_documentation_de_l_api_est_une_carte_des_routes_donc_elle_se_ferme_aussi() throws Exception {
         mockMvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
     }

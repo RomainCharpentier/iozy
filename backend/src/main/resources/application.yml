@@ -1,3 +1,9 @@
+# La livraison qui tourne - le SHA du commit, gravé dans l'image au build (voir
+# Dockerfile). `dev` hors conteneur : lancé depuis un IDE, il n'y a pas de
+# livraison à nommer.
+iozycore:
+  version: ${IOZYCORE_VERSION:dev}
+
 spring:
   application:
     name: iozycore
