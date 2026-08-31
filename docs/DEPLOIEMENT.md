@@ -69,10 +69,13 @@ docker compose up -d --build
 
 **Vérifier** : `http://<ip-du-nas>:8081` affiche l'écran de connexion.
 
-> **Après tout `--force-recreate` de l'API, redémarrer `web`.** nginx résout
-> le nom `iozycore-api` **au démarrage** et garde l'ancienne adresse : l'API
-> répond 200 en direct sur :8080 pendant que :8081 rend 502. Un
-> `docker compose restart web` suffit.
+> **Ce piège est réglé** (il valait la peine de l'être). nginx résolvait le nom
+> `iozycore-api` **au démarrage** et gardait l'ancienne adresse : après un
+> `--force-recreate`, l'API répondait 200 en direct sur :8080 pendant que :8081
+> rendait 502, et il fallait penser à `docker compose restart web`. nginx
+> re-résout maintenant à chaque requête (voir `web/nginx.conf`, `resolver`) —
+> ce qui était indispensable avant de rendre les mises à jour automatiques,
+> puisque plus personne n'est là pour y penser.
 
 ## 3. Le reverse proxy de DSM
 

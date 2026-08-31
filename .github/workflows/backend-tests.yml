@@ -1,15 +1,14 @@
 name: Backend tests
 
-# Déclenché sur push/PR touchant le backend (Testcontainers a besoin du
-# Docker daemon, disponible nativement sur les runners GitHub-hosted -
-# pas besoin du montage "Docker-in-Docker" utilisé en local, voir
-# backend/README.md section 3).
+# La porte des BRANCHES. Sur `main`, c'est le workflow de déploiement qui
+# rejoue cette même suite, juste avant de publier les images : la laisser ici
+# aussi ferait tourner deux fois 1099 tests par push - une dizaine de minutes
+# de runner facturées pour deux fois la même réponse (dépôt privé).
+#
+# Testcontainers a besoin du démon Docker, disponible nativement sur les
+# runners GitHub-hosted - pas besoin du montage « Docker-in-Docker » utilisé
+# en local, voir backend/README.md section 3.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-tests.yml"
   pull_request:
     paths:
       - "backend/**"
