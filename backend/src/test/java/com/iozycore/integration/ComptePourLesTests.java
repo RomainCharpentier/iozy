@@ -1,5 +1,6 @@
 package com.iozycore.integration;
 
+import com.iozycore.application.auth.Invite;
 import com.iozycore.application.auth.UtilisateurCourant;
 import com.iozycore.domain.shared.DefaultOwner;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -28,6 +29,13 @@ import java.util.UUID;
  * d'une vraie instance adopte. Un test qui veut parler au nom de quelqu'un
  * d'autre pose une vraie session : elle l'emporte toujours sur ce repli (voir
  * {@code IsolationParProprietaireTest}).
+ *
+ * <h2>Une VISITE l'emporte aussi, et il a fallu l'écrire</h2>
+ * Un invité n'a pas de compte : {@code id()} est vide pour lui, et la
+ * collection qu'il parcourt est portée par son principal. Le repli seul
+ * l'aurait donc renvoyé sur le premier compte - c'est-à-dire, la plupart du
+ * temps, sur la bonne réponse par accident, et sur un test de visite qui
+ * passerait sans rien vérifier.
  */
 @TestConfiguration
 public class ComptePourLesTests {
@@ -38,7 +46,7 @@ public class ComptePourLesTests {
         return new UtilisateurCourant() {
             @Override
             public UUID proprietaire() {
-                return id().orElse(DefaultOwner.ID);
+                return invite().map(Invite::proprietaire).orElseGet(() -> id().orElse(DefaultOwner.ID));
             }
         };
     }

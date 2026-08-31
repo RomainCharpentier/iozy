@@ -14,7 +14,8 @@ export function getShare(): Promise<ShareDto> {
 }
 
 /** Régénère : l'ancien jeton cesse immédiatement de fonctionner, et les choix
- * repartent des plus fermés (Tier Lists exclues). */
+ * repartent des plus fermés (Tier Lists exclues). La visite sans compte, qui
+ * n'est pas une option du lien, reste où elle est. */
 export function generateShare(): Promise<ShareDto> {
   return post<ShareDto>('/share')
 }
@@ -29,6 +30,7 @@ export function updateShare(sections: {
   shareCollection?: boolean
   shareWishlist?: boolean
   includeTierLists?: boolean
+  openToGuests?: boolean
 }): Promise<ShareDto> {
   return patch<ShareDto>('/share', sections)
 }

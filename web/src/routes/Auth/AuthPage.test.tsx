@@ -12,7 +12,10 @@
  *       premier compte n'en a pas besoin, et le demander laisserait croire
  *       qu'il en faut un ;</li>
  *   <li>une instance <b>fermée</b> aux nouveaux comptes ne propose pas d'en
- *       créer : le lien n'ouvrirait qu'un refus.</li>
+ *       créer : le lien n'ouvrirait qu'un refus ;</li>
+ *   <li>« <b>visiter sans compte</b> » n'apparaît que si quelqu'un a
+ *       réellement ouvert sa collection - proposer une porte fermée est pire
+ *       que ne rien proposer.</li>
  * </ul>
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -29,6 +32,7 @@ const api = vi.hoisted(() => ({
   seConnecter: vi.fn(),
   creerCompte: vi.fn(),
   seDeconnecter: vi.fn(),
+  entrerEnVisite: vi.fn(),
 }))
 
 vi.mock('../../api/auth', () => api)
@@ -40,9 +44,15 @@ function enrobage({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 
-/** Rend l'écran pour une instance donnée, une fois son état connu. */
-async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean }) {
-  api.lireEtatAuth.mockResolvedValue(etat)
+/**
+ * Rend l'écran pour une instance donnée, une fois son état connu.
+ *
+ * `visiteOuverte` est facultatif et vaut faux : c'est l'état de toute instance
+ * dont personne n'a coché la case, et le défaut sous lequel les autres cas de
+ * ce fichier ont été écrits.
+ */
+async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean; visiteOuverte?: boolean }) {
+  api.lireEtatAuth.mockResolvedValue({ visiteOuverte: false, ...etat })
   // Personne n'est connecté : c'est la situation NORMALE devant cette porte.
   api.lireCompte.mockRejectedValue(new ApiError(401, 'Non connecté'))
   render(<AuthPage />, { wrapper: enrobage })
@@ -176,5 +186,46 @@ describe('la connexion', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }))
 
     expect(await screen.findByText('Adresse ou mot de passe incorrect.')).toBeInTheDocument()
+  })
+})
+
+/**
+ * <b>La quatrième issue : entrer sans compte.</b>
+ *
+ * Elle ne se voit que si une collection est ouverte aux visiteurs. Le bouton
+ * proposé sur une instance fermée mènerait à un 403, sur le seul écran qu'un
+ * inconnu voit - et sans rien lui apprendre, puisqu'il n'y peut rien.
+ */
+describe('la visite sans compte', () => {
+  it('n’est pas proposée quand personne n’a ouvert sa collection', async () => {
+    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: false })
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /Visiter/ })).not.toBeInTheDocument()
+  })
+
+  it('est proposée, et dit qu’elle est en lecture seule, quand une collection est ouverte', async () => {
+    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: true })
+
+    expect(await screen.findByRole('button', { name: 'Visiter sans compte' })).toBeInTheDocument()
+    // La contrainte est écrite AVANT d'entrer : quelqu'un qui découvre
+    // l'application doit savoir ce qu'il pourra y faire, pas le déduire d'un
+    // bouton qui refuse.
+    expect(screen.getByText(/lecture seule/)).toBeInTheDocument()
+  })
+
+  it('ouvre la session de visite sans rien demander à saisir', async () => {
+    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: true })
+    api.entrerEnVisite.mockResolvedValue({
+      id: 'proprio-1',
+      email: null,
+      pseudo: 'kenshin',
+      admin: false,
+      invite: true,
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Visiter sans compte' }))
+
+    await waitFor(() => expect(api.entrerEnVisite).toHaveBeenCalled())
   })
 })

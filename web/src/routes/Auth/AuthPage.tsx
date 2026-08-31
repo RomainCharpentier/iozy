@@ -19,11 +19,18 @@ import { useAuth } from '../../lib/useAuth'
  * message dans les deux cas - distinguer offrirait un test d'existence de
  * compte à qui n'en a pas.
  *
+ * <h2>Et une quatrième issue, quand quelqu'un a ouvert sa porte</h2>
+ * « Visiter sans compte » n'apparaît que si une collection est réellement
+ * ouverte : proposer une porte fermée serait pire que ne rien proposer. Elle
+ * mène à l'application entière, en lecture seule - pas à une page de
+ * démonstration, et pas à des données inventées : c'est une vraie collection,
+ * celle de quelqu'un qui a choisi de la montrer.
+ *
  * <p>Hors de {@code AppShell} : quelqu'un qui n'est pas connecté ne doit voir
  * ni la navigation, ni le moindre compteur de collection.
  */
 export function AuthPage() {
-  const { aucunCompteSurLInstance, creationOuverte, connexion, creation } = useAuth()
+  const { aucunCompteSurLInstance, creationOuverte, visiteOuverte, connexion, creation, visite } = useAuth()
   const [mode, setMode] = useState<'connexion' | 'creation' | null>(null)
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
@@ -33,8 +40,8 @@ export function AuthPage() {
   // Le mode par défaut suit l'instance ; un clic explicite le remplace.
   const modeCourant = mode ?? (aucunCompteSurLInstance ? 'creation' : 'connexion')
   const enCreation = modeCourant === 'creation'
-  const enCours = connexion.isPending || creation.isPending
-  const echec = connexion.error ?? creation.error
+  const enCours = connexion.isPending || creation.isPending || visite.isPending
+  const echec = connexion.error ?? creation.error ?? visite.error
 
   function envoyer(evenement: FormEvent) {
     evenement.preventDefault()
@@ -174,6 +181,25 @@ export function AuthPage() {
         >
           {enCreation ? 'J’ai déjà un compte' : 'Créer un compte avec une invitation'}
         </button>
+      )}
+
+      {/* Même règle que ci-dessus, pour la même raison : le bouton n'existe que
+          si la porte existe. En dehors du formulaire, parce que ce n'en est pas
+          une variante - c'est renoncer à s'identifier. */}
+      {visiteOuverte && (
+        <div className="flex flex-col items-center gap-1.5 border-t border-white/5 pt-5">
+          <button
+            type="button"
+            onClick={() => visite.mutate()}
+            disabled={enCours}
+            className="min-h-11 rounded-xl bg-surface2 px-4 text-sm font-semibold text-textPrimary disabled:opacity-50"
+          >
+            {visite.isPending ? 'Un instant…' : 'Visiter sans compte'}
+          </button>
+          <p className="text-center text-xs text-textDim">
+            Tu parcours la collection ouverte par son propriétaire, en lecture seule.
+          </p>
+        </div>
       )}
     </main>
   )

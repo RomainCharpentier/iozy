@@ -25,9 +25,15 @@ public final class ShareDtos {
     private ShareDtos() {
     }
 
-    /** État du lien côté propriétaire - {@code token} null = aucun lien actif. */
+    /**
+     * État du partage côté propriétaire - {@code token} null = aucun lien actif.
+     * <p>
+     * {@code openToGuests} y figure bien qu'il ne concerne pas le lien : les
+     * deux accès se règlent sur le même écran, et un second appel pour une
+     * seule case aurait fait clignoter l'un pendant que l'autre charge.
+     */
     public record ShareResponse(String token, boolean shareCollection, boolean shareWishlist,
-                                 boolean includeTierLists) {
+                                 boolean includeTierLists, boolean openToGuests) {
     }
 
     /**
@@ -35,7 +41,8 @@ public final class ShareDtos {
      * {@code null} = « ne change pas », ce qui permet à l'écran Envies de ne
      * toucher qu'aux envies sans rien savoir de la collection.
      */
-    public record UpdateShareRequest(Boolean shareCollection, Boolean shareWishlist, Boolean includeTierLists) {
+    public record UpdateShareRequest(Boolean shareCollection, Boolean shareWishlist, Boolean includeTierLists,
+                                      Boolean openToGuests) {
     }
 
     /**

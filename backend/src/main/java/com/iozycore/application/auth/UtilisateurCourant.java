@@ -27,20 +27,43 @@ import java.util.UUID;
 @Component
 public class UtilisateurCourant {
 
-    /** L'identifiant du compte connecté, vide hors d'une requête authentifiée. */
+    /**
+     * L'identifiant du COMPTE connecté, vide hors d'une requête authentifiée -
+     * et vide aussi pour un invité, qui n'en a pas.
+     */
     public Optional<UUID> id() {
+        return principal()
+                .filter(AppUserDetailsService.Principal.class::isInstance)
+                .map(AppUserDetailsService.Principal.class::cast)
+                .map(AppUserDetailsService.Principal::id);
+    }
+
+    /**
+     * Le propriétaire auquel rattacher une écriture, ou dont lire les données.
+     * Pour un invité, la collection qu'il visite - décidée par l'instance à
+     * l'ouverture de la session, jamais par la requête (voir {@code Visite}).
+     */
+    public UUID proprietaire() {
+        Object qui = principal().orElse(null);
+        if (qui instanceof Invite invite) {
+            return invite.proprietaire();
+        }
+        if (qui instanceof AppUserDetailsService.Principal compte) {
+            return compte.id();
+        }
+        return DefaultOwner.PERSONNE;
+    }
+
+    /** Le visiteur en cours, s'il s'agit d'une visite plutôt que d'un compte. */
+    public Optional<Invite> invite() {
+        return principal().filter(Invite.class::isInstance).map(Invite.class::cast);
+    }
+
+    private Optional<Object> principal() {
         Authentication authentification = SecurityContextHolder.getContext().getAuthentication();
         if (authentification == null || !authentification.isAuthenticated()) {
             return Optional.empty();
         }
-        if (authentification.getPrincipal() instanceof AppUserDetailsService.Principal principal) {
-            return Optional.of(principal.id());
-        }
-        return Optional.empty();
-    }
-
-    /** Le propriétaire auquel rattacher une écriture, ou dont lire les données. */
-    public UUID proprietaire() {
-        return id().orElse(DefaultOwner.PERSONNE);
+        return Optional.ofNullable(authentification.getPrincipal());
     }
 }

@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { GlobalShortcuts } from './GlobalShortcuts'
 import { NAV_ITEMS, type NavItem } from './navItems'
+import { estReserveeAuxComptes } from '../../lib/accesInvite'
+import { useAuth } from '../../lib/useAuth'
 
 function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   const { pathname } = useLocation()
@@ -34,8 +36,14 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
  * destinations de NAV_ITEMS, la même liste que la barre du pouce. Envies
  * (cœur, avec badge) et Profil (avatar) restent des raccourcis séparés,
  * jamais des destinations pairs : les Envies sont une lecture de Ma
- * collection (étude produit du 2026-08-27, §16). */
+ * collection (étude produit du 2026-08-27, §16).
+ *
+ * <p>Pendant une visite sans compte, seules restent les destinations qui
+ * MONTRENT la collection : les autres sont des écrans d'écriture, et un onglet
+ * qui rebondit à l'accueil n'informe personne (voir lib/accesInvite). */
 export function DesktopHeader() {
+  const { estInvite } = useAuth()
+  const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
 
   return (
     <header className="sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line bg-surface2 md:block">
@@ -47,7 +55,7 @@ export function DesktopHeader() {
           Iozy<span className="text-accent">core</span>
         </Link>
         <nav className="flex h-full items-center gap-1.5">
-          {NAV_ITEMS.map((item) => (
+          {destinations.map((item) => (
             <NavLinkItem key={item.to} {...item} />
           ))}
         </nav>

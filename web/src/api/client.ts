@@ -125,9 +125,60 @@ function jetonCsrf(): string | undefined {
  */
 export const EVENEMENT_SESSION_PERDUE = 'iozycore:session-perdue'
 
+/**
+ * Ce que lit quelqu'un qui visite une collection sans compte et appuie quand
+ * même sur un bouton d'écriture.
+ *
+ * <h2>Pourquoi le refus est aussi ICI, alors que le serveur refuse déjà</h2>
+ * Le serveur est la protection - lui seul l'est, et il refuse toute méthode
+ * autre que GET à une session de visite (voir SecurityConfig). Ce garde-fou ne
+ * protège rien : il RÉPOND. Une quarantaine de boutons d'écriture vivent dans
+ * cette application, et masquer chacun d'eux dans chaque écran était la
+ * garantie d'en oublier - et l'oubli, lui, se serait vu comme une erreur rouge
+ * inexpliquée après un aller-retour réseau.
+ *
+ * <p>Posé au même endroit que le jeton CSRF, pour la même raison : c'est le
+ * passage obligé de tout appel, y compris celui qu'on écrira dans six mois
+ * sans se souvenir qu'un mode visiteur existe.
+ */
+export const MESSAGE_LECTURE_SEULE =
+  'Tu visites cette collection en lecture seule. Il faut un compte pour y changer quoi que ce soit.'
+
+/**
+ * Annonce qu'une écriture vient d'être refusée parce qu'on visite.
+ *
+ * Le refus est levé comme une erreur, et chaque écran traite les siennes à sa
+ * façon - certains les affichent en bannière, d'autres pas du tout. Or c'est
+ * le seul cas où la « panne » n'en est pas une : elle est prévue, elle
+ * s'explique en une phrase, et elle doit se lire quel que soit le bouton
+ * pressé. L'annoncer une fois, ici, laisse un seul endroit la montrer (voir
+ * lib/useRefusDeVisite) - même mécanique que la session perdue, juste au-dessus.
+ */
+export const EVENEMENT_ECRITURE_REFUSEE = 'iozycore:ecriture-refusee'
+
+/**
+ * Vrai pendant une visite sans compte. Une variable de module et non un
+ * contexte React : `request` n'est pas un composant, et c'est justement pour
+ * qu'AUCUN appel ne puisse passer à côté qu'il est le seul à décider (voir
+ * lib/useAuth, qui la tient à jour).
+ */
+let visiteEnLectureSeule = false
+
+export function declarerVisiteEnCours(actif: boolean) {
+  visiteEnLectureSeule = actif
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   const methode = (init?.method ?? 'GET').toUpperCase()
+  // `/auth/` reste ouvert : entrer en visite et en sortir sont des POST, et ce
+  // sont les deux seuls gestes d'un visiteur qui doivent aboutir. Le serveur
+  // fait exactement la même exception, pour ne pas enfermer quelqu'un dans une
+  // collection qui n'est pas la sienne.
+  if (visiteEnLectureSeule && methode !== 'GET' && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new CustomEvent(EVENEMENT_ECRITURE_REFUSEE))
+    throw new ApiError(403, MESSAGE_LECTURE_SEULE)
+  }
   const jeton = methode === 'GET' || methode === 'HEAD' ? undefined : jetonCsrf()
   try {
     response = await fetch(`/api${path}`, {

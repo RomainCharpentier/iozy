@@ -34,16 +34,20 @@ class ShareSettingsJpaEntity {
     @Column(name = "include_tier_lists", nullable = false)
     private boolean includeTierLists;
 
+    @Column(name = "open_to_guests", nullable = false)
+    private boolean openToGuests;
+
     protected ShareSettingsJpaEntity() {
     }
 
     ShareSettingsJpaEntity(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
-                            boolean includeTierLists) {
+                            boolean includeTierLists, boolean openToGuests) {
         this.ownerId = ownerId;
         this.token = token;
         this.shareCollection = shareCollection;
         this.shareWishlist = shareWishlist;
         this.includeTierLists = includeTierLists;
+        this.openToGuests = openToGuests;
     }
 
     UUID getOwnerId() { return ownerId; }
@@ -51,10 +55,16 @@ class ShareSettingsJpaEntity {
     boolean isShareCollection() { return shareCollection; }
     boolean isShareWishlist() { return shareWishlist; }
     boolean isIncludeTierLists() { return includeTierLists; }
+    boolean isOpenToGuests() { return openToGuests; }
 }
 
 interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntity, UUID> {
     Optional<ShareSettingsJpaEntity> findByToken(String token);
+
+    /** Ordonnée par identifiant : voir {@code ShareSettingsRepository} pour
+     *  pourquoi la réponse doit être stable, et pourquoi c'est le premier
+     *  compte qui gagne. */
+    Optional<ShareSettingsJpaEntity> findFirstByOpenToGuestsTrueOrderByOwnerIdAsc();
 }
 
 @Repository
@@ -83,7 +93,7 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
     public ShareSettings save(ShareSettings settings) {
         return toDomain(jpaRepository.save(new ShareSettingsJpaEntity(
                 utilisateurCourant.proprietaire(), settings.token(), settings.shareCollection(), settings.shareWishlist(),
-                settings.includeTierLists())));
+                settings.includeTierLists(), settings.openToGuests())));
     }
 
     @Override
@@ -97,8 +107,17 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
         return jpaRepository.findByToken(token).map(JpaShareSettingsRepositoryAdapter::toDomain);
     }
 
+    @Override
+    public Optional<ShareSettings> premierOuvertAuxVisiteurs() {
+        // Aucune notion de propriétaire courant ici, à dessein : cette question
+        // est posée par quelqu'un qui n'a pas encore de session, et c'est la
+        // RÉPONSE qui lui en donnera une (voir Visite).
+        return jpaRepository.findFirstByOpenToGuestsTrueOrderByOwnerIdAsc()
+                .map(JpaShareSettingsRepositoryAdapter::toDomain);
+    }
+
     private static ShareSettings toDomain(ShareSettingsJpaEntity jpa) {
         return new ShareSettings(jpa.getOwnerId(), jpa.getToken(), jpa.isShareCollection(),
-                jpa.isShareWishlist(), jpa.isIncludeTierLists());
+                jpa.isShareWishlist(), jpa.isIncludeTierLists(), jpa.isOpenToGuests());
     }
 }

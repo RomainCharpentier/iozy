@@ -105,7 +105,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         unePossession("Naruto");
         uneEnvie("Berserk");
         String token = unLien();
-        shareController.update(new UpdateShareRequest(true, false, null));
+        shareController.update(new UpdateShareRequest(true, false, null, null));
 
         SharedSpaceResponse partage = publicShareController.shared(token);
 
@@ -120,7 +120,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         unePossession("Naruto");
         uneEnvie("Berserk");
         String token = unLien();
-        shareController.update(new UpdateShareRequest(false, true, null));
+        shareController.update(new UpdateShareRequest(false, true, null, null));
 
         SharedSpaceResponse partage = publicShareController.shared(token);
 
@@ -136,7 +136,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
         uneEnvie("Berserk");
         String token = unLien();
 
-        ShareResponse apres = shareController.update(new UpdateShareRequest(false, true, null));
+        ShareResponse apres = shareController.update(new UpdateShareRequest(false, true, null, null));
 
         assertThat(apres.token()).isEqualTo(token);
         assertThat(publicShareController.shared(token).wishlist()).isNotNull();
@@ -146,7 +146,7 @@ class SharedSpaceIntegrationTest extends PostgresIntegrationTest {
     void tout_decocher_est_refuse_plutot_que_de_laisser_un_lien_vers_le_vide() {
         unLien();
 
-        assertThatThrownBy(() -> shareController.update(new UpdateShareRequest(false, false, null)))
+        assertThatThrownBy(() -> shareController.update(new UpdateShareRequest(false, false, null, null)))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
