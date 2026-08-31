@@ -12,11 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * qui ne doivent jamais céder - un lien inactif n'expose rien, un lien actif
  * expose au moins quelque chose.
  *
- * <p>Plus un troisième, arrivé avec la visite sans compte : c'est un
- * <b>second accès</b>, pas une option du premier. Régler l'un ne doit jamais
- * régler l'autre - et l'erreur possible n'est pas symétrique. Refermer une
- * porte par accident se remarque (plus personne n'entre) ; la laisser ouverte
- * en croyant l'avoir fermée ne se remarque pas du tout.
  */
 class ShareSettingsTest {
 
@@ -73,7 +68,7 @@ class ShareSettingsTest {
     void sans_lien_actif_avoir_les_deux_sections_a_faux_reste_permis() {
         // Rien n'est exposé de toute façon : interdire cet état empêcherait de
         // simplement supprimer le lien.
-        assertThatCode(() -> new ShareSettings(DefaultOwner.ID, null, false, false, false, false))
+        assertThatCode(() -> new ShareSettings(DefaultOwner.ID, null, false, false, false))
                 .doesNotThrowAnyException();
     }
 
@@ -115,44 +110,7 @@ class ShareSettingsTest {
         assertThat(token).doesNotMatch("^[0-9]+$");
     }
 
-    @Test
-    void retirer_le_lien_ne_referme_pas_la_porte_des_visiteurs() {
-        ShareSettings avec = ShareSettings.withNewToken(DefaultOwner.ID).withGuests(true);
 
-        ShareSettings sansLien = avec.withoutLink();
 
-        assertThat(sansLien.hasLink()).isFalse();
-        // C'est TOUT le sujet de `withoutLink` : `noLink` repart de zéro et
-        // aurait refermé au passage un accès que personne n'a demandé à fermer.
-        assertThat(sansLien.openToGuests()).isTrue();
-    }
 
-    @Test
-    void un_espace_dont_personne_n_a_rien_regle_est_visitable() {
-        // Le defaut a ete inverse : la case sert a REFERMER, pas a autoriser.
-        // Un inconnu arrivant sur l'ecran de connexion doit pouvoir entrer,
-        // pas attendre que quelqu'un l'y autorise.
-        assertThat(ShareSettings.noLink(DefaultOwner.ID).openToGuests()).isTrue();
-        assertThat(ShareSettings.noLink(DefaultOwner.ID).withGuests(false).openToGuests()).isFalse();
-    }
-
-    @Test
-    void ouvrir_aux_visiteurs_ne_cree_aucun_lien() {
-        ShareSettings ouverte = ShareSettings.noLink(DefaultOwner.ID).withGuests(true);
-
-        assertThat(ouverte.openToGuests()).isTrue();
-        assertThat(ouverte.hasLink()).isFalse();
-        // Aucune section n'est exposée pour autant : les accesseurs de partage
-        // exigent un jeton, et la visite n'en est pas un.
-        assertThat(ouverte.sharesCollection()).isFalse();
-        assertThat(ouverte.sharesWishlist()).isFalse();
-    }
-
-    @Test
-    void regler_les_sections_du_lien_laisse_la_porte_ou_elle_est() {
-        ShareSettings ouverte = ShareSettings.withNewToken(DefaultOwner.ID).withGuests(true);
-
-        assertThat(ouverte.withSections(true, false).openToGuests()).isTrue();
-        assertThat(ouverte.withTierLists(true).openToGuests()).isTrue();
-    }
 }

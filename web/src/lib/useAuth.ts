@@ -25,7 +25,8 @@ import { queryKeys } from './queryKeys'
  * Entrer sans compte ne suit pas un chemin à part : c'est la même question
  * (« qui est là ? »), la même réponse (`/auth/me`), le même cache. Ce qui
  * change tient dans un drapeau - `estInvite` - et dans le fait que le client
- * HTTP refuse alors toute écriture (voir api/client).
+ * HTTP refuse alors toute écriture (voir api/client). Côté serveur, la session
+ * ne nomme aucun propriétaire : elle ne voit donc que le catalogue.
  *
  * <h2>Une session peut sauter n'importe quand</h2>
  * Serveur redémarré, session expirée, déconnexion depuis un autre onglet : le
@@ -108,9 +109,7 @@ export function useAuth() {
     enCoursDeVerification: compte.isLoading,
     aucunCompteSurLInstance: etat.data?.aucunCompte ?? false,
     creationOuverte: etat.data?.creationOuverte ?? false,
-    /** Une collection est ouverte aux visiteurs : on peut entrer sans compte. */
-    visiteOuverte: etat.data?.visiteOuverte ?? false,
-    /** On parcourt la collection de quelqu'un d'autre, sans compte : rien ne s'écrit. */
+    /** On consulte le catalogue sans compte : rien ne s'écrit, et rien de personnel ne se lit. */
     estInvite,
     connexion,
     creation,

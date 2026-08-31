@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '../../api/metadata'
 import { searchEntities } from '../../api/entities'
+import { useAuth } from '../../lib/useAuth'
 import { listAllOwnerships } from '../../api/ownerships'
 import { listEntityTypes } from '../../api/entityTypes'
 import { queryKeys } from '../../lib/queryKeys'
@@ -68,6 +69,11 @@ export function SearchPage() {
   const { search } = useLocation()
   const titleComposition = useTitleComposition()
   const wishlist = useWishlist()
+  // Un visiteur consulte le catalogue et rien d'autre : ni sources externes
+  // (elles servent à AJOUTER, et sortent chez un fournisseur), ni état
+  // personnel - il ne possède rien, et « Pas encore possédé » sur chaque ligne
+  // serait un bruit qui parle de quelqu'un d'autre.
+  const { estInvite } = useAuth()
   const entityTypesQuery = useQuery({ queryKey: queryKeys.entityTypes.all, queryFn: listEntityTypes })
   /**
    * Le type et le titre cherchés vivent dans l'URL.
@@ -90,11 +96,16 @@ export function SearchPage() {
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
 
+  // La présélection sert le parcours d'AJOUT : les fournisseurs ne
+  // s'interrogent que type par type, et arriver sans type choisi aurait
+  // demandé un clic avant la première recherche. Elle ne s'applique donc pas à
+  // un visiteur, qui ne vient pas ajouter mais REGARDER - et à qui elle
+  // masquerait tout le reste du catalogue derrière un type pris au hasard.
   useEffect(() => {
-    if (!entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
+    if (!estInvite && !entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
       setEntityTypeId(entityTypesQuery.data[0].id)
     }
-  }, [entityTypeId, entityTypesQuery.data])
+  }, [estInvite, entityTypeId, entityTypesQuery.data])
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const parTome = useCollecteParTome(entityTypeId)
@@ -115,13 +126,22 @@ export function SearchPage() {
   // lançait une recherche vouée à ne rien trouver, puis affichait "Aucun
   // résultat pour ce titre" - un échec annoncé là où il n'y avait tout
   // simplement rien à chercher.
-  const searchEnabled = !!entityTypeId && !!selectedType?.hasMetadataProvider && debouncedTitle.trim().length >= 3
+  const searchEnabled =
+    !estInvite && !!entityTypeId && !!selectedType?.hasMetadataProvider && debouncedTitle.trim().length >= 3
   // La recherche LOCALE, elle, ne dépend d'aucun fournisseur : elle interroge
-  // la collection déjà en base, gratuitement. La brancher sur searchEnabled
+  // le catalogue déjà en base, gratuitement. La brancher sur searchEnabled
   // privait du garde-fou anti-doublon ("Déjà dans ta collection", voir plus
   // bas) exactement les types personnalisés - c'est-à-dire les seuls où
   // AUCUNE déduplication externe ne rattrape le coup derrière.
-  const localSearchEnabled = !!entityTypeId && debouncedTitle.trim().length >= 3
+  //
+  // Elle tourne désormais SANS CONDITION, et c'est ce qui fait de cet écran
+  // l'entrée du catalogue. Elle exigeait un type ET trois caractères : à
+  // l'arrivée, la page était donc vide, et il n'existait nulle part dans
+  // l'application de vue sur l'ensemble des œuvres connues - « Ma collection »
+  // ne montre que ce qu'on possède ou souhaite (voir correspondAuFiltre). Sans
+  // aucun paramètre, l'endpoint rend tout ; type et titre ne font plus que
+  // RESTREINDRE.
+  const localSearchEnabled = true
 
   const suggestionsQuery = useQuery({
     queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
@@ -271,9 +291,13 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* "Rechercher" (maquette V1.2 §420) - seul point d'entrée pour ajouter
-          à la collection (voir §24 du brief). */}
-      <EnTeteSection niveau={1} titre="Rechercher" />
+      {/* « Catalogue » et non plus « Rechercher » : l'écran ne part plus d'une
+          page vide qu'une saisie remplit, il MONTRE d'emblée les œuvres que
+          l'instance connaît, et la saisie ne fait que restreindre. Il reste le
+          seul point d'entrée pour ajouter (voir §24 du brief) - chercher chez
+          un fournisseur est devenu la seconde moitié de l'écran, pas sa
+          raison d'être. */}
+      <EnTeteSection niveau={1} titre="Catalogue" />
 
       {/* Scanner reste ici : c'est la même intention que la recherche, saisie
           autrement. « Analyser une annonce » en est parti - c'est un parcours
@@ -285,27 +309,38 @@ export function SearchPage() {
           depuis BoardGameGeek, c'est AJOUTER à sa collection - la même
           intention que taper un titre ou scanner un code-barres, avec une
           troisième source. Rien d'administratif là-dedans. */}
-      <div className="flex flex-wrap gap-2">
-        <Link
-          to="/scan"
-          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-        >
-          <ScanLine size={16} />
-          Scanner
-        </Link>
-        <Link
-          to="/import-bgg"
-          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-        >
-          <Upload size={16} />
-          Importer depuis BGG
-        </Link>
-      </div>
+      {/* Les deux mènent à des écrans d'AJOUT, fermés à un visiteur (voir
+          lib/accesInvite) : les lui proposer l'aurait renvoyé ici sans un mot,
+          ce qui se lit comme une panne. C'est la règle générale de cette
+          visite - on ne montre pas une porte qui rebondit. */}
+      {!estInvite && (
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/scan"
+            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+          >
+            <ScanLine size={16} />
+            Scanner
+          </Link>
+          <Link
+            to="/import-bgg"
+            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+          >
+            <Upload size={16} />
+            Importer depuis BGG
+          </Link>
+        </div>
+      )}
 
       {entityTypesQuery.isLoading && <p className="text-sm text-textDim">Chargement des types...</p>}
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
 
       <div className="flex flex-wrap gap-2">
+        {/* « Tout » d'abord, et il n'existait pas : les puces ne servaient qu'à
+            cadrer une recherche chez un fournisseur, qui s'interroge type par
+            type. Elles filtrent maintenant aussi le catalogue affiché, et sans
+            cette entrée il n'y avait aucun moyen de le voir en entier. */}
+        <Chip label="Tout" isActive={!entityTypeId} onClick={() => setEntityTypeId(undefined)} />
         {(entityTypesQuery.data ?? []).map((type) => (
           <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => setEntityTypeId(type.id)} />
         ))}
@@ -357,7 +392,13 @@ export function SearchPage() {
           les suggestions externes. */}
       {localMatches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Déjà dans IozyCore</span>
+          {/* Sans titre saisi, cette liste EST le catalogue - l'annoncer
+              « Déjà dans IozyCore » n'aurait de sens que face à des
+              suggestions externes, qui n'apparaissent qu'une fois qu'on
+              cherche quelque chose. */}
+          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">
+            {debouncedTitle.trim() ? 'Déjà dans IozyCore' : 'Le catalogue'}
+          </span>
           <div className="flex flex-col gap-1.5">
             {localMatches.map((entity) => {
               const possede = entityIdsPossedes.has(entity.id)
@@ -371,7 +412,11 @@ export function SearchPage() {
                     {/* Deux états bien distincts : possédée, ou seulement
                         connue (fiche existante sans aucun exemplaire - typique
                         d'une œuvre mise en envies). */}
-                    {possede ? (
+                    {/* Rien de tout cela pour un visiteur : il ne possède
+                        rien, et ces deux pastilles parleraient de la
+                        collection de quelqu'un d'autre - ou, pire, de la
+                        sienne, qui n'existe pas. */}
+                    {estInvite ? null : possede ? (
                       <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-xs font-semibold text-accentText">
                         Possédé
                       </span>
@@ -381,7 +426,9 @@ export function SearchPage() {
                       </span>
                     )}
                   </button>
-                  <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
+                  {!estInvite && (
+                    <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
+                  )}
                 </div>
               )
             })}
@@ -393,7 +440,7 @@ export function SearchPage() {
           fournisseur, ce bouton est le SEUL chemin d'ajout - le placer en
           premier revenait à proposer de créer un doublon avant même d'avoir
           montré que l'œuvre existe déjà. */}
-      {!requiresMatch && title.trim().length > 0 && entityTypeId && (
+      {!estInvite && !requiresMatch && title.trim().length > 0 && entityTypeId && (
         <button
           type="button"
           onClick={() => ouvrirApercuManuel(title)}

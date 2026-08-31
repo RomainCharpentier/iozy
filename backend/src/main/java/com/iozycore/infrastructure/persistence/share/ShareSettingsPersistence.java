@@ -34,20 +34,16 @@ class ShareSettingsJpaEntity {
     @Column(name = "include_tier_lists", nullable = false)
     private boolean includeTierLists;
 
-    @Column(name = "open_to_guests", nullable = false)
-    private boolean openToGuests;
-
     protected ShareSettingsJpaEntity() {
     }
 
     ShareSettingsJpaEntity(UUID ownerId, String token, boolean shareCollection, boolean shareWishlist,
-                            boolean includeTierLists, boolean openToGuests) {
+                            boolean includeTierLists) {
         this.ownerId = ownerId;
         this.token = token;
         this.shareCollection = shareCollection;
         this.shareWishlist = shareWishlist;
         this.includeTierLists = includeTierLists;
-        this.openToGuests = openToGuests;
     }
 
     UUID getOwnerId() { return ownerId; }
@@ -55,7 +51,6 @@ class ShareSettingsJpaEntity {
     boolean isShareCollection() { return shareCollection; }
     boolean isShareWishlist() { return shareWishlist; }
     boolean isIncludeTierLists() { return includeTierLists; }
-    boolean isOpenToGuests() { return openToGuests; }
 }
 
 interface ShareSettingsJpaRepository extends JpaRepository<ShareSettingsJpaEntity, UUID> {
@@ -88,7 +83,7 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
     public ShareSettings save(ShareSettings settings) {
         return toDomain(jpaRepository.save(new ShareSettingsJpaEntity(
                 utilisateurCourant.proprietaire(), settings.token(), settings.shareCollection(), settings.shareWishlist(),
-                settings.includeTierLists(), settings.openToGuests())));
+                settings.includeTierLists())));
     }
 
     @Override
@@ -102,22 +97,9 @@ class JpaShareSettingsRepositoryAdapter implements ShareSettingsRepository {
         return jpaRepository.findByToken(token).map(JpaShareSettingsRepositoryAdapter::toDomain);
     }
 
-    @Override
-    public ShareSettings pour(UUID proprietaire) {
-        // Aucune notion de propriétaire courant ici, à dessein : cette question
-        // est posée par quelqu'un qui n'a pas encore de session, et c'est la
-        // RÉPONSE qui lui en donnera une (voir Visite).
-        //
-        // L'absence de ligne n'est PAS un refus : c'est un espace dont personne
-        // n'a jamais réglé le partage, donc les valeurs par défaut - portes
-        // ouvertes comprises (voir ShareSettings.noLink).
-        return jpaRepository.findById(proprietaire)
-                .map(JpaShareSettingsRepositoryAdapter::toDomain)
-                .orElseGet(() -> ShareSettings.noLink(proprietaire));
-    }
 
     private static ShareSettings toDomain(ShareSettingsJpaEntity jpa) {
         return new ShareSettings(jpa.getOwnerId(), jpa.getToken(), jpa.isShareCollection(),
-                jpa.isShareWishlist(), jpa.isIncludeTierLists(), jpa.isOpenToGuests());
+                jpa.isShareWishlist(), jpa.isIncludeTierLists());
     }
 }

@@ -124,13 +124,18 @@ function PorteFermee({ children }: { children: ReactNode }) {
  * <p>`replace` : revenir en arrière doit ramener d'où l'on vient, pas à une URL
  * qui redirigerait aussitôt (même règle que la redirection des Envies).
  *
+ * <p>La destination de repli est le CATALOGUE, et surtout pas `/` : « Ma
+ * collection » fait partie des écrans fermés à un visiteur - elle ne montre
+ * que ce qu'on possède ou souhaite - et l'y renvoyer aurait bouclé la
+ * redirection sur elle-même.
+ *
  * <p>Ce n'est PAS ce qui protège : le serveur refuse toute écriture à une
  * session de visite, quelle que soit la route (voir SecurityConfig).
  */
 function PorteDeVisite({ children }: { children: ReactNode }) {
   const { estInvite } = useAuth()
   const { pathname } = useLocation()
-  if (estInvite && estReserveeAuxComptes(pathname)) return <Navigate to="/" replace />
+  if (estInvite && estReserveeAuxComptes(pathname)) return <Navigate to="/add" replace />
   return <>{children}</>
 }
 

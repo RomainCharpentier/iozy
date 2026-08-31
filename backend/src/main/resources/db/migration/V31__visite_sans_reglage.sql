@@ -1,0 +1,25 @@
+-- V31__visite_sans_reglage.sql
+-- La visite sans compte n'a plus de réglage du tout.
+--
+-- Trois versions en une journée, et l'aller-retour mérite d'être écrit plutôt
+-- que deviné plus tard dans l'historique :
+--   V29 : la visite s'ouvrait en cochant une case (fermée par défaut) ;
+--   V30 : le défaut passait à ouvert, la case servant à refermer ;
+--   V31 : la case disparaît - la visite est un fait, pas une option.
+--
+-- La demande était constante d'un bout à l'autre : un accès visiteur depuis
+-- l'écran de connexion, sans que personne ait à l'autoriser. Chaque version
+-- intermédiaire gardait un interrupteur « au cas où », et c'est justement
+-- l'interrupteur qui était en trop. Ce que le code ne sait plus faire ne peut
+-- pas être mal réglé.
+--
+-- CONTREPARTIE, et elle est réelle : il n'existe plus aucun moyen de refermer
+-- depuis l'application. Sur une instance publiée, la collection du premier
+-- compte est lisible par quiconque en connaît l'adresse. Rétablir un
+-- interrupteur demanderait de revenir sur ce choix, dans le code.
+--
+-- La colonne est SUPPRIMÉE plutôt que laissée en place : une colonne que plus
+-- personne ne lit finit par être relue de travers, et son nom laisserait croire
+-- qu'un réglage existe encore.
+DROP INDEX IF EXISTS idx_share_settings_open_to_guests;
+ALTER TABLE share_settings DROP COLUMN IF EXISTS open_to_guests;

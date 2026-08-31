@@ -16,16 +16,23 @@
  * lecture.
  *
  * <h2>La règle qui a servi à trancher</h2>
- * Un écran est réservé aux comptes quand son SUJET est d'écrire ou de se
- * gérer : ajouter à sa collection, scanner, analyser une annonce, importer,
- * déclarer les catégories de l'instance, régler son compte. Tout ce qui se
- * contente de MONTRER la collection reste ouvert - c'est exactement ce qu'un
- * visiteur est venu voir : les œuvres, les fiches, les classements, les
- * statistiques, le bilan.
+ * Un écran est réservé aux comptes quand son sujet est d'<b>écrire</b>, de se
+ * <b>gérer</b>, ou de <b>calculer sur une collection</b>. Ce qu'un visiteur
+ * consulte, c'est le catalogue : les œuvres et leurs fiches. Tout le reste -
+ * progression, statistiques, bilan, classements, envies - se dérive de ce que
+ * quelqu'un possède, et une session de visite ne possède rien : ces écrans
+ * s'afficheraient vides, ce qui se lit comme une panne plutôt que comme une
+ * réponse.
  */
 const RESERVEES_AUX_COMPTES = [
-  // Écrire dans la collection.
-  '/add',
+  // « Ma collection » est un espace PERSONNEL : elle ne montre que ce qu'on
+  // possède ou souhaite (voir correspondAuFiltre), donc elle serait vide pour
+  // un visiteur - et intitulée « Ma », ce qui ne veut rien dire pour lui. Son
+  // équivalent consultable est le catalogue, à `/add`, qui reste ouvert.
+  '/',
+  // Écrire dans la collection. `/add` n'y est plus : c'est devenu l'entrée du
+  // CATALOGUE, et les gestes d'ajout qu'il porte encore sont masqués à un
+  // visiteur écran par écran (voir SearchPage).
   '/scan',
   '/apercu',
   '/import-bgg',
@@ -40,6 +47,17 @@ const RESERVEES_AUX_COMPTES = [
   // Son propre compte - ce qu'un visiteur n'a pas.
   '/profile',
   '/settings',
+  // Et tout ce qui se CALCULE sur une collection : progression, découvertes,
+  // statistiques, bilan, classements, envies. Une session de visite ne nomme
+  // aucun propriétaire (voir Invite côté serveur), donc ces écrans seraient
+  // exacts et vides - des zéros et des listes sans rien, qui se lisent comme
+  // une panne plutôt que comme une réponse.
+  '/discover',
+  '/tier-lists',
+  '/stats',
+  '/recap',
+  '/suggestions',
+  '/wishlist',
 ]
 
 /**

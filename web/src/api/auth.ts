@@ -15,18 +15,12 @@ export interface EtatAuth {
   aucunCompte: boolean
   /** Un compte de plus peut être créé (premier compte, ou code d'invitation configuré). */
   creationOuverte: boolean
-  /**
-   * Quelqu'un a ouvert sa collection aux visiteurs : on peut entrer sans
-   * compte, en lecture seule. Faux par défaut, et faux sur toute instance dont
-   * le propriétaire n'a rien coché.
-   */
-  visiteOuverte: boolean
 }
 
 export interface Compte {
-  /** Pour une visite, la collection parcourue - il n'y a pas de compte à nommer. */
-  id: string
-  /** Nulle en visite : un visiteur n'a pas d'adresse, et celle de l'hôte ne le regarde pas. */
+  /** Nul en visite : un visiteur n'est personne, il n'y a pas de compte à nommer. */
+  id: string | null
+  /** Nulle en visite : un visiteur n'a pas d'adresse. */
   email: string | null
   /** Unique sur l'instance, et le seul nom sous lequel on apparaît - jamais l'adresse. */
   pseudo: string
@@ -37,10 +31,10 @@ export interface Compte {
    */
   admin: boolean
   /**
-   * Une VISITE, pas un compte : `pseudo` est alors le nom de la personne dont
-   * on parcourt la collection, et le serveur refuse toute écriture (403). La
-   * même forme décrit les deux, pour qu'aucun écran n'ait à demander « lequel
-   * des deux ? » avant de savoir s'il y a quelqu'un.
+   * Une VISITE, pas un compte. La session ne nomme alors aucun propriétaire :
+   * elle voit le catalogue - les œuvres, qui n'appartiennent à personne - et
+   * rien des possessions, notes ou envies de qui que ce soit. Toute écriture
+   * lui est refusée (403).
    */
   invite: boolean
 }
@@ -72,9 +66,8 @@ export function seDeconnecter(): Promise<void> {
 }
 
 /**
- * Entrer sans compte, sur la collection dont le propriétaire a ouvert les
- * portes. Rejette en 403 si personne n'en a ouvert - ce que l'écran de
- * connexion évite en ne proposant le bouton que si `visiteOuverte`.
+ * Consulter le catalogue sans compte. Toujours possible : il n'y a aucun
+ * réglage à consulter, et rien à autoriser.
  */
 export function entrerEnVisite(): Promise<Compte> {
   return post<Compte>('/auth/visite')

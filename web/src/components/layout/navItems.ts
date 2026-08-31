@@ -8,6 +8,7 @@ export interface NavItem {
    *  plus court sinon. Quatre onglets sur 375 px ne laissent pas la place
    *  d'écrire « Analyser une annonce ». */
   labelCourt: string
+
   icon: typeof Library
   /** Routes additionnelles qui doivent aussi allumer cette entrée - ex: la
    *  fiche d'une série reste sous « Ma collection », l'historique d'analyses
@@ -46,8 +47,13 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/add',
-    label: 'Rechercher',
-    labelCourt: 'Rechercher',
+    // « Catalogue » et non « Rechercher » : l'onglet ne mène plus à une page
+    // vide qu'une saisie remplit, il montre les œuvres que l'instance connaît.
+    // Chercher chez un fournisseur y reste possible - c'est devenu la seconde
+    // moitié de l'écran, pas sa raison d'être. C'est aussi la seule
+    // destination d'un visiteur, à qui « Rechercher » n'aurait rien promis.
+    label: 'Catalogue',
+    labelCourt: 'Catalogue',
     icon: Search,
     // `/scan` reste sous Rechercher : scanner, c'est identifier une œuvre -
     // le même pipeline, une autre saisie.

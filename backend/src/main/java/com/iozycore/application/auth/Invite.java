@@ -1,32 +1,35 @@
 package com.iozycore.application.auth;
 
-import java.util.UUID;
-
 /**
- * Un visiteur sans compte, entré par la porte laissée ouverte.
+ * Un visiteur sans compte : quelqu'un qui consulte le <b>catalogue</b>, et
+ * rien d'autre.
  *
- * <h2>Un principal à part, et pas un {@code Principal} incomplet</h2>
- * La tentation était de réutiliser {@link AppUserDetailsService.Principal} avec
- * des champs vides. Elle est mauvaise : ce type est celui d'un COMPTE, et tout
- * ce qui le reçoit peut en lire l'adresse e-mail, le hachage du mot de passe et
- * le drapeau d'administration. Un visiteur n'a rien de tout cela, et un jour
- * quelqu'un aurait écrit {@code principal.email()} sur un chemin qu'un invité
- * atteint. Deux types distincts font que la question « est-ce un compte ? » se
- * pose à la compilation plutôt qu'à l'exécution.
+ * <h2>Il ne porte AUCUN propriétaire, et c'est tout le sujet</h2>
+ * Une première version le faisait entrer « chez » quelqu'un : il portait
+ * l'identifiant d'une collection, et lisait les possessions, les notes et les
+ * classements de cette personne. Ce n'était pas ce qu'on voulait montrer. Un
+ * visiteur doit voir les <b>œuvres</b> que l'instance connaît - titre,
+ * jaquette, éditions - et rien de ce que quelqu'un en a fait.
  *
- * <h2>Ce qu'il porte, et pourquoi</h2>
- * {@code proprietaire} est la collection qu'il visite : c'est de là que vient
- * son cloisonnement, exactement comme le jeton d'un lien de partage nomme son
- * propriétaire (voir {@code AuNomDe}). Il n'est PAS choisi par le visiteur -
- * il est décidé par l'instance au moment d'ouvrir la session (voir
- * {@link Visite}), sans quoi n'importe qui désignerait la collection de
- * n'importe qui.
+ * <p>Or le cloisonnement rend déjà exactement cela à qui n'est personne :
+ * le catalogue est <b>partagé</b> (aucune colonne de propriétaire, voir
+ * {@code ProprietaireCourant}), tandis que possessions, envies, expériences et
+ * classements sont filtrés par propriétaire. Un principal qui ne nomme aucun
+ * propriétaire retombe sur {@link com.iozycore.domain.shared.DefaultOwner#PERSONNE},
+ * <b>à qui rien n'appartient</b> - donc le catalogue entier, et pas une ligne
+ * de données personnelles.
  *
- * <p>{@code hote} est le pseudo de la personne dont on visite la collection.
- * Il n'a aucun rôle technique : il est là pour que l'application puisse dire
- * « tu visites la collection de X » plutôt que de laisser croire à un visiteur
- * qu'il regarde la sienne. Le pseudo est public par destination (voir
- * {@code AuthController}) ; l'adresse e-mail de l'hôte, elle, ne sort pas.
+ * <p>C'est pour cette raison que cet enregistrement est <b>vide</b>. Ce n'est
+ * pas un oubli : lui donner un champ « propriétaire » serait rouvrir la porte
+ * qu'on vient de fermer, et il faudrait alors se demander à chaque écran ce
+ * qu'il a le droit d'en lire. Il ne le porte pas, donc la question ne se pose
+ * plus nulle part.
+ *
+ * <h2>Ce qu'il sert encore à dire</h2>
+ * Deux choses, et elles suffisent : que la session est <b>authentifiée</b>
+ * (sans quoi le cloisonnement ne la laisserait rien lire du tout) et qu'elle
+ * est en <b>lecture seule</b> (voir {@code SecurityConfig}). Le type lui-même
+ * porte l'information ; il n'a pas besoin de données.
  */
-public record Invite(UUID proprietaire, String hote) {
+public record Invite() {
 }

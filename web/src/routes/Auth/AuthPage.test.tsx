@@ -13,9 +13,8 @@
  *       qu'il en faut un ;</li>
  *   <li>une instance <b>fermée</b> aux nouveaux comptes ne propose pas d'en
  *       créer : le lien n'ouvrirait qu'un refus ;</li>
- *   <li>« <b>visiter sans compte</b> » n'apparaît que si quelqu'un a
- *       réellement ouvert sa collection - proposer une porte fermée est pire
- *       que ne rien proposer.</li>
+ *   <li>« <b>visiter sans compte</b> » est toujours proposé - il n'y a rien à
+ *       autoriser, et le catalogue n'appartient à personne.</li>
  * </ul>
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -44,15 +43,9 @@ function enrobage({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 
-/**
- * Rend l'écran pour une instance donnée, une fois son état connu.
- *
- * `visiteOuverte` est facultatif et vaut faux : c'est l'état de toute instance
- * dont personne n'a coché la case, et le défaut sous lequel les autres cas de
- * ce fichier ont été écrits.
- */
-async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean; visiteOuverte?: boolean }) {
-  api.lireEtatAuth.mockResolvedValue({ visiteOuverte: false, ...etat })
+/** Rend l'écran pour une instance donnée, une fois son état connu. */
+async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean }) {
+  api.lireEtatAuth.mockResolvedValue(etat)
   // Personne n'est connecté : c'est la situation NORMALE devant cette porte.
   api.lireCompte.mockRejectedValue(new ApiError(401, 'Non connecté'))
   render(<AuthPage />, { wrapper: enrobage })
@@ -192,20 +185,13 @@ describe('la connexion', () => {
 /**
  * <b>La quatrième issue : entrer sans compte.</b>
  *
- * Elle ne se voit que si une collection est ouverte aux visiteurs. Le bouton
- * proposé sur une instance fermée mènerait à un 403, sur le seul écran qu'un
- * inconnu voit - et sans rien lui apprendre, puisqu'il n'y peut rien.
+ * Elle mène au CATALOGUE - les œuvres que l'instance connaît - et non à la
+ * collection de quelqu'un. Aucun réglage ne la conditionne : il n'y a rien à
+ * autoriser, et rien de personnel n'en sort.
  */
 describe('la visite sans compte', () => {
-  it('n’est pas proposée quand personne n’a ouvert sa collection', async () => {
-    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: false })
-
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Se connecter' })).toBeInTheDocument())
-    expect(screen.queryByRole('button', { name: /Visiter/ })).not.toBeInTheDocument()
-  })
-
-  it('est proposée, et dit qu’elle est en lecture seule, quand une collection est ouverte', async () => {
-    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: true })
+  it('est proposée sans condition, et dit qu’elle est en lecture seule', async () => {
+    await ecran({ aucunCompte: false, creationOuverte: false })
 
     expect(await screen.findByRole('button', { name: 'Visiter sans compte' })).toBeInTheDocument()
     // La contrainte est écrite AVANT d'entrer : quelqu'un qui découvre
@@ -215,11 +201,11 @@ describe('la visite sans compte', () => {
   })
 
   it('ouvre la session de visite sans rien demander à saisir', async () => {
-    await ecran({ aucunCompte: false, creationOuverte: false, visiteOuverte: true })
+    await ecran({ aucunCompte: false, creationOuverte: false })
     api.entrerEnVisite.mockResolvedValue({
-      id: 'proprio-1',
+      id: null,
       email: null,
-      pseudo: 'kenshin',
+      pseudo: 'Visiteur',
       admin: false,
       invite: true,
     })
