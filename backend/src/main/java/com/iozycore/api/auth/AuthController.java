@@ -32,9 +32,9 @@ import java.util.UUID;
  * Entrer, sortir, et savoir qui l'on est.
  *
  * <h2>Quatre routes ouvertes, et pas une de plus</h2>
- * {@code /etat} dit à un client s'il doit proposer « créer le premier compte »,
- * « se connecter » ou « visiter » - et sert de premier appel, celui qui dépose
- * le jeton CSRF. {@code /register} et {@code /login} sont ouverts par
+ * {@code /etat} dit à un client s'il doit proposer « créer le premier compte »
+ * ou « se connecter » - et sert de premier appel, celui qui dépose le jeton
+ * CSRF. {@code /register} et {@code /login} sont ouverts par
  * nécessité. {@code /visite} l'est pour la même raison qu'un lien de partage :
  * la personne qui entre par là n'a pas de compte, et n'en veut pas. Tout le
  * reste de l'API demande une session, {@code /api/public/**} excepté (voir
@@ -44,11 +44,11 @@ import java.util.UUID;
  * L'alternative aurait été de laisser le client « faire comme si » : appeler
  * l'API en anonyme et masquer les refus. Elle ne tient pas - le cloisonnement
  * de cette application vient de la session (voir {@code ProprietaireCourant}),
- * et sans session un visiteur ne verrait rien du tout. Il en reçoit donc une
- * vraie, qui nomme la collection visitée et <b>ne peut pas écrire</b> (voir
- * {@code SecurityConfig}). Ce n'est pas un compte au rabais : c'est un droit de
- * lecture chez quelqu'un, et ça se referme d'un côté comme de l'autre - le
- * visiteur se déconnecte, l'hôte décoche la case.
+ * et sans session un visiteur ne verrait rien du tout, pas même le catalogue.
+ * Il en reçoit donc une vraie, qui <b>ne nomme aucun propriétaire</b> et
+ * <b>ne peut pas écrire</b>. Ce n'est pas un compte au rabais : c'est le droit
+ * de consulter les œuvres que l'instance connaît, et rien de ce que quiconque
+ * en a fait.
  *
  * <h2>Ce qu'un échec de connexion ne dit pas</h2>
  * Une adresse inconnue et un mot de passe faux rendent <b>le même</b> 401 et le
@@ -68,20 +68,18 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService comptes;
-    private final Visite visites;
     private final AuthenticationManager authentification;
     private final SecurityContextRepository contextes;
 
-    public AuthController(AuthService comptes, Visite visites, AuthenticationManager authentification,
+    public AuthController(AuthService comptes, AuthenticationManager authentification,
                            SecurityContextRepository contextes) {
         this.comptes = comptes;
-        this.visites = visites;
         this.authentification = authentification;
         this.contextes = contextes;
     }
 
     /** L'état d'une instance, pour un client qui ne sait pas encore quoi afficher. */
-    public record EtatReponse(boolean aucunCompte, boolean creationOuverte, boolean visiteOuverte) {
+    public record EtatReponse(boolean aucunCompte, boolean creationOuverte) {
     }
 
     public record CreationRequete(String email, String motDePasse, String pseudo, String codeInvitation) {
@@ -94,20 +92,20 @@ public class AuthController {
      * Ce qu'un client apprend d'un compte : jamais le hachage, jamais l'adresse
      * d'un autre.
      *
-     * <p>La même forme sert à décrire une VISITE, avec {@code invite} à vrai :
-     * {@code id} est alors la collection parcourue et {@code pseudo} le nom de
-     * son hôte, tandis que {@code email} reste nul - un visiteur n'a pas
-     * d'adresse ici, et celle de l'hôte ne le regarde pas. Deux formes séparées
-     * auraient obligé chaque écran à demander « lequel des deux ? » avant même
-     * de savoir s'il y a quelqu'un.
+     * <p>La même forme sert à décrire une VISITE, avec {@code invite} à vrai.
+     * Il n'y a alors ni identifiant ni adresse - un visiteur n'est personne -
+     * et {@code pseudo} porte le mot sous lequel l'application le nomme. Deux
+     * formes séparées auraient obligé chaque écran à demander « lequel des
+     * deux ? » avant même de savoir s'il y a quelqu'un.
      */
     public record CompteReponse(UUID id, String email, String pseudo, boolean admin, boolean invite) {
         static CompteReponse de(AppUser compte) {
             return new CompteReponse(compte.id(), compte.email(), compte.pseudo(), compte.admin(), false);
         }
 
-        static CompteReponse de(Invite visiteur) {
-            return new CompteReponse(visiteur.proprietaire(), null, visiteur.hote(), false, true);
+        /** Un visiteur : ni identifiant, ni adresse, ni compte. Juste un mot pour le nommer. */
+        static CompteReponse pourUnVisiteur() {
+            return new CompteReponse(null, null, "Visiteur", false, true);
         }
 
         static CompteReponse de(AppUserDetailsService.Principal principal) {
@@ -115,11 +113,10 @@ public class AuthController {
         }
     }
 
-    @Operation(summary = "Y a-t-il déjà un compte sur cette instance, peut-on en créer un, "
-            + "et une collection est-elle ouverte aux visiteurs ?")
+    @Operation(summary = "Y a-t-il déjà un compte sur cette instance, et peut-on en créer un ?")
     @GetMapping("/etat")
     public EtatReponse etat() {
-        return new EtatReponse(comptes.aucunCompte(), comptes.creationOuverte(), visites.ouverte());
+        return new EtatReponse(comptes.aucunCompte(), comptes.creationOuverte());
     }
 
     @Operation(summary = "Créer un compte. Libre tant qu'aucun n'existe (il reprend alors la collection "
@@ -150,20 +147,19 @@ public class AuthController {
         return CompteReponse.de(ouvrirSession(requete.email(), requete.motDePasse(), requeteHttp, reponseHttp));
     }
 
-    @Operation(summary = "Entrer en visiteur, sans compte, sur la collection dont le propriétaire a ouvert "
-            + "les portes. 403 si personne n'en a ouvert. La session obtenue ne peut que lire.")
+    @Operation(summary = "Consulter le catalogue sans compte. Toujours possible, et la session obtenue ne "
+            + "peut que lire : elle ne nomme aucun propriétaire, donc elle ne voit aucune donnée personnelle.")
     @PostMapping("/visite")
     public CompteReponse visiter(HttpServletRequest requeteHttp, HttpServletResponse reponseHttp) {
-        Invite visiteur = visites.commencer().orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.FORBIDDEN, "Aucune collection n'est ouverte aux visiteurs sur cette instance."));
-        // Le visiteur ne présente RIEN : il n'y a donc rien à authentifier, et
-        // aucun AuthenticationManager à consulter. L'autorisation vient de
-        // l'instance, qui a déjà répondu ci-dessus ; il ne reste qu'à écrire
-        // dans la session qui il est - et ce qu'il n'est pas.
+        // Rien à vérifier, rien à autoriser, personne à désigner. Le visiteur
+        // ne présente rien - il n'y a donc pas d'AuthenticationManager à
+        // consulter - et il ne demande rien de précis : le catalogue est le
+        // même pour tous, et il n'appartient à personne.
+        Invite visiteur = new Invite();
         installerDansLaSession(
                 new UsernamePasswordAuthenticationToken(visiteur, null, Visite.AUTORITES),
                 requeteHttp, reponseHttp);
-        return CompteReponse.de(visiteur);
+        return CompteReponse.pourUnVisiteur();
     }
 
     /**
@@ -176,8 +172,8 @@ public class AuthController {
     @GetMapping("/me")
     public CompteReponse me(Authentication authentifie) {
         Object qui = authentifie == null ? null : authentifie.getPrincipal();
-        if (qui instanceof Invite visiteur) {
-            return CompteReponse.de(visiteur);
+        if (qui instanceof Invite) {
+            return CompteReponse.pourUnVisiteur();
         }
         if (qui instanceof AppUserDetailsService.Principal principal) {
             return CompteReponse.de(principal);

@@ -98,25 +98,29 @@ une base ouverte à qui passe.
 
 #### Visiter sans compte
 
-L'écran de connexion propose **« Visiter sans compte »** dès qu'un compte
-existe sur l'instance : n'importe qui peut alors parcourir la collection du
-**premier compte** — les fiches, les classements, les statistiques — sans rien
-créer et sans que personne ait à l'autoriser.
+L'écran de connexion propose **« Visiter sans compte »**, toujours et sans
+condition. Le visiteur consulte le **catalogue** : les œuvres que l'instance
+connaît, leurs fiches, leurs éditions, leurs tomes.
 
-C'est une **lecture seule**, et pas seulement à l'affichage : une session de
-visite se voit refuser toute requête autre qu'un `GET`, quelle que soit la
-route (voir `SecurityConfig`). Les écrans d'écriture — ajout, scan, analyse
-d'annonce, administration — ne lui sont même pas proposés.
+**Il ne voit la collection de personne.** Une session de visite ne nomme aucun
+propriétaire, et c'est tout le mécanisme : le catalogue est partagé entre tous
+les comptes, tandis que possessions, envies, notes, lectures et classements
+sont filtrés par propriétaire. N'être personne revient donc à voir les œuvres,
+et pas une ligne de ce que quiconque en a fait. Rien n'est masqué à
+l'affichage — ces données ne sont simplement jamais lues.
 
-**Ouvert par défaut**, et c'est le point à peser : sans lien ni jeton à
-distribuer, la collection est lisible par **qui atteint l'application** — donc
-par tout Internet si l'instance y est exposée. Pour refermer, décoche
-« Ouverte aux visiteurs » dans **Profil → Partage** ; l'accès est repris
-immédiatement, y compris pour les visites déjà en cours.
+C'est une **lecture seule**, et là aussi côté serveur : toute requête autre
+qu'un `GET` est refusée, quelle que soit la route (voir `SecurityConfig`). Les
+écrans d'écriture — ajout, scan, analyse d'annonce, administration — ne lui
+sont pas proposés, pas plus que ceux qui se calculent sur une collection
+(statistiques, bilan, découvertes, classements), qui lui seraient vides.
 
-C'est **indépendant du lien de partage**, qui reste la bonne réponse quand on
-veut montrer une sélection à quelqu'un en particulier : supprimer le lien ne
-referme pas la porte, et l'ouvrir ne crée aucun jeton.
+**Aucun réglage ne l'ouvre ni ne la ferme.** Il n'y a rien à cocher, et rien
+qu'un exploitant puisse oublier de régler. Ce que le code ne sait pas faire ne
+peut pas être mal configuré.
+
+C'est **indépendant du lien de partage**, qui répond à un autre besoin : montrer
+sa **propre collection** à quelqu'un en particulier, sélection comprise.
 
 ### Tester
 

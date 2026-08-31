@@ -6,6 +6,8 @@ import com.iozycore.domain.shared.DefaultOwner;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.UUID;
 
@@ -30,12 +32,6 @@ import java.util.UUID;
  * d'autre pose une vraie session : elle l'emporte toujours sur ce repli (voir
  * {@code IsolationParProprietaireTest}).
  *
- * <h2>Une VISITE l'emporte aussi, et il a fallu l'écrire</h2>
- * Un invité n'a pas de compte : {@code id()} est vide pour lui, et la
- * collection qu'il parcourt est portée par son principal. Le repli seul
- * l'aurait donc renvoyé sur le premier compte - c'est-à-dire, la plupart du
- * temps, sur la bonne réponse par accident, et sur un test de visite qui
- * passerait sans rien vérifier.
  */
 @TestConfiguration
 public class ComptePourLesTests {
@@ -46,8 +42,32 @@ public class ComptePourLesTests {
         return new UtilisateurCourant() {
             @Override
             public UUID proprietaire() {
-                return invite().map(Invite::proprietaire).orElseGet(() -> id().orElse(DefaultOwner.ID));
+                // Une VISITE n'est personne, et doit le rester ICI AUSSI.
+                //
+                // Ce repli existe pour les tests qui appellent des services
+                // hors requête, sans session : il les fait parler au nom du
+                // premier compte. Mais une session de visite EST une session -
+                // elle ne nomme simplement aucun propriétaire - et le repli en
+                // aurait fait le premier compte. Un test de visite serait alors
+                // passé en voyant la collection de quelqu'un, c'est-à-dire en
+                // affirmant l'inverse de ce qu'il vérifie. Constaté en direct :
+                // `un_visiteur_voit_le_catalogue_et_aucune_possession` a échoué
+                // sur cette ligne, et c'est bien le stub qui avait tort.
+                //
+                // La question se pose ici et pas dans la production, où le
+                // repli vaut déjà « personne » : c'est donc ici qu'elle se
+                // règle, sans rouvrir dans le code de production une notion de
+                // visiteur dont il n'a pas besoin.
+                if (estUneVisite()) {
+                    return DefaultOwner.PERSONNE;
+                }
+                return id().orElse(DefaultOwner.ID);
             }
         };
+    }
+
+    private static boolean estUneVisite() {
+        Authentication authentification = SecurityContextHolder.getContext().getAuthentication();
+        return authentification != null && authentification.getPrincipal() instanceof Invite;
     }
 }

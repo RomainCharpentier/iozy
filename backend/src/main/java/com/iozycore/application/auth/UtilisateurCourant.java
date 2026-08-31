@@ -23,6 +23,14 @@ import java.util.UUID;
  * sur {@link DefaultOwner#ID} - l'identifiant du premier compte, celui qui a
  * repris la collection d'origine - aurait fait exactement l'inverse, et sans
  * bruit.
+ *
+ * <h2>Un visiteur n'est personne, et c'est exactement ce qu'il faut</h2>
+ * Une session de visite ne nomme aucun propriétaire (voir {@link Invite}) :
+ * elle retombe donc sur {@link DefaultOwner#PERSONNE} par le chemin ordinaire,
+ * sans le moindre cas particulier à écrire ici. Le résultat est celui qu'on
+ * veut lui montrer - le <b>catalogue</b>, qui n'appartient à personne - et
+ * rien des possessions, envies ou notes de qui que ce soit, toutes filtrées
+ * par propriétaire.
  */
 @Component
 public class UtilisateurCourant {
@@ -38,25 +46,9 @@ public class UtilisateurCourant {
                 .map(AppUserDetailsService.Principal::id);
     }
 
-    /**
-     * Le propriétaire auquel rattacher une écriture, ou dont lire les données.
-     * Pour un invité, la collection qu'il visite - décidée par l'instance à
-     * l'ouverture de la session, jamais par la requête (voir {@code Visite}).
-     */
+    /** Le propriétaire auquel rattacher une écriture, ou dont lire les données. */
     public UUID proprietaire() {
-        Object qui = principal().orElse(null);
-        if (qui instanceof Invite invite) {
-            return invite.proprietaire();
-        }
-        if (qui instanceof AppUserDetailsService.Principal compte) {
-            return compte.id();
-        }
-        return DefaultOwner.PERSONNE;
-    }
-
-    /** Le visiteur en cours, s'il s'agit d'une visite plutôt que d'un compte. */
-    public Optional<Invite> invite() {
-        return principal().filter(Invite.class::isInstance).map(Invite.class::cast);
+        return id().orElse(DefaultOwner.PERSONNE);
     }
 
     private Optional<Object> principal() {

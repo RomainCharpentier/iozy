@@ -19,18 +19,17 @@ import { useAuth } from '../../lib/useAuth'
  * message dans les deux cas - distinguer offrirait un test d'existence de
  * compte à qui n'en a pas.
  *
- * <h2>Et une quatrième issue, quand quelqu'un a ouvert sa porte</h2>
- * « Visiter sans compte » n'apparaît que si une collection est réellement
- * ouverte : proposer une porte fermée serait pire que ne rien proposer. Elle
- * mène à l'application entière, en lecture seule - pas à une page de
- * démonstration, et pas à des données inventées : c'est une vraie collection,
- * celle de quelqu'un qui a choisi de la montrer.
+ * <h2>Et une quatrième issue, toujours ouverte</h2>
+ * « Visiter sans compte » mène au <b>catalogue</b> : les œuvres que l'instance
+ * connaît, en lecture seule. Rien de ce que quiconque possède, note ou
+ * souhaite - ces données appartiennent à des comptes, et un visiteur n'en est
+ * pas un. Aucun réglage ne conditionne ce bouton : il n'y a rien à autoriser.
  *
  * <p>Hors de {@code AppShell} : quelqu'un qui n'est pas connecté ne doit voir
  * ni la navigation, ni le moindre compteur de collection.
  */
 export function AuthPage() {
-  const { aucunCompteSurLInstance, creationOuverte, visiteOuverte, connexion, creation, visite } = useAuth()
+  const { aucunCompteSurLInstance, creationOuverte, connexion, creation, visite } = useAuth()
   const [mode, setMode] = useState<'connexion' | 'creation' | null>(null)
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
@@ -183,11 +182,10 @@ export function AuthPage() {
         </button>
       )}
 
-      {/* Même règle que ci-dessus, pour la même raison : le bouton n'existe que
-          si la porte existe. En dehors du formulaire, parce que ce n'en est pas
-          une variante - c'est renoncer à s'identifier. */}
-      {visiteOuverte && (
-        <div className="flex flex-col items-center gap-1.5 border-t border-white/5 pt-5">
+      {/* Toujours proposé, sans condition : il n'y a rien à autoriser, et le
+          catalogue n'appartient à personne. En dehors du formulaire, parce que
+          ce n'en est pas une variante - c'est renoncer à s'identifier. */}
+      <div className="flex flex-col items-center gap-1.5 border-t border-white/5 pt-5">
           <button
             type="button"
             onClick={() => visite.mutate()}
@@ -196,11 +194,10 @@ export function AuthPage() {
           >
             {visite.isPending ? 'Un instant…' : 'Visiter sans compte'}
           </button>
-          <p className="text-center text-xs text-textDim">
-            Tu parcours la collection ouverte par son propriétaire, en lecture seule.
-          </p>
-        </div>
-      )}
+        <p className="text-center text-xs text-textDim">
+          Tu consultes le catalogue des œuvres, en lecture seule.
+        </p>
+      </div>
     </main>
   )
 }

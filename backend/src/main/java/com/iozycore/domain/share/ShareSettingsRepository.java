@@ -21,14 +21,4 @@ public interface ShareSettingsRepository {
      */
     Optional<ShareSettings> findByToken(String token);
 
-    /**
-     * Les réglages d'un propriétaire NOMMÉ, ou l'état par défaut s'il n'en a
-     * jamais posé.
-     * <p>
-     * {@link #find()} ne sait lire que ceux de la session en cours ; un
-     * visiteur anonyme, lui, n'en a pas - c'est justement ce qu'on cherche à
-     * savoir <b>avant</b> de lui en ouvrir une. D'où cette seconde porte de
-     * lecture, qui prend le propriétaire en argument.
-     */
-    ShareSettings pour(java.util.UUID proprietaire);
 }

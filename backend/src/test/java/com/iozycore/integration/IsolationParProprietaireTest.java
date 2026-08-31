@@ -62,11 +62,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * On ne simule pas le cloisonnement : on pose une vraie session, comme le fait
  * le filtre de sécurité, et on lit avec les mêmes dépôts que l'application.
  *
- * <h2>Et un troisième cas, qui n'est un compte ni de près ni de loin</h2>
- * Une <b>visite</b> lit chez quelqu'un sans être quelqu'un : elle n'a pas
- * d'identifiant de compte, et la collection qu'elle parcourt lui vient de son
- * principal. C'est la seule façon légitime, avec le lien de partage, de lire
- * les données d'autrui - donc exactement ce que ce fichier doit border.
+ * <h2>Et un troisième cas : la visite, qui n'est personne</h2>
+ * Une <b>visite</b> ne nomme aucun propriétaire. Elle doit donc voir le
+ * catalogue - partagé, et c'est tout l'intérêt - et <b>aucune</b> possession,
+ * envie ou note de qui que ce soit. C'est la frontière que ce fichier borde,
+ * vue depuis l'extérieur des comptes.
  */
 // Hors transaction, contrairement à tous les autres tests d'intégration.
 // Hibernate lit le propriétaire à l'OUVERTURE d'une session : dans une
@@ -117,17 +117,6 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
     }
 
-    /**
-     * Ouvre une session de VISITE, comme {@code /api/auth/visite} le fait.
-     * <p>
-     * Le propriétaire est porté par le principal, et par rien d'autre : c'est
-     * ce qui distingue une visite d'une session de compte, où il se déduit de
-     * l'identifiant.
-     */
-    private void visiteChez(UUID hote) {
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(new Invite(hote, "hote"), null, Visite.AUTORITES));
-    }
 
     /** Une œuvre au catalogue - partagée, donc créée une fois pour les deux. */
     private Entity oeuvre(String titre) {
@@ -155,40 +144,29 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         assertThat(ownerships.findById(possession.id())).isPresent();
     }
 
-    @Test
-    void un_visiteur_lit_chez_son_hote_et_nulle_part_ailleurs() {
-        Entity serie = oeuvre("Monster");
-
-        connecte(ALICE);
-        Ownership chezAlice = ownerships.save(
-                Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
-        connecte(BOB);
-        Ownership chezBob = ownerships.save(
-                Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
-
-        visiteChez(ALICE);
-
-        assertThat(ownerships.findById(chezAlice.id())).isPresent();
-        // Le point entier de ce test : une visite ouvre UNE collection, pas la
-        // base. Un visiteur qui verrait les deux serait pire qu'un compte de
-        // trop - il n'en faut aucun pour entrer.
-        assertThat(ownerships.findById(chezBob.id())).isEmpty();
-        assertThat(ownerships.findAll()).noneMatch(o -> o.id().equals(chezBob.id()));
-    }
 
     @Test
-    void un_visiteur_sans_hote_connu_ne_voit_rien_du_tout() {
+    void un_visiteur_voit_le_catalogue_et_aucune_possession() {
         Entity serie = oeuvre("Pluto");
         connecte(ALICE);
         Ownership chezAlice = ownerships.save(
                 Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
 
-        // Le repli d'une visite est le même que celui de tout le reste :
-        // « personne », et personne ne possède rien. Se tromper doit faire voir
-        // RIEN, jamais la collection du premier compte.
-        visiteChez(DefaultOwner.PERSONNE);
+        // Une session de visite ne nomme AUCUN propriétaire : elle retombe donc
+        // sur « personne », à qui rien n'appartient. C'est exactement ce qu'on
+        // veut lui montrer - les œuvres, qui sont partagées, et pas ce que
+        // quelqu'un en possède.
+        visite();
 
+        assertThat(catalogue.findById(serie.id())).isPresent();
         assertThat(ownerships.findById(chezAlice.id())).isEmpty();
+        assertThat(ownerships.findAll()).isEmpty();
+    }
+
+    /** Ouvre une session de VISITE, comme {@code /api/auth/visite} le fait. */
+    private void visite() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(new Invite(), null, Visite.AUTORITES));
     }
 
     @Test

@@ -2,13 +2,11 @@ package com.iozycore.api.config;
 
 import com.iozycore.application.auth.AppUserDetailsService;
 import com.iozycore.application.auth.Invite;
-import com.iozycore.application.auth.Visite;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -62,15 +60,17 @@ import java.io.IOException;
  * personnelle, se reconnecter après une mise à jour est un prix acceptable -
  * bien plus que la dépendance qu'un magasin de sessions partagé ajouterait.
  *
- * <h2>Le mode invité : la même chaîne, moins le droit d'écrire</h2>
- * Un visiteur entré par la porte ouverte d'une collection ({@code /api/auth/visite})
- * a une session comme les autres - c'est ce qui lui permet de parcourir
- * l'application entière plutôt qu'une page de partage. Ce qu'il n'a pas, c'est
- * le droit d'écrire, et ce refus est posé <b>par la méthode HTTP</b>, une fois
- * pour toutes, dans {@link ReglesDeLaVisite} : tout ce qui n'est pas un
- * {@code GET} lui est fermé. Le même filtre vérifie que la porte est
- * <b>toujours</b> ouverte : la refermer doit déloger les visiteurs déjà
- * entrés, sinon la case ne referme rien.
+ * <h2>Le mode visiteur : la même chaîne, moins le droit d'écrire</h2>
+ * Un visiteur ({@code /api/auth/visite}) a une session comme les autres, et
+ * c'est ce qui lui permet de lire le <b>catalogue</b> - un anonyme, lui, ne
+ * verrait rien du tout. Cette session ne nomme <b>aucun propriétaire</b> :
+ * elle donne donc accès aux œuvres, qui n'appartiennent à personne, et à
+ * aucune possession, note ou envie, toutes filtrées par propriétaire (voir
+ * {@code Invite}).
+ *
+ * <p>Ce qu'il n'a pas, c'est le droit d'écrire, et ce refus est posé <b>par la
+ * méthode HTTP</b>, une fois pour toutes, dans {@link LectureSeuleInvite} :
+ * tout ce qui n'est pas un {@code GET} lui est fermé.
  *
  * <p>Par la méthode, et non route par route : une liste de routes interdites
  * se périme au premier contrôleur ajouté, et l'oubli ne se voit pas - il
@@ -111,16 +111,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Les deux règles d'une visite : la porte doit être <b>encore</b> ouverte,
-     * et un invité <b>lit</b>, rien d'autre.
-     *
-     * <h2>La porte se revérifie à chaque requête</h2>
-     * Une session de visite porte la collection qu'elle parcourt, et elle la
-     * porterait jusqu'à son expiration : sans cette vérification, décocher
-     * « ouvrir aux visiteurs » n'aurait délogé personne - les visiteurs déjà
-     * entrés auraient continué de lire pendant que leur hôte croit avoir
-     * refermé. La session est donc invalidée sur-le-champ, et la requête
-     * repart en 401, ce que le client traite déjà comme une session perdue.
+     * Un visiteur lit, et rien d'autre.
      *
      * <h2>Pourquoi un filtre plutôt qu'une règle d'autorisation</h2>
      * Les règles de {@code authorizeHttpRequests} se lisent dans l'ordre et la
@@ -146,52 +137,33 @@ public class SecurityConfig {
      * s'est trompé. La forme {@code {"error": ...}} est celle que le client
      * lit en priorité (voir {@code web/src/api/client.ts}).
      */
-    static class ReglesDeLaVisite extends OncePerRequestFilter {
+    static class LectureSeuleInvite extends OncePerRequestFilter {
 
         private static final String SORTIE = "/api/auth/logout";
-
-        private final Visite visites;
-
-        ReglesDeLaVisite(Visite visites) {
-            this.visites = visites;
-        }
 
         @Override
         protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain chaine)
                 throws ServletException, IOException {
-            Invite visiteur = visiteurCourant();
-            // Sortir reste possible quoi qu'il arrive - y compris quand la
-            // porte vient de se refermer : refuser la sortie n'aurait rien
-            // protégé, et aurait laissé un cookie inutile derrière.
-            if (visiteur == null || SORTIE.equals(requete.getRequestURI())) {
+            // Sortir reste possible : c'est le seul geste d'un visiteur qui
+            // doive aboutir, sans quoi il garderait un cookie devenu inutile.
+            if (!estUnVisiteur() || SORTIE.equals(requete.getRequestURI())) {
                 chaine.doFilter(requete, reponse);
-                return;
-            }
-            if (!visites.encoreOuverteChez(visiteur.proprietaire())) {
-                HttpSession session = requete.getSession(false);
-                if (session != null) {
-                    session.invalidate();
-                }
-                SecurityContextHolder.clearContext();
-                reponse.setStatus(HttpStatus.UNAUTHORIZED.value());
                 return;
             }
             if (!"GET".equals(requete.getMethod())) {
                 reponse.setStatus(HttpStatus.FORBIDDEN.value());
                 reponse.setContentType("application/json;charset=UTF-8");
                 reponse.getWriter().write(
-                        "{\"error\":\"Tu visites cette collection en lecture seule. "
-                                + "Il faut un compte pour y changer quoi que ce soit.\"}");
+                        "{\"error\":\"Tu consultes le catalogue en lecture seule. "
+                                + "Il faut un compte pour enregistrer quoi que ce soit.\"}");
                 return;
             }
             chaine.doFilter(requete, reponse);
         }
 
-        private static Invite visiteurCourant() {
+        private static boolean estUnVisiteur() {
             var authentification = SecurityContextHolder.getContext().getAuthentication();
-            return authentification != null && authentification.getPrincipal() instanceof Invite visiteur
-                    ? visiteur
-                    : null;
+            return authentification != null && authentification.getPrincipal() instanceof Invite;
         }
     }
 
@@ -223,8 +195,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes, Visite visites)
-            throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
@@ -241,7 +212,7 @@ public class SecurityConfig {
                 // APRÈS l'autorisation : le refus ne s'applique qu'aux requêtes
                 // que les règles ci-dessous ont déjà acceptées (voir la javadoc
                 // du filtre).
-                .addFilterAfter(new ReglesDeLaVisite(visites), AuthorizationFilter.class)
+                .addFilterAfter(new LectureSeuleInvite(), AuthorizationFilter.class)
                 // La configuration CORS existante (voir CorsConfig) ne s'applique
                 // que si la chaîne de sécurité la consulte.
                 .cors(org.springframework.security.config.Customizer.withDefaults())

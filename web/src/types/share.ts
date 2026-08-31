@@ -8,12 +8,6 @@ export interface ShareDto {
   shareCollection: boolean
   shareWishlist: boolean
   includeTierLists: boolean
-  /**
-   * L'autre accès : n'importe qui atteignant l'instance peut parcourir cette
-   * collection, sans compte et en lecture seule. Indépendant du lien -
-   * supprimer l'un ne referme pas l'autre.
-   */
-  openToGuests: boolean
 }
 
 export interface SharedCollectionItemDto {
