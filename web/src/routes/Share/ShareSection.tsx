@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link2, Copy, RefreshCw, X } from 'lucide-react'
+import { Link2, Copy, Eye, RefreshCw, X } from 'lucide-react'
 import { generateShare, getShare, removeShare, updateShare } from '../../api/share'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -23,12 +23,29 @@ import type { ShareDto } from '../../types/share'
  * <p>`miseEnAvant` a disparu avec l'écran Envies (lot C) : il ordonnait les
  * deux cases selon l'écran d'où l'on venait, et il n'y a plus qu'un écran
  * d'où venir.
+ *
+ * <h2>Et une seconde porte, en dessous</h2>
+ * « Ouvrir aux visiteurs » n'est pas une option du lien, c'est l'autre façon
+ * d'être vu : le lien s'ENVOIE et montre une page ; la visite s'OUVRE, et
+ * donne à parcourir l'application entière en lecture seule à qui atteint
+ * l'instance. Les deux se règlent ici parce qu'ils répondent à la même
+ * question - « qu'est-ce que je montre, et à qui ? » - mais ils ne se
+ * commandent pas l'un l'autre : supprimer le lien ne referme pas la porte.
+ *
+ * <p>La différence est écrite en toutes lettres sous la case, parce qu'elle
+ * est réelle et qu'on ne la devine pas : un lien se distribue à qui l'on
+ * choisit, une porte ouverte n'attend personne en particulier.
  */
 export function ShareSection() {
   const queryClient = useQueryClient()
   const [copie, setCopie] = useState(false)
 
   const shareQuery = useQuery({ queryKey: queryKeys.share, queryFn: getShare })
+
+  const share = shareQuery.data
+  const token = share?.token ?? null
+  const ouvertAuxVisiteurs = !!share?.openToGuests
+  const url = token ? `${window.location.origin}/public/share/${token}` : null
 
   function appliquer(data: ShareDto) {
     queryClient.setQueryData(queryKeys.share, data)
@@ -39,13 +56,20 @@ export function ShareSection() {
   const updateMutation = useMutation({ mutationFn: updateShare, onSuccess: appliquer })
   const removeMutation = useMutation({
     mutationFn: removeShare,
+    // `openToGuests` est RECOPIÉ, pas remis à faux : le serveur ne le touche
+    // pas non plus en supprimant le lien (voir ShareController.remove), et
+    // faire clignoter la case en fermé le temps d'un rechargement aurait dit
+    // le contraire de ce qui vient de se passer.
     onSuccess: () =>
-      appliquer({ token: null, shareCollection: true, shareWishlist: true, includeTierLists: false }),
+      appliquer({
+        token: null,
+        shareCollection: true,
+        shareWishlist: true,
+        includeTierLists: false,
+        openToGuests: ouvertAuxVisiteurs,
+      }),
   })
 
-  const share = shareQuery.data
-  const token = share?.token ?? null
-  const url = token ? `${window.location.origin}/public/share/${token}` : null
 
   async function copierLeLien() {
     if (!url) return
@@ -202,6 +226,35 @@ export function ShareSection() {
           </p>
         </>
       )}
+
+      {/* Hors du bloc « lien », et sous un séparateur : c'est un autre accès,
+          pas une case de plus à cocher sur celui du dessus. */}
+      <div className="flex flex-col gap-1 border-t border-line pt-3">
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-rowHover">
+          <input
+            type="checkbox"
+            checked={ouvertAuxVisiteurs}
+            disabled={updateMutation.isPending}
+            onChange={(e) => updateMutation.mutate({ openToGuests: e.target.checked })}
+            className="h-5 w-5 shrink-0 accent-accent"
+          />
+          <span className="flex min-w-0 flex-col">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-textPrimary">
+              <Eye size={14} className="shrink-0 text-textDim" aria-hidden="true" />
+              Ouvrir aux visiteurs
+            </span>
+            <span className="text-xs text-textDim">
+              N'importe qui ouvrant IozyCore peut parcourir ta collection sans compte, en lecture seule.
+            </span>
+          </span>
+        </label>
+        {ouvertAuxVisiteurs && (
+          <p className="px-2 text-xs text-textDim">
+            Contrairement au lien, cette porte n'est envoyée à personne : elle est ouverte à qui atteint
+            l'application. Rien ne peut être modifié, et décocher la referme aussitôt.
+          </p>
+        )}
+      </div>
     </section>
   )
 }

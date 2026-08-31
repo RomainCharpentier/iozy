@@ -21,6 +21,12 @@ import org.springframework.web.server.ResponseStatusException;
  * donnait deux URL différentes pour le même espace personnel. Les raccourcis
  * de ces deux écrans appellent désormais ces mêmes endpoints ; il n'existe plus
  * qu'un jeton, quelle que soit la porte d'entrée.
+ * <p>
+ * Il y a en revanche <b>deux accès</b>, réglés ici tous les deux : le lien,
+ * qu'on envoie à quelqu'un, et la visite ({@code openToGuests}), une porte
+ * laissée ouverte à qui atteint l'instance et qui donne à voir l'application
+ * entière en lecture seule. Ils ne se commandent pas l'un l'autre - supprimer
+ * le lien ne referme pas la porte, et l'ouvrir ne crée aucun jeton.
  */
 @RestController
 @RequestMapping("/api/share")
@@ -42,15 +48,22 @@ public class ShareController {
     }
 
     @Operation(summary = "Générer (ou régénérer) le lien. Régénérer invalide immédiatement l'ancien jeton, et "
-            + "repart des choix les plus fermés : les deux sections visibles, les Tier Lists exclues.")
+            + "repart des choix les plus fermés : les deux sections visibles, les Tier Lists exclues. "
+            + "La visite sans compte n'est pas touchée.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShareResponse generate() {
-        return toResponse(repository.save(ShareSettings.withNewToken(utilisateurCourant.proprietaire())));
+        // Repartir des choix les plus fermés vaut pour LE LIEN. La visite reste
+        // où elle est : la refermer parce qu'on régénère un jeton fermerait un
+        // accès que personne n'a demandé à fermer.
+        boolean visiteEnCours = repository.find().openToGuests();
+        return toResponse(repository.save(
+                ShareSettings.withNewToken(utilisateurCourant.proprietaire()).withGuests(visiteEnCours)));
     }
 
-    @Operation(summary = "Changer les sections visibles SANS toucher au lien déjà distribué. Champ absent (null) "
-            + "= inchangé. Refuse de tout décocher : un lien qui n'expose rien doit être supprimé, pas vidé.")
+    @Operation(summary = "Changer les sections visibles, ou ouvrir/fermer la visite sans compte, SANS toucher "
+            + "au lien déjà distribué. Champ absent (null) = inchangé. Refuse de tout décocher : un lien qui "
+            + "n'expose rien doit être supprimé, pas vidé.")
     @PatchMapping
     public ShareResponse update(@RequestBody UpdateShareRequest request) {
         ShareSettings settings = repository.find();
@@ -65,22 +78,28 @@ public class ShareController {
                             request.shareWishlist() == null ? settings.shareWishlist() : request.shareWishlist())
                     .withTierLists(
                             request.includeTierLists() == null
-                                    ? settings.includeTierLists() : request.includeTierLists());
+                                    ? settings.includeTierLists() : request.includeTierLists())
+                    .withGuests(
+                            request.openToGuests() == null ? settings.openToGuests() : request.openToGuests());
             return toResponse(repository.save(modifiees));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
-    @Operation(summary = "Supprimer le lien - le jeton précédent cesse immédiatement de fonctionner")
+    @Operation(summary = "Supprimer le lien - le jeton précédent cesse immédiatement de fonctionner. "
+            + "La visite sans compte, elle, reste dans l'état où elle était : c'est un autre accès.")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove() {
-        repository.save(ShareSettings.noLink(utilisateurCourant.proprietaire()));
+        // `withoutLink` et non `noLink` : le second repart de zéro et
+        // refermerait au passage une visite en cours, qui n'a rien à voir avec
+        // le lien qu'on retire.
+        repository.save(repository.find().withoutLink());
     }
 
     private static ShareResponse toResponse(ShareSettings settings) {
         return new ShareResponse(settings.token(), settings.shareCollection(), settings.shareWishlist(),
-                settings.includeTierLists());
+                settings.includeTierLists(), settings.openToGuests());
     }
 }

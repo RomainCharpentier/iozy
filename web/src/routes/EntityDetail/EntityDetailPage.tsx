@@ -34,6 +34,7 @@ import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
+import { useAuth } from '../../lib/useAuth'
 import { AddVolumeSection } from './AddVolumeSection'
 import { TierSummarySection } from './TierSummarySection'
 import { TagsSection } from './TagsSection'
@@ -85,6 +86,16 @@ export function EntityDetailPage() {
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
+  // Une visite ne modifie rien : les points d'entrée d'édition ne sont pas
+  // désactivés, ils n'existent pas. Tous sont facultatifs par construction, et
+  // ne pas les passer suffit à les retirer - « Éditer » emporte au passage
+  // toutes les sections de catalogue, qui vivent derrière `modeEdition`.
+  //
+  // Les gestes plus fins (cocher un tome, suivre une édition) restent en place
+  // et se heurtent au refus du serveur, expliqué en une phrase par
+  // lib/useRefusDeVisite : les masquer un par un dans une quarantaine
+  // d'endroits revenait à parier qu'aucun ne serait oublié.
+  const { estInvite } = useAuth()
   const toast = useToast()
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
@@ -512,12 +523,16 @@ export function EntityDetailPage() {
         repliCouverture={
           <div className="absolute inset-0" style={{ background: gradientFor(entity.title) }} aria-hidden="true" />
         }
-        onCouverture={() => {
-          setCoverUrlInput(couvertureUrl ?? '')
-          setEditingCover(true)
-        }}
+        onCouverture={
+          estInvite
+            ? undefined
+            : () => {
+                setCoverUrlInput(couvertureUrl ?? '')
+                setEditingCover(true)
+              }
+        }
         onEvaluer={
-          groupeActif
+          groupeActif && !estInvite
             ? () =>
                 navigate('/purchase-analysis', {
                   state: { seriesTitle: entity.title, editionName: groupeActif.editionName },
@@ -525,12 +540,12 @@ export function EntityDetailPage() {
             : null
         }
         actionEnvies={
-          isManga ? null : (
+          isManga || estInvite ? null : (
             <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
           )
         }
         modeEdition={modeEdition}
-        onBasculerMode={() => setModeEdition((v) => !v)}
+        onBasculerMode={estInvite ? undefined : () => setModeEdition((v) => !v)}
         editions={
           groupes.length > 0 ? (
             <CartesEditions
@@ -631,7 +646,7 @@ export function EntityDetailPage() {
               <ReleveInspecteur
                 libelle="Tier list"
                 ouvert={editeurPersonnel === 'tier'}
-                onModifier={() => setEditeurPersonnel((v) => (v === 'tier' ? null : 'tier'))}
+                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'tier' ? null : 'tier'))}
               >
                 {generalRank ? (
                   <span className="flex items-center gap-2.5">
@@ -650,7 +665,7 @@ export function EntityDetailPage() {
               <ReleveInspecteur
                 libelle="Ma note"
                 ouvert={editeurPersonnel === 'experiences'}
-                onModifier={() => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
+                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
               >
                 {meilleureNote !== null ? (
                   <span className="font-display text-[23px] leading-tight font-semibold tracking-[-0.02em] text-accentText">
@@ -702,7 +717,7 @@ export function EntityDetailPage() {
               <ReleveInspecteur
                 libelle="Lectures"
                 ouvert={editeurPersonnel === 'experiences'}
-                onModifier={() => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
+                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
               >
                 {experiences.length === 0 ? (
                   <span className="text-[13.5px] text-faint">Aucune enregistrée</span>
@@ -727,7 +742,7 @@ export function EntityDetailPage() {
               <ReleveInspecteur
                 libelle="Tags"
                 ouvert={editeurPersonnel === 'tags'}
-                onModifier={() => setEditeurPersonnel((v) => (v === 'tags' ? null : 'tags'))}
+                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'tags' ? null : 'tags'))}
               >
                 <div className="flex flex-wrap items-center gap-1.5">
                   {entity.tagIds.length === 0 ? (

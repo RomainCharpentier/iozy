@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
+import { BandeauVisite } from './BandeauVisite'
 import { DesktopHeader } from './DesktopHeader'
 import { MobileHeader } from './MobileHeader'
 import { TabBar } from './TabBar'
+import { useRefusDeVisite } from '../../lib/useRefusDeVisite'
 
 /** Point de bascule unique entre navigation mobile (TabBar, en bas, fixed) et
  * navigation desktop (DesktopHeader, en haut, sticky) - voir TabBar.tsx
@@ -115,10 +117,17 @@ function contentWidthFor(pathname: string): ContentWidth {
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const width = contentWidthFor(pathname)
+  // Ici parce que c'est le seul composant qui enveloppe TOUS les écrans
+  // privés : un refus de visite doit s'expliquer d'où qu'il vienne.
+  useRefusDeVisite()
   return (
     <div className="min-h-screen bg-background">
       <DesktopHeader />
       <MobileHeader />
+      {/* Sous les en-têtes et hors de `<main>` : c'est une information sur la
+          SESSION, pas sur la page - elle ne doit ni défiler avec le contenu ni
+          entrer dans la grille qui le range. Ne rend rien hors visite. */}
+      <BandeauVisite />
       {/* `data-grille` est ce que cible la règle de base d'index.css qui range
           chaque enfant dans la colonne du milieu. Un attribut plutôt qu'une
           classe : il dit ce que l'élément EST (une grille de page), pas de

@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { creerCompte, lireCompte, lireEtatAuth, seConnecter, seDeconnecter, type Compte } from '../api/auth'
-import { ApiError, EVENEMENT_SESSION_PERDUE } from '../api/client'
+import {
+  creerCompte,
+  entrerEnVisite,
+  lireCompte,
+  lireEtatAuth,
+  seConnecter,
+  seDeconnecter,
+  type Compte,
+} from '../api/auth'
+import { ApiError, EVENEMENT_SESSION_PERDUE, declarerVisiteEnCours } from '../api/client'
 import { queryKeys } from './queryKeys'
 
 /**
@@ -12,6 +20,12 @@ import { queryKeys } from './queryKeys'
  * premier chargement. Le traiter comme une panne afficherait une bannière
  * rouge à quelqu'un qui n'a simplement pas encore ouvert sa session - et
  * TanStack Query réessaierait trois fois avant de l'admettre.
+ *
+ * <h2>Une visite est une session comme une autre</h2>
+ * Entrer sans compte ne suit pas un chemin à part : c'est la même question
+ * (« qui est là ? »), la même réponse (`/auth/me`), le même cache. Ce qui
+ * change tient dans un drapeau - `estInvite` - et dans le fait que le client
+ * HTTP refuse alors toute écriture (voir api/client).
  *
  * <h2>Une session peut sauter n'importe quand</h2>
  * Serveur redémarré, session expirée, déconnexion depuis un autre onglet : le
@@ -53,6 +67,13 @@ export function useAuth() {
     return () => window.removeEventListener(EVENEMENT_SESSION_PERDUE, auSignal)
   }, [queryClient])
 
+  // Le client HTTP n'est pas un composant : c'est ici, où l'on sait qui est
+  // connecté, qu'on le lui dit - une fois, plutôt qu'à chaque appel.
+  const estInvite = compte.data?.invite ?? false
+  useEffect(() => {
+    declarerVisiteEnCours(estInvite)
+  }, [estInvite])
+
   /** Après un changement de compte, plus rien de ce qui est en cache ne le concerne. */
   function repartirDeZero(nouveau: Compte | null) {
     queryClient.setQueryData(queryKeys.auth.compte, nouveau)
@@ -70,6 +91,11 @@ export function useAuth() {
     onSuccess: repartirDeZero,
   })
 
+  const visite = useMutation({
+    mutationFn: entrerEnVisite,
+    onSuccess: repartirDeZero,
+  })
+
   const deconnexion = useMutation({
     mutationFn: seDeconnecter,
     // Même en cas d'échec réseau : ce que l'utilisateur voulait, c'est sortir.
@@ -82,8 +108,13 @@ export function useAuth() {
     enCoursDeVerification: compte.isLoading,
     aucunCompteSurLInstance: etat.data?.aucunCompte ?? false,
     creationOuverte: etat.data?.creationOuverte ?? false,
+    /** Une collection est ouverte aux visiteurs : on peut entrer sans compte. */
+    visiteOuverte: etat.data?.visiteOuverte ?? false,
+    /** On parcourt la collection de quelqu'un d'autre, sans compte : rien ne s'écrit. */
+    estInvite,
     connexion,
     creation,
+    visite,
     deconnexion,
   }
 }

@@ -30,6 +30,7 @@ const api = vi.hoisted(() => ({
   seConnecter: vi.fn(),
   creerCompte: vi.fn(),
   seDeconnecter: vi.fn(),
+  entrerEnVisite: vi.fn(),
 }))
 vi.mock('../../api/auth', () => api)
 
@@ -44,12 +45,12 @@ function enrobage({ children }: { children: ReactNode }) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  api.lireEtatAuth.mockResolvedValue({ aucunCompte: false, creationOuverte: false })
+  api.lireEtatAuth.mockResolvedValue({ aucunCompte: false, creationOuverte: false, visiteOuverte: false })
 })
 
 /** Rend l'en-tête pour un compte donné, une fois celui-ci connu. */
 async function avatarDe(pseudo: string) {
-  api.lireCompte.mockResolvedValue({ id: 'u1', email: 'qui@example.com', pseudo, admin: false })
+  api.lireCompte.mockResolvedValue({ id: 'u1', email: 'qui@example.com', pseudo, admin: false, invite: false })
   render(<GlobalShortcuts />, { wrapper: enrobage })
   return screen.findByRole('link', { name: `Mon profil — ${pseudo}` })
 }
@@ -106,5 +107,43 @@ describe('le bouton Administration', () => {
     const acces = screen.getAllByRole('link')
     expect(acces).toHaveLength(2)
     expect(acces.map((a) => a.getAttribute('href'))).toEqual(['/administration', '/profile'])
+  })
+})
+
+/**
+ * <b>Pendant une visite, ces deux boutons ne parlent de personne.</b>
+ *
+ * Ils désignent tous les deux « chez soi » - son profil, son instance - et un
+ * visiteur n'a ni l'un ni l'autre. L'avatar est le pire des deux : il aurait
+ * porté les initiales et la couleur de l'HÔTE, c'est-à-dire que le seul
+ * endroit de l'application qui dit « c'est toi » aurait affiché le nom de
+ * quelqu'un d'autre.
+ */
+describe('pendant une visite sans compte', () => {
+  async function enVisite() {
+    api.lireCompte.mockResolvedValue({
+      id: 'proprio-1',
+      email: null,
+      pseudo: 'kenshin',
+      admin: false,
+      invite: true,
+    })
+    render(<GlobalShortcuts />, { wrapper: enrobage })
+    await waitFor(() => expect(api.lireCompte).toHaveBeenCalled())
+  }
+
+  // `waitFor` sur la DISPARITION, et pas une assertion sèche : le composant
+  // rend d'abord son repli (« IO », le temps que le compte arrive), et
+  // constater son absence à cet instant-là aurait été vert sans rien prouver.
+  it('n’affiche pas l’avatar de son hôte comme si c’était le sien', async () => {
+    await enVisite()
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: /Mon profil/ })).not.toBeInTheDocument())
+  })
+
+  it('n’affiche pas l’administration de l’instance', async () => {
+    await enVisite()
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Administration' })).not.toBeInTheDocument())
   })
 })

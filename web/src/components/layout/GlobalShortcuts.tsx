@@ -24,6 +24,12 @@ import { useAuth } from '../../lib/useAuth'
  * refermer pour un choix entre deux entrées. Les réglages se rejoignent depuis
  * Profil, où ils sont chez eux : les deux écrans parlent de la même personne.
  *
+ * <h2>Pendant une visite : aucun des deux</h2>
+ * Ils parlent tous les deux de « chez soi » - son profil, son instance - et un
+ * visiteur n'a ni l'un ni l'autre. L'avatar, surtout, aurait affiché les
+ * initiales et la couleur de son HÔTE : le seul endroit de l'application qui
+ * dit « c'est toi » aurait dit le nom de quelqu'un d'autre.
+ *
  * <h2>Ce que ces boutons ne sont pas</h2>
  * Des destinations de navigation. Les quatre intentions quotidiennes vivent
  * dans {@code NAV_ITEMS} et nulle part ailleurs ; ceci est ce qui n'appartient
@@ -51,8 +57,15 @@ import { useAuth } from '../../lib/useAuth'
  * lirait comme un changement d'identité.
  */
 export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
-  const { compte } = useAuth()
+  const { compte, estInvite } = useAuth()
   const { pathname } = useLocation()
+
+  // Un visiteur n'a ni profil ni administration : les deux boutons mèneraient
+  // à des écrans réservés aux comptes (voir lib/accesInvite), et l'avatar
+  // porterait les initiales de son hôte comme si c'étaient les siennes. Ce
+  // qu'il doit voir - chez qui il est, et comment sortir - est dans le bandeau
+  // de visite, en permanence.
+  if (estInvite) return null
 
   const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
   const marque = initiales(compte?.pseudo ?? '') || 'IO'

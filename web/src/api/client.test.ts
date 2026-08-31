@@ -16,7 +16,15 @@
  * injoignable » à chaque frappe dans la recherche.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, EVENEMENT_SESSION_PERDUE, buildQuery, get, post, postForm } from './client'
+import {
+  ApiError,
+  EVENEMENT_SESSION_PERDUE,
+  buildQuery,
+  declarerVisiteEnCours,
+  get,
+  post,
+  postForm,
+} from './client'
 
 const fetchMock = vi.fn()
 
@@ -278,5 +286,49 @@ describe('buildQuery', () => {
 
   it('encode ce qui doit l’être', () => {
     expect(buildQuery({ q: 'a & b' })).toBe('?q=a+%26+b')
+  })
+})
+
+/**
+ * <b>Une visite ne peut rien écrire, et l'apprend tout de suite.</b>
+ *
+ * Le serveur refuse déjà (403 sur toute méthode autre que GET pour une session
+ * de visite), et c'est LUI la protection. Ce garde-fou-ci ne protège rien : il
+ * répond. Sans lui, chacun des quelque quarante boutons d'écriture de
+ * l'application aurait dû être masqué un par un dans son écran - et le premier
+ * oublié aurait affiché une erreur rouge après un aller-retour réseau, au lieu
+ * d'une phrase qui explique.
+ *
+ * <p>La sortie doit rester possible : `POST /auth/logout` est le seul geste
+ * d'un visiteur qui doive aboutir, sans quoi il serait enfermé dans la
+ * collection de quelqu'un d'autre jusqu'à expiration de sa session.
+ */
+describe('pendant une visite sans compte', () => {
+  afterEach(() => declarerVisiteEnCours(false))
+
+  it('refuse toute écriture SANS appeler le réseau', async () => {
+    declarerVisiteEnCours(true)
+
+    const erreur = await post('/entities', { title: 'Berserk' }).catch((cause: unknown) => cause)
+
+    expect(erreur).toBeInstanceOf(ApiError)
+    expect((erreur as ApiError).status).toBe(403)
+    expect((erreur as ApiError).message).toMatch(/lecture seule/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('laisse lire', async () => {
+    declarerVisiteEnCours(true)
+    fetchMock.mockResolvedValue(succes({ items: [] }))
+
+    await expect(get('/entities/search')).resolves.toEqual({ items: [] })
+  })
+
+  it('laisse sortir - la déconnexion est un POST, et le seul qui doive aboutir', async () => {
+    declarerVisiteEnCours(true)
+    fetchMock.mockResolvedValue(succes(null, 204))
+
+    await expect(post('/auth/logout')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalled()
   })
 })

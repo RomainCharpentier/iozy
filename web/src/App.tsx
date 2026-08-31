@@ -5,6 +5,7 @@ import { AppShell } from './components/layout/AppShell'
 import { ShelfPage } from './routes/Shelf/ShelfPage'
 import { AuthPage } from './routes/Auth/AuthPage'
 import { useAuth } from './lib/useAuth'
+import { estReserveeAuxComptes } from './lib/accesInvite'
 import { useDocumentTitleFromHeading } from './lib/useDocumentTitle'
 import { useScrollToTopOnNavigation } from './lib/useScrollToTop'
 import { definirPreferencesCollection } from './lib/preferencesCollection'
@@ -110,6 +111,29 @@ function PorteFermee({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+/**
+ * Une visite sans compte ne s'aventure pas dans les écrans d'écriture.
+ *
+ * <h2>Pourquoi une redirection et pas un écran « interdit »</h2>
+ * Aucun de ces chemins n'est ATTEIGNABLE pendant une visite : les barres de
+ * navigation ne les proposent pas (voir lib/accesInvite, la même liste). On n'y
+ * arrive que par un signet, un lien reçu, ou un rechargement là où l'on était
+ * avant de quitter son compte - trois situations où l'on veut voir la
+ * collection, pas une explication. Elles mènent donc à l'accueil.
+ *
+ * <p>`replace` : revenir en arrière doit ramener d'où l'on vient, pas à une URL
+ * qui redirigerait aussitôt (même règle que la redirection des Envies).
+ *
+ * <p>Ce n'est PAS ce qui protège : le serveur refuse toute écriture à une
+ * session de visite, quelle que soit la route (voir SecurityConfig).
+ */
+function PorteDeVisite({ children }: { children: ReactNode }) {
+  const { estInvite } = useAuth()
+  const { pathname } = useLocation()
+  if (estInvite && estReserveeAuxComptes(pathname)) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
 /** La route /public/share/:token vit hors AppShell (voir SharedSpacePage) :
  * quelqu'un qui ouvre un lien de partage n'a pas de
  * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
@@ -146,6 +170,7 @@ export default function App() {
             <PorteFermee>
             <AppShell>
               <Suspense fallback={<EnAttente />}>
+                <PorteDeVisite>
                 <Routes>
                   <Route path="/" element={<ShelfPage />} />
                   <Route path="/add" element={<SearchPage />} />
@@ -184,6 +209,7 @@ export default function App() {
                       a l'air cassé plutôt que d'expliquer. */}
                   <Route path="*" element={<PageIntrouvable />} />
                 </Routes>
+                </PorteDeVisite>
               </Suspense>
             </AppShell>
             </PorteFermee>
