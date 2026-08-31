@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { BandeauVisite } from './BandeauVisite'
 import { DesktopHeader } from './DesktopHeader'
 import { MobileHeader } from './MobileHeader'
+import { PiedDePage } from './PiedDePage'
 import { TabBar } from './TabBar'
 import { useRefusDeVisite } from '../../lib/useRefusDeVisite'
 
@@ -109,11 +110,11 @@ function contentWidthFor(pathname: string): ContentWidth {
 
 /** Mise en page racine : contenu scrollable + navigation, mobile (TabBar,
  * fixed en bas) ou desktop (DesktopHeader, sticky en haut) selon la largeur -
- * jamais les deux (voir NAV_BREAKPOINT_PX). Padding bas de `<main>` réservé à
- * la TabBar (hauteur de la barre + safe-area du bas) uniquement en dessous du
- * point de bascule : sur desktop, il n'y a pas de barre fixe à dégager, le
- * contenu peut naturellement finir avant le bas de l'écran sans réserver un
- * grand espace vide artificiel. */
+ * jamais les deux (voir NAV_BREAKPOINT_PX). Le dégagement de la TabBar
+ * (hauteur de la barre + safe-area du bas) est porté par le PIED DE PAGE et
+ * non par `<main>` : c'est le pied qui termine la page, et l'espace doit être
+ * sous lui pour que la version ne se lise pas derrière la barre fixe. Sur
+ * desktop, il n'y a pas de barre à dégager, d'où la valeur plus faible. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const width = contentWidthFor(pathname)
@@ -133,7 +134,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           classe : il dit ce que l'élément EST (une grille de page), pas de
           quoi il a l'air, et rien ne peut le remplacer par mégarde en
           réécrivant un className. */}
-      <main data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-24 md:pb-10`}>{children}</main>
+      <main data-grille className={`${CONTAINER_CLASS[width]} pt-6 pb-6`}>{children}</main>
+      {/* Le dégagement de la barre du pouce est passé de `main` à ce pied :
+          c'est lui, désormais, le dernier élément de la page, et l'espace doit
+          être SOUS lui - sinon la version se lirait derrière la barre fixe. Le
+          bas de document total ne change pas. */}
+      <PiedDePage />
       <TabBar />
     </div>
   )
