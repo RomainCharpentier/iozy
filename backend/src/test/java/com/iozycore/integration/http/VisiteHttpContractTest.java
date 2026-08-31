@@ -47,25 +47,45 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     // ------------------------------------------------- Ce qui ouvre la porte
 
     @Test
-    void personne_n_entre_tant_que_personne_n_a_ouvert() throws Exception {
-        // Une instance neuve n'a pas de collection ouverte : « permitAll » sur
-        // la route n'ouvre pas la porte, il autorise seulement à la pousser.
+    void personne_n_entre_sur_une_instance_sans_aucun_compte() throws Exception {
+        // Pas de compte, donc pas de collection - il n'y a rien à visiter, et
+        // « permitAll » sur la route n'ouvre pas la porte pour autant.
+        mockMvc.perform(get("/api/auth/etat"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visiteOuverte").value(false));
         mockMvc.perform(post("/api/auth/visite").with(csrf()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void l_ecran_de_connexion_apprend_qu_aucune_visite_n_est_possible() throws Exception {
-        // Sans ce champ, le client ne pourrait que proposer un bouton et voir
-        // ce qui arrive - c'est-à-dire offrir un refus à un inconnu.
-        mockMvc.perform(get("/api/auth/etat"))
+    void un_compte_suffit_a_rendre_sa_collection_visitable_sans_qu_il_ait_rien_fait() throws Exception {
+        // C'est le sens de l'inversion : la case sert a REFERMER. Exiger un
+        // geste prealable, c'etait exactement l'autorisation dont on ne voulait
+        // pas devant l'ecran de connexion.
+        creerLePremierCompte("kenshin");
+
+        mockMvc.perform(get("/api/auth/etat")).andExpect(jsonPath("$.visiteOuverte").value(true));
+        mockMvc.perform(post("/api/auth/visite").with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.visiteOuverte").value(false));
+                .andExpect(jsonPath("$.pseudo").value("kenshin"));
+    }
+
+    @Test
+    void decocher_la_case_referme_pour_de_bon() throws Exception {
+        MockHttpSession hote = creerLePremierCompte("kenshin");
+
+        mockMvc.perform(patch("/api/share").session(hote).with(csrf())
+                        .contentType("application/json").content("{\"openToGuests\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openToGuests").value(false));
+
+        mockMvc.perform(get("/api/auth/etat")).andExpect(jsonPath("$.visiteOuverte").value(false));
+        mockMvc.perform(post("/api/auth/visite").with(csrf())).andExpect(status().isForbidden());
     }
 
     @Test
     void une_collection_ouverte_laisse_entrer_et_dit_chez_qui_l_on_est() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
 
         mockMvc.perform(get("/api/auth/etat")).andExpect(jsonPath("$.visiteOuverte").value(true));
 
@@ -81,7 +101,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void la_visite_se_relit_comme_n_importe_quelle_session() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
         // /me lisait un principal TYPÉ : celui d'une visite y arrivait nul, et
@@ -95,7 +115,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void un_visiteur_lit_la_collection_de_son_hote() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
         mockMvc.perform(get("/api/entities/search").session(visite)).andExpect(status().isOk());
@@ -104,7 +124,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void un_visiteur_n_ecrit_rien_quelle_que_soit_la_route() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
         // Avec le jeton CSRF, pour que le refus vienne bien de la visite et pas
@@ -127,7 +147,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void un_visiteur_n_atteint_pas_l_administration_de_l_instance() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
         // Celle-ci est fermée par le RÔLE et non par la méthode : un GET aussi
@@ -138,7 +158,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void un_visiteur_peut_toujours_sortir() throws Exception {
-        ouvrirLaCollectionDe("kenshin");
+        creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
 
         // La déconnexion est un POST : sans son exception explicite, le refus
@@ -152,7 +172,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
 
     @Test
     void refermer_la_porte_deloge_les_visiteurs_deja_entres() throws Exception {
-        MockHttpSession hote = ouvrirLaCollectionDe("kenshin");
+        MockHttpSession hote = creerLePremierCompte("kenshin");
         MockHttpSession visite = entrerEnVisite();
         mockMvc.perform(get("/api/entities/search").session(visite)).andExpect(status().isOk());
 
@@ -171,10 +191,13 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
     // ------------------------------------------------------------------ Outils
 
     /**
-     * Crée le premier compte, coche « ouvrir aux visiteurs » sur son espace, et
-     * rend la session de l'hôte - de quoi refermer ensuite.
+     * Crée le premier compte et rend sa session.
+     * <p>
+     * Rien de plus : sa collection est visitable du seul fait qu'il existe.
+     * Ce helper cochait auparavant « ouvrir aux visiteurs » - le geste que
+     * l'inversion du défaut a précisément supprimé.
      */
-    private MockHttpSession ouvrirLaCollectionDe(String pseudo) throws Exception {
+    private MockHttpSession creerLePremierCompte(String pseudo) throws Exception {
         MvcResult creation = mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -183,14 +206,7 @@ class VisiteHttpContractTest extends PostgresIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        MockHttpSession hote = sessionOuverte(creation);
-        mockMvc.perform(patch("/api/share").session(hote).with(csrf())
-                        .contentType("application/json").content("{\"openToGuests\":true}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.openToGuests").value(true))
-                // Ouvrir la porte ne crée AUCUN lien : ce sont deux accès.
-                .andExpect(jsonPath("$.token").doesNotExist());
-        return hote;
+        return sessionOuverte(creation);
     }
 
     private MockHttpSession entrerEnVisite() throws Exception {

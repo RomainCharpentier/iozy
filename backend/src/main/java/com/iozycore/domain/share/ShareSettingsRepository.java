@@ -22,21 +22,13 @@ public interface ShareSettingsRepository {
     Optional<ShareSettings> findByToken(String token);
 
     /**
-     * L'espace qui a laissé ses portes ouvertes aux visiteurs, s'il y en a un.
-     *
-     * <h2>Pourquoi « le premier » et non « tous »</h2>
-     * Un visiteur anonyme n'a rien à présenter : il ne peut pas dire QUELLE
-     * collection il vient voir, et lui faire choisir dans une liste de comptes
-     * dirait à n'importe qui qui habite l'instance. La question n'a donc qu'une
-     * réponse possible, et il faut qu'elle soit toujours la même - sans quoi
-     * deux visiteurs verraient deux collections différentes selon l'humeur du
-     * plan d'exécution.
-     *
-     * <p>L'ordre retenu est celui de l'identifiant, ce qui fait gagner le
-     * <b>premier compte</b> quand il a ouvert : le sien vaut
-     * {@link com.iozycore.domain.shared.DefaultOwner#ID}, seize octets à zéro,
-     * qui passe avant tout identifiant tiré au hasard. C'est la personne qui a
-     * déployé l'instance, et la collection qu'un visiteur s'attend à y trouver.
+     * Les réglages d'un propriétaire NOMMÉ, ou l'état par défaut s'il n'en a
+     * jamais posé.
+     * <p>
+     * {@link #find()} ne sait lire que ceux de la session en cours ; un
+     * visiteur anonyme, lui, n'en a pas - c'est justement ce qu'on cherche à
+     * savoir <b>avant</b> de lui en ouvrir une. D'où cette seconde porte de
+     * lecture, qui prend le propriétaire en argument.
      */
-    Optional<ShareSettings> premierOuvertAuxVisiteurs();
+    ShareSettings pour(java.util.UUID proprietaire);
 }
