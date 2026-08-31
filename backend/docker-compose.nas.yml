@@ -47,6 +47,8 @@ version: "3.9"
 #        WEB_ALLOWED_ORIGINS=https://ton-nom.synology.me
 #        GHCR_USER=... / GHCR_TOKEN=...   (le même jeton, pour watchtower)
 #   3. docker compose -f docker-compose.nas.yml up -d
+#      (sur un DSM plus ancien, la commande s'écrit `docker-compose -f ...` :
+#       Container Manager n'a la forme en deux mots que depuis Compose v2)
 #
 # ─── Deux pièges, rencontrés pour de vrai ────────────────────────────────
 #   - `DB_PASSWORD` ne change QUE ce que l'API présente. Le mot de passe réel
