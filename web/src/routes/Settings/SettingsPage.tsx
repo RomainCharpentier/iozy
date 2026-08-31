@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, GripVertical, LogOut, Moon, Sun } from 'lucide-react'
+import { Download, GripVertical, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { VERSION_INTERFACE, lireVersionServeur, versionCourte } from '../../api/version'
 import { queryKeys } from '../../lib/queryKeys'
@@ -46,7 +46,7 @@ export function SettingsPage() {
   const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const { theme, toggleTheme } = useTheme()
-  const { compte, deconnexion } = useAuth()
+  const { compte } = useAuth()
 
   // Ne change qu'au redéploiement : la redemander à chaque retour d'onglet
   // n'apprendrait rien. Un échec reste muet - ne pas savoir quelle version
@@ -124,15 +124,6 @@ export function SettingsPage() {
                   lignes ne se répètent jamais. */}
               <span className="text-xs text-textDim">{compte.email}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => deconnexion.mutate()}
-              disabled={deconnexion.isPending}
-              className="flex items-center justify-center gap-2 self-start rounded-lg bg-surface2 px-4 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
-            >
-              <LogOut size={16} />
-              Se déconnecter
-            </button>
           </div>
 
           {/* L'export vivait dans « Administration avancée », à côté des

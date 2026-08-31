@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Wrench } from 'lucide-react'
 import { initiales } from '../../lib/initiales'
+import { BoutonSortie } from '../BoutonSortie'
 import { couleurDuPseudo } from '../../theme/avatar'
 import { useAuth } from '../../lib/useAuth'
 
@@ -24,11 +25,16 @@ import { useAuth } from '../../lib/useAuth'
  * refermer pour un choix entre deux entrées. Les réglages se rejoignent depuis
  * Profil, où ils sont chez eux : les deux écrans parlent de la même personne.
  *
- * <h2>Pendant une visite : aucun des deux</h2>
- * Ils parlent tous les deux de « chez soi » - son profil, son instance - et un
- * visiteur n'a ni l'un ni l'autre. L'avatar, surtout, aurait affiché les
- * initiales et la couleur de son HÔTE : le seul endroit de l'application qui
- * dit « c'est toi » aurait dit le nom de quelqu'un d'autre.
+ * <h2>Et la sortie, qui vaut pour tout le monde</h2>
+ * {@link BoutonSortie} les accompagne, et c'est le SEUL endroit d'où l'on
+ * sort - « Se déconnecter » vivait à trois clics d'ici, dans les Paramètres,
+ * c'est-à-dire nulle part pour qui ne connaît pas le chemin.
+ *
+ * <h2>Pendant une visite : la sortie, et rien d'autre</h2>
+ * Le profil et l'administration parlent tous deux de « chez soi », qu'un
+ * visiteur n'a pas. L'avatar, surtout, aurait affiché des initiales qui ne
+ * sont celles de personne : le seul endroit de l'application qui dit « c'est
+ * toi » aurait menti.
  *
  * <h2>Ce que ces boutons ne sont pas</h2>
  * Des destinations de navigation. Les quatre intentions quotidiennes vivent
@@ -60,12 +66,13 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   const { compte, estInvite } = useAuth()
   const { pathname } = useLocation()
 
-  // Un visiteur n'a ni profil ni administration : les deux boutons mèneraient
-  // à des écrans réservés aux comptes (voir lib/accesInvite), et l'avatar
-  // porterait les initiales de son hôte comme si c'étaient les siennes. Ce
-  // qu'il doit voir - chez qui il est, et comment sortir - est dans le bandeau
-  // de visite, en permanence.
-  if (estInvite) return null
+  // Un visiteur n'a ni profil ni administration : les deux mèneraient à des
+  // écrans réservés aux comptes (voir lib/accesInvite). Il lui reste la
+  // sortie, au même endroit que pour tout le monde - c'est même le seul
+  // endroit d'où il puisse sortir.
+  if (estInvite) {
+    return <BoutonSortie compact={compact} />
+  }
 
   const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
   const marque = initiales(compte?.pseudo ?? '') || 'IO'
@@ -96,6 +103,8 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
       >
         <Wrench size={17} />
       </Link>
+
+      <BoutonSortie compact={compact} />
 
       <Link
         to="/profile"

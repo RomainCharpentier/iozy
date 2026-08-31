@@ -45,7 +45,7 @@ function enrobage({ children }: { children: ReactNode }) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  api.lireEtatAuth.mockResolvedValue({ aucunCompte: false, creationOuverte: false, visiteOuverte: false })
+  api.lireEtatAuth.mockResolvedValue({ aucunCompte: false, creationOuverte: false })
 })
 
 /** Rend l'en-tête pour un compte donné, une fois celui-ci connu. */
@@ -122,9 +122,9 @@ describe('le bouton Administration', () => {
 describe('pendant une visite sans compte', () => {
   async function enVisite() {
     api.lireCompte.mockResolvedValue({
-      id: 'proprio-1',
+      id: null,
       email: null,
-      pseudo: 'kenshin',
+      pseudo: 'Visiteur',
       admin: false,
       invite: true,
     })

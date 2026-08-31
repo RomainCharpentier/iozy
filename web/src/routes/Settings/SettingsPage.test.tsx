@@ -44,12 +44,21 @@ beforeEach(() => {
 })
 
 describe('« Mon compte »', () => {
-  it('dit qui on est, et permet de sortir', () => {
+  it('dit qui on est', () => {
     const monCompte = screen.getByRole('region', { name: 'Mon compte' })
 
     expect(within(monCompte).getByText('romain')).toBeInTheDocument()
     expect(within(monCompte).getByText('romain@iozycore.local')).toBeInTheDocument()
-    expect(within(monCompte).getByRole('button', { name: /Se déconnecter/ })).toBeInTheDocument()
+  })
+
+  it('ne porte plus la déconnexion, qui est remontée dans l’en-tête', () => {
+    // Elle vivait ici, à trois clics de l'avatar (Profil, puis Paramètres,
+    // puis cette section) : introuvable pour qui ne connaît pas le chemin. Il
+    // n'y a plus qu'UN bouton de sortie, dans l'en-tête, le même pour un
+    // compte et pour un visiteur (voir BoutonSortie).
+    const monCompte = screen.getByRole('region', { name: 'Mon compte' })
+
+    expect(within(monCompte).queryByRole('button', { name: /déconnecter/i })).not.toBeInTheDocument()
   })
 
   it('porte l’export, qui appartient au compte et non à l’administration', () => {
