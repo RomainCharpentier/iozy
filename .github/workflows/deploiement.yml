@@ -114,12 +114,35 @@ jobs:
     needs: [backend, web]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # Poser l'étiquette `version-N` sur le commit livré : c'est elle qui
+      # relie le numéro affiché à l'écran au code qui tourne.
+      contents: write
       # Écrire dans GHCR au nom du dépôt, avec le jeton fourni par GitHub :
       # aucun secret à créer, et rien à faire tourner de plus.
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Compter les commits demande TOUT l'historique. Le clone par défaut
+          # n'en prend qu'un seul : la livraison vaudrait 1 à chaque
+          # déploiement, et rien ne le signalerait - un numéro faux se lit
+          # exactement comme un numéro juste.
+          fetch-depth: 0
+
+      # ─── Le numéro de la livraison ────────────────────────────────
+      #
+      # Le nombre de commits de `main`, et rien d'autre. Il ne demande aucun
+      # geste, il ne peut donc pas être oublié, et surtout il se COMPARE :
+      # « serveur 378 » sous « version 379 » dit immédiatement laquelle des
+      # deux images est en retard, ce qu'un SHA ne dira jamais.
+      #
+      # Il suppose un historique linéaire, ce qu'est celui-ci - un commit par
+      # lot, poussé sur `main`. Une réécriture d'historique décalerait les
+      # numéros à venir ; les étiquettes déjà posées, elles, resteraient sur
+      # leur commit.
+      - name: Numéroter la livraison
+        id: livraison
+        run: echo "numero=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Se connecter à GHCR
         uses: docker/login-action@v3
@@ -130,9 +153,14 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      # Les deux images portent `latest` ET le SHA du commit. `latest` est ce
-      # que le NAS suit ; le SHA est ce qui permet de revenir en arrière à la
-      # main quand une version passe mal, sans rien reconstruire.
+      # Les deux images portent `latest` ET `version-N`. `latest` est ce que
+      # le NAS suit ; le numéro est ce qui permet de revenir en arrière à la
+      # main quand une version passe mal, sans rien reconstruire - et c'est
+      # celui que l'application affiche au bas de ses pages.
+      #
+      # Le SHA ne sert plus d'étiquette d'image : il en faudrait deux à retenir
+      # là où un seul numéro suffit, et l'étiquette git `version-N` posée
+      # plus bas mène de ce numéro au commit exact.
       #
       # Le nom du dépôt est mis en minuscules : GHCR les exige, et
       # `RomainCharpentier/iozycore` n'en est pas.
@@ -145,12 +173,13 @@ jobs:
         with:
           context: backend
           push: true
-          # Le SHA est grave DANS l'image, et c'est le meme que son etiquette :
-          # ce que l'app affiche se retrouve tel quel dans GHCR et sur GitHub.
-          build-args: VERSION=${{ github.sha }}
+          # Le numero est grave DANS l'image, et c'est le meme que son
+          # etiquette : ce que l'app affiche se retrouve tel quel dans GHCR, et
+          # sur une etiquette git qui designe le commit.
+          build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:${{ github.sha }}
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:version-${{ steps.livraison.outputs.numero }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -159,12 +188,39 @@ jobs:
         with:
           context: web
           push: true
-          build-args: VERSION=${{ github.sha }}
+          build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:latest
-            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:${{ github.sha }}
+            ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-web:version-${{ steps.livraison.outputs.numero }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
+
+      # ─── Ce qui relie le numéro au code ───────────────────────────
+      #
+      # Un numéro affiché ne vaut que si l'on peut remonter au code qu'il
+      # désigne. `version-379` est une étiquette git : elle se lit sur
+      # GitHub, `git show version-379` la résout, et personne n'a à compter
+      # des commits à la main pour retrouver ce qui tourne.
+      #
+      # Posée APRÈS la publication, délibérément : une étiquette signifie
+      # « cette livraison est partie », jamais « on a essayé de la publier ».
+      #
+      # Rejouer le workflow sur le même commit (`workflow_dispatch`, après une
+      # correction du .env du NAS) retombe sur un numéro déjà étiqueté. On ne
+      # repose alors rien, plutôt que de faire échouer un déploiement pour une
+      # étiquette qui dit déjà la vérité.
+      - name: Étiqueter le commit livré
+        env:
+          ETIQUETTE: version-${{ steps.livraison.outputs.numero }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$ETIQUETTE" >/dev/null 2>&1; then
+            echo "$ETIQUETTE existe déjà : même livraison rejouée, rien à poser."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$ETIQUETTE" -m "Version ${{ steps.livraison.outputs.numero }}"
+          git push origin "$ETIQUETTE"
 
   # ──────────────────────────────────────────────────────────── Ménage
   #
@@ -175,7 +231,8 @@ jobs:
   # d'un historique d'images que personne ne relira jamais.
   #
   # Les cinq dernières versions suffisent à revenir en arrière ; au-delà, on
-  # reconstruit depuis un SHA, ce qui est de toute façon plus sûr.
+  # reconstruit depuis l'étiquette `version-N` du commit, ce qui est de
+  # toute façon plus sûr.
   menage:
     name: Purger les vieilles images
     needs: publier

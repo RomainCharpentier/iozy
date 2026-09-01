@@ -18,11 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
  * déployée ? » - et sans réponse, on cherche un bug dans du code qui n'est pas
  * encore là.
  *
- * <h2>Le SHA du commit, et pas le numéro du pom</h2>
+ * <h2>Un numéro de livraison, et pas le numéro du pom</h2>
  * {@code 0.1.0-SNAPSHOT} ne bouge jamais : il ne distingue pas deux
- * déploiements. Le SHA, lui, est <b>aussi l'étiquette de l'image publiée</b> :
- * ce qui s'affiche dans l'app se retrouve tel quel dans GHCR et dans
- * l'historique GitHub. Un seul identifiant relie l'écran, l'image et le commit.
+ * déploiements. Le numéro de livraison, lui, est le nombre de commits de
+ * {@code main} au moment de la publication — il croît, donc <b>il se
+ * compare</b> : « serveur 378 » sous « version 379 » dit immédiatement
+ * laquelle des deux images est en retard, ce qu'un SHA ne dira jamais.
+ *
+ * <p>Ce même numéro étiquette l'image dans GHCR ({@code -api:version-379}) et
+ * le commit livré ({@code git show version-379}). Un seul identifiant relie
+ * donc l'écran, l'image et le commit.
  *
  * <h2>Authentifiée, comme presque tout le reste</h2>
  * Elle ne figure pas dans les exceptions de {@code SecurityConfig} : connaître
@@ -44,15 +49,15 @@ public class VersionController {
     }
 
     /**
-     * {@code version} vaut le SHA complet du commit livré, ou {@code dev} hors
-     * conteneur. Le client n'en affiche que le début - c'est ce qui se compare
-     * d'un coup d'œil - mais le serveur rend la valeur entière : la tronquer
-     * ici aurait empêché de s'en servir pour retrouver l'image.
+     * {@code version} vaut le numéro de la livraison en cours ({@code "118"}),
+     * ou {@code dev} hors conteneur. C'est une chaîne et non un entier : elle
+     * doit pouvoir porter {@code dev}, et le client ne fait que l'afficher et
+     * la comparer à la sienne — jamais d'arithmétique dessus.
      */
     public record VersionReponse(String version) {
     }
 
-    @Operation(summary = "Le SHA du commit livré, ou « dev » hors conteneur.")
+    @Operation(summary = "Le numéro de la livraison en cours, ou « dev » hors conteneur.")
     @GetMapping
     public VersionReponse version() {
         return new VersionReponse(version);

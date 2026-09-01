@@ -45,11 +45,24 @@ describe('quand l’interface et le serveur divergent', () => {
     // Le cas qui compte : un service worker qui garde l'ancienne coquille, ou
     // une image sur deux qui n'a pas été tirée. N'afficher que la version du
     // serveur aurait menti exactement là.
+    api.lireVersionServeur.mockResolvedValue({ version: '378' })
+    render(<PiedDePage />, { wrapper: enrobage })
+
+    // Le numéro sort tel quel : c'est ce qui permet de voir, sans rien
+    // ouvrir, laquelle des deux images est en retard sur l'autre.
+    expect(await screen.findByText(/serveur 378/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'recharger' })).toBeInTheDocument()
+  })
+
+  it('raccourcit un serveur resté sur une image d’avant les numéros', async () => {
+    // Les images publiées avant que les livraisons soient numérotées portent
+    // un SHA de 40 caractères. Le cas disparaît dès qu'elles ont été tirées
+    // une fois, mais il est bien réel le jour du passage - et 40 caractères
+    // au bas d'un écran de 375 px ne se lisent pas.
     api.lireVersionServeur.mockResolvedValue({ version: 'a'.repeat(40) })
     render(<PiedDePage />, { wrapper: enrobage })
 
     expect(await screen.findByText(/serveur aaaaaaa/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'recharger' })).toBeInTheDocument()
   })
 })
 
