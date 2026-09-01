@@ -12,11 +12,14 @@ import { get } from './client'
  * l'app, ce qui est faux exactement quand ça compte.
  */
 
-/** Figée à la compilation du bundle (voir web/Dockerfile). `dev` en développement. */
+/**
+ * Le numéro de la livraison, figé à la compilation du bundle (voir
+ * web/Dockerfile). `dev` en développement.
+ */
 export const VERSION_INTERFACE: string = import.meta.env.VITE_VERSION ?? 'dev'
 
 export interface Version {
-  /** Le SHA complet du commit livré, ou `dev` hors conteneur. */
+  /** Le numéro de la livraison servie par l'API, ou `dev` hors conteneur. */
   version: string
 }
 
@@ -25,9 +28,15 @@ export function lireVersionServeur(): Promise<Version> {
 }
 
 /**
- * Ce qui se lit d'un coup d'œil : les sept premiers caractères d'un SHA, la
- * forme courte qu'emploient git et GitHub. `dev` est rendu tel quel — le
- * tronquer donnerait « dev » aussi, mais par accident.
+ * Ce qui se lit d'un coup d'œil.
+ *
+ * Un numéro de version est déjà court, et il se compare — 379 vient après
+ * 378 — donc il sort tel quel. Restent deux formes qui ne se comparent pas et
+ * auxquelles on n'invente pas d'ordre : `dev`, hors conteneur, et le SHA de
+ * 40 caractères des images construites AVANT que les livraisons soient
+ * numérotées. Celui-là est tronqué à 7, la forme courte qu'emploient git et
+ * GitHub — c'est le seul cas où l'app affiche encore un SHA, et il disparaît
+ * dès que les deux images ont été retirées une fois.
  */
 export function versionCourte(version: string): string {
   return /^[0-9a-f]{40}$/.test(version) ? version.slice(0, 7) : version

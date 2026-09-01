@@ -1360,6 +1360,78 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 114 — une livraison porte un numéro, pas un SHA
+
+Le pied de page affichait `0352751` depuis le 31/08. Ce SHA **identifie**
+parfaitement le code livré, mais il ne répond pas à la question qu'on se pose
+en le lisant : suis-je en avance ou en retard ? Deux SHA ne se comparent pas.
+Le cas où ça compte est précisément celui que ce pied de page a été construit
+pour montrer - l'interface et le serveur qui ne viennent pas de la même
+livraison - et il le montrait avec deux identifiants dont on ne pouvait pas
+dire lequel était le plus récent.
+
+**Le numéro est le nombre de commits de `main`** (`git rev-list --count HEAD`),
+calculé au moment de la publication. Aucun geste à poser, donc rien à oublier
+un soir de correction rapide ; monotone, donc « serveur 378 » sous « Version
+379 » se lit d'un coup. Le numéro du pom (`0.1.0-SNAPSHOT`) ne pouvait pas
+jouer ce rôle - il ne bouge jamais.
+
+#### « Version », et pas « Livraison »
+
+Le mot juste, dans le vocabulaire de ce dépôt, aurait été « livraison » - c'est
+celui de tous ses commentaires. Il est **pris** : l'analyse d'achat appelle
+« livraison » les frais de port d'une annonce (« Livraison non incluse »,
+docs/LISTING_SOURCES.md), et ce pied de page s'affiche jusqu'au bas de cet
+écran-là. La collision a été trouvée en vérifiant le bundle construit - `grep
+Livraison dist/` rendait deux fichiers, dont `PurchaseAnalysisResultCard`.
+L'étiquette à l'écran, l'étiquette d'image et l'étiquette git disent donc
+toutes les trois **version**.
+
+#### Ce qui relie le numéro au code
+
+Un numéro affiché ne vaut que si l'on peut remonter à ce qu'il désigne. Le même
+`379` est posé à trois endroits par le workflow de déploiement :
+
+- **à l'écran**, gravé dans les deux images (`ARG VERSION`) ;
+- **sur l'image publiée**, `iozycore-api:version-379` dans GHCR - c'est ce
+  qu'on remet dans `docker-compose.nas.yml` pour revenir en arrière ;
+- **sur le commit**, une étiquette git annotée `version-379`, visible sur
+  GitHub et résolue par `git show version-379`.
+
+Le SHA **cesse** d'étiqueter les images : deux identifiants pour une seule
+livraison, c'est un de trop, et l'étiquette git mène désormais au commit exact
+sans qu'on ait à compter des commits à la main.
+
+L'étiquette est posée **après** la publication - elle dit « cette livraison est
+partie », jamais « on a essayé de la publier ». Rejouer le workflow sur le même
+commit (`workflow_dispatch`, après une correction du `.env` du NAS) retombe sur
+un numéro déjà étiqueté : on ne repose alors rien plutôt que de faire échouer
+un déploiement pour une étiquette qui dit déjà la vérité.
+
+#### Le piège, et il ne s'annonce pas
+
+`actions/checkout` ne clone qu'**un seul commit** par défaut. Sans
+`fetch-depth: 0`, `git rev-list --count HEAD` rend `1`, à chaque déploiement,
+pour toujours - et un numéro faux se lit exactement comme un numéro juste.
+C'est le genre de défaut qu'aucun test ne voit et qu'on ne découvre qu'en
+comparant deux livraisons qui portent le même chiffre.
+
+#### Deux compteurs à ne pas confondre
+
+Le numéro de **lot** (celui de cette section, 114) compte les chantiers de ce
+document ; le numéro de **livraison** compte les commits déployés. Ils ne
+coïncident pas et n'ont pas à le faire : tous les lots ne sont pas des
+livraisons, et huit commits d'infrastructure - le déploiement sur NAS, la
+visite anonyme - sont partis sans section ici.
+
+#### Le filet
+
+317 tests web (41 modules). Le pied de page en porte quatre : le cas normal
+(un seul numéro), la divergence (`serveur 378` et le lien pour recharger), le
+serveur muet (qui reste muet), et le SHA de 40 caractères d'une image
+construite **avant** ce lot - transitoire, mais bien réel le jour du passage,
+et 40 caractères au bas d'un écran de 375 px ne se lisent pas.
+
 ### Lot 113 — le même N+1, sur le premier chiffre qu'on voit
 
 Le constat C1 a été corrigé au Lot 101 sur les suggestions d'achat. **La même

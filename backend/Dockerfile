@@ -14,9 +14,10 @@ WORKDIR /app
 #
 # Le numéro de version du pom (0.1.0-SNAPSHOT) ne bouge jamais : il ne distingue
 # pas deux déploiements, donc il ne répond pas à la seule question qu'on se pose
-# devant une mise à jour automatique - « laquelle est en ligne ? ». Le SHA du
-# commit, lui, est aussi l'étiquette de l'image publiée : ce qui s'affiche dans
-# l'app se retrouve tel quel dans GHCR et sur GitHub.
+# devant une mise à jour automatique - « laquelle est en ligne ? ». Le numéro de
+# livraison, lui, est le nombre de commits de `main` : il croît d'une livraison
+# à l'autre, donc il se COMPARE, et il étiquette aussi bien l'image publiée que
+# le commit livré (voir .github/workflows/deploiement.yml).
 #
 # `dev` par défaut : une image construite à la main sur un poste ne ment pas en
 # se faisant passer pour une livraison.

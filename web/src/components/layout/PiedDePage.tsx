@@ -18,6 +18,21 @@ import { queryKeys } from '../../lib/queryKeys'
  * devient « est-ce que ma correction est seulement déployée ? » - et sans
  * réponse, on cherche un défaut dans du code qui n'est pas encore là.
  *
+ * <h2>Un numéro, parce qu'un numéro se compare</h2>
+ * C'est le nombre de commits de `main` au moment de la publication (voir
+ * .github/workflows/deploiement.yml). Devant « Version 379 » et « serveur
+ * 378 », on sait sans rien ouvrir laquelle des deux images est en retard —
+ * deux SHA, eux, ne se comparaient pas. Et le numéro mène au code : il
+ * étiquette le commit livré (`git show version-379`) autant que l'image
+ * publiée.
+ *
+ * <h2>« Version », et surtout pas « Livraison »</h2>
+ * Le mot juste, dans le vocabulaire interne de ce dépôt, serait « livraison ».
+ * Il est pris : l'analyse d'achat appelle « livraison » les FRAIS DE PORT
+ * d'une annonce (« Livraison non incluse », voir docs/LISTING_SOURCES.md), et
+ * ce pied de page s'affiche jusqu'au bas de cet écran-là. Un mot pour deux
+ * choses sur la même page se paie toujours plus cher qu'un synonyme.
+ *
  * <h2>Deux versions, mais une seule ligne quand elles s'accordent</h2>
  * L'interface et le serveur sont deux images distinctes, tirées séparément.
  * Les afficher toutes les deux en permanence donnerait deux fois la même

@@ -2,9 +2,10 @@
 FROM node:24-alpine AS build
 WORKDIR /build
 
-# La version est figée À LA COMPILATION : le bundle est un fichier statique,
-# il ne peut pas la demander plus tard. `VITE_` est le préfixe qu'exige Vite
-# pour qu'une variable d'environnement franchisse la frontière du build.
+# Le numéro de livraison est figé À LA COMPILATION : le bundle est un fichier
+# statique, il ne peut pas le demander plus tard. `VITE_` est le préfixe
+# qu'exige Vite pour qu'une variable d'environnement franchisse la frontière
+# du build.
 #
 # Elle sert à repérer le cas où l'interface et le serveur ne viennent pas de la
 # même livraison - un service worker qui garde l'ancienne coquille, une image
