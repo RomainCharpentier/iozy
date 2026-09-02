@@ -12,12 +12,21 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { PiedDePage } from './PiedDePage'
-import { VERSION_INTERFACE } from '../../api/version'
 
 const api = vi.hoisted(() => ({ lireVersionServeur: vi.fn() }))
+// La version de l'interface est POSÉE par ces tests, jamais lue de la machine
+// qui les joue : hors conteneur, vite.config.ts la dérive de git (« 380-dev »),
+// et des tests qui en dépendraient changeraient de sens à chaque commit.
+const poste = vi.hoisted(() => ({ versionInterface: '379' }))
 vi.mock('../../api/version', async (importOriginal) => {
   const reel = await importOriginal<typeof import('../../api/version')>()
-  return { ...reel, lireVersionServeur: api.lireVersionServeur }
+  return {
+    ...reel,
+    lireVersionServeur: api.lireVersionServeur,
+    get VERSION_INTERFACE() {
+      return poste.versionInterface
+    },
+  }
 })
 
 function enrobage({ children }: { children: ReactNode }) {
@@ -25,11 +34,14 @@ function enrobage({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  poste.versionInterface = '379'
+})
 
 describe('quand tout vient de la même livraison', () => {
   it('n’affiche qu’un seul numéro', async () => {
-    api.lireVersionServeur.mockResolvedValue({ version: VERSION_INTERFACE })
+    api.lireVersionServeur.mockResolvedValue({ version: '379' })
     render(<PiedDePage />, { wrapper: enrobage })
 
     await waitFor(() => expect(api.lireVersionServeur).toHaveBeenCalled())
@@ -63,6 +75,22 @@ describe('quand l’interface et le serveur divergent', () => {
     render(<PiedDePage />, { wrapper: enrobage })
 
     expect(await screen.findByText(/serveur aaaaaaa/)).toBeInTheDocument()
+  })
+})
+
+describe('sur un poste de travail', () => {
+  it('ne présente pas deux brouillons comme un écart à réparer', async () => {
+    // L'interface vient du serveur de développement, l'API d'une image
+    // construite à la main : deux valeurs différentes, et rien à réparer.
+    // Le dire à chaque écran apprendrait à ignorer la ligne le jour où
+    // l'écart est vrai.
+    poste.versionInterface = '380-dev'
+    api.lireVersionServeur.mockResolvedValue({ version: 'dev' })
+    render(<PiedDePage />, { wrapper: enrobage })
+
+    await waitFor(() => expect(api.lireVersionServeur).toHaveBeenCalled())
+    expect(screen.getByText(/^Version 380-dev/)).toBeInTheDocument()
+    expect(screen.queryByText(/serveur/)).not.toBeInTheDocument()
   })
 })
 

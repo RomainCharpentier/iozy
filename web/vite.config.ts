@@ -1,6 +1,38 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+
+/**
+ * Quel numéro porterait ce qu'on est en train d'écrire.
+ *
+ * En conteneur, le numéro vient du workflow (`ARG VERSION`, voir
+ * .github/workflows/deploiement.yml) et cette fonction n'est jamais appelée -
+ * `VITE_VERSION` est déjà posé, et l'image de build n'a de toute façon pas
+ * git. Hors conteneur, il n'y avait RIEN : le pied de page disait « Version
+ * dev », ce qui répond « je ne sais pas » à la seule question qu'il pose.
+ *
+ * Git, lui, sait : c'est le même `git rev-list --count` que la publication.
+ *
+ * Le suffixe `-dev` n'est pas décoratif. Un poste de travail a des
+ * modifications non commises, et son numéro ne désigne donc AUCUNE image
+ * publiée : afficher « 380 » tout court ferait passer un brouillon pour une
+ * livraison, exactement ce que `ARG VERSION=dev` évitait jusqu'ici. « 380-dev »
+ * dit les deux choses à la fois - de quel commit on part, et qu'on n'est pas
+ * une livraison.
+ */
+function versionDuPosteDeTravail(): string {
+  try {
+    return `${execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim()}-dev`
+  } catch {
+    // Pas de git (archive téléchargée, dépôt absent) : ne rien inventer.
+    return 'dev'
+  }
+}
+
+// Vite expose les variables `VITE_` déjà présentes dans process.env : celle du
+// conteneur gagne, et rien ne s'exécute quand elle est là.
+process.env.VITE_VERSION ??= versionDuPosteDeTravail()
 
 // https://vite.dev/config/
 export default defineConfig({
