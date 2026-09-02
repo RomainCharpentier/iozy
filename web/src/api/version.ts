@@ -14,7 +14,9 @@ import { get } from './client'
 
 /**
  * Le numéro de la livraison, figé à la compilation du bundle (voir
- * web/Dockerfile). `dev` en développement.
+ * web/Dockerfile). Hors conteneur, vite.config.ts le dérive de git et le
+ * suffixe de `-dev` (« 380-dev ») : on sait de quel commit on part, et qu'on
+ * ne regarde pas une livraison.
  */
 export const VERSION_INTERFACE: string = import.meta.env.VITE_VERSION ?? 'dev'
 
@@ -40,4 +42,18 @@ export function lireVersionServeur(): Promise<Version> {
  */
 export function versionCourte(version: string): string {
   return /^[0-9a-f]{40}$/.test(version) ? version.slice(0, 7) : version
+}
+
+/**
+ * Une construction locale n'est pas une livraison, et ne se compare donc à
+ * rien.
+ *
+ * `dev` et `380-dev` sortent d'un poste de travail : le premier d'une image
+ * construite à la main, le second du serveur de développement. Les confronter
+ * à ce que rend l'API - « interface 380-dev, serveur dev, rechargez » -
+ * signalerait un écart à chaque écran alors qu'il n'y a rien à réparer : ce
+ * sont deux brouillons, et ils n'ont aucune raison de coïncider.
+ */
+export function estUneLivraison(version: string): boolean {
+  return !version.endsWith('dev')
 }

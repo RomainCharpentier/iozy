@@ -1433,6 +1433,33 @@ tomber le dégagement de 96 px réservé à la barre d'onglets, qui n'existe pas
 là et qui remonterait le formulaire centré d'autant. Mesuré sur la porte :
 visible sans défilement en 1280 px comme en 375 px, aucun débordement.
 
+#### « Version dev » ne répondait pas à la question
+
+Deuxième chose trouvée en testant : sur le serveur de développement, le pied
+de page disait « Version dev » - c'est-à-dire « je ne sais pas », à la seule
+question qu'il pose. Git, lui, sait : `vite.config.ts` appelle le même
+`git rev-list --count HEAD` que la publication et pose `VITE_VERSION` quand
+elle n'est pas déjà là (en conteneur elle l'est, et l'image de build n'a de
+toute façon pas git).
+
+Le suffixe n'est pas décoratif : un poste de travail a des modifications non
+commises, et son numéro ne désigne **aucune image publiée**. Afficher « 380 »
+tout court ferait passer un brouillon pour une livraison - exactement ce que
+`ARG VERSION=dev` évitait. « **380-dev** » dit les deux : de quel commit on
+part, et qu'on n'est pas une livraison.
+
+Conséquence à traiter tout de suite : l'interface aurait alors porté
+`380-dev` pendant que l'API locale répond `dev`, donc « serveur dev,
+rechargez » **sur chaque écran d'un poste de travail**. Deux brouillons n'ont
+aucune raison de coïncider, et un avertissement permanent apprend à ignorer
+la ligne le jour où l'écart est vrai. L'écart n'est donc signalé qu'entre deux
+LIVRAISONS (`estUneLivraison`, dans api/version.ts) - un SHA d'avant le
+numérotage en est une, `dev` et `380-dev` n'en sont pas.
+
+Effet de bord sur les tests : ils lisaient `VERSION_INTERFACE` de la machine
+qui les joue, ce qui les aurait fait changer de sens à chaque commit. Ils la
+POSENT désormais.
+
 #### Deux compteurs à ne pas confondre
 
 Le numéro de **lot** (celui de cette section, 114) compte les chantiers de ce

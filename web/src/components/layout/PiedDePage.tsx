@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { VERSION_INTERFACE, lireVersionServeur, versionCourte } from '../../api/version'
+import { VERSION_INTERFACE, estUneLivraison, lireVersionServeur, versionCourte } from '../../api/version'
 import { queryKeys } from '../../lib/queryKeys'
 
 /**
@@ -51,6 +51,14 @@ import { queryKeys } from '../../lib/queryKeys'
  * lui, n'est pas demandé - la route exige une session, et un 401 de plus dans
  * la console n'apprendrait rien à qui lit déjà « Version 379 ».
  *
+ * <h2>Deux brouillons ne divergent pas</h2>
+ * Sur un poste de travail, l'interface porte `380-dev` (dérivé de git par
+ * vite.config.ts) et l'API répond `dev` : deux valeurs différentes, mais aucun
+ * écart à réparer - ce sont deux constructions locales, elles n'ont aucune
+ * raison de coïncider. Annoncer « serveur dev, rechargez » à chaque écran
+ * apprendrait à ignorer la ligne qui compte le jour où l'écart est vrai.
+ * L'écart n'est donc signalé qu'entre deux LIVRAISONS.
+ *
  * <h2>Muet quand il ne sait pas</h2>
  * L'appel au serveur ne réessaie pas et n'annonce aucune erreur : ne pas
  * connaître la version qui tourne n'est pas une panne, et sûrement pas une
@@ -69,7 +77,11 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
   })
 
   const serveur = versionServeur.data?.version ?? null
-  const memeLivraison = serveur !== null && serveur === VERSION_INTERFACE
+  const ecartReel =
+    serveur !== null &&
+    serveur !== VERSION_INTERFACE &&
+    estUneLivraison(serveur) &&
+    estUneLivraison(VERSION_INTERFACE)
 
   return (
     // Le dégagement du bas n'existe que pour la barre d'onglets fixe, qui
@@ -81,7 +93,7 @@ export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = 
       }
     >
       Version {versionCourte(VERSION_INTERFACE)}
-      {serveur !== null && !memeLivraison && (
+      {ecartReel && (
         <>
           {' '}· serveur {versionCourte(serveur)} —{' '}
           <button type="button" onClick={() => window.location.reload()} className="underline underline-offset-2">
