@@ -1512,9 +1512,11 @@ n'ont pas à le faire : tous les lots ne sont pas des livraisons, et huit commit
 d'infrastructure - le déploiement sur NAS, la visite anonyme - sont partis sans
 section ici.
 
-Reste dans le dépôt une étiquette `version-379`, seule survivante du compteur
-de commits. Elle n'est pas supprimée - une référence publiée ne s'efface pas
-pour faire propre - et le calcul l'ignore : il ne regarde que `v[0-9]*.[0-9]*.[0-9]*`.
+Restent dans le dépôt trois étiquettes `version-379`, `version-380` et
+`version-381` - une par déploiement de la journée où le compteur de commits a
+vécu. Elles ne sont pas supprimées : une référence publiée ne s'efface pas pour
+faire propre, et leurs images portent les mêmes noms dans GHCR. Le calcul les
+ignore, il ne regarde que `v[0-9]*.[0-9]*.[0-9]*`.
 
 #### Le filet
 
