@@ -20,14 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <h2>Un numéro de livraison, et pas le numéro du pom</h2>
  * {@code 0.1.0-SNAPSHOT} ne bouge jamais : il ne distingue pas deux
- * déploiements. Le numéro de livraison, lui, est le nombre de commits de
- * {@code main} au moment de la publication — il croît, donc <b>il se
- * compare</b> : « serveur 378 » sous « version 379 » dit immédiatement
- * laquelle des deux images est en retard, ce qu'un SHA ne dira jamais.
+ * déploiements. Le numéro de livraison, lui, est un Majeure.Mineure.Patch
+ * <b>déduit des messages de commit</b> au moment de la publication (la règle
+ * vit dans {@code web/scripts/version.mjs}) — il croît, donc <b>il se
+ * compare</b> : « serveur 1.2.0 » sous « version 1.3.1 » dit immédiatement
+ * laquelle des deux images est en retard, ce qu'un SHA ne dira jamais. Et il
+ * dit ce qui a changé : une mineure a ajouté, un patch a corrigé.
  *
- * <p>Ce même numéro étiquette l'image dans GHCR ({@code -api:version-379}) et
- * le commit livré ({@code git show version-379}). Un seul identifiant relie
- * donc l'écran, l'image et le commit.
+ * <p>Ce même numéro étiquette l'image dans GHCR ({@code -api:v1.3.1}) et le
+ * commit livré ({@code git show v1.3.1}). Un seul identifiant relie donc
+ * l'écran, l'image et le commit.
  *
  * <h2>Authentifiée, comme presque tout le reste</h2>
  * Elle ne figure pas dans les exceptions de {@code SecurityConfig} : connaître
@@ -49,7 +51,7 @@ public class VersionController {
     }
 
     /**
-     * {@code version} vaut le numéro de la livraison en cours ({@code "118"}),
+     * {@code version} vaut le numéro de la livraison en cours ({@code "1.3.1"}),
      * ou {@code dev} hors conteneur. C'est une chaîne et non un entier : elle
      * doit pouvoir porter {@code dev}, et le client ne fait que l'afficher et
      * la comparer à la sienne — jamais d'arithmétique dessus.

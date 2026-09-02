@@ -8,24 +8,30 @@ import tailwindcss from '@tailwindcss/vite'
  *
  * En conteneur, le numéro vient du workflow (`ARG VERSION`, voir
  * .github/workflows/deploiement.yml) et cette fonction n'est jamais appelée -
- * `VITE_VERSION` est déjà posé, et l'image de build n'a de toute façon pas
- * git. Hors conteneur, il n'y avait RIEN : le pied de page disait « Version
- * dev », ce qui répond « je ne sais pas » à la seule question qu'il pose.
+ * `VITE_VERSION` est déjà posé, et l'image de build n'a de toute façon ni git
+ * ni étiquettes. Hors conteneur, il n'y avait RIEN : le pied de page disait
+ * « Version dev », ce qui répond « je ne sais pas » à la seule question qu'il
+ * pose.
  *
- * Git, lui, sait : c'est le même `git rev-list --count` que la publication.
+ * Git, lui, sait : c'est le même calcul que la publication, le même fichier
+ * (scripts/version.mjs), déduit des messages de commit.
  *
  * Le suffixe `-dev` n'est pas décoratif. Un poste de travail a des
  * modifications non commises, et son numéro ne désigne donc AUCUNE image
- * publiée : afficher « 380 » tout court ferait passer un brouillon pour une
- * livraison, exactement ce que `ARG VERSION=dev` évitait jusqu'ici. « 380-dev »
- * dit les deux choses à la fois - de quel commit on part, et qu'on n'est pas
- * une livraison.
+ * publiée : afficher « 1.1.0 » tout court ferait passer un brouillon pour une
+ * livraison, exactement ce que `ARG VERSION=dev` évitait jusqu'ici.
+ * « 1.1.0-dev » dit les deux choses à la fois - de quel commit on part, et
+ * qu'on n'est pas une livraison. C'est aussi ce que dit `-dev` en sémantique
+ * de version : une pré-livraison, qui vient AVANT le 1.1.0 publié.
  */
 function versionDuPosteDeTravail(): string {
   try {
-    return `${execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim()}-dev`
+    // En sous-processus et non par import : ce fichier est aussi lu par le
+    // build en conteneur, où le script échouerait faute d'étiquettes - il ne
+    // doit donc s'exécuter que si personne n'a déjà posé la version.
+    return `${execSync('node scripts/version.mjs', { encoding: 'utf8', cwd: import.meta.dirname }).trim()}-dev`
   } catch {
-    // Pas de git (archive téléchargée, dépôt absent) : ne rien inventer.
+    // Pas de git, pas d'étiquette, dépôt absent : ne rien inventer.
     return 'dev'
   }
 }
@@ -69,6 +75,8 @@ export default defineConfig({
     // Pas de `globals: true` : `describe`/`it`/`expect` s'importent, comme
     // tout le reste du code de ce dépôt. Un test qui se lit sans savoir ce
     // que la configuration injecte se relit des mois plus tard.
-    include: ['src/**/*.test.{ts,tsx}'],
+    // `scripts/` en plus de `src/` : le calcul du numéro de version y vit, et
+    // c'est du code dont l'erreur ne se verrait sur aucun écran.
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
   },
 })
