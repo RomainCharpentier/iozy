@@ -15,9 +15,10 @@ WORKDIR /app
 # Le numéro de version du pom (0.1.0-SNAPSHOT) ne bouge jamais : il ne distingue
 # pas deux déploiements, donc il ne répond pas à la seule question qu'on se pose
 # devant une mise à jour automatique - « laquelle est en ligne ? ». Le numéro de
-# livraison, lui, est le nombre de commits de `main` : il croît d'une livraison
-# à l'autre, donc il se COMPARE, et il étiquette aussi bien l'image publiée que
-# le commit livré (voir .github/workflows/deploiement.yml).
+# livraison, lui, est un Majeure.Mineure.Patch déduit des messages de commit
+# (voir web/scripts/version.mjs) : il croît d'une livraison à l'autre, donc il
+# se COMPARE, il dit ce qui a changé, et il étiquette aussi bien l'image
+# publiée que le commit livré.
 #
 # `dev` par défaut : une image construite à la main sur un poste ne ment pas en
 # se faisant passer pour une livraison.

@@ -19,11 +19,11 @@ import { queryKeys } from '../../lib/queryKeys'
  * réponse, on cherche un défaut dans du code qui n'est pas encore là.
  *
  * <h2>Un numéro, parce qu'un numéro se compare</h2>
- * C'est le nombre de commits de `main` au moment de la publication (voir
- * .github/workflows/deploiement.yml). Devant « Version 379 » et « serveur
- * 378 », on sait sans rien ouvrir laquelle des deux images est en retard —
- * deux SHA, eux, ne se comparaient pas. Et le numéro mène au code : il
- * étiquette le commit livré (`git show version-379`) autant que l'image
+ * Majeure.Mineure.Patch, déduit des messages de commit à la publication (voir
+ * web/scripts/version.mjs). Devant « Version 1.3.1 » et « serveur 1.2.0 », on
+ * sait sans rien ouvrir laquelle des deux images est en retard — deux SHA, eux,
+ * ne se comparaient pas — et de quelle nature était l'écart. Le numéro mène au
+ * code : il étiquette le commit livré (`git show v1.3.1`) autant que l'image
  * publiée.
  *
  * <h2>« Version », et surtout pas « Livraison »</h2>
@@ -52,8 +52,8 @@ import { queryKeys } from '../../lib/queryKeys'
  * la console n'apprendrait rien à qui lit déjà « Version 379 ».
  *
  * <h2>Deux brouillons ne divergent pas</h2>
- * Sur un poste de travail, l'interface porte `380-dev` (dérivé de git par
- * vite.config.ts) et l'API répond `dev` : deux valeurs différentes, mais aucun
+ * Sur un poste de travail, l'interface porte `1.1.0-dev` (dérivé des commits
+ * par vite.config.ts) et l'API répond `dev` : deux valeurs différentes, mais aucun
  * écart à réparer - ce sont deux constructions locales, elles n'ont aucune
  * raison de coïncider. Annoncer « serveur dev, rechargez » à chaque écran
  * apprendrait à ignorer la ligne qui compte le jour où l'écart est vrai.

@@ -1370,11 +1370,48 @@ pour montrer - l'interface et le serveur qui ne viennent pas de la même
 livraison - et il le montrait avec deux identifiants dont on ne pouvait pas
 dire lequel était le plus récent.
 
-**Le numéro est le nombre de commits de `main`** (`git rev-list --count HEAD`),
-calculé au moment de la publication. Aucun geste à poser, donc rien à oublier
-un soir de correction rapide ; monotone, donc « serveur 378 » sous « Version
-379 » se lit d'un coup. Le numéro du pom (`0.1.0-SNAPSHOT`) ne pouvait pas
-jouer ce rôle - il ne bouge jamais.
+**Le numéro est un Majeure.Mineure.Patch déduit des messages de commit**,
+calculé au moment de la publication (`web/scripts/version.mjs`). Aucun geste à
+poser, donc rien à oublier un soir de correction rapide ; ordonné, donc
+« serveur 1.2.0 » sous « Version 1.3.1 » se lit d'un coup ; et il dit ce qui a
+changé, pas seulement qu'il a changé. Le numéro du pom (`0.1.0-SNAPSHOT`) ne
+pouvait pas jouer ce rôle - il ne bouge jamais.
+
+#### La règle, et le prix qu'elle se paie
+
+Ce dépôt écrit ses messages en Conventional Commits depuis le début : la
+nature de chaque changement est **déjà écrite**, il n'y avait qu'à la lire.
+
+| Le commit | Le numéro |
+|---|---|
+| `feat!:`, ou `BREAKING CHANGE:` en pied | Majeure + 1, le reste à zéro |
+| `feat:` | Mineure + 1, Patch à zéro |
+| tout le reste (`fix`, `perf`, `refactor`, `docs`, `test`…) | Patch + 1 |
+
+La troisième ligne est un choix, et il se paie : `docs:` n'est pas un
+correctif. Mais un commit déployé qui ne bougerait AUCUN chiffre donnerait deux
+livraisons différentes portant le même numéro - précisément ce que ce numéro
+existe pour éviter. Tout ce qui part mérite au moins un patch.
+
+Le calcul repart de la dernière étiquette `vX.Y.Z` atteignable, posée par le
+déploiement précédent. D'où une propriété qu'on n'a pas eu à coder : **poser
+`git tag -a v2.0.0` à la main suffit à décider d'un cap**, le calcul repart de
+là. L'automatisme ne retire pas la décision, il évite seulement d'avoir à la
+prendre quand il n'y en a pas.
+
+Sans étiquette de départ, le script **échoue** au lieu de repartir de 1.0.0 :
+c'est le signe d'un clone superficiel, et un numéro qui recule se lit
+exactement comme un numéro qui avance. `v1.0.0` a été posée à la main sur ce
+qui tournait le 2026-09-02.
+
+#### Le compteur de commits, essayé d'abord
+
+La première version de ce lot numérotait par `git rev-list --count HEAD` - 379,
+380, 381. Ça marchait, et ça manquait l'essentiel : un compteur dit qu'il s'est
+passé quelque chose, jamais QUOI. Entre 380 et 381, rien ne distingue une
+correction d'une refonte. Le passage au sémantique n'a coûté qu'un fichier de
+plus, parce que les trois endroits où le numéro se pose - écran, image,
+étiquette - étaient déjà en place et ne demandaient qu'une autre chaîne.
 
 #### « Version », et pas « Livraison »
 
@@ -1390,13 +1427,14 @@ toutes les trois **version**.
 #### Ce qui relie le numéro au code
 
 Un numéro affiché ne vaut que si l'on peut remonter à ce qu'il désigne. Le même
-`379` est posé à trois endroits par le workflow de déploiement :
+`1.3.1` est posé à trois endroits par le workflow de déploiement :
 
 - **à l'écran**, gravé dans les deux images (`ARG VERSION`) ;
-- **sur l'image publiée**, `iozycore-api:version-379` dans GHCR - c'est ce
-  qu'on remet dans `docker-compose.nas.yml` pour revenir en arrière ;
-- **sur le commit**, une étiquette git annotée `version-379`, visible sur
-  GitHub et résolue par `git show version-379`.
+- **sur l'image publiée**, `iozycore-api:v1.3.1` dans GHCR - c'est ce qu'on
+  remet dans `docker-compose.nas.yml` pour revenir en arrière ;
+- **sur le commit**, une étiquette git annotée `v1.3.1`, visible sur GitHub et
+  résolue par `git show v1.3.1` - et c'est elle, en plus, que lit le calcul de
+  la livraison suivante.
 
 Le SHA **cesse** d'étiqueter les images : deux identifiants pour une seule
 livraison, c'est un de trop, et l'étiquette git mène désormais au commit exact
@@ -1410,9 +1448,13 @@ un déploiement pour une étiquette qui dit déjà la vérité.
 
 #### Le piège, et il ne s'annonce pas
 
-`actions/checkout` ne clone qu'**un seul commit** par défaut. Sans
-`fetch-depth: 0`, `git rev-list --count HEAD` rend `1`, à chaque déploiement,
-pour toujours - et un numéro faux se lit exactement comme un numéro juste.
+`actions/checkout` ne clone qu'**un seul commit**, sans étiquettes, par
+défaut. Sans `fetch-depth: 0`, le calcul n'a ni base ni historique. Il échoue
+donc bruyamment plutôt que d'inventer - et le workflow prend la même précaution
+une ligne plus loin : `echo "x=$(commande)"` masquerait l'échec de la commande
+derrière le succès d'`echo`, et publierait une version **vide**. L'affectation
+se fait donc en deux temps, ce qui laisse `bash -e` arrêter le job.
+
 C'est le genre de défaut qu'aucun test ne voit et qu'on ne découvre qu'en
 comparant deux livraisons qui portent le même chiffre.
 
@@ -1438,39 +1480,49 @@ visible sans défilement en 1280 px comme en 375 px, aucun débordement.
 Deuxième chose trouvée en testant : sur le serveur de développement, le pied
 de page disait « Version dev » - c'est-à-dire « je ne sais pas », à la seule
 question qu'il pose. Git, lui, sait : `vite.config.ts` appelle le même
-`git rev-list --count HEAD` que la publication et pose `VITE_VERSION` quand
-elle n'est pas déjà là (en conteneur elle l'est, et l'image de build n'a de
-toute façon pas git).
+`scripts/version.mjs` que la publication et pose `VITE_VERSION` quand elle
+n'est pas déjà là (en conteneur elle l'est, et l'image de build n'a de toute
+façon ni git ni étiquettes).
 
 Le suffixe n'est pas décoratif : un poste de travail a des modifications non
-commises, et son numéro ne désigne **aucune image publiée**. Afficher « 380 »
-tout court ferait passer un brouillon pour une livraison - exactement ce que
-`ARG VERSION=dev` évitait. « **380-dev** » dit les deux : de quel commit on
-part, et qu'on n'est pas une livraison.
+commises, et son numéro ne désigne **aucune image publiée**. Afficher
+« 1.1.0 » tout court ferait passer un brouillon pour une livraison - exactement
+ce que `ARG VERSION=dev` évitait. « **1.1.0-dev** » dit les deux : de quel
+commit on part, et qu'on n'est pas une livraison. C'est d'ailleurs ce que `-dev`
+signifie en sémantique de version - une pré-livraison, qui vient AVANT le 1.1.0
+publié.
 
 Conséquence à traiter tout de suite : l'interface aurait alors porté
-`380-dev` pendant que l'API locale répond `dev`, donc « serveur dev,
+`1.1.0-dev` pendant que l'API locale répond `dev`, donc « serveur dev,
 rechargez » **sur chaque écran d'un poste de travail**. Deux brouillons n'ont
 aucune raison de coïncider, et un avertissement permanent apprend à ignorer
 la ligne le jour où l'écart est vrai. L'écart n'est donc signalé qu'entre deux
 LIVRAISONS (`estUneLivraison`, dans api/version.ts) - un SHA d'avant le
-numérotage en est une, `dev` et `380-dev` n'en sont pas.
+numérotage en est une, `dev` et `1.1.0-dev` n'en sont pas.
 
 Effet de bord sur les tests : ils lisaient `VERSION_INTERFACE` de la machine
 qui les joue, ce qui les aurait fait changer de sens à chaque commit. Ils la
 POSENT désormais.
 
-#### Deux compteurs à ne pas confondre
+#### Deux numérotations à ne pas confondre
 
 Le numéro de **lot** (celui de cette section, 114) compte les chantiers de ce
-document ; le numéro de **livraison** compte les commits déployés. Ils ne
-coïncident pas et n'ont pas à le faire : tous les lots ne sont pas des
-livraisons, et huit commits d'infrastructure - le déploiement sur NAS, la
-visite anonyme - sont partis sans section ici.
+document ; la **version** numérote les livraisons. Ils ne coïncident pas et
+n'ont pas à le faire : tous les lots ne sont pas des livraisons, et huit commits
+d'infrastructure - le déploiement sur NAS, la visite anonyme - sont partis sans
+section ici.
+
+Reste dans le dépôt une étiquette `version-379`, seule survivante du compteur
+de commits. Elle n'est pas supprimée - une référence publiée ne s'efface pas
+pour faire propre - et le calcul l'ignore : il ne regarde que `v[0-9]*.[0-9]*.[0-9]*`.
 
 #### Le filet
 
-317 tests web (41 modules). Le pied de page en porte quatre : le cas normal
+330 tests web (42 modules). Dix portent sur le calcul du numéro lui-même
+(`web/scripts/version.mjs`), là où l'erreur ne se verrait sur aucun écran : une
+majeure oubliée, un `docs:` qui n'incrémente rien, le mot « BREAKING CHANGE »
+cité dans une phrase et pris pour un pied de message. Le pied de page en porte
+six : le cas normal
 (un seul numéro), la divergence (`serveur 378` et le lien pour recharger), le
 serveur muet (qui reste muet), et le SHA de 40 caractères d'une image
 construite **avant** ce lot - transitoire, mais bien réel le jour du passage,
