@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { CLASSE_CARTE } from '../../components/Carte'
+import { PiedDePage } from '../../components/layout/PiedDePage'
 import { useAuth } from '../../lib/useAuth'
 
 /**
@@ -198,6 +199,9 @@ export function AuthPage() {
           Tu consultes le catalogue des œuvres, en lecture seule.
         </p>
       </div>
+      {/* Quelle livraison tourne - ici plus qu'ailleurs : quand on n'entre
+          pas, la première question est de savoir ce qui est en ligne. */}
+      <PiedDePage sansSession />
     </main>
   )
 }

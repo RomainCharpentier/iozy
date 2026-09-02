@@ -1416,6 +1416,23 @@ pour toujours - et un numéro faux se lit exactement comme un numéro juste.
 C'est le genre de défaut qu'aucun test ne voit et qu'on ne découvre qu'en
 comparant deux livraisons qui portent le même chiffre.
 
+#### L'écran où il manquait, et c'était le pire
+
+Trouvé en testant : « je ne vois pas la version ». Le pied de page vit dans
+`AppShell`, et `PorteFermee` **remplace tout le shell** tant que personne n'est
+connecté (App.tsx) - l'écran de connexion n'avait donc pas de version. C'était
+l'écran où la question se pose le plus fort : quand on n'entre PAS, savoir ce
+qui tourne est la première chose qu'on cherche.
+
+`PiedDePage` prend donc un `sansSession`, qui fait deux choses à la fois parce
+qu'elles ont la même cause - être hors du shell : il n'interroge pas
+`/api/version` (la route exige une session, ce serait un 401 de plus dans la
+console de quelqu'un qui n'est pas encore entré ; le numéro de l'interface,
+lui, est compilé dans le fichier et ne demande rien à personne), et il laisse
+tomber le dégagement de 96 px réservé à la barre d'onglets, qui n'existe pas
+là et qui remonterait le formulaire centré d'autant. Mesuré sur la porte :
+visible sans défilement en 1280 px comme en 375 px, aucun débordement.
+
 #### Deux compteurs à ne pas confondre
 
 Le numéro de **lot** (celui de cette section, 114) compte les chantiers de ce

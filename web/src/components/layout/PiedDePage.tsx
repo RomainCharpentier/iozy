@@ -42,13 +42,22 @@ import { queryKeys } from '../../lib/queryKeys'
  * elle diffère, et dit alors quoi faire : un écart se répare presque toujours
  * en rechargeant.
  *
+ * <h2>À la porte aussi, et c'est là qu'il sert le plus</h2>
+ * L'écran de connexion vit HORS du shell (voir `PorteFermee` dans App.tsx) :
+ * il n'avait donc pas de pied de page, et c'était l'écran où la question se
+ * pose le plus fort - quand on n'entre pas, on veut d'abord savoir ce qui
+ * tourne. `sansSession` l'y rend possible : le numéro de l'interface est
+ * compilé dans le fichier, il ne demande rien à personne. Celui du serveur,
+ * lui, n'est pas demandé - la route exige une session, et un 401 de plus dans
+ * la console n'apprendrait rien à qui lit déjà « Version 379 ».
+ *
  * <h2>Muet quand il ne sait pas</h2>
  * L'appel au serveur ne réessaie pas et n'annonce aucune erreur : ne pas
  * connaître la version qui tourne n'est pas une panne, et sûrement pas une
  * bannière rouge en bas de toutes les pages. La version de l'interface, elle,
  * est toujours là - elle est compilée dans le fichier.
  */
-export function PiedDePage() {
+export function PiedDePage({ sansSession = false }: { sansSession?: boolean } = {}) {
   // `staleTime: Infinity` : elle ne change qu'au redéploiement, et l'appel a
   // donc lieu une fois par session, pas à chaque changement d'écran.
   const versionServeur = useQuery({
@@ -56,13 +65,21 @@ export function PiedDePage() {
     queryFn: lireVersionServeur,
     staleTime: Infinity,
     retry: false,
+    enabled: !sansSession,
   })
 
   const serveur = versionServeur.data?.version ?? null
   const memeLivraison = serveur !== null && serveur === VERSION_INTERFACE
 
   return (
-    <footer className="pb-24 text-center text-xs text-textDim md:pb-10">
+    // Le dégagement du bas n'existe que pour la barre d'onglets fixe, qui
+    // appartient au shell : à la porte, il ne dégagerait rien et remonterait
+    // le formulaire centré de 96 px.
+    <footer
+      className={
+        sansSession ? 'text-center text-xs text-textDim' : 'pb-24 text-center text-xs text-textDim md:pb-10'
+      }
+    >
       Version {versionCourte(VERSION_INTERFACE)}
       {serveur !== null && !memeLivraison && (
         <>

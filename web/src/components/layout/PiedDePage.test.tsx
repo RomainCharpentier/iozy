@@ -66,6 +66,20 @@ describe('quand l’interface et le serveur divergent', () => {
   })
 })
 
+describe('à la porte, avant toute session', () => {
+  it('affiche la version de l’interface sans rien demander au serveur', async () => {
+    // L'écran de connexion vit hors du shell : c'est le seul endroit où ce
+    // pied de page s'affiche sans session, et c'est là que la question se pose
+    // le plus fort - quand on n'entre pas, on veut savoir ce qui tourne.
+    render(<PiedDePage sansSession />, { wrapper: enrobage })
+
+    expect(await screen.findByText(/^Version /)).toBeInTheDocument()
+    // La route exige une session : l'appeler ici n'ajouterait qu'un 401 dans
+    // la console de quelqu'un qui n'est pas encore entré.
+    expect(api.lireVersionServeur).not.toHaveBeenCalled()
+  })
+})
+
 describe('quand le serveur ne répond pas', () => {
   it('reste muet plutôt que d’annoncer une panne', async () => {
     // Ne pas connaître la version qui tourne n'est pas un incident, et

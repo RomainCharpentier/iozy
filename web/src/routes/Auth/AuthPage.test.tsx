@@ -54,6 +54,17 @@ async function ecran(etat: { aucunCompte: boolean; creationOuverte: boolean }) {
 
 beforeEach(() => vi.clearAllMocks())
 
+describe('quelle livraison tourne', () => {
+  it('se lit sur la porte, sans avoir à entrer', async () => {
+    // La porte remplace tout le shell, pied de page compris : sans cette
+    // ligne, le seul écran qu'on voit quand ON N'ENTRE PAS est aussi le seul
+    // qui ne dit pas ce qui tourne.
+    await ecran({ aucunCompte: false, creationOuverte: false })
+
+    expect(await screen.findByText(/^Version /)).toBeInTheDocument()
+  })
+})
+
 describe('une instance neuve', () => {
   it('propose de créer le premier compte, et dit ce qu’il reprend', async () => {
     await ecran({ aucunCompte: true, creationOuverte: true })
