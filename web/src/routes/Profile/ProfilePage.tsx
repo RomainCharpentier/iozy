@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronRight, Settings2 } from 'lucide-react'
+import { ChevronRight, Settings2, Sparkles } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
@@ -47,6 +47,23 @@ export function ProfilePage() {
       <div id="partage" ref={partageRef} className="scroll-mt-4">
         <ShareSection />
       </div>
+
+      {/* La collection interrogée en français (V3 de CONCEPTION.md §15,
+          Lot 117). Ici et pas dans Découvrir : Découvrir propose ce qu'on n'a
+          PAS, cette page parle de ce qu'on A. */}
+      <Link
+        to="/question"
+        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
+          <Sparkles size={18} />
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium text-textPrimary">Demander à ma collection</span>
+          <span className="block text-xs text-textDim">Une question en français, une réponse appuyée sur tes fiches</span>
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-textDim" />
+      </Link>
 
       <Link
         to="/settings"

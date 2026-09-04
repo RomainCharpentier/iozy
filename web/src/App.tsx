@@ -67,6 +67,7 @@ const EditionsPage = page(() => import('./routes/Editions/EditionsPage'), 'Editi
 const EntityTypesPage = page(() => import('./routes/EntityTypes/EntityTypesPage'), 'EntityTypesPage')
 const SettingsPage = page(() => import('./routes/Settings/SettingsPage'), 'SettingsPage')
 const ImportPage = page(() => import('./routes/Settings/ImportPage'), 'ImportPage')
+const QuestionPage = page(() => import('./routes/Profile/QuestionPage'), 'QuestionPage')
 const SharedSpacePage = page(() => import('./routes/Share/SharedSpacePage'), 'SharedSpacePage')
 
 /**
@@ -211,6 +212,7 @@ export default function App() {
                   <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/settings/import" element={<ImportPage />} />
+                  <Route path="/question" element={<QuestionPage />} />
                   {/* Le repli, en dernier : sans lui une URL inconnue rendait
                       un `<main>` vide avec la navigation autour - un écran qui
                       a l'air cassé plutôt que d'expliquer. */}

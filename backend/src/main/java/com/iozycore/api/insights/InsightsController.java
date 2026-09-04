@@ -4,6 +4,11 @@ import com.iozycore.insights.CollectionValue;
 import com.iozycore.insights.DiscoveryCandidate;
 import com.iozycore.insights.CollectionProgress;
 import com.iozycore.insights.CollectionProgressService;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.http.ResponseEntity;
+import com.iozycore.insights.CollectionQuestionService;
+import com.iozycore.insights.CollectionAnswer;
 import com.iozycore.insights.DiscoveryService;
 import com.iozycore.insights.StatsService;
 import com.iozycore.insights.StatsSummary;
@@ -30,12 +35,38 @@ public class InsightsController {
     private final StatsService statsService;
     private final DiscoveryService discoveryService;
     private final CollectionProgressService collectionProgressService;
+    private final CollectionQuestionService collectionQuestionService;
 
     public InsightsController(StatsService statsService, DiscoveryService discoveryService,
-                               CollectionProgressService collectionProgressService) {
+                               CollectionProgressService collectionProgressService,
+                               CollectionQuestionService collectionQuestionService) {
         this.statsService = statsService;
         this.discoveryService = discoveryService;
         this.collectionProgressService = collectionProgressService;
+        this.collectionQuestionService = collectionQuestionService;
+    }
+
+    public record QuestionRequest(String question) {
+    }
+
+    /**
+     * 204 quand aucune cle IA n'est configuree (la fonctionnalite n'existe
+     * pas sur cette instance), 503 quand le modele n'a pas repondu : ni l'un
+     * ni l'autre n'est une reponse vide a afficher comme venant de la
+     * collection.
+     */
+    @Operation(summary = "Poser une question en francais sur sa collection - repondue par une IA a partir d'un "
+            + "instantane des oeuvres, exemplaires, experiences et envies du compte ; jamais persistee. "
+            + "204 sans cle Gemini, 503 si le modele n'a pas repondu")
+    @PostMapping("/question")
+    public ResponseEntity<CollectionAnswer> question(@RequestBody QuestionRequest request) {
+        if (!collectionQuestionService.estDisponible()) {
+            return ResponseEntity.noContent().build();
+        }
+        return collectionQuestionService.repondre(request == null ? null : request.question())
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "L'IA n'a pas répondu, réessaie dans un instant"));
     }
 
     @Operation(summary = "Statistiques agrégées : nombre d'entités/possessions par type, "
