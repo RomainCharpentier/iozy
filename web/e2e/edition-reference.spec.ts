@@ -39,7 +39,7 @@ test('renseigner le nombre de tomes d’une édition, et voir « X/Y » apparaî
   //     Un seul « Éditer » pour toute la page (Lot 129-130) : les rangées de
   //     l'inspecteur deviennent des champs, à la même place, et une seule
   //     barre les enregistre.
-  await page.getByRole('button', { name: 'Éditer' }).click()
+  await page.getByRole('button', { name: 'Éditer', exact: true }).click()
   await page.getByPlaceholder('Nb de tomes').fill('18')
   await page.getByPlaceholder('Éditeur (ex: Kana)').fill('Kana')
   await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()

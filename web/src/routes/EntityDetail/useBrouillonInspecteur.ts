@@ -78,7 +78,9 @@ const CLES_TECHNIQUES = ['malId', 'igdbId', 'bggId', 'mediaType', 'titleRomaji',
  * la première fois - `totalVolumes` en tête : lue avec un `typeof === 'number'`
  * strict (voir lib/seriesInfo.totalVolumesFrom), une chaîne "48" y serait
  * silencieusement ignorée, et la progression X/Y disparaîtrait. */
-const CLES_NUMERIQUES = ['totalVolumes', 'volumeNumber', 'averageDurationHours', 'startYear', 'endYear']
+// PAS les années : la fiche et l'aperçu les lisent en `typeof === 'string'`
+// (« Depuis 2004 » dans le bandeau) - un nombre y disparaîtrait sans bruit.
+const CLES_NUMERIQUES = ['totalVolumes', 'volumeNumber', 'averageDurationHours']
 
 /**
  * Conserve le TYPE de la valeur existante plutôt que de tout réécrire en
@@ -135,12 +137,15 @@ export function libelleDe(cle: string): string {
   return espace.charAt(0).toUpperCase() + espace.slice(1)
 }
 
+const AUCUNE: string[] = []
+
 export function useBrouillonInspecteur({
   entityId,
   entityTitle,
   attributes,
   champsSaisis,
   customFieldKeys,
+  clesSourceProposees = AUCUNE,
   edition,
 }: {
   entityId: string
@@ -148,6 +153,10 @@ export function useBrouillonInspecteur({
   attributes: Record<string, unknown>
   champsSaisis: string[]
   customFieldKeys: string[]
+  /** Les rouages qu'on peut compléter même absents - les clés de la colonne
+   *  SOURCE pour un manga, rien pour un jeu de société : un malId n'a pas de
+   *  sens ailleurs que chez une œuvre suivie par une base de mangas. */
+  clesSourceProposees?: string[]
   /** L'édition active et sa fiche de référence (null tant qu'aucune n'a été
    *  renseignée), ou null pour une œuvre sans édition nommée. */
   edition: { nom: string; info: MangaEditionDto | null } | null
@@ -167,17 +176,17 @@ export function useBrouillonInspecteur({
   // des attributs réellement présents (ce que l'API a rempli). Aucune clé
   // libre n'est créée ici : inventer un champ, c'est modifier le TYPE.
   const { cles, clesOeuvre, clesSource } = useMemo(() => {
-    const toutes = [...new Set([...customFieldKeys, ...Object.keys(attributes)])].filter(
+    const toutes = [...new Set([...customFieldKeys, ...clesSourceProposees, ...Object.keys(attributes)])].filter(
       (cle) => !CLES_HORS_COLONNES.includes(cle),
     )
-    const ordreSource = CLES_SOURCE.map((c) => c.cle)
+    const ordreSource = CLES_SOURCE.map((c) => c.cle).filter((cle) => toutes.includes(cle))
     const source = [
       ...ordreSource,
       ...toutes.filter((cle) => CLES_TECHNIQUES.includes(cle) && !ordreSource.includes(cle)),
     ]
     const oeuvre = toutes.filter((cle) => !source.includes(cle))
     return { cles: [...new Set([...oeuvre, ...source, 'note'])], clesOeuvre: oeuvre, clesSource: source }
-  }, [attributes, customFieldKeys])
+  }, [attributes, customFieldKeys, clesSourceProposees])
 
   const info = edition?.info ?? null
 
