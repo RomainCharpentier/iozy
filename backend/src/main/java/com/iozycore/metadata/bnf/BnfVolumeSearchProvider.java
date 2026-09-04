@@ -139,6 +139,15 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             if (rawTitle == null || rawTitle.isBlank()) {
                 continue;
             }
+            // 200$b dit la nature du document. Le dépôt légal reçoit aussi
+            // les DVD (« Images animées » - les coffrets Kana Home Video de
+            // Boruto, numérotés 3, 4, 7, 8 comme des tomes) et les jeux
+            // (« Ressource électronique ») : on ne garde que le papier, et
+            // les notices qui ne disent rien (certains tomes n'ont pas de $b).
+            String nature = subfield(titleField, "b");
+            if (nature != null && !nature.toLowerCase().contains("texte imprim")) {
+                continue;
+            }
             // Comparaison insensible à la casse (vérifié manuellement : la
             // BnF indexe parfois "Dragon ball" en minuscules selon la
             // notice) ET aux espaces/tirets internes (vérifié manuellement
@@ -149,7 +158,26 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             // côté Google Books, voir matchSeriesPrefix), mais peut différer
             // légèrement en ponctuation/espacement du titre MyAnimeList
             // cherché.
-            if (!normalizeForComparison(rawTitle).equals(normalizeForComparison(seriesTitle))) {
+            // Le titre cherché peut porter un SOUS-TITRE que la BnF range à
+            // part : « Boruto: Naruto Next Generations » (MyAnimeList) est
+            // catalogué $a « Boruto » + $e « Naruto next generations ».
+            // Constaté le 2026-09-04, Google Books à quota épuisé : la BnF
+            // rendait 19 notices, toutes écartées ici, et l'écran concluait
+            // qu'aucun fournisseur n'avait répondu. On accepte donc $a seul,
+            // ou $a suivi de l'un de ses $e - et ce $e-là n'est plus une
+            // édition (voir plus bas).
+            String cherche = normalizeForComparison(seriesTitle);
+            String titreBnf = normalizeForComparison(rawTitle);
+            List<String> sousTitres = subfields(titleField, "e");
+            int sousTitreConsomme = -1;
+            boolean correspond = titreBnf.equals(cherche);
+            for (int k = 0; !correspond && k < sousTitres.size(); k++) {
+                if ((titreBnf + normalizeForComparison(sousTitres.get(k))).equals(cherche)) {
+                    correspond = true;
+                    sousTitreConsomme = k;
+                }
+            }
+            if (!correspond) {
                 continue;
             }
 
@@ -161,7 +189,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 continue;
             }
 
-            String edition = editionName(titleField);
+            List<String> partsEdition = new ArrayList<>(sousTitres);
+            if (sousTitreConsomme >= 0) {
+                partsEdition.remove(sousTitreConsomme);
+            }
+            String edition = editionName(partsEdition);
             String displayTitle = rawTitle + (edition.isBlank() ? "" : " " + edition) + " T" + volumeNumber.getAsInt();
 
             // Spin-off/side-story/suite CONNU(e) (voir RelatedSeriesService) -
@@ -185,8 +217,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     /** 200$e (répétable - ex: "full color" ET "l'enfance de Goku" sur deux
      * subfields distincts pour la même notice) joints et capitalisés. */
-    private static String editionName(Element titleField) {
-        List<String> parts = subfields(titleField, "e");
+    private static String editionName(List<String> parts) {
         if (parts.isEmpty()) {
             return "";
         }
@@ -196,8 +227,16 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     private static String publisherFrom214(Element record) {
+        // 214 depuis 2019 ; les notices plus anciennes portent l'éditeur en
+        // 210$c - sans ce repli, les premiers tomes d'une série sortaient en
+        // « Édition inconnue » et se retrouvaient à part des suivants.
         Element field214 = firstDatafield(record, "214");
-        return field214 == null ? null : subfield(field214, "c");
+        String publisher = field214 == null ? null : subfield(field214, "c");
+        if (publisher == null || publisher.isBlank()) {
+            Element field210 = firstDatafield(record, "210");
+            publisher = field210 == null ? null : subfield(field210, "c");
+        }
+        return publisher;
     }
 
     private static OptionalInt parseVolumeNumber(String rawValue) {
@@ -246,8 +285,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     /** Retire tout espace/tiret et met en minuscules avant comparaison - voir
      * l'appelant. "Cardcaptor" (un seul mot) et "Card captor" (deux mots)
      * donnent tous deux "cardcaptor", peu importe où la coupure tombe. */
+    /** Ni casse, ni espaces, ni ponctuation : « Boruto: Naruto » et « Boruto : Naruto » sont le même titre. */
     private static String normalizeForComparison(String text) {
-        return text.trim().toLowerCase().replaceAll("[\\s\\-–]+", "");
+        return text.trim().toLowerCase().replaceAll("[^\\p{L}\\p{N}]+", "");
     }
 
     /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées

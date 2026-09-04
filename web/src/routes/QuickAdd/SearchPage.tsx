@@ -242,7 +242,7 @@ export function SearchPage() {
     }
     const controller = new AbortController()
     suggestionsQuery.data
-      .filter((c) => c.source === 'JIKAN' || c.source === 'MYANIMELIST')
+      .filter((c) => c.source === 'JIKAN' || c.source === 'MYANIMELIST' || c.source === 'ANILIST')
       .slice(0, 6)
       .forEach((candidate) => {
         const { author, malId, titleRomaji } = indicesDe(candidate.attributes)
