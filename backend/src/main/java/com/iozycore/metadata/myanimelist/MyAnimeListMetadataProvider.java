@@ -41,11 +41,11 @@ import java.util.Map;
  * renvoie false tant que {@code mal.client-id} est vide, ce qui revient à
  * l'absence de ce fournisseur (Jikan reste seul, comportement inchangé).
  * <p>
- * @Order(2) : passe avant GoogleBooksTitleSearchProvider dans
+ * @Order(3) : derrière AniList et Jikan (Lot 119), avant GoogleBooksTitleSearchProvider dans
  * MetadataSearchService.search - même raison que sur JikanMetadataProvider.
  */
 @Component
-@Order(2)
+@Order(3)
 public class MyAnimeListMetadataProvider implements MetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MyAnimeListMetadataProvider.class);

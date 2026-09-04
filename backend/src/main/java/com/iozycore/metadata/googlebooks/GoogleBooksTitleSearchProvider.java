@@ -36,12 +36,12 @@ import java.util.regex.Pattern;
  * <p>
  * Tourne toujours en parallèle de Jikan/MyAnimeList (jamais en repli
  * conditionnel) - un résultat non pertinent de ces sources est indiscernable
- * à l'avance d'une recherche par titre français. @Order(4), après Jikan(1)/
- * MyAnimeList(2)/AniList(3) - les trois bases sans quota journalier passent
- * avant la seule source qui en a un (Lot 118) - et
- * MyAnimeList(2) : MetadataSearchService.search dédoublonne par titre exact
- * (ex: "Naruto", inchangé en français) en gardant le premier rencontré -
- * Jikan/MAL doivent gagner ce dédoublonnage (attributs plus riches).
+ * à l'avance d'une recherche par titre français. @Order(4), après AniList(1)/
+ * Jikan(2)/MyAnimeList(3) - les trois bases sans quota journalier passent
+ * avant la seule source qui en a un (Lots 118-119) : MetadataSearchService.search
+ * dédoublonne par titre exact (ex: "Naruto", inchangé en français) en gardant
+ * le premier rencontré, et ces bases doivent gagner ce dédoublonnage
+ * (attributs plus riches).
  * <p>
  * Filtre par éditeur manga connu (vérifié manuellement, voir historique de
  * la conversation) : un titre générique comme "Fragment" (mot très courant

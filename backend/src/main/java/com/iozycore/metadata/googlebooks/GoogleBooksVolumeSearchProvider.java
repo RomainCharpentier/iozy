@@ -10,6 +10,7 @@ import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
@@ -59,6 +60,10 @@ import java.util.stream.Collectors;
  * consommation de quota de toute l'application.
  */
 @Component
+// Derriere la BnF (Lot 119) : un quota journalier, huit requetes par
+// recherche, et des editions devinees dans un titre libre. Reste
+// indispensable pour les jaquettes, que la BnF n'a pas.
+@Order(2)
 public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksVolumeSearchProvider.class);

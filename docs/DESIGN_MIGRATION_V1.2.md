@@ -1360,6 +1360,48 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 119 — la source qui a le plus d'appels passe en premier
+
+Direction donnée par l'utilisateur juste après le Lot 118 : « mettre en avant
+l'api qui a le plus d'appels dispos pour uniformiser les données de l'app ;
+chaque donnée chargée est stockée sur iozycore avec possibilité de recharger
+depuis l'api avec un bouton sur la fiche détails ».
+
+**La seconde moitié existait déjà**, et n'a pas été refaite : tout ce qu'un
+ajout charge est persisté (attributs de l'œuvre, jaquette, tomes cataloguées,
+jaquettes de tomes sur les `Variant`, et la liste des tomes en
+`volume_search_cache`, sans expiration), et la fiche porte « Recharger depuis
+la source » depuis le 2026-08-27 : recherche `includeOwned`, rapprochement par
+identifiant externe (`malId`, `igdbId`, `bggId`) puis par titre, fusion des
+attributs sans jamais effacer, puis rattrapage des jaquettes de tomes. Avec un
+fournisseur principal qui change, ce bouton devient l'outil de
+**réalignement** : une œuvre ajoutée depuis Jikan (« Kishimoto, Masashi »)
+rechargée depuis AniList porte ensuite « Masashi Kishimoto », comme les
+suivantes.
+
+**La première moitié : l'ordre.** Recherche de mangas — **AniList en
+premier** (`@Order(1)`, 90 req/min, ni clé ni quota du jour), puis Jikan (2 ;
+60 req/min et des 504 par intermittence), l'API MyAnimeList officielle (3 ;
+clé requise), Google Books (4 ; quota journalier). La déduplication par titre
+garde le premier candidat rencontré : les œuvres viennent désormais du même
+endroit tant qu'AniList répond, et les autres ne servent que ce qu'il n'a
+pas. Tomes — **BnF en premier** (`@Order(1)`, structurée, sans quota), Google
+Books second (`@Order(2)`), les deux toujours interrogées ; sur un même tome,
+la règle « garde celui qui a une jaquette » devenait « la notice BnF fait
+foi, la jaquette est reprise de Google Books » (`fusionnerTome`).
+
+**Un détail de casse.** AniList reprend parfois la stylisation de l'éditeur
+tout en capitales (« BORUTO: NARUTO NEXT GENERATIONS ») là où MyAnimeList
+écrit « Boruto: Naruto Next Generations ». Un titre sans aucune minuscule est
+remis en casse de titre ; les autres ne sont pas touchés (« JoJo »). Sans ça,
+le changement de source aurait changé l'allure des titres — l'inverse de
+l'uniformité demandée.
+
+Vérification limitée par les circonstances : Jikan répondait encore 504 au
+moment du lot, donc l'ordre ne s'observe pas en direct (AniList était déjà
+le seul à répondre) ; tests du paquet métadonnées relancés, README et
+parcours 27 mis à jour.
+
 ### Lot 118 — quand tous les fournisseurs se taisent en même temps
 
 Signalé par l'utilisateur en testant le lot précédent : l'aperçu de « Boruto:

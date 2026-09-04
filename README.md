@@ -289,12 +289,15 @@ curl "http://localhost:8080/api/metadata/search?entityTypeId=00000000-0000-0000-
 ## Quand un fournisseur se tait
 
 Aucune source externe n'est indispensable : chaque écran a un secours, et
-l'app le dit quand elle en est réduite à lui.
+l'app le dit quand elle en est réduite à lui. La règle d'ordre : **la source
+qui a le plus d'appels disponibles passe en premier**, pour que les œuvres
+viennent du même endroit et portent les mêmes données ; « Recharger depuis la
+source » sur une fiche réaligne une œuvre ajoutée avant ce changement.
 
 | Besoin | D'abord | En secours (sans clé, sans quota journalier) |
 |---|---|---|
-| Chercher un manga par titre | Jikan, puis l'API MyAnimeList officielle | **AniList** (base de données, API GraphQL), puis Google Books |
-| Retrouver les tomes d'une série | Google Books (jaquettes) | **BnF** (catalogue du dépôt légal - numéro de tome, éditeur, ISBN, mais pas de jaquette), toujours interrogée en parallèle |
+| Chercher un manga par titre | **AniList** (base de données, API GraphQL, 90 req/min, sans quota du jour) | Jikan, puis l'API MyAnimeList officielle, puis Google Books |
+| Retrouver les tomes d'une série | **BnF** (catalogue du dépôt légal - numéro de tome, éditeur, ISBN, mais pas de jaquette) | Google Books, toujours interrogée en parallèle pour les jaquettes - sur un même tome, la notice BnF fait foi |
 | Titre français d'une série | Open Library | Google Books |
 
 Google Books est la seule source avec un **quota journalier** (429 « Too Many

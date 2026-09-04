@@ -394,10 +394,12 @@ devient **définitivement indélébile**.
 ### 27. Rechercher une œuvre par titre
 **Point de départ** : Rechercher (`/add`)
 **Étapes** : choisir un type, saisir ≥ 3 caractères.
-**Résultat** : suggestions externes (Jikan/MyAnimeList pour le manga, puis
-**AniList** en secours quand ils se taisent — Lot 118 ; BGG ; IGDB), avec
-jaquette, année, auteur. Aucune de ces trois bases manga n'a de quota
-journalier ; seule Google Books en a un, et elle passe en dernier.
+**Résultat** : suggestions externes (**AniList** d'abord pour le manga — la
+source qui a le plus d'appels disponibles, Lot 119 —, puis Jikan/MyAnimeList
+en secours, Google Books en dernier ; BGG ; IGDB), avec jaquette, année,
+auteur. Aucune des trois bases manga n'a de quota journalier ; seule Google
+Books en a un. « Recharger depuis la source » sur la fiche (parcours 12)
+réaligne une œuvre ajoutée avant ce changement sur la source principale.
 **Branches** : recherche externe en échec → « La recherche de métadonnées a
 échoué » ; aucun résultat → « Aucun résultat pour ce titre » ; type **sans
 fournisseur** → aucune recherche externe, message dédié annoncé **avant** la

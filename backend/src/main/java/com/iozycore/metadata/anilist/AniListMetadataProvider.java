@@ -21,25 +21,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Le fournisseur de secours pour la recherche de mangas : AniList
+ * Le fournisseur PRINCIPAL pour la recherche de mangas : AniList
  * (anilist.co), une base de donnees d'oeuvres - pas un site de lecture -
- * avec une API GraphQL publique, sans cle, limitee a 90 requetes par minute
- * et par adresse, sans quota journalier.
+ * avec une API GraphQL publique, sans cle, 90 requetes par minute et par
+ * adresse, sans quota journalier.
  *
- * <h2>Pourquoi un troisieme fournisseur de titres</h2>
- * Le 2026-09-04, Jikan repondait 504 (MyAnimeList bloque ce relais tiers par
- * intermittence) et Google Books 429 (quota journalier de la cle epuise) :
- * une recherche de titre n'avait plus aucune source. AniList passe APRES
- * Jikan (1) et MyAnimeList (2) : quand ils repondent, la deduplication par
- * titre garde leurs candidats ; quand ils se taisent, il rend les siens -
- * titre, annee, statut, nombre de tomes, auteur, jaquette et l'identifiant
- * MyAnimeList ({@code idMal}), qui permet a la resolution du titre francais
- * et a la recherche de tomes de retrouver leurs marques. Il ne connait pas
- * les titres francais : cette partie reste a Open Library, Google Books et,
- * pour les tomes, a la BnF.
+ * <h2>Pourquoi en premier</h2>
+ * Ne le 2026-09-04 comme secours, quand Jikan repondait 504 et Google Books
+ * 429 en meme temps ; passe en tete le meme jour, sur une regle donnee par
+ * l'utilisateur : <b>mettre en avant la source qui a le plus d'appels
+ * disponibles</b>, pour que les oeuvres de l'application viennent du meme
+ * endroit et portent les memes donnees (Lot 119). Jikan est limite a 60
+ * requetes par minute et bloque par intermittence, l'API MyAnimeList
+ * officielle demande une cle, Google Books a un quota journalier ; AniList
+ * n'a ni cle ni quota du jour. Les trois autres restent derriere (2, 3, 4) :
+ * la deduplication par titre garde le premier candidat rencontre, donc le
+ * sien quand il repond, le leur quand il se tait.
+ *
+ * <p>Il rend titre, annee, statut, nombre de tomes, auteur, jaquette et
+ * l'identifiant MyAnimeList ({@code idMal}), sous les memes cles d'attributs
+ * que Jikan : la resolution du titre francais et la recherche de tomes n'y
+ * voient aucune difference. Il ne connait pas les titres francais : cette
+ * partie reste a Open Library et Google Books, et les tomes a la BnF.
  */
 @Component
-@Order(3)
+@Order(1)
 public class AniListMetadataProvider implements MetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AniListMetadataProvider.class);
@@ -97,8 +103,8 @@ public class AniListMetadataProvider implements MetadataProvider {
         for (JsonNode media : objectMapper.readTree(body).path("data").path("Page").path("media")) {
             String id = media.path("id").asText(null);
             JsonNode titles = media.path("title");
-            String romaji = texte(titles, "romaji");
-            String english = texte(titles, "english");
+            String romaji = lisible(texte(titles, "romaji"));
+            String english = lisible(texte(titles, "english"));
             String title = romaji != null ? romaji : english;
             if (id == null || title == null) {
                 continue;
@@ -171,6 +177,32 @@ public class AniListMetadataProvider implements MetadataProvider {
             case "ONE_SHOT" -> "One-shot";
             default -> "Manga";
         };
+    }
+
+    /**
+     * AniList reprend parfois la stylisation de l'editeur, tout en capitales
+     * (« BORUTO: NARUTO NEXT GENERATIONS ») la ou MyAnimeList ecrit « Boruto:
+     * Naruto Next Generations ». Un titre SANS aucune minuscule est remis en
+     * casse de titre - les autres ne sont pas touches, une capitale isolee
+     * pouvant etre voulue (« JoJo »).
+     */
+    static String lisible(String titre) {
+        if (titre == null || titre.chars().anyMatch(Character::isLowerCase)
+                || titre.chars().noneMatch(Character::isLetter)) {
+            return titre;
+        }
+        StringBuilder sb = new StringBuilder(titre.length());
+        boolean debutDeMot = true;
+        for (char c : titre.toCharArray()) {
+            if (Character.isLetter(c)) {
+                sb.append(debutDeMot ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                debutDeMot = false;
+            } else {
+                sb.append(c);
+                debutDeMot = !Character.isDigit(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static String texte(JsonNode node, String champ) {

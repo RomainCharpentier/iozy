@@ -528,9 +528,11 @@ public class MetadataSearchService {
                 providerUnavailable = true;
             }
         }
-        // Deux fournisseurs (Google Books et BnF, voir BnfVolumeSearchProvider)
-        // peuvent désormais retrouver le même tome - garde la version AVEC
-        // jaquette en cas de collision, la BnF n'en fournissant jamais.
+        // Deux fournisseurs (BnF puis Google Books, voir leurs @Order)
+        // peuvent retrouver le même tome : la notice du PREMIER fait foi
+        // (Lot 119 - la BnF a des champs structurés, Google Books devine
+        // l'édition dans un titre libre), et la jaquette vient de celui qui
+        // en a une.
         result = dedupeVolumesPreferringImage(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
@@ -607,7 +609,7 @@ public class MetadataSearchService {
             byKey.put(volumeKey(candidate), candidate);
         }
         for (VolumeCandidate candidate : additional) {
-            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::preferWithImage);
+            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::fusionnerTome);
         }
         return new ArrayList<>(byKey.values());
     }
@@ -621,13 +623,17 @@ public class MetadataSearchService {
     private static List<VolumeCandidate> dedupeVolumesPreferringImage(List<VolumeCandidate> candidates) {
         Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
         for (VolumeCandidate candidate : candidates) {
-            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::preferWithImage);
+            byKey.merge(volumeKey(candidate), candidate, MetadataSearchService::fusionnerTome);
         }
         return new ArrayList<>(byKey.values());
     }
 
-    private static VolumeCandidate preferWithImage(VolumeCandidate existing, VolumeCandidate replacement) {
-        return existing.imageUrl() != null ? existing : replacement;
+    /** Le premier rencontré garde ses champs ; seule une jaquette manquante est prise chez le second. */
+    private static VolumeCandidate fusionnerTome(VolumeCandidate existing, VolumeCandidate replacement) {
+        if (existing.imageUrl() != null || replacement.imageUrl() == null) {
+            return existing;
+        }
+        return new VolumeCandidate(existing.edition(), existing.volumeNumber(), replacement.imageUrl(), existing.title());
     }
 
     /**

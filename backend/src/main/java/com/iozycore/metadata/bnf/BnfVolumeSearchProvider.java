@@ -5,6 +5,7 @@ import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -47,8 +48,8 @@ import java.util.stream.Collectors;
  * toujours null) - une notice bibliographique, pas un catalogue commercial.
  * Toujours cumulé aux résultats Google Books (jamais en repli
  * conditionnel) - MetadataSearchService dédoublonne ensuite par (édition,
- * tome), en préférant le résultat AVEC jaquette si les deux sources
- * trouvent le même tome.
+ * tome) : la notice BnF, rencontrée en premier, fait foi, et seule la
+ * jaquette est reprise de Google Books (Lot 119).
  * <p>
  * Pas de notion de recherche "rapide"/"approfondie" ici (voir
  * GoogleBooksVolumeSearchProvider et son partage de quota) : une seule
@@ -58,6 +59,10 @@ import java.util.stream.Collectors;
  * de plus.
  */
 @Component
+// En premier (Lot 119) : sans cle ni quota, et des champs STRUCTURES. Sur un
+// meme tome, c'est sa notice qui fait foi ; Google Books n'apporte que la
+// jaquette (voir MetadataSearchService.fusionnerTome).
+@Order(1)
 public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     private static final Logger log = LoggerFactory.getLogger(BnfVolumeSearchProvider.class);
