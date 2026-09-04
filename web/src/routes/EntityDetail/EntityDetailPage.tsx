@@ -790,16 +790,6 @@ export function EntityDetailPage() {
               )}
               {editionInfo?.publisher && <RangeeInspecteur libelle="Éditeur">{editionInfo.publisher}</RangeeInspecteur>}
               {totalTomes !== null && <RangeeInspecteur libelle="Nombre de tomes">{totalTomes}</RangeeInspecteur>}
-              {groupeActif && groupeActif.editionName !== '' && (
-                <div className="flex flex-wrap items-center gap-2 pt-3">
-                  <EditionCorrectionSection
-                    entityId={entityId}
-                    entityTitle={entity.title}
-                    editionName={groupeActif.editionName}
-                    editionInfo={editionInfo}
-                  />
-                </div>
-              )}
             </div>
           }
           source={
@@ -872,6 +862,19 @@ export function EntityDetailPage() {
                     : null
                 }
               />
+              {/* Corriger l'édition active (tomes, éditeur, épuisée…) : sous
+                  ses informations, dans le même mode. Le crayon qui vivait
+                  dans l'inspecteur était le dernier « Modifier » à part. */}
+              {groupeActif && groupeActif.editionName !== '' && (
+                <div className="pt-4">
+                  <EditionCorrectionSection
+                    entityId={entityId}
+                    entityTitle={entity.title}
+                    editionName={groupeActif.editionName}
+                    editionInfo={editionInfo}
+                  />
+                </div>
+              )}
             </Carte>
             <Carte>
               <RelationshipsSection

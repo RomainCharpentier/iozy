@@ -173,7 +173,8 @@ client, n'existe plus.
 **Statut** : `COMPLET`
 
 ### 10. Renseigner ou corriger l'édition de référence
-**Point de départ** : fiche ▸ « Modifier l'édition »
+**Point de départ** : fiche ▸ « Éditer » (le formulaire de l'édition active
+s'ouvre sous ses informations, Lot 129 - plus de crayon à part)
 **Étapes** : éditeur, nombre de tomes, prix neuf, épuisée, meilleure édition
 annoncée → Enregistrer.
 **Résultat** : la fiche de référence est créée ou mise à jour ; la progression

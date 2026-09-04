@@ -1376,6 +1376,10 @@ la même page, cinq boutons dans une colonne de 240 px. Tranché : un geste.
   puis le catalogue, comme avant. Les remarques s'éditent en place dans leur
   relevé : le brouillon naît à l'entrée du mode et meurt à sa sortie ;
   « Enregistrer » et « Annuler » se désactivent tant que rien n'a changé.
+- Le crayon « Modifier l'édition » de l'inspecteur (tomes, éditeur, épuisée,
+  nouvelle édition annoncée) était le dernier « Modifier » à part : le
+  formulaire vit maintenant sous les informations de l'œuvre, dans le même
+  mode, toujours pré-rempli ; « Annuler » y revient sans le refermer.
 - Un visiteur sans compte n'a toujours pas d'« Éditer » ; un compte ordinaire
   y trouve ses éditeurs personnels, et le catalogue dont le serveur protège
   déjà les écritures réservées (tags, rechargement - Lot 128).
