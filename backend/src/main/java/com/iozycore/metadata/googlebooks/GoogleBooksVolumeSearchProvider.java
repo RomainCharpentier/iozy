@@ -468,9 +468,76 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             // 0 = numéro de tome non extrait (voir isBareTitleMention
             // ci-dessus) - sentinelle résolue par resolveOneShotFallback,
             // jamais renvoyée telle quelle à l'appelant.
-            candidates.add(new VolumeCandidate(edition, volumeNumber.orElse(0), imageUrl, title));
+            candidates.add(new VolumeCandidate(edition, volumeNumber.orElse(0), imageUrl, title,
+                    isbn13(volumeInfo), annee(volumeInfo)));
         }
         return candidates;
+    }
+
+    /** L'ISBN-13 parmi les identifiants de la fiche, ou null. */
+    private static String isbn13(JsonNode volumeInfo) {
+        for (JsonNode id : volumeInfo.path("industryIdentifiers")) {
+            if ("ISBN_13".equals(id.path("type").asText(""))) {
+                return id.path("identifier").asText(null);
+            }
+        }
+        return null;
+    }
+
+    /** « 2009 », « 2010-02-04 » : les quatre premiers chiffres, ou null. */
+    private static Integer annee(JsonNode volumeInfo) {
+        String date = volumeInfo.path("publishedDate").asText(null);
+        if (date == null || date.length() < 4) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(date.substring(0, 4));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * La sonde tome par tome (Lot 125) - idee empruntee, apres mesure, au
+     * projet MangaCollector : {@code intitle:<serie> intitle:"Tome N"} au
+     * lieu d'un mot-cle d'edition. Sur un titre court et courant, la
+     * difference est brutale : « Doubt » rend 300 fiches (essais anglophones
+     * sur le doute) a la recherche par titre, dont aucun tome exploitable ;
+     * la sonde du tome 1 en rend 4, la bonne en tete, avec son ISBN.
+     *
+     * <p>Un piege propre a ces fiches : Google Books indexe souvent les tomes
+     * francais sous le seul titre de la serie (« Doubt », sans numero) - le
+     * numero est dans ses champs a lui, pas dans le titre. La recherche par
+     * titre les jetait donc (numero introuvable). Ici, on SAIT quel numero on
+     * a demande : une fiche au titre nu qui repond a « Tome N » et porte un
+     * ISBN est le tome N. L'ISBN est exige : sans lui, rien ne distingue une
+     * telle fiche de la page de la serie entiere, qui repondrait a tout.
+     *
+     * @throws QuotaExceededException quand la cle est a bout - l'appelant
+     *         arrete de sonder et ne met rien en cache
+     */
+    @Override
+    public List<VolumeCandidate> probeVolume(String seriesTitle, String author, int volumeNumber,
+                                             List<String> excludedTitleFragments) {
+        String query = "intitle:" + seriesTitle + " intitle:\"Tome " + volumeNumber + "\"";
+        try {
+            String body = httpClient.get(SEARCH_URL.formatted(URLEncoder.encode(query, StandardCharsets.UTF_8)));
+            List<VolumeCandidate> trouves = new java.util.ArrayList<>();
+            for (VolumeCandidate candidate : extractCandidates(body, seriesTitle, excludedTitleFragments, author)) {
+                if (candidate.volumeNumber() == volumeNumber) {
+                    trouves.add(candidate);
+                } else if (candidate.volumeNumber() == 0 && candidate.isbnNormalise() != null) {
+                    trouves.add(new VolumeCandidate(candidate.edition(), volumeNumber, candidate.imageUrl(),
+                            candidate.title(), candidate.isbn(), candidate.annee()));
+                }
+            }
+            return trouves;
+        } catch (QuotaExceededException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Échec de la sonde Google Books '{}' : {}", query, e.getMessage());
+            throw new SourceUnavailableException("Google Books n'a pas répondu à la sonde du tome " + volumeNumber);
+        }
     }
 
     /**

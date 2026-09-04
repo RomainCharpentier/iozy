@@ -191,7 +191,8 @@ public class MetadataController {
                                     @RequestParam(required = false, defaultValue = "false") boolean deepSearch,
                                     @RequestParam(required = false) String malId,
                                     @RequestParam(required = false) String originalTitle,
-                                    @RequestParam(required = false) String titleRomaji) {
+                                    @RequestParam(required = false) String titleRomaji,
+                                    @RequestParam(required = false) Integer totalVolumes) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "EntityType inconnu : " + entityTypeId));
 
@@ -202,7 +203,7 @@ public class MetadataController {
         List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle, titleRomaji);
         VolumeSearchResult searchResult = deepSearch
                 ? metadataSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
-                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments);
+                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments, totalVolumes);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
         // Tries par numero, et le tri est STABLE : les editions gardent l'ordre

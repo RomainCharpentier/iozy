@@ -497,6 +497,21 @@ public class MetadataSearchService {
      *                               restent les seuls moyens de le relancer.
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh, List<String> excludedTitleFragments) {
+        return searchVolumes(entityType, seriesTitle, author, forceRefresh, excludedTitleFragments, null);
+    }
+
+    /** Au plus autant de sondes par recherche : la sonde coute une requete Google Books par tome manquant. */
+    static final int SONDES_MAX = 12;
+    /** Trois numeros de suite sans reponse : le total connu est probablement faux (ou l'edition francaise s'arrete la). */
+    static final int ECHECS_CONSECUTIFS_MAX = 3;
+
+    /**
+     * @param totalVolumes le nombre de tomes de la serie d'apres le catalogue
+     *                     (AniList/MyAnimeList), ou null - c'est jusqu'a lui
+     *                     que les trous sont sondes (voir comblerLesTrous)
+     */
+    public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh,
+                                            List<String> excludedTitleFragments, Integer totalVolumes) {
         String normalizedTitle = normalize(seriesTitle);
         String normalizedAuthor = normalize(author == null ? "" : author);
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
@@ -547,6 +562,16 @@ public class MetadataSearchService {
         // (Lot 119 - la BnF a des champs structurés, Google Books devine
         // l'édition dans un titre libre), et la jaquette vient de celui qui
         // en a une.
+        if (totalVolumes != null && totalVolumes > 0) {
+            try {
+                result.addAll(comblerLesTrous(entityType, seriesTitle, author, excludedTitleFragments, result, totalVolumes));
+            } catch (QuotaExceededException | SourceUnavailableException e) {
+                // Une sonde qui echoue ne perd rien de ce qui est deja la ;
+                // elle interdit seulement de figer ce resultat comme complet.
+                providerUnavailable = true;
+            }
+        }
+        result = rattacherLesEditionsInconnues(result);
         result = uniformiserLesEditions(result);
         // AVANT le dédoublonnage : deux éditions homonymes ont deux tomes 1,
         // que le dédoublonnage fusionnerait en un seul (voir la méthode).
@@ -720,9 +745,106 @@ public class MetadataSearchService {
         return uniformises;
     }
 
+    /**
+     * Combler les trous (Lot 125) : les numeros absents entre 1 et le total
+     * connu, sondes un par un chez le fournisseur qui sait le faire.
+     *
+     * <p>Pourquoi apres les recherches et non a leur place : une sonde coute
+     * une requete PAR tome. Sur une serie que la BnF connait entierement
+     * (Boruto, 20/20), elle ne coute rien ; sur une serie qu'elle ne connait
+     * qu'a moitie, elle coute la moitie. Plafond a {@link #SONDES_MAX} par
+     * recherche, et arret apres {@link #ECHECS_CONSECUTIFS_MAX} numeros de
+     * suite sans reponse - un total catalogue peut etre faux, ou l'edition
+     * francaise s'arreter avant le Japon.
+     *
+     * <p>Le tome sonde est rattache a une edition deja la par son
+     * <b>prefixe ISBN</b> quand Google Books ne donne pas d'editeur (frequent
+     * sur ses fiches francaises) : le tome 3 de Doubt, ISBN 978-2-35592…,
+     * rejoint l'edition dont les tomes 1 et 2 portent ce meme bloc. Sans
+     * ISBN ni editeur, il n'est pas retenu : une « Edition inconnue » de plus
+     * n'aiderait personne.
+     */
+    private List<VolumeCandidate> comblerLesTrous(EntityType entityType, String seriesTitle, String author,
+                                                  List<String> excludedTitleFragments,
+                                                  List<VolumeCandidate> dejaTrouves, int totalVolumes) {
+        Set<Integer> presents = dejaTrouves.stream().map(VolumeCandidate::volumeNumber).collect(Collectors.toSet());
+        Map<String, String> editionParPrefixe = editionsNommeesParPrefixe(dejaTrouves);
+
+        List<VolumeCandidate> combles = new ArrayList<>();
+        int sondes = 0;
+        int echecsConsecutifs = 0;
+        for (int numero = 1; numero <= totalVolumes && sondes < SONDES_MAX && echecsConsecutifs < ECHECS_CONSECUTIFS_MAX; numero++) {
+            if (presents.contains(numero)) {
+                continue;
+            }
+            List<VolumeCandidate> trouves = new ArrayList<>();
+            for (VolumeSearchProvider provider : volumeSearchProviders) {
+                if (provider.supports(entityType)) {
+                    trouves.addAll(provider.probeVolume(seriesTitle, author, numero, excludedTitleFragments));
+                }
+            }
+            sondes++;
+            boolean retenu = false;
+            for (VolumeCandidate candidate : trouves) {
+                String prefixe = prefixeIsbn(candidate);
+                String edition = prefixe != null ? editionParPrefixe.get(prefixe) : null;
+                if (edition == null && (candidate.edition() == null || candidate.edition().isBlank()
+                        || candidate.edition().equalsIgnoreCase("Édition inconnue"))) {
+                    continue;
+                }
+                combles.add(edition == null ? candidate : renommer(candidate, edition));
+                retenu = true;
+            }
+            echecsConsecutifs = retenu ? 0 : echecsConsecutifs + 1;
+        }
+        if (!combles.isEmpty()) {
+            log.info("Trous combles pour '{}' : {} tome(s) retrouve(s) par sonde ({} sonde(s))", seriesTitle, combles.size(), sondes);
+        }
+        return combles;
+    }
+
+    static final String EDITION_INCONNUE = "Édition inconnue";
+
+    /** Les blocs ISBN dont on connait l'edition : prefixe -> nom, sans jamais retenir « Édition inconnue ». */
+    private static Map<String, String> editionsNommeesParPrefixe(List<VolumeCandidate> candidates) {
+        Map<String, String> parPrefixe = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : candidates) {
+            String prefixe = prefixeIsbn(candidate);
+            if (prefixe != null && estNommee(candidate.edition())) {
+                parPrefixe.putIfAbsent(prefixe, candidate.edition());
+            }
+        }
+        return parPrefixe;
+    }
+
+    private static boolean estNommee(String edition) {
+        return edition != null && !edition.isBlank() && !edition.equalsIgnoreCase(EDITION_INCONNUE);
+    }
+
+    /**
+     * « Édition inconnue » n'est pas une edition : c'est un tome dont la
+     * source n'a pas dit l'editeur (Lot 125). Google Books le fait souvent
+     * sur ses fiches francaises - « Spy x Family » y sortait avec une
+     * « Édition inconnue » de sept tomes A COTE de Kurokawa, les memes
+     * livres. Quand un tel tome porte un ISBN du meme bloc qu'une edition
+     * nommee, il la rejoint ; sinon il garde son etiquette, faute de mieux.
+     */
+    static List<VolumeCandidate> rattacherLesEditionsInconnues(List<VolumeCandidate> candidates) {
+        Map<String, String> parPrefixe = editionsNommeesParPrefixe(candidates);
+        if (parPrefixe.isEmpty()) {
+            return candidates;
+        }
+        List<VolumeCandidate> rattaches = new ArrayList<>(candidates.size());
+        for (VolumeCandidate candidate : candidates) {
+            String edition = estNommee(candidate.edition()) ? null : parPrefixe.get(prefixeIsbn(candidate));
+            rattaches.add(edition == null ? candidate : renommer(candidate, edition));
+        }
+        return rattaches;
+    }
+
     /** Meme regle que la cle de dedoublonnage d'un tome : casse et espaces de bord ignores. */
     private static String cleEdition(String edition) {
-        return edition == null ? "" : edition.trim().toLowerCase();
+        return edition == null ? "" : TexteRecherche.normaliser(edition);
     }
 
     /** Les huit premiers chiffres d'un ISBN-13 : préfixe de langue + bloc de l'éditeur, ce qui change d'une édition à l'autre. */

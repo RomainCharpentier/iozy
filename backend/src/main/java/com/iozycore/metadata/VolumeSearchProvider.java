@@ -38,4 +38,16 @@ public interface VolumeSearchProvider {
     default List<VolumeCandidate> searchAdditionalEditions(String seriesTitle, String author, List<String> excludedTitleFragments) {
         return List.of();
     }
+
+    /**
+     * Retrouver UN tome precis, par son numero (Lot 125) - « le tome 7 de
+     * cette serie existe-t-il chez toi ? ». Sert a combler les trous d'une
+     * liste que les recherches par titre ont laissee incomplete, sans
+     * relancer une recherche entiere. Vide par defaut : seul Google Books le
+     * sait faire utilement (voir GoogleBooksVolumeSearchProvider.probeVolume).
+     */
+    default List<VolumeCandidate> probeVolume(String seriesTitle, String author, int volumeNumber,
+                                              List<String> excludedTitleFragments) {
+        return List.of();
+    }
 }

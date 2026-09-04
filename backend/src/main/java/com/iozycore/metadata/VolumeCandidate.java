@@ -1,5 +1,7 @@
 package com.iozycore.metadata;
 
+import com.iozycore.domain.shared.TexteRecherche;
+
 /**
  * Un tome précis d'une édition française réelle d'une série (ex: "Tome 5"
  * de l'édition "Kana"), avec sa jaquette propre - distinct de
@@ -59,7 +61,9 @@ public record VolumeCandidate(String edition, int volumeNumber, String imageUrl,
      * avait sa copie.
      */
     public static String key(String edition, int volumeNumber) {
-        return edition.trim().toLowerCase() + "|" + volumeNumber;
+        // Accents et ponctuation plies aussi (Lot 125) : la BnF ecrit
+        // « Kazé », Google Books « KAZE », et c'etait deux editions.
+        return TexteRecherche.normaliser(edition) + "|" + volumeNumber;
     }
 
     public String key() {

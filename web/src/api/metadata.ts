@@ -134,9 +134,10 @@ export function searchVolumes(
     malId?: string
     originalTitle?: string
     titleRomaji?: string
+    totalVolumes?: number
   },
 ): Promise<VolumesResponseDto> {
-  const { author, signal, forceRefresh, deepSearch, malId, originalTitle, titleRomaji } = options ?? {}
+  const { author, signal, forceRefresh, deepSearch, malId, originalTitle, titleRomaji, totalVolumes } = options ?? {}
   return get<VolumesResponseDto>(
     `/metadata/volumes${buildQuery({
       entityTypeId,
@@ -147,6 +148,7 @@ export function searchVolumes(
       malId,
       originalTitle,
       titleRomaji,
+      totalVolumes: totalVolumes?.toString(),
     })}`,
     signal,
   )
