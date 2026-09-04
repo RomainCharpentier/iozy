@@ -4,6 +4,8 @@ import com.iozycore.insights.CollectionValue;
 import com.iozycore.insights.DiscoveryCandidate;
 import com.iozycore.insights.CollectionProgress;
 import com.iozycore.insights.CollectionProgressService;
+import com.iozycore.insights.ReadingListService;
+import com.iozycore.insights.ReadingList;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.http.ResponseEntity;
@@ -36,14 +38,17 @@ public class InsightsController {
     private final DiscoveryService discoveryService;
     private final CollectionProgressService collectionProgressService;
     private final CollectionQuestionService collectionQuestionService;
+    private final ReadingListService readingListService;
 
     public InsightsController(StatsService statsService, DiscoveryService discoveryService,
                                CollectionProgressService collectionProgressService,
-                               CollectionQuestionService collectionQuestionService) {
+                               CollectionQuestionService collectionQuestionService,
+                               ReadingListService readingListService) {
         this.statsService = statsService;
         this.discoveryService = discoveryService;
         this.collectionProgressService = collectionProgressService;
         this.collectionQuestionService = collectionQuestionService;
+        this.readingListService = readingListService;
     }
 
     public record QuestionRequest(String question) {
@@ -55,6 +60,13 @@ public class InsightsController {
      * ni l'autre n'est une reponse vide a afficher comme venant de la
      * collection.
      */
+    @Operation(summary = "Ce qu'il reste a lire : par serie, le prochain tome possede sans experience. "
+            + "Entierement calcule a partir des possessions et des experiences, aucune liste a tenir a jour")
+    @GetMapping("/reading-list")
+    public ReadingList readingList() {
+        return readingListService.compute();
+    }
+
     @Operation(summary = "Poser une question en francais sur sa collection - repondue par une IA a partir d'un "
             + "instantane des oeuvres, exemplaires, experiences et envies du compte ; jamais persistee. "
             + "204 sans cle Gemini, 503 si le modele n'a pas repondu")

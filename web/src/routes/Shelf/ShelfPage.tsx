@@ -9,6 +9,7 @@ import { ErrorBanner } from '../../components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
+import { ALireSection } from './ALireSection'
 import { rattraperJaquettes, variantsMissingCover } from './backfillCovers'
 import {
   aplatirEnElements,
@@ -330,6 +331,11 @@ export function ShelfPage() {
           )
         }
       />
+
+      {/* Avant les filtres et la grille : « qu'est-ce que je lis ensuite »
+          est une question qu'on se pose en ARRIVANT, pas après avoir trié
+          ses étagères (Lot 122). */}
+      <ALireSection />
 
       <div className="mt-3">
         <BarreVues

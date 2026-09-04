@@ -37,6 +37,7 @@ export const queryKeys = {
     yearlyRecap: (year: number) => ['insights', 'yearlyRecap', year] as const,
     value: ['insights', 'value'] as const,
     progress: ['insights', 'progress'] as const,
+    readingList: ['insights', 'readingList'] as const,
     /** Préfixée par `progress` À DESSEIN : les invalidations existantes
      *  (`insights.progress`) emportent donc aussi la progression d'une œuvre,
      *  sans avoir à les recenser une seconde fois. */
