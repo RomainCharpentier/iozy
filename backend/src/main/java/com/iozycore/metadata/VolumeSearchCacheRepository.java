@@ -20,4 +20,7 @@ public interface VolumeSearchCacheRepository {
      * côté client) : une nouvelle recherche Google Books écrase l'ancien
      * résultat stocké plutôt que de s'y ajouter. */
     void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes);
+
+    /** Oublie la ligne de cette cle, si elle existe - voir MetadataSearchService.searchVolumes (Lot 126). */
+    void delete(UUID entityTypeId, String seriesTitle, String author);
 }

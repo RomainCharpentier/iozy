@@ -517,15 +517,21 @@ public class MetadataSearchService {
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
 
         if (!forceRefresh) {
+            // Ce qui sort d'un cache repasse par les regles de nommage (voir
+            // finaliser) : elles evoluent (Lots 123-125), et une ligne ecrite
+            // avant elles ressortait sinon telle quelle - « Ki-oon » et
+            // « Ki-Oon » en deux editions sur une ligne de 15 h, alors que le
+            // meme titre rafraichi a 16 h n'en montrait qu'une. C'est ce
+            // va-et-vient que l'utilisateur a vu sur « Doubt » (Lot 126).
             Optional<List<VolumeCandidate>> inMemory = volumeSearchCache.get(cacheKey);
             if (inMemory.isPresent()) {
-                return VolumeSearchResult.of(inMemory.get());
+                return VolumeSearchResult.of(finaliser(inMemory.get()));
             }
 
             Optional<List<VolumeCandidate>> stored = volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor);
             if (stored.isPresent()) {
                 volumeSearchCache.put(cacheKey, stored.get()); // réchauffe le cache mémoire pour les appels suivants
-                return VolumeSearchResult.of(stored.get());
+                return VolumeSearchResult.of(finaliser(stored.get()));
             }
 
             // Un résultat PARTIEL (un fournisseur muet) n'est jamais persisté,
@@ -571,22 +577,38 @@ public class MetadataSearchService {
                 providerUnavailable = true;
             }
         }
-        result = rattacherLesEditionsInconnues(result);
-        result = uniformiserLesEditions(result);
-        // AVANT le dédoublonnage : deux éditions homonymes ont deux tomes 1,
-        // que le dédoublonnage fusionnerait en un seul (voir la méthode).
-        result = separerLesEditionsHomonymes(result);
-        result = dedupeVolumesPreferringImage(result);
+        result = finaliser(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
         // ci-dessus) - seul un résultat vide causé par un échec transitoire du
         // fournisseur ne l'est jamais, pour ne pas condamner une recherche
         // pendant des jours à cause d'une panne de quelques minutes.
+        //
+        // Sans auteur, jamais de cache durable (Lot 126) : « Doubt » seul
+        // designe aussi un homonyme chez un autre editeur, et une ligne
+        // ecrite sur ce titre nu resservait l'homonyme a chaque ouverture
+        // dont la recherche de metadonnees avait echoue. En memoire, une
+        // journee au plus.
+        boolean cacheDurable = !normalizedAuthor.isBlank();
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, result);
-            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+            if (cacheDurable) {
+                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+            }
         } else if (!result.isEmpty()) {
             volumeSearchPartialCache.put(cacheKey, result);
+            if (forceRefresh) {
+                // « Actualiser » a parle : une ligne plus ancienne ne doit pas
+                // lui survivre. Pendant une panne, le resultat partiel ne
+                // peut pas etre fige comme complet, mais l'ancien ne peut
+                // pas non plus etre resservi a la prochaine ouverture - c'est
+                // exactement ce qui faisait revenir « 3 et 1 » apres « 4 et 2 »
+                // a chaque redemarrage (Lot 126).
+                volumeSearchCache.invalidate(cacheKey);
+                if (cacheDurable) {
+                    volumeSearchCacheRepository.delete(entityType.id(), normalizedTitle, normalizedAuthor);
+                }
+            }
         }
         return new VolumeSearchResult(result, providerUnavailable);
     }
@@ -804,6 +826,20 @@ public class MetadataSearchService {
     }
 
     static final String EDITION_INCONNUE = "Édition inconnue";
+
+    /**
+     * Les regles de nommage et de regroupement, dans l'ordre ou elles se
+     * completent - appliquees a tout ce qui sort, frais ou cache :
+     * rattacher les « Édition inconnue » a leur bloc ISBN, unifier les
+     * orthographes, separer les editions homonymes (AVANT le dedoublonnage,
+     * qui fusionnerait leurs deux tomes 1), dedoublonner.
+     */
+    static List<VolumeCandidate> finaliser(List<VolumeCandidate> candidates) {
+        List<VolumeCandidate> result = rattacherLesEditionsInconnues(candidates);
+        result = uniformiserLesEditions(result);
+        result = separerLesEditionsHomonymes(result);
+        return dedupeVolumesPreferringImage(result);
+    }
 
     /** Les blocs ISBN dont on connait l'edition : prefixe -> nom, sans jamais retenir « Édition inconnue ». */
     private static Map<String, String> editionsNommeesParPrefixe(List<VolumeCandidate> candidates) {

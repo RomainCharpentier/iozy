@@ -36,4 +36,10 @@ public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheR
                 .orElseGet(UUID::randomUUID);
         jpaRepository.save(new VolumeSearchCacheJpaEntity(id, entityTypeId, seriesTitle, author, volumes, Instant.now()));
     }
+
+    @Override
+    public void delete(UUID entityTypeId, String seriesTitle, String author) {
+        jpaRepository.findByEntityTypeIdAndSeriesTitleAndAuthor(entityTypeId, seriesTitle, author)
+                .ifPresent(jpaRepository::delete);
+    }
 }

@@ -105,6 +105,10 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // chapitre numérique, jamais un vrai tome physique : à exclure même si un
     // numéro de tome apparaît ailleurs dans une fiche voisine du même résultat.
     private static final Pattern CHAPTER_KEYWORD = Pattern.compile("(?i)\\bchapitre\\b|\\bchapter\\b");
+    // « Doubt Tome 1 à 4 », « Naruto tomes 1-3 » : un coffret, pas un tome.
+    // Sans cette garde, la sonde du tome 1 (Lot 125) le prenait pour un
+    // tome 1 d'une edition nommee « 4 » (Lot 126).
+    private static final Pattern RANGE_KEYWORD = Pattern.compile("(?i)\\btomes?\\s*\\d+\\s*(?:à|a|-|–)\\s*\\d+\\b");
     // "." ajouté (vérifié manuellement, voir historique) : "Chainsaw Man
     // Tome 18 . Edition collector" a son numéro de tome AVANT le nom de
     // collection, séparé par un point - sans lui, l'édition extraite
@@ -378,7 +382,8 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                 continue; // langRestrict est une préférence, pas une garantie - on revérifie
             }
             String title = volumeInfo.path("title").asText(null);
-            if (title == null || title.isBlank() || CHAPTER_KEYWORD.matcher(title).find()) {
+            if (title == null || title.isBlank() || CHAPTER_KEYWORD.matcher(title).find()
+                    || RANGE_KEYWORD.matcher(title).find()) {
                 continue;
             }
             // La recherche plein-texte matche parfois une série DIFFÉRENTE qui

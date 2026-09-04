@@ -57,4 +57,9 @@ class TtlCache<K, V> {
         }
         entries.put(key, new Entry<>(value, Instant.now().plus(timeToLive)));
     }
+
+    /** Oublie une cle, si elle est la. */
+    void invalidate(K key) {
+        entries.remove(key);
+    }
 }
