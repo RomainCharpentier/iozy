@@ -46,9 +46,12 @@ public record ExportDocument(
     public record VariantExport(UUID id, String label, Map<String, Object> attributes, UUID mangaEditionId) {
     }
 
+    /** champsSaisis : les cles d'attributes saisies a la main (Lot 130) - un import les reprend,
+     *  pour qu'un rechargement depuis la source ne les ecrase pas non plus sur l'autre instance.
+     *  Absent d'un export anterieur : lu comme vide. */
     public record EntityExport(UUID id, String entityTypeCode, String entityTypeLabel, String title,
                                 Map<String, Object> attributes, List<String> tagLabels,
-                                List<VariantExport> variants) {
+                                List<VariantExport> variants, List<String> champsSaisis) {
     }
 
     public record OwnershipExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,

@@ -87,6 +87,13 @@ describe('décider ce qu’il faut écrire', () => {
     expect(attributsARecharger(source, oeuvre)).toEqual({})
   })
 
+  it('ne touche jamais à un champ saisi à la main - même si la source le contredit', () => {
+    const source = candidat('Naruto', { mangaka: 'Kishimoto', totalVolumes: 72 })
+    const saisie = { ...oeuvre, champsSaisis: ['mangaka'] }
+
+    expect(attributsARecharger(source, saisie)).toEqual({ totalVolumes: 72 })
+  })
+
   it('ne touche jamais à la remarque de l’utilisateur', () => {
     // Elle ne vient d'aucune source ; le sac d'attributs mélange les deux.
     const source = candidat('Naruto', { note: 'Manga shonen des années 2000' })

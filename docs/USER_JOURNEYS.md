@@ -321,13 +321,17 @@ un lien « Évaluer une annonce » part de là.
 **Statut** : `COMPLET` — aucune IA, aucun appel externe.
 
 ### 23. Modifier les informations de l'œuvre
-**Point de départ** : fiche ▸ bloc « L'œuvre » ▸ Modifier
+**Point de départ** : fiche ▸ « Éditer » ▸ carte « Série » (formulaire
+d'emblée, Lot 129-130 - plus de « Modifier » à part)
 **Étapes** : éditer les attributs (mangaka, statut, année…), replier/déplier
-« Champs techniques (N) », retirer un attribut.
-**Résultat** : attributs fusionnés sans écraser ceux déjà renseignés ; une
-valeur vide est **retirée**, jamais stockée telle quelle.
+« Champs techniques (N) », retirer un attribut en le vidant.
+**Résultat** : chaque champ saisi est **marqué** (pastille « saisi ») et
+« Recharger depuis la source » ne l'écrase plus ; une valeur vide est
+**retirée**, jamais stockée telle quelle, et la marque part avec elle - la
+source peut alors remplir le champ à nouveau (Lot 130).
 **Écrans** : `EntityInfoSection`
-**Backend** : `PATCH /entities/{id}`, `DELETE /entities/{id}/attributes/{key}`
+**Backend** : `PATCH /entities/{id}?origine=manuelle|source`,
+`DELETE /entities/{id}/attributes/{key}`
 **Statut** : `COMPLET`
 
 ### 24. Renommer la série / changer sa couverture

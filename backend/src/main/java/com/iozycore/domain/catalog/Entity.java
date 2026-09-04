@@ -28,6 +28,8 @@ public class Entity {
     private final Map<String, Object> attributes = new HashMap<>();
     private final List<Variant> variants = new ArrayList<>();
     private final Set<UUID> tagIds = new HashSet<>();
+    /** Les cles de {@link #attributes} saisies a la main (Lot 130) - voir {@link #saisirAttributs}. */
+    private final Set<String> champsSaisis = new HashSet<>();
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
     private Entity(UUID id, UUID entityTypeId, String title) {
@@ -49,10 +51,18 @@ public class Entity {
     /** Reconstruit une Entity depuis la persistance (aucun événement émis). */
     public static Entity reconstitute(UUID id, UUID entityTypeId, String title,
                                        Map<String, Object> attributes, List<Variant> variants, Set<UUID> tagIds) {
+        return reconstitute(id, entityTypeId, title, attributes, variants, tagIds, Set.of());
+    }
+
+    /** Idem, avec les champs saisis a la main (Lot 130). */
+    public static Entity reconstitute(UUID id, UUID entityTypeId, String title,
+                                       Map<String, Object> attributes, List<Variant> variants, Set<UUID> tagIds,
+                                       Set<String> champsSaisis) {
         Entity entity = new Entity(id, entityTypeId, title);
         entity.attributes.putAll(attributes);
         entity.variants.addAll(variants);
         entity.tagIds.addAll(tagIds);
+        entity.champsSaisis.addAll(champsSaisis);
         return entity;
     }
 
@@ -83,6 +93,41 @@ public class Entity {
     }
 
     /**
+     * Ce que l'utilisateur TAPE (Lot 130) : ecrit comme {@link #mergeAttributes},
+     * et marque chaque cle comme saisie a la main. Une source ne reviendra
+     * plus dessus (voir {@link #recopierDepuisLaSource}). Une valeur saisie
+     * identique a celle de la source est marquee quand meme : l'utilisateur a
+     * tranche, ce n'est pas a la source de le contredire plus tard.
+     */
+    public void saisirAttributs(Map<String, Object> attributsSaisis) {
+        attributes.putAll(attributsSaisis);
+        champsSaisis.addAll(attributsSaisis.keySet());
+    }
+
+    /**
+     * Ce qu'une SOURCE rend (rechargement, rattrapage) : n'ecrit que les cles
+     * qui n'ont pas ete saisies a la main, et dit lesquelles. Regle de
+     * l'utilisateur (2026-09-04) : « si on recharge depuis l'api alors on
+     * ecrase les infos non deja editees ».
+     */
+    public Set<String> recopierDepuisLaSource(Map<String, Object> attributsDeLaSource) {
+        Set<String> ecrites = new HashSet<>();
+        for (Map.Entry<String, Object> entree : attributsDeLaSource.entrySet()) {
+            if (champsSaisis.contains(entree.getKey())) {
+                continue;
+            }
+            attributes.put(entree.getKey(), entree.getValue());
+            ecrites.add(entree.getKey());
+        }
+        return ecrites;
+    }
+
+    /** Reprend des marques telles quelles - l'import d'un export (Lot 130). */
+    public void marquerSaisis(java.util.Collection<String> cles) {
+        champsSaisis.addAll(cles);
+    }
+
+    /**
      * Retire un attribut - opération À PART de {@link #mergeAttributes}, dont
      * la javadoc interdit justement la valeur vide comme moyen d'effacer.
      * Vider un champ dans un formulaire d'édition doit vraiment le faire
@@ -92,6 +137,9 @@ public class Entity {
      */
     public void removeAttribute(String key) {
         attributes.remove(key);
+        // Vider un champ a la main, c'est aussi rendre la place a la source :
+        // elle pourra le remplir au prochain rechargement (Lot 130).
+        champsSaisis.remove(key);
     }
 
     public Variant addVariant(String label, Map<String, Object> variantAttributes) {
@@ -209,5 +257,10 @@ public class Entity {
 
     public Set<UUID> tagIds() {
         return Set.copyOf(tagIds);
+    }
+
+    /** Les cles saisies a la main, qu'un rechargement depuis la source ne touche pas (Lot 130). */
+    public Set<String> champsSaisis() {
+        return Set.copyOf(champsSaisis);
     }
 }

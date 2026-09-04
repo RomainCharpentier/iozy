@@ -294,7 +294,9 @@ qui a le plus d'appels disponibles passe en premier**, pour que les œuvres
 viennent du même endroit et portent les mêmes données ; « Recharger depuis la
 source » sur une fiche réaligne une œuvre ajoutée avant ce changement — un
 geste d'**administrateur**, qui répond des données de l'instance et des quotas
-des fournisseurs.
+des fournisseurs. Il n'écrase jamais un champ **saisi à la main** : ce que tu
+tapes sur une fiche est marqué, et seule la place vide ou recopiée revient à
+la source (vider un champ la lui rend).
 
 | Besoin | D'abord | En secours (sans clé, sans quota journalier) |
 |---|---|---|

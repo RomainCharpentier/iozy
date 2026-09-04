@@ -54,6 +54,9 @@ export interface EntityResponse {
   attributes: Record<string, unknown>
   tagIds: UUID[]
   variants: VariantDto[]
+  /** Les clés d'`attributes` saisies à la main : « Recharger depuis la
+   *  source » ne les écrase pas (Lot 130). */
+  champsSaisis: string[]
 }
 
 // --- Ownership ---

@@ -1360,6 +1360,37 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 130 — chaque champ éditable, et la source n'écrase pas ce qui a été saisi
+
+Demande utilisateur du 2026-09-04 : « il faut rendre chaque champ éditable
+pour compléter les infos en base ; si on recharge depuis l'api alors on
+écrase les infos non déjà éditées ». Jusqu'ici une valeur recopiée d'un
+fournisseur et une valeur tapée par l'utilisateur vivaient dans le même sac
+(`entity.attributes`) sans rien pour les distinguer : « Recharger depuis la
+source » écrasait tout, sauf une liste en dur côté écran (remarques,
+jaquette de série). Et la carte « Série » du mode édition était en lecture
+seule depuis le lot 129.
+
+**La provenance vit en base, pas dans l'écran.** V32 ajoute
+`entity.manual_attribute_keys` (tableau JSON de clés). Côté domaine,
+`Entity.saisirAttributs` écrit ET marque ; `recopierDepuisLaSource` n'écrit
+que les clés non marquées et dit lesquelles ; `removeAttribute` retire la
+marque - vider un champ à la main, c'est rendre la place à la source.
+`PATCH /entities/{id}?origine=manuelle|source` (manuelle par défaut) choisit
+la règle ; `EntityResponse.champsSaisis` la rend visible. L'export emporte
+les marques (`EntityExport.champsSaisis`) et l'import les reprend : la règle
+vaut depuis la fiche, le rattrapage, et l'autre instance.
+
+**L'écran.** La carte « Série » est un formulaire d'emblée, sans état
+« lecture » : chaque champ, techniques compris, se saisit sous le seul
+« Éditer » de la page. Une pastille « saisi » à côté du libellé dit ce que la
+source ne touchera plus. « Enregistrer » et « Annuler » ne s'activent qu'une
+fois quelque chose modifié. Le rechargement de la fiche appelle le PATCH avec
+`origine=source` et exclut aussi les clés saisies de son décompte
+(`attributsARecharger`, testé), pour que « N informations mises à jour »
+reste vrai. Une valeur saisie identique à celle de la source reste marquée :
+l'utilisateur a tranché.
+
 ### Lot 129 — un seul « Éditer » pour toute la fiche
 
 Demande utilisateur du 2026-09-04 : « retire les boutons "modifier" sur

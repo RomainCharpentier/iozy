@@ -215,7 +215,8 @@ public class ExportService {
                 .map(v -> new ExportDocument.VariantExport(v.id(), v.label(), v.attributes(), v.mangaEditionId()))
                 .toList();
         return new ExportDocument.EntityExport(entity.id(), type != null ? type.code() : null,
-                type != null ? type.label() : null, entity.title(), entity.attributes(), tagLabels, variants);
+                type != null ? type.label() : null, entity.title(), entity.attributes(), tagLabels, variants,
+                entity.champsSaisis().stream().sorted().toList());
     }
 
     private static ExportDocument.OwnershipExport toOwnershipExport(Ownership ownership, Map<UUID, Entity> entitiesById,

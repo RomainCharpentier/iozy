@@ -12,7 +12,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +37,11 @@ public class EntityJpaEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> attributes;
+
+    /** Les cles d'attributs saisies a la main (V32, Lot 130). */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "manual_attribute_keys", columnDefinition = "jsonb", nullable = false)
+    private List<String> manualAttributeKeys = new ArrayList<>();
 
     // Table entity_tag(entity_id, tag_id) déjà créée par V1__init_schema.sql
     //
@@ -60,11 +67,12 @@ public class EntityJpaEntity {
     }
 
     public EntityJpaEntity(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,
-                            Set<UUID> tagIds, Instant createdAt, Instant updatedAt) {
+                            Set<String> manualAttributeKeys, Set<UUID> tagIds, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.entityTypeId = entityTypeId;
         this.title = title;
         this.attributes = attributes;
+        this.manualAttributeKeys = manualAttributeKeys != null ? new ArrayList<>(manualAttributeKeys) : new ArrayList<>();
         this.tagIds = tagIds != null ? new HashSet<>(tagIds) : new HashSet<>();
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -74,6 +82,7 @@ public class EntityJpaEntity {
     public UUID getEntityTypeId() { return entityTypeId; }
     public String getTitle() { return title; }
     public Map<String, Object> getAttributes() { return attributes; }
+    public List<String> getManualAttributeKeys() { return manualAttributeKeys != null ? manualAttributeKeys : List.of(); }
     public Set<UUID> getTagIds() { return tagIds; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

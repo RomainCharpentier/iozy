@@ -320,7 +320,9 @@ export function EntityDetailPage() {
         } else {
           const aEcrire = attributsARecharger(candidat, oeuvre)
           if (Object.keys(aEcrire).length > 0) {
-            await mergeEntityAttributes(entityId, aEcrire)
+            // origine=source : le serveur retient les clés saisies à la main
+            // et ne les réécrit pas, même si ce filtre-ci était contourné.
+            await mergeEntityAttributes(entityId, aEcrire, 'source')
             infos = Object.keys(aEcrire).length
             attributs = { ...attributs, ...aEcrire }
           }
@@ -845,22 +847,8 @@ export function EntityDetailPage() {
               <EntityInfoSection
                 entityId={entityId}
                 attributes={entity.attributes}
+                champsSaisis={entity.champsSaisis}
                 customFieldKeys={entityType?.customFieldKeys ?? []}
-                ouvrirEdition={false}
-                onEditionOuverte={() => {}}
-                edition={
-                  groupeActif && groupeActif.editionName !== ''
-                    ? {
-                        name: groupeActif.editionName,
-                        totalVolumes: totalTomes,
-                        publisher: editionInfo?.publisher ?? null,
-                        outOfPrint: editionInfo?.outOfPrint ?? false,
-                        betterEditionAnnounced: editionInfo?.betterEditionAnnounced ?? false,
-                        betterEditionNote: editionInfo?.betterEditionNote ?? null,
-                        ongoing,
-                      }
-                    : null
-                }
               />
               {/* Corriger l'édition active (tomes, éditeur, épuisée…) : sous
                   ses informations, dans le même mode. Le crayon qui vivait

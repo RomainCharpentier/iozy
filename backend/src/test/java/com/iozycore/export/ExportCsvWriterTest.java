@@ -18,7 +18,8 @@ class ExportCsvWriterTest {
     private ExportDocument.EntityExport sampleEntity(UUID id) {
         return new ExportDocument.EntityExport(id, "MANGA", "Manga", "Death Note",
                 Map.of("mangaka", "Takeshi Obata"), List.of("seinen"),
-                List.of(new ExportDocument.VariantExport(UUID.randomUUID(), "Tome 1", Map.of("volumeNumber", 1), null)));
+                List.of(new ExportDocument.VariantExport(UUID.randomUUID(), "Tome 1", Map.of("volumeNumber", 1), null)),
+                List.of());
     }
 
     @Test
@@ -89,7 +90,7 @@ class ExportCsvWriterTest {
     @Test
     void empty_attributes_produce_an_empty_cell_rather_than_a_literal_empty_object() {
         ExportDocument.EntityExport entity = new ExportDocument.EntityExport(
-                UUID.randomUUID(), "MANGA", "Manga", "Sans attributs", Map.of(), List.of(), List.of());
+                UUID.randomUUID(), "MANGA", "Manga", "Sans attributs", Map.of(), List.of(), List.of(), List.of());
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(entity), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),

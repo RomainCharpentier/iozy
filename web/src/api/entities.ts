@@ -23,12 +23,21 @@ export function deleteEntity(id: string): Promise<void> {
   return del<void>(`/entities/${id}`)
 }
 
-/** Complète/corrige les attributs de la Série elle-même sans écraser ceux
- * déjà renseignés (ex: jaquette de la série absente ou fausse, voir action
- * "Modifier" de la fiche Série) - même patron que mergeVariantAttributes,
- * au niveau Entity plutôt qu'un Variant imbriqué. */
-export function mergeEntityAttributes(entityId: string, attributes: Record<string, unknown>): Promise<EntityResponse> {
-  return patch<EntityResponse>(`/entities/${entityId}`, attributes)
+/** D'où vient ce qu'on écrit (Lot 130) : ce que l'utilisateur tape est
+ * marqué « saisi à la main » ; ce qu'une source rend n'écrase que le reste. */
+export type OrigineAttributs = 'manuelle' | 'source'
+
+/** Complète/corrige les attributs de la Série elle-même - même patron que
+ * mergeVariantAttributes, au niveau Entity plutôt qu'un Variant imbriqué.
+ * `origine` dit au serveur si c'est l'utilisateur ou une source qui écrit :
+ * c'est LUI qui tient la règle « on n'écrase pas ce qui a été saisi »,
+ * pour qu'elle vaille depuis n'importe quel écran. */
+export function mergeEntityAttributes(
+  entityId: string,
+  attributes: Record<string, unknown>,
+  origine: OrigineAttributs = 'manuelle',
+): Promise<EntityResponse> {
+  return patch<EntityResponse>(`/entities/${entityId}?origine=${origine}`, attributes)
 }
 
 /** Retire un attribut - distinct de mergeEntityAttributes, qui ne sait que

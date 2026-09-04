@@ -296,6 +296,7 @@ public class ImportService {
                     if (e.attributes() != null) {
                         oeuvre.mergeAttributes(e.attributes());
                     }
+                    oeuvre.marquerSaisis(liste(e.champsSaisis()));
                     for (ExportDocument.VariantExport v : liste(e.variants())) {
                         if (v.label() == null || v.label().isBlank()) {
                             continue;
