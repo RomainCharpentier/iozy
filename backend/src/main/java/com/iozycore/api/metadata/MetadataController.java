@@ -18,6 +18,8 @@ import com.iozycore.metadata.bgg.BggCollectionFetcher.BggCollectionUnavailableEx
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -176,7 +178,7 @@ public class MetadataController {
             + "(jamais une erreur) : le client garde alors le parcours de saisie manuelle - quotaExceeded distingue "
             + "ce cas d'un échec transitoire du fournisseur (quota dépassé, ou source qui n'a pas répondu). Résultat stocké durablement (voir V3__volume_search_cache.sql) - "
             + "un résultat une fois trouvé n'est plus jamais rappelé automatiquement, forceRefresh=true (bouton "
-            + "'Actualiser' côté client) est le seul moyen de relancer les requêtes Google Books derrière ce "
+            + "'Actualiser' côté client, administrateur seulement - ignoré pour les autres comptes) est le seul moyen de relancer les requêtes Google Books derrière ce "
             + "candidat - voir MetadataSearchService.searchVolumes. Recherche par défaut limitée à quelques mots-clés "
             + "d'édition courants ; deepSearch=true (bouton 'Chercher plus d'éditions') fusionne avec les mots-clés "
             + "plus rares (voir MetadataSearchService.searchAdditionalEditions) - incompatible avec forceRefresh, "
@@ -201,9 +203,16 @@ public class MetadataController {
         }
 
         List<String> excludedTitleFragments = relatedSeriesService.findExcludedTitleFragments(entityType, malId, originalTitle, titleRomaji);
+        // Recharger depuis la source est un geste d'ADMINISTRATEUR (demande
+        // utilisateur du 2026-09-04) : c'est lui qui repond des donnees
+        // uniformes de l'instance, et des quotas des fournisseurs. Pour un
+        // compte ordinaire la demande est servie depuis le cache, sans refus :
+        // le rattrapage de jaquettes (backfillCovers) force en seconde
+        // intention, et un 403 y passerait pour un fournisseur muet.
+        boolean rechargement = forceRefresh && estAdministrateur();
         VolumeSearchResult searchResult = deepSearch
                 ? metadataSearchService.searchAdditionalEditions(entityType, title, author, excludedTitleFragments)
-                : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments, totalVolumes);
+                : metadataSearchService.searchVolumes(entityType, title, author, rechargement, excludedTitleFragments, totalVolumes);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
         // Tries par numero, et le tri est STABLE : les editions gardent l'ordre
@@ -294,5 +303,12 @@ public class MetadataController {
      *  précisément ce qui permet de dire « ce tome-là, tu l'as déjà ». */
     private String variantKey(String edition, int volumeNumber) {
         return VolumeCandidate.key(edition, volumeNumber);
+    }
+
+    /** Meme regle que ImportController : seul un administrateur recharge depuis la source. */
+    private static boolean estAdministrateur() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }
