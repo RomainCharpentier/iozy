@@ -1360,6 +1360,65 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 115 — l'export avait un sens, pas de retour
+
+§19 de `CONCEPTION.md` promettait « l'absence d'enfermement » et décrivait le
+flux cible d'un import (source → analyse → rapprochement → cas ambigus →
+validation), en demandant de ne pas le construire avant qu'une **source
+concrète** le justifie. Elle existait depuis le commit `f05b531` : l'export
+JSON de l'application elle-même. Sans retour, « Emporter ma collection » était
+un aller simple — changer de NAS ou repartir d'une sauvegarde n'était possible
+qu'en restaurant PostgreSQL entier.
+
+**Deux temps, un seul code.** `POST /api/import/analyse` reçoit le document
+d'export et dit ce qu'il ferait sans rien écrire ; `POST /api/import/appliquer`
+rejoue exactement la même passe (`ImportService.Passe`, un booléen `ecrire`)
+en une transaction. Le rapport (`ImportReport`) compte par section ce qui
+serait **créé**, **rattaché** (existait déjà, on s'y raccorde) ou **ignoré**
+(et la remarque dit pourquoi). Un import n'écrase jamais : il ajoute ou
+s'abstient. Une seule exception nommée « remplacé » : les préférences
+d'analyse d'achat, qui n'ont pas de doublon possible.
+
+**Le rapprochement suit la frontière du multi-comptes.** Le catalogue (types,
+tags, œuvres, tomes, éditions, relations) est partagé : on s'y rattache par sa
+clé naturelle — code de type, libellé de tag, (type, titre), libellé de tome,
+(série, édition) — comme l'ajout rapide et l'import BGG le font déjà. Ce qui
+est privé (possessions, expériences, envies, classements, Tier Lists, éditions
+suivies, prix relevés, préférences) est recréé pour le compte qui importe, en
+sautant ce qui existe à l'identique. Les identifiants du fichier ne sont
+jamais réutilisés : la même sauvegarde peut donc être renvoyée sur l'instance
+qui l'a produite, et n'y crée rien. Un tag absent n'est créé que par un
+administrateur — même règle que `SecurityConfig` sur `/api/tags`, sinon
+l'import aurait été un moyen de la contourner ; les œuvres sont importées
+sans, et la remarque le dit.
+
+**Deux trous dans l'export, trouvés en le renvoyant.** `VariantExport` ne
+portait pas `mangaEditionId` : un tome réimporté perdait son édition de
+référence, et chaque « X sur Y » repartait de zéro. `WishlistEntryExport` ne
+portait pas `variantId` : une envie de tome redevenait une envie d'œuvre.
+Les deux champs sont ajoutés (JSON et CSV) ; les exports antérieurs restent
+lisibles, ces liens en moins.
+
+**Vérifié en direct, sur la pile jetable de Playwright** (base et compte
+propres, détruits ensuite) : deux séries, trois possessions dont une avec prix
+et date d'achat, une expérience sur un tome, une envie de tome, une relation,
+un tag posé, un classement général, une Tier List classée, une édition suivie,
+un prix relevé, des préférences non triviales. Export → analyse sur la même
+instance : **0 à créer, tout rattaché**, préférences « remplacé ». Pile
+détruite, compte neuf, analyse : **15 à créer**, et rien d'écrit (export
+toujours vide). Application, puis ré-export : **identique à l'original hors
+identifiants et `generatedAt`** — liens tome→édition, prix d'achat, dates,
+rangs compris. Ré-analyse du même fichier : 0 à créer. Un JSON quelconque est
+refusé en 400 (« aucune section reconnue ») plutôt que rapporté « 0 partout ».
+L'écran (`/settings/import`, atteint depuis le bloc « Restaurer une
+collection » sous « Emporter ma collection ») a été joué de bout en bout dans
+le navigateur avec un fichier aux titres renommés : analyse, « Importer »,
+« Import terminé », et les deux séries visibles dans Ma collection.
+
+Pas de test automatisé dans ce lot, à la demande de l'utilisateur. Le chemin
+naturel, quand il viendra : un parcours Playwright qui exporte, détruit, et
+réimporte — c'est exactement ce qui a été joué à la main ici.
+
 ### Lot 114 — une livraison porte un numéro, pas un SHA
 
 Le pied de page affichait `0352751` depuis le 31/08. Ce SHA **identifie**

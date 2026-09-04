@@ -1,5 +1,6 @@
 import { useState, type DragEvent } from 'react'
-import { Download, GripVertical, Moon, Sun } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Download, GripVertical, Moon, Sun, Upload } from 'lucide-react'
 import { useAuth } from '../../lib/useAuth'
 import {
   TITLE_LANGUAGE_LABELS,
@@ -145,6 +146,28 @@ export function SettingsPage() {
               >
                 Télécharger en CSV (.zip)
               </a>
+            </div>
+          </div>
+
+          {/* Le retour du bloc précédent (Lot 115). Sans lui, « emporter »
+              était un aller simple : changer de NAS ou repartir d'une
+              sauvegarde n'était possible qu'en restaurant PostgreSQL entier. */}
+          <div className="flex flex-col gap-2 rounded-xl bg-surface p-4">
+            <span className="flex items-center gap-2 font-medium text-textPrimary">
+              <Upload size={16} className="shrink-0 text-accentText" />
+              Restaurer une collection
+            </span>
+            <p className="text-sm text-textDim">
+              Renvoie le fichier JSON téléchargé ci-dessus - depuis une autre installation, ou une sauvegarde. Tu vois
+              d'abord ce que l'import ferait ; ce qui existe déjà est retrouvé, jamais dupliqué ni modifié.
+            </p>
+            <div className="mt-1 flex gap-2">
+              <Link
+                to="/settings/import"
+                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+              >
+                Importer un fichier
+              </Link>
             </div>
           </div>
         </section>

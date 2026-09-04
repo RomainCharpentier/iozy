@@ -38,7 +38,12 @@ public record ExportDocument(
         List<EntityTypeExport> entityTypes,
         CollectorPreferencesExport collectorPreferences
 ) {
-    public record VariantExport(UUID id, String label, Map<String, Object> attributes) {
+    /**
+     * {@code mangaEditionId} est le lien tome -> edition de reference. Ajoute
+     * au Lot 115 : sans lui, un export reimporte perdait ce rattachement, et
+     * chaque "X sur Y" repartait de zero.
+     */
+    public record VariantExport(UUID id, String label, Map<String, Object> attributes, UUID mangaEditionId) {
     }
 
     public record EntityExport(UUID id, String entityTypeCode, String entityTypeLabel, String title,
@@ -55,7 +60,9 @@ public record ExportDocument(
                                     String experienceType, LocalDate occurredAt, Integer rating, String comment) {
     }
 
-    public record WishlistEntryExport(UUID id, UUID entityId, String entityTitle, LocalDate addedAt) {
+    /** {@code variantId} : une envie porte sur un TOME pour un manga (voir WishlistEntry.addVariant) - Lot 115. */
+    public record WishlistEntryExport(UUID id, UUID entityId, String entityTitle, UUID variantId, String variantLabel,
+                                       LocalDate addedAt) {
     }
 
     public record RelationshipExport(UUID id, UUID sourceEntityId, String sourceEntityTitle, UUID targetEntityId,

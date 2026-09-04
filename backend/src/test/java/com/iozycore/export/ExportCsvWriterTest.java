@@ -18,7 +18,7 @@ class ExportCsvWriterTest {
     private ExportDocument.EntityExport sampleEntity(UUID id) {
         return new ExportDocument.EntityExport(id, "MANGA", "Manga", "Death Note",
                 Map.of("mangaka", "Takeshi Obata"), List.of("seinen"),
-                List.of(new ExportDocument.VariantExport(UUID.randomUUID(), "Tome 1", Map.of("volumeNumber", 1))));
+                List.of(new ExportDocument.VariantExport(UUID.randomUUID(), "Tome 1", Map.of("volumeNumber", 1), null)));
     }
 
     @Test
