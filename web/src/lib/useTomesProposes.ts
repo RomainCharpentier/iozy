@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { searchVolumes } from '../api/metadata'
 import { queryKeys } from './queryKeys'
 import type { VolumeCandidateDto } from '../types/api'
@@ -36,8 +36,10 @@ export function useTomesProposes({
   actif: boolean
 }) {
   const indices = indicesDe(attributs)
+  const queryClient = useQueryClient()
+  const cle = queryKeys.tomesProposes(entityTypeId, titre)
   const requete = useQuery({
-    queryKey: queryKeys.tomesProposes(entityTypeId, titre),
+    queryKey: cle,
     queryFn: () => searchVolumes(entityTypeId, titre, indices),
     enabled: actif && titre.trim() !== '',
     // Un fournisseur externe qui ne répond pas n'est pas une panne de la
@@ -45,11 +47,28 @@ export function useTomesProposes({
     retry: false,
   })
 
+  /**
+   * « Actualiser depuis la source » : la même recherche, en demandant au
+   * serveur d'ignorer ce qu'il a en cache (`forceRefresh`). Le cache
+   * durable garde une liste de tomes pour toujours - c'est voulu, il
+   * épargne les fournisseurs - mais une liste enregistrée un jour où un
+   * fournisseur se taisait, ou par une version plus ancienne du
+   * fournisseur, reste incomplète jusqu'à ce qu'on la redemande (Lot 121 :
+   * Boruto, 7 tomes en cache quand la BnF en connaissait 20). Le résultat
+   * remplace celui de la requête normale, sans second appel.
+   */
+  const actualisation = useMutation({
+    mutationFn: () => searchVolumes(entityTypeId, titre, { ...indices, forceRefresh: true }),
+    onSuccess: (data) => queryClient.setQueryData(cle, data),
+  })
+
   return {
     candidats: (requete.data?.volumes ?? []) as VolumeCandidateDto[],
     fournisseurMuet: requete.data?.quotaExceeded ?? false,
-    enCours: requete.isFetching,
+    enCours: requete.isFetching || actualisation.isPending,
     aEchoue: requete.isError,
     relancer: requete.refetch,
+    actualiser: () => actualisation.mutate(),
+    actualisationEnCours: actualisation.isPending,
   }
 }

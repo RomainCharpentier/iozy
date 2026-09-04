@@ -1360,6 +1360,30 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 121 — un cache qui ne se périme jamais a besoin d'une porte
+
+Après le Lot 120, l'utilisateur rouvre Boruto sur son instance : toujours
+**7 tomes**. Aucun appel aux fournisseurs dans les journaux — la liste venait
+du cache durable (`volume_search_cache`), ligne « boruto naruto next
+generations → 7 », écrite à 13:53 par la version précédente du fournisseur
+BnF, un moment où Google Books répondait sans rien trouver et où le résultat
+passait donc pour complet. Ce cache est **sans expiration**, à dessein : il
+épargne les fournisseurs, et une liste de tomes ne change guère. Mais il n'y
+avait aucun moyen, depuis l'écran, de la redemander.
+
+**Deux portes.** Sur l'aperçu, « **Actualiser depuis la source** »
+(`useTomesProposes.actualiser` : la même recherche avec `forceRefresh`, le
+résultat remplace celui de la requête normale) — dans les deux états, grille
+et « aucun tome trouvé », où la phrase promettait « réessayer plus tard »
+sans rien pour réessayer. Sur la fiche, « **Recharger depuis la source** »
+rafraîchit désormais aussi la liste des tomes avant les jaquettes, et
+invalide la proposition de tomes : « Ajouter un tome » y voit ceux qui
+manquaient. Une source muette n'y fait pas échouer le reste.
+
+La ligne fautive de l'instance de l'utilisateur a été supprimée à la main
+(`DELETE` sur ce seul cache, qui se reconstitue à la prochaine ouverture) —
+c'était une donnée d'une version passée, pas un état à conserver.
+
 ### Lot 120 — les trous entre les tomes, et les jaquettes
 
 Retour de l'utilisateur sur l'aperçu de Boruto après le Lot 119 : « il y a

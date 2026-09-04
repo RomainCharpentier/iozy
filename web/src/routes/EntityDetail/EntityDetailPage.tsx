@@ -15,6 +15,7 @@ import { getEntityTierSummary } from '../../api/tierLists'
 import { followEdition, listFollowedEdition, unfollowEdition } from '../../api/followedEdition'
 import { isSeriesOngoing } from '../../lib/seriesInfo'
 import { queryKeys } from '../../lib/queryKeys'
+import { indicesDe } from '../../lib/indicesOeuvre'
 import { ErrorBanner } from '../../components/ErrorBanner'
 import { useWishlist } from '../../lib/useWishlist'
 import { gradientFor } from '../../theme/gradient'
@@ -328,6 +329,18 @@ export function EntityDetailPage() {
             attributs = { ...attributs, ...aEcrire }
           }
         }
+      }
+
+      // La liste des tomes aussi, en forçant la source (Lot 121) : le cache
+      // durable ne se périme jamais, et une liste enregistrée pendant qu'un
+      // fournisseur se taisait resterait à jamais incomplète - « Ajouter un
+      // tome » ne proposerait jamais ceux qui manquent. Une source qui ne
+      // répond pas ne fait pas échouer le reste du rechargement.
+      try {
+        await searchVolumes(oeuvre.entityTypeId, oeuvre.title, { ...indicesDe(attributs), forceRefresh: true })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.tomesProposes(oeuvre.entityTypeId, oeuvre.title) })
+      } catch {
+        fournisseurMuet = true
       }
 
       const jaquettes = await rattraperJaquettes(
