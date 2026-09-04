@@ -29,3 +29,8 @@ ios/*.xcuserstate
 
 # --- Claude Code (config locale) ---
 .claude/settings.local.json
+
+# --- Fichiers de passage (scans, extractions, essais). Le dépôt est
+#     PUBLIC, et ce dossier a contenu des pages de facture : il reste
+#     sur la machine. ---
+tmp/
