@@ -10,6 +10,7 @@ import { GrilleVolumes, type FiltreVolumes, type VolumeAffiche } from '../../com
 import { CartesEditions } from './CartesEditions'
 import { BarreAjoutTomes } from './BarreAjoutTomes'
 import { AddVolumeSection } from './AddVolumeSection'
+import { BoutonActualiserTomes } from './BoutonActualiserTomes'
 import { invaliderApresPossession } from '../../lib/invalidations'
 
 /**
@@ -176,15 +177,20 @@ export function usePropositionTomes({
               conditionnée à `entityId`, si bien qu'un aperçu sans tome trouvé
               promettait « tu peux les ajouter à la main » sans offrir le
               moindre bouton - signalé sur « Demon's Plan ». */}
-          <button
-            type="button"
-            onClick={() => setAjoutManuelOuvert(true)}
-            aria-expanded={ajoutManuelOuvert}
-            className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
-          >
-            <Plus size={15} />
-            Ajouter un tome à la main
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setAjoutManuelOuvert(true)}
+              aria-expanded={ajoutManuelOuvert}
+              className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm"
+            >
+              <Plus size={15} />
+              Ajouter un tome à la main
+            </button>
+            {/* « Réessayer plus tard » sans bouton pour réessayer : la
+                phrase ci-dessus le promettait, rien ne le permettait. */}
+            <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />
+          </div>
           <AddVolumeSection
             entityId={entityId}
             entityTypeId={entityTypeId}
@@ -225,6 +231,10 @@ export function usePropositionTomes({
                 {editionActive || 'Édition non précisée'}
               </span>
               <span className="text-[12.5px] text-faint">Quels tomes possèdes-tu ?</span>
+              {/* La liste vient d'un cache qui ne se périme pas (voir
+                  useTomesProposes.actualiser) : quand elle a des trous, c'est
+                  ici qu'on la redemande à la source. */}
+              <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />
             </h2>
           }
           volumes={affiches.map(
