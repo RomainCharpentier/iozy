@@ -1360,6 +1360,65 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 123 — « Doubt » : une édition en deux, et une qui manquait
+
+Signalé par l'utilisateur : l'aperçu de « Doubt » (Yoshiki Tonogai) devrait
+montrer deux éditions — la simple en 4 tomes et la double en 2 — et montrait
+autre chose. **Cinq causes distinctes**, mesurées avant d'être touchées ;
+aucune n'était celle qu'on aurait devinée depuis le rapport.
+
+**Une édition écrite de deux façons devient deux éditions.** La BnF catalogue
+les tomes 1 à 3 chez « Ki-oon » et le tome 4 chez « Ki-Oon » (relevé le
+2026-09-04 sur les notices réelles). Le nom de l'édition étant la **clé de
+regroupement à l'écran**, l'aperçu affichait une édition de trois tomes et
+une autre d'un seul. Le dédoublonnage, lui, ne voyait rien : sa clé est déjà
+insensible à la casse (`VolumeCandidate.key()`), mais elle ne corrige pas le
+libellé affiché. `MetadataSearchService.uniformiserLesEditions` retient
+désormais, par clé insensible à la casse, l'orthographe **la plus fréquente**
+— rien n'est fusionné ni supprimé, seuls des libellés sont réécrits. Vaut
+pour toutes les sources, pas seulement la BnF.
+
+**L'édition double n'était cherchée par personne.** Elle n'existe pas au
+dépôt légal sous une notice distincte, et Google Books ne la trouve qu'avec
+le bon mot-clé : or `DEEP_EDITION_KEYWORDS` connaissait « star edition »,
+« ultimate edition », « deluxe », « intégrale », « collector » — pas
+« édition double », pourtant un format français courant (Ki-oon, Pika :
+deux tomes en un). Ajouté.
+
+**Et la recherche approfondie n'avait aucun point d'entrée.** `deepSearch`
+existe côté serveur, est exposé par le client d'API, et le commentaire de ce
+dernier décrit même le bouton « Chercher plus d'éditions » — qui n'a jamais
+été posé dans aucun écran (`grep deepSearch` sur `web/src` : aucun appelant).
+Capacité livrée et inatteignable, exactement le cas que
+`feedback-solidify-over-add` range en deuxième priorité. L'aperçu porte
+maintenant « **Chercher d'autres éditions** », à côté de « Actualiser depuis
+la source » du lot précédent.
+
+**Et la vraie cause de l'écran signalé, trouvée en le rejouant** : l'aperçu
+affichait « ÉDITIONS · 2 — Akiko (2 tomes) / Ki-oon (4 tomes) ». Akiko n'est
+pas une édition de ce Doubt-là : c'est un **homonyme**. La requête partait
+sans auteur (`GET /metadata/volumes?title=Doubt`, relevé dans l'onglet
+réseau), la BnF n'avait donc que le titre pour trancher, et « Doubt » est un
+mot courant. Pourquoi sans auteur : l'aperçu s'ouvre sur un titre seul et
+lance la recherche de tomes AVANT que sa recherche de métadonnées ait rendu
+le mangaka — et la clé de cache React Query, `(type, titre)`, ne contenait
+pas l'auteur : le résultat sans auteur restait donc servi pour toujours, la
+seconde recherche n'ayant jamais lieu. Deux corrections : l'auteur entre
+dans la clé (« les tomes de Doubt » et « les tomes de Doubt PAR Tonogai »
+sont deux questions), et la recherche de tomes attend que les attributs
+soient connus (`attributsEnCours`, déjà calculé pour retenir l'ajout).
+Après : « ÉDITIONS · 1 — Ki-oon, 4 tomes », requête portant
+`author=Yoshiki+Tonogai`.
+
+**Cinquième point, découvert en mesurant** : quand des tomes SONT trouvés
+mais qu'une source s'est tue, l'écran ne le disait pas — seul le cas « aucun
+tome du tout » était annoncé. Sur « Doubt », Google Books était à 429 : la
+liste était incomplète et rien ne le laissait deviner. Une phrase le dit
+désormais, au-dessus de la grille.
+
+Tests existants relancés (`MetadataSearchServiceTest` 34, `BnfVolumeSearchProviderTest`
+9, Google Books : verts), aucun ajouté.
+
 ### Lot 122 — « qu'est-ce que je lis ensuite ? »
 
 Une fonctionnalité, demandée telle quelle. Le choix s'est porté sur la

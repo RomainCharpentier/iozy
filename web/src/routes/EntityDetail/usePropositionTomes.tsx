@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Plus } from 'lucide-react'
+import { Layers, Plus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quickAdd } from '../../api/entities'
 import { volumeKey } from '../../lib/volumeKey'
@@ -82,7 +82,18 @@ export function usePropositionTomes({
   // Inutile d'aller chercher des tomes pour un jeu : il n'en a pas, et
   // l'appel au fournisseur serait de toute façon vide.
   const parTome = useCollecteParTome(entityTypeId)
-  const proposes = useTomesProposes({ entityTypeId, titre, attributs, actif: actif && parTome })
+  // Pas avant de savoir DE QUI est l'œuvre : un titre court et courant
+  // (« Doubt ») ramène sinon les tomes d'un homonyme d'un autre éditeur -
+  // la BnF n'a que le titre pour trancher quand aucun auteur ne lui est
+  // donné (constaté sur « Doubt », une édition « Akiko » fantôme à côté de
+  // la vraie, Lot 123). L'aperçu attend donc sa recherche de métadonnées ;
+  // sur une fiche, les attributs sont là d'emblée et rien n'attend.
+  const proposes = useTomesProposes({
+    entityTypeId,
+    titre,
+    attributs,
+    actif: actif && parTome && !attributsEnCours,
+  })
 
   const ajout = useMutation({
     mutationFn: async () => {
@@ -221,6 +232,32 @@ export function usePropositionTomes({
     ),
     section: (
       <section className="flex flex-col gap-4 pt-5">
+        {/* Des tomes ONT été trouvés, mais une source s'est tue : la liste
+            est peut-être incomplète, et jusqu'ici rien ne le disait - seul
+            le cas « aucun tome du tout » était annoncé. Constaté sur
+            « Doubt », dont l'édition double n'existe que chez Google Books,
+            à quota épuisé ce jour-là (Lot 123). */}
+        {proposes.fournisseurMuet && (
+          <p className="text-xs text-textDim">
+            Une de nos sources n’a pas répondu : il manque peut-être des tomes ou une édition. « Actualiser depuis la
+            source » la redemande.
+          </p>
+        )}
+        {/* Le serveur sait chercher les éditions rares (intégrale, collector,
+            édition double) depuis longtemps - `deepSearch`, cinq requêtes
+            chez le fournisseur, à la demande. Le bouton que son propre
+            commentaire décrivait (« Chercher plus d'éditions ») n'avait
+            jamais été posé : la capacité existait sans point d'entrée, et une
+            édition double restait donc introuvable (Lot 123). */}
+        <button
+          type="button"
+          onClick={proposes.chercherPlusEditions}
+          disabled={proposes.rechercheApprofondieEnCours}
+          className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm disabled:opacity-50"
+        >
+          <Layers size={15} />
+          {proposes.rechercheApprofondieEnCours ? 'Recherche…' : 'Chercher d’autres éditions'}
+        </button>
         <GrilleVolumes
           enTete={
             // Même en-tête d'une ligne que sur la fiche (voir GrilleTomes) :

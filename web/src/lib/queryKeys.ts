@@ -70,7 +70,10 @@ export const queryKeys = {
    *  pas encore (voir useTomesProposes). Clé par type ET titre : c'est ce
    *  couple que la recherche interroge, et deux œuvres homonymes de types
    *  différents n'ont pas les mêmes tomes. */
-  tomesProposes: (entityTypeId: string, titre: string) => ['tomesProposes', entityTypeId, titre] as const,
+  /** L'auteur fait partie de la question : « les tomes de Doubt » et « les
+   *  tomes de Doubt PAR Tonogai » n'ont pas la même réponse (Lot 123). */
+  tomesProposes: (entityTypeId: string, titre: string, auteur?: string) =>
+    ['tomesProposes', entityTypeId, titre, auteur ?? null] as const,
   /** L'édition suivie d'une série (voir api/followedEdition). Clé par série :
    *  la fiche, la grille de tomes et les cartes d'édition la lisent toutes,
    *  une seule requête pour les trois. */
