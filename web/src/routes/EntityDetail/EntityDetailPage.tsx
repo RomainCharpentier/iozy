@@ -426,6 +426,7 @@ export function EntityDetailPage() {
     titre: entity?.title ?? '',
     attributs: entity?.attributes ?? {},
     entityId,
+    modeEdition,
     // `progressQuery.isSuccess` autant que le décompte : les Hooks tournent
     // AUSSI pendant que la progression est en vol, où `groupes` est encore
     // vide - sans cette garde, une série qui a douze tomes déclencherait une

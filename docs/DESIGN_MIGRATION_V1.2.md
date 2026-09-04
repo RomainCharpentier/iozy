@@ -1379,9 +1379,10 @@ en seconde intention, et un 403 y passerait pour un fournisseur muet.
 **Écran.** « Recharger depuis la source » (fiche, mode édition) et
 « Actualiser depuis la source » (aperçu seulement, grille et état vide) ne
 s'affichent que pour `compte.admin` — même règle que les tags : le serveur
-protège, l'écran évite de proposer une porte fermée. Sur la fiche, le seul
-rechargement est celui du mode édition, qui redemande aussi les tomes ; le
-bouton de la grille y faisait doublon et a été retiré (demande utilisateur). « Chercher d'autres éditions »
+protège, l'écran évite de proposer une porte fermée. Sur la fiche, « Actualiser »
+dans la grille des tomes ne se montre qu'en **mode édition**, comme tout ce
+qui redemande la source ; en aperçu, sans fiche ni mode édition, il reste à
+portée de l'administrateur. « Chercher d'autres éditions »
 reste ouvert à tous : il lit des mots-clés rares, il ne force pas le cache.
 
 ### Lot 127 — mangacollec pour référence, et la BnF ménagée
