@@ -1360,6 +1360,55 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 122 — « qu'est-ce que je lis ensuite ? »
+
+Une fonctionnalité, demandée telle quelle. Le choix s'est porté sur la
+**pile à lire** plutôt que sur les objectifs de collection : ces derniers
+reposeraient sur les prix d'achat, renseignés de façon très partielle
+(`CollectionValue` porte déjà un `prixConnusSur` pour cette raison), alors
+que la lecture repose sur deux faits denses et sûrs — ce qu'on possède, ce
+qu'on a vécu.
+
+**Calculé, jamais tenu à jour.** `ReadingListService` ne crée aucune table
+et aucune file à curer : pour chaque série, le plus petit tome POSSÉDÉ
+(`Ownership` active portant un `variantId`) sur lequel aucune `Experience`
+n'est enregistrée. Un tome entre dans la liste en étant acheté, en sort en
+étant lu. C'est ce qui évite l'écran vide du premier jour — le piège que
+`feedback-solidify-over-add` nomme (« n'ajouter une interface que si la
+fonctionnalité derrière est réellement branchée ») : la liste est pleine dès
+l'instant où la collection l'est. Un seul chargement par agrégat, jamais une
+requête par série (les N+1 des lots 113-114).
+
+**Toute expérience compte comme « vécu »**, et non les seuls types « lu » :
+le vocabulaire est configurable par catégorie
+(`EntityType.allowedExperienceTypes`), un type personnalisé peut n'avoir ni
+READ ni FINISHED. Une série abandonnée sort donc de la liste au tome
+abandonné — ce qui est le comportement voulu, elle ne se « lit pas ensuite ».
+Les œuvres sans tome (un jeu) sont hors sujet et écartées.
+
+**L'ordre répond à la question** : les séries COMMENCÉES d'abord — reprendre
+avant commencer — puis celle dont il reste le moins, la plus proche d'être
+finie. Écran `/a-lire` (deux groupes, « Reprendre » et « Commencer ») et un
+bloc « À lire » en tête de Ma collection, avant les filtres : la question se
+pose en arrivant, pas après avoir trié ses étagères. Le bloc s'efface tant
+qu'aucun tome n'a été vécu — annoncer « tout est à lire » à qui n'a jamais
+enregistré de lecture serait vrai et sans intérêt. Aucun geste sur ces
+écrans : on ouvre le tome sur sa fiche (`?variant=`, qui l'y fait défiler et
+l'entoure), où l'enregistrement d'une expérience vit déjà.
+
+**Mesuré sur la pile jetable** : Berserk 5 tomes dont 2 lus, Bakuman 3 dont
+2 lus, Vinland Saga 4 dont 0, Monster 2 tous lus, Carcassonne (jeu de
+société). Résultat — **8 tomes en attente, 3 séries** : Bakuman (commencée,
+1 restant) avant Berserk (commencée, 3 restants), puis Vinland Saga à
+commencer ; Monster et Carcassonne absents. Après enregistrement de la
+lecture de Bakuman T3 : **7 tomes, Bakuman a disparu**. À l'écran, Ma
+collection affiche « À LIRE · Berserk · Tome 3 · 3 restants » et « Les 2
+séries » ; `/a-lire` affiche « Reprendre : Berserk, Tome 3 · Glenat, 2 lus ·
+3 tomes en attente » et « Commencer : Vinland Saga, Tome 1 ».
+
+Pas de test automatisé (demande de l'utilisateur). `ReadingListService.compute`
+est un calcul pur sur trois dépôts : un faux de chacun suffirait le jour venu.
+
 ### Lot 121 — un cache qui ne se périme jamais a besoin d'une porte
 
 Après le Lot 120, l'utilisateur rouvre Boruto sur son instance : toujours
