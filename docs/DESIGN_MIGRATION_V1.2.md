@@ -1402,6 +1402,12 @@ moment du lot, donc l'ordre ne s'observe pas en direct (AniList était déjà
 le seul à répondre) ; tests du paquet métadonnées relancés, README et
 parcours 27 mis à jour.
 
+**Trouvé par l'utilisateur en testant** : l'aperçu de Boruto listait ses
+tomes BnF dans l'ordre du catalogue — 09, 03, 02, 08, 01, 18, 17. Google
+Books rendait les siens déjà rangés, et personne ne triait. `GET
+/metadata/volumes` trie désormais par numéro, tri stable : les éditions
+gardent l'ordre de leur première apparition, seuls les tomes se rangent.
+
 ### Lot 118 — quand tous les fournisseurs se taisent en même temps
 
 Signalé par l'utilisateur en testant le lot précédent : l'aperçu de « Boruto:
