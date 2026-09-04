@@ -292,7 +292,9 @@ Aucune source externe n'est indispensable : chaque écran a un secours, et
 l'app le dit quand elle en est réduite à lui. La règle d'ordre : **la source
 qui a le plus d'appels disponibles passe en premier**, pour que les œuvres
 viennent du même endroit et portent les mêmes données ; « Recharger depuis la
-source » sur une fiche réaligne une œuvre ajoutée avant ce changement.
+source » sur une fiche réaligne une œuvre ajoutée avant ce changement — un
+geste d'**administrateur**, qui répond des données de l'instance et des quotas
+des fournisseurs.
 
 | Besoin | D'abord | En secours (sans clé, sans quota journalier) |
 |---|---|---|

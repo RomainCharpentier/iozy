@@ -11,6 +11,7 @@ import { CartesEditions } from './CartesEditions'
 import { BarreAjoutTomes } from './BarreAjoutTomes'
 import { AddVolumeSection } from './AddVolumeSection'
 import { BoutonActualiserTomes } from './BoutonActualiserTomes'
+import { useAuth } from '../../lib/useAuth'
 import { invaliderApresPossession } from '../../lib/invalidations'
 
 /**
@@ -88,6 +89,11 @@ export function usePropositionTomes({
   // donné (constaté sur « Doubt », une édition « Akiko » fantôme à côté de
   // la vraie, Lot 123). L'aperçu attend donc sa recherche de métadonnées ;
   // sur une fiche, les attributs sont là d'emblée et rien n'attend.
+  // Recharger depuis la source est réservé à l'administrateur (demande du
+  // 2026-09-04) : le serveur ignore de toute façon forceRefresh pour les
+  // autres comptes, inutile de leur montrer un bouton qui ne ferait rien.
+  const { compte } = useAuth()
+  const peutActualiser = compte?.admin === true
   const proposes = useTomesProposes({
     entityTypeId,
     titre,
@@ -200,7 +206,7 @@ export function usePropositionTomes({
             </button>
             {/* « Réessayer plus tard » sans bouton pour réessayer : la
                 phrase ci-dessus le promettait, rien ne le permettait. */}
-            <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />
+            {peutActualiser && <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />}
           </div>
           <AddVolumeSection
             entityId={entityId}
@@ -271,7 +277,7 @@ export function usePropositionTomes({
               {/* La liste vient d'un cache qui ne se périme pas (voir
                   useTomesProposes.actualiser) : quand elle a des trous, c'est
                   ici qu'on la redemande à la source. */}
-              <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />
+              {peutActualiser && <BoutonActualiserTomes enCours={proposes.actualisationEnCours} onClick={proposes.actualiser} />}
             </h2>
           }
           volumes={affiches.map(

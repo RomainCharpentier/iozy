@@ -1360,6 +1360,28 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 128 — recharger depuis la source : un geste d'administrateur
+
+Demande utilisateur du 2026-09-04 : « seul l'admin peut recharger les données
+API ». Le lot 119 avait posé que chaque donnée chargée est stockée sur
+iozycore, avec un bouton pour la redemander à la source ; ce lot dit QUI
+tient ce bouton. L'administrateur répond des données uniformes de
+l'instance (une seule chaîne de sources, une seule écriture par série) et
+des quotas des fournisseurs (Google Books a le sien, la BnF bloque après une
+salve) : un compte ordinaire lit ce que l'instance a, il ne relance pas les
+fournisseurs.
+
+**Serveur.** `GET /api/metadata/volumes?forceRefresh=true` n'est honoré que
+pour `ROLE_ADMIN` ; pour les autres comptes la demande est servie depuis le
+cache, **sans refus** — le rattrapage de jaquettes (`backfillCovers`) force
+en seconde intention, et un 403 y passerait pour un fournisseur muet.
+
+**Écran.** « Recharger depuis la source » (fiche, mode édition) et
+« Actualiser depuis la source » (aperçu, grille et état vide) ne s'affichent
+que pour `compte.admin` — même règle que les tags : le serveur protège,
+l'écran évite de proposer une porte fermée. « Chercher d'autres éditions »
+reste ouvert à tous : il lit des mots-clés rares, il ne force pas le cache.
+
 ### Lot 127 — mangacollec pour référence, et la BnF ménagée
 
 Règle posée par l'utilisateur : « Il faut avoir les mêmes résultats que

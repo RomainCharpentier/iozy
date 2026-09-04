@@ -398,8 +398,9 @@ devient **définitivement indélébile**.
 source qui a le plus d'appels disponibles, Lot 119 —, puis Jikan/MyAnimeList
 en secours, Google Books en dernier ; BGG ; IGDB), avec jaquette, année,
 auteur. Aucune des trois bases manga n'a de quota journalier ; seule Google
-Books en a un. « Recharger depuis la source » sur la fiche (parcours 12)
-réaligne une œuvre ajoutée avant ce changement sur la source principale.
+Books en a un. « Recharger depuis la source » sur la fiche (parcours 12,
+**administrateur seulement** — Lot 128) réaligne une œuvre ajoutée avant ce
+changement sur la source principale.
 **Branches** : recherche externe en échec → « La recherche de métadonnées a
 échoué » ; aucun résultat → « Aucun résultat pour ce titre » ; type **sans
 fournisseur** → aucune recherche externe, message dédié annoncé **avant** la

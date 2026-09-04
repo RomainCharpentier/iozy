@@ -96,7 +96,7 @@ export function EntityDetailPage() {
   // et se heurtent au refus du serveur, expliqué en une phrase par
   // lib/useRefusDeVisite : les masquer un par un dans une quarantaine
   // d'endroits revenait à parier qu'aucun ne serait oublié.
-  const { estInvite } = useAuth()
+  const { estInvite, compte } = useAuth()
   const toast = useToast()
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
@@ -894,26 +894,32 @@ export function EntityDetailPage() {
               (un tome de plus paru, un statut qui passe à « terminée »). Le
               décompte des jaquettes manquantes reste annoncé quand il y en a,
               c'est ce qui se voit à l'œil. */}
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => rechargerMutation.mutate()}
-              disabled={rechargerMutation.isPending}
-              className="flex min-h-11 w-fit items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-50"
-            >
-              <RefreshCw size={15} />
-              {rechargerMutation.isPending ? 'Rechargement...' : 'Recharger depuis la source'}
-            </button>
-            {jaquettesManquantes > 0 && !rechargerMutation.isPending && (
-              <span className="text-[13px] text-textDim">
-                {jaquettesManquantes} jaquette{jaquettesManquantes > 1 ? 's' : ''} manquante
-                {jaquettesManquantes > 1 ? 's' : ''}
-              </span>
-            )}
-            {rechargerMutation.isSuccess && (
-              <span className="text-[13px] text-textDim">{resumeRechargement(rechargerMutation.data)}</span>
-            )}
-          </div>
+          {/* Administrateur seulement (demande du 2026-09-04) : c'est lui qui
+              répond des données uniformes de l'instance et des quotas des
+              fournisseurs. Le serveur ignore le rechargement forcé pour les
+              autres comptes. */}
+          {compte?.admin && (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => rechargerMutation.mutate()}
+                disabled={rechargerMutation.isPending}
+                className="flex min-h-11 w-fit items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-50"
+              >
+                <RefreshCw size={15} />
+                {rechargerMutation.isPending ? 'Rechargement...' : 'Recharger depuis la source'}
+              </button>
+              {jaquettesManquantes > 0 && !rechargerMutation.isPending && (
+                <span className="text-[13px] text-textDim">
+                  {jaquettesManquantes} jaquette{jaquettesManquantes > 1 ? 's' : ''} manquante
+                  {jaquettesManquantes > 1 ? 's' : ''}
+                </span>
+              )}
+              {rechargerMutation.isSuccess && (
+                <span className="text-[13px] text-textDim">{resumeRechargement(rechargerMutation.data)}</span>
+              )}
+            </div>
+          )}
           {rechargerMutation.isError && <ErrorBanner message={rechargerMutation.error.message} />}
 
           {/* Les corrections d'identité restent avec le reste des éditeurs ;
