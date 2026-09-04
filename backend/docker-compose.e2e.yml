@@ -38,15 +38,16 @@ services:
       # L'origine du serveur de dev lancé par Playwright (voir
       # playwright.config.ts) - sans elle, toute écriture repartirait en 403.
       WEB_ALLOWED_ORIGINS: http://localhost:5174
-      # Optionnels : vides par defaut, l'IA est alors simplement eteinte. A
-      # renseigner depuis l'environnement pour verifier en direct un chemin
-      # qui parle a Gemini (jamais dans ce fichier).
-      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-}
-      # Aucune clé de fournisseur : les tests ne doivent dépendre d'aucun
-      # service externe, ni consommer de quota. Les écrans qui en dépendent
-      # s'absentent proprement, c'est le comportement voulu.
+      # Aucune clé de service externe, EN DUR : les tests ne doivent dépendre
+      # d'aucun fournisseur ni consommer de quota, les écrans qui en dépendent
+      # s'absentent proprement. Pas de `${GEMINI_API_KEY:-}` ici : Compose
+      # substitue aussi depuis backend/.env, et c'est la vraie clé qui est
+      # arrivée dans cette pile (2026-09-04) - l'analyse d'annonce a appelé
+      # l'IA pendant les tests et dépassé leurs dix secondes. Pour vérifier un
+      # fournisseur en direct, c'est la pile de développement qu'on utilise.
+      GOOGLE_BOOKS_API_KEY: ""
+      GEMINI_API_KEY: ""
+      GEMINI_MODEL: ""
     ports:
       # 8090 et non 8080 : la pile de développement peut tourner en même temps.
       - "8090:8080"

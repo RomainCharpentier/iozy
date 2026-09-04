@@ -1399,6 +1399,21 @@ ce que la source ne touchera plus. Le rechargement de la fiche appelle le PATCH 
 reste vrai. Une valeur saisie identique à celle de la source reste marquée :
 l'utilisateur a tranché.
 
+**Audit du 2026-09-05** (demande : « vérifie que tout est en ordre et
+cohérent »). Suites complètes jouées : 1095 tests backend, 331 tests web,
+14 parcours Playwright, typecheck, lint, contraste, build. Trois choses
+corrigées. **Les années** (`startYear`, `endYear`) restaient du texte : la
+fiche et l'aperçu les lisent en `typeof === 'string'` (« Depuis 2004 »), un
+nombre saisi y aurait disparu sans bruit — retirées des clés numériques du
+brouillon. **Les rouages proposés** (malId, titre romaji, statut source…)
+ne s'offrent qu'à un manga : un jeu de société n'a pas de malId à compléter
+(`clesSourceProposees`). **La pile E2E appelait la vraie IA** : le
+passthrough `${GEMINI_API_KEY:-}` du lot 122 dans `docker-compose.e2e.yml`
+est substitué depuis `backend/.env` par Compose, pas seulement depuis le
+shell — l'analyse d'annonce a parlé à Gemini pendant les tests et dépassé
+leurs dix secondes (2 parcours rouges). Clés vidées en dur dans la pile
+jetable ; un fournisseur se vérifie en direct sur la pile de développement.
+
 ### Lot 129 — un seul « Éditer » pour toute la fiche
 
 Demande utilisateur du 2026-09-04 : « retire les boutons "modifier" sur
@@ -1413,8 +1428,8 @@ la même page, cinq boutons dans une colonne de 240 px. Tranché : un geste.
 - « Éditer » ouvre, sous l'inspecteur et en pleine largeur, les trois
   éditeurs personnels à la fois (classement, expériences avec la note, tags)
   puis le catalogue, comme avant. Les remarques s'éditent en place dans leur
-  relevé : le brouillon naît à l'entrée du mode et meurt à sa sortie ;
-  « Enregistrer » et « Annuler » se désactivent tant que rien n'a changé.
+  relevé (depuis le lot 130, dans le brouillon commun de l'inspecteur, sans
+  boutons à elles).
 - Le crayon « Modifier l'édition » de l'inspecteur (tomes, éditeur, épuisée,
   nouvelle édition annoncée) était le dernier « Modifier » à part : le
   formulaire vit maintenant sous les informations de l'œuvre, dans le même

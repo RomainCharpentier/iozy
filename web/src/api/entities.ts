@@ -48,7 +48,7 @@ export function removeEntityAttribute(entityId: string, key: string): Promise<vo
   return del<void>(`/entities/${entityId}/attributes/${encodeURIComponent(key)}`)
 }
 
-/** Renomme la Série (correction manuelle, voir action "Modifier" de la fiche
+/** Renomme la Série (correction manuelle, mode « Éditer » de la fiche
  * Série) - ne casse jamais les Éditions/Tomes déjà rattachés (voir migration
  * "Série -> Édition par ID" : leur lien passe par entityId, jamais par une
  * égalité de titre). */

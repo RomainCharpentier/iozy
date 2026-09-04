@@ -33,7 +33,7 @@ import { BoutonEnviesHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
-import { libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
+import { CLES_SOURCE, libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
 import { useAuth } from '../../lib/useAuth'
@@ -78,6 +78,8 @@ import { invaliderApresPossession } from '../../lib/invalidations'
  *  chaque rendu relancerait son effet de réinitialisation en boucle. */
 const VIDE: Record<string, unknown> = {}
 const AUCUN: string[] = []
+/** Les rouages qu'un manga peut compléter même absents (voir useBrouillonInspecteur). */
+const CLES_SOURCE_MANGA = CLES_SOURCE.map((c) => c.cle)
 
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -436,6 +438,7 @@ export function EntityDetailPage() {
     attributes: entity?.attributes ?? VIDE,
     champsSaisis: entity?.champsSaisis ?? AUCUN,
     customFieldKeys: entityType?.customFieldKeys ?? AUCUN,
+    clesSourceProposees: isManga ? CLES_SOURCE_MANGA : AUCUN,
     edition:
       groupeActif && groupeActif.editionName !== ''
         ? { nom: groupeActif.editionName, info: editionInfoQuery.isSuccess ? editionInfoQuery.data : null }

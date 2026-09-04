@@ -139,7 +139,7 @@ public class EntityController {
     public record RenameEntityRequest(String title) {
     }
 
-    @Operation(summary = "Renommer la Série (correction manuelle, voir action \"Modifier\" de la fiche Série) - "
+    @Operation(summary = "Renommer la Série (correction manuelle, mode « Éditer » de la fiche Série) - "
             + "ne touche jamais les MangaEdition/Variant déjà rattachés : leur lien avec cette Série passe par "
             + "entityId (voir migration \"Série -> Édition par ID\"), jamais par une égalité de titre, donc "
             + "immunisé contre ce renommage.")
