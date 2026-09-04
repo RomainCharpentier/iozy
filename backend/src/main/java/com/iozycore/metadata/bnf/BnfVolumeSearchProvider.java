@@ -25,7 +25,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -123,7 +122,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
             }
 
-            return avecJaquettesVerifiees(parse(response.body(), seriesTitle, excludedTitleFragments));
+            // Les jaquettes ne sont plus verifiees ici (Lot 127) : voir
+            // BnfCouverture - une par tome GARDE, jamais une par tome liste.
+            return parse(response.body(), seriesTitle, excludedTitleFragments);
         } catch (SourceUnavailableException e) {
             throw e;
         } catch (Exception e) {
@@ -133,56 +134,6 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             log.warn("Échec de la recherche de tomes BnF pour '{}' : {}", cql, e.getMessage());
             throw new SourceUnavailableException("La BnF n'a pas répondu : " + e.getMessage());
         }
-    }
-
-    /**
-     * Le service « couverture » répond 500 quand la notice n'a pas d'image :
-     * un HEAD par tome, en parallèle, et seules les adresses qui répondent
-     * 200 sont gardées. Une adresse qu'on ne peut pas vérifier (délai, panne)
-     * est retirée aussi : mieux vaut un tome sans jaquette qu'une jaquette
-     * morte persistée.
-     */
-    private List<VolumeCandidate> avecJaquettesVerifiees(List<VolumeCandidate> candidates) {
-        // Par petites vagues, jamais vingt d'un coup : la BnF limite le debit
-        // par adresse (429 constate le 2026-09-04 apres une salve de HEAD en
-        // parallele), et une verification qui echoue par exces de zele coute
-        // une jaquette. Une adresse qui repond 500 n'a pas d'image ; une
-        // adresse qui ne repond pas (delai, coupure) est retentee une fois.
-        List<VolumeCandidate> result = new ArrayList<>(candidates);
-        for (int debut = 0; debut < candidates.size(); debut += VERIFICATIONS_PAR_VAGUE) {
-            int fin = Math.min(debut + VERIFICATIONS_PAR_VAGUE, candidates.size());
-            List<CompletableFuture<VolumeCandidate>> vague = new ArrayList<>();
-            for (int i = debut; i < fin; i++) {
-                vague.add(verifierJaquette(candidates.get(i)));
-            }
-            for (int i = debut; i < fin; i++) {
-                result.set(i, vague.get(i - debut).join());
-            }
-        }
-        return result;
-    }
-
-    private static final int VERIFICATIONS_PAR_VAGUE = 4;
-
-    private CompletableFuture<VolumeCandidate> verifierJaquette(VolumeCandidate candidate) {
-        if (candidate.imageUrl() == null) {
-            return CompletableFuture.completedFuture(candidate);
-        }
-        HttpRequest head = HttpRequest.newBuilder()
-                .uri(URI.create(candidate.imageUrl()))
-                .timeout(Duration.ofSeconds(8))
-                .method("HEAD", HttpRequest.BodyPublishers.noBody())
-                .build();
-        return httpClient.sendAsync(head, HttpResponse.BodyHandlers.discarding())
-                .thenApply(response -> response.statusCode() == 200 ? candidate : sansJaquette(candidate))
-                .exceptionallyCompose(e -> httpClient.sendAsync(head, HttpResponse.BodyHandlers.discarding())
-                        .thenApply(response -> response.statusCode() == 200 ? candidate : sansJaquette(candidate))
-                        .exceptionally(e2 -> sansJaquette(candidate)));
-    }
-
-    private static VolumeCandidate sansJaquette(VolumeCandidate candidate) {
-        return new VolumeCandidate(candidate.edition(), candidate.volumeNumber(), null, candidate.title(),
-                candidate.isbn(), candidate.annee());
     }
 
     /** 010$a - l'ISBN du tome, dans un champ MARC dédié. */
