@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
 import { createEdition, updateEdition } from '../../api/purchaseAnalysis'
 import { queryKeys } from '../../lib/queryKeys'
 import { ErrorBanner } from '../../components/ErrorBanner'
@@ -17,10 +16,13 @@ import type { MangaEditionDto } from '../../types/purchaseAnalysis'
  * <p>
  * Même table MangaEdition, mêmes endpoints (createEdition/updateEdition) que
  * EditionReferenceLookup - une édition corrigée ici profite aussi à "Évaluer
- * un achat" et inversement, aucune donnée dupliquée. Action secondaire (lien
- * discret "Modifier", repliée par défaut) : ne transforme pas la fiche Série
- * en formulaire d'administration, mais reste accessible en un clic depuis
- * l'endroit où cette info manque concrètement.
+ * un achat" et inversement, aucune donnée dupliquée.
+ * <p>
+ * Plus de crayon à part : le formulaire s'ouvre avec le mode édition de la
+ * fiche, un seul « Éditer » pour toute la page (demande utilisateur du
+ * 2026-09-04 - le crayon de l'édition était le dernier « Modifier » qui
+ * restait). Il est toujours pré-rempli depuis ce qui est déjà connu, et
+ * « Annuler » y revient sans le refermer : c'est « Terminer » qui ferme.
  */
 export function EditionCorrectionSection({
   entityId,
@@ -37,24 +39,33 @@ export function EditionCorrectionSection({
   editionInfo: MangaEditionDto | null
 }) {
   const queryClient = useQueryClient()
-  const [expanded, setExpanded] = useState(false)
   const [totalVolumes, setTotalVolumes] = useState('')
   const [publisher, setPublisher] = useState('')
   const [outOfPrint, setOutOfPrint] = useState(false)
   const [betterEditionAnnounced, setBetterEditionAnnounced] = useState(false)
   const [betterEditionNote, setBetterEditionNote] = useState('')
 
-  function openForm() {
-    // Pré-rempli depuis ce qui est déjà connu (jamais un formulaire vide
-    // quand une valeur existe déjà) - editionInfo est null si cette édition
-    // n'a encore jamais été renseignée nulle part (voir TomesGridSection).
+  // Pré-rempli depuis ce qui est déjà connu (jamais un formulaire vide
+  // quand une valeur existe déjà) - editionInfo est null si cette édition
+  // n'a encore jamais été renseignée nulle part (voir TomesGridSection).
+  function reinitialiser() {
     setTotalVolumes(editionInfo?.totalVolumes !== null && editionInfo?.totalVolumes !== undefined ? String(editionInfo.totalVolumes) : '')
     setPublisher(editionInfo?.publisher ?? '')
     setOutOfPrint(editionInfo?.outOfPrint ?? false)
     setBetterEditionAnnounced(editionInfo?.betterEditionAnnounced ?? false)
     setBetterEditionNote(editionInfo?.betterEditionNote ?? '')
-    setExpanded(true)
   }
+  // À l'ouverture, et quand l'édition connue change (autre édition active,
+  // ou valeurs revenues du serveur après un enregistrement).
+  useEffect(reinitialiser, [
+    editionName,
+    editionInfo?.id,
+    editionInfo?.totalVolumes,
+    editionInfo?.publisher,
+    editionInfo?.outOfPrint,
+    editionInfo?.betterEditionAnnounced,
+    editionInfo?.betterEditionNote,
+  ])
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -96,39 +107,12 @@ export function EditionCorrectionSection({
       // découvraient le total qu'on venait de renseigner. Le préfixe
       // `insights.progress` emporte aussi `progressOf(entityId)`.
       queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
-      setExpanded(false)
     },
   })
 
-  if (!expanded) {
-    // Icône seule (plus de libellé "Modifier l'édition" sur sa propre ligne) -
-    // même esprit que la correction de couverture/titre de la fiche : une icône
-    // crayon directement associée à l'info qu'elle corrige, jamais une ligne à
-    // part qui ressemble à une interface de gestion.
-    //
-    // L'icône fait 13 px, la CIBLE 44 : sans surface autour, le bouton mesurait
-    // 13x13 - le seul élément interactif de toute l'application sous le plancher
-    // de 24 px, mesuré à 375 px de large. Le patron est déjà celui du bouton de
-    // suppression d'un prix relevé (voir EditionObservations) : une pastille
-    // h-11 w-11 centrée autour d'une icône de la même taille.
-    return (
-      <button
-        type="button"
-        onClick={openForm}
-        aria-label="Modifier l'édition"
-        title="Modifier l'édition"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-surface2 hover:text-textPrimary"
-      >
-        <Pencil size={13} />
-      </button>
-    )
-  }
-
   return (
-    // w-full + le parent en flex-wrap (voir TomesGridSection) : le formulaire
-    // déplié occupe toute la largeur sur sa propre ligne plutôt que de rester
-    // coincé dans la même ligne flex que le libellé compact de l'édition.
-    <div className="mt-1 flex w-full flex-col gap-2 rounded-lg bg-surface2 p-2.5">
+    <div className="flex w-full flex-col gap-2 rounded-lg bg-surface2 p-2.5">
+      <span className="text-xs text-faint">Édition « {editionName} »</span>
       <div className="flex gap-2">
         <input
           type="number"
@@ -179,7 +163,7 @@ export function EditionCorrectionSection({
         >
           {saveMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
         </button>
-        <button type="button" onClick={() => setExpanded(false)} className="rounded-lg px-3 py-1.5 text-xs text-textDim">
+        <button type="button" onClick={reinitialiser} className="rounded-lg px-3 py-1.5 text-xs text-textDim">
           Annuler
         </button>
       </div>

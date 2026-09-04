@@ -36,9 +36,9 @@ test('renseigner le nombre de tomes d’une édition, et voir « X/Y » apparaî
 
   // --- Renseigner la fiche de référence
   //
-  //     Le crayon est accroché au nom de l'édition, pas posé sur une ligne à
-  //     part : c'est la correction de CETTE donnée, pas un mode d'édition.
-  await page.getByRole('button', { name: "Modifier l'édition" }).first().click()
+  //     Un seul « Éditer » pour toute la page (Lot 129) : le formulaire de
+  //     l'édition s'ouvre avec le mode édition, sous les informations.
+  await page.getByRole('button', { name: 'Éditer' }).click()
   await page.getByPlaceholder('Nb de tomes').fill('18')
   await page.getByPlaceholder('Éditeur (ex: Kana)').fill('Kana')
   await page.getByRole('button', { name: 'Enregistrer' }).click()
