@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { AlignLeft, Download, Pencil, UserRound } from 'lucide-react'
+import { AlignLeft, Download, UserRound } from 'lucide-react'
 import { tonDe } from '../../lib/useTeinteJaquette'
 
 /**
@@ -129,50 +129,18 @@ export function RangeeInspecteur({
  * Un bloc « intitulé discret puis valeur » - la forme de la colonne PERSONNEL,
  * qui n'aligne pas des paires mais des relevés.
  *
- * <h2>On modifie une information là où elle s'affiche</h2>
- * `onModifier` accroche au relevé son propre point d'entrée. Ces informations
- * - classement, note, lectures, tags - relèvent de l'intention « juger », qui
- * est celle d'un utilisateur normal (étude produit du 2026-08-27, §2) : elles
- * n'ont rien à faire derrière « Éditer », qui est l'espace du CATALOGUE. Et
- * les rassembler ailleurs en un mur d'éditeurs, c'était les afficher à un
- * endroit pour les modifier à un autre.
- *
- * <p>Le geste est discret mais TOUJOURS visible. Le révéler au survol
- * obligerait à deviner si l'appareil en a un, et une largeur d'écran ne le dit
- * pas : un écran tactile large n'a pas de survol, un petit écran avec souris
- * en a un. Plutôt que de parier sur `md:`, le bouton reste là, petit et calme -
- * un contrôle qu'on ne voit pas n'existe pas.
+ * <h2>Un seul « Éditer » pour toute la page</h2>
+ * Chaque relevé portait son propre « Modifier » (classement, note, remarques,
+ * lectures, tags) : cinq petits boutons dans une colonne, et un « Éditer »
+ * en haut qui n'ouvrait que le catalogue. L'utilisateur a tranché le
+ * 2026-09-04 : un seul geste pour toute la page. Le relevé n'affiche donc
+ * plus que l'information ; ses éditeurs s'ouvrent avec le mode édition de la
+ * fiche (voir EntityDetailPage).
  */
-export function ReleveInspecteur({
-  libelle,
-  onModifier,
-  ouvert = false,
-  children,
-}: {
-  libelle: string
-  onModifier?: () => void
-  ouvert?: boolean
-  children: ReactNode
-}) {
+export function ReleveInspecteur({ libelle, children }: { libelle: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-faint">{libelle}</span>
-        {onModifier && (
-          <button
-            type="button"
-            onClick={onModifier}
-            aria-expanded={ouvert}
-            aria-label={`Modifier : ${libelle}`}
-            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[11px] font-medium transition-colors ${
-              ouvert ? 'bg-accent text-accentInk' : 'text-faint hover:bg-softBtn hover:text-textPrimary'
-            }`}
-          >
-            <Pencil size={11} />
-            {ouvert ? 'Fermer' : 'Modifier'}
-          </button>
-        )}
-      </div>
+      <span className="text-xs text-faint">{libelle}</span>
       {children}
     </div>
   )
