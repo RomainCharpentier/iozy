@@ -16,7 +16,7 @@ import { LienRetour } from '../../components/LienRetour'
  * MangaEdition, et le seul endroit d'où en supprimer une.
  * <p>
  * Ces fiches se créent jusqu'ici uniquement en contexte (fiche Série ->
- * « Éditer » puis le formulaire de l'édition, ou "Évaluer un achat" -> EditionReferenceLookup) et
+ * « Éditer » puis les champs de l'édition dans l'inspecteur, ou "Évaluer un achat" -> EditionReferenceLookup) et
  * n'étaient visibles NULLE PART ensuite : une édition mal nommée, créée par
  * erreur ou par un test, restait dans la base sans moyen de la voir ni de
  * l'enlever. Elle continuait pourtant à compter - c'est ce référentiel qui
@@ -73,7 +73,7 @@ export function EditionsPage() {
       {editionsQuery.isSuccess && bySeries.length === 0 && (
         <div className="rounded-2xl border border-dashed border-surface2 p-6 text-center">
           <p className="text-sm text-textDim">
-            Aucune édition renseignée. Depuis la fiche d'une série, « Éditer » puis le formulaire de l'édition crée la première.
+            Aucune édition renseignée. Depuis la fiche d'une série, « Éditer » puis les champs de l'édition créent la première.
           </p>
         </div>
       )}

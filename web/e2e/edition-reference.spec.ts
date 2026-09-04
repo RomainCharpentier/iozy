@@ -36,12 +36,13 @@ test('renseigner le nombre de tomes d’une édition, et voir « X/Y » apparaî
 
   // --- Renseigner la fiche de référence
   //
-  //     Un seul « Éditer » pour toute la page (Lot 129) : le formulaire de
-  //     l'édition s'ouvre avec le mode édition, sous les informations.
+  //     Un seul « Éditer » pour toute la page (Lot 129-130) : les rangées de
+  //     l'inspecteur deviennent des champs, à la même place, et une seule
+  //     barre les enregistre.
   await page.getByRole('button', { name: 'Éditer' }).click()
   await page.getByPlaceholder('Nb de tomes').fill('18')
   await page.getByPlaceholder('Éditeur (ex: Kana)').fill('Kana')
-  await page.getByRole('button', { name: 'Enregistrer' }).click()
+  await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()
 
   // --- Après : la progression existe, sur le même écran, sans rechargement
   await expect(page.getByText('2/18')).toBeVisible()
