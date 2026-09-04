@@ -14,17 +14,17 @@ public interface EntityJpaRepository extends JpaRepository<EntityJpaEntity, UUID
     boolean existsByEntityTypeId(UUID entityTypeId);
 
     /**
-     * Recherche transversale (UC4) : titleQuery/entityTypeId/tagId sont
-     * chacun optionnels (passer null pour ignorer ce filtre). titleQuery
-     * vide compte comme "aucun filtre de titre" - on ne veut pas exiger un
-     * texte pour simplement filtrer par type ou par tag.
+     * Le perimetre d'une recherche transversale (UC4) : type et tag, chacun
+     * optionnel (null pour ignorer ce filtre). Le TITRE ne se filtre plus
+     * ici - un LIKE sur LOWER(title) ne pliait ni les accents ni la
+     * ponctuation, et « pokemon » ne trouvait pas « Pokémon ». Il se filtre
+     * en memoire dans l'adaptateur (voir JpaEntityRepositoryAdapter.search),
+     * avec la meme regle que partout ailleurs (TexteRecherche).
      */
     @Query("SELECT e FROM EntityJpaEntity e WHERE "
-            + "(:titleQuery IS NULL OR :titleQuery = '' OR LOWER(e.title) LIKE LOWER(CONCAT('%', :titleQuery, '%'))) "
-            + "AND (:entityTypeId IS NULL OR e.entityTypeId = :entityTypeId) "
+            + "(:entityTypeId IS NULL OR e.entityTypeId = :entityTypeId) "
             + "AND (:tagId IS NULL OR :tagId MEMBER OF e.tagIds) "
             + "ORDER BY e.title")
-    List<EntityJpaEntity> search(@Param("titleQuery") String titleQuery,
-                                  @Param("entityTypeId") UUID entityTypeId,
-                                  @Param("tagId") UUID tagId);
+    List<EntityJpaEntity> findByFiltres(@Param("entityTypeId") UUID entityTypeId,
+                                        @Param("tagId") UUID tagId);
 }

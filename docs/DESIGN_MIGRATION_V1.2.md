@@ -1360,6 +1360,66 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 116 — la recherche promettait « un titre, un auteur… » et ne tenait que le titre
+
+Consolidation demandée après le Lot 115, mesurée avant d'être touchée, sur la
+pile jetable avec cinq séries (« Pokémon : la grande aventure », « L'Attaque
+des Titans », « One Piece », « Bone », « Someone Else », chacune avec son
+mangaka).
+
+**Ce qui ne marchait pas, en chiffres.** La recherche locale (`GET
+/entities/search`) filtrait en SQL par `LOWER(title) LIKE '%q%'` : « pokemon »
+→ **0 résultat** ; « l attaque » → **0** ; « attaque titans » → **0** ;
+« isayama » → **0** alors que le champ dit « Un titre, un auteur… » ; « one »
+→ **Bone, One Piece, Someone Else**, l'ordre alphabétique avant la pertinence.
+Et quatre endroits comparaient des titres chacun à sa façon — la recherche
+locale, l'exclusion des titres possédés dans `MetadataSearchService` (casse et
+espaces), les trois suggestions de Découvrir (casse seule) — aucun ne pliant
+les accents : un fournisseur qui rend « Pokemon » pour une œuvre cataloguée
+« Pokémon » la proposait comme nouvelle.
+
+**Une règle, un endroit.** `domain/shared/TexteRecherche.normaliser` :
+minuscules, accents retirés (NFD), tout ce qui n'est ni lettre ni chiffre
+devient une espace. Le titre ne se filtre plus en SQL : la requête
+(`findByFiltres`) ne garde que type et tag, et l'adaptateur filtre en mémoire
+— au coût du listing d'un type, que Ma collection et le Catalogue paient déjà à
+chaque visite, sur une requête temporisée à 500 ms. L'ordre devient la
+pertinence : commence par la saisie, la contient, en contient chaque mot dans
+le désordre, ou la porte dans un attribut d'auteur (`mangaka`, `author`,
+`studio`, `designer`, `developer`, `publisher`). `MetadataSearchService` et
+`DiscoveryService` passent par la même fonction.
+
+**Après, sur les mêmes données** : « pokemon » et « POKÉMON » → Pokémon ;
+« l attaque » et « attaque titans » → L'Attaque des Titans ; « isayama » →
+L'Attaque des Titans ; « oda » → One Piece ; « one » → **One Piece, Bone,
+Someone Else** ; « rien du tout » → vide ; sans saisie → les cinq, en ordre
+alphabétique. Un piège de mesure au passage : « POKÉMON » passé par un
+argument de shell Windows partait en cp1252 et ne trouvait rien — encodé en
+UTF-8 pour de vrai (`POK%C3%89MON`), il trouve. Même famille que le « · » du
+Lot 115.
+
+**Deux silences de l'écran, dits.** Sous « Tout », la recherche externe est
+coupée (un fournisseur s'interroge type par type) ; sous trois caractères
+aussi (quota). L'écran filtrait alors le catalogue sans un mot sur ce qu'il ne
+faisait pas — « Naruto » tapé sous « Tout » ne proposait rien à ajouter, sans
+dire pourquoi. Une phrase pour chaque cas, sous le champ.
+
+**Et la puce « Tout » ne tenait pas.** Trouvé en vérifiant la première
+phrase dans le navigateur : cliquer « Tout » puis taper « Naruto » ne
+l'affichait pas, et la mesure disait pourquoi — après le clic, c'est encore
+**Manga** qui est active (`Tout:false | Manga:true`, URL `?type=…`). La
+présélection du premier type, faite pour arriver prêt à chercher, se
+rejouait à chaque fois que le type redevenait vide, donc à chaque clic sur
+« Tout », aussitôt annulé. Pour un compte connecté, voir le catalogue entier
+était impossible depuis que la puce existe ; seul un visiteur, exempté de la
+présélection, y avait accès. Elle ne s'applique plus qu'à l'arrivée, une
+fois, et jamais après un choix explicite.
+
+Tests existants relancés (`EntityPersistenceIntegrationTest`,
+`MetadataSearchServiceTest`, `DiscoveryServiceTest`, `SeriesMatcherTest`,
+`QuickAddServiceTest` : 72 verts), pas de test ajouté, à la demande de
+l'utilisateur. Parcours 27 et 28 de `USER_JOURNEYS.md` mis à jour.
+
 ### Lot 115 — l'export avait un sens, pas de retour
 
 §19 de `CONCEPTION.md` promettait « l'absence d'enfermement » et décrivait le

@@ -399,7 +399,10 @@ IGDB), avec jaquette, année, auteur.
 **Branches** : recherche externe en échec → « La recherche de métadonnées a
 échoué » ; aucun résultat → « Aucun résultat pour ce titre » ; type **sans
 fournisseur** → aucune recherche externe, message dédié annoncé **avant** la
-saisie.
+saisie ; **« Tout » sélectionné** → seul le catalogue est parcouru, et l'écran
+le dit (« choisis une catégorie pour chercher aussi chez une source externe ») ;
+**moins de trois caractères** → même chose, dit aussi (Lot 116 — ces deux
+silences se lisaient comme des pannes).
 **Écrans** : `SearchPage`
 **Backend** : `GET /metadata/search`
 **Statut** : `COMPLET`
@@ -415,6 +418,14 @@ qu'elle est en envies).
 des spin-offs sans explication. Et depuis qu'une œuvre peut être cataloguée sans
 être possédée (parcours 52), une pastille « Possédé » universelle serait
 devenue un mensonge sur ses propres envies.
+**Ce que la recherche locale tolère** (Lot 116) : la casse, les **accents**
+(« pokemon » trouve « Pokémon »), la **ponctuation** (« l attaque » trouve
+« L'Attaque des Titans »), les **mots dans le désordre** (« attaque titans »),
+et l'**auteur** (« isayama » trouve la série — `mangaka`, `author`, `studio`,
+`designer`, `developer`, `publisher`). L'ordre dit la pertinence : les titres
+qui commencent par la saisie, puis ceux qui la contiennent, puis les mots
+épars, puis l'auteur. La même règle (`TexteRecherche`) sert à exclure les
+titres déjà catalogués des suggestions externes et de Découvrir.
 **Écrans** : `SearchPage`
 **Backend** : `GET /entities/search`, `GET /ownerships`
 **Statut** : `COMPLET` (y compris sur les types sans fournisseur externe).

@@ -101,11 +101,23 @@ export function SearchPage() {
   // demandé un clic avant la première recherche. Elle ne s'applique donc pas à
   // un visiteur, qui ne vient pas ajouter mais REGARDER - et à qui elle
   // masquerait tout le reste du catalogue derrière un type pris au hasard.
+  //
+  // Elle ne s'applique qu'à l'ARRIVÉE, une seule fois. Elle se rejouait à
+  // chaque fois que le type redevenait vide - c'est-à-dire à chaque clic sur
+  // « Tout », aussitôt annulé : pour un compte connecté, la puce « Tout »
+  // n'a jamais pu rester sélectionnée depuis qu'elle existe (Lot 116).
+  const [preselectionFaite, setPreselectionFaite] = useState(parametres.has('type'))
   useEffect(() => {
+    if (preselectionFaite) return
     if (!estInvite && !entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
       setEntityTypeId(entityTypesQuery.data[0].id)
+      setPreselectionFaite(true)
     }
-  }, [estInvite, entityTypeId, entityTypesQuery.data])
+  }, [preselectionFaite, estInvite, entityTypeId, entityTypesQuery.data])
+  function choisirType(id: string | undefined) {
+    setPreselectionFaite(true)
+    setEntityTypeId(id)
+  }
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
   const parTome = useCollecteParTome(entityTypeId)
@@ -340,9 +352,9 @@ export function SearchPage() {
             cadrer une recherche chez un fournisseur, qui s'interroge type par
             type. Elles filtrent maintenant aussi le catalogue affiché, et sans
             cette entrée il n'y avait aucun moyen de le voir en entier. */}
-        <Chip label="Tout" isActive={!entityTypeId} onClick={() => setEntityTypeId(undefined)} />
+        <Chip label="Tout" isActive={!entityTypeId} onClick={() => choisirType(undefined)} />
         {(entityTypesQuery.data ?? []).map((type) => (
-          <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => setEntityTypeId(type.id)} />
+          <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => choisirType(type.id)} />
         ))}
       </div>
 
@@ -359,6 +371,21 @@ export function SearchPage() {
           className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
         />
       </div>
+
+      {/* Deux silences qui se lisaient comme des pannes. Sous « Tout », la
+          recherche externe est coupée (un fournisseur s'interroge type par
+          type) ; sous trois caractères, elle l'est aussi (quota). Dans les
+          deux cas l'écran filtrait le catalogue sans un mot sur ce qu'il ne
+          faisait PAS - et « Naruto » tapé sous « Tout » ne proposait rien à
+          ajouter, sans dire pourquoi. */}
+      {!estInvite && title.trim().length > 0 && !entityTypeId && (
+        <p className="text-xs text-textDim">
+          Seul le catalogue est parcouru : choisis une catégorie pour chercher aussi chez une source externe.
+        </p>
+      )}
+      {!estInvite && requiresMatch && title.trim().length > 0 && title.trim().length < 3 && (
+        <p className="text-xs text-textDim">Trois caractères au moins pour chercher chez une source externe.</p>
+      )}
 
       {/* Type sans fournisseur de métadonnées (personnalisé) : rien à
           chercher, saisie directe vers l'écran de sélection. Annoncé AVANT la
