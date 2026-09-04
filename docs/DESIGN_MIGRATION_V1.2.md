@@ -1383,7 +1383,9 @@ protège, l'écran évite de proposer une porte fermée. Sur la fiche, « Actual
 dans la grille des tomes ne se montre qu'en **mode édition**, comme tout ce
 qui redemande la source ; en aperçu, sans fiche ni mode édition, il reste à
 portée de l'administrateur. « Chercher d'autres éditions »
-reste ouvert à tous : il lit des mots-clés rares, il ne force pas le cache.
+suit la même règle : cinq requêtes chez le fournisseur, c'est aussi
+recharger depuis l'API (constaté sur Chainsaw Man, où la grille de
+proposition reste affichée tant qu'aucun tome n'est possédé).
 
 ### Lot 127 — mangacollec pour référence, et la BnF ménagée
 
