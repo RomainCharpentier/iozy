@@ -1,5 +1,5 @@
-import { get, buildQuery } from './client'
-import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
+import { get, post, buildQuery } from './client'
+import type { CollectionAnswerDto, CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '../types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
@@ -35,4 +35,14 @@ export function getEntityProgress(entityId: string): Promise<CollectionProgressD
 /** entityTypeCode doit être "MANGA", "BOARD_GAME" ou "VIDEO_GAME", renvoie 400 sinon. */
 export function discover(entityTypeCode: 'MANGA' | 'BOARD_GAME' | 'VIDEO_GAME'): Promise<DiscoveryCandidateDto[]> {
   return get<DiscoveryCandidateDto[]>(`/insights/discover${buildQuery({ entityTypeCode })}`)
+}
+
+/**
+ * Une question en français sur sa collection, répondue par une IA à partir
+ * d'un instantané des œuvres du compte. `undefined` quand l'instance n'a pas
+ * de clé IA (204) : la fonctionnalité n'existe pas ici, ce n'est pas une
+ * erreur.
+ */
+export function poserQuestion(question: string): Promise<CollectionAnswerDto | undefined> {
+  return post<CollectionAnswerDto | undefined>('/insights/question', { question })
 }

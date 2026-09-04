@@ -1360,6 +1360,54 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 117 — « Quelles séries ai-je commencées sans les finir ? »
+
+La collection interrogée en français — le premier point de la V3 de
+`CONCEPTION.md` §15, et la seule idée du 2026-09-04 retenue après l'import.
+L'infrastructure était déjà là : Gemini branché depuis la Phase 2 de
+l'Analyse d'achat, palier gratuit, et une règle établie — ce qui vient d'un
+modèle est étiqueté, jamais persisté, jamais mêlé aux données.
+
+**Ce que le modèle reçoit.** Pas la base : un instantané (`CollectionQuestionService`),
+une ligne JSON par œuvre qui a un lien réel avec le compte — un exemplaire,
+une envie ou une expérience. Titre, type, auteur, année, exemplaires et dates
+d'acquisition, prix payé (avec « prixConnusSur » quand tous ne sont pas
+renseignés), édition dominante avec tomes possédés / total et numéros en
+plages (« 1-3, 5, 7-8 »), expériences datées et notées, envie, rang, tags.
+Rien d'autre : ni identifiants de compte, ni jetons, ni les œuvres du
+catalogue qui appartiennent aux autres. Au-delà de 1 500 œuvres, l'instantané
+garde les plus récentes et le dit au modèle.
+
+**La garantie, et sa limite.** Le modèle doit citer les œuvres qu'il utilise
+par leur identifiant ; le service ne garde que ceux qui existent dans
+l'instantané — un identifiant inventé ne devient jamais un lien. Une réponse
+arrive donc toujours avec de vraies fiches à ouvrir pour la vérifier. Le
+texte, lui, reste celui d'un modèle : l'écran (`/question`, depuis Mon profil)
+l'encadre en pointillés ambre, « Réponse de l'IA — à vérifier », avec son
+niveau de confiance en clair. Sans clé, le serveur répond 204 et l'écran dit
+quoi configurer plutôt que d'afficher un formulaire mort ; si le modèle ne
+répond pas, 503 — jamais une réponse vide présentée comme venant de la
+collection.
+
+**Vérifié en direct sur la pile jetable**, clé passée par l'environnement
+(jamais dans un fichier du dépôt — `docker-compose.e2e.yml` la reçoit
+désormais en option). Quatre œuvres, 47 exemplaires. « Quelles séries ai-je
+commencées sans les finir ? » → Vinland Saga (IN_PROGRESS, 26/27) et Bakuman
+(ABANDONED, note 5, pourtant complète), fiches citées : exactement ces deux,
+confiance HIGH, 17,7 s. « Combien ai-je dépensé, et quelle série m'a coûté le
+plus cher ? » → 266,40 € = 198,90 + 60,00 + 7,50, chaque somme exacte, Vinland
+Saga en tête, HIGH. « À un ou deux tomes d'être complètes ? » → Vinland Saga
+seule, et le modèle dit de lui-même que Berserk n'a pas de total connu. « Mon
+jeu vidéo préféré ? » → « aucun jeu vidéo dans la collection », confiance LOW
+— il refuse d'inventer, ce qui est exactement la consigne. Un piège
+d'amorçage au passage : mes ajouts de tomes avec « Glénat » accentué en
+argument shell sont partis en cp1252 et ont échoué en silence — Berserk n'a
+eu qu'un tome, et le modèle a répondu juste sur ce qu'il avait.
+
+Pas de test automatisé (demande de l'utilisateur). Le jour où il en faudra :
+`construireInstantane` et `interpreter` sont paquet-privés, testables sans
+HTTP, et un faux `AiCollectionOracle` suffit au reste.
+
 ### Lot 116 — la recherche promettait « un titre, un auteur… » et ne tenait que le titre
 
 Consolidation demandée après le Lot 115, mesurée avant d'être touchée, sur la

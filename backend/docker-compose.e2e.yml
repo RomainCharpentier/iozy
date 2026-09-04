@@ -38,6 +38,11 @@ services:
       # L'origine du serveur de dev lancé par Playwright (voir
       # playwright.config.ts) - sans elle, toute écriture repartirait en 403.
       WEB_ALLOWED_ORIGINS: http://localhost:5174
+      # Optionnels : vides par defaut, l'IA est alors simplement eteinte. A
+      # renseigner depuis l'environnement pour verifier en direct un chemin
+      # qui parle a Gemini (jamais dans ce fichier).
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
       # Aucune clé de fournisseur : les tests ne doivent dépendre d'aucun
       # service externe, ni consommer de quota. Les écrans qui en dépendent
       # s'absentent proprement, c'est le comportement voulu.
