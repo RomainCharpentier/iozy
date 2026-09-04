@@ -92,8 +92,12 @@ export function usePropositionTomes({
   // Recharger depuis la source est réservé à l'administrateur (demande du
   // 2026-09-04) : le serveur ignore de toute façon forceRefresh pour les
   // autres comptes, inutile de leur montrer un bouton qui ne ferait rien.
+  // Et sur une FICHE, ce geste vit dans le mode édition (« Recharger depuis
+  // la source », qui redemande aussi les tomes) : un second bouton dans la
+  // grille faisait doublon - retiré à la demande de l'utilisateur. Il ne
+  // reste qu'en aperçu, où il n'y a pas encore de fiche ni de mode édition.
   const { compte } = useAuth()
-  const peutActualiser = compte?.admin === true
+  const peutActualiser = compte?.admin === true && !entityId
   const proposes = useTomesProposes({
     entityTypeId,
     titre,
