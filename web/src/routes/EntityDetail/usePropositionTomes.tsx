@@ -263,15 +263,19 @@ export function usePropositionTomes({
             commentaire décrivait (« Chercher plus d'éditions ») n'avait
             jamais été posé : la capacité existait sans point d'entrée, et une
             édition double restait donc introuvable (Lot 123). */}
-        <button
-          type="button"
-          onClick={proposes.chercherPlusEditions}
-          disabled={proposes.rechercheApprofondieEnCours}
-          className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm disabled:opacity-50"
-        >
-          <Layers size={15} />
-          {proposes.rechercheApprofondieEnCours ? 'Recherche…' : 'Chercher d’autres éditions'}
-        </button>
+        {/* Cinq requêtes chez le fournisseur : même règle que « Actualiser »
+            - administrateur, et sur une fiche seulement en mode édition. */}
+        {peutActualiser && (
+          <button
+            type="button"
+            onClick={proposes.chercherPlusEditions}
+            disabled={proposes.rechercheApprofondieEnCours}
+            className="flex min-h-11 w-fit items-center gap-2 rounded-[13px] bg-surface px-4 text-sm font-medium text-textPrimary shadow-token-sm disabled:opacity-50"
+          >
+            <Layers size={15} />
+            {proposes.rechercheApprofondieEnCours ? 'Recherche…' : 'Chercher d’autres éditions'}
+          </button>
+        )}
         <GrilleVolumes
           enTete={
             // Même en-tête d'une ligne que sur la fiche (voir GrilleTomes) :
