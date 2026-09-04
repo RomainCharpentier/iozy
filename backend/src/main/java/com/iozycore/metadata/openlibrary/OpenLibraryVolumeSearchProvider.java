@@ -86,11 +86,11 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(SEARCH_URL.formatted(URLEncoder.encode(requete, StandardCharsets.UTF_8))))
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(15))
                     .header("User-Agent", "IozyCore (auto-hebergement personnel)")
                     .GET()
                     .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = envoyerAvecUneReprise(request);
             if (response.statusCode() != 200) {
                 log.warn("Open Library a répondu {} pour la recherche de tomes '{}'", response.statusCode(), requete);
                 throw new SourceUnavailableException("Open Library a répondu " + response.statusCode());
@@ -106,6 +106,22 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
             // pendant un delai de connexion de quelques secondes.
             log.warn("Échec de la recherche de tomes Open Library pour '{}' : {}", requete, e.getMessage());
             throw new SourceUnavailableException("Open Library n'a pas répondu : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Open Library repond depuis Windows en moins d'une seconde, et depuis
+     * le conteneur tombe par intermittence en delai de CONNEXION (constate
+     * trois fois de suite le 2026-09-04, meme requete, meme minute). Une
+     * seconde tentative apres une courte pause suffit en general ; sinon la
+     * source est signalee muette, jamais vide.
+     */
+    private HttpResponse<String> envoyerAvecUneReprise(HttpRequest request) throws Exception {
+        try {
+            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (java.io.IOException premierEchec) {
+            Thread.sleep(800);
+            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         }
     }
 
