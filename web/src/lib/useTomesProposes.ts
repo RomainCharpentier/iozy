@@ -37,7 +37,7 @@ export function useTomesProposes({
 }) {
   const indices = indicesDe(attributs)
   const queryClient = useQueryClient()
-  const cle = queryKeys.tomesProposes(entityTypeId, titre)
+  const cle = queryKeys.tomesProposes(entityTypeId, titre, indices.author)
   const requete = useQuery({
     queryKey: cle,
     queryFn: () => searchVolumes(entityTypeId, titre, indices),
@@ -62,13 +62,28 @@ export function useTomesProposes({
     onSuccess: (data) => queryClient.setQueryData(cle, data),
   })
 
+  /**
+   * « Chercher d'autres éditions » : la recherche approfondie du serveur
+   * (`deepSearch`), qui interroge des mots-clés d'éditions rares - intégrale,
+   * collector, édition double... Coûteuse (cinq requêtes chez le fournisseur),
+   * donc à la demande et jamais au chargement. Le serveur FUSIONNE le
+   * résultat avec ce qu'il connaît déjà : la réponse remplace la liste
+   * entière, elle ne s'y ajoute pas.
+   */
+  const approfondissement = useMutation({
+    mutationFn: () => searchVolumes(entityTypeId, titre, { ...indices, deepSearch: true }),
+    onSuccess: (data) => queryClient.setQueryData(cle, data),
+  })
+
   return {
     candidats: (requete.data?.volumes ?? []) as VolumeCandidateDto[],
     fournisseurMuet: requete.data?.quotaExceeded ?? false,
-    enCours: requete.isFetching || actualisation.isPending,
+    enCours: requete.isFetching || actualisation.isPending || approfondissement.isPending,
     aEchoue: requete.isError,
     relancer: requete.refetch,
     actualiser: () => actualisation.mutate(),
     actualisationEnCours: actualisation.isPending,
+    chercherPlusEditions: () => approfondissement.mutate(),
+    rechercheApprofondieEnCours: approfondissement.isPending,
   }
 }

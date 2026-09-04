@@ -89,7 +89,11 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
     // surtout pertinents pour les grandes franchises à rééditions multiples
     // (Naruto Star Edition, coffrets/intégrales, éditions collector...).
     private static final List<String> DEEP_EDITION_KEYWORDS = List.of(
-            "star edition", "ultimate edition", "deluxe", "intégrale", "collector");
+            "star edition", "ultimate edition", "deluxe", "intégrale", "collector",
+            // Format francais courant (Ki-oon, Pika...) : deux tomes en un.
+            // Signale sur « Doubt » (Lot 123), publie en 4 tomes simples et
+            // 2 tomes doubles - aucun mot-cle ne le cherchait.
+            "édition double");
 
     // "Tome 5", "Vol. 12", "T.3", "T04" (forme abrégée sans point, courante
     // sur Google Books - ex: "Fragments d'elles T04", vérifié manuellement)

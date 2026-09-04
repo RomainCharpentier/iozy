@@ -546,6 +546,7 @@ public class MetadataSearchService {
         // l'édition dans un titre libre), et la jaquette vient de celui qui
         // en a une.
         result = dedupeVolumesPreferringImage(result);
+        result = uniformiserLesEditions(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
         // ci-dessus) - seul un résultat vide causé par un échec transitoire du
@@ -674,5 +675,48 @@ public class MetadataSearchService {
 
     private static String volumeKey(VolumeCandidate candidate) {
         return candidate.key();
+    }
+
+    /**
+     * Une seule orthographe par edition (Lot 123).
+     *
+     * <p>Le nom de l'edition est la CLE DE REGROUPEMENT a l'ecran : deux
+     * orthographes font deux editions. Or les sources ne sont pas
+     * constantes - la BnF catalogue « Doubt » T1 a T3 chez « Ki-oon » et le
+     * T4 chez « Ki-Oon » (releve le 2026-09-04), et l'apercu affichait donc
+     * une edition de trois tomes et une autre d'un seul. Le
+     * dedoublonnage, lui, ne voyait rien : sa cle est deja insensible a la
+     * casse (voir {@link VolumeCandidate#key()}), mais elle ne corrige pas
+     * le libelle affiche.
+     *
+     * <p>L'orthographe retenue est la PLUS FREQUENTE - celle du plus grand
+     * nombre de tomes -, et le premier arrive departage. Rien n'est
+     * fusionne ni supprime ici : seuls des libelles sont reecrits.
+     */
+    static List<VolumeCandidate> uniformiserLesEditions(List<VolumeCandidate> candidates) {
+        Map<String, Map<String, Integer>> orthographesParEdition = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : candidates) {
+            orthographesParEdition
+                    .computeIfAbsent(cleEdition(candidate.edition()), cle -> new LinkedHashMap<>())
+                    .merge(candidate.edition(), 1, Integer::sum);
+        }
+        Map<String, String> retenue = new LinkedHashMap<>();
+        orthographesParEdition.forEach((cle, orthographes) -> retenue.put(cle, orthographes.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(cle)));
+
+        List<VolumeCandidate> uniformises = new ArrayList<>(candidates.size());
+        for (VolumeCandidate candidate : candidates) {
+            String edition = retenue.get(cleEdition(candidate.edition()));
+            uniformises.add(edition.equals(candidate.edition()) ? candidate
+                    : new VolumeCandidate(edition, candidate.volumeNumber(), candidate.imageUrl(), candidate.title()));
+        }
+        return uniformises;
+    }
+
+    /** Meme regle que la cle de dedoublonnage d'un tome : casse et espaces de bord ignores. */
+    private static String cleEdition(String edition) {
+        return edition == null ? "" : edition.trim().toLowerCase();
     }
 }
