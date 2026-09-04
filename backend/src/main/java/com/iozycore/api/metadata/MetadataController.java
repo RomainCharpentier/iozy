@@ -205,7 +205,13 @@ public class MetadataController {
                 : metadataSearchService.searchVolumes(entityType, title, author, forceRefresh, excludedTitleFragments);
         Set<String> ownedKeys = alreadyOwnedVariantKeys(entityTypeId, title);
 
+        // Tries par numero, et le tri est STABLE : les editions gardent l'ordre
+        // de leur premiere apparition (celle du fournisseur en tete), seuls
+        // les tomes se rangent. Google Books rendait ses tomes deja en ordre,
+        // la BnF les rend dans l'ordre de son catalogue - constate sur Boruto
+        // (09, 03, 02, 08, 01, 18, 17) le jour ou elle est passee en premier.
         List<VolumeCandidateResponse> candidates = searchResult.volumes().stream()
+                .sorted(java.util.Comparator.comparingInt(VolumeCandidate::volumeNumber))
                 .map(candidate -> VolumeCandidateResponse.from(candidate, ownedKeys.contains(variantKey(candidate.edition(), candidate.volumeNumber()))))
                 .collect(Collectors.toList());
         return new VolumesResponse(candidates, searchResult.providerUnavailable());
