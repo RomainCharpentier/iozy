@@ -1360,6 +1360,64 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 118 — quand tous les fournisseurs se taisent en même temps
+
+Signalé par l'utilisateur en testant le lot précédent : l'aperçu de « Boruto:
+Naruto Next Generations » disait « Nos fournisseurs n'ont pas répondu — impossible
+de vérifier les éditions françaises ». Mesuré depuis Windows et depuis le
+conteneur : **Google Books 429** (quota journalier de la clé épuisé) et
+**Jikan 504** (MyAnimeList bloque ce relais tiers par intermittence), en même
+temps. Demande : « une solution de backup pour récupérer les infos tout le
+temps ».
+
+**Ce qui existait déjà, et pourquoi ça n'a pas suffi.** Trois secours étaient
+en place : l'API MyAnimeList officielle derrière Jikan, des clés Google Books
+de réserve (`GOOGLE_BOOKS_BACKUP_API_KEYS`, aucune configurée), et la **BnF**
+interrogée en parallèle de Google Books pour les tomes. Or la BnF répondait
+**19 notices** pour Boruto, toutes écartées : elle catalogue `$a « Boruto »` +
+`$e « Naruto next generations »`, et le fournisseur exigeait que `$a` seul
+soit le titre cherché. Le secours existait, il ne reconnaissait pas
+l'œuvre.
+
+**BnF : trois corrections.** Le titre cherché est accepté s'il vaut `$a`, ou
+`$a` suivi de l'un de ses `$e` (ce `$e`-là n'est plus lu comme une édition) ;
+la comparaison plie désormais toute ponctuation, pas seulement espaces et
+tirets. Les notices dont `200$b` n'est pas « Texte imprimé » sont ignorées —
+le dépôt légal reçoit aussi les **DVD** (les coffrets Kana Home Video de
+Boruto, numérotés 3, 4, 7, 8 comme des tomes, sortaient en édition « Kana
+home video ») et les jeux (« Ressource électronique »). Et l'éditeur se lit
+en `210$c` quand `214$c` manque (notices d'avant 2019) — les premiers tomes
+sortaient en « Édition inconnue », à part des suivants.
+
+**AniList, pas MangaDex.** Pour la recherche de titres, il fallait une
+troisième base sans quota. MangaDex a été essayé puis retiré à la demande de
+l'utilisateur (« c'est un site de scans, ça me semble peu fiable ») — retenu
+**AniList** : une base de données d'œuvres, API GraphQL publique, sans clé,
+90 requêtes/minute, sans quota journalier. `@Order(3)` derrière Jikan et
+MyAnimeList, devant Google Books (passé à 4) : quand les deux premiers
+répondent, la déduplication par titre garde leurs candidats ; quand ils se
+taisent, AniList rend titre, année, statut, nombre de tomes, auteur, jaquette
+et l'identifiant MyAnimeList — mêmes clés d'attributs que Jikan, pour que le
+sous-titre de la liste, la résolution du titre français et la recherche de
+tomes le lisent sans rien changer. Tri par popularité : « boruto » rend la
+série principale en tête, et « attaque des titans » trouve *Shingeki no
+Kyojin* (AniList indexe les synonymes, titres français compris).
+
+**Mesuré sur la pile jetable, Jikan 504 et Google Books 429 au même moment** :
+« boruto » → **7 candidats, tous ANILIST**, le manga principal en premier avec
+ses 20 tomes et son `malId` ; tomes de « Boruto: Naruto Next Generations » →
+**7 tomes BnF, édition « Kana », aucun DVD** (avant les deux dernières
+corrections : 12 « tomes » dont 5 DVD et des « Édition inconnue »). Sept et
+non vingt : la BnF catalogue une partie des tomes de Boruto sous leur
+sous-titre français seul (« Kawaki », « Le sacrifice »), sans numéro — hors
+de portée d'une recherche par titre de série, et Google Books les complétera
+au retour de son quota. Partiel, mais réel : l'écran propose des tomes au lieu
+d'un constat d'échec.
+
+Tests existants du paquet métadonnées relancés (108 verts), aucun ajouté. Le
+README gagne une section « Quand un fournisseur se tait » avec la chaîne de
+secours par besoin et la parade `GOOGLE_BOOKS_BACKUP_API_KEYS`.
+
 ### Lot 117 — « Quelles séries ai-je commencées sans les finir ? »
 
 La collection interrogée en français — le premier point de la V3 de

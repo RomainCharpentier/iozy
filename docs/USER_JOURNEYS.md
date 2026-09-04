@@ -394,8 +394,10 @@ devient **définitivement indélébile**.
 ### 27. Rechercher une œuvre par titre
 **Point de départ** : Rechercher (`/add`)
 **Étapes** : choisir un type, saisir ≥ 3 caractères.
-**Résultat** : suggestions externes (Jikan/MyAnimeList pour le manga, BGG,
-IGDB), avec jaquette, année, auteur.
+**Résultat** : suggestions externes (Jikan/MyAnimeList pour le manga, puis
+**AniList** en secours quand ils se taisent — Lot 118 ; BGG ; IGDB), avec
+jaquette, année, auteur. Aucune de ces trois bases manga n'a de quota
+journalier ; seule Google Books en a un, et elle passe en dernier.
 **Branches** : recherche externe en échec → « La recherche de métadonnées a
 échoué » ; aucun résultat → « Aucun résultat pour ce titre » ; type **sans
 fournisseur** → aucune recherche externe, message dédié annoncé **avant** la

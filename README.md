@@ -286,6 +286,26 @@ curl "http://localhost:8080/api/metadata/search?entityTypeId=00000000-0000-0000-
 
 ---
 
+## Quand un fournisseur se tait
+
+Aucune source externe n'est indispensable : chaque écran a un secours, et
+l'app le dit quand elle en est réduite à lui.
+
+| Besoin | D'abord | En secours (sans clé, sans quota journalier) |
+|---|---|---|
+| Chercher un manga par titre | Jikan, puis l'API MyAnimeList officielle | **AniList** (base de données, API GraphQL), puis Google Books |
+| Retrouver les tomes d'une série | Google Books (jaquettes) | **BnF** (catalogue du dépôt légal - numéro de tome, éditeur, ISBN, mais pas de jaquette), toujours interrogée en parallèle |
+| Titre français d'une série | Open Library | Google Books |
+
+Google Books est la seule source avec un **quota journalier** (429 « Too Many
+Requests » quand il est épuisé, remis à zéro vers 9 h heure de Paris). Deux
+parades cumulables : `GOOGLE_BOOKS_BACKUP_API_KEYS` (une ou plusieurs clés
+d'autres projets Google Cloud, chacune avec son propre quota - l'app bascule
+dessus toute seule), et la BnF/AniList ci-dessus, qui prennent le relais sans
+rien configurer. Une recherche de tomes déjà faite une fois n'est jamais
+refaite : elle est gardée en base (`volume_search_cache`), fournisseurs
+disponibles ou non.
+
 ## Obtenir et configurer un Client ID MyAnimeList (optionnel, recommandé)
 
 Jikan (utilisé pour la recherche manga) est un wrapper tiers non-officiel :
