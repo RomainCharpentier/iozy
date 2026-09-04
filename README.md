@@ -297,7 +297,7 @@ source » sur une fiche réaligne une œuvre ajoutée avant ce changement.
 | Besoin | D'abord | En secours (sans clé, sans quota journalier) |
 |---|---|---|
 | Chercher un manga par titre | **AniList** (base de données, API GraphQL, 90 req/min, sans quota du jour) | Jikan, puis l'API MyAnimeList officielle, puis Google Books |
-| Retrouver les tomes d'une série | **BnF** (catalogue du dépôt légal - numéro de tome, éditeur, ISBN, mais pas de jaquette) | Google Books, toujours interrogée en parallèle pour les jaquettes - sur un même tome, la notice BnF fait foi |
+| Retrouver les tomes d'une série | **BnF** (catalogue du dépôt légal - numéro de tome, éditeur, ISBN, jaquettes des notices récentes) | Google Books et **Open Library** (sans clé), toujours interrogées en parallèle - sur un même tome, la notice BnF fait foi. Deux éditions du même éditeur sont distinguées par l'ISBN |
 | Titre français d'une série | Open Library | Google Books |
 
 Google Books est la seule source avec un **quota journalier** (429 « Too Many

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -545,8 +547,11 @@ public class MetadataSearchService {
         // (Lot 119 - la BnF a des champs structurés, Google Books devine
         // l'édition dans un titre libre), et la jaquette vient de celui qui
         // en a une.
-        result = dedupeVolumesPreferringImage(result);
         result = uniformiserLesEditions(result);
+        // AVANT le dédoublonnage : deux éditions homonymes ont deux tomes 1,
+        // que le dédoublonnage fusionnerait en un seul (voir la méthode).
+        result = separerLesEditionsHomonymes(result);
+        result = dedupeVolumesPreferringImage(result);
         // Une liste vide EST mise en cache (contrairement à barcodeCache/
         // frenchTitleCache, voir le commentaire sur volumeSearchCache
         // ci-dessus) - seul un résultat vide causé par un échec transitoire du
@@ -718,5 +723,141 @@ public class MetadataSearchService {
     /** Meme regle que la cle de dedoublonnage d'un tome : casse et espaces de bord ignores. */
     private static String cleEdition(String edition) {
         return edition == null ? "" : edition.trim().toLowerCase();
+    }
+
+    /** Les huit premiers chiffres d'un ISBN-13 : préfixe de langue + bloc de l'éditeur, ce qui change d'une édition à l'autre. */
+    private static final int LONGUEUR_PREFIXE_ISBN = 8;
+
+    /**
+     * Un même éditeur, deux éditions : les séparer (Lot 124).
+     *
+     * <p>Le nom de l'éditeur ne suffit pas à nommer une édition. « Doubt »
+     * (Yoshiki Tonogai) existe chez Ki-oon en 4 tomes (2009-2010) ET en
+     * 2 tomes doubles (2022) - même éditeur, mêmes numéros 1 et 2. Le
+     * dédoublonnage par (édition, numéro) les fusionnait donc en silence,
+     * et l'écran n'en montrait qu'une.
+     *
+     * <p>Ce qui les distingue objectivement, c'est l'<b>ISBN</b> : chaque
+     * édition a le sien, et les huit premiers chiffres (préfixe de langue
+     * + bloc de l'éditeur) diffèrent d'une édition à l'autre -
+     * 978-2-35592… contre 979-10-327… dans ce cas. Choix de l'utilisateur
+     * le 2026-09-04, préféré à l'année, plus lisible mais moins sûre.
+     *
+     * <p><b>La séparation n'a lieu qu'en cas de preuve</b> : il faut qu'un
+     * même numéro de tome arrive avec deux préfixes différents. Une édition
+     * dont les tomes s'étalent sur deux blocs ISBN sans jamais se
+     * chevaucher reste une seule édition - c'est ce garde-fou qui évite de
+     * scinder à tort les séries longues. Le nom retenu ajoute l'année du
+     * plus ancien tome du bloc, seule mention lisible dont on dispose ;
+     * à défaut, les quatre chiffres du bloc éditeur.
+     *
+     * <p>Les tomes sans ISBN ne peuvent être attribués à aucun bloc : ils
+     * restent dans le plus fourni, celui qui garde le nom d'origine.
+     */
+    static List<VolumeCandidate> separerLesEditionsHomonymes(List<VolumeCandidate> candidates) {
+        Map<String, List<VolumeCandidate>> parEdition = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : candidates) {
+            parEdition.computeIfAbsent(cleEdition(candidate.edition()), cle -> new ArrayList<>()).add(candidate);
+        }
+
+        List<VolumeCandidate> resultat = new ArrayList<>(candidates.size());
+        for (List<VolumeCandidate> groupe : parEdition.values()) {
+            resultat.addAll(separerUnGroupe(groupe));
+        }
+        return resultat;
+    }
+
+    private static List<VolumeCandidate> separerUnGroupe(List<VolumeCandidate> groupe) {
+        Map<String, List<VolumeCandidate>> parPrefixe = new LinkedHashMap<>();
+        List<VolumeCandidate> sansIsbn = new ArrayList<>();
+        for (VolumeCandidate candidate : groupe) {
+            String prefixe = prefixeIsbn(candidate);
+            if (prefixe == null) {
+                sansIsbn.add(candidate);
+            } else {
+                parPrefixe.computeIfAbsent(prefixe, p -> new ArrayList<>()).add(candidate);
+            }
+        }
+        if (parPrefixe.size() < 2) {
+            return groupe;
+        }
+
+        // Le bloc le plus fourni est l'edition principale : elle garde son nom.
+        String prefixePrincipal = parPrefixe.entrySet().stream()
+                .max(Comparator.comparingInt(entree -> entree.getValue().size()))
+                .map(Map.Entry::getKey)
+                .orElseThrow();
+        Set<Integer> numerosPrincipaux = parPrefixe.get(prefixePrincipal).stream()
+                .map(VolumeCandidate::volumeNumber)
+                .collect(Collectors.toSet());
+
+        List<VolumeCandidate> separes = new ArrayList<>(groupe.size());
+        for (Map.Entry<String, List<VolumeCandidate>> bloc : parPrefixe.entrySet()) {
+            List<VolumeCandidate> tomes = bloc.getValue();
+            boolean aPart = !bloc.getKey().equals(prefixePrincipal)
+                    && estUneAutreEdition(tomes, numerosPrincipaux);
+            String nom = aPart ? nommerBloc(tomes.get(0).edition(), tomes, bloc.getKey()) : null;
+            for (VolumeCandidate candidate : tomes) {
+                separes.add(aPart ? renommer(candidate, nom) : candidate);
+            }
+        }
+        separes.addAll(sansIsbn);
+        return separes;
+    }
+
+    /**
+     * Un bloc ISBN est-il une AUTRE edition, ou la suite de la meme ?
+     *
+     * <p>Un editeur change de bloc ISBN au fil des annees : les tomes 1 a 12
+     * de « Vinland Saga » chez Kurokawa n'ont pas le meme prefixe que les
+     * tomes 13 a 24, et ce sont pourtant les memes livres, la meme edition.
+     * Un premier essai qui separait des que deux blocs coexistaient a donc
+     * eclate cette serie en quatre (constate le 2026-09-04) - il ne faut
+     * separer que sur une preuve bien plus etroite :
+     *
+     * <ul>
+     *   <li><b>tous</b> les numeros du bloc existent deja dans l'edition
+     *       principale - un bloc qui apporte des tomes inedits en est la
+     *       suite, pas un doublon ;</li>
+     *   <li>et ces numeros forment une serie <b>continue depuis 1</b> -
+     *       c'est la forme d'une reedition (double, integrale, perfect),
+     *       qui recommence toujours au tome 1.</li>
+     * </ul>
+     *
+     * <p>« Doubt » : le bloc de 2022 porte {1, 2}, tous deux presents dans
+     * l'edition de 2009 (1 a 4), et continus depuis 1 - c'est bien
+     * l'edition double. Le bloc Kurokawa de 2024 porte {1, 28, 29} : 28 et
+     * 29 sont inedits, donc ce n'est pas une autre edition.
+     */
+    private static boolean estUneAutreEdition(List<VolumeCandidate> tomes, Set<Integer> numerosPrincipaux) {
+        Set<Integer> numeros = tomes.stream().map(VolumeCandidate::volumeNumber).collect(Collectors.toSet());
+        if (!numerosPrincipaux.containsAll(numeros)) {
+            return false;
+        }
+        for (int n = 1; n <= numeros.size(); n++) {
+            if (!numeros.contains(n)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String nommerBloc(String edition, List<VolumeCandidate> tomes, String prefixe) {
+        Integer annee = tomes.stream()
+                .map(VolumeCandidate::annee)
+                .filter(java.util.Objects::nonNull)
+                .min(Integer::compareTo)
+                .orElse(null);
+        return edition + " (" + (annee != null ? annee : prefixe.substring(prefixe.length() - 4)) + ")";
+    }
+
+    private static VolumeCandidate renommer(VolumeCandidate candidate, String edition) {
+        return new VolumeCandidate(edition, candidate.volumeNumber(), candidate.imageUrl(), candidate.title(),
+                candidate.isbn(), candidate.annee());
+    }
+
+    private static String prefixeIsbn(VolumeCandidate candidate) {
+        String isbn = candidate.isbnNormalise();
+        return isbn == null || isbn.length() < LONGUEUR_PREFIXE_ISBN ? null : isbn.substring(0, LONGUEUR_PREFIXE_ISBN);
     }
 }

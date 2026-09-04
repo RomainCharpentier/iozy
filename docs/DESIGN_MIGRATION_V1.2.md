@@ -1360,6 +1360,56 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 124 — deux éditions du même éditeur, séparées par l'ISBN
+
+Suite du lot précédent : l'utilisateur maintient sa demande — « Doubt » doit
+montrer **deux** éditions, la simple en 4 tomes et la double en 2. Le lot 123
+avait supprimé un faux positif et unifié une orthographe, sans faire
+apparaître la double. Recherche menée jusqu'au bout cette fois.
+
+**Où est cette édition, réellement.** Mesuré source par source :
+la **BnF** ne l'a pas (les 22 notices déposées par Tonogai ont été listées :
+seuls les 4 tomes de 2009-2010 ; celle de *Judge* y est, donc ce n'est pas un
+défaut de requête). **Google Books** ne rend *aucun* tome de cette série — ses
+fiches françaises n'ont ni éditeur ni numéro dans le titre. **Open Library**
+l'a : « Doubt - Tome 1 » et « Tome 2 », Ki-oon, 2022, ISBN 979-10-327-1240-5
+et -1241-2, avec jaquettes. Open Library était déjà utilisée par ce dépôt
+pour les titres français et les codes-barres, jamais pour les tomes : d'où
+`OpenLibraryVolumeSearchProvider` (`@Order(3)`, sans clé ni quota).
+
+**Un piège en l'ajoutant** : Open Library est majoritairement anglophone, et
+les tomes Yen Press de la même série s'invitaient comme une édition
+française. Le filtre retenu est l'ISBN lui-même — 978-2 et 979-10 sont les
+groupes d'enregistrement de langue française —, plus objectif qu'une liste
+d'éditeurs à tenir.
+
+**Séparer deux éditions du même éditeur.** Les deux s'appellent « Ki-oon » :
+le nom d'éditeur ne suffit pas à nommer une édition, et le dédoublonnage par
+(édition, numéro) fusionnait les deux tomes 1. Le critère retenu — choix de
+l'utilisateur, contre l'année, moins sûre — est l'**ISBN** : `VolumeCandidate`
+porte désormais `isbn` et `annee` (constructeur auxiliaire, zéro site d'appel
+touché — même procédé qu'en Phase 2 de l'analyse d'achat), remplis par la BnF
+(010$a, 214$d/210$d) et Open Library.
+
+**Et la règle a dû être resserrée deux fois.** Première version : séparer dès
+que deux blocs ISBN coexistent → « Vinland Saga » éclatait en **quatre**
+éditions Kurokawa. Un éditeur change de bloc au fil des années : les tomes
+1-12 et 13-24 de la même édition n'ont pas le même préfixe. Version finale,
+qui exige une preuve bien plus étroite : un bloc n'est une autre édition que
+si **tous** ses numéros existent déjà dans l'édition principale (un bloc qui
+apporte des tomes inédits en est la suite) **et** qu'ils forment une série
+continue depuis 1 (la forme d'une réédition, qui recommence toujours au tome
+1). Doubt 2022 = {1, 2}, tous deux présents dans 1-4, continus depuis 1 →
+séparé. Kurokawa 2024 = {1, 28, 29} → 28 et 29 sont inédits → même édition.
+
+**Sur le repo MangaCollector**, proposé par l'utilisateur : ses sources sont
+MAL, Jikan, Google Books — déjà là — plus MangaDex, écarté. Rien à en tirer
+côté éditions françaises. Une idée en revanche vaut d'être notée pour plus
+tard : il interroge Google Books **tome par tome** (`intitle:<série>
+intitle:"Tome N"`) au lieu de mots-clés d'édition. Vérifié ici sur « Doubt » :
+4 résultats au lieu de 300, avec les ISBN — nettement plus précis sur un
+titre court et courant. Non fait dans ce lot.
+
 ### Lot 123 — « Doubt » : une édition en deux, et une qui manquait
 
 Signalé par l'utilisateur : l'aperçu de « Doubt » (Yoshiki Tonogai) devrait
