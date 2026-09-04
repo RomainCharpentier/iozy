@@ -1360,6 +1360,50 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 127 — mangacollec pour référence, et la BnF ménagée
+
+Règle posée par l'utilisateur : « Il faut avoir les mêmes résultats que
+mangacollec. Pense à vérifier à chaque fois sur le site mangacollec pour chaque
+manga de iozycore. » Mangacollec n'a pas d'API publique (401 sans compte, cf.
+`CONCEPTION.md` §19) et sa recherche exige une session : l'utilisateur s'est
+connecté lui-même dans le navigateur intégré, et les fiches ont été lues sous
+sa session, en lecture seule — jamais ses identifiants, jamais son jeton. Les
+huit séries manga d'iozycore ont été relevées ; la vérité est consignée en
+mémoire de session et résumée ici.
+
+| Série | Mangacollec | Cache iozycore (lignes d'août, ancienne chaîne) |
+|---|---|---|
+| Chainsaw Man | simple **Kazé / Crunchyroll** 22 (+ 3 variantes reliées) | Crunchyroll 7 + « Édition inconnue » 13, éclaté |
+| Death Note | simple Kana 13 ; Black Edition 6 ; France Loisirs 6 | Kana 12 ; Black Édition 4 ; « inconnue » 13 |
+| Jujutsu Kaisen | simple Ki-oon 30 (+ 5 variantes reliées) | Ki-oon 4 ; Crunchyroll 2 (faux) ; « inconnue » 3 |
+| Naruto | simple Kana 72 ; Hokage 36 ; Kiosque Hachette 37 ; grand format 8 ; France Loisirs 14 | Kana 30 ; « inconnue » 15 |
+| One Piece | simple Glénat 112 ; Log Hachette 50 ; 1re édition 66 (reliée) | Édition Originale 12 ; Color Walk 10 ; « inconnue » 8 |
+| One-Punch Man | simple Kurokawa 34 (+ 4 variantes reliées) | Kurokawa 27 ; « inconnue » 20 |
+| Raw Hero | simple Soleil 6 | Soleil 6 ; « inconnue » 2 |
+| One Piece – Strong World | Glénat 2 (Anime Comics) | rien |
+
+Deux enseignements de structure, avant même de remesurer. **Mangacollec
+distingue l'édition et ses variantes « reliées »** (jaquette alternative,
+collector, édition anniversaire…) : rattachées à l'édition simple, jamais des
+éditions à part — iozycore n'a pas cette notion, et une jaquette collector y
+fait une édition. **Un éditeur renommé reste un éditeur** : « Kazé /
+Crunchyroll » en une seule édition chez mangacollec, deux chez nous (lot 125).
+Adopté son libellé (`unifierLesEditeursRenommes`, table d'alias, Kazé →
+Crunchyroll depuis 2022).
+
+**Et la BnF ménagée.** Les lignes du tableau datent d'août : les remesurer
+demande de recharger huit séries, dont Naruto (72 tomes) et One Piece (112).
+Or le lot 120 vérifiait chaque jaquette BnF par un HEAD au moment de LISTER
+— tenable à 20 tomes, une salve à 112, et c'est ce qui a fait bloquer notre
+adresse par la BnF à répétition dans l'après-midi, l'instance de l'utilisateur
+comprise. L'écran n'a pas besoin de cette vérification : une image en 500
+tombe sur le repli du composant `Jaquette`. Seule la **persistance** en a
+besoin — une adresse morte enregistrée bloquerait le rattrapage. La
+vérification passe donc à l'écriture (`BnfCouverture.estVivante`, un HEAD par
+tome gardé : `TomeResolver` à l'ajout, le PATCH d'attributs de tome au
+rattrapage), au rythme des gestes de l'utilisateur. Lister ne coûte plus
+qu'une requête SRU.
+
 ### Lot 126 — « parfois le bon résultat, puis ça revient à l'ancien »
 
 Signalé par l'utilisateur sur « Doubt » : l'aperçu montre tantôt les deux

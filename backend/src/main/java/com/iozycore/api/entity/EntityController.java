@@ -8,6 +8,7 @@ import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
 import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.Entity;
+import com.iozycore.metadata.bnf.BnfCouverture;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -151,6 +152,14 @@ public class EntityController {
                                                   @RequestBody Map<String, Object> attributes) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
+        // Une couverture BnF est verifiee au moment de la garder (voir
+        // BnfCouverture) : morte, elle est simplement omise - le tome garde
+        // ses autres attributs, et le rattrapage pourra retenter plus tard.
+        Object couverture = attributes.get("coverImageUrl");
+        if (couverture instanceof String url && BnfCouverture.estUneCouvertureBnf(url) && !BnfCouverture.estVivante(url)) {
+            attributes = new java.util.HashMap<>(attributes);
+            attributes.remove("coverImageUrl");
+        }
         try {
             entity.mergeVariantAttributes(variantId, attributes);
         } catch (IllegalArgumentException e) {

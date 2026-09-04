@@ -828,6 +828,29 @@ public class MetadataSearchService {
     static final String EDITION_INCONNUE = "Édition inconnue";
 
     /**
+     * Un editeur qui a change de nom reste le meme editeur (Lot 127). Kazé
+     * est devenu Crunchyroll en 2022 : la BnF dit « Kazé » sur les tomes 1 a
+     * 11 de « Chainsaw Man » et Google Books « Crunchyroll » sur les
+     * suivants, et l'ecran en faisait deux editions. Mangacollec - la
+     * reference de l'utilisateur - les ecrit « Kazé / Crunchyroll », en une
+     * seule ; on adopte son libelle. Cle normalisee (voir TexteRecherche)
+     * vers libelle affiche.
+     */
+    private static final Map<String, String> EDITEURS_RENOMMES = Map.of(
+            "kaze", "Kazé / Crunchyroll",
+            "kaze manga", "Kazé / Crunchyroll",
+            "crunchyroll", "Kazé / Crunchyroll");
+
+    static List<VolumeCandidate> unifierLesEditeursRenommes(List<VolumeCandidate> candidates) {
+        List<VolumeCandidate> unifies = new ArrayList<>(candidates.size());
+        for (VolumeCandidate candidate : candidates) {
+            String libelle = EDITEURS_RENOMMES.get(cleEdition(candidate.edition()));
+            unifies.add(libelle == null || libelle.equals(candidate.edition()) ? candidate : renommer(candidate, libelle));
+        }
+        return unifies;
+    }
+
+    /**
      * Les regles de nommage et de regroupement, dans l'ordre ou elles se
      * completent - appliquees a tout ce qui sort, frais ou cache :
      * rattacher les « Édition inconnue » a leur bloc ISBN, unifier les
@@ -835,7 +858,8 @@ public class MetadataSearchService {
      * qui fusionnerait leurs deux tomes 1), dedoublonner.
      */
     static List<VolumeCandidate> finaliser(List<VolumeCandidate> candidates) {
-        List<VolumeCandidate> result = rattacherLesEditionsInconnues(candidates);
+        List<VolumeCandidate> result = unifierLesEditeursRenommes(candidates);
+        result = rattacherLesEditionsInconnues(result);
         result = uniformiserLesEditions(result);
         result = separerLesEditionsHomonymes(result);
         return dedupeVolumesPreferringImage(result);

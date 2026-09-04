@@ -1,5 +1,6 @@
 package com.iozycore.application;
 
+import com.iozycore.metadata.bnf.BnfCouverture;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
@@ -128,7 +129,11 @@ public class TomeResolver {
         // Variant se lise avec exactement la même fonction qu'une jaquette
         // d'Entity, seule la source (Entity.attributes vs Variant.attributes)
         // change à l'appel.
-        if (jaquetteUrl != null && !jaquetteUrl.isBlank()) {
+        // Une couverture BnF est verifiee ICI, au moment de la garder, et
+        // non a l'affichage (voir BnfCouverture, Lot 127) : une adresse morte
+        // n'est pas enregistree, le tome reste sans image et le rattrapage
+        // pourra retenter.
+        if (jaquetteUrl != null && !jaquetteUrl.isBlank() && BnfCouverture.estVivante(jaquetteUrl)) {
             attributs.put("coverImageUrl", jaquetteUrl);
         }
         return attributs;
