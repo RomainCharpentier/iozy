@@ -27,14 +27,14 @@ import java.util.Map;
  * données de MyAnimeList sans nécessiter de clé d'API. Couvre le type
  * MANGA uniquement.
  * <p>
- * @Order(1) : passe avant GoogleBooksTitleSearchProvider dans
+ * @Order(2) : derrière AniList (Lot 119), avant GoogleBooksTitleSearchProvider dans
  * MetadataSearchService.search - en cas de titre identique remonté par les
  * deux (ex: "Naruto", inchangé en français), le résultat Jikan/MAL gagne le
  * dédoublonnage (attributs plus riches : titleEnglish/titleRomaji/mediaType/
  * startYear, utiles à la résolution du titre et à la recherche de tomes).
  */
 @Component
-@Order(1)
+@Order(2)
 public class JikanMetadataProvider implements MetadataProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JikanMetadataProvider.class);
