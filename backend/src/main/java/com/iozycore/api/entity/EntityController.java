@@ -104,13 +104,23 @@ public class EntityController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Compléter/corriger les attributs de la Série elle-même sans écraser ceux déjà "
-            + "renseignés (ex: jaquette de la série absente ou fausse, voir action \"Modifier\" de la fiche Série)")
+    @Operation(summary = "Compléter/corriger les attributs de la Série. origine=manuelle (défaut) : ce que "
+            + "l'utilisateur tape, chaque clé est marquée saisie à la main. origine=source : ce qu'un fournisseur "
+            + "rend (rechargement, rattrapage), n'écrit que les clés NON saisies à la main - règle utilisateur du "
+            + "2026-09-04 (Lot 130), tenue ici et pas à l'écran pour valoir depuis n'importe quel geste. La réponse "
+            + "porte champsSaisis ; les clés ignorées se lisent par différence.")
     @PatchMapping("/{entityId}")
-    public EntityResponse mergeAttributes(@PathVariable UUID entityId, @RequestBody Map<String, Object> attributes) {
+    public EntityResponse mergeAttributes(@PathVariable UUID entityId, @RequestBody Map<String, Object> attributes,
+                                          @RequestParam(required = false, defaultValue = "manuelle") String origine) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        entity.mergeAttributes(attributes);
+        if ("source".equals(origine)) {
+            entity.recopierDepuisLaSource(attributes);
+        } else if ("manuelle".equals(origine)) {
+            entity.saisirAttributs(attributes);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "origine inconnue : " + origine + " (manuelle ou source)");
+        }
         return EntityResponse.from(entityRepository.save(entity));
     }
 

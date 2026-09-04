@@ -1,0 +1,14 @@
+-- Lot 130 : les champs d'une oeuvre saisis A LA MAIN.
+--
+-- Une valeur recopiee d'un fournisseur et une valeur tapee par l'utilisateur
+-- vivaient dans le meme sac (entity.attributes) sans rien pour les
+-- distinguer : « Recharger depuis la source » ecrasait donc tout, remarques
+-- et jaquette de serie exceptees, par une liste en dur cote ecran. Regle
+-- posee par l'utilisateur le 2026-09-04 : chaque champ est editable pour
+-- completer la base, et un rechargement n'ecrase que ce qui n'a PAS ete
+-- edite. La marque vit ici, en base, pour valoir depuis n'importe quel ecran
+-- (fiche, rattrapage de jaquettes, import d'un export).
+--
+-- Un tableau JSON de cles plutot qu'une table : c'est une propriete de
+-- l'oeuvre, lue et ecrite avec elle, jamais interrogee seule.
+ALTER TABLE entity ADD COLUMN manual_attribute_keys JSONB NOT NULL DEFAULT '[]'::jsonb;

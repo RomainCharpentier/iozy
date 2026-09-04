@@ -57,6 +57,7 @@ export function oeuvre(options: {
     attributes: options.jaquette !== undefined ? { coverImageUrl: options.jaquette } : {},
     tagIds: options.tags ?? [],
     variants: options.tomes ?? [],
+    champsSaisis: [],
   }
 }
 

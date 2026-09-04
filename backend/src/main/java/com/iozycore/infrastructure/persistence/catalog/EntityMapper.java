@@ -28,7 +28,8 @@ public final class EntityMapper {
                 jpaEntity.getTitle(),
                 jpaEntity.getAttributes(),
                 variants,
-                jpaEntity.getTagIds()
+                jpaEntity.getTagIds(),
+                new java.util.HashSet<>(jpaEntity.getManualAttributeKeys())
         );
     }
 
@@ -38,6 +39,7 @@ public final class EntityMapper {
                 domainEntity.entityTypeId(),
                 domainEntity.title(),
                 domainEntity.attributes(),
+                domainEntity.champsSaisis(),
                 domainEntity.tagIds(),
                 createdAt,
                 Instant.now()

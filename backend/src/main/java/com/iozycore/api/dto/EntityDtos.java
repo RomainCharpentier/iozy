@@ -40,12 +40,14 @@ public final class EntityDtos {
         }
     }
 
+    /** champsSaisis : les cles d'attributes saisies a la main, qu'un rechargement
+     *  depuis la source ne touche pas (Lot 130) - l'ecran les signale. */
     public record EntityResponse(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,
-                                  Set<UUID> tagIds, List<VariantResponse> variants) {
+                                  Set<UUID> tagIds, List<VariantResponse> variants, Set<String> champsSaisis) {
         public static EntityResponse from(Entity entity) {
             return new EntityResponse(
                     entity.id(), entity.entityTypeId(), entity.title(), entity.attributes(), entity.tagIds(),
-                    entity.variants().stream().map(VariantResponse::from).toList());
+                    entity.variants().stream().map(VariantResponse::from).toList(), entity.champsSaisis());
         }
     }
 

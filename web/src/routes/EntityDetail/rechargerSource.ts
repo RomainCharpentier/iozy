@@ -23,6 +23,9 @@ import type { MetadataCandidateDto } from '../../types/api'
 export interface OeuvreARecharger {
   title: string
   attributes: Record<string, unknown>
+  /** Les clés saisies à la main (Lot 130) - jamais réécrites. Le serveur
+   *  applique la même règle ; ici elle sert au décompte rendu à l'écran. */
+  champsSaisis?: string[]
 }
 
 /** Les clés sous lesquelles vit l'identifiant du fournisseur, selon le type de
@@ -84,26 +87,27 @@ export function candidatCorrespondant(
  * leur valeur diffère de celle déjà en base : le décompte rendu à l'écran doit
  * pouvoir dire « tout est déjà à jour » sans mentir.
  *
- * <p><b>Deux exclusions.</b> Les remarques de l'utilisateur ne viennent
- * d'aucune source. Et la jaquette de la série n'est POSÉE QUE SI ELLE MANQUE :
- * elle se choisit à la main sur la fiche (voir le contrôle de couverture), et
- * un rechargement n'a pas à défaire ce choix - c'est la seule donnée d'origine
- * externe que l'utilisateur édite couramment.
+ * <p><b>Trois exclusions.</b> Les clés SAISIES À LA MAIN (Lot 130 : « si on
+ * recharge depuis l'api alors on écrase les infos non déjà éditées »). Les
+ * remarques de l'utilisateur, qui ne viennent d'aucune source. Et la jaquette
+ * de la série, qui n'est POSÉE QUE SI ELLE MANQUE : elle se choisit à la main
+ * sur la fiche (voir le contrôle de couverture), et un rechargement n'a pas à
+ * défaire ce choix.
  */
 export function attributsARecharger(
   candidat: MetadataCandidateDto,
   oeuvre: OeuvreARecharger,
 ): Record<string, unknown> {
   const aEcrire: Record<string, unknown> = {}
-
+  const saisis = oeuvre.champsSaisis ?? []
   for (const [cle, valeur] of Object.entries(candidat.attributes)) {
-    if (CLES_UTILISATEUR.includes(cle) || cle === COVER_IMAGE_ATTRIBUTE_KEY) continue
+    if (CLES_UTILISATEUR.includes(cle) || cle === COVER_IMAGE_ATTRIBUTE_KEY || saisis.includes(cle)) continue
     if (valeur === null || valeur === undefined || valeur === '') continue
     if (JSON.stringify(valeur) === JSON.stringify(oeuvre.attributes[cle])) continue
     aEcrire[cle] = valeur
   }
 
-  if (candidat.imageUrl && !coverImageUrlFrom(oeuvre.attributes)) {
+  if (candidat.imageUrl && !coverImageUrlFrom(oeuvre.attributes) && !saisis.includes(COVER_IMAGE_ATTRIBUTE_KEY)) {
     aEcrire[COVER_IMAGE_ATTRIBUTE_KEY] = candidat.imageUrl
   }
 

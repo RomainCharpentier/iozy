@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, PenLine } from 'lucide-react'
 import { mergeEntityAttributes, removeEntityAttribute } from '../../api/entities'
 import { queryKeys } from '../../lib/queryKeys'
 import { COVER_IMAGE_ATTRIBUTE_KEY } from '../../lib/coverImage'
@@ -10,14 +10,6 @@ import { ErrorBanner } from '../../components/ErrorBanner'
  * "L'œuvre" - TOUT ce qui décrit la chose elle-même, par opposition au reste
  * de la fiche, qui décrit ce que l'utilisateur en POSSÈDE (progression, mes
  * tomes, mes classements, l'état de chaque exemplaire).
- * <p>
- * Un seul bloc, deux sous-groupes explicites (retour utilisateur du
- * 2026-08-20 : "compliqué de faire la différence entre notre possession et
- * les metadatas du truc") : la fiche affichait deux blocs de métadonnées sans
- * dire d'où ils venaient - "À propos" (données de l'ÉDITION, source
- * MangaEdition, qui vivait dans TomesGridSection) et "Informations" (données
- * de la SÉRIE, source entity.attributes). Le nombre de tomes y était même
- * répété une troisième fois, le hero l'affichant déjà deux fois.
  * <p>
  * Principe posé par l'utilisateur (2026-08-20) : ce qu'on copie depuis une
  * API externe devient une donnée à SOI, donc corrigeable ; et un type sans
@@ -32,45 +24,31 @@ import { ErrorBanner } from '../../components/ErrorBanner'
  * la valeur est encore vide) et des attributs réellement présents sur
  * l'œuvre (ce que l'API a rempli). Aucune clé libre n'est créée ici :
  * inventer un champ, c'est modifier le TYPE, pas une de ses œuvres.
+ *
+ * <h2>Toujours un formulaire, et une marque par champ (Lot 130)</h2>
+ * Cette carte ne vit qu'en mode édition, sous le seul « Éditer » de la page
+ * (Lot 129) : elle n'a donc plus d'état « lecture » ni de bouton pour en
+ * sortir - chaque champ est saisissable d'emblée, c'est ce que demande
+ * l'utilisateur (« rendre chaque champ éditable pour compléter les infos en
+ * base »). Et ce qu'il tape est MARQUÉ : le serveur retient les clés saisies
+ * à la main (`champsSaisis`), et « Recharger depuis la source » n'écrase que
+ * les autres. La marque s'affiche à côté du champ ; la retirer, c'est vider
+ * le champ, la source pourra alors le remplir à nouveau.
  */
 export function EntityInfoSection({
   entityId,
   attributes,
+  champsSaisis,
   customFieldKeys,
-  edition,
-  ouvrirEdition,
-  onEditionOuverte,
 }: {
   entityId: string
   attributes: Record<string, unknown>
+  /** Les clés saisies à la main, que la source ne touche plus (voir
+   *  EntityResponse.champsSaisis). */
+  champsSaisis: string[]
   customFieldKeys: string[]
-  /** Passe à true quand « Modifier » est cliqué dans l'en-tête de la section
-   *  « L'œuvre » (maquette v4). Le bouton vit là-haut, mais le brouillon de
-   *  chaque champ vit ici - c'est le seul endroit qui connaît la liste réelle
-   *  des champs (union des champs déclarés par le TYPE et des attributs
-   *  réellement présents). Un booléen plutôt qu'un `ref` impératif : c'est un
-   *  état, la page a le droit de le porter. */
-  ouvrirEdition: boolean
-  onEditionOuverte: () => void
-  /** Édition affichée, quand il y en a une (mangas). Sans bouton de
-   * correction : il existe déjà, accroché au nom de l'édition dans le hero
-   * (voir EditionCorrectionSection) - deux entrées vers le même formulaire
-   * seraient exactement le genre de doublon qu'on retire ici. */
-  edition?: {
-    name: string
-    /** Le nombre de tomes de CETTE édition (voir la complétude), null tant
-     *  qu'aucune source ne le connaît. */
-    totalVolumes: number | null
-    publisher: string | null
-    outOfPrint: boolean
-    betterEditionAnnounced: boolean
-    betterEditionNote: string | null
-    /** Statut lisible de la série (En cours / Terminée), null si inconnu. */
-    ongoing: boolean | null
-  } | null
 }) {
   const queryClient = useQueryClient()
-  const [editing, setEditing] = useState(false)
   const [showTechnical, setShowTechnical] = useState(false)
   const [draft, setDraft] = useState<Record<string, string>>({})
 
@@ -88,6 +66,18 @@ export function EntityInfoSection({
     const technicalKeys = keys.filter((key) => TECHNICAL_KEYS.includes(key))
     return { descriptive: descriptiveKeys, technical: technicalKeys, fields: [...descriptiveKeys, ...technicalKeys] }
   }, [attributes, customFieldKeys])
+
+  // Le brouillon repart de ce qui est en base à chaque fois que la base
+  // change (ouverture, enregistrement, rechargement depuis la source).
+  function reinitialiser() {
+    const initial: Record<string, string> = {}
+    for (const key of fields) initial[key] = displayValue(attributes[key])
+    setDraft(initial)
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(reinitialiser, [attributes, fields])
+
+  const modifie = fields.some((key) => (draft[key] ?? '').trim() !== displayValue(attributes[key]))
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -113,189 +103,91 @@ export function EntityInfoSection({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-      setEditing(false)
     },
   })
 
-  function startEditing() {
-    const initial: Record<string, string> = {}
-    for (const key of fields) initial[key] = displayValue(attributes[key])
-    setDraft(initial)
-    setEditing(true)
-  }
-
-  // Le drapeau est consommé aussitôt (onEditionOuverte le rabaisse), sinon
-  // fermer le formulaire le rouvrirait au rendu suivant.
-  useEffect(() => {
-    if (!ouvrirEdition) return
-    startEditing()
-    onEditionOuverte()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ouvrirEdition])
-
-  const filled = descriptive.filter((key) => displayValue(attributes[key]) !== '')
-  const filledTechnical = technical.filter((key) => displayValue(attributes[key]) !== '')
-
-  // "Terminée" plutôt que "finished" : la valeur brute reste modifiable parmi
-  // les champs techniques, mais ce qu'on LIT ici est la forme humaine (voir
-  // lib/seriesInfo.isSeriesOngoing, qui ne comprend que le vocabulaire des
-  // fournisseurs).
-  const seriesStatusRow = edition?.ongoing == null ? null : edition.ongoing ? 'En cours' : 'Terminée'
-
-  const editionRows: Array<[string, string]> = []
-  // "Éditeur" tout court redevient possible depuis que ces lignes vivent sous
-  // un titre qui nomme l'édition (« Édition « Black Édition » ») : c'est le
-  // titre qui lève l'ambiguïté avec le publisher de la SÉRIE, lequel ne veut
-  // pas dire la même chose (pour un candidat Jikan, c'est la revue de
-  // prépublication japonaise, pas l'éditeur français - voir pickCandidate).
-  // Auparavant les deux sous-groupes se suivaient sans titre fort, d'où le
-  // libellé long "Éditeur de cette édition".
-  if (edition?.publisher) editionRows.push(['Éditeur', edition.publisher])
-  // Le nombre de tomes DE CETTE ÉDITION, à ne pas confondre avec le
-  // "Nombre de tomes (source)" des champs techniques, qui est celui de la
-  // série chez le fournisseur : Death Note fait 12 tomes chez MyAnimeList et 6
-  // en Black Édition. C'est précisément parce que les deux existent et
-  // diffèrent que le catalogue doit les montrer tous les deux.
-  if (edition?.totalVolumes != null) editionRows.push(["Tomes de l'édition", String(edition.totalVolumes)])
-  if (edition?.outOfPrint) editionRows.push(['Disponibilité', 'Édition épuisée'])
-  if (edition?.betterEditionAnnounced) {
-    editionRows.push(['À venir', edition.betterEditionNote || 'Meilleure édition annoncée'])
-  }
-
   // Rien à montrer ET rien à remplir : le bloc disparaît entièrement plutôt
   // que d'afficher une section vide.
-  if (fields.length === 0 && editionRows.length === 0 && edition?.ongoing == null) return null
+  if (fields.length === 0) return null
+
+  const champ = (key: string) => {
+    const saisi = champsSaisis.includes(key)
+    return (
+      <div key={key} className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-xs text-textDim" htmlFor={`attr-${key}`}>
+          {labelFor(key)}
+          {saisi && (
+            <span
+              className="flex items-center gap-1 rounded-full bg-softBtn px-1.5 py-0.5 text-[10.5px] font-medium text-textDim"
+              title="Saisi à la main : un rechargement depuis la source ne l'écrase pas. Vide le champ pour rendre la place à la source."
+            >
+              <PenLine size={10} aria-hidden="true" />
+              saisi
+            </span>
+          )}
+        </label>
+        <input
+          id={`attr-${key}`}
+          value={draft[key] ?? ''}
+          onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+          className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+        />
+      </div>
+    )
+  }
 
   return (
     <section className="flex flex-col gap-5">
-      <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Série</h3>
+      <div className="flex flex-col gap-1">
+        <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Série</h3>
+        <p className="text-xs text-textDim">
+          Ce que tu saisis est marqué et n’est plus écrasé par « Recharger depuis la source ». Un champ vidé est
+          retiré, et la source peut le remplir à nouveau.
+        </p>
+      </div>
 
       {mutation.isError && <ErrorBanner message={mutation.error.message} />}
 
-      {editing ? (
-        <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(showTechnical ? fields : descriptive).map((key) => (
-              <div key={key} className="flex flex-col gap-1">
-                <label className="text-xs text-textDim" htmlFor={`attr-${key}`}>
-                  {labelFor(key)}
-                </label>
-                <input
-                  id={`attr-${key}`}
-                  value={draft[key] ?? ''}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
-                  className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
-                />
-              </div>
-            ))}
-          </div>
-          {technical.length > 0 && !showTechnical && (
-            <button
-              type="button"
-              onClick={() => setShowTechnical(true)}
-              className="w-fit text-xs font-semibold text-accentText"
-            >
-              Afficher les champs techniques ({technical.length})
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => mutation.mutate()}
-              disabled={mutation.isPending}
-              className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className="px-2 py-2 text-sm text-textDim">
-              Annuler
-            </button>
-            <span className="text-xs text-textDim">Un champ vidé est retiré.</span>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Sous-groupe SÉRIE : ce qui reste vrai quelle que soit l'édition
-              qu'on possède (auteur, année, statut de publication).
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{descriptive.map(champ)}</div>
 
-              Des rangées libellé/valeur séparées par un filet, et non plus une
-              grille de colonnes : sur une carte étroite, la grille
-              `auto-fit(160px)` retombait à une colonne et empilait deux lignes
-              par champ - le libellé y flottait au-dessus de sa valeur sans
-              rien pour les rattacher. Une rangée par champ se lit du regard,
-              quelle que soit la largeur. */}
-          <div className="flex flex-col">
-            {filled.length > 0 || filledTechnical.length > 0 || seriesStatusRow !== null ? (
-              <>
-                {seriesStatusRow && <RangeeInfo libelle="Statut" valeur={seriesStatusRow} />}
-                {filled.map((key) => (
-                  <RangeeInfo key={key} libelle={labelFor(key)} valeur={displayValue(attributes[key])} />
-                ))}
-              </>
-            ) : (
-              <p className="text-sm text-textDim">Aucune information renseignée pour l'instant.</p>
-            )}
-          </div>
-
-          {/* Les rouages, repliés derrière un chevron (maquette v4) : ils
-              restent modifiables, mais ne sont pas le visage de la fiche. */}
-          {filledTechnical.length > 0 && (
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowTechnical((v) => !v)}
-                aria-expanded={showTechnical}
-                className={`flex w-fit items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-medium ${
-                  showTechnical ? 'bg-softPress text-textPrimary' : 'bg-softBtn text-textDim'
-                }`}
-              >
-                {showTechnical ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                Champs techniques ({filledTechnical.length})
-              </button>
-              {showTechnical && (
-                <div className="flex flex-col rounded-[15px] bg-background px-4">
-                  {filledTechnical.map((key) => (
-                    <RangeeInfo key={key} libelle={labelFor(key)} valeur={displayValue(attributes[key])} discret />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Sous-groupe ÉDITION : ce qui ne vaut QUE pour l'édition affichée
-              (l'éditeur français, son épuisement...). Nommé avec l'édition
-              elle-même, sinon "Éditeur : Kana" ressemble à une propriété de la
-              série - alors qu'une autre édition a un autre éditeur. */}
-          {editionRows.length > 0 && (
-            <div className="flex flex-col gap-3 border-t border-line pt-5">
-              <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">
-                Édition « {edition?.name} »
-              </h3>
-              <div className="flex flex-col">
-                {editionRows.map(([label, value]) => (
-                  <RangeeInfo key={label} libelle={label} valeur={value} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+      {/* Les rouages, repliés derrière un chevron (maquette v4) : ils
+          restent modifiables, mais ne sont pas le visage de la fiche. */}
+      {technical.length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowTechnical((v) => !v)}
+            aria-expanded={showTechnical}
+            className={`flex w-fit items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-medium ${
+              showTechnical ? 'bg-softPress text-textPrimary' : 'bg-softBtn text-textDim'
+            }`}
+          >
+            {showTechnical ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            Champs techniques ({technical.length})
+          </button>
+          {showTechnical && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{technical.map(champ)}</div>}
+        </div>
       )}
-    </section>
-  )
-}
 
-/** Une rangée « libellé à gauche, valeur à droite », séparée de la suivante
- *  par un filet - la forme exacte de la maquette v4. `last:border-0` plutôt
- *  qu'un test sur l'index : le dernier filet d'un groupe doublerait celui du
- *  groupe suivant. */
-function RangeeInfo({ libelle, valeur, discret = false }: { libelle: string; valeur: string; discret?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-line py-2.5 last:border-0">
-      <span className={discret ? 'text-[13.5px] text-textDim' : 'text-sm text-textDim'}>{libelle}</span>
-      <span className={`text-right font-medium text-textPrimary ${discret ? 'text-sm' : 'text-[14.5px]'}`}>
-        {valeur}
-      </span>
-    </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending || !modifie}
+          className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+        >
+          {mutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+        </button>
+        <button
+          type="button"
+          onClick={reinitialiser}
+          disabled={!modifie}
+          className="px-2 py-2 text-sm text-textDim disabled:opacity-50"
+        >
+          Annuler
+        </button>
+      </div>
+    </section>
   )
 }
 
