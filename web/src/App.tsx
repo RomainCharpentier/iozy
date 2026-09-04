@@ -66,6 +66,7 @@ const StatsPage = page(() => import('./routes/Stats/StatsPage'), 'StatsPage')
 const EditionsPage = page(() => import('./routes/Editions/EditionsPage'), 'EditionsPage')
 const EntityTypesPage = page(() => import('./routes/EntityTypes/EntityTypesPage'), 'EntityTypesPage')
 const SettingsPage = page(() => import('./routes/Settings/SettingsPage'), 'SettingsPage')
+const ImportPage = page(() => import('./routes/Settings/ImportPage'), 'ImportPage')
 const SharedSpacePage = page(() => import('./routes/Share/SharedSpacePage'), 'SharedSpacePage')
 
 /**
@@ -209,6 +210,7 @@ export default function App() {
                   <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
                   <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/settings/import" element={<ImportPage />} />
                   {/* Le repli, en dernier : sans lui une URL inconnue rendait
                       un `<main>` vide avec la navigation autour - un écran qui
                       a l'air cassé plutôt que d'expliquer. */}

@@ -4,14 +4,33 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "web"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "web"
+      ],
       "port": 5173
     },
     {
       "name": "web-prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview", "--prefix", "web"],
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--prefix",
+        "web"
+      ],
       "port": 4173
+    },
+    {
+      "name": "web-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set IOZYCORE_API=http://localhost:8090&& npm run dev --prefix web -- --port 5174 --strictPort"
+      ],
+      "port": 5174
     }
   ]
 }

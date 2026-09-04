@@ -114,7 +114,7 @@ public class ExportService {
                 .toList();
 
         List<ExportDocument.WishlistEntryExport> wishlistExports = wishlistEntryRepository.findAll().stream()
-                .map(entry -> toWishlistExport(entry, entitiesById))
+                .map(entry -> toWishlistExport(entry, entitiesById, variantLabelsById))
                 .toList();
 
         List<ExportDocument.RelationshipExport> relationshipExports = relationshipRepository.findAll().stream()
@@ -212,7 +212,7 @@ public class ExportService {
                 .map(Tag::label)
                 .toList();
         List<ExportDocument.VariantExport> variants = entity.variants().stream()
-                .map(v -> new ExportDocument.VariantExport(v.id(), v.label(), v.attributes()))
+                .map(v -> new ExportDocument.VariantExport(v.id(), v.label(), v.attributes(), v.mangaEditionId()))
                 .toList();
         return new ExportDocument.EntityExport(entity.id(), type != null ? type.code() : null,
                 type != null ? type.label() : null, entity.title(), entity.attributes(), tagLabels, variants);
@@ -240,10 +240,13 @@ public class ExportService {
                 experience.comment());
     }
 
-    private static ExportDocument.WishlistEntryExport toWishlistExport(WishlistEntry entry, Map<UUID, Entity> entitiesById) {
+    private static ExportDocument.WishlistEntryExport toWishlistExport(WishlistEntry entry, Map<UUID, Entity> entitiesById,
+                                                                        Map<UUID, String> variantLabelsById) {
         Entity entity = entitiesById.get(entry.entityId());
+        UUID variantId = entry.variantId().orElse(null);
         return new ExportDocument.WishlistEntryExport(entry.id(), entry.entityId(),
-                entity != null ? entity.title() : null, entry.addedAt());
+                entity != null ? entity.title() : null, variantId,
+                variantId != null ? variantLabelsById.get(variantId) : null, entry.addedAt());
     }
 
     private static ExportDocument.RelationshipExport toRelationshipExport(Relationship relationship, Map<UUID, Entity> entitiesById) {

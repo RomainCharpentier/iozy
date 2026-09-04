@@ -37,12 +37,13 @@ public class ExportCsvWriter {
                         String.join(";", e.tagLabels()), toJson(e.attributes()))));
 
         files.put("variants.csv", writeCsv(
-                List.of("id", "entityId", "entityTitle", "label", "attributes"),
+                List.of("id", "entityId", "entityTitle", "label", "attributes", "mangaEditionId"),
                 document.entities().stream()
                         .flatMap(e -> e.variants().stream().map(v -> Map.entry(e, v)))
                         .toList(),
                 pair -> List.of(str(pair.getValue().id()), str(pair.getKey().id()), str(pair.getKey().title()),
-                        str(pair.getValue().label()), toJson(pair.getValue().attributes()))));
+                        str(pair.getValue().label()), toJson(pair.getValue().attributes()),
+                        str(pair.getValue().mangaEditionId()))));
 
         files.put("ownerships.csv", writeCsv(
                 List.of("id", "entityId", "entityTitle", "variantId", "variantLabel", "condition", "status",
@@ -59,9 +60,10 @@ public class ExportCsvWriter {
                         str(x.experienceType()), str(x.occurredAt()), str(x.rating()), str(x.comment()))));
 
         files.put("wishlist.csv", writeCsv(
-                List.of("id", "entityId", "entityTitle", "addedAt"),
+                List.of("id", "entityId", "entityTitle", "variantId", "variantLabel", "addedAt"),
                 document.wishlist(),
-                w -> List.of(str(w.id()), str(w.entityId()), str(w.entityTitle()), str(w.addedAt()))));
+                w -> List.of(str(w.id()), str(w.entityId()), str(w.entityTitle()), str(w.variantId()),
+                        str(w.variantLabel()), str(w.addedAt()))));
 
         files.put("relationships.csv", writeCsv(
                 List.of("id", "sourceEntityId", "sourceEntityTitle", "targetEntityId", "targetEntityTitle", "relationshipType"),

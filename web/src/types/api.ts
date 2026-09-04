@@ -298,3 +298,27 @@ export interface BggImportResult {
   matchedExisting: number
   failed: number
 }
+
+/** Ce qu'un import ferait (analyse) ou vient de faire (appliqué) - voir ImportReport côté backend. */
+export interface ImportReport {
+  applique: boolean
+  sections: ImportSection[]
+  remarques: ImportRemarque[]
+  /** Au-delà d'un plafond, les remarques ne sont plus listées, seulement comptées. */
+  remarquesNonListees: number
+}
+
+export interface ImportSection {
+  cle: string
+  libelle: string
+  crees: number
+  rattaches: number
+  ignores: number
+}
+
+export interface ImportRemarque {
+  section: string
+  genre: 'RATTACHE' | 'IGNORE' | 'REMPLACE'
+  sujet: string
+  detail: string
+}
