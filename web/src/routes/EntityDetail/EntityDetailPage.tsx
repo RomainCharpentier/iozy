@@ -101,9 +101,6 @@ export function EntityDetailPage() {
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
   const [question, setQuestion] = useState<QuestionAssistant | null>(null)
   const [ajoutTomeOuvert, setAjoutTomeOuvert] = useState(false)
-  // Un seul éditeur personnel ouvert à la fois : ce sont trois relevés voisins
-  // dans la même colonne, en ouvrir plusieurs repousserait celui qu'on lit.
-  const [editeurPersonnel, setEditeurPersonnel] = useState<'tier' | 'experiences' | 'tags' | null>(null)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [editingCover, setEditingCover] = useState(false)
@@ -276,7 +273,6 @@ export function EntityDetailPage() {
     mutationFn: (note: string) => mergeEntityAttributes(entityId, { note }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-      setRemarquesInput(null)
     },
   })
 
@@ -464,6 +460,20 @@ export function EntityDetailPage() {
   // seule pièce. Pour un manga, la série est un GROUPE : on ne veut pas
   // « Naruto », on veut le tome 47 - et c'est la grille qui le dit.
   const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
+
+  /**
+   * Un seul « Éditer » pour toute la page (demande utilisateur du
+   * 2026-09-04) : il ouvre le catalogue ET les éditeurs personnels -
+   * classement, note et lectures, tags, remarques - qui avaient chacun leur
+   * « Modifier ». Les remarques s'éditent en place : leur brouillon naît à
+   * l'entrée du mode et meurt à sa sortie.
+   */
+  function basculerModeEdition() {
+    setModeEdition((ouvert) => {
+      setRemarquesInput(ouvert ? null : remarques)
+      return !ouvert
+    })
+  }
   const jaquettesManquantes = variantsMissingCover(entity).length
   const dansEnvies = !!wishlist.entryFor(entityId)
   const tomesVoulus = wishlist.variantsVoulus
@@ -559,7 +569,7 @@ export function EntityDetailPage() {
           )
         }
         modeEdition={modeEdition}
-        onBasculerMode={estInvite ? undefined : () => setModeEdition((v) => !v)}
+        onBasculerMode={estInvite ? undefined : basculerModeEdition}
         editions={
           groupes.length > 0 ? (
             <CartesEditions
@@ -658,10 +668,7 @@ export function EntityDetailPage() {
           personnel={
             <>
               <ReleveInspecteur
-                libelle="Tier list"
-                ouvert={editeurPersonnel === 'tier'}
-                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'tier' ? null : 'tier'))}
-              >
+                libelle="Tier list">
                 {generalRank ? (
                   <span className="flex items-center gap-2.5">
                     <span className="text-[13.5px] text-textPrimary">
@@ -677,10 +684,7 @@ export function EntityDetailPage() {
                   le même éditeur qui la porte, et proposer deux points d'entrée
                   pour la même donnée reviendrait à en inventer une seconde. */}
               <ReleveInspecteur
-                libelle="Ma note"
-                ouvert={editeurPersonnel === 'experiences'}
-                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
-              >
+                libelle="Ma note">
                 {meilleureNote !== null ? (
                   <span className="font-display text-[23px] leading-tight font-semibold tracking-[-0.02em] text-accentText">
                     {meilleureNote} / 10
@@ -690,10 +694,7 @@ export function EntityDetailPage() {
                 )}
               </ReleveInspecteur>
               <ReleveInspecteur
-                libelle="Mes remarques"
-                ouvert={remarquesInput !== null}
-                onModifier={() => setRemarquesInput((v) => (v === null ? remarques : null))}
-              >
+                libelle="Mes remarques">
                 {remarquesInput !== null ? (
                   <span className="flex flex-col gap-2 pt-1">
                     <textarea
@@ -708,15 +709,16 @@ export function EntityDetailPage() {
                       <button
                         type="button"
                         onClick={() => remarquesMutation.mutate(remarquesInput.trim())}
-                        disabled={remarquesMutation.isPending}
+                        disabled={remarquesMutation.isPending || remarquesInput.trim() === remarques}
                         className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
                       >
                         Enregistrer
                       </button>
                       <button
                         type="button"
-                        onClick={() => setRemarquesInput(null)}
-                        className="text-xs text-textDim"
+                        onClick={() => setRemarquesInput(remarques)}
+                        disabled={remarquesInput === remarques}
+                        className="text-xs text-textDim disabled:opacity-50"
                       >
                         Annuler
                       </button>
@@ -729,10 +731,7 @@ export function EntityDetailPage() {
                 )}
               </ReleveInspecteur>
               <ReleveInspecteur
-                libelle="Lectures"
-                ouvert={editeurPersonnel === 'experiences'}
-                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'experiences' ? null : 'experiences'))}
-              >
+                libelle="Lectures">
                 {experiences.length === 0 ? (
                   <span className="text-[13.5px] text-faint">Aucune enregistrée</span>
                 ) : (
@@ -754,10 +753,7 @@ export function EntityDetailPage() {
               {/* Les tags flottaient sous les trois relevés, sans intitulé : ils
                   n'avaient donc pas de quoi porter leur propre point d'entrée. */}
               <ReleveInspecteur
-                libelle="Tags"
-                ouvert={editeurPersonnel === 'tags'}
-                onModifier={estInvite ? undefined : () => setEditeurPersonnel((v) => (v === 'tags' ? null : 'tags'))}
-              >
+                libelle="Tags">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {entity.tagIds.length === 0 ? (
                     <span className="text-[13.5px] text-faint">Aucun tag</span>
@@ -820,42 +816,38 @@ export function EntityDetailPage() {
         />
       </div>
 
-      {/* L'éditeur du relevé qu'on vient de désigner, et lui seul - ouvert
-          juste sous l'inspecteur, en pleine largeur parce qu'une colonne de
-          240 px ne peut pas accueillir un formulaire. Le point d'entrée reste
-          sur la ligne concernée : c'est là qu'on lit l'information, c'est là
-          qu'on demande à la changer. */}
-      {editeurPersonnel && (
-        <div className="pt-4">
+      {/* Les éditeurs personnels - classement, note et lectures, tags -
+          s'ouvrent tous avec le mode édition, juste sous l'inspecteur, en
+          pleine largeur parce qu'une colonne de 240 px ne peut pas accueillir
+          un formulaire. Un seul « Éditer » pour toute la page (demande
+          utilisateur du 2026-09-04) : plus de « Modifier » par relevé. */}
+      {modeEdition && !estInvite && (
+        <div className="flex flex-col gap-4 pt-4">
           <Carte>
-            {editeurPersonnel === 'tier' && (
-              <TierSummarySection
-                entityId={entityId}
-                entityTitle={entity.title}
-                entityTypeLabel={entityType?.label ?? null}
-                coverImageUrl={couvertureUrl}
-              />
-            )}
-            {editeurPersonnel === 'experiences' && (
-              <ExperiencesSection
-                entityId={entityId}
-                experiences={experiences}
-                allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
-                variants={entity.variants}
-              />
-            )}
-            {editeurPersonnel === 'tags' && (
-              <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data ?? []} />
-            )}
+            <TierSummarySection
+              entityId={entityId}
+              entityTitle={entity.title}
+              entityTypeLabel={entityType?.label ?? null}
+              coverImageUrl={couvertureUrl}
+            />
+          </Carte>
+          <Carte>
+            <ExperiencesSection
+              entityId={entityId}
+              experiences={experiences}
+              allowedExperienceTypes={entityType?.allowedExperienceTypes ?? []}
+              variants={entity.variants}
+            />
+          </Carte>
+          <Carte>
+            <TagsSection entityId={entityId} attachedTagIds={entity.tagIds} allTags={tagsQuery.data ?? []} />
           </Carte>
         </div>
       )}
 
-      {/* « Éditer » ne garde que le CATALOGUE : ce que l'œuvre et son édition
-          SONT, et les gestes qui les font exister ou disparaître. Ce que j'en
-          pense - classement, note, lectures, tags - relève de l'intention
-          « juger », celle d'un utilisateur normal, et s'édite depuis le relevé
-          qui l'affiche (étude produit du 2026-08-27, §2 et §3). */}
+      {/* Le CATALOGUE : ce que l'œuvre et son édition SONT, et les gestes qui
+          les font exister ou disparaître. Sous le même « Éditer » que les
+          éditeurs personnels ci-dessus, depuis le 2026-09-04. */}
       {modeEdition && (
         <div className="flex flex-col gap-5 pt-6">
           <div className="grid gap-5 min-[900px]:grid-cols-2 min-[900px]:items-start">

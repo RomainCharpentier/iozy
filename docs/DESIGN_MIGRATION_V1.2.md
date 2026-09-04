@@ -1360,6 +1360,26 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 129 — un seul « Éditer » pour toute la fiche
+
+Demande utilisateur du 2026-09-04 : « retire les boutons "modifier" sur
+chaque champ, il faut un seul bouton "éditer" pour toute la page ». Depuis
+l'étude produit du 2026-08-27, les relevés personnels (Tier list, Ma note,
+Mes remarques, Lectures, Tags) portaient chacun un petit « Modifier », et
+« Éditer » en haut n'ouvrait que le catalogue : deux logiques d'édition sur
+la même page, cinq boutons dans une colonne de 240 px. Tranché : un geste.
+
+- `ReleveInspecteur` n'affiche plus que l'information (plus de
+  `onModifier`, plus d'état `ouvert`).
+- « Éditer » ouvre, sous l'inspecteur et en pleine largeur, les trois
+  éditeurs personnels à la fois (classement, expériences avec la note, tags)
+  puis le catalogue, comme avant. Les remarques s'éditent en place dans leur
+  relevé : le brouillon naît à l'entrée du mode et meurt à sa sortie ;
+  « Enregistrer » et « Annuler » se désactivent tant que rien n'a changé.
+- Un visiteur sans compte n'a toujours pas d'« Éditer » ; un compte ordinaire
+  y trouve ses éditeurs personnels, et le catalogue dont le serveur protège
+  déjà les écritures réservées (tags, rechargement - Lot 128).
+
 ### Lot 128 — recharger depuis la source : un geste d'administrateur
 
 Demande utilisateur du 2026-09-04 : « seul l'admin peut recharger les données
