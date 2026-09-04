@@ -99,6 +99,8 @@ public class MetadataSearchService {
     // rapprochées dans la même fenêtre) - le stockage durable, lui, est
     // volumeSearchCacheRepository (survit aux redémarrages, voir plus bas).
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchCache = new TtlCache<>(Duration.ofHours(24), 300);
+    /** Les résultats obtenus pendant qu'un fournisseur se taisait - voir searchVolumes. */
+    private final TtlCache<String, List<VolumeCandidate>> volumeSearchPartialCache = new TtlCache<>(Duration.ofHours(1), 300);
 
     public MetadataSearchService(List<MetadataProvider> providers,
                                   List<BarcodeMetadataProvider> barcodeProviders,
@@ -508,6 +510,16 @@ public class MetadataSearchService {
                 volumeSearchCache.put(cacheKey, stored.get()); // réchauffe le cache mémoire pour les appels suivants
                 return VolumeSearchResult.of(stored.get());
             }
+
+            // Un résultat PARTIEL (un fournisseur muet) n'est jamais persisté,
+            // mais il est gardé une heure en mémoire : sans ça, chaque
+            // ouverture de l'aperçu pendant une panne de Google Books
+            // relançait la BnF et ses vérifications de jaquettes, jusqu'à ce
+            // qu'elle limite le débit à son tour (429 constaté le 2026-09-04).
+            Optional<List<VolumeCandidate>> partiel = volumeSearchPartialCache.get(cacheKey);
+            if (partiel.isPresent()) {
+                return new VolumeSearchResult(partiel.get(), true);
+            }
         }
 
         // Boucle explicite (plutôt qu'un stream) : un fournisseur en échec ne
@@ -542,6 +554,8 @@ public class MetadataSearchService {
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, result);
             volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+        } else if (!result.isEmpty()) {
+            volumeSearchPartialCache.put(cacheKey, result);
         }
         return new VolumeSearchResult(result, providerUnavailable);
     }
