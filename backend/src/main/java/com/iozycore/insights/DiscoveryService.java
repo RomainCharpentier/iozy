@@ -3,6 +3,7 @@ package com.iozycore.insights;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.shared.TexteRecherche;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
@@ -89,7 +90,7 @@ public class DiscoveryService {
         }
 
         Set<String> ownedTitlesLower = ownedManga.stream()
-                .map(e -> e.title().toLowerCase())
+                .map(e -> TexteRecherche.normaliser(e.title()))
                 .collect(Collectors.toSet());
 
         // Mangaka des œuvres les mieux notées, les mieux notées en premier,
@@ -113,7 +114,7 @@ public class DiscoveryService {
                 if (suggestions.size() >= MAX_SUGGESTIONS) {
                     break;
                 }
-                if (ownedTitlesLower.contains(candidate.title().toLowerCase())) {
+                if (ownedTitlesLower.contains(TexteRecherche.normaliser(candidate.title()))) {
                     continue; // déjà dans la collection
                 }
                 suggestions.add(new DiscoveryCandidate(
@@ -159,7 +160,7 @@ public class DiscoveryService {
         }
 
         Set<String> ownedTitlesLower = ownedGames.stream()
-                .map(e -> e.title().toLowerCase())
+                .map(e -> TexteRecherche.normaliser(e.title()))
                 .collect(Collectors.toSet());
 
         List<BggCollectionItem> hotGames = bggHotListFetcher.fetchHotBoardGames();
@@ -170,7 +171,7 @@ public class DiscoveryService {
             if (examined >= MAX_HOT_GAMES_EXAMINED || suggestions.size() >= MAX_SUGGESTIONS) {
                 break;
             }
-            if (ownedTitlesLower.contains(hotGame.title().toLowerCase())) {
+            if (ownedTitlesLower.contains(TexteRecherche.normaliser(hotGame.title()))) {
                 continue;
             }
             examined++;
@@ -216,7 +217,7 @@ public class DiscoveryService {
         }
 
         Set<String> ownedTitlesLower = ownedGames.stream()
-                .map(e -> e.title().toLowerCase())
+                .map(e -> TexteRecherche.normaliser(e.title()))
                 .collect(Collectors.toSet());
 
         List<DiscoveryCandidate> suggestions = new ArrayList<>();
@@ -225,7 +226,7 @@ public class DiscoveryService {
                 if (suggestions.size() >= MAX_SUGGESTIONS) {
                     break;
                 }
-                if (ownedTitlesLower.contains(similar.title().toLowerCase())) {
+                if (ownedTitlesLower.contains(TexteRecherche.normaliser(similar.title()))) {
                     continue; // déjà dans la collection
                 }
                 suggestions.add(new DiscoveryCandidate(

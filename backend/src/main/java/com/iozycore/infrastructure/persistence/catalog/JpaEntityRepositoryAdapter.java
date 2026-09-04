@@ -3,10 +3,13 @@ package com.iozycore.infrastructure.persistence.catalog;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.Variant;
+import com.iozycore.domain.shared.TexteRecherche;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,9 +83,70 @@ public class JpaEntityRepositoryAdapter implements EntityRepository {
         return withVariants(entityJpaRepository.findByEntityTypeId(entityTypeId));
     }
 
+    /**
+     * Les attributs ou l'on cherche AUSSI, apres le titre : le champ de
+     * recherche promet « un titre, un auteur… », et ne tenait que la
+     * premiere moitie.
+     */
+    private static final List<String> ATTRIBUTS_CHERCHES = List.of("mangaka", "author", "studio", "designer",
+            "developer", "publisher");
+
+    /**
+     * Type et tag se filtrent en base ; le titre en memoire, pour plier
+     * accents et ponctuation (voir {@link TexteRecherche}). Le cout est
+     * celui du listing complet d'un type, que Ma collection et le Catalogue
+     * paient deja a chaque visite - et la requete est temporisee cote client.
+     *
+     * <p>L'ordre dit la pertinence : les titres qui COMMENCENT par la
+     * recherche, puis ceux qui la contiennent, puis les oeuvres retrouvees
+     * par un auteur. Alphabetique a l'interieur de chaque groupe - c'est
+     * l'ordre de la base, que le tri stable conserve. Avant, « one » rendait
+     * « Bone » avant « One Piece ».
+     */
     @Override
     public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-        return withVariants(entityJpaRepository.search(titleQuery, entityTypeId, tagId));
+        List<Entity> perimetre = withVariants(entityJpaRepository.findByFiltres(entityTypeId, tagId));
+        String requete = TexteRecherche.normaliser(titleQuery);
+        if (requete.isEmpty()) {
+            return perimetre;
+        }
+        List<Entity> retenues = new ArrayList<>();
+        List<Integer> rangs = new ArrayList<>();
+        for (Entity entity : perimetre) {
+            int rang = rangDe(entity, requete);
+            if (rang >= 0) {
+                retenues.add(entity);
+                rangs.add(rang);
+            }
+        }
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < retenues.size(); i++) {
+            indices.add(i);
+        }
+        indices.sort(Comparator.comparingInt(rangs::get));
+        return indices.stream().map(retenues::get).collect(Collectors.toList());
+    }
+
+    private static int rangDe(Entity entity, String requete) {
+        String titre = TexteRecherche.normaliser(entity.title());
+        if (titre.startsWith(requete)) {
+            return 0;
+        }
+        if (titre.contains(requete)) {
+            return 1;
+        }
+        // « attaque titans » doit trouver « L'Attaque des Titans » : chaque
+        // mot tape est dans le titre, pas forcement a la suite.
+        if (TexteRecherche.contientChaqueMot(titre, requete)) {
+            return 2;
+        }
+        for (String cle : ATTRIBUTS_CHERCHES) {
+            Object valeur = entity.attributes().get(cle);
+            if (valeur instanceof String s && TexteRecherche.contientChaqueMot(TexteRecherche.normaliser(s), requete)) {
+                return 3;
+            }
+        }
+        return -1;
     }
 
     /**

@@ -2,6 +2,7 @@ package com.iozycore.metadata;
 
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.domain.shared.TexteRecherche;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -170,8 +171,14 @@ public class MetadataSearchService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * La cle de comparaison des titres - accents et ponctuation plies, comme
+     * la recherche locale et Decouvrir (voir TexteRecherche). Sert aussi de
+     * cle de cache : deux frappes qui designent la meme oeuvre partagent la
+     * meme reponse des fournisseurs.
+     */
     private static String normalize(String value) {
-        return value.trim().toLowerCase();
+        return TexteRecherche.normaliser(value);
     }
 
     /**
