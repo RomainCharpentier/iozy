@@ -4,7 +4,7 @@ import type { VariantDto } from '../types/api'
  * Ce qu'on lit sur un tome, et comment.
  *
  * <h2>Pourquoi un module pour deux lignes</h2>
- * Les attributs d'un Variant sont un sac non typé (voir EntityInfoSection) :
+ * Les attributs d'un Variant sont un sac non typé (voir useBrouillonInspecteur) :
  * chaque lecteur doit donc décider lui-même ce qu'il accepte. Ils étaient
  * quatre à réécrire la même expression pour l'édition, et quatre pour le
  * numéro - avec des règles qui avaient déjà divergé : l'assistant acceptait un
@@ -33,7 +33,7 @@ export function editionDe(variant: Pick<VariantDto, 'attributes'>): string {
  * Le numéro d'un tome, ou `null` s'il n'en a pas d'exploitable.
  *
  * <p>`typeof === 'number'` STRICT, comme partout ailleurs dans l'app (voir
- * `lib/seriesInfo.totalVolumesFrom` et les NUMERIC_KEYS d'EntityInfoSection,
+ * `lib/seriesInfo.totalVolumesFrom` et les CLES_NUMERIQUES de useBrouillonInspecteur,
  * qui préservent le type à l'écriture précisément pour ça). Accepter `"12"`
  * ici reviendrait à tolérer une donnée que les écrivains s'interdisent de
  * produire, et à faire diverger deux écrans sur le même tome.

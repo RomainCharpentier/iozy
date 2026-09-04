@@ -173,8 +173,9 @@ client, n'existe plus.
 **Statut** : `COMPLET`
 
 ### 10. Renseigner ou corriger l'édition de référence
-**Point de départ** : fiche ▸ « Éditer » (le formulaire de l'édition active
-s'ouvre sous ses informations, Lot 129 - plus de crayon à part)
+**Point de départ** : fiche ▸ « Éditer » (les rangées « Éditeur », « Nombre
+de tomes », « Disponibilité », « À venir » de l'inspecteur deviennent des
+champs, Lot 129-130 - plus de crayon ni de formulaire à part)
 **Étapes** : éditeur, nombre de tomes, prix neuf, épuisée, meilleure édition
 annoncée → Enregistrer.
 **Résultat** : la fiche de référence est créée ou mise à jour ; la progression
@@ -182,7 +183,7 @@ annoncée → Enregistrer.
 **Branches** : Annuler ; création d'une édition dont le couple (série, nom)
 existe déjà → **409 lisible** (« Une édition « X » existe déjà pour la série
 « Y » »).
-**Écrans** : `EditionCorrectionSection`
+**Écrans** : `InspecteurFiche`, `useBrouillonInspecteur`
 **Backend** : `POST` / `PATCH /purchase-analysis/editions`
 **Statut** : `COMPLET`
 
@@ -321,15 +322,17 @@ un lien « Évaluer une annonce » part de là.
 **Statut** : `COMPLET` — aucune IA, aucun appel externe.
 
 ### 23. Modifier les informations de l'œuvre
-**Point de départ** : fiche ▸ « Éditer » ▸ carte « Série » (formulaire
-d'emblée, Lot 129-130 - plus de « Modifier » à part)
-**Étapes** : éditer les attributs (mangaka, statut, année…), replier/déplier
-« Champs techniques (N) », retirer un attribut en le vidant.
+**Point de départ** : fiche ▸ « Éditer » ▸ l'inspecteur lui-même : chaque
+rangée lue devient un champ, à la même place (Lot 130 - plus de « Modifier »
+ni de carte à part)
+**Étapes** : saisir dans la colonne ŒUVRE (mangaka, année…) et SOURCE
+(identifiants, titres, statut source), retirer un attribut en le vidant,
+« Enregistrer la fiche ».
 **Résultat** : chaque champ saisi est **marqué** (pastille « saisi ») et
 « Recharger depuis la source » ne l'écrase plus ; une valeur vide est
 **retirée**, jamais stockée telle quelle, et la marque part avec elle - la
 source peut alors remplir le champ à nouveau (Lot 130).
-**Écrans** : `EntityInfoSection`
+**Écrans** : `InspecteurFiche`, `useBrouillonInspecteur`
 **Backend** : `PATCH /entities/{id}?origine=manuelle|source`,
 `DELETE /entities/{id}/attributes/{key}`
 **Statut** : `COMPLET`

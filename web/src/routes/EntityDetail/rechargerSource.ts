@@ -29,7 +29,7 @@ export interface OeuvreARecharger {
 }
 
 /** Les clés sous lesquelles vit l'identifiant du fournisseur, selon le type de
- * collection (voir EntityInfoSection.TECHNICAL_KEYS). */
+ * collection (voir les rouages de useBrouillonInspecteur). */
 const CLES_IDENTIFIANT = ['malId', 'igdbId', 'bggId']
 
 /** Jamais rechargée : c'est la remarque de l'utilisateur, pas une donnée de

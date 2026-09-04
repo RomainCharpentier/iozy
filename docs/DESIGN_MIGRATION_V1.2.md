@@ -1381,11 +1381,19 @@ la règle ; `EntityResponse.champsSaisis` la rend visible. L'export emporte
 les marques (`EntityExport.champsSaisis`) et l'import les reprend : la règle
 vaut depuis la fiche, le rattrapage, et l'autre instance.
 
-**L'écran.** La carte « Série » est un formulaire d'emblée, sans état
-« lecture » : chaque champ, techniques compris, se saisit sous le seul
-« Éditer » de la page. Une pastille « saisi » à côté du libellé dit ce que la
-source ne touchera plus. « Enregistrer » et « Annuler » ne s'activent qu'une
-fois quelque chose modifié. Le rechargement de la fiche appelle le PATCH avec
+**L'écran.** Première version : une carte « Série » en formulaire, à côté
+de l'inspecteur — refusée le 2026-09-05 (« tu dupliques au lieu de
+transformer les champs lecture seule et éditable »). Version retenue : les
+rangées de l'inspecteur DEVIENNENT les champs. En mode édition, la colonne
+ŒUVRE montre chaque attribut en saisie (même vide, c'est là qu'on complète),
+puis l'édition active (éditeur, nombre de tomes, épuisée, nouvelle édition
+annoncée) ; la colonne SOURCE montre les rouages (malId, titres, statut
+source, nb de tomes source, année de fin) en saisie ; « Mes remarques »
+devient une zone de texte du même brouillon. Une seule barre « Enregistrer la
+fiche » / « Annuler » sous l'inspecteur écrit tout ce qui a changé (attributs
+puis fiche d'édition, `useBrouillonInspecteur`) — plus de `EntityInfoSection`
+ni d'`EditionCorrectionSection`. Une pastille « saisi » à côté du libellé dit
+ce que la source ne touchera plus. Le rechargement de la fiche appelle le PATCH avec
 `origine=source` et exclut aussi les clés saisies de son décompte
 (`attributsARecharger`, testé), pour que « N informations mises à jour »
 reste vrai. Une valeur saisie identique à celle de la source reste marquée :

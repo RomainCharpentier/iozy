@@ -32,7 +32,8 @@ import { TierBadge } from '../TierLists/TierBadge'
 import { BoutonEnviesHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
-import { ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
+import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
+import { libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
 import { useAuth } from '../../lib/useAuth'
@@ -41,8 +42,6 @@ import { TierSummarySection } from './TierSummarySection'
 import { TagsSection } from './TagsSection'
 import { ExperiencesSection } from './ExperiencesSection'
 import { RelationshipsSection } from './RelationshipsSection'
-import { EntityInfoSection } from './EntityInfoSection'
-import { EditionCorrectionSection } from './EditionCorrectionSection'
 import { DeleteEntitySection } from './DeleteEntitySection'
 import { Carte } from '../../components/Carte'
 import { retourDepuis } from '../../lib/retour'
@@ -74,6 +73,12 @@ import { invaliderApresPossession } from '../../lib/invalidations'
  * persistée (voir com.iozycore.domain.followededition). C'est elle qui décide
  * de ce qu'on ouvre à la prochaine visite.
  */
+/** Des valeurs par défaut à identité STABLE : passées au brouillon de
+ *  l'inspecteur tant que l'œuvre n'est pas chargée, un `{}` ou `[]` neuf à
+ *  chaque rendu relancerait son effet de réinitialisation en boucle. */
+const VIDE: Record<string, unknown> = {}
+const AUCUN: string[] = []
+
 export function EntityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const entityId = id!
@@ -104,7 +109,6 @@ export function EntityDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [editingCover, setEditingCover] = useState(false)
-  const [remarquesInput, setRemarquesInput] = useState<string | null>(null)
   const [coverUrlInput, setCoverUrlInput] = useState('')
 
   const entityQuery = useQuery({ queryKey: queryKeys.entities.detail(entityId), queryFn: () => getEntity(entityId) })
@@ -257,25 +261,6 @@ export function EntityDetailPage() {
       setEditingTitle(false)
     },
   })
-  /**
-   * La note de l'utilisateur sur l'ŒUVRE.
-   *
-   * Elle vivait sur chaque exemplaire (`ownership.note`), avec le prix payé et
-   * les statuts vendu/perdu. Tout cela est parti avec le panneau du tome ; la
-   * note, elle, reste - mais attachée au GROUPE, ce qu'on écrit d'une série
-   * n'ayant presque jamais trait à un exemplaire précis (décision utilisateur
-   * du 2026-08-27).
-   *
-   * Stockée dans les attributs de l'Entity : pas de migration pour un texte
-   * libre, et le même chemin que le titre ou la jaquette.
-   */
-  const remarquesMutation = useMutation({
-    mutationFn: (note: string) => mergeEntityAttributes(entityId, { note }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.detail(entityId) })
-    },
-  })
-
   /**
    * « Recharger depuis la source » pour CETTE œuvre : ses informations, puis
    * les jaquettes de ses tomes.
@@ -442,6 +427,21 @@ export function EntityDetailPage() {
 
   // La progression fait partie de ce qu'on attend : sans elle, la grille dirait
   // « aucun tome » à une série qui en a douze (voir lot 47).
+  // Avant les gardes ci-dessous, comme tout Hook : la page ne rend rien tant
+  // que l'œuvre n'est pas là, et le brouillon se réinitialise dès qu'elle
+  // arrive (voir useBrouillonInspecteur).
+  const brouillon = useBrouillonInspecteur({
+    entityId,
+    entityTitle: entity?.title ?? '',
+    attributes: entity?.attributes ?? VIDE,
+    champsSaisis: entity?.champsSaisis ?? AUCUN,
+    customFieldKeys: entityType?.customFieldKeys ?? AUCUN,
+    edition:
+      groupeActif && groupeActif.editionName !== ''
+        ? { nom: groupeActif.editionName, info: editionInfoQuery.isSuccess ? editionInfoQuery.data : null }
+        : null,
+  })
+
   if (entityQuery.isPending || progressQuery.isPending) return <p className="text-textDim">Chargement...</p>
   if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
   if (progressQuery.isError) return <ErrorBanner message={progressQuery.error.message} />
@@ -465,16 +465,14 @@ export function EntityDetailPage() {
 
   /**
    * Un seul « Éditer » pour toute la page (demande utilisateur du
-   * 2026-09-04) : il ouvre le catalogue ET les éditeurs personnels -
-   * classement, note et lectures, tags, remarques - qui avaient chacun leur
-   * « Modifier ». Les remarques s'éditent en place : leur brouillon naît à
-   * l'entrée du mode et meurt à sa sortie.
+   * 2026-09-04) : il ouvre les éditeurs personnels - classement, note et
+   * lectures, tags - et transforme les champs de l'inspecteur en champs de
+   * saisie, à la même place (voir useBrouillonInspecteur). Le brouillon
+   * repart de la base à chaque sortie du mode.
    */
   function basculerModeEdition() {
-    setModeEdition((ouvert) => {
-      setRemarquesInput(ouvert ? null : remarques)
-      return !ouvert
-    })
+    if (modeEdition) brouillon.annuler()
+    setModeEdition((ouvert) => !ouvert)
   }
   const jaquettesManquantes = variantsMissingCover(entity).length
   const dansEnvies = !!wishlist.entryFor(entityId)
@@ -695,37 +693,16 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Pas encore notée</span>
                 )}
               </ReleveInspecteur>
-              <ReleveInspecteur
-                libelle="Mes remarques">
-                {remarquesInput !== null ? (
-                  <span className="flex flex-col gap-2 pt-1">
-                    <textarea
-                      value={remarquesInput}
-                      onChange={(e) => setRemarquesInput(e.target.value)}
-                      rows={3}
-                      autoFocus
-                      placeholder="Ce que tu veux retenir sur cette série…"
-                      className="w-full rounded-xl bg-surface px-3 py-2 text-[13.5px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
-                    />
-                    <span className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => remarquesMutation.mutate(remarquesInput.trim())}
-                        disabled={remarquesMutation.isPending || remarquesInput.trim() === remarques}
-                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
-                      >
-                        Enregistrer
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRemarquesInput(remarques)}
-                        disabled={remarquesInput === remarques}
-                        className="text-xs text-textDim disabled:opacity-50"
-                      >
-                        Annuler
-                      </button>
-                    </span>
-                  </span>
+              <ReleveInspecteur libelle="Mes remarques">
+                {modeEdition ? (
+                  <textarea
+                    value={brouillon.attributs.valeur('note')}
+                    onChange={(e) => brouillon.attributs.saisir('note', e.target.value)}
+                    rows={3}
+                    placeholder="Ce que tu veux retenir sur cette série…"
+                    aria-label="Mes remarques"
+                    className="w-full rounded-xl bg-surface px-3 py-2 text-[13.5px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                  />
                 ) : remarques ? (
                   <span className="text-[13.5px] whitespace-pre-line text-textPrimary">{remarques}</span>
                 ) : (
@@ -773,6 +750,77 @@ export function EntityDetailPage() {
             </>
           }
           oeuvre={
+            modeEdition ? (
+              // Les MÊMES rangées qu'en lecture, en champs de saisie - toutes,
+              // même vides, c'est là qu'on complète ce que la source n'a pas
+              // donné (demande utilisateur du 2026-09-05). Le statut se saisit
+              // dans la colonne SOURCE (« Statut source »), d'où il vient.
+              <div className="flex flex-col">
+                {brouillon.attributs.clesOeuvre.map((cle) => (
+                  <RangeeInspecteur key={cle} libelle={libelleDe(cle)} saisie saisi={brouillon.attributs.saisi(cle)}>
+                    <ChampInspecteur
+                      id={`oeuvre-${cle}`}
+                      valeur={brouillon.attributs.valeur(cle)}
+                      onChange={(v) => brouillon.attributs.saisir(cle, v)}
+                    />
+                  </RangeeInspecteur>
+                ))}
+                {brouillon.edition && (
+                  <>
+                    <div className="pt-3 pb-1 text-[11px] font-semibold tracking-[0.1em] text-faint uppercase">
+                      Édition « {brouillon.edition.nom} »
+                    </div>
+                    <RangeeInspecteur libelle="Éditeur" saisie>
+                      <ChampInspecteur
+                        id="edition-publisher"
+                        valeur={brouillon.edition.publisher}
+                        onChange={(publisher) => brouillon.edition?.modifier({ publisher })}
+                        placeholder="Éditeur (ex: Kana)"
+                      />
+                    </RangeeInspecteur>
+                    <RangeeInspecteur libelle="Nombre de tomes" saisie>
+                      <ChampInspecteur
+                        id="edition-total"
+                        type="number"
+                        valeur={brouillon.edition.totalVolumes}
+                        onChange={(totalVolumes) => brouillon.edition?.modifier({ totalVolumes })}
+                        placeholder="Nb de tomes"
+                      />
+                    </RangeeInspecteur>
+                    <RangeeInspecteur libelle="Disponibilité" saisie>
+                      <label className="flex items-center gap-2 text-[13px] text-textPrimary">
+                        <input
+                          type="checkbox"
+                          checked={brouillon.edition.outOfPrint}
+                          onChange={(e) => brouillon.edition?.modifier({ outOfPrint: e.target.checked })}
+                        />
+                        Édition épuisée
+                      </label>
+                    </RangeeInspecteur>
+                    <RangeeInspecteur libelle="À venir" saisie>
+                      <span className="flex flex-col gap-1.5">
+                        <label className="flex items-center gap-2 text-[13px] text-textPrimary">
+                          <input
+                            type="checkbox"
+                            checked={brouillon.edition.betterEditionAnnounced}
+                            onChange={(e) => brouillon.edition?.modifier({ betterEditionAnnounced: e.target.checked })}
+                          />
+                          Nouvelle édition annoncée
+                        </label>
+                        {brouillon.edition.betterEditionAnnounced && (
+                          <ChampInspecteur
+                            id="edition-note"
+                            valeur={brouillon.edition.betterEditionNote}
+                            onChange={(betterEditionNote) => brouillon.edition?.modifier({ betterEditionNote })}
+                            placeholder="Détail (ex: Perfect Edition annoncée pour 2026)"
+                          />
+                        )}
+                      </span>
+                    </RangeeInspecteur>
+                  </>
+                )}
+              </div>
+            ) : (
             <div className="flex flex-col">
               {auteur && <RangeeInspecteur libelle={isManga ? 'Mangaka' : 'Auteur'}>{auteur}</RangeeInspecteur>}
               {ongoing !== null && (
@@ -793,10 +841,11 @@ export function EntityDetailPage() {
               {editionInfo?.publisher && <RangeeInspecteur libelle="Éditeur">{editionInfo.publisher}</RangeeInspecteur>}
               {totalTomes !== null && <RangeeInspecteur libelle="Nombre de tomes">{totalTomes}</RangeeInspecteur>}
             </div>
+            )
           }
           source={
             <>
-              <ColonneSource attributs={entity.attributes} />
+              <ColonneSource attributs={entity.attributes} brouillon={modeEdition ? brouillon.attributs : undefined} />
               <span className="text-xs text-faint">
                 Relations :{' '}
                 {relFromQuery.data?.length || relToQuery.data?.length
@@ -806,6 +855,31 @@ export function EntityDetailPage() {
             </>
           }
         />
+        {modeEdition && (
+          <div className="flex flex-wrap items-center gap-3 pt-3">
+            <button
+              type="button"
+              onClick={brouillon.enregistrer}
+              disabled={brouillon.enCours || !brouillon.modifie}
+              className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+            >
+              {brouillon.enCours ? 'Enregistrement...' : 'Enregistrer la fiche'}
+            </button>
+            <button
+              type="button"
+              onClick={brouillon.annuler}
+              disabled={brouillon.enCours || !brouillon.modifie}
+              className="px-2 py-2 text-sm text-textDim disabled:opacity-50"
+            >
+              Annuler
+            </button>
+            <span className="text-xs text-textDim">
+              Ce que tu saisis est marqué et n’est plus écrasé par « Recharger depuis la source ». Un champ vidé est
+              retiré.
+            </span>
+          </div>
+        )}
+        {brouillon.erreur && <ErrorBanner message={brouillon.erreur} />}
       </div>
 
       {/* Les éditeurs personnels - classement, note et lectures, tags -
@@ -842,36 +916,16 @@ export function EntityDetailPage() {
           éditeurs personnels ci-dessus, depuis le 2026-09-04. */}
       {modeEdition && (
         <div className="flex flex-col gap-5 pt-6">
-          <div className="grid gap-5 min-[900px]:grid-cols-2 min-[900px]:items-start">
-            <Carte>
-              <EntityInfoSection
-                entityId={entityId}
-                attributes={entity.attributes}
-                champsSaisis={entity.champsSaisis}
-                customFieldKeys={entityType?.customFieldKeys ?? []}
-              />
-              {/* Corriger l'édition active (tomes, éditeur, épuisée…) : sous
-                  ses informations, dans le même mode. Le crayon qui vivait
-                  dans l'inspecteur était le dernier « Modifier » à part. */}
-              {groupeActif && groupeActif.editionName !== '' && (
-                <div className="pt-4">
-                  <EditionCorrectionSection
-                    entityId={entityId}
-                    entityTitle={entity.title}
-                    editionName={groupeActif.editionName}
-                    editionInfo={editionInfo}
-                  />
-                </div>
-              )}
-            </Carte>
-            <Carte>
-              <RelationshipsSection
-                entityId={entityId}
-                relationshipsFrom={relFromQuery.data ?? []}
-                relationshipsTo={relToQuery.data ?? []}
-              />
-            </Carte>
-          </div>
+          {/* Les informations de l'œuvre et de son édition ne sont plus ici :
+              elles se saisissent dans l'inspecteur lui-même, à la place où on
+              les lit (demande utilisateur du 2026-09-05). */}
+          <Carte>
+            <RelationshipsSection
+              entityId={entityId}
+              relationshipsFrom={relFromQuery.data ?? []}
+              relationshipsTo={relToQuery.data ?? []}
+            />
+          </Carte>
           {/* Toujours là, contrairement à l'ancien bouton de jaquettes qui
               n'apparaissait qu'en cas de manque : une œuvre dont toutes les
               images sont en place a quand même des informations à redemander
