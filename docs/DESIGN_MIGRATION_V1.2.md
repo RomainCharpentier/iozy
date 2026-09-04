@@ -1360,6 +1360,54 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 125 — combler les trous, tome par tome
+
+L'emprunt à MangaCollector, après mesure (voir lot 124) : interroger Google
+Books **tome par tome** — `intitle:<série> intitle:"Tome N"` — au lieu de
+mots-clés d'édition. Sur « Doubt », 4 fiches au lieu de 300, la bonne en
+tête, avec son ISBN. Mais une sonde coûte une requête par tome : elle ne
+remplace pas les recherches, elle vient **après**, sur les seuls numéros
+manquants.
+
+**Ce qui manque, d'après qui.** Le catalogue (AniList, MyAnimeList) connaît
+le nombre de tomes de la série ; l'écran le transmet désormais
+(`totalVolumes`, dans les indices de l'œuvre). Entre 1 et ce total, chaque
+numéro absent de toutes les éditions trouvées est sondé, un par un, chez le
+fournisseur qui sait le faire (`VolumeSearchProvider.probeVolume`, Google
+Books seul). Deux plafonds : douze sondes par recherche, et arrêt après trois
+numéros de suite sans réponse — un total catalogue peut être faux, ou
+l'édition française s'arrêter avant le Japon. Sur une série que la BnF
+connaît entièrement, la sonde ne coûte rien.
+
+**Un piège propre à Google Books, retourné en atout.** Il indexe souvent les
+tomes français sous le seul titre de la série (« Doubt », sans numéro) - le
+numéro est dans ses champs à lui. La recherche par titre les jetait. La sonde,
+elle, *sait* quel numéro elle a demandé : une fiche au titre nu qui répond à
+« Tome N » et porte un ISBN est le tome N. L'ISBN est exigé, sans quoi rien
+ne distinguerait une telle fiche de la page de la série entière, qui
+répondrait à tout.
+
+**Et « Édition inconnue » n'est pas une édition.** Google Books ne donne pas
+l'éditeur sur nombre de fiches françaises : « Spy x Family » sortait avec une
+« Édition inconnue » de sept tomes à côté de Kurokawa — les mêmes livres.
+Désormais, un tome sans éditeur mais avec un ISBN du même bloc qu'une édition
+nommée la rejoint (`rattacherLesEditionsInconnues`) ; la sonde s'en sert
+aussi pour ranger ce qu'elle trouve. Au passage, la clé de regroupement des
+éditions plie accents et ponctuation comme le reste de l'app
+(`TexteRecherche`) : « Kazé » (BnF) et « KAZE » (Google Books) étaient deux
+éditions.
+
+**Mesuré sur la pile jetable, clé Google Books passée par l'environnement.**
+BnF *muette* (débit dépassé par mes propres sondes) : la sonde a retrouvé
+1 tome de « Spy x Family », 1 de « Frieren », 3 de « Chainsaw Man » en 1, 1
+et 2 sondes. BnF *revenue*, mêmes séries : **zéro sonde** — tout était déjà
+là ; « Doubt » → Ki-oon 1-4 et Ki-oon (2022) 1-2 ; « Frieren » → une seule
+édition Ki-oon, 1-15 (avant : Ki-oon + « Édition inconnue » 8-12) ; « Spy x
+Family » → Kurokawa 1-16 (avant : Kurokawa 7-16). Reste visible sur
+« Chainsaw Man » : Kazé (2019-2021) et Crunchyroll (depuis 2022) sont le
+même éditeur renommé — deux noms, deux éditions à l'écran, et aucune source
+ne dit qu'ils n'en font qu'une. Non traité.
+
 ### Lot 124 — deux éditions du même éditeur, séparées par l'ISBN
 
 Suite du lot précédent : l'utilisateur maintient sa demande — « Doubt » doit

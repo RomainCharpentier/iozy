@@ -23,6 +23,9 @@ export interface IndicesOeuvre {
   /** Le titre d'origine du catalogue : c'est lui qui retrouve les éditions
    *  chez les fournisseurs qui n'indexent pas le titre français. */
   originalTitle?: string
+  /** Le nombre de tomes d'après le catalogue : jusqu'à lui, le serveur sonde
+   *  les numéros manquants un par un (Lot 125). */
+  totalVolumes?: number
 }
 
 export function indicesDe(attributs: Record<string, unknown> | undefined): IndicesOeuvre {
@@ -35,5 +38,12 @@ export function indicesDe(attributs: Record<string, unknown> | undefined): Indic
     malId: texte('malId'),
     titleRomaji: texte('titleRomaji'),
     originalTitle: texte('titleRomaji') ?? texte('titleEnglish'),
+    totalVolumes: nombre(attributs?.totalVolumes),
   }
+}
+
+function nombre(valeur: unknown): number | undefined {
+  if (typeof valeur === 'number' && Number.isInteger(valeur) && valeur > 0) return valeur
+  if (typeof valeur === 'string' && /^\d+$/.test(valeur.trim())) return Number(valeur.trim())
+  return undefined
 }

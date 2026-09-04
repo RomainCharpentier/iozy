@@ -41,6 +41,7 @@ services:
       # Optionnels : vides par defaut, l'IA est alors simplement eteinte. A
       # renseigner depuis l'environnement pour verifier en direct un chemin
       # qui parle a Gemini (jamais dans ce fichier).
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
       # Aucune clé de fournisseur : les tests ne doivent dépendre d'aucun
