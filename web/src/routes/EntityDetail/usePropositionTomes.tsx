@@ -54,6 +54,7 @@ export function usePropositionTomes({
   entityId,
   actif,
   attributsEnCours = false,
+  modeEdition = false,
   onAjoute,
 }: {
   entityTypeId: string
@@ -70,6 +71,9 @@ export function usePropositionTomes({
    *  l'Entity qu'il crée, et une fiche sans jaquette ni auteur est très
    *  pénible à rattraper ensuite. */
   attributsEnCours?: boolean
+  /** La fiche est en mode édition : c'est là, et seulement là, que
+   *  « Actualiser depuis la source » se montre sur une fiche (voir plus bas). */
+  modeEdition?: boolean
   /** Appelé après un ajout réussi, avec l'identifiant de la fiche - c'est là
    *  que l'aperçu bascule vers la vraie fiche. */
   onAjoute?: (entityId: string) => void
@@ -92,12 +96,12 @@ export function usePropositionTomes({
   // Recharger depuis la source est réservé à l'administrateur (demande du
   // 2026-09-04) : le serveur ignore de toute façon forceRefresh pour les
   // autres comptes, inutile de leur montrer un bouton qui ne ferait rien.
-  // Et sur une FICHE, ce geste vit dans le mode édition (« Recharger depuis
-  // la source », qui redemande aussi les tomes) : un second bouton dans la
-  // grille faisait doublon - retiré à la demande de l'utilisateur. Il ne
-  // reste qu'en aperçu, où il n'y a pas encore de fiche ni de mode édition.
+  // Et sur une FICHE, ce geste appartient au mode édition, comme tout ce qui
+  // redemande la source (demande utilisateur du 2026-09-04) : la grille ne le
+  // montre qu'une fois ce mode ouvert. En aperçu il n'y a ni fiche ni mode
+  // édition, le bouton y reste à portée de l'administrateur.
   const { compte } = useAuth()
-  const peutActualiser = compte?.admin === true && !entityId
+  const peutActualiser = compte?.admin === true && (!entityId || modeEdition)
   const proposes = useTomesProposes({
     entityTypeId,
     titre,
