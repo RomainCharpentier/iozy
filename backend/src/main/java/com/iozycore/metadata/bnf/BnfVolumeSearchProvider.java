@@ -88,6 +88,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     // "T. 7", "7" - le champ MARC 200$h contient en général juste le
     // numéro, mais on reste tolérant sur un éventuel préfixe.
     private static final Pattern VOLUME_NUMBER = Pattern.compile("(\\d+)");
+    private static final Pattern ANNEE = Pattern.compile("(1[89]\\d{2}|20\\d{2})");
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -180,7 +181,29 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     private static VolumeCandidate sansJaquette(VolumeCandidate candidate) {
-        return new VolumeCandidate(candidate.edition(), candidate.volumeNumber(), null, candidate.title());
+        return new VolumeCandidate(candidate.edition(), candidate.volumeNumber(), null, candidate.title(),
+                candidate.isbn(), candidate.annee());
+    }
+
+    /** 010$a - l'ISBN du tome, dans un champ MARC dédié. */
+    private static String isbnDe(Element record) {
+        Element field010 = firstDatafield(record, "010");
+        return field010 == null ? null : subfield(field010, "a");
+    }
+
+    /** L'année de publication : 214$d (« DL 2009 ») ou, sur les notices d'avant 2019, 210$d. */
+    private static Integer anneeDe(Element record) {
+        for (String tag : new String[] {"214", "210"}) {
+            Element field = firstDatafield(record, tag);
+            String date = field == null ? null : subfield(field, "d");
+            if (date != null) {
+                Matcher matcher = ANNEE.matcher(date);
+                if (matcher.find()) {
+                    return Integer.parseInt(matcher.group(1));
+                }
+            }
+        }
+        return null;
     }
 
     private static String buildQuery(String seriesTitle, String author) {
@@ -312,7 +335,8 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
             // L'URL de jaquette est posée ici mais VÉRIFIÉE par searchVolumes
             // (voir la javadoc de la classe) : parse() reste sans réseau.
-            candidates.add(new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record), displayTitle));
+            candidates.add(new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record), displayTitle,
+                    isbnDe(record), anneeDe(record)));
         }
         return candidates;
     }

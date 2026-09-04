@@ -17,8 +17,35 @@ package com.iozycore.metadata;
  *                     tome), ou null si la source n'en fournit pas.
  * @param title        titre brut de la fiche source, conservé pour du
  *                     débogage éventuel - jamais affiché tel quel.
+ * @param isbn         ISBN de CE tome, chiffres seuls, ou null - c'est lui qui
+ *                     distingue deux éditions d'un même éditeur portant le
+ *                     même numéro de tome (voir
+ *                     {@code MetadataSearchService.separerLesEditionsHomonymes}).
+ * @param annee        année de publication, ou null - sert à NOMMER une édition
+ *                     ainsi séparée, jamais à décider de la séparation.
  */
-public record VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title) {
+public record VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title,
+                               String isbn, Integer annee) {
+
+    /**
+     * Les deux champs d'identification d'édition sont facultatifs : ce
+     * constructeur laisse intacts les appelants (et les tests) qui n'en ont
+     * pas - même procédé que {@code PurchaseAnalysisEngine.ItemContext} au
+     * Lot Phase 2, pour ajouter un champ à un record sans toucher ses
+     * dizaines de sites d'appel.
+     */
+    public VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title) {
+        this(edition, volumeNumber, imageUrl, title, null, null);
+    }
+
+    /** Les chiffres de l'ISBN, sans tirets ni espaces - null si absent ou vide. */
+    public String isbnNormalise() {
+        if (isbn == null) {
+            return null;
+        }
+        String chiffres = isbn.replaceAll("[^0-9Xx]", "");
+        return chiffres.isBlank() ? null : chiffres.toUpperCase();
+    }
 
     /**
      * L'identité d'un tome dans une série : (édition, numéro), à la casse et
