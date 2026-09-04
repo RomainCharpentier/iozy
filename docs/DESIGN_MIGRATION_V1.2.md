@@ -1360,6 +1360,54 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 126 — « parfois le bon résultat, puis ça revient à l'ancien »
+
+Signalé par l'utilisateur sur « Doubt » : l'aperçu montre tantôt les deux
+éditions attendues (4 et 2), tantôt l'affichage d'origine (3 et 1). Mesuré
+dans le cache durable de son instance : **deux lignes** pour ce titre — une
+avec auteur, écrite à 15 h 06 (4 tomes, « Ki-Oon » et « Ki-oon » : la scission
+d'orthographe d'avant le lot 123), une **sans auteur**, écrite à 16 h 16
+(6 tomes, dont l'homonyme « Akiko » du lot 123). Trois défauts derrière un
+seul symptôme.
+
+**Ce qui sort d'un cache ne repassait pas par les règles.** Les lots 123 à
+125 ont ajouté quatre règles de nommage (orthographes, homonymes par ISBN,
+« Édition inconnue », dédoublonnage) — appliquées au résultat *frais*
+seulement. Une ligne écrite avant elles ressortait telle quelle : « Ki-Oon »
+séparé, tant que personne ne rafraîchissait. Désormais `finaliser` (les
+quatre règles, dans l'ordre) s'applique à toute sortie, cache compris.
+
+**« Actualiser » ne rafraîchissait pas quand une source se taisait.** Un
+résultat partiel n'est jamais persisté (règle du lot 120, contre le
+gel d'une liste incomplète) — mais l'ancienne ligne, elle, restait, et le
+cache mémoire de 24 h aussi. Or la BnF s'est tue une bonne partie de
+l'après-midi (mes propres sondes lui faisaient bloquer l'adresse partagée) :
+chaque « Actualiser » de l'utilisateur obtenait le bon résultat, en mémoire
+partielle pour une heure, puis chacun de mes redémarrages de l'API vidait
+cette mémoire et resservait la ligne de 15 h. D'où le va-et-vient.
+Désormais, un rafraîchissement forcé qui obtient un résultat partiel non
+vide **efface** la ligne durable et l'entrée mémoire : rien de plus ancien ne
+lui survit, et le partiel tient une heure.
+
+**Sans auteur, jamais de ligne durable.** L'aperçu s'ouvre sur un titre nu ;
+quand sa recherche de métadonnées échoue (Google Books 503, Jikan 504 — le
+cas à 16 h 16), il ne connaît pas l'auteur et cherche les tomes du titre
+seul. Sur « Doubt », c'est l'homonyme. Cette réponse était persistée, puis
+resservie à chaque ouverture sans auteur. Un titre nu ne désigne pas une
+œuvre : en mémoire une journée, jamais en base.
+
+**Quatrième cause, trouvée en vérifiant la correction.** Sur la pile
+jetable, le résultat frais de « Doubt » est revenu **sans** l'édition double —
+et s'est retrouvé en cache durable comme complet. Journal : « Open Library :
+HTTP connect timed out ». Le fournisseur ajouté au lot 124 avalait ses
+échecs en liste vide, comme Jikan ; or pour les tomes, un silence n'est pas
+« aucun tome » (règle du lot 120, déjà appliquée à la BnF). Il lève désormais
+`SourceUnavailableException` : le résultat sans lui reste partiel, une heure
+en mémoire, jamais figé.
+
+Les deux lignes de l'instance ont été supprimées à la main (un cache, il se
+reconstitue). Tests existants relancés.
+
 ### Lot 125 — combler les trous, tome par tome
 
 L'emprunt à MangaCollector, après mesure (voir lot 124) : interroger Google

@@ -3,6 +3,7 @@ package com.iozycore.metadata.openlibrary;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.metadata.SourceUnavailableException;
 import com.iozycore.metadata.VolumeCandidate;
 import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
@@ -92,13 +93,19 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 log.warn("Open Library a répondu {} pour la recherche de tomes '{}'", response.statusCode(), requete);
-                return List.of();
+                throw new SourceUnavailableException("Open Library a répondu " + response.statusCode());
             }
             return parse(response.body(), seriesTitle);
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            // Best-effort : la BnF et Google Books restent interrogees a part.
+            // Une source qui ne repond pas n'a rien DIT (Lot 126) : signalee
+            // comme telle, sinon son silence passait pour « aucun tome » et le
+            // resultat sans elle etait fige en cache comme complet - constate
+            // sur « Doubt », dont l'edition double a disparu d'une ligne ecrite
+            // pendant un delai de connexion de quelques secondes.
             log.warn("Échec de la recherche de tomes Open Library pour '{}' : {}", requete, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("Open Library n'a pas répondu : " + e.getMessage());
         }
     }
 

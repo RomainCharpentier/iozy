@@ -910,5 +910,10 @@ class MetadataSearchServiceTest {
         public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
             store.put(entityTypeId + "|" + seriesTitle + "|" + author, volumes);
         }
+
+        @Override
+        public void delete(UUID entityTypeId, String seriesTitle, String author) {
+            store.remove(entityTypeId + "|" + seriesTitle + "|" + author);
+        }
     }
 }
