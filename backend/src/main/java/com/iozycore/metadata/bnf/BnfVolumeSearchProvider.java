@@ -2,6 +2,7 @@ package com.iozycore.metadata.bnf;
 
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.metadata.VolumeCandidate;
+import com.iozycore.metadata.SourceUnavailableException;
 import com.iozycore.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,12 +46,22 @@ import java.util.stream.Collectors;
  * (010$a) dans des champs STRUCTURÉS, contrairement à Google Books où le
  * numéro de tome doit être deviné par regex dans un titre libre.
  * <p>
- * Contrepartie assumée : la BnF ne fournit aucune jaquette (imageUrl
- * toujours null) - une notice bibliographique, pas un catalogue commercial.
- * Toujours cumulé aux résultats Google Books (jamais en repli
- * conditionnel) - MetadataSearchService dédoublonne ensuite par (édition,
- * tome) : la notice BnF, rencontrée en premier, fait foi, et seule la
- * jaquette est reprise de Google Books (Lot 119).
+ * Les jaquettes viennent du service « couverture » du catalogue (Lot 120) :
+ * une image par notice récente (celles du dépôt légal depuis les années
+ * 2010, vérifié sur Boruto - 300 Ko chacune), et une erreur 500 pour les
+ * autres. Chaque URL est donc VÉRIFIÉE (HEAD) avant d'être rendue, sans quoi
+ * une adresse morte serait persistée sur le tome et bloquerait le rattrapage
+ * de jaquettes de Ma collection. Toujours cumulé aux résultats Google Books
+ * (jamais en repli conditionnel) - MetadataSearchService dédoublonne ensuite
+ * par (édition, tome) : la notice BnF, rencontrée en premier, fait foi, et
+ * une jaquette manquante est reprise de Google Books (Lot 119).
+ * <p>
+ * Deux façons de cataloguer un tome, toutes deux lues (Lot 120) : le titre
+ * de série en 200$a avec le numéro en 200$h (« Boruto » T9), ou le titre
+ * PROPRE du tome en 200$a (« Kawaki ») avec la série et son numéro en
+ * 461$t/$v ou 225$a/$v. Boruto : 7 tomes par la première voie, les 20 par
+ * les deux. La requête interroge le NOM DE SÉRIE (avant « : » ou « - »),
+ * sans quoi les tomes catalogués par leur titre propre ne remontent pas.
  * <p>
  * Pas de notion de recherche "rapide"/"approfondie" ici (voir
  * GoogleBooksVolumeSearchProvider et son partage de quota) : une seule
@@ -67,7 +79,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     private static final Logger log = LoggerFactory.getLogger(BnfVolumeSearchProvider.class);
     private static final String SEARCH_URL =
-            "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=50&query=%s";
+            "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=100&query=%s";
+    /** L'image de la notice, par son identifiant ARK (controlfield 003). 500 quand il n'y en a pas. */
+    static final String COVER_URL = "https://catalogue.bnf.fr/couverture?&appName=NE&idArk=%s&couverture=1";
+    /** Un numéro de tome au-delà n'en est pas un (identifiants FRBNF à quinze chiffres en 461$v, entre autres). */
+    private static final int VOLUME_NUMBER_MAX = 999;
 
     // "T. 7", "7" - le champ MARC 200$h contient en général juste le
     // numéro, mais on reste tolérant sur un éventuel préfixe.
@@ -98,22 +114,77 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
+                // Une source qui refuse (429 : la BnF limite le debit par
+                // adresse) ou qui tombe n'a rien DIT - ce n'est pas « aucun
+                // tome » : signale comme telle, MetadataSearchService ne
+                // mettra pas ce vide en cache (voir searchVolumes).
                 log.warn("La BnF a répondu {} pour la recherche de tomes '{}'", response.statusCode(), cql);
-                return List.of();
+                throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
             }
 
-            return parse(response.body(), seriesTitle, excludedTitleFragments);
+            return avecJaquettesVerifiees(parse(response.body(), seriesTitle, excludedTitleFragments));
+        } catch (SourceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             // Best-effort par nature : une panne ne doit jamais bloquer la
             // recherche de tomes, Google Books reste dans tous les cas
             // interrogé séparément par MetadataSearchService.
             log.warn("Échec de la recherche de tomes BnF pour '{}' : {}", cql, e.getMessage());
-            return List.of();
+            throw new SourceUnavailableException("La BnF n'a pas répondu : " + e.getMessage());
         }
     }
 
+    /**
+     * Le service « couverture » répond 500 quand la notice n'a pas d'image :
+     * un HEAD par tome, en parallèle, et seules les adresses qui répondent
+     * 200 sont gardées. Une adresse qu'on ne peut pas vérifier (délai, panne)
+     * est retirée aussi : mieux vaut un tome sans jaquette qu'une jaquette
+     * morte persistée.
+     */
+    private List<VolumeCandidate> avecJaquettesVerifiees(List<VolumeCandidate> candidates) {
+        // Par petites vagues, jamais vingt d'un coup : la BnF limite le debit
+        // par adresse (429 constate le 2026-09-04 apres une salve de HEAD en
+        // parallele), et une verification qui echoue par exces de zele coute
+        // une jaquette. Une adresse qui repond 500 n'a pas d'image ; une
+        // adresse qui ne repond pas (delai, coupure) est retentee une fois.
+        List<VolumeCandidate> result = new ArrayList<>(candidates);
+        for (int debut = 0; debut < candidates.size(); debut += VERIFICATIONS_PAR_VAGUE) {
+            int fin = Math.min(debut + VERIFICATIONS_PAR_VAGUE, candidates.size());
+            List<CompletableFuture<VolumeCandidate>> vague = new ArrayList<>();
+            for (int i = debut; i < fin; i++) {
+                vague.add(verifierJaquette(candidates.get(i)));
+            }
+            for (int i = debut; i < fin; i++) {
+                result.set(i, vague.get(i - debut).join());
+            }
+        }
+        return result;
+    }
+
+    private static final int VERIFICATIONS_PAR_VAGUE = 4;
+
+    private CompletableFuture<VolumeCandidate> verifierJaquette(VolumeCandidate candidate) {
+        if (candidate.imageUrl() == null) {
+            return CompletableFuture.completedFuture(candidate);
+        }
+        HttpRequest head = HttpRequest.newBuilder()
+                .uri(URI.create(candidate.imageUrl()))
+                .timeout(Duration.ofSeconds(8))
+                .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                .build();
+        return httpClient.sendAsync(head, HttpResponse.BodyHandlers.discarding())
+                .thenApply(response -> response.statusCode() == 200 ? candidate : sansJaquette(candidate))
+                .exceptionallyCompose(e -> httpClient.sendAsync(head, HttpResponse.BodyHandlers.discarding())
+                        .thenApply(response -> response.statusCode() == 200 ? candidate : sansJaquette(candidate))
+                        .exceptionally(e2 -> sansJaquette(candidate)));
+    }
+
+    private static VolumeCandidate sansJaquette(VolumeCandidate candidate) {
+        return new VolumeCandidate(candidate.edition(), candidate.volumeNumber(), null, candidate.title());
+    }
+
     private static String buildQuery(String seriesTitle, String author) {
-        String query = "bib.title all \"" + seriesTitle.replace("\"", "") + "\"";
+        String query = "bib.title all \"" + nomDeSerie(seriesTitle).replace("\"", "") + "\"";
         if (author != null && !author.isBlank()) {
             query += " and bib.author all \"" + author.replace("\"", "") + "\"";
         }
@@ -172,6 +243,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             // ou $a suivi de l'un de ses $e - et ce $e-là n'est plus une
             // édition (voir plus bas).
             String cherche = normalizeForComparison(seriesTitle);
+            String serieCourte = normalizeForComparison(nomDeSerie(seriesTitle));
             String titreBnf = normalizeForComparison(rawTitle);
             List<String> sousTitres = subfields(titleField, "e");
             int sousTitreConsomme = -1;
@@ -182,14 +254,40 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     sousTitreConsomme = k;
                 }
             }
-            if (!correspond) {
+            // Seconde voie : le tome porte son titre PROPRE en 200$a
+            // (« Kawaki »), et la série en 461$t (ou 225$a) avec son numéro
+            // en $v. C'est ainsi que la BnF catalogue treize des vingt tomes
+            // de Boruto, et les premiers Dragon Ball de 1993.
+            String serie = serieDeRattachement(record);
+            boolean parLaSerie = !correspond && serie != null
+                    && (normalizeForComparison(serie).equals(cherche)
+                        || normalizeForComparison(serie).equals(serieCourte));
+            // Rattaché à la série mais avec un sous-titre qui n'est PAS celui
+            // cherché : c'est une autre série sous le même nom - « Boruto »
+            // + « two blue vortex » n'est pas « Boruto: Naruto Next
+            // Generations ». Sans cette garde, la suite s'invitait dans la
+            // liste comme une « édition Two Blue Vortex » des tomes 1 à 3.
+            String sousTitreCherche = cherche.startsWith(serieCourte) ? cherche.substring(serieCourte.length()) : "";
+            if (parLaSerie && !sousTitres.isEmpty() && !sousTitreCherche.isEmpty()) {
+                parLaSerie = false;
+                for (int k = 0; k < sousTitres.size(); k++) {
+                    if (normalizeForComparison(sousTitres.get(k)).equals(sousTitreCherche)) {
+                        parLaSerie = true;
+                        sousTitreConsomme = k;
+                    }
+                }
+            }
+            if (!correspond && !parLaSerie) {
                 continue;
             }
 
             // 200$h : numéro de tome, dans un champ MARC dédié - jamais une
             // fiche de "série" entière (sans tome précis), qui n'a rien à
-            // proposer ici.
+            // proposer ici. À défaut, le numéro dans la série (461$v/225$v).
             OptionalInt volumeNumber = parseVolumeNumber(subfield(titleField, "h"));
+            if (volumeNumber.isEmpty()) {
+                volumeNumber = parseVolumeNumber(numeroDansLaSerie(record));
+            }
             if (volumeNumber.isEmpty()) {
                 continue;
             }
@@ -212,10 +310,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     : (publisher == null || publisher.isBlank() ? "Édition inconnue" : publisher);
             finalEdition = normalizeEditionWord(finalEdition);
 
-            // Pas de jaquette dans le catalogue BnF (simple notice
-            // bibliographique, pas un catalogue commercial, voir javadoc
-            // de la classe).
-            candidates.add(new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), null, displayTitle));
+            // L'URL de jaquette est posée ici mais VÉRIFIÉE par searchVolumes
+            // (voir la javadoc de la classe) : parse() reste sans réseau.
+            candidates.add(new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record), displayTitle));
         }
         return candidates;
     }
@@ -253,10 +350,53 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             return OptionalInt.empty();
         }
         try {
-            return OptionalInt.of(Integer.parseInt(matcher.group(1)));
+            int number = Integer.parseInt(matcher.group(1));
+            return number >= 1 && number <= VOLUME_NUMBER_MAX ? OptionalInt.of(number) : OptionalInt.empty();
         } catch (NumberFormatException e) {
             return OptionalInt.empty();
         }
+    }
+
+    /** « Boruto: Naruto Next Generations » -> « Boruto » ; « Dragon Ball - Full Color » -> « Dragon Ball » ; sinon le titre entier. */
+    static String nomDeSerie(String seriesTitle) {
+        String[] parts = seriesTitle.split("\\s*[:\\-\u2013]\\s+", 2);
+        String serie = parts[0].trim();
+        return serie.isEmpty() ? seriesTitle.trim() : serie;
+    }
+
+    /** 461$t (l'ensemble dont le tome fait partie), à défaut 225$a (la collection). */
+    private static String serieDeRattachement(Element record) {
+        Element ensemble = firstDatafield(record, "461");
+        String titre = ensemble == null ? null : subfield(ensemble, "t");
+        if (titre == null || titre.isBlank()) {
+            Element collection = firstDatafield(record, "225");
+            titre = collection == null ? null : subfield(collection, "a");
+        }
+        return titre == null || titre.isBlank() ? null : titre;
+    }
+
+    private static String numeroDansLaSerie(Element record) {
+        Element ensemble = firstDatafield(record, "461");
+        String numero = ensemble == null ? null : subfield(ensemble, "v");
+        if (numero == null || numero.isBlank()) {
+            Element collection = firstDatafield(record, "225");
+            numero = collection == null ? null : subfield(collection, "v");
+        }
+        return numero;
+    }
+
+    /** L'URL de couverture de la notice, ou null sans identifiant ARK. */
+    private static String coverUrl(Element record) {
+        NodeList controlfields = record.getElementsByTagName("mxc:controlfield");
+        for (int i = 0; i < controlfields.getLength(); i++) {
+            Element field = (Element) controlfields.item(i);
+            if ("003".equals(field.getAttribute("tag"))) {
+                String url = field.getTextContent();
+                int ark = url == null ? -1 : url.indexOf("ark:/");
+                return ark < 0 ? null : COVER_URL.formatted(url.substring(ark).trim());
+            }
+        }
+        return null;
     }
 
     private static Element firstDatafield(Element record, String tag) {

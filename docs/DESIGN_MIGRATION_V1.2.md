@@ -1360,6 +1360,57 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 120 — les trous entre les tomes, et les jaquettes
+
+Retour de l'utilisateur sur l'aperçu de Boruto après le Lot 119 : « il y a
+des trous entre les tomes et il manque les jaquettes ». Sept tomes sur vingt
+(1, 2, 3, 8, 9, 17, 18) et aucune image — la BnF n'en fournit pas, et Google
+Books, qui en fournit, était toujours à quota épuisé.
+
+**Les trous : la BnF catalogue un tome de deux façons.** Soit le titre de
+série en `200$a` avec le numéro en `200$h` (« Boruto » T9) — la seule voie
+lue jusqu'ici. Soit le **titre propre du tome** en `200$a` (« Kawaki », « Le
+sacrifice », et les premiers *Dragon Ball* de 1993 : « Le nuage
+supersonique ») avec la série et son numéro en `461$t`/`$v` ou `225$a`/`$v`.
+Treize des vingt Boruto sont catalogués ainsi. Le fournisseur lit désormais
+les deux voies, et interroge le **nom de série** (avant « : » ou « - ») plutôt
+que le titre complet — sans quoi ces notices ne remontaient même pas. Un
+garde-fou est venu aussitôt : rattaché à la série « Boruto » mais avec le
+sous-titre « two blue vortex », un tome appartient à une **autre** série ;
+sans cette règle, la suite s'invitait comme « édition Two Blue Vortex » des
+tomes 1 à 3. Un numéro de série au-delà de 999 n'en est pas un (des
+identifiants FRBNF à quinze chiffres traînent en `461$v`).
+
+**Les jaquettes : la BnF en a, en fait.** Le service « couverture » du
+catalogue (`catalogue.bnf.fr/couverture?…&idArk=<ark>`) rend une image
+JPEG (~300 Ko) pour les notices récentes, et une erreur **500** pour les
+autres. Chaque adresse est vérifiée par un HEAD avant d'être rendue : une
+adresse morte persistée sur le tome à l'ajout bloquerait ensuite le
+rattrapage de jaquettes de Ma collection, qui ne retente que les tomes sans
+image. Open Library (par ISBN) a été essayé aussi : 1 couverture sur 4 —
+écarté.
+
+**Mesuré sur la pile jetable, Google Books toujours à 429** : Boruto → **20
+tomes, 1 à 20, édition Kana**, plus de suite parasite ; jaquettes : **23 sur
+23** au premier passage… puis 13 sur 20, puis **0 tome** : la BnF s'était
+mise à répondre **429**, puis à couper la connexion. Elle limite le débit par
+adresse, et vingt HEAD en parallèle, trois reconstructions de suite et les
+sondes de la session l'avaient dépassé. Trois parades : les vérifications
+partent par **vagues de quatre** avec une reprise sur coupure ; un 429 ou une
+coupure de la BnF est signalé comme « fournisseur muet »
+(`SourceUnavailableException`) et non comme « aucun tome », pour ne jamais
+mettre ce vide en cache ; et un résultat **partiel** (un fournisseur muet)
+est gardé **une heure en mémoire** — avant, chaque ouverture de l'aperçu
+pendant une panne de Google Books relançait la BnF et ses vérifications.
+
+**Après les parades, une fois la BnF rouverte** (dix minutes plus tard) :
+l'aperçu de Boruto dans le navigateur, joué de bout en bout — **20 tomes, 01
+à 20, édition Kana, 20 jaquettes BnF, toutes chargées** (`img.complete &&
+naturalWidth > 0` sur les 21 images de la page, série comprise). Le tri par
+numéro du lot précédent s'applique. « Recharger depuis la source »
+complétera par Google Books ce que la BnF n'illustre pas, au retour du
+quota.
+
 ### Lot 119 — la source qui a le plus d'appels passe en premier
 
 Direction donnée par l'utilisateur juste après le Lot 118 : « mettre en avant
