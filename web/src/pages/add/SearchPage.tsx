@@ -96,26 +96,14 @@ export function SearchPage() {
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
 
-  // La présélection sert le parcours d'AJOUT : les fournisseurs ne
-  // s'interrogent que type par type, et arriver sans type choisi aurait
-  // demandé un clic avant la première recherche. Elle ne s'applique donc pas à
-  // un visiteur, qui ne vient pas ajouter mais REGARDER - et à qui elle
-  // masquerait tout le reste du catalogue derrière un type pris au hasard.
-  //
-  // Elle ne s'applique qu'à l'ARRIVÉE, une seule fois. Elle se rejouait à
-  // chaque fois que le type redevenait vide - c'est-à-dire à chaque clic sur
-  // « Tout », aussitôt annulé : pour un compte connecté, la puce « Tout »
-  // n'a jamais pu rester sélectionnée depuis qu'elle existe (Lot 116).
-  const [preselectionFaite, setPreselectionFaite] = useState(parametres.has('type'))
-  useEffect(() => {
-    if (preselectionFaite) return
-    if (!estInvite && !entityTypeId && entityTypesQuery.data && entityTypesQuery.data.length > 0) {
-      setEntityTypeId(entityTypesQuery.data[0].id)
-      setPreselectionFaite(true)
-    }
-  }, [preselectionFaite, estInvite, entityTypeId, entityTypesQuery.data])
+  // On arrive sur « Tout », pour tout le monde (lot 139, demande de
+  // l'utilisateur : « il faut d'abord sélectionner Tout au lieu de Manga »).
+  // Le premier type de l'instance était présélectionné pour un compte
+  // connecté - arriver prêt à chercher chez un fournisseur, qui s'interroge
+  // type par type - mais c'est le CATALOGUE qu'on ouvre, et il ne montrait
+  // alors qu'un univers pris pour les autres. Le type se choisit quand on
+  // cherche, et la phrase sous le champ le dit au moment utile.
   function choisirType(id: string | undefined) {
-    setPreselectionFaite(true)
     setEntityTypeId(id)
   }
 

@@ -1360,6 +1360,23 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 139 — le Catalogue s'ouvre sur « Tout »
+
+« Quand je clique sur Catalogue, il faut d'abord sélectionner Tout au lieu de
+Manga. » Le premier type de l'instance était présélectionné pour un compte
+connecté (lot 116 en avait seulement corrigé la rejouée à chaque clic) :
+arriver prêt à chercher chez un fournisseur, qui s'interroge type par type.
+Mais c'est le **Catalogue** qu'on ouvre, et il ne montrait alors qu'un univers
+pris pour les autres - le même défaut que Ma collection au lot 136, un cran
+plus loin. La présélection disparaît, pour tout le monde : on arrive sur
+« Tout », le type se choisit quand on cherche, et la phrase sous le champ le
+dit au moment utile (« choisis une catégorie pour chercher aussi chez une
+source externe »). Un lien qui porte `?type=` continue d'arriver sur son type.
+
+Vérifié : typecheck, lint, 340 tests web, contraste, frontières, build ; 16
+parcours Playwright ; dans le navigateur, `/add` arrive avec « Tout » actif et
+les trois types inactifs. Aucun changement côté serveur.
+
 ### Lot 138 — le thème se change depuis l'en-tête
 
 Demandé tel quel : « extraire la fonction mode clair / sombre dans la barre

@@ -86,6 +86,20 @@ describe('les façons d’ajouter', () => {
   })
 })
 
+describe('l’arrivée', () => {
+  it('ouvre sur « Tout », pas sur le premier type', async () => {
+    // Le premier type de l'instance était présélectionné pour un compte : le
+    // Catalogue ne montrait alors qu'un univers pris pour les autres
+    // (lot 139). Ce qui se voit : taper un titre parcourt le catalogue seul,
+    // l'écran le dit, et aucune source externe n'est interrogée.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Manga' })).toBeInTheDocument())
+    await userEvent.type(screen.getByRole('textbox'), 'berserk')
+
+    expect(await screen.findByText(/Seul le catalogue est parcouru/)).toBeInTheDocument()
+    expect(metadata.searchMetadata).not.toHaveBeenCalled()
+  })
+})
+
 describe('la langue des titres', () => {
   /** Cherche jusqu'à obtenir des suggestions - c'est là que le réglage agit. */
   async function chercher() {
