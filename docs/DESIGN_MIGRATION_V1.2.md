@@ -1402,6 +1402,16 @@ remontent dans le cœur. `DiscoveryService` n'est plus qu'un aiguillage.
 `git mv` partout, les tests suivent leurs classes ; le test du service de
 découverte est devenu trois tests d'univers.
 
+**Deux choses apprises en vérifiant.** Une migration appliquée ne se
+modifie jamais, même son commentaire : le déplacement du cœur avait réécrit
+« com.iozycore.domain » dans dix fichiers SQL, et Flyway refusait de
+démarrer sur toute base existante (sommes de contrôle) - restaurés au bit
+près. Et un parcours E2E rouge qui n'était pas le backend : la tuile d'un
+tome ajouté restait « manquante » tant que la recherche de jaquette qui suit
+n'avait pas fini (de deux à trente secondes selon les fournisseurs) ; la
+possession est maintenant affichée dès qu'elle est écrite, la jaquette
+suit.
+
 **La vérification.** Spring Modulith 1.2 (la ligne de Spring Boot 3.3) :
 `ModulesTest` vérifie les frontières à chaque build — le cœur est déclaré
 module OUVERT (les univers s'appuient sur son domaine, ses cas d'usage et ses

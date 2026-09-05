@@ -165,6 +165,12 @@ export function EntityDetailPage() {
         purchasePrice: tome.purchasePrice,
       })
 
+      // La possession est écrite : l'écran le montre TOUT DE SUITE. Ce qui
+      // suit (la jaquette) est une recherche chez des fournisseurs, de deux
+      // à trente secondes selon leur humeur - la tuile restait « manquante »
+      // tout ce temps, et le parcours E2E l'a mesuré (2026-09-05).
+      invaliderApresPossession(queryClient)
+
       // La jaquette du tome, cherchée tout de suite - et sans rien demander.
       //
       // `quickAdd` n'en enregistre une que si l'appelant lui en donne : un tome
