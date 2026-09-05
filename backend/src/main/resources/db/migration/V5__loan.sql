@@ -1,5 +1,5 @@
 -- V5__loan.sql
--- Prêts : à qui un manga ou un jeu a été prêté (voir com.iozycore.core.domain.loan).
+-- Prêts : à qui un manga ou un jeu a été prêté (voir com.iozycore.domain.loan).
 -- Rattaché à une Ownership précise (pas à l'Entity) : si plusieurs
 -- exemplaires du même tome sont possédés, seul celui réellement prêté doit
 -- apparaître emprunté.

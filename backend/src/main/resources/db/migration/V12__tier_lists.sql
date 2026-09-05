@@ -1,5 +1,5 @@
 -- V12__tier_lists.sql
--- Tier Lists (voir com.iozycore.core.domain.tierlist) - deux mécanismes
+-- Tier Lists (voir com.iozycore.domain.tierlist) - deux mécanismes
 -- distincts :
 --   - entity_rank : classement GÉNÉRAL, une ligne = une oeuvre classée sur
 --     l'échelle complète S-F. Absence de ligne = "non classé", jamais un
