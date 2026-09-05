@@ -1,6 +1,7 @@
 package com.iozycore.integration.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iozycore.core.application.admin.GestionDesComptes;
 import com.iozycore.integration.PostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -40,6 +42,9 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private GestionDesComptes gestionDesComptes;
 
     private String json(Object valeur) throws Exception {
         return objectMapper.writeValueAsString(valeur);
@@ -192,6 +197,30 @@ class AuthHttpContractTest extends PostgresIntegrationTest {
 
         mockMvc.perform(post("/api/auth/logout").session(session))
                 .andExpect(status().isForbidden());
+    }
+
+    // ------------------------------------------------ Un compte qui disparaît
+
+    @Test
+    void un_compte_supprime_perd_sa_session_a_la_requete_suivante() throws Exception {
+        // Une vraie session, ouverte par la porte - c'est elle qui retient le
+        // principal, et c'est elle qui survivait à la suppression du compte.
+        MockHttpSession session = connecter();
+        String id = objectMapper.readTree(mockMvc.perform(get("/api/auth/me").session(session))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("id").asText();
+
+        // Supprimé par quelqu'un d'autre : un administrateur ne se supprime
+        // pas lui-même (voir GestionDesComptes), et la route elle-même a ses
+        // propres tests. Ce qui se vérifie ici, c'est ce qu'il advient de la
+        // session, pas de la porte d'administration.
+        gestionDesComptes.supprimer(UUID.fromString(id), UUID.randomUUID());
+
+        // La requête suivante ne connaît plus personne : 401, comme sans
+        // session - et la session est fermée, pas seulement refusée.
+        mockMvc.perform(get("/api/auth/me").session(session))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Ce compte n'existe plus."));
+        assertThat(session.isInvalid()).isTrue();
     }
 
     // ------------------------------------------------------------------ Outils

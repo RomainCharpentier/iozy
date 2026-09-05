@@ -15,3 +15,15 @@ export const COMPTE = {
 
 /** Rangée sur le disque, rejouée par chaque parcours (voir playwright.config.ts). */
 export const FICHIER_DE_SESSION = 'e2e/.auth/session.json'
+
+/**
+ * Le code d'invitation de la pile jetable (voir backend/docker-compose.e2e.yml).
+ *
+ * <p>Le premier compte n'en a pas besoin ; tout compte SUIVANT l'exige, et
+ * c'est ce qui permet à un parcours d'en créer un second - l'import d'une
+ * sauvegarde se vérifie sur un compte qu'on peut supprimer, ce que
+ * l'administrateur de la suite ne peut pas faire de lui-même. Un code faux
+ * reste refusé (voir porte.spec.ts) : la porte n'est pas ouverte, elle a une
+ * clé, et la clé est connue de la suite.
+ */
+export const CODE_INVITATION = 'code-e2e'

@@ -81,7 +81,12 @@ jamais par une classe CSS ou un `data-testid`.
 
 **Écrire un parcours de bout en bout** : dans `e2e/*.spec.ts`. Ils partent
 connectés (la session est ouverte une fois par `compte.setup.ts` et rejouée),
-sauf `porte.spec.ts` qui teste justement l'entrée et part anonyme. Ce qui
+sauf `porte.spec.ts` qui teste justement l'entrée et part anonyme. Un parcours
+qui a besoin d'un visiteur ouvre un contexte neuf (`visite.spec.ts`,
+`partage.spec.ts`) ; un parcours qui a besoin d'un **second compte** le crée à
+l'écran avec le code d'invitation de la pile (`CODE_INVITATION` dans
+`e2e/compte.ts`, voir `import.spec.ts`) - le compte de la suite est
+l'administrateur, et il ne peut pas se supprimer lui-même. Ce qui
 mérite un parcours, ce n'est pas une règle - les 292 tests Vitest la couvrent
 déjà - c'est un **passage** : d'un écran au suivant, du clic à la base. Un
 formulaire branché sur la mauvaise route ou un cache qu'on oublie d'invalider
