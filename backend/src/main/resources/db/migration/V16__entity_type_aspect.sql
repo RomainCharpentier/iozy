@@ -1,6 +1,6 @@
 -- V16__entity_type_aspect.sql
 -- Format de jaquette d'un type de collection (voir
--- com.iozycore.core.domain.catalog.EntityType) - troisième attribut visuel après
+-- com.iozycore.domain.catalog.EntityType) - troisième attribut visuel après
 -- la couleur et l'icône (V15) : une pochette de vinyle est carrée, un boîtier
 -- de jeu ne l'est pas, un tome de manga est en portrait.
 --

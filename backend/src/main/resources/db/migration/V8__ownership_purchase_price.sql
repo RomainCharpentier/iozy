@@ -1,5 +1,5 @@
 -- V8__ownership_purchase_price.sql
--- Prix d'achat, optionnel (voir com.iozycore.core.domain.ownership.Ownership) -
+-- Prix d'achat, optionnel (voir com.iozycore.domain.ownership.Ownership) -
 -- hors périmètre du MVP initial ("simplification demandée", voir
 -- docs/CONCEPTION.md §4), ajouté depuis sur demande explicite pour
 -- "calcul automatique de la valeur de la collection" (§15 V2). NULL par

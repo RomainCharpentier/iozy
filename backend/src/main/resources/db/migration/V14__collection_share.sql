@@ -1,5 +1,5 @@
 -- V14__collection_share.sql
--- "Partager ma collection" (voir com.iozycore.core.domain.collectionshare.
+-- "Partager ma collection" (voir com.iozycore.domain.collectionshare.
 -- CollectionShareSettings) - ligne mono-utilisateur (owner_id =
 -- DefaultOwner.ID), même patron que wishlist_share_settings (V7).
 -- token NULL = pas de lien actif.

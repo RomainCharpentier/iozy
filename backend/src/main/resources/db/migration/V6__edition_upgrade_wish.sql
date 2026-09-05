@@ -1,7 +1,7 @@
 -- V6__edition_upgrade_wish.sql
 -- "Je possède déjà cette série, mais je recherche une meilleure édition pour
 -- la remplacer" (Perfect, Deluxe, Collector...) - voir
--- com.iozycore.core.domain.editionupgrade. Rattaché à l'Entity (la série), pas à
+-- com.iozycore.domain.editionupgrade. Rattaché à l'Entity (la série), pas à
 -- une Ownership précise : le remplacement vise toute la série dans son
 -- édition actuelle.
 CREATE TABLE edition_upgrade_wish (
