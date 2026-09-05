@@ -1360,6 +1360,35 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 140 — le profil à plat, sans « Paramètres » ni « Demander à ma collection »
+
+Deux demandes, telles quelles : « sur le profil, je ne veux pas de sous-menu
+Paramètres, ça doit être lisible direct » et « supprime Demander à ma
+collection, qui ne sert à rien ».
+
+**Les réglages sont sur Profil.** L'écran Paramètres n'existe plus : ses deux
+sections - « Mon compte » (pseudo, adresse, emporter et restaurer sa
+collection) et « Cet appareil » (langue des titres) - sont rendues sous le
+partage, sur Profil même (`Reglages`, l'ancien `SettingsPage` sans son
+en-tête ni son lien de retour). Deux écrans parlaient de la même personne ;
+un seul suffit. `/settings` et `/settings/import` **redirigent** (`/profile`,
+`/profile/import`) : un signet ne tombe pas sur « page introuvable » parce
+qu'un écran a fusionné avec son voisin. L'import vit à `/profile/import`,
+son retour nomme « Mon profil » ; « Langue des titres » du Catalogue arrive
+directement sur « Cet appareil » (`focusAppareil`, même mécanique que le
+partage). Le parcours Playwright de la porte se déconnecte depuis Profil
+sans plus passer par un lien Paramètres, et vérifie qu'il n'y en a plus.
+
+**« Demander à ma collection » est retirée**, entièrement : l'écran
+`/question`, le lien de Profil, `poserQuestion`, et côté serveur
+`POST /api/insights/question`, `CollectionQuestionService`,
+`AiCollectionOracle`, `CollectionAnswer` et `GeminiCollectionOracle`. Le lot
+117 l'avait livrée sans test automatisé ; rien ne la reliait à autre chose.
+`GeminiRequests` reste, l'analyse d'achat s'en sert.
+
+Vérifié : typecheck, lint, 341 tests web, contraste, frontières, build ;
+1 097 tests backend depuis `clean` ; 16 parcours Playwright.
+
 ### Lot 139 — le Catalogue s'ouvre sur « Tout »
 
 « Quand je clique sur Catalogue, il faut d'abord sélectionner Tout au lieu de

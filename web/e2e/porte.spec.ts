@@ -65,13 +65,12 @@ test('se connecter puis se déconnecter referme vraiment', async ({ page }) => {
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
 
-  // Par le CHEMIN, pas par l'URL : avatar ▸ Profil ▸ Paramètres.
-  // « Se déconnecter » a quitté Profil pour Paramètres ▸ Mon compte, avec le
-  // pseudo, l'adresse et l'export - un seul endroit pour « mon compte » au lieu
-  // de deux moitiés.
+  // Par le CHEMIN, pas par l'URL : avatar ▸ Profil, où « Mon compte » se lit
+  // directement (lot 140 : plus de sous-écran Paramètres), et la sortie est
+  // dans l'en-tête, le même bouton sur tous les écrans.
   await page.getByRole('link', { name: new RegExp(`Mon profil — ${COMPTE.pseudo}`) }).first().click()
-  await page.getByRole('link', { name: /Paramètres/ }).click()
   await expect(page.getByRole('region', { name: 'Mon compte' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Paramètres/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Se déconnecter' }).click()
   await expect(page.getByRole('heading', { name: 'Se connecter' })).toBeVisible()
 

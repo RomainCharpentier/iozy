@@ -9,9 +9,9 @@
  * casser.
  *
  * <p>Il n'est plus un <b>couloir</b> : l'administration a son propre bouton
- * dans l'en-tête (voir GlobalShortcuts), et cet écran ne mène plus qu'aux
- * réglages - le seul autre écran qui parle de la même personne. Le reste
- * concerne CETTE collection : sa valeur, ses classements, son partage.
+ * dans l'en-tête (voir GlobalShortcuts), et les réglages sont SUR cet écran
+ * (lot 140) - plus derrière un lien « Paramètres ». Le reste concerne CETTE
+ * collection : sa valeur, ses classements, son partage.
  */
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -38,10 +38,22 @@ beforeEach(() => {
   render(<ProfilePage />, { wrapper: enrobage })
 })
 
-describe('la seule sortie de Profil', () => {
-  it('mène aux réglages, qui parlent de la même personne', () => {
-    expect(screen.getByRole('link', { name: /Paramètres/ })).toHaveAttribute('href', '/settings')
+describe('les réglages, sur la page même', () => {
+  it('porte « Mon compte » et « Cet appareil » en clair, sans lien Paramètres', () => {
+    // « Pas de sous-menu, ça doit être lisible direct » (lot 140) : ce qui
+    // parle de la même personne n'ouvre pas un second écran.
+    expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cet appareil' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
   })
+
+  it('ne propose plus « Demander à ma collection »', () => {
+    // Lot 117, retirée au lot 140 : « ne sert à rien ».
+    expect(screen.queryByRole('link', { name: /Demander à ma collection/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('ce que Profil ne double pas', () => {
 
   it('ne remet pas l’administration derrière le profil', () => {
     // Elle y a déjà été rangée, comme sous Paramètres et dans un menu de
@@ -63,12 +75,13 @@ describe('la seule sortie de Profil', () => {
 })
 
 describe('l’identité', () => {
-  it('dit de qui c’est le profil, sans reprendre les actions du compte', () => {
+  it('dit de qui c’est le profil, et le compte se lit dessous', () => {
     // Le pseudo en sous-titre : un écran qui s'appelle « Mon profil » doit
-    // nommer la personne. Mais se déconnecter, l'adresse et l'export vivent
-    // dans Paramètres ▸ Mon compte - un seul endroit, pas deux moitiés.
-    expect(screen.getByText('romain')).toBeInTheDocument()
+    // nommer la personne. Il le redit dans « Mon compte », avec l'adresse -
+    // sur cette page depuis le lot 140. La déconnexion, elle, reste dans
+    // l'en-tête : le même bouton sur tous les écrans.
+    expect(screen.getAllByText('romain')).toHaveLength(2)
+    expect(screen.getByText('moi@example.com')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Se déconnecter/ })).not.toBeInTheDocument()
-    expect(screen.queryByText('moi@example.com')).not.toBeInTheDocument()
   })
 })

@@ -30,8 +30,8 @@ web/
                     tests, sans autre découpage
                       auth/  collection/ (+ category/, a-lire/)  entity/ (+ apercu/)
                       add/  scan/  discover/  tier-lists/ (+ board/)  purchase-analysis/
-                      (+ history/)  profile/ (+ administration/, import-bgg/, question/)
-                      suggestions/  recap/  stats/  editions/  settings/ (+ import/)
+                      (+ history/)  profile/ (+ administration/, import/, import-bgg/)
+                      suggestions/  recap/  stats/  editions/
                       share/  entity-types/ (+ form/)  not-found/
     common/         ce qui est partagé par plusieurs pages, et rien d'autre
                       components/   le design system (Carte, Chip, Jaquette, GrilleVolumes…)

@@ -485,8 +485,11 @@ export function SearchPage() {
                 encore moins où le changer. Le lien ne dit pas « Paramètres »,
                 il dit ce qu'on va y régler. */}
             <Link
-              to="/settings"
-              state={{ retour: { to: '/add', libelle: 'Rechercher' } }}
+              to="/profile"
+              // Le réglage vit dans « Cet appareil », en bas de Profil (lot
+              // 140) : on y arrive directement, pas en haut d'une page à
+              // faire défiler.
+              state={{ focusAppareil: true }}
               className="flex min-h-11 items-center gap-1.5 text-xs font-semibold text-accentText"
             >
               <Languages size={13} />

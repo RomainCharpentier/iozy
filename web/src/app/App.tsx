@@ -65,9 +65,7 @@ const ScanPage = page(() => import('@/pages/scan/ScanPage'), 'ScanPage')
 const StatsPage = page(() => import('@/pages/stats/StatsPage'), 'StatsPage')
 const EditionsPage = page(() => import('@/pages/editions/EditionsPage'), 'EditionsPage')
 const EntityTypesPage = page(() => import('@/pages/entity-types/EntityTypesPage'), 'EntityTypesPage')
-const SettingsPage = page(() => import('@/pages/settings/SettingsPage'), 'SettingsPage')
-const ImportPage = page(() => import('@/pages/settings/import/ImportPage'), 'ImportPage')
-const QuestionPage = page(() => import('@/pages/profile/question/QuestionPage'), 'QuestionPage')
+const ImportPage = page(() => import('@/pages/profile/import/ImportPage'), 'ImportPage')
 const SharedSpacePage = page(() => import('@/pages/share/SharedSpacePage'), 'SharedSpacePage')
 
 /**
@@ -210,9 +208,13 @@ export default function App() {
                   <Route path="/types" element={<EntityTypesPage />} />
                   <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
                   <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/settings/import" element={<ImportPage />} />
-                  <Route path="/question" element={<QuestionPage />} />
+                  {/* Les réglages sont SUR Profil depuis le lot 140 ; les
+                      anciennes adresses y mènent - un signet ne doit pas
+                      tomber sur « page introuvable » parce qu'un écran a
+                      fusionné avec son voisin. */}
+                  <Route path="/settings" element={<Navigate to="/profile" replace />} />
+                  <Route path="/settings/import" element={<Navigate to="/profile/import" replace />} />
+                  <Route path="/profile/import" element={<ImportPage />} />
                   {/* Le repli, en dernier : sans lui une URL inconnue rendait
                       un `<main>` vide avec la navigation autour - un écran qui
                       a l'air cassé plutôt que d'expliquer. */}

@@ -66,7 +66,7 @@ test('exporter sa collection, perdre son compte, la restaurer', async ({ page, b
   await expect(avant.page.getByRole('button', { name: new RegExp(`${titre}.*2/4 tomes`) })).toBeVisible()
 
   // --- Emporter : le fichier est celui du bouton, pas un appel d'API à part
-  await avant.page.goto('/settings')
+  await avant.page.goto('/profile')
   const [telechargement] = await Promise.all([
     avant.page.waitForEvent('download'),
     avant.page.getByRole('link', { name: 'Télécharger en JSON' }).click(),
@@ -104,9 +104,9 @@ test('exporter sa collection, perdre son compte, la restaurer', async ({ page, b
   await expect(apres.page.getByRole('button', { name: titre })).toContainText('Pas encore possédé')
 
   // --- Restaurer : d'abord ce que l'import ferait, puis le faire
-  await apres.page.goto('/settings')
+  await apres.page.goto('/profile')
   await apres.page.getByRole('link', { name: 'Importer un fichier' }).click()
-  await expect(apres.page).toHaveURL(/\/settings\/import$/)
+  await expect(apres.page).toHaveURL(/\/profile\/import$/)
   await apres.page.getByLabel('Fichier d’export (.json)').setInputFiles(fichier)
   await expect(apres.page.getByRole('heading', { name: 'Ce que l’import ferait' })).toBeVisible()
   await expect(apres.page.getByText(/\d+ élément\(s\) seraient ajoutés/)).toBeVisible()
@@ -129,7 +129,7 @@ test('exporter sa collection, perdre son compte, la restaurer', async ({ page, b
   //     restent proposées, parce qu'elles se remplacent au lieu de s'ajouter
   //     (voir ImportPage) : c'est la seule raison pour laquelle l'écran ne dit
   //     pas « il n'y a rien à ajouter ».
-  await apres.page.goto('/settings/import')
+  await apres.page.goto('/profile/import')
   await apres.page.getByLabel('Fichier d’export (.json)').setInputFiles(fichier)
   await expect(apres.page.getByText('0 élément(s) seraient ajoutés.')).toBeVisible()
   await expect(apres.page.getByRole('row', { name: /^Possessions/ })).toHaveText(/Possessions\s*0\s*2\s*0/)

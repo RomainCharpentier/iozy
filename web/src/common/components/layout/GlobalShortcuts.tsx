@@ -23,8 +23,8 @@ import { useAuth } from '@/common/hooks/useAuth'
  *
  * <h2>Deux liens, et aucun menu</h2>
  * L'avatar mène droit à Profil - un clic, pas un panneau à ouvrir puis à
- * refermer pour un choix entre deux entrées. Les réglages se rejoignent depuis
- * Profil, où ils sont chez eux : les deux écrans parlent de la même personne.
+ * refermer pour un choix entre deux entrées. Les réglages sont SUR Profil
+ * (lot 140), en clair : un seul écran parle de la même personne.
  *
  * <h2>Et la sortie, qui vaut pour tout le monde</h2>
  * {@link BoutonSortie} les accompagne, et c'est le SEUL endroit d'où l'on

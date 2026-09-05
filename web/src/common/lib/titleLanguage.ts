@@ -71,7 +71,7 @@ export function setTitleComposition(composition: TitleComposition): void {
   window.dispatchEvent(new CustomEvent(STORAGE_KEY))
 }
 
-/** Lit la composition et se met à jour si elle change ailleurs (SettingsPage). */
+/** Lit la composition et se met à jour si elle change ailleurs (Reglages, sur Profil). */
 export function useTitleComposition(): TitleComposition {
   const [composition, setComposition] = useState(getTitleComposition)
 
