@@ -23,42 +23,50 @@ pour le style :
 ```
 web/
   src/
-    api/            client HTTP (client.ts) + un module par ressource
-                     (entities.ts, ownerships.ts, experiences.ts, wishlist.ts,
-                     tags.ts, relationships.ts, insights.ts, metadata.ts)
-    types/          api.ts (DTOs miroir camelCase du backend, dont EntityTypeDto),
-                     entityTypes.ts (constantes domaine-wide non liées à un type -
-                     CONDITIONS, RELATIONSHIP_TYPE_PRESETS... - plus les 3 types
-                     eux-mêmes, désormais dynamiques via api/entityTypes.ts)
-    theme/          tokens.ts (couleurs/dégradés), gradient.ts (hash déterministe
-                     pour les tuiles de "couverture", pas d'images réelles)
-    components/     design system réutilisable : CoverTile, Chip, StatCard,
-                     StatusPill, ErrorBanner, layout/AppShell + TabBar
-    routes/         un dossier par écran (Shelf, Search, QuickAdd, EntityDetail,
-                     Wishlist, Stats, EntityTypes - gestion des types), 1 page
-                     + sous-composants chacun
-    lib/            useDebouncedValue, queryKeys (clés TanStack Query centralisées)
+    main.tsx        l'amorçage (polices, index.css, montage de App)
+    app/            App.tsx : le routeur, les providers, la coquille
+    pages/          UNE PAGE = UN DOSSIER, nommé comme son URL ; ses sous-pages en
+                    sous-dossiers ; dedans, la page, ses composants, ses hooks, ses
+                    tests, sans autre découpage
+                      auth/  collection/ (+ category/, a-lire/)  entity/ (+ apercu/)
+                      add/  scan/  discover/  tier-lists/ (+ board/)  purchase-analysis/
+                      (+ history/)  profile/ (+ administration/, import-bgg/, question/)
+                      suggestions/  recap/  stats/  editions/  settings/ (+ import/)
+                      share/  entity-types/ (+ form/)  not-found/
+    common/         ce qui est partagé par plusieurs pages, et rien d'autre
+                      components/   le design system (Carte, Chip, Jaquette, GrilleVolumes…)
+                                    et layout/ (AppShell, en-têtes, barre d'onglets)
+                      hooks/        useAuth, useWishlist, useModalA11y, useDocumentTitle…
+                      lib/          règles et utilitaires (queryKeys, invalidations, retour,
+                                    texte, préférences, jaquettes)
+                      api/          client HTTP + un module par ressource du backend
+                      types/        les DTO miroir du backend
+                      theme/        tokens, dégradés, icônes, avatars
+    test/           setup Vitest et fixtures
 ```
 
-Chaque écran suit le même patron que le client iOS : une page publique par
-route, des sous-composants dans le même dossier pour ses sections/formulaires
-(voir `routes/EntityDetail/` comme référence la plus complète : TagsSection,
-OwnershipsSection, ExperiencesSection, RelationshipsSection).
+Les imports passent par l'alias `@/` (`@/common/api/entities`,
+`@/pages/entity/InspecteurFiche`) : un import dit d'où vient une chose, jamais
+combien de dossiers la séparent. Deux règles tiennent le rangement (Lot 134) :
+**un module utilisé par une seule page vit dans cette page** ; **dès qu'une
+seconde page en a besoin, il monte dans `common`**. Une page compose, elle ne
+calcule pas : les données dans des hooks, l'affichage dans des composants.
 
 ### Comment travailler sur ce projet
 
-**Ajouter un appel API** : dans le module `api/<domaine>.ts` pertinent (ou
+**Ajouter un appel API** : dans le module `common/api/<domaine>.ts` pertinent (ou
 en créer un nouveau si le domaine n'existe pas encore), jamais directement
 dans un composant de page. Les types de requête/réponse vont dans
-`types/api.ts` — mêmes noms de champs en camelCase que les DTO Java du
+`common/types/api.ts` — mêmes noms de champs en camelCase que les DTO Java du
 backend (Jackson et JSON s'accordent nativement dessus).
 
-**Ajouter un écran** : nouveau dossier sous `routes/`, réutilise les
-composants de `components/` (`Chip`/`CoverTile`/`StatCard`/`StatusPill`)
-plutôt que du style en dur, et les tokens de `theme/tokens.ts` (ou les
+**Ajouter un écran** : nouveau dossier sous `pages/`, nommé comme son URL,
+réutilise les composants de `common/components/` (`Carte`, `Chip`, `Jaquette`…)
+plutôt que du style en dur, et les tokens de `common/theme/tokens.ts` (ou les
 classes Tailwind générées depuis `src/index.css` : `bg-surface`,
 `text-textDim`, `text-accent`, `font-display`...) pour rester visuellement
-cohérent avec le reste de l'app et avec le client iOS.
+cohérent avec le reste de l'app et avec le client iOS. Une route de plus dans
+`app/App.tsx`, et c'est tout.
 
 **Écrire un test** : Vitest + Testing Library, dans un `*.test.ts(x)` posé
 **à côté du module qu'il vérifie** — pas dans un dossier `__tests__` à part,
@@ -94,7 +102,7 @@ IOZYCORE_E2E_GARDER_LA_PILE=1 npm run test:e2e
 regarde si un test tombe.
 
 ```bash
-node scripts/mutation.mjs src/routes/Shelf/shelfTiles.ts "missing <= 3" "missing <= 4"
+node scripts/mutation.mjs src/pages/collection/shelfTiles.ts "missing <= 3" "missing <= 4"
 ```
 
 Le script mute **toutes** les occurrences, lance la suite, restaure le fichier

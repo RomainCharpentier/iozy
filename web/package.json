@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "lint": "oxlint",
     "check:contrast": "node scripts/check-contrast.mjs",
+    "check:frontieres": "node scripts/check-frontieres.mjs",
     "check:pwa": "node scripts/check-pwa.mjs",
     "check:deploiement": "node scripts/verifier-deploiement.mjs",
     "preview": "vite preview",

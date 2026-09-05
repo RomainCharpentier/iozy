@@ -1360,6 +1360,36 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 134 — le front rangé par page
+
+Après le backend, l'utilisateur a demandé le même soin pour le front, mais
+pas la même forme : « c'est une archi back ça, il faut une archi front
+cohérente », puis « on découpe par page et sous-pages, avec des composants
+partagés (common) ». L'unité de cohérence d'une SPA, c'est l'écran.
+
+**Avant** : quatre dossiers par rôle technique (`api`, `lib`, `components`,
+`routes`) — pour comprendre un écran, trois dossiers à ouvrir ; `lib`
+mélangeait hooks, règles, session et thème ; des fichiers de route servaient
+d'autres routes (`TierBadge`, `backfillCovers`, `ShareSection`).
+
+**Après** : `app/` (routeur, providers, coquille), `pages/` — un dossier par
+page, nommé comme son URL, ses sous-pages en sous-dossiers, et dedans la
+page, ses composants, ses hooks, ses tests, à plat — et `common/` pour ce qui
+est partagé par plusieurs pages, et rien d'autre (`components`, `hooks`,
+`lib`, `api`, `types`, `theme`). Deux règles : **un module utilisé par une
+seule page vit dans cette page** (six modules de `lib` et trois composants
+ont ainsi rejoint la fiche, la collection et les statistiques) ; **dès qu'une
+seconde page en a besoin, il monte dans `common`** (`TierBadge`, `TierPicker`,
+`backfillCovers`, `ownership`). Les imports passent par l'alias `@/`.
+
+**La vérification** : `scripts/check-frontieres.mjs` (`npm run
+check:frontieres`), comme le contraste — `common` ne dépend d'aucune page ni
+de l'app, une page ne lit pas une autre page. Zéro violation à la livraison.
+
+Mécanique : 212 `git mv`, imports réécrits par résolution (relatif → alias),
+typecheck, lint, 331 tests, contraste, build et 14 parcours E2E rejoués. Les
+URL de l'app et l'API n'ont pas bougé.
+
 ### Lot 133 — un cœur et quatre univers
 
 Le lot 132 avait découpé `metadata` par univers ; l'utilisateur a jugé le
