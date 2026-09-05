@@ -1360,6 +1360,49 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 136 — Ma collection redevient l'écran du cœur
+
+« La homepage n'est pas conforme avec ce qu'on veut : c'est trop orienté
+manga au lieu d'être générique. » L'audit a trouvé cinq choses qui parlaient
+manga sur une page qui appartient au cœur - celle qui doit se lire pareil
+quoi qu'on collectionne. La règle retenue est celle du backend depuis le
+lot 133 : **la page appartient au cœur, ce qui est propre à un univers se
+branche sur son rayon.**
+
+- **« À lire » est retiré**, pas déplacé : « je veux pas de à lire ». Le bloc
+  ouvrait la page avant la collection elle-même, avec une pile de lecture
+  calculée par l'univers manga (lot 122). Sans son bloc, l'écran `/a-lire` et
+  `GET /insights/reading-list` n'auraient plus eu aucune porte - exactement
+  l'impasse que ce dépôt refuse (une fonctionnalité livrée mais
+  inatteignable). Tout part : le bloc, l'écran, la route, `ReadingListService`,
+  `ReadingList` et `MangaInsightsController`, qui ne portait que cette route.
+- **« Retrouver les jaquettes manquantes » vit sur le rayon Manga**
+  (`RattrapageJaquettes`, à côté de Filtres sur `/collection/:type`) : il n'a
+  jamais traité que les mangas, et il vivait dans le menu d'outils de toute
+  la collection.
+- **« Import » quitte la barre d'outils** : l'import BoardGameGeek reste sur le
+  Catalogue, à côté de Scanner - une porte d'ajout, pas un outil de la
+  collection. « Plus d'outils » ne garde que Catégories et Partager.
+- **L'ordre des rails vient des données.** Une liste de codes - manga, jeu
+  vidéo, jeu de société, puis le reste - plaçait l'univers de départ en
+  premier, quoi qu'on collectionne. Désormais le type **le plus fourni en
+  titres** d'abord, puis par libellé ; compté sur toute la collection
+  (possédée ou voulue, avant filtre) et en titres dans les deux vues, pour
+  que ni un filtre ni « Dégrouper » ne fassent sauter un rail au-dessus d'un
+  autre (`ordonnerLesTypes`, `compterLesTitresParType`).
+- **Le vocabulaire** : « Rien ne correspond à ces filtres » remplace
+  « Aucune série ne correspond… » sur Ma collection et sur un rayon.
+
+Ce qui tenait déjà pour toute collection reste tel quel : un rail par type,
+la tuile adaptée au type (« Possédé » pour un jeu, « Kana · 12/20 tomes »
+pour un manga), Tout / Possédés / Envies, tags, tri, valeur. La navigation
+globale ne bouge pas : « Analyser une annonce » y reste, sortir ce parcours
+manga des quatre destinations est une décision produit à part, posée à
+l'utilisateur et non tranchée.
+
+Vérifié : typecheck, lint, 332 tests web, contraste, frontières, build ;
+1 097 tests backend depuis `clean` ; 16 parcours Playwright.
+
 ### Lot 135 — les deux chemins sans filet : la visite, et le retour d'un export
 
 Deux refontes de 360 fichiers venaient d'être livrées (lots 133 et 134) sur la

@@ -20,6 +20,7 @@ import { CollectionFilters } from '@/pages/collection/CollectionFilters'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { useDonneesCollection } from '@/pages/collection/useDonneesCollection'
 import { useFiltresCollection } from '@/pages/collection/useFiltresCollection'
+import { RattrapageJaquettes } from './RattrapageJaquettes'
 
 
 /**
@@ -131,6 +132,16 @@ export function CategoryPage() {
   const tuilesAffichees = preferences.vue === 'plate' ? tuilesElements : tiles
   const affiches = tuilesAffichees.length
 
+  // L'outil de l'univers manga, sur son rayon et nulle part ailleurs (voir
+  // RattrapageJaquettes) : les mangas possédés, filtre ou pas.
+  const mangasPossedes = useMemo(
+    () =>
+      entityType?.code === 'MANGA'
+        ? duType.filter((e) => etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues).possede)
+        : [],
+    [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues],
+  )
+
   // Aucun chiffre tant que tout n'est pas arrivé, sans quoi la page annonce une
   // catégorie vide qui ne l'est pas - la règle vit dans useDonneesCollection.
   const isLoading = donnees.chargement
@@ -170,24 +181,29 @@ export function CategoryPage() {
         comptes={!isLoading ? comptes : null}
       />
 
-      <button
-        type="button"
-        onClick={filtres.ouvrir}
-        aria-expanded={filtres.ouverts}
-        className={`flex w-fit min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
-          filtres.nombreActifs > 0
-            ? 'border-transparent bg-accentTint text-accentText'
-            : 'border-fieldBorder text-textDim hover:bg-rowHover'
-        }`}
-      >
-        <SlidersHorizontal size={15} />
-        Filtres
-        {filtres.nombreActifs > 0 && (
-          <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
-            {filtres.nombreActifs}
-          </span>
+      <div className="flex flex-wrap items-start gap-2">
+        <button
+          type="button"
+          onClick={filtres.ouvrir}
+          aria-expanded={filtres.ouverts}
+          className={`flex w-fit min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
+            filtres.nombreActifs > 0
+              ? 'border-transparent bg-accentTint text-accentText'
+              : 'border-fieldBorder text-textDim hover:bg-rowHover'
+          }`}
+        >
+          <SlidersHorizontal size={15} />
+          Filtres
+          {filtres.nombreActifs > 0 && (
+            <span className="flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-bold text-accentInk">
+              {filtres.nombreActifs}
+            </span>
+          )}
+        </button>
+        {entityType && entityType.code === 'MANGA' && !isLoading && (
+          <RattrapageJaquettes oeuvresPossedees={mangasPossedes} mangaTypeId={entityType.id} />
         )}
-      </button>
+      </div>
 
       {donnees.erreurs.map((message) => (
         <ErrorBanner key={message} message={message} />
@@ -199,7 +215,7 @@ export function CategoryPage() {
           <p className="font-display text-base font-semibold text-textPrimary">
             {preferences.filtre === 'envies'
               ? 'Aucune envie en cours dans cette catégorie.'
-              : 'Aucune série ne correspond à ces filtres.'}
+              : 'Rien ne correspond à ces filtres.'}
           </p>
           {filtres.nombreActifs > 0 && (
             <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">

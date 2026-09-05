@@ -20,7 +20,7 @@ import {
   etatDeLOeuvre,
   groupByEntityType,
   matchesCompletionFilter,
-  trierTypes,
+  ordonnerLesTypes,
 } from './shelfTiles'
 import { ownedVariantIds } from '@/common/lib/ownership'
 import { edition, oeuvre, possession, progressionDe, tome, typeDeCollection } from '@/test/fixtures'
@@ -108,17 +108,39 @@ describe('matchesCompletionFilter', () => {
   })
 })
 
-describe('trierTypes et groupByEntityType', () => {
+describe('ordonnerLesTypes et groupByEntityType', () => {
   const manga = typeDeCollection('MANGA')
   const jeuVideo = typeDeCollection('VIDEO_GAME')
   const vinyle = typeDeCollection('VINYL')
 
-  it('garde l’ordre des univers quel que soit celui du serveur', () => {
-    expect(trierTypes([jeuVideo, vinyle, manga]).map((t) => t.code)).toEqual(['MANGA', 'VIDEO_GAME', 'VINYL'])
+  it('met le type le plus fourni en premier, quel que soit l’ordre du serveur', () => {
+    const titres = new Map([
+      [jeuVideo.id, 4],
+      [manga.id, 12],
+      [vinyle.id, 1],
+    ])
+
+    expect(ordonnerLesTypes([jeuVideo, vinyle, manga], titres).map((t) => t.code)).toEqual(['MANGA', 'VIDEO_GAME', 'VINYL'])
   })
 
-  it('place un type créé plus tard à la fin, jamais masqué', () => {
-    expect(trierTypes([vinyle, manga]).map((t) => t.code)).toEqual(['MANGA', 'VINYL'])
+  it('départage deux types à égalité par leur libellé, jamais par un ordre écrit dans le code', () => {
+    const titres = new Map([
+      [vinyle.id, 3],
+      [manga.id, 3],
+    ])
+    const attendu = [manga, vinyle].map((t) => t.label).sort((a, b) => a.localeCompare(b, 'fr'))
+
+    expect(ordonnerLesTypes([vinyle, manga], titres).map((t) => t.label)).toEqual(attendu)
+    expect(ordonnerLesTypes([manga, vinyle], titres).map((t) => t.label)).toEqual(attendu)
+  })
+
+  it('un type créé plus tard se range comme les autres, jamais masqué', () => {
+    const serie = oeuvre({ titre: 'Berserk', typeId: manga.id, tomes: [tome(1)] })
+    const disque = oeuvre({ titre: 'Abbey Road', typeId: vinyle.id, tomes: [] })
+    const autre = oeuvre({ titre: 'Rumours', typeId: vinyle.id, tomes: [] })
+    const sections = groupByEntityType([serie, disque, autre], [manga, vinyle], AUCUNE_PROGRESSION)
+
+    expect(sections.map((s) => s.entityType.code)).toEqual(['VINYL', 'MANGA'])
   })
 
   it('n’ouvre pas de rail pour un type sans aucun titre', () => {

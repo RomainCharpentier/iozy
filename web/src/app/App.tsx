@@ -68,7 +68,6 @@ const EntityTypesPage = page(() => import('@/pages/entity-types/EntityTypesPage'
 const SettingsPage = page(() => import('@/pages/settings/SettingsPage'), 'SettingsPage')
 const ImportPage = page(() => import('@/pages/settings/import/ImportPage'), 'ImportPage')
 const QuestionPage = page(() => import('@/pages/profile/question/QuestionPage'), 'QuestionPage')
-const ALirePage = page(() => import('@/pages/collection/a-lire/ALirePage'), 'ALirePage')
 const SharedSpacePage = page(() => import('@/pages/share/SharedSpacePage'), 'SharedSpacePage')
 
 /**
@@ -214,7 +213,6 @@ export default function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/settings/import" element={<ImportPage />} />
                   <Route path="/question" element={<QuestionPage />} />
-                  <Route path="/a-lire" element={<ALirePage />} />
                   {/* Le repli, en dernier : sans lui une URL inconnue rendait
                       un `<main>` vide avec la navigation autour - un écran qui
                       a l'air cassé plutôt que d'expliquer. */}

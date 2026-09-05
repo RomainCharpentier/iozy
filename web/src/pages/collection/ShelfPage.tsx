@@ -1,23 +1,18 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Download, ImagePlus, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { mergeVariantAttributes } from '@/common/api/entities'
-import { searchVolumes } from '@/common/api/metadata'
-import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters } from './CollectionFilters'
 import { BarreVues } from './BarreVues'
-import { ALireSection } from '@/pages/collection/a-lire/ALireSection'
-import { rattraperJaquettes, variantsMissingCover } from '@/common/lib/backfillCovers'
 import {
   aplatirEnElements,
+  compterLesTitresParType,
   correspondAuFiltre,
   etatDeLOeuvre,
   groupByEntityType,
   matchesCompletionFilter,
-  trierTypes,
+  ordonnerLesTypes,
 } from './shelfTiles'
 import { indexerVenues, trierOeuvres } from './venues'
 import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/preferencesCollection'
@@ -53,7 +48,7 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
 /** Un écran vide doit dire POURQUOI il l'est, et par où en sortir. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
   if (filtresActifs) {
-    return { titre: 'Aucune série ne correspond à ces filtres.', detail: '' }
+    return { titre: 'Rien ne correspond à ces filtres.', detail: '' }
   }
   if (filtre === 'envies') {
     return {
@@ -93,10 +88,17 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
  *
  * <p>Filtre, vue et tri sont mémorisés (voir lib/preferencesCollection) : ils
  * décrivent une habitude, pas un choix à refaire à chaque ouverture.
+ *
+ * <h2>L'écran du cœur (lot 136)</h2>
+ * Cette page vaut pour n'importe quelle collection : rien de ce qu'elle montre
+ * ne suppose un univers. Ce qui est propre à l'un d'eux - l'outil de jaquettes
+ * des mangas, l'import BoardGameGeek - vit sur son rayon ou sur le Catalogue,
+ * jamais dans la barre d'outils d'ici ; et l'ordre des rails vient des données
+ * (voir ordonnerLesTypes), pas d'une liste de codes qui nommait le manga en
+ * premier.
  */
 export function ShelfPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
@@ -188,9 +190,14 @@ export function ShelfPage() {
     [etats, tomesVoulus, oeuvresVoulues, preferences.filtre],
   )
 
+  // L'ordre des rails se calcule sur TOUTE la collection - possédée ou voulue,
+  // avant filtre et quelle que soit la vue : changer de filtre ne doit pas
+  // faire sauter un rail au-dessus d'un autre.
+  const titresParType = useMemo(() => compterLesTitresParType(retenuesPour('tout')), [retenuesPour])
+
   const sections = useMemo(
-    () => groupByEntityType(triees, entityTypes, progression, envieDe),
-    [triees, entityTypes, progression, envieDe],
+    () => groupByEntityType(triees, entityTypes, progression, envieDe, titresParType),
+    [triees, entityTypes, progression, envieDe, titresParType],
   )
 
   const tuilesElements = useMemo(
@@ -221,73 +228,14 @@ export function ShelfPage() {
     () =>
       preferences.vue === 'groupee'
         ? sections
-        : trierTypes([...typesParId.values()])
+        : ordonnerLesTypes([...typesParId.values()], titresParType)
             .map((entityType) => ({
               entityType,
               tiles: tuilesAffichees.filter((tuile) => tuile.entityTypeId === entityType.id),
             }))
             .filter((rangee) => rangee.tiles.length > 0),
-    [preferences.vue, sections, tuilesAffichees, typesParId],
+    [preferences.vue, sections, tuilesAffichees, typesParId, titresParType],
   )
-
-  // "Retrouver les jaquettes manquantes" - déplacé dans le menu "Plus
-  // d'outils" (voir hubMenuOpen ci-dessous), l'action elle-même est
-  // inchangée (voir backfillCovers.ts et son commentaire d'origine).
-  //
-  // Sur TOUTE la collection possédée, jamais sur la liste affichée : c'est un outil
-  // de maintenance, pas une action sur ce qui est affiché. Depuis que la page
-  // a des filtres, passer sur « Envies » lui aurait fait traiter trois séries
-  // en annonçant le faire pour la collection - et son compteur aurait chuté
-  // sans raison visible.
-  const mangaType = entityTypes.find((t) => t.code === 'MANGA')
-  const entitiesMissingCovers = useMemo(
-    () =>
-      mangaType
-        ? allEntities.filter(
-            (e) =>
-              e.entityTypeId === mangaType.id &&
-              (etats.get(e.id)?.possede ?? false) &&
-              variantsMissingCover(e).length > 0,
-          )
-        : [],
-    [allEntities, etats, mangaType],
-  )
-  const [backfill, setBackfill] = useState<
-    { running: boolean; processed: number; total: number; found: number; fournisseurMuet: boolean } | null
-  >(null)
-
-  async function backfillMissingCovers() {
-    if (!mangaType || entitiesMissingCovers.length === 0) return
-    setHubMenuOpen(false)
-    setBackfill({ running: true, processed: 0, total: entitiesMissingCovers.length, found: 0, fournisseurMuet: false })
-    let found = 0
-    let fournisseurMuet = false
-
-    // Séquentiel, jamais Promise.all : chaque série coûte potentiellement un
-    // vrai appel Google Books (cache manquant), un lot en parallèle risquerait
-    // de vider le quota d'un coup plutôt que de s'arrêter proprement dessus.
-    //
-    // Le travail d'UNE série vit dans rattraperJaquettes, partagé avec la fiche
-    // (voir backfillCovers) : ici il ne reste que le parcours et l'arrêt net
-    // sur quota.
-    for (let i = 0; i < entitiesMissingCovers.length; i++) {
-      const resultat = await rattraperJaquettes(
-        entitiesMissingCovers[i],
-        mangaType.id,
-        searchVolumes,
-        (entityId, variantId, url) => mergeVariantAttributes(entityId, variantId, { coverImageUrl: url }),
-      )
-      found += resultat.trouvees
-      if (resultat.fournisseurMuet) {
-        fournisseurMuet = true
-        break
-      }
-      setBackfill({ running: true, processed: i + 1, total: entitiesMissingCovers.length, found, fournisseurMuet })
-    }
-
-    setBackfill({ running: false, processed: entitiesMissingCovers.length, total: entitiesMissingCovers.length, found, fournisseurMuet })
-    queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
-  }
 
   const addedThisMonthCount = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
@@ -331,11 +279,6 @@ export function ShelfPage() {
           )
         }
       />
-
-      {/* Avant les filtres et la grille : « qu'est-ce que je lis ensuite »
-          est une question qu'on se pose en ARRIVANT, pas après avoir trié
-          ses étagères (Lot 122). */}
-      <ALireSection />
 
       <div className="mt-3">
         <BarreVues
@@ -387,14 +330,6 @@ export function ShelfPage() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/import-bgg')}
-          className="flex min-h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
-        >
-          <Download size={15} />
-          Import
-        </button>
-        <button
-          type="button"
           onClick={() => setHubMenuOpen(true)}
           title="Plus d'outils"
           // aria-label en plus du title : un bouton qui n'a qu'une icône tire
@@ -406,16 +341,6 @@ export function ShelfPage() {
           <MoreHorizontal size={16} />
         </button>
       </div>
-
-      {backfill && !backfill.running && (
-        <p className="mt-2 text-xs text-textDim">
-          {backfill.found > 0
-            ? `${backfill.found} jaquette${backfill.found > 1 ? 's' : ''} retrouvée${backfill.found > 1 ? 's' : ''}.`
-            : 'Aucune jaquette retrouvée cette fois.'}
-          {backfill.fournisseurMuet &&
-            ` Le fournisseur n'a pas répondu - ${backfill.processed}/${backfill.total} séries traitées, réessaie plus tard pour les autres.`}
-        </p>
-      )}
 
       {donnees.erreurs.map((message) => (
         <ErrorBanner key={message} message={message} />
@@ -475,18 +400,6 @@ export function ShelfPage() {
                 <X size={16} />
               </button>
             </div>
-            <button
-              type="button"
-              onClick={backfillMissingCovers}
-              disabled={entitiesMissingCovers.length === 0 || backfill?.running}
-              className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover disabled:opacity-40"
-            >
-              <ImagePlus size={17} />
-              Retrouver les jaquettes manquantes
-              {entitiesMissingCovers.length > 0 && (
-                <span className="ml-auto text-xs font-normal text-textDim">{entitiesMissingCovers.length}</span>
-              )}
-            </button>
             {/* « Catégories de collection » ici plutôt qu'uniquement sous
                 Administration : une catégorie STRUCTURE cet
                 écran (un rail par type), c'est donc ici qu'on se rend compte

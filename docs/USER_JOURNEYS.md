@@ -73,7 +73,9 @@ lien de partage ne voit jamais la navigation privée.
 **Point de départ** : Ma collection (`/`)
 **Préconditions** : au moins une possession active.
 **Étapes** : 1. Ouvrir l'app. 2. Lire l'en-tête et parcourir les rails.
-**Résultat** : un rail par type de collection possédé, une tuile par œuvre avec
+**Résultat** : un rail par type de collection possédé — le plus fourni en
+titres d'abord, puis par libellé (lot 136 : l'ordre vient des données, plus
+d'une liste de codes qui plaçait le manga en premier) —, une tuile par œuvre avec
 sa jaquette, son édition dominante et sa progression « X/Y tomes » ; en-tête
 « N titres possédés · N ajouts ce mois ». Un signal « Plus que N tomes »
 apparaît quand il reste ≤ 3 tomes.
@@ -104,17 +106,20 @@ type, avec le même filtre de complétude et un retour « Ma collection ».
 **Statut** : `COMPLET`
 
 ### 04. Retrouver les jaquettes manquantes
-**Point de départ** : Ma collection ▸ Plus d'outils
-**Préconditions** : au moins une œuvre sans jaquette (le bouton est désactivé
-sinon, avec le compte affiché).
-**Étapes** : 1. Ouvrir Plus d'outils. 2. Cliquer « Retrouver les jaquettes
+**Point de départ** : le rayon Manga (Ma collection ▸ « Tout voir » du rail
+Manga), à côté de Filtres. C'est l'outil de l'univers manga : il vit sur son
+rayon, et plus dans les outils de Ma collection, qui valent pour toute
+collection (lot 136).
+**Préconditions** : au moins un manga possédé sans jaquette (le bouton est
+désactivé sinon, avec le compte affiché).
+**Étapes** : 1. Ouvrir le rayon Manga. 2. Cliquer « Retrouver les jaquettes
 manquantes ».
 **Résultat** : recherche en deux passes (cache gratuit, puis `forceRefresh` pour
 les seules séries restées sans jaquette) ; compte-rendu « N jaquettes
 retrouvées » ou « Aucune jaquette retrouvée cette fois ».
 **Branches** : quota Google Books dépassé → message explicite « N/M séries
 traitées, réessaie plus tard ».
-**Écrans** : `ShelfPage`, `backfillCovers.ts`
+**Écrans** : `CategoryPage`, `RattrapageJaquettes`, `backfillCovers.ts`
 **Backend** : `GET /metadata/volumes`, `PATCH /entities/{id}/variants/{vid}`
 **Statut** : `COMPLET`
 
@@ -130,7 +135,10 @@ Indisponible » sur Profil, et 0,00 € explicitement qualifié sur `/stats`.
 **Statut** : `COMPLET` — données réelles, jamais simulées.
 
 ### 06. Importer une collection BoardGameGeek
-**Point de départ** : Ma collection ▸ Import (ou Administration)
+**Point de départ** : Catalogue ▸ « Importer depuis BGG », à côté de Scanner.
+Le bouton « Import » de Ma collection a disparu au lot 136 : un import propre
+aux jeux de société n'a pas sa place dans la barre d'outils de toute la
+collection.
 **Étapes** : 1. Saisir un pseudo BGG. 2. Importer.
 **Résultat** : les jeux marqués « possédés » sur BGG sont ajoutés ; un jeu déjà
 présent (même titre) est retrouvé, jamais dupliqué.
