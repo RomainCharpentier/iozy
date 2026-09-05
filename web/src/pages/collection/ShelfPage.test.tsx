@@ -115,7 +115,7 @@ describe('le filtre par tag', () => {
 
     await filtrerSur('Lu')
 
-    expect(await screen.findByText('Aucune série ne correspond à ces filtres.')).toBeInTheDocument()
+    expect(await screen.findByText('Rien ne correspond à ces filtres.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Réinitialiser les filtres' })).toBeInTheDocument()
   })
 })

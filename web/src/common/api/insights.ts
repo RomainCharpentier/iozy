@@ -1,5 +1,5 @@
 import { get, post, buildQuery } from './client'
-import type { CollectionAnswerDto, CollectionProgressDto, ReadingListDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
+import type { CollectionAnswerDto, CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
@@ -45,9 +45,4 @@ export function discover(entityTypeCode: 'MANGA' | 'BOARD_GAME' | 'VIDEO_GAME'):
  */
 export function poserQuestion(question: string): Promise<CollectionAnswerDto | undefined> {
   return post<CollectionAnswerDto | undefined>('/insights/question', { question })
-}
-
-/** « À lire » - entièrement calculé côté serveur, rien à tenir à jour. */
-export function getReadingList(): Promise<ReadingListDto> {
-  return get<ReadingListDto>('/insights/reading-list')
 }

@@ -21,11 +21,6 @@ export interface ShelfTile {
   signal?: string
 }
 
-/** Même ordre que la maquette V1.2 (const ORDER : manga, jv, jds, puis le
- * reste) - les codes non listés ici (un type créé plus tard via
- * Administration) suivent à la fin, jamais masqués. */
-const TYPE_ORDER = ['MANGA', 'VIDEO_GAME', 'BOARD_GAME', 'BOOK']
-
 function formatTomeCount(count: number): string {
   return `${count} tome${count > 1 ? 's' : ''}`
 }
@@ -149,20 +144,42 @@ export function matchesCompletionFilter(
   return filter === 'COMPLETE' ? complete : !complete
 }
 
-/** Regroupe les entités possédées par type, dans l'ordre de la maquette,
- * SANS les types à 0 titre (voir la maquette V1.2 - `sections.filter(s =>
- * s.tiles.length > 0)`, jamais un rail vide qui n'aurait rien à faire
- * défiler). */
-/** L'ordre d'affichage des types, partagé par les DEUX vues : grouper puis
- *  dégrouper ne doit pas changer l'ordre dans lequel les univers défilent. */
-export function trierTypes(entityTypes: EntityTypeDto[]): EntityTypeDto[] {
-  return [...entityTypes].sort((a, b) => {
-    const ia = TYPE_ORDER.indexOf(a.code)
-    const ib = TYPE_ORDER.indexOf(b.code)
-    return (ia === -1 ? TYPE_ORDER.length : ia) - (ib === -1 ? TYPE_ORDER.length : ib)
-  })
+/** Combien de TITRES chaque type compte dans cette collection - ce qui décide de l'ordre des rails. */
+export function compterLesTitresParType(entities: EntityResponse[]): Map<string, number> {
+  const titres = new Map<string, number>()
+  for (const entity of entities) {
+    titres.set(entity.entityTypeId, (titres.get(entity.entityTypeId) ?? 0) + 1)
+  }
+  return titres
 }
 
+/**
+ * L'ordre des rails : le type le plus fourni d'abord, puis par libellé.
+ *
+ * <h2>Pourquoi les données, et pas une liste de codes</h2>
+ * L'ordre était écrit dans le code - manga, jeu vidéo, jeu de société, puis
+ * le reste - c'est-à-dire l'univers de départ en premier, quoi qu'on
+ * collectionne. Ma collection appartient au cœur (lot 136) : ce qu'on
+ * collectionne le plus passe en premier, et une catégorie créée demain se
+ * range comme les autres. À égalité, le libellé - un ordre qu'on peut
+ * prévoir, jamais celui d'arrivée du serveur.
+ *
+ * <p>Compté en TITRES, et partagé par les DEUX vues : grouper puis dégrouper
+ * ne doit pas changer l'ordre dans lequel les univers défilent, alors que
+ * trois séries de vingt tomes pèsent plus lourd que dix jeux une fois
+ * dégroupées.
+ */
+export function ordonnerLesTypes(entityTypes: EntityTypeDto[], titresParType: Map<string, number>): EntityTypeDto[] {
+  return [...entityTypes].sort(
+    (a, b) =>
+      (titresParType.get(b.id) ?? 0) - (titresParType.get(a.id) ?? 0) || a.label.localeCompare(b.label, 'fr'),
+  )
+}
+
+/** Regroupe les œuvres retenues par type, SANS les types à 0 titre (jamais un
+ *  rail vide qui n'aurait rien à faire défiler), dans l'ordre de
+ *  `ordonnerLesTypes` - compté sur `titresParType` quand l'appelant le donne
+ *  (toute la collection, avant filtre), sur les œuvres reçues sinon. */
 export function groupByEntityType(
   entities: EntityResponse[],
   entityTypes: EntityTypeDto[],
@@ -172,8 +189,9 @@ export function groupByEntityType(
     tomesVoulus: 0,
     prioritaire: false,
   }),
+  titresParType: Map<string, number> = compterLesTitresParType(entities),
 ): { entityType: EntityTypeDto; tiles: ShelfTile[] }[] {
-  return trierTypes(entityTypes)
+  return ordonnerLesTypes(entityTypes, titresParType)
     .map((entityType) => ({
       entityType,
       tiles: entities

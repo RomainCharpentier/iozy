@@ -334,29 +334,3 @@ export interface CollectionAnswerDto {
   confiance: 'HIGH' | 'MEDIUM' | 'LOW'
   modele: string
 }
-
-/** « À lire » : par série, le prochain tome possédé sans expérience - voir ReadingList côté backend. */
-export interface ReadingListDto {
-  series: ReadingSerieDto[]
-  tomesARelire: number
-}
-
-export interface ReadingSerieDto {
-  entityId: UUID
-  titre: string
-  typeLabel: string | null
-  couvertureUrl: string | null
-  prochain: ReadingTomeDto
-  restants: number
-  lus: number
-  /** Au moins un tome de la série a déjà une expérience : « reprendre » plutôt que « commencer ». */
-  commencee: boolean
-}
-
-export interface ReadingTomeDto {
-  variantId: UUID
-  libelle: string
-  numero: number | null
-  edition: string | null
-  couvertureUrl: string | null
-}
