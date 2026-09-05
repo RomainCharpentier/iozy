@@ -94,6 +94,9 @@ export function EntityDetailPage() {
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
+  /** « Terminer » a été demandé alors que le brouillon de l'inspecteur a
+   *  changé : la sortie attend qu'on enregistre ou qu'on abandonne. */
+  const [sortieDemandee, setSortieDemandee] = useState(false)
   // Une visite ne modifie rien : les points d'entrée d'édition ne sont pas
   // désactivés, ils n'existent pas. Tous sont facultatifs par construction, et
   // ne pas les passer suffit à les retirer - « Éditer » emporte au passage
@@ -474,8 +477,23 @@ export function EntityDetailPage() {
    * repart de la base à chaque sortie du mode.
    */
   function basculerModeEdition() {
-    if (modeEdition) brouillon.annuler()
-    setModeEdition((ouvert) => !ouvert)
+    if (!modeEdition) {
+      setModeEdition(true)
+      return
+    }
+    // « Terminer » avec un brouillon modifié : on ne jette rien sans le
+    // dire. Un panneau en ligne sous l'inspecteur, même idiome que les
+    // suppressions (voir EntityTypesPage) - pas de window.confirm.
+    if (brouillon.modifie) {
+      setSortieDemandee(true)
+      return
+    }
+    setModeEdition(false)
+  }
+  function terminerEdition() {
+    brouillon.annuler()
+    setSortieDemandee(false)
+    setModeEdition(false)
   }
   const jaquettesManquantes = variantsMissingCover(entity).length
   const dansEnvies = !!wishlist.entryFor(entityId)
@@ -858,11 +876,30 @@ export function EntityDetailPage() {
             </>
           }
         />
+        {modeEdition && sortieDemandee && brouillon.modifie && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-surface2 px-4 py-3">
+            <span className="text-sm text-textPrimary">Des modifications ne sont pas enregistrées.</span>
+            <button
+              type="button"
+              onClick={() => void brouillon.enregistrer().then(terminerEdition)}
+              disabled={brouillon.enCours}
+              className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+            >
+              {brouillon.enCours ? 'Enregistrement...' : 'Enregistrer et terminer'}
+            </button>
+            <button type="button" onClick={terminerEdition} className="px-2 py-2 text-sm text-dangerText">
+              Abandonner
+            </button>
+            <button type="button" onClick={() => setSortieDemandee(false)} className="px-2 py-2 text-sm text-textDim">
+              Continuer d’éditer
+            </button>
+          </div>
+        )}
         {modeEdition && (
           <div className="flex flex-wrap items-center gap-3 pt-3">
             <button
               type="button"
-              onClick={brouillon.enregistrer}
+              onClick={() => void brouillon.enregistrer()}
               disabled={brouillon.enCours || !brouillon.modifie}
               className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
             >

@@ -62,6 +62,19 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
 
     /** « Doubt - Tome 1 », « Naruto, tome 5 », « Vol. 12 », « T.3 » - meme famille que Google Books. */
     private static final Pattern VOLUME_NUMBER = Pattern.compile("(?i)\\b(?:tome|vol\\.?|t\\.?)\\s*0*(\\d+)");
+
+    /**
+     * Open Library decrit des OEUVRES, pas des exemplaires : un meme document
+     * porte la liste de TOUS les editeurs et de TOUS les ISBN de ses
+     * editions, sans les apparier. « Jujutsu Kaisen, Vol. 7 » y a Viz Media
+     * en premier editeur et un ISBN 978-2 (celui de Ki-oon) dans la liste :
+     * le filtre par ISBN laissait passer une « edition Viz Media » de deux
+     * tomes (mesure du 2026-09-05). Un titre en « Vol. » est la convention
+     * anglophone ; les editeurs ci-dessous ne publient pas en francais.
+     */
+    private static final Pattern TITRE_ANGLOPHONE = Pattern.compile("(?i)\\bvol\\.?\\s*\\d");
+    private static final List<String> EDITEURS_ANGLOPHONES = List.of(
+            "viz", "yen press", "kodansha", "dark horse", "seven seas", "square enix manga", "tokyopop", "vertical");
     private static final int VOLUME_NUMBER_MAX = 999;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -145,7 +158,13 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
             if (numero.isEmpty()) {
                 continue;
             }
+            if (TITRE_ANGLOPHONE.matcher(titre).find()) {
+                continue;
+            }
             String editeur = premier(doc.path("publisher"));
+            if (editeur != null && estAnglophone(editeur)) {
+                continue;
+            }
             if (editeur == null || editeur.isBlank()) {
                 // Sans editeur, impossible de nommer l'edition - et une
                 // « Édition inconnue » de plus n'aiderait personne ici, la
@@ -176,6 +195,11 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     /** 978-2 et 979-10 : les groupes d'enregistrement ISBN de langue francaise. */
+    static boolean estAnglophone(String editeur) {
+        String e = editeur.toLowerCase(Locale.ROOT);
+        return EDITEURS_ANGLOPHONES.stream().anyMatch(e::contains);
+    }
+
     static boolean estIsbnFrancophone(String isbn) {
         if (isbn == null) {
             return false;

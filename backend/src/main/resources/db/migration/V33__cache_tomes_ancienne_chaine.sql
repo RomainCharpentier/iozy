@@ -1,0 +1,15 @@
+-- Lot 131 : le cache durable des tomes ne se perime jamais (V3) - c'est
+-- voulu, un resultat trouve n'est plus jamais redemande de lui-meme. Mais
+-- il garde alors aussi ce qu'une ANCIENNE chaine de sources avait trouve :
+-- au 2026-09-05, la base de developpement servait encore des lignes d'aout
+-- (Google Books seule, puis un ordre depuis renverse par les lots 119-127 :
+-- BnF en tete, Open Library, sondage tome par tome, editions distinguees par
+-- ISBN). Boruto sans auteur y melait Two Blue Vortex, Vagabond n'avait que
+-- 37 tomes en « Edition inconnue », et des lignes VIDES disaient « aucun
+-- tome » pour toujours a Kimetsu no Yaiba ou Boruto : Two Blue Vortex.
+--
+-- Regle posee ici : a chaque changement de chaine, une migration vide ce
+-- cache. Rien n'est perdu - il se reconstruit a la demande, une serie a la
+-- fois, au rythme des fiches qu'on ouvre. Les lignes sans auteur, que le
+-- lot 126 ne persiste plus, partent avec.
+DELETE FROM volume_search_cache;
