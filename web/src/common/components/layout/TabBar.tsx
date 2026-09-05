@@ -14,9 +14,10 @@ import { useAuth } from '@/common/hooks/useAuth'
  * d'aria-current, séparé par une bordure) - juste un accès une-main vers un
  * point d'entrée déjà couvert par Rechercher.
  *
- * <p>Quatre onglets tiennent sur 375 px parce que chacun affiche son libellé
- * COURT (voir NavItem.labelCourt) : « Analyser une annonce » y devient
- * « Annonce », et le libellé complet reste sur la barre desktop.
+ * <p>Chaque onglet affiche son libellé COURT (voir NavItem.labelCourt) :
+ * « Ma collection » y devient « Collection », et le libellé complet reste sur
+ * la barre desktop. Ils ont été quatre du 2026-08-27 au lot 137 ; trois
+ * tiennent d'autant mieux sur 375 px.
  *
  * <p>Deux pendant une visite sans compte, et le raccourci Scan disparaît avec
  * eux : ce sont des destinations d'ÉCRITURE (voir lib/accesInvite), et un

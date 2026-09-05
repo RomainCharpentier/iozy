@@ -50,8 +50,10 @@ describe('la seule sortie de Profil', () => {
     expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
   })
 
-  it('ne double plus une destination de la barre de navigation', () => {
-    // « Analyser une annonce » est l'un des quatre onglets globaux.
+  it('ne mène pas à l’analyse d’une annonce, qui a ses portes ailleurs', () => {
+    // Elle a été l'un des quatre onglets globaux ; depuis le lot 137 elle se
+    // rejoint depuis Découvrir et depuis la fiche d'une série. Le profil
+    // n'a pas plus de raison de la doubler qu'avant.
     expect(screen.queryByRole('link', { name: /Analyser une annonce/ })).not.toBeInTheDocument()
   })
 

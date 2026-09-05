@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { Scale } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getNearCompleteSuggestions } from '@/common/api/purchaseAnalysis'
 import { searchEntities } from '@/common/api/entities'
@@ -87,17 +86,9 @@ export function DiscoverOpportunitiesPreview() {
         })}
       </div>
 
-      {/* Le pendant naturel des opportunités : elles disent ce qu'il manque,
-          ceci permet de juger une annonce trouvée ailleurs. Discret - la même
-          route que « Évaluer un achat », pas une fonctionnalité de plus. */}
-      <button
-        type="button"
-        onClick={() => navigate('/purchase-analysis')}
-        className="flex min-h-11 items-center gap-1.5 self-start rounded-lg px-2 text-xs font-semibold text-accent underline underline-offset-2"
-      >
-        <Scale size={13} />
-        Évaluer une annonce
-      </button>
+      {/* Plus de lien « Évaluer une annonce » ici : depuis le lot 137, la porte
+          de l'analyse est en tête de Découvrir, sur tous les onglets - un
+          second lien dans ce panneau n'aurait fait que la doubler. */}
     </div>
   )
 }

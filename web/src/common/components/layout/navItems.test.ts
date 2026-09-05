@@ -25,8 +25,11 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/discover', '/discover'],
   ['/tier-lists', '/discover'],
   ['/tier-lists/board-1', '/discover'],
-  ['/purchase-analysis', '/purchase-analysis'],
-  ['/purchase-analysis/history', '/purchase-analysis'],
+  ['/suggestions', '/discover'],
+  // L'analyse d'une annonce a quitté la barre (lot 137) : elle s'ouvre depuis
+  // Découvrir, et c'est lui qui s'allume.
+  ['/purchase-analysis', '/discover'],
+  ['/purchase-analysis/history', '/discover'],
 ]
 
 function allumees(pathname: string): string[] {
@@ -53,13 +56,14 @@ describe('le surlignage de la navigation', () => {
 })
 
 describe('la liste elle-même', () => {
-  it('porte quatre destinations, toutes distinctes', () => {
-    expect(NAV_ITEMS).toHaveLength(4)
-    expect(new Set(NAV_ITEMS.map((item) => item.to)).size).toBe(4)
+  it('porte trois destinations, toutes distinctes, et aucune ne nomme un univers', () => {
+    expect(NAV_ITEMS).toHaveLength(3)
+    expect(new Set(NAV_ITEMS.map((item) => item.to)).size).toBe(3)
+    expect(NAV_ITEMS.map((item) => item.to)).not.toContain('/purchase-analysis')
   })
 
   it('donne à chaque entrée un libellé court qui tient dans la barre du pouce', () => {
-    // Quatre onglets sur 375 px : « Analyser une annonce » n'y entre pas.
+    // Sur 375 px : « Ma collection » y devient « Collection ».
     for (const item of NAV_ITEMS) {
       expect(item.labelCourt.length).toBeLessThanOrEqual(item.label.length)
       expect(item.labelCourt.length).toBeLessThanOrEqual(12)

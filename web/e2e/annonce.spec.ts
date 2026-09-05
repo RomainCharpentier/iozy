@@ -26,8 +26,17 @@ test('saisir une annonce, et voir les tomes déjà possédés corriger le verdic
     prixNeufAuTome: 8,
   })
 
-  await page.goto('/purchase-analysis')
+  // --- Depuis Découvrir : c'est là que vit l'analyse depuis qu'elle a quitté
+  //     la barre de navigation (lot 137), avec la fiche d'une série. La barre,
+  //     elle, ne la nomme plus - une destination de moins, pas un raccourci
+  //     de plus.
+  await page.goto('/discover')
+  await page.getByRole('link', { name: /Analyser une annonce/ }).click()
+  await expect(page).toHaveURL(/\/purchase-analysis$/)
   await expect(page.getByRole('heading', { name: 'Analyser une annonce' })).toBeVisible()
+  await expect(page.getByRole('navigation').getByRole('link', { name: /Analyser une annonce/ })).toHaveCount(0)
+  // Et l'écran sait d'où l'on vient.
+  await expect(page.getByRole('button', { name: 'Découvrir' })).toBeVisible()
 
   // --- Le lot : six tomes, dont deux qu'on a déjà
   // `getByRole('textbox')` et non `getByLabel` : le bouton « Ajouter une autre

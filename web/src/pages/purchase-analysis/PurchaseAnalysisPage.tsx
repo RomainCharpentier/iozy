@@ -24,6 +24,15 @@ import { ListingSummaryCard } from './ListingSummaryCard'
 import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { LienRetour } from '@/common/components/LienRetour'
+
+/**
+ * D'où l'on revient : Découvrir, qui porte la porte de cet écran depuis le
+ * lot 137, ou la série quand on arrive de sa fiche (elle nomme son retour).
+ * L'écran a été une destination de la navigation, sans retour à proposer ;
+ * il ne l'est plus, et c'est un parcours manga que la barre ne nomme pas.
+ */
+const RETOUR_PAR_DEFAUT = { to: '/discover', libelle: 'Découvrir' }
 
 interface QueuedItem {
   seriesTitle: string
@@ -460,6 +469,7 @@ export function PurchaseAnalysisPage() {
   if (analyzeMutation.isSuccess) {
     return (
       <div className="flex flex-col gap-5">
+        <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />
         <div className="flex items-center justify-between gap-2">
           <EnTeteSection niveau={1} titre="Analyser une annonce" />
           <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">
@@ -474,6 +484,7 @@ export function PurchaseAnalysisPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <LienRetour parDefaut={RETOUR_PAR_DEFAUT} />
       <div className="flex items-center justify-between gap-2">
         <EnTeteSection niveau={1} titre="Analyser une annonce" />
         <Link to="/purchase-analysis/history" className="flex min-h-11 items-center gap-1.5 text-xs text-textDim underline">

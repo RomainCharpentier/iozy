@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, ChevronRight, ListOrdered, PartyPopper, Sparkles } from 'lucide-react'
+import { Bell, ChevronRight, ListOrdered, PartyPopper, Scale, Sparkles } from 'lucide-react'
 import { DiscoverTierPreview } from './DiscoverTierPreview'
 import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
 import { DiscoverReleasesPanel } from './DiscoverReleasesPanel'
@@ -29,6 +29,32 @@ export function DiscoverPage() {
   return (
     <div className="flex flex-col gap-5">
       <EnTeteSection niveau={1} titre="Découvrir" />
+
+      {/* La porte de l'analyse d'achat. Elle a été la quatrième destination
+          de la navigation (étude produit du 2026-08-27, §4) jusqu'au lot 137 :
+          c'est un parcours MANGA - un lot de tomes d'occasion confronté à la
+          collection - et la barre de navigation ne nomme plus aucun univers.
+          Il se rejoint d'ici, et depuis la fiche d'une série (« Évaluer une
+          annonce »). Une carte-lien comme le bilan annuel plus bas, pas un
+          quatrième panneau : la composition éditoriale n'en attend pas. En
+          tête, parce que c'est une ACTION - on arrive avec une annonce sous
+          les yeux - là où les panneaux se lisent. */}
+      <Link
+        to="/purchase-analysis"
+        state={{ retour: { to: '/discover', libelle: 'Découvrir' } }}
+        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accentTint text-accentText">
+          <Scale size={18} />
+        </span>
+        <span className="flex-1">
+          <span className="block font-medium text-textPrimary">Analyser une annonce</span>
+          <span className="block text-xs text-textDim">
+            Un lot de mangas d'occasion sous les yeux ? Confronte-le à ta collection avant d'acheter.
+          </span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-textDim" />
+      </Link>
 
       <div role="tablist" className="defilement-discret flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (

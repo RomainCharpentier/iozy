@@ -32,7 +32,7 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
   )
 }
 
-/** Navigation desktop (>= 768px, voir AppShell.NAV_BREAKPOINT) - les quatre
+/** Navigation desktop (>= 768px, voir AppShell.NAV_BREAKPOINT) - les trois
  * destinations de NAV_ITEMS, la même liste que la barre du pouce. Envies
  * (cœur, avec badge) et Profil (avatar) restent des raccourcis séparés,
  * jamais des destinations pairs : les Envies sont une lecture de Ma
