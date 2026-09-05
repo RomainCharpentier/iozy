@@ -1360,6 +1360,37 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 132 — le paquet metadata réorganisé par univers
+
+Demande utilisateur du 2026-09-05 : « réorganise l'api pour bien séparer les
+modules de récupération de mangas, de jeux vidéo, jeux de société et de
+récupération via la base iozycore ». Jusqu'ici tout vivait à plat dans
+`metadata` : dix-sept classes à la racine (contrats, service de 1 087 lignes
+mêlant recherche par titre, code-barres, titre français et tomes), huit
+sous-paquets par SOURCE (anilist, jikan, bnf, igdb, bgg…) — la source était
+visible, l'univers ne l'était pas, et la base iozycore n'avait pas de module.
+
+**Le découpage, par univers et non par source :**
+
+| Paquet | Ce qu'il tient |
+|---|---|
+| `metadata` | Les contrats communs (`MetadataProvider`, `MetadataCandidate`, `BarcodeMetadataProvider`, exceptions, `TtlCache`) et `MetadataSearchService`, réduit aux deux gestes valables pour TOUS les univers : chercher par titre, reconnaître un code-barres. |
+| `metadata.manga` | `FrenchTitleService` (titre de l'édition française), `TomeSearchService` (tomes, éditions, toute la chaîne des lots 119-131), `RelatedSeriesService`, leurs contrats (`VolumeSearchProvider`, `VolumeCandidate`…), et les sources en sous-paquets : anilist, jikan, myanimelist, googlebooks, bnf, openlibrary. |
+| `metadata.videogame` | IGDB (fournisseur, jeux similaires, jeton). |
+| `metadata.boardgame` | BGG (fournisseur, collection, hot list, fiche). |
+| `metadata.catalog` | `CatalogSearchService` — la récupération via la base iozycore : la recherche locale que l'écran Rechercher interroge à côté des fournisseurs, et les titres déjà connus d'un type, dont la recherche externe se sert pour ne pas reproposer ce qu'on possède. Lecture seule : faire exister une fiche reste `CatalogEntityResolver`, côté application. |
+
+`api.metadata` suit : `MetadataController` (search, lookup-barcode),
+`api.metadata.manga.MangaMetadataController` (french-title, volumes,
+volumes/known-empty), `api.metadata.boardgame.BggImportController`
+(bgg/import). **Aucune route n'a changé** — le web et les tests HTTP n'ont
+pas bougé. `EntityController.search` passe désormais par le module
+catalogue. `TtlCache` devient public, les services d'univers s'en servent.
+
+Mécanique : `git mv` pour l'historique ; le service et son test (919
+lignes) découpés par membre — 12 tests pour la recherche et le code-barres,
+10 pour le titre français, 12 pour les tomes. Suites complètes rejouées.
+
 ### Lot 131 — les huit mangas mesurés contre mangacollec, et la chaîne corrigée
 
 Suite de l'audit du 2026-09-05 (« tu vois rien à faire ? »). Trois choses

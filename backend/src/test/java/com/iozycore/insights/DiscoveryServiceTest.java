@@ -8,10 +8,10 @@ import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.bgg.BggHotListFetcher;
-import com.iozycore.metadata.bgg.BggThingFetcher;
-import com.iozycore.metadata.igdb.IgdbSimilarGamesFetcher;
-import com.iozycore.metadata.jikan.JikanMetadataProvider;
+import com.iozycore.metadata.boardgame.BggHotListFetcher;
+import com.iozycore.metadata.boardgame.BggThingFetcher;
+import com.iozycore.metadata.videogame.IgdbSimilarGamesFetcher;
+import com.iozycore.metadata.manga.jikan.JikanMetadataProvider;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

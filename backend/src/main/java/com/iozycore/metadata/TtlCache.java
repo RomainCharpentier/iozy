@@ -22,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * l'échelle d'une collection personnelle (le coût est juste quelques appels
  * API en plus, jamais une incohérence).
  */
-class TtlCache<K, V> {
+// Public depuis le Lot 132 : les services des univers (metadata.manga...) s'en servent.
+public class TtlCache<K, V> {
 
     private record Entry<V>(V value, Instant expiresAt) {
         boolean isExpired(Instant now) {
@@ -34,12 +35,12 @@ class TtlCache<K, V> {
     private final int maxEntries;
     private final Map<K, Entry<V>> entries = new ConcurrentHashMap<>();
 
-    TtlCache(Duration timeToLive, int maxEntries) {
+    public TtlCache(Duration timeToLive, int maxEntries) {
         this.timeToLive = timeToLive;
         this.maxEntries = maxEntries;
     }
 
-    Optional<V> get(K key) {
+    public Optional<V> get(K key) {
         Entry<V> entry = entries.get(key);
         if (entry == null) {
             return Optional.empty();
@@ -51,7 +52,7 @@ class TtlCache<K, V> {
         return Optional.of(entry.value());
     }
 
-    void put(K key, V value) {
+    public void put(K key, V value) {
         if (entries.size() >= maxEntries) {
             entries.clear();
         }
@@ -59,7 +60,7 @@ class TtlCache<K, V> {
     }
 
     /** Oublie une cle, si elle est la. */
-    void invalidate(K key) {
+    public void invalidate(K key) {
         entries.remove(key);
     }
 }

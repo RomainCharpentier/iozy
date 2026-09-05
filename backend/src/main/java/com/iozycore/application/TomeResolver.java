@@ -1,6 +1,6 @@
 package com.iozycore.application;
 
-import com.iozycore.metadata.bnf.BnfCouverture;
+import com.iozycore.metadata.manga.bnf.BnfCouverture;
 import com.iozycore.domain.catalog.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;

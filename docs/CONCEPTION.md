@@ -151,7 +151,7 @@ Vue "étagère" par type (grille de couvertures) → navigation libre, sans filt
 2. **Ownership** — gestion des possessions, référence Catalog par ID.
 3. **Experience** — gestion des expériences vécues, référence Catalog par ID.
 4. **Wishlist** — cycle de vie propre (ajoutée / retirée / convertie en Ownership).
-5. **Metadata Enrichment** — intégration API publiques externes, anti-corruption layer vers Catalog.
+5. **Metadata Enrichment** — intégration API publiques externes, anti-corruption layer vers Catalog. Depuis le Lot 132, le paquet `metadata` est découpé **par univers** : `metadata` (contrats communs + recherche par titre et code-barres, tous univers), `metadata.manga` (titre français, tomes et éditions, séries liées ; sources AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), `metadata.videogame` (IGDB), `metadata.boardgame` (BGG), et `metadata.catalog` — la récupération via la **base iozycore** elle-même (recherche locale, titres déjà connus). Les contrôleurs suivent le même découpage sous `api.metadata`, sans changement de route.
 6. **Insights** — regroupe Recherche + Statistiques, lecture transversale en read-model alimentée par les domain events des autres contextes.
 
 ---

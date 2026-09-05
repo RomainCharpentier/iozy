@@ -2,8 +2,8 @@ package com.iozycore.application;
 
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.metadata.bgg.BggCollectionFetcher;
-import com.iozycore.metadata.bgg.BggCollectionItem;
+import com.iozycore.metadata.boardgame.BggCollectionFetcher;
+import com.iozycore.metadata.boardgame.BggCollectionItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
