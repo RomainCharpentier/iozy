@@ -1,8 +1,8 @@
 package com.iozycore.integration;
 
-import com.iozycore.application.auth.Invite;
-import com.iozycore.application.auth.UtilisateurCourant;
-import com.iozycore.domain.shared.DefaultOwner;
+import com.iozycore.core.application.auth.Invite;
+import com.iozycore.core.application.auth.UtilisateurCourant;
+import com.iozycore.core.domain.shared.DefaultOwner;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;

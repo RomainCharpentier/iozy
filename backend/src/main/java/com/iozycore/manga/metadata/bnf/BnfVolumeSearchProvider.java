@@ -1,8 +1,8 @@
 package com.iozycore.manga.metadata.bnf;
 
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.VolumeCandidate;
-import com.iozycore.metadata.SourceUnavailableException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

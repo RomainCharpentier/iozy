@@ -2,10 +2,10 @@ package com.iozycore.manga.metadata.googlebooks;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.MetadataProvider;
-import com.iozycore.metadata.QuotaExceededException;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.QuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

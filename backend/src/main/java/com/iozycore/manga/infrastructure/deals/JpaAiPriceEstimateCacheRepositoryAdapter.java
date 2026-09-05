@@ -3,7 +3,7 @@ package com.iozycore.manga.infrastructure.deals;
 import com.iozycore.manga.deals.AiPriceEstimate;
 import com.iozycore.manga.deals.AiPriceEstimateCacheRepository;
 import com.iozycore.manga.deals.Condition;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -3,8 +3,8 @@ package com.iozycore.integration.http;
 import com.iozycore.integration.PostgresIntegrationTest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.application.auth.AppUserDetailsService;
-import com.iozycore.domain.shared.DefaultOwner;
+import com.iozycore.core.application.auth.AppUserDetailsService;
+import com.iozycore.core.domain.shared.DefaultOwner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;

@@ -1,7 +1,7 @@
 package com.iozycore.manga.deals;
 
 import java.math.BigDecimal;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * Price information for one item, always keeping observed, AI-estimated and

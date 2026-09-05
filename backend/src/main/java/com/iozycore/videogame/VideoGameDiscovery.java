@@ -1,12 +1,12 @@
 package com.iozycore.videogame;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.shared.TexteRecherche;
-import com.iozycore.insights.DiscoveryCandidate;
-import com.iozycore.insights.DiscoverySource;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.insights.DiscoverySource;
+import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;
 import org.springframework.stereotype.Component;
 

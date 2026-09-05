@@ -1,9 +1,9 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 
 import java.util.Optional;
 
@@ -11,8 +11,8 @@ import java.util.Optional;
  * Best-effort, read-only resolution of a listing's raw series title against
  * an existing {@link Entity} of type MANGA in the user's own catalog - same
  * case-insensitive matching convention as
- * {@link com.iozycore.metadata.MetadataSearchService#search}. Never reads
- * nor writes {@link com.iozycore.domain.ownership.Ownership} data; the
+ * {@link com.iozycore.core.metadata.MetadataSearchService#search}. Never reads
+ * nor writes {@link com.iozycore.core.domain.ownership.Ownership} data; the
  * resulting {@link MangaSeries#knownEntityId()} is only used to power UI
  * hints ("you already own N volumes") and to enable the wishlist action.
  */

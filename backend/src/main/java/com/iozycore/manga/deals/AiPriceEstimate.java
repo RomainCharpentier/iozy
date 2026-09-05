@@ -1,7 +1,7 @@
 package com.iozycore.manga.deals;
 
 import java.math.BigDecimal;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * An LLM's best-effort estimate of the current second-hand per-volume

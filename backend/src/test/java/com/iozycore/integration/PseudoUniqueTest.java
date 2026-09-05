@@ -1,7 +1,7 @@
 package com.iozycore.integration;
 
-import com.iozycore.domain.user.AppUser;
-import com.iozycore.domain.user.AppUserRepository;
+import com.iozycore.core.domain.user.AppUser;
+import com.iozycore.core.domain.user.AppUserRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

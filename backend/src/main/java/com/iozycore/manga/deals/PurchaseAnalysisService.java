@@ -1,15 +1,15 @@
 package com.iozycore.manga.deals;
 
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import com.iozycore.manga.insights.CollectionProgress;
+import com.iozycore.core.insights.CollectionProgress;
 import com.iozycore.manga.insights.CollectionProgressService;
 
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 
 /**
  * Entry point of the Purchase Analysis feature - reads {@code catalog}
@@ -51,7 +51,7 @@ public class PurchaseAnalysisService {
     private final AiMarketPriceAdvisor aiMarketPriceAdvisor;
     private final AiPriceEstimateCacheRepository aiPriceEstimateCacheRepository;
     private final CollectionProgressService progressService;
-    private final com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository;
+    private final com.iozycore.core.domain.wishlist.WishlistEntryRepository wishlistEntryRepository;
     private final PurchaseAnalysisEngine engine = new PurchaseAnalysisEngine();
     private final MarketPriceCalculator marketPriceCalculator = new MarketPriceCalculator();
     private final CompletenessCalculator completenessCalculator = new CompletenessCalculator();
@@ -67,7 +67,7 @@ public class PurchaseAnalysisService {
                                     AiMarketPriceAdvisor aiMarketPriceAdvisor,
                                     AiPriceEstimateCacheRepository aiPriceEstimateCacheRepository,
                                     CollectionProgressService progressService,
-                                    com.iozycore.domain.wishlist.WishlistEntryRepository wishlistEntryRepository) {
+                                    com.iozycore.core.domain.wishlist.WishlistEntryRepository wishlistEntryRepository) {
         this.mangaEditionRepository = mangaEditionRepository;
         this.marketPriceObservationRepository = marketPriceObservationRepository;
         this.purchaseAnalysisRepository = purchaseAnalysisRepository;
@@ -95,7 +95,7 @@ public class PurchaseAnalysisService {
      *                          conservé dans l'analyse elle-même.
      */
     public record AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description, BigDecimal askingPrice,
-                                         BigDecimal shippingFee, com.iozycore.listing.ShippingEstimateKind shippingKind,
+                                         BigDecimal shippingFee, com.iozycore.core.listing.ShippingEstimateKind shippingKind,
                                          BigDecimal buyerProtectionFee, Condition condition,
                                          boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
                                          List<String> photoUrls, String externalListingId) {
@@ -103,7 +103,7 @@ public class PurchaseAnalysisService {
         /** Appelants qui n'ont pas d'identifiant de source - saisie entierement manuelle, et la plupart des tests. */
         public AnalyzeListingCommand(ListingPlatform platform, String url, String rawTitle, String description,
                                       BigDecimal askingPrice, BigDecimal shippingFee,
-                                      com.iozycore.listing.ShippingEstimateKind shippingKind,
+                                      com.iozycore.core.listing.ShippingEstimateKind shippingKind,
                                       BigDecimal buyerProtectionFee, Condition condition,
                                       boolean conditionAppliesToContainer, List<AnalyzeListingItemCommand> items,
                                       List<String> photoUrls) {
@@ -320,7 +320,7 @@ public class PurchaseAnalysisService {
      */
     private int comptePresentDansLesEnvies(List<PurchaseAnalysisEngine.ItemContext> contextes) {
         Set<UUID> souhaitees = wishlistEntryRepository.findAll().stream()
-                .map(com.iozycore.domain.wishlist.WishlistEntry::entityId)
+                .map(com.iozycore.core.domain.wishlist.WishlistEntry::entityId)
                 .collect(java.util.stream.Collectors.toSet());
         if (souhaitees.isEmpty()) {
             return 0;

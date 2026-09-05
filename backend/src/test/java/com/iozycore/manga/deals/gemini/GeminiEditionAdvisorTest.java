@@ -1,6 +1,6 @@
 package com.iozycore.manga.deals.gemini;
 
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 import com.iozycore.manga.deals.EditionSuggestion;
 import com.iozycore.manga.domain.EditionTier;
 import org.junit.jupiter.api.Test;

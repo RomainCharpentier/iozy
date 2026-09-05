@@ -1,6 +1,6 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /** A user-facing warning (edition risk, missing reference data, low confidence...), always carrying its own confidence. */
 public record Warning(WarningSeverity severity, String message, ConfidenceLevel confidence) {

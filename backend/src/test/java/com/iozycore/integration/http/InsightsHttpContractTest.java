@@ -1,8 +1,8 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.application.QuickAddService;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.ownership.OwnershipCondition;
+import com.iozycore.core.application.QuickAddService;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

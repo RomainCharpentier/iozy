@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.manga.deals.AiMarketPriceAdvisor;
 import com.iozycore.manga.deals.AiPriceEstimate;
 import com.iozycore.manga.deals.Condition;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
-import com.iozycore.gemini.GeminiRequests;
+import com.iozycore.core.gemini.GeminiRequests;
 
 /**
  * Calls the Google Gemini API to estimate a current second-hand per-volume

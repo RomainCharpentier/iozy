@@ -2,7 +2,7 @@ package com.iozycore.manga.recognition.gemini;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.gemini.GeminiRequests;
+import com.iozycore.core.gemini.GeminiRequests;
 import com.iozycore.manga.recognition.ImageRecognitionProvider;
 import com.iozycore.manga.recognition.RecognitionConfidence;
 import com.iozycore.manga.recognition.RecognitionContext;

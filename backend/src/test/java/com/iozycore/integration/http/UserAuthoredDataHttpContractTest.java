@@ -1,17 +1,17 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.application.CatalogEntityResolver;
-import com.iozycore.application.QuickAddService;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.experience.Experience;
-import com.iozycore.domain.experience.ExperienceRepository;
-import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.domain.catalog.Relationship;
-import com.iozycore.domain.catalog.RelationshipRepository;
-import com.iozycore.domain.wishlist.WishlistEntry;
-import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.application.QuickAddService;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.experience.Experience;
+import com.iozycore.core.domain.experience.ExperienceRepository;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.catalog.Relationship;
+import com.iozycore.core.domain.catalog.RelationshipRepository;
+import com.iozycore.core.domain.wishlist.WishlistEntry;
+import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -73,7 +73,7 @@ class UserAuthoredDataHttpContractTest extends HttpContractTestBase {
     private WishlistEntryRepository wishlistEntryRepository;
 
     @Autowired
-    private com.iozycore.domain.ownership.OwnershipRepository ownershipRepository;
+    private com.iozycore.core.domain.ownership.OwnershipRepository ownershipRepository;
 
     private static final String MANGA = "00000000-0000-0000-0000-000000000001";
 

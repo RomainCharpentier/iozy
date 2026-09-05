@@ -1,12 +1,12 @@
 package com.iozycore.integration;
 
-import com.iozycore.api.dto.ExperienceDtos.ExperienceResponse;
-import com.iozycore.api.dto.ExperienceDtos.RecordExperienceRequest;
-import com.iozycore.api.dto.ExperienceDtos.UpdateExperienceRequest;
-import com.iozycore.api.experience.ExperienceController;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.api.dto.ExperienceDtos.ExperienceResponse;
+import com.iozycore.core.api.dto.ExperienceDtos.RecordExperienceRequest;
+import com.iozycore.core.api.dto.ExperienceDtos.UpdateExperienceRequest;
+import com.iozycore.core.api.experience.ExperienceController;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.server.ResponseStatusException;

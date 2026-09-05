@@ -151,7 +151,7 @@ Vue "étagère" par type (grille de couvertures) → navigation libre, sans filt
 2. **Ownership** — gestion des possessions, référence Catalog par ID.
 3. **Experience** — gestion des expériences vécues, référence Catalog par ID.
 4. **Wishlist** — cycle de vie propre (ajoutée / retirée / convertie en Ownership).
-5. **Metadata Enrichment** — intégration API publiques externes, anti-corruption layer vers Catalog. Depuis le Lot 132, le paquet `metadata` est découpé **par univers** : `metadata` (contrats communs + recherche par titre et code-barres, tous univers), `metadata.manga` (titre français, tomes et éditions, séries liées ; sources AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), `metadata.videogame` (IGDB), `metadata.boardgame` (BGG), et `metadata.catalog` — la récupération via la **base iozycore** elle-même (recherche locale, titres déjà connus). Les contrôleurs suivent le même découpage sous `api.metadata`, sans changement de route.
+5. **Metadata Enrichment** — intégration API publiques externes, anti-corruption layer vers Catalog. Depuis le Lot 133, la ligne de partage passe **par type de collection** : le cœur (`core.metadata`) ne garde que les contrats et les deux gestes communs (recherche par titre, code-barres) ; chaque univers porte ses sources — `manga.metadata` (titre français, tomes et éditions, séries liées ; AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), `videogame.igdb`, `boardgame.bgg` — et les types personnalisés (`custom`) n'en ont aucune : leurs données ne viennent que de la base iozycore.
 6. **Insights** — regroupe Recherche + Statistiques, lecture transversale en read-model alimentée par les domain events des autres contextes.
 
 ---
@@ -168,14 +168,24 @@ Tables principales : `entity_type`, `entity`, `variant`, `ownership`, `experienc
 
 ## 10. Architecture logicielle
 
-**Modulith en Clean Architecture** :
+**Modulith DDD, un cœur et quatre univers** (Lot 133, décision utilisateur : séparer par type de collection, garder le DDD, laisser la possibilité de sortir un module en service) :
 
-- **Domain** : les 4 agrégats, sans dépendance framework.
-- **Application** : cas d'usage (UC1-UC7), orchestration, publication des domain events.
-- **Infrastructure** : persistance JPA/PostgreSQL, appels API publiques (Metadata Enrichment), stockage fichiers médias sur disque NAS.
-- **API** : REST + OpenAPI, consommée identiquement par iOS et Web.
+```
+com.iozycore
+  core/        catalogue générique, possessions, envies, tier lists, comptes, partage,
+               export, statistiques, annonces - et les points d'extension
+  manga/       tomes, éditions, sources, analyse d'achat, reconnaissance
+  videogame/   IGDB
+  boardgame/   BGG
+  custom/      les types définis dans iozycore, sans fournisseur
+```
 
-Chaque Bounded Context = un module Java séparé, communication par interfaces + événements internes (`ApplicationEventPublisher` Spring, pas de bus externe nécessaire).
+- Dans chaque module, les quatre couches : **Domain** (agrégats, sans dépendance framework), **Application** (cas d'usage), **Infrastructure** (persistance JPA/PostgreSQL, appels aux API publiques), **API** (REST + OpenAPI, consommée identiquement par iOS et Web).
+- **Un univers dépend du cœur, jamais l'inverse, jamais d'un autre univers.** Le cœur déclare des points d'extension (`MetadataProvider`, `BarcodeMetadataProvider`, `DiscoverySource`, `SeriesProgressSource`, `OwnedValueSource`, `CoverImageCheck`, `EditionLinker`, `EntityDeletionGuard`, `VariantDeletionHook`, `TransferModule`) ; chaque univers les implémente à la racine de son paquet, ses sous-paquets restent privés.
+- **Chaque module possède ses tables** ; un autre module ne les référence que par identifiant (le tome garde l'identifiant de son édition de référence, jamais la classe).
+- **Spring Modulith** vérifie ces frontières à chaque build (`ModulesTest`) - dépendances, cycles, accès aux internes - et dessine la carte des modules. Les événements de domaine traversent les frontières par `ApplicationEventPublisher`, pas de bus externe.
+
+Sortir un univers en service consiste alors à remplacer ses implémentations des points d'extension par des clients HTTP, et à lui donner sa base : rien dans le cœur n'a à changer.
 
 ---
 

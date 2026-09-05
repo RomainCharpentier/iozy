@@ -1,11 +1,11 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.FrenchTitleMatch;
-import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.MetadataProvider;
+import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataProvider;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

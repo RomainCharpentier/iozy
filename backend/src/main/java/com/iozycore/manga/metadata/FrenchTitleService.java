@@ -1,10 +1,10 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.shared.TexteRecherche;
-import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.MetadataProvider;
-import com.iozycore.metadata.TtlCache;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataProvider;
+import com.iozycore.core.metadata.TtlCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

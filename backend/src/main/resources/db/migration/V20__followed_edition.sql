@@ -1,6 +1,6 @@
 -- V20__followed_edition.sql
 -- « L'édition que je suis » pour une série - voir
--- com.iozycore.domain.followededition, et le badge SUIVIE de la maquette
+-- com.iozycore.core.domain.followededition, et le badge SUIVIE de la maquette
 -- « Fiche série - Naruto (multi-éditions) ».
 --
 -- Pourquoi une donnée persistée et non un simple état d'écran : jusqu'ici,

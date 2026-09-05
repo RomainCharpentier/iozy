@@ -10,7 +10,7 @@ import java.util.UUID;
  * with different volume counts (e.g. Parasyte), so completeness and
  * pricing are always evaluated per edition, never at this series level.
  *
- * @param knownEntityId best-effort link to an existing {@link com.iozycore.domain.catalog.Entity}
+ * @param knownEntityId best-effort link to an existing {@link com.iozycore.core.domain.catalog.Entity}
  *                       in the user's own catalog (resolved by {@link SeriesMatcher}), nullable -
  *                       used only to power "you already own N volumes" hints and to enable the
  *                       "add to wishlist" action, never to read or write catalog data directly here.

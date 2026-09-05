@@ -1,16 +1,16 @@
 package com.iozycore.integration;
 
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.insights.StatsService;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
+import com.iozycore.core.insights.StatsService;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;

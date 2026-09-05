@@ -1,14 +1,14 @@
 package com.iozycore.manga.insights;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.experience.Experience;
-import com.iozycore.domain.experience.ExperienceRepository;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.experience.Experience;
+import com.iozycore.core.domain.experience.ExperienceRepository;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

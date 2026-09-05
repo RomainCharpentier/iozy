@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.listing.ListingPlatform;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.listing.ListingPlatform;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 class MarketPriceCalculatorTest {
 

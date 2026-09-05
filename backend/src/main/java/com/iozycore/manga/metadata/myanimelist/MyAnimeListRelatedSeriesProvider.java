@@ -2,7 +2,7 @@ package com.iozycore.manga.metadata.myanimelist;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.RelatedSeriesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

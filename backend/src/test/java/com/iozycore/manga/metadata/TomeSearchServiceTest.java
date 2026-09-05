@@ -1,8 +1,8 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.QuotaExceededException;
-import com.iozycore.metadata.SourceUnavailableException;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

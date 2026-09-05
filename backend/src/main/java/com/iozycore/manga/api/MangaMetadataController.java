@@ -1,12 +1,12 @@
 package com.iozycore.manga.api;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.manga.metadata.FrenchTitleService;
 import com.iozycore.manga.metadata.RelatedSeriesService;
 import com.iozycore.manga.metadata.TomeSearchService;

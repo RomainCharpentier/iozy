@@ -1,22 +1,22 @@
 package com.iozycore.boardgame;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import java.util.LinkedHashMap;
-import com.iozycore.domain.wishlist.WishlistEntryRepository;
-import com.iozycore.domain.wishlist.WishlistEntry;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.domain.wishlist.WishlistEntry;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.boardgame.bgg.BggCollectionFetcher;
 import com.iozycore.boardgame.bgg.BggCollectionItem;
-import com.iozycore.application.QuickAddService;
-import com.iozycore.application.CatalogEntityResolver;
-import com.iozycore.application.TomeResolver;
+import com.iozycore.core.application.QuickAddService;
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.application.TomeResolver;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iozycore.manga.MangaEditionLinker;
 
 /**
  * Vérifie l'orchestration de l'import BGG - le fetcher est stubbé (pas
@@ -44,7 +45,7 @@ class BggCollectionImportServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
                 new CatalogEntityResolver(entityRepository),
-                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()), new InMemoryWishlistEntryRepository(), event -> {
+                new TomeResolver(entityRepository, List.of(), List.of(new MangaEditionLinker(new InMemoryMangaEditionRepository()))), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());
@@ -66,7 +67,7 @@ class BggCollectionImportServiceTest {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         QuickAddService quickAddService = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
                 new CatalogEntityResolver(entityRepository),
-                new TomeResolver(entityRepository, new InMemoryMangaEditionRepository()), new InMemoryWishlistEntryRepository(), event -> {
+                new TomeResolver(entityRepository, List.of(), List.of(new MangaEditionLinker(new InMemoryMangaEditionRepository()))), new InMemoryWishlistEntryRepository(), event -> {
         });
         BggCollectionImportService importService =
                 new BggCollectionImportService(fetcher, quickAddService, new InMemoryEntityTypeRepository());

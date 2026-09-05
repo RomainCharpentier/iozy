@@ -1,10 +1,10 @@
 package com.iozycore.boardgame;
 
-import com.iozycore.domain.catalog.EntityTypeRepository;
-import com.iozycore.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.boardgame.bgg.BggCollectionFetcher;
 import com.iozycore.boardgame.bgg.BggCollectionItem;
-import com.iozycore.application.QuickAddService;
+import com.iozycore.core.application.QuickAddService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

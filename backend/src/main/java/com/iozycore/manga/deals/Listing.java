@@ -1,12 +1,12 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.listing.ShippingEstimateKind;
+import com.iozycore.core.listing.ShippingEstimateKind;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 
 /**
  * A second-hand listing as entered by the user (URL and/or manual fields -

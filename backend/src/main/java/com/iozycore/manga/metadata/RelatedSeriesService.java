@@ -1,7 +1,7 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.TtlCache;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.TtlCache;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;

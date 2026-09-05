@@ -7,7 +7,7 @@ import java.math.RoundingMode;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * Weighs the ten {@link VerdictFactor}s into a single {@link Verdict}.

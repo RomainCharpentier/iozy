@@ -3,7 +3,7 @@ package com.iozycore.manga.deals.gemini;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.manga.deals.AiEditionAdvisor;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 import com.iozycore.manga.deals.EditionSuggestion;
 import com.iozycore.manga.domain.EditionTier;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Optional;
-import com.iozycore.gemini.GeminiRequests;
+import com.iozycore.core.gemini.GeminiRequests;
 
 /**
  * Calls the Google Gemini API (ai.google.dev - genuinely free tier for

@@ -2,7 +2,7 @@ package com.iozycore.manga.metadata.openlibrary;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.manga.metadata.FrenchTitleMatch;
 import com.iozycore.manga.metadata.FrenchTitleProvider;
 import org.slf4j.Logger;

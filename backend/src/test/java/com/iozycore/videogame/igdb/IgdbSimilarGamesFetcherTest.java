@@ -1,6 +1,6 @@
 package com.iozycore.videogame.igdb;
 
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

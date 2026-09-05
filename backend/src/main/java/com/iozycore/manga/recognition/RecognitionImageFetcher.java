@@ -1,7 +1,7 @@
 package com.iozycore.manga.recognition;
 
-import com.iozycore.listing.ListingProvider;
-import com.iozycore.listing.ListingUrlGuard;
+import com.iozycore.core.listing.ListingProvider;
+import com.iozycore.core.listing.ListingUrlGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

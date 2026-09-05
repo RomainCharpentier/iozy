@@ -1,6 +1,6 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.shared.TexteRecherche;
+import com.iozycore.core.domain.shared.TexteRecherche;
 
 /**
  * Un tome précis d'une édition française réelle d'une série (ex: "Tome 5"

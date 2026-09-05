@@ -1,7 +1,7 @@
 package com.iozycore.manga.metadata.googlebooks;
 
-import com.iozycore.metadata.QuotaExceededException;
-import com.iozycore.metadata.SourceUnavailableException;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;

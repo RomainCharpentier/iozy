@@ -4,7 +4,7 @@ import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 
 import java.math.BigDecimal;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * AI-drafted reference data for a {@link MangaEdition} unknown to the

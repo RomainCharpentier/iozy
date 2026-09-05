@@ -1,6 +1,6 @@
 package com.iozycore.manga.metadata.googlebooks;
 
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -123,7 +123,7 @@ class GoogleBooksTitleSearchProviderTest {
     void supports_only_manga() {
         GoogleBooksTitleSearchProvider provider = new GoogleBooksTitleSearchProvider();
 
-        assertThat(provider.supports(com.iozycore.domain.catalog.EntityTypeFixtures.MANGA)).isTrue();
-        assertThat(provider.supports(com.iozycore.domain.catalog.EntityTypeFixtures.VIDEO_GAME)).isFalse();
+        assertThat(provider.supports(com.iozycore.core.domain.catalog.EntityTypeFixtures.MANGA)).isTrue();
+        assertThat(provider.supports(com.iozycore.core.domain.catalog.EntityTypeFixtures.VIDEO_GAME)).isFalse();
     }
 }

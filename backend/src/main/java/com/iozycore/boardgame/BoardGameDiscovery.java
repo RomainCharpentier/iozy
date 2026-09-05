@@ -3,12 +3,12 @@ package com.iozycore.boardgame;
 import com.iozycore.boardgame.bgg.BggCollectionItem;
 import com.iozycore.boardgame.bgg.BggHotListFetcher;
 import com.iozycore.boardgame.bgg.BggThingFetcher;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.shared.TexteRecherche;
-import com.iozycore.insights.DiscoveryCandidate;
-import com.iozycore.insights.DiscoverySource;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.insights.DiscoverySource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
