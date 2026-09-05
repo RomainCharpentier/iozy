@@ -421,7 +421,8 @@ devient **définitivement indélébile**.
 ## 4. Parcours — Rechercher
 
 ### 27. Rechercher une œuvre par titre
-**Point de départ** : Rechercher (`/add`)
+**Point de départ** : Catalogue (`/add`), qui s'ouvre sur « Tout » — le
+premier type n'est plus présélectionné (lot 139).
 **Étapes** : choisir un type, saisir ≥ 3 caractères.
 **Résultat** : suggestions externes (**AniList** d'abord pour le manga — la
 source qui a le plus d'appels disponibles, Lot 119 —, puis Jikan/MyAnimeList
