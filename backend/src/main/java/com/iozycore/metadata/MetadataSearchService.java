@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -839,7 +840,13 @@ public class MetadataSearchService {
     private static final Map<String, String> EDITEURS_RENOMMES = Map.of(
             "kaze", "Kazé / Crunchyroll",
             "kaze manga", "Kazé / Crunchyroll",
-            "crunchyroll", "Kazé / Crunchyroll");
+            "crunchyroll", "Kazé / Crunchyroll",
+            // Les premiers Naruto (1999-2004) sont deposes au nom de la maison
+            // mere de l'epoque ; mangacollec ne connait que Kana (mesure du
+            // 2026-09-05 : dix tomes a part, 11 a 22).
+            "dargaud benelux kana", "Kana",
+            // Une coquille du catalogue, sur un tome de One Piece.
+            "edition orinale", "Édition Originale");
 
     static List<VolumeCandidate> unifierLesEditeursRenommes(List<VolumeCandidate> candidates) {
         List<VolumeCandidate> unifies = new ArrayList<>(candidates.size());
@@ -860,6 +867,7 @@ public class MetadataSearchService {
     static List<VolumeCandidate> finaliser(List<VolumeCandidate> candidates) {
         List<VolumeCandidate> result = unifierLesEditeursRenommes(candidates);
         result = rattacherLesEditionsInconnues(result);
+        result = elaguerLesInconnues(result);
         result = uniformiserLesEditions(result);
         result = separerLesEditionsHomonymes(result);
         return dedupeVolumesPreferringImage(result);
@@ -889,6 +897,36 @@ public class MetadataSearchService {
      * livres. Quand un tel tome porte un ISBN du meme bloc qu'une edition
      * nommee, il la rejoint ; sinon il garde son etiquette, faute de mieux.
      */
+    /**
+     * Un tome « Édition inconnue » dont le NUMERO existe deja dans une
+     * edition nommee n'apporte rien : c'est le meme tome, vu par une source
+     * qui ne connaissait pas son editeur (Google Books sans champ publisher),
+     * et que le rattachement par ISBN n'a pas su placer. Mesure du
+     * 2026-09-05 : One-Punch Man, Kurokawa 34/34 exacts - et seize
+     * « inconnus » de 2 a 23 a cote, la ou mangacollec n'a qu'une edition.
+     * Ne reste inconnu que ce qu'aucune edition nommee ne couvre.
+     */
+    static List<VolumeCandidate> elaguerLesInconnues(List<VolumeCandidate> candidates) {
+        Set<Integer> couverts = new HashSet<>();
+        for (VolumeCandidate candidate : candidates) {
+            if (aUneEditionNommee(candidate.edition())) {
+                couverts.add(candidate.volumeNumber());
+            }
+        }
+        List<VolumeCandidate> result = new ArrayList<>(candidates.size());
+        for (VolumeCandidate candidate : candidates) {
+            if (!aUneEditionNommee(candidate.edition()) && couverts.contains(candidate.volumeNumber())) {
+                continue;
+            }
+            result.add(candidate);
+        }
+        return result;
+    }
+
+    private static boolean aUneEditionNommee(String edition) {
+        return edition != null && !edition.isBlank() && !edition.equalsIgnoreCase(EDITION_INCONNUE);
+    }
+
     static List<VolumeCandidate> rattacherLesEditionsInconnues(List<VolumeCandidate> candidates) {
         Map<String, String> parPrefixe = editionsNommeesParPrefixe(candidates);
         if (parPrefixe.isEmpty()) {
@@ -1013,7 +1051,11 @@ public class MetadataSearchService {
      */
     private static boolean estUneAutreEdition(List<VolumeCandidate> tomes, Set<Integer> numerosPrincipaux) {
         Set<Integer> numeros = tomes.stream().map(VolumeCandidate::volumeNumber).collect(Collectors.toSet());
-        if (!numerosPrincipaux.containsAll(numeros)) {
+        // Un seul tome n'est pas une edition : c'est un retirage du tome 1
+        // sous un autre prefixe ISBN (mesure du 2026-09-05 : One Piece
+        // rendait « Glenat (2000) » et « Glenat (2006) », un tome chacun).
+        // Une reedition en compte au moins deux - l'edition double de Doubt.
+        if (numeros.size() < 2 || !numerosPrincipaux.containsAll(numeros)) {
             return false;
         }
         for (int n = 1; n <= numeros.size(); n++) {

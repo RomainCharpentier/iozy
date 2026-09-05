@@ -1360,6 +1360,101 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 131 — les huit mangas mesurés contre mangacollec, et la chaîne corrigée
+
+Suite de l'audit du 2026-09-05 (« tu vois rien à faire ? »). Trois choses
+vues, trois choses faites.
+
+**Le cache durable gardait l'ancienne chaîne.** Il ne se périme jamais
+(V3, voulu) — mais il servait encore des lignes d'août calculées avant les
+lots 119-127 : Boruto sans auteur mêlé à Two Blue Vortex, Vagabond en
+« Édition inconnue » 37, et des lignes VIDES qui disaient « aucun tome »
+pour toujours à Kimetsu no Yaiba ou Boruto : Two Blue Vortex. Règle posée :
+**à chaque changement de chaîne, une migration vide ce cache** (V33). Rien
+n'est perdu, il se reconstruit à la demande.
+
+**« Terminer » jetait un brouillon sans prévenir.** Un panneau en ligne sous
+l'inspecteur (même idiome que les suppressions, jamais de `window.confirm`)
+propose « Enregistrer et terminer », « Abandonner » ou « Continuer d'éditer ».
+
+**Les huit mangas n'avaient jamais été remesurés.** Une fiche qui a déjà des
+tomes ne relance pas la recherche : les comparer à mangacollec demandait de
+les interroger. Fait sur la **pile jetable** (compte de la fixture E2E,
+jamais celui de l'utilisateur ; clé Google Books passée par un fichier de
+surcharge hors dépôt, jamais écrite), une série toutes les 50 s pour la BnF.
+Première mesure, sur la chaîne du lot 127 :
+
+| Série | Mesure (lot 127) | Mangacollec |
+|---|---|---|
+| Chainsaw Man | Kazé / Crunchyroll 22, 22 jaquettes | simple 22 ✓ |
+| Raw Hero | Soleil 6 | simple Soleil 6 ✓ |
+| One-Punch Man | Kurokawa 34 **+ « Édition inconnue » 16** | simple Kurokawa 34 |
+| Death Note | Kana 13 ; Black Édition 4/6 ; France Loisirs 2/6 | Kana 13 ; Black 6 ; FL 6 |
+| Jujutsu Kaisen | Ki-oon 29/30 **+ Viz Media 2 + « Grande Chance », « Récursion », « Avance », « Mort Et Vie » (1 tome chacun)** | simple Ki-oon 30 |
+| Naruto | Kana **67**/72 ; Hokage 15/36 ; France Loisirs 6/14 ; **Dargaud Bénélux-Kana 10** | Kana 72 ; Hokage 36 ; Kiosque Hachette 37 ; FL 14 |
+| One Piece | Glénat **44**/112 ; Éd. Originale 20/66 ; **« Édition Orinale » 1** | Glénat 112 ; Log 50 ; 1re éd. 66 |
+| One Piece : Strong World | **Glénat 43 = les tomes de One Piece** | Glénat 2 (Anime Comics) |
+
+Chaque écart a sa cause, et sa correction :
+
+- **100 notices, pas une de plus** : la requête SRU ne lisait que la
+  première page. One Piece en a quatre. `BnfVolumeSearchProvider` pagine
+  (`startRecord`, cinq pages au plus) — Naruto passe à 72/72, One Piece à
+  111/112.
+- **Un sous-titre de tome n'est pas une édition** : la BnF range « Grande
+  chance » (T21 de Jujutsu Kaisen) en 200$e, là où elle range aussi « Full
+  color ». Désormais seuls les $e qui DÉSIGNENT une édition (perfect,
+  double, collector, intégrale, full color…) en font une ; sans aucune
+  désignation, la notice retombe sur son éditeur. Tout ou rien : « Full
+  color » + « L'enfance de Goku » reste entier, l'arc qualifie l'édition.
+  L'exclusion des spin-offs se juge sur le titre complet, $e compris.
+- **Open Library décrit des œuvres, pas des exemplaires** : un document
+  porte tous les éditeurs et tous les ISBN de ses éditions, sans les
+  apparier — « Jujutsu Kaisen, Vol. 7 » avait Viz Media en premier éditeur
+  et un ISBN 978-2 dans la liste. Titres en « Vol. » et éditeurs anglophones
+  écartés.
+- **Un tome « Édition inconnue » dont le numéro existe déjà dans une
+  édition nommée n'apporte rien** : c'est le même tome vu par une source
+  sans éditeur. Élagué (`elaguerLesInconnues`) — One-Punch Man revient à
+  Kurokawa 34, seul.
+- **Un seul tome n'est pas une édition** : un retirage du tome 1 sous un
+  autre préfixe ISBN faisait « Glénat (2000) » et « Glénat (2006) ». Une
+  réédition en compte au moins deux (l'édition double de Doubt).
+- **Alias** : « Dargaud Bénélux-Kana » (les premiers Naruto, 1999-2004) est
+  Kana ; « Édition Orinale » est une coquille du catalogue.
+- **Une série sous-titrée ne reçoit pas les tomes de sa série mère** : les
+  111 tomes de One Piece (« À l'aube d'une grande aventure », 461$t « One
+  piece ») s'invitaient dans « One Piece: Strong World » par le chemin qui
+  sert à Boruto (« Kawaki », 461$t « Boruto »). Lecture en DEUX passes : un
+  tome catalogué sous son propre titre n'est retenu, pour une série
+  sous-titrée, que si d'autres notices du même ensemble 461 portent ce
+  sous-titre en clair — vrai pour Boruto (« Boruto » + $e « Naruto next
+  generations »), jamais pour One Piece. Et Strong World lui-même se
+  reconnaît à l'envers : $a « Strong world » + $e « one piece film ».
+
+Seconde mesure, sur la chaîne corrigée (pile jetable, caches vidés) :
+
+| Série | Mesure (lot 131) | Mangacollec |
+|---|---|---|
+| Chainsaw Man | Kazé / Crunchyroll 22 | 22 ✓ |
+| Raw Hero | Soleil 6 | 6 ✓ |
+| One-Punch Man | Kurokawa 34, seul | 34 ✓ |
+| Jujutsu Kaisen | Ki-oon 30, seul | 30 ✓ |
+| Boruto : Naruto Next Generations | Kana 20 | 20 ✓ (non-régression du chemin 461) |
+| One Piece : Strong World | Glénat 2 | 2 ✓ |
+| Naruto | Kana 72 ; L'intégrale (Hachette) 37 ; Hokage 19/36 ; France Loisirs 9/14 ; Hachette jeunesse 15 | Kana 72 ✓ ; Kiosque Hachette 37 ✓ ; Hokage 36 ; FL 14 |
+| One Piece | Glénat 111/112 ; Éd. Originale 30/66 ; Hachette jeunesse 11 | Glénat 112 ; 1re éd. 66 ; Log 50 |
+| Death Note | Kana 13 ; Black Édition 4/6 ; France Loisirs 2/6 | Kana 13 ✓ ; Black 6 ; FL 6 |
+
+L'édition simple est exacte sur neuf séries sur neuf (One Piece à un tome
+près). Ce qui reste en deçà, ce sont des **éditions secondaires** que la BnF
+ne tient qu'en partie (Hokage, France Loisirs, Black Édition, 1re édition de
+One Piece) — le sondage tome par tome ne comble que l'édition principale —,
+et les **anime comics Hachette** de Naruto et One Piece, rattachés à la
+série par la BnF et sans marque qui les distingue : ils sont bien des livres
+« Naruto » de Hachette, mangacollec en fait une série à part. Toutes les
+jaquettes listées sont là, sauf celles de Hokage (aucune à la BnF).
+
 ### Lot 130 — chaque champ éditable, et la source n'écrase pas ce qui a été saisi
 
 Demande utilisateur du 2026-09-04 : « il faut rendre chaque champ éditable

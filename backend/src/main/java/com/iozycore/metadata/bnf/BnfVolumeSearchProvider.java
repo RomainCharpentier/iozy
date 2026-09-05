@@ -24,6 +24,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashSet;
 import java.util.OptionalInt;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,7 +81,12 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     private static final Logger log = LoggerFactory.getLogger(BnfVolumeSearchProvider.class);
     private static final String SEARCH_URL =
-            "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=100&query=%s";
+            "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=100&startRecord=%d&query=%s";
+    /** Cinq pages au plus : One Piece (112 tomes, plusieurs editions) tient
+     *  en quatre ; au-dela, c'est une requete trop large, pas une serie. */
+    private static final int PAGE = 100;
+    private static final int NOTICES_MAX = 500;
+    private static final Pattern NOMBRE_DE_NOTICES = Pattern.compile("<srw:numberOfRecords>(\\d+)</srw:numberOfRecords>");
     /** L'image de la notice, par son identifiant ARK (controlfield 003). 500 quand il n'y en a pas. */
     static final String COVER_URL = "https://catalogue.bnf.fr/couverture?&appName=NE&idArk=%s&couverture=1";
     /** Un numéro de tome au-delà n'en est pas un (identifiants FRBNF à quinze chiffres en 461$v, entre autres). */
@@ -106,25 +114,34 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         String cql = buildQuery(seriesTitle, author);
         try {
             String encodedQuery = URLEncoder.encode(cql, StandardCharsets.UTF_8);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SEARCH_URL.formatted(encodedQuery)))
-                    .timeout(Duration.ofSeconds(10))
-                    .GET()
-                    .build();
+            // Page par page (mesure du 2026-09-05 : One Piece rendait 44 tomes
+            // sur 112, les 100 premieres notices seulement). Une requete par
+            // page, et on s'arrete des que la BnF dit qu'il n'y a plus rien.
+            List<String> pages = new ArrayList<>();
+            int total = Integer.MAX_VALUE;
+            for (int debut = 1; debut <= Math.min(total, NOTICES_MAX); debut += PAGE) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(SEARCH_URL.formatted(debut, encodedQuery)))
+                        .timeout(Duration.ofSeconds(10))
+                        .GET()
+                        .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                // Une source qui refuse (429 : la BnF limite le debit par
-                // adresse) ou qui tombe n'a rien DIT - ce n'est pas « aucun
-                // tome » : signale comme telle, MetadataSearchService ne
-                // mettra pas ce vide en cache (voir searchVolumes).
-                log.warn("La BnF a répondu {} pour la recherche de tomes '{}'", response.statusCode(), cql);
-                throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    // Une source qui refuse (429 : la BnF limite le debit par
+                    // adresse) ou qui tombe n'a rien DIT - ce n'est pas « aucun
+                    // tome » : signale comme telle, MetadataSearchService ne
+                    // mettra pas ce vide en cache (voir searchVolumes).
+                    log.warn("La BnF a répondu {} pour la recherche de tomes '{}'", response.statusCode(), cql);
+                    throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
+                }
+                Matcher nombre = NOMBRE_DE_NOTICES.matcher(response.body());
+                total = nombre.find() ? Integer.parseInt(nombre.group(1)) : 0;
+                // Les jaquettes ne sont plus verifiees ici (Lot 127) : voir
+                // BnfCouverture - une par tome GARDE, jamais une par tome liste.
+                pages.add(response.body());
             }
-
-            // Les jaquettes ne sont plus verifiees ici (Lot 127) : voir
-            // BnfCouverture - une par tome GARDE, jamais une par tome liste.
-            return parse(response.body(), seriesTitle, excludedTitleFragments);
+            return parse(pages, seriesTitle, excludedTitleFragments);
         } catch (SourceUnavailableException e) {
             throw e;
         } catch (Exception e) {
@@ -172,11 +189,47 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     List<VolumeCandidate> parse(String xml, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
+        return parse(List.of(xml), seriesTitle, excludedTitleFragments);
+    }
+
+    /**
+     * Toutes les pages d'une reponse, en DEUX passes.
+     *
+     * <p>Un tome catalogue sous son propre titre (« Kawaki », 461$t
+     * « Boruto ») n'a rien qui dise s'il appartient a « Boruto: Naruto Next
+     * Generations » ou a une autre serie « Boruto ». Mesure du 2026-09-05 :
+     * cherchant « One Piece: Strong World », les 111 tomes de One Piece
+     * (« A l'aube d'une grande aventure », 461$t « One piece ») s'invitaient
+     * par ce chemin. La regle : quand la serie cherchee porte un sous-titre,
+     * un tel tome n'est retenu que si d'AUTRES notices du meme ensemble 461
+     * portent ce sous-titre en clair (« Boruto » + $e « Naruto next
+     * generations » : oui ; « One piece » + « Strong world » : jamais, ses
+     * deux tomes sont catalogues $a « Strong world » + $e « one piece film »).
+     */
+    List<VolumeCandidate> parse(List<String> pages, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
+        List<VolumeCandidate> candidates = new ArrayList<>();
+        // Les tomes en attente d'une confirmation, avec la serie 461 qui les porte.
+        List<Map.Entry<String, VolumeCandidate>> differes = new ArrayList<>();
+        // Les series 461 dont une notice a confirme le sous-titre cherche.
+        Set<String> seriesConfirmees = new HashSet<>();
+        for (String xml : pages) {
+            parseUnePage(xml, seriesTitle, excludedTitleFragments, candidates, differes, seriesConfirmees);
+        }
+        for (Map.Entry<String, VolumeCandidate> differe : differes) {
+            if (seriesConfirmees.contains(differe.getKey())) {
+                candidates.add(differe.getValue());
+            }
+        }
+        return candidates;
+    }
+
+    private void parseUnePage(String xml, String seriesTitle, List<String> excludedTitleFragments,
+                              List<VolumeCandidate> candidates, List<Map.Entry<String, VolumeCandidate>> differes,
+                              Set<String> seriesConfirmees) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-        List<VolumeCandidate> candidates = new ArrayList<>();
         NodeList records = document.getElementsByTagName("mxc:record");
         for (int i = 0; i < records.getLength(); i++) {
             Element record = (Element) records.item(i);
@@ -228,6 +281,18 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     sousTitreConsomme = k;
                 }
             }
+            // Ou l'inverse : le SOUS-TITRE cherche en $a, et la serie mere
+            // dans un $e - « Strong world » + $e « one piece film », la facon
+            // dont la BnF catalogue un film en anime comics.
+            String serieCourteCherchee = normalizeForComparison(nomDeSerie(seriesTitle));
+            String sousTitreDuCherche = cherche.startsWith(serieCourteCherchee) ? cherche.substring(serieCourteCherchee.length()) : "";
+            for (int k = 0; !correspond && k < sousTitres.size(); k++) {
+                if (!sousTitreDuCherche.isEmpty() && titreBnf.equals(sousTitreDuCherche)
+                        && normalizeForComparison(sousTitres.get(k)).contains(serieCourteCherchee)) {
+                    correspond = true;
+                    sousTitreConsomme = k;
+                }
+            }
             // Seconde voie : le tome porte son titre PROPRE en 200$a
             // (« Kawaki »), et la série en 461$t (ou 225$a) avec son numéro
             // en $v. C'est ainsi que la BnF catalogue treize des vingt tomes
@@ -251,8 +316,26 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     }
                 }
             }
+            // Sans aucun $e, et une serie CHERCHEE avec sous-titre : le tome
+            // est mis en attente - il ne compte que si une autre notice du
+            // meme ensemble confirme ce sous-titre (voir parse). Un tome
+            // intitule du seul nom de la serie mere (« One piece » T5) est
+            // ecarte tout de suite.
+            boolean differe = false;
+            if (parLaSerie && sousTitres.isEmpty() && !sousTitreCherche.isEmpty()) {
+                if (titreBnf.equals(serieCourte)) {
+                    parLaSerie = false;
+                } else {
+                    differe = true;
+                }
+            }
             if (!correspond && !parLaSerie) {
                 continue;
+            }
+            // Une notice qui porte le sous-titre en clair confirme sa serie 461
+            // pour les tomes en attente.
+            if (sousTitreConsomme >= 0 && serie != null && !sousTitreCherche.isEmpty()) {
+                seriesConfirmees.add(normalizeForComparison(serie));
             }
 
             // 200$h : numéro de tome, dans un champ MARC dédié - jamais une
@@ -271,7 +354,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 partsEdition.remove(sousTitreConsomme);
             }
             String edition = editionName(partsEdition);
-            String displayTitle = rawTitle + (edition.isBlank() ? "" : " " + edition) + " T" + volumeNumber.getAsInt();
+            // Le titre complet, TOUS les $e compris : « Dragon Ball » + « super »
+            // doit rester reconnaissable comme « Dragon Ball Super » meme si
+            // « super » ne fait pas une edition.
+            String displayTitle = rawTitle + (partsEdition.isEmpty() ? "" : " " + String.join(" ", partsEdition))
+                    + " T" + volumeNumber.getAsInt();
 
             // Spin-off/side-story/suite CONNU(e) (voir RelatedSeriesService) -
             // même logique que GoogleBooksVolumeSearchProvider.
@@ -286,16 +373,41 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
             // L'URL de jaquette est posée ici mais VÉRIFIÉE par searchVolumes
             // (voir la javadoc de la classe) : parse() reste sans réseau.
-            candidates.add(new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record), displayTitle,
-                    isbnDe(record), anneeDe(record)));
+            VolumeCandidate candidate = new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record),
+                    displayTitle, isbnDe(record), anneeDe(record));
+            if (differe) {
+                differes.add(Map.entry(normalizeForComparison(serie), candidate));
+            } else {
+                candidates.add(candidate);
+            }
         }
-        return candidates;
     }
 
+    /**
+     * Ce qui, dans un 200$e, DESIGNE une edition (« Perfect edition »,
+     * « Edition double », « Full color », « Collector »...), par opposition au
+     * sous-titre d'UN tome. Mesure du 2026-09-05 sur Jujutsu Kaisen : la BnF
+     * catalogue « Grande chance », « Recursion », « Mort et vie » en $e des
+     * tomes 21, 24, 29 - et chacun devenait une edition a part, a un tome, a
+     * cote des 29 de Ki-oon, la ou mangacollec n'en connait qu'une.
+     */
+    private static final Pattern DESIGNATION_D_EDITION = Pattern.compile(
+            "(?iu)\\b(?:[ée]ditions?|[ée]d\\.|deluxe|luxe|perfect|double|collector|int[ée]grale|kanzenban|ultimate"
+            + "|full ?colou?r|couleur|nouvelle|coffret|r[ée][ée]dition|grand format|poche|kiosque|black|star|prestige"
+            + "|anniversaire|jubil[ée]|originale?|first|premium|compl[eè]te|omnibus|variant|jaquette|hokage|log|kai)\\b");
+
     /** 200$e (répétable - ex: "full color" ET "l'enfance de Goku" sur deux
-     * subfields distincts pour la même notice) joints et capitalisés. */
+     * subfields distincts pour la même notice) : seules les parts qui
+     * DESIGNENT une edition sont gardees, jointes et capitalisees. Un
+     * sous-titre de tome (« Grande chance ») ne fait pas une edition : la
+     * notice retombe alors sur son editeur, comme les autres tomes. */
     private static String editionName(List<String> parts) {
-        if (parts.isEmpty()) {
+        // Tout ou rien : des qu'une part DESIGNE une edition (« full color »),
+        // les autres la qualifient (« l'enfance de Goku » : l'arc de Dragon
+        // Ball Full Color, dont la numerotation repart a 1) et restent. Sans
+        // aucune designation, ce sont des sous-titres de tomes : aucune.
+        boolean designeUneEdition = parts.stream().anyMatch(part -> DESIGNATION_D_EDITION.matcher(part).find());
+        if (!designeUneEdition) {
             return "";
         }
         return parts.stream()

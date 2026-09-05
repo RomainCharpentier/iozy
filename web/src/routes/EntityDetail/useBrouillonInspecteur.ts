@@ -302,7 +302,9 @@ export function useBrouillonInspecteur({
     modifie: attributsModifies || editionModifiee,
     enCours: enregistrement.isPending,
     erreur: enregistrement.isError ? enregistrement.error.message : null,
-    enregistrer: () => enregistrement.mutate(),
+    /** Une promesse : « Enregistrer et terminer » attend qu'elle tienne
+     *  avant de fermer le mode (voir EntityDetailPage). */
+    enregistrer: () => enregistrement.mutateAsync(),
     annuler: reinitialiser,
   }
 }
