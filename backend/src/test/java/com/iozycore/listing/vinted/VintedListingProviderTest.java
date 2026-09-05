@@ -3,7 +3,7 @@ package com.iozycore.listing.vinted;
 import com.iozycore.listing.ListingHttpFetcher;
 import com.iozycore.listing.ListingResolution;
 import com.iozycore.listing.ListingSnapshot.ListingField;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

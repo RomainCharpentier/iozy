@@ -6,13 +6,13 @@ import com.iozycore.listing.ListingResolution;
 import com.iozycore.listing.ListingSnapshot;
 import com.iozycore.listing.ShippingEstimateKind;
 import com.iozycore.metadata.BarcodeMetadataProvider;
-import com.iozycore.metadata.manga.FrenchTitleMatch;
-import com.iozycore.metadata.manga.FrenchTitleProvider;
+import com.iozycore.manga.metadata.FrenchTitleMatch;
+import com.iozycore.manga.metadata.FrenchTitleProvider;
 import com.iozycore.metadata.MetadataCandidate;
 import com.iozycore.metadata.MetadataProvider;
-import com.iozycore.metadata.manga.VolumeCandidate;
-import com.iozycore.metadata.manga.VolumeSearchProvider;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.manga.metadata.VolumeCandidate;
+import com.iozycore.manga.metadata.VolumeSearchProvider;
+import com.iozycore.listing.ListingPlatform;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 

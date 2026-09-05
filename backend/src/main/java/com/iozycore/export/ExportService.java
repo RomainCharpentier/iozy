@@ -4,15 +4,15 @@ import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.domain.catalog.Relationship;
 import com.iozycore.domain.catalog.RelationshipRepository;
 import com.iozycore.domain.catalog.Tag;
 import com.iozycore.domain.catalog.TagRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.Experience;
-import com.iozycore.domain.followededition.FollowedEdition;
-import com.iozycore.domain.followededition.FollowedEditionRepository;
+import com.iozycore.manga.domain.followededition.FollowedEdition;
+import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
@@ -21,10 +21,10 @@ import com.iozycore.domain.tierlist.TierList;
 import com.iozycore.domain.tierlist.TierListItemRepository;
 import com.iozycore.domain.tierlist.TierListRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
-import com.iozycore.purchaseanalysis.CollectorPreferences;
-import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
-import com.iozycore.purchaseanalysis.MarketPriceObservation;
-import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
+import com.iozycore.manga.deals.CollectorPreferences;
+import com.iozycore.manga.deals.CollectorPreferencesRepository;
+import com.iozycore.manga.deals.MarketPriceObservation;
+import com.iozycore.manga.deals.MarketPriceObservationRepository;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.iozycore.manga.domain.MangaEdition;
 
 /**
  * "Export complet des données (JSON/CSV)" (§19, docs/CONCEPTION.md) -
@@ -156,8 +157,8 @@ public class ExportService {
                                 .toList()))
                 .toList();
 
-        Map<UUID, com.iozycore.domain.catalog.MangaEdition> editionsById = mangaEditionRepository.findAll().stream()
-                .collect(Collectors.toMap(com.iozycore.domain.catalog.MangaEdition::id, e -> e));
+        Map<UUID, com.iozycore.manga.domain.MangaEdition> editionsById = mangaEditionRepository.findAll().stream()
+                .collect(Collectors.toMap(com.iozycore.manga.domain.MangaEdition::id, e -> e));
         List<ExportDocument.MarketObservationExport> observationExports = marketPriceObservationRepository.findAll()
                 .stream()
                 .map(o -> toObservationExport(o, editionsById))
@@ -192,8 +193,8 @@ public class ExportService {
     }
 
     private static ExportDocument.MarketObservationExport toObservationExport(
-            MarketPriceObservation o, Map<UUID, com.iozycore.domain.catalog.MangaEdition> editionsById) {
-        com.iozycore.domain.catalog.MangaEdition edition = editionsById.get(o.mangaEditionId());
+            MarketPriceObservation o, Map<UUID, com.iozycore.manga.domain.MangaEdition> editionsById) {
+        com.iozycore.manga.domain.MangaEdition edition = editionsById.get(o.mangaEditionId());
         return new ExportDocument.MarketObservationExport(o.id(), o.mangaEditionId(),
                 edition != null ? edition.seriesTitle() : null, edition != null ? edition.editionName() : null,
                 o.scope() == null ? null : o.scope().from(), o.scope() == null ? null : o.scope().to(),

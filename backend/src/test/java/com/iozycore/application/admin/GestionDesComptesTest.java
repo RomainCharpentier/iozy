@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.iozycore.manga.deals.Volume;
 
 /**
  * <b>Ce qu'un administrateur peut faire, et ce qu'il ne peut pas.</b>

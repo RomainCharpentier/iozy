@@ -6,24 +6,24 @@ import com.iozycore.domain.catalog.EntityTypeFixtures;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.purchaseanalysis.CollectionStatus;
-import com.iozycore.purchaseanalysis.CollectorPreferences;
-import com.iozycore.purchaseanalysis.CollectorPreferencesRepository;
+import com.iozycore.manga.deals.CollectionStatus;
+import com.iozycore.manga.deals.CollectorPreferences;
+import com.iozycore.manga.deals.CollectorPreferencesRepository;
 import com.iozycore.listing.ShippingEstimateKind;
-import com.iozycore.purchaseanalysis.Condition;
-import com.iozycore.purchaseanalysis.EditionSuggestion;
-import com.iozycore.domain.catalog.EditionTier;
-import com.iozycore.purchaseanalysis.ListingPlatform;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
-import com.iozycore.purchaseanalysis.MarketPriceObservation;
-import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingCommand;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingItemCommand;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService.NearCompleteSuggestion;
-import com.iozycore.purchaseanalysis.PurchaseAnalysis;
-import com.iozycore.purchaseanalysis.VolumeRange;
+import com.iozycore.manga.deals.Condition;
+import com.iozycore.manga.deals.EditionSuggestion;
+import com.iozycore.manga.domain.EditionTier;
+import com.iozycore.listing.ListingPlatform;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
+import com.iozycore.manga.deals.MarketPriceObservation;
+import com.iozycore.manga.deals.MarketPriceObservationRepository;
+import com.iozycore.manga.deals.PurchaseAnalysisService;
+import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingCommand;
+import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.manga.deals.PurchaseAnalysisService.NearCompleteSuggestion;
+import com.iozycore.manga.deals.PurchaseAnalysis;
+import com.iozycore.manga.deals.VolumeRange;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +38,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.iozycore.manga.deals.DuplicateAnalysis;
+import com.iozycore.manga.deals.WeightLevel;
 
 /**
  * Validates the Purchase Analysis persistence module (Flyway V4 + JPA)
@@ -192,12 +194,12 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         assertThat(beforeAnySave).isEqualTo(CollectorPreferences.defaults());
 
         CollectorPreferences updated = new CollectorPreferences(beforeAnySave.editionTierRanking(), true,
-                com.iozycore.purchaseanalysis.WeightLevel.MEDIUM, 15, beforeAnySave.factorWeights());
+                com.iozycore.manga.deals.WeightLevel.MEDIUM, 15, beforeAnySave.factorWeights());
         collectorPreferencesRepository.save(updated);
 
         CollectorPreferences reloaded = collectorPreferencesRepository.find();
         assertThat(reloaded.conditionImportance())
-                .isEqualTo(com.iozycore.purchaseanalysis.WeightLevel.MEDIUM);
+                .isEqualTo(com.iozycore.manga.deals.WeightLevel.MEDIUM);
         assertThat(reloaded.minimumDiscountVsRetailPercent()).isEqualTo(15);
     }
 
@@ -405,7 +407,7 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
 
         PurchaseAnalysis analysis = purchaseAnalysisService.analyze(command);
 
-        com.iozycore.purchaseanalysis.DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
+        com.iozycore.manga.deals.DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
         assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
     }

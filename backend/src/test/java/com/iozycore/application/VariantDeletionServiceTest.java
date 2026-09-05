@@ -1,11 +1,11 @@
 package com.iozycore.application;
 
-import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
@@ -13,8 +13,8 @@ import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipCondition;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
-import com.iozycore.purchaseanalysis.MarketPriceObservation;
-import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
+import com.iozycore.manga.deals.MarketPriceObservation;
+import com.iozycore.manga.deals.MarketPriceObservationRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

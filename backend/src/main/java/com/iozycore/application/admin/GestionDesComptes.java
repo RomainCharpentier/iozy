@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.iozycore.manga.deals.Volume;
 
 /**
  * Administrer l'INSTANCE : qui a un compte, et en supprimer un.

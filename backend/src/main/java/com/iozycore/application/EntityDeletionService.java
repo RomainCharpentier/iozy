@@ -1,7 +1,7 @@
 package com.iozycore.application;
 
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.shared.EntityDeletionNotAllowedException;

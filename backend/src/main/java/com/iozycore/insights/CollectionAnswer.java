@@ -1,6 +1,6 @@
 package com.iozycore.insights;
 
-import com.iozycore.purchaseanalysis.ConfidenceLevel;
+import com.iozycore.insights.ConfidenceLevel;
 
 import java.util.List;
 import java.util.UUID;

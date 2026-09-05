@@ -2,8 +2,8 @@ package com.iozycore.insights;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.catalog.Tag;
@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.iozycore.manga.insights.CollectionProgress;
+import com.iozycore.manga.insights.CollectionProgressService;
 
 /**
  * Point d'entrée du Bounded Context Insights (étape 8) côté statistiques -

@@ -2,7 +2,7 @@ package com.iozycore.listing.leboncoin;
 
 import com.iozycore.listing.ListingProvider;
 import com.iozycore.listing.ListingResolution;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashSet;

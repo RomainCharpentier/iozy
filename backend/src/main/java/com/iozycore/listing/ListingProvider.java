@@ -1,6 +1,6 @@
 package com.iozycore.listing;
 
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 
 import java.util.Set;
 
@@ -44,7 +44,7 @@ public interface ListingProvider {
      * un provider qui ne se prononce pas n'autorise aucun téléchargement
      * d'image, plutôt que d'hériter d'une permission qu'il n'a pas demandée.
      *
-     * @see com.iozycore.recognition.RecognitionImageFetcher
+     * @see com.iozycore.manga.recognition.RecognitionImageFetcher
      */
     default Set<String> allowedImageHosts() {
         return Set.of();

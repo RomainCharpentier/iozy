@@ -1,18 +1,18 @@
 package com.iozycore.integration;
 
-import com.iozycore.domain.catalog.EditionTier;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.EditionTier;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.listing.ShippingEstimateKind;
-import com.iozycore.purchaseanalysis.Condition;
-import com.iozycore.purchaseanalysis.ListingPlatform;
-import com.iozycore.purchaseanalysis.MarketObservationOrigin;
-import com.iozycore.purchaseanalysis.MarketPriceObservation;
-import com.iozycore.purchaseanalysis.PurchaseAnalysis;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingCommand;
-import com.iozycore.purchaseanalysis.PurchaseAnalysisService.AnalyzeListingItemCommand;
-import com.iozycore.purchaseanalysis.VolumeRange;
+import com.iozycore.manga.deals.Condition;
+import com.iozycore.listing.ListingPlatform;
+import com.iozycore.manga.deals.MarketObservationOrigin;
+import com.iozycore.manga.deals.MarketPriceObservation;
+import com.iozycore.manga.deals.PurchaseAnalysis;
+import com.iozycore.manga.deals.PurchaseAnalysisService;
+import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingCommand;
+import com.iozycore.manga.deals.PurchaseAnalysisService.AnalyzeListingItemCommand;
+import com.iozycore.manga.deals.VolumeRange;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iozycore.manga.deals.ReferenceGap;
 
 /**
  * <b>L'usage normal d'IozyCore doit nourrir les prix relevés - sans jamais
@@ -162,7 +163,7 @@ class MarketObservationIngestionIntegrationTest extends PostgresIntegrationTest 
         assertThat(seconde.assessment().referenceSampleSize()).isZero();
         assertThat(seconde.assessment().pricePosition().name()).isEqualTo("REFERENCE_UNAVAILABLE");
         assertThat(seconde.assessment().referenceGap())
-                .isEqualTo(com.iozycore.purchaseanalysis.ReferenceGap.ONLY_CURRENT_LISTING);
+                .isEqualTo(com.iozycore.manga.deals.ReferenceGap.ONLY_CURRENT_LISTING);
     }
 
     // ================================================================== H

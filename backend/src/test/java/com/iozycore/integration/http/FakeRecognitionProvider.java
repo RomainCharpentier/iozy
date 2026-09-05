@@ -1,12 +1,12 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.recognition.ImageRecognitionProvider;
-import com.iozycore.recognition.RecognitionConfidence;
-import com.iozycore.recognition.RecognitionContext;
-import com.iozycore.recognition.RecognitionImage;
-import com.iozycore.recognition.RecognitionImageFetcher;
-import com.iozycore.recognition.RecognitionResult;
-import com.iozycore.recognition.RecognizedItem;
+import com.iozycore.manga.recognition.ImageRecognitionProvider;
+import com.iozycore.manga.recognition.RecognitionConfidence;
+import com.iozycore.manga.recognition.RecognitionContext;
+import com.iozycore.manga.recognition.RecognitionImage;
+import com.iozycore.manga.recognition.RecognitionImageFetcher;
+import com.iozycore.manga.recognition.RecognitionResult;
+import com.iozycore.manga.recognition.RecognizedItem;
 import com.iozycore.listing.ListingProvider;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
