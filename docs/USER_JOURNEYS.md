@@ -19,16 +19,24 @@
 ## 1. Architecture réelle des points d'entrée
 
 La navigation ne compte que **trois destinations**, identiques en desktop et en
-mobile (`DesktopHeader.PRIMARY` et `TabBar.TABS`, maintenues en miroir) :
+mobile (`navItems.ts`, une seule liste lue par `DesktopHeader` et `TabBar`), et
+**aucune ne nomme un univers** (lot 137) :
 
 | Destination | Route | Couvre aussi |
 |---|---|---|
-| **Ma collection** | `/` | `/entity/:id` |
-| **Rechercher** | `/add` | `/scan`, `/purchase-analysis*` |
-| **Découvrir** | `/discover` | — |
+| **Ma collection** | `/` | `/entity/:id`, `/collection/:type` |
+| **Catalogue** | `/add` | `/scan`, `/apercu` |
+| **Découvrir** | `/discover` | `/tier-lists*`, `/suggestions`, `/purchase-analysis*` |
 
 Tout le reste est atteint par des **raccourcis** ou depuis l'espace auquel il
 appartient :
+
+- **Analyser une annonce** — a été la quatrième destination, du 2026-08-27 au
+  lot 137 (2026-09-05). C'est un parcours manga (un lot de tomes d'occasion
+  confronté à la collection), et la barre vaut pour n'importe quelle
+  collection : il se rejoint depuis Découvrir (carte-lien en tête de l'écran)
+  et depuis la fiche d'une série (« Évaluer une annonce »), et c'est Découvrir
+  qui s'allume quand on y est.
 
 - **Envies** — vue « Envies » de Ma collection, dans sa barre de vues, avec le
   décompte à côté du libellé. Le cœur de l'en-tête a été **retiré le
@@ -521,9 +529,11 @@ pendant qu'un menu est ouvert est ignoré ; Échap = Passer.
 ## 6. Parcours — Analyse d'achat
 
 ### 35. Analyser une annonce d'occasion
-**Point de départ** : Ma collection ▸ « Évaluer un achat », Découvrir ▸
-Opportunités ▸ « Évaluer une annonce », Rechercher, Profil, ou fiche ▸
-« Évaluer une annonce de cette série » (série pré-remplie).
+**Point de départ** : Découvrir ▸ « Analyser une annonce » (carte-lien en tête
+de l'écran), ou fiche d'une série ▸ « Évaluer une annonce » (série et édition
+pré-remplies). Jusqu'au lot 137, aussi la quatrième destination de la
+navigation ; elle n'y est plus, parce que c'est un parcours manga et que la
+barre ne nomme aucun univers.
 **Étapes** *(refondues le 2026-08-24)* :
 
 ```

@@ -1360,6 +1360,40 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 137 — la navigation ne nomme aucun univers
+
+Le lot 136 laissait une question ouverte, posée à l'utilisateur : « Analyser
+une annonce », parcours manga, restait l'une des quatre destinations
+globales. Il a choisi de l'en sortir. La règle est la même que pour Ma
+collection : **la barre de navigation vaut pour n'importe quelle collection ;
+ce qui est propre à un univers se rejoint depuis l'écran qui le contient.**
+
+- **Trois destinations** : Ma collection, Catalogue, Découvrir. Une seule
+  liste (`navItems.ts`), lue par la barre desktop et par la barre du pouce -
+  qui tient d'autant mieux sur 375 px.
+- **Deux portes vers l'analyse**, et pas un raccourci de plus : une
+  **carte-lien en tête de Découvrir** (« Analyser une annonce - Un lot de
+  mangas d'occasion sous les yeux ? Confronte-le à ta collection avant
+  d'acheter. »), visible sur les trois onglets, comme le bilan annuel en
+  bas ; et **« Évaluer une annonce » sur la fiche d'une série**, qui existait
+  déjà. Le lien discret du panneau Opportunités, qui doublait désormais la
+  carte, est retiré.
+- **Découvrir s'allume** quand on est sur l'analyse, son historique ou les
+  suggestions (`activeWhen`) : le test de surlignage vérifie toujours
+  qu'exactement une destination s'allume sur chaque route réelle.
+- **L'écran sait d'où l'on vient** : un lien de retour nomme Découvrir par
+  défaut, ou la série quand on arrive de sa fiche (`retour` dans l'état de
+  navigation, même mécanique que les rayons et les boards).
+- Le parcours Playwright de l'annonce **entre désormais par Découvrir**, et
+  vérifie que la barre ne nomme plus l'analyse.
+
+Ce que ce lot ne fait pas : Découvrir lui-même reste à moitié manga
+(Opportunités = séries presque complètes, Sorties bloqué faute de données).
+C'est un autre écran, et une autre décision.
+
+Vérifié : typecheck, lint, 333 tests web, contraste, frontières, build ; 16
+parcours Playwright. Aucun changement côté serveur.
+
 ### Lot 136 — Ma collection redevient l'écran du cœur
 
 « La homepage n'est pas conforme avec ce qu'on veut : c'est trop orienté

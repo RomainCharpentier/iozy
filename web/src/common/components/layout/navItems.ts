@@ -1,4 +1,4 @@
-import { Compass, Library, Scale, Search } from 'lucide-react'
+import { Compass, Library, Search } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -28,11 +28,15 @@ export interface NavItem {
  * inatteignable au pouce - exactement ce qui était déjà arrivé aux Envies et
  * au Profil (voir GlobalShortcuts).
  *
- * <h2>Quatre entrées, pas trois (étude produit du 2026-08-27, §4)</h2>
- * « Analyser une annonce » était cachée sous « Rechercher ». C'est un parcours
- * indépendant, qui commence par une URL d'annonce et ne crée ni possession ni
- * envie : il ne partage avec la recherche que le fait de parler d'œuvres qu'on
- * ne possède pas encore.
+ * <h2>Trois entrées, et aucune ne nomme un univers (lot 137)</h2>
+ * « Analyser une annonce » a été la quatrième, du 2026-08-27 au 2026-09-05 :
+ * un parcours indépendant, qui commence par une URL d'annonce et ne crée ni
+ * possession ni envie. Mais c'est un parcours MANGA - un lot de tomes
+ * d'occasion confronté à la collection - et la barre de navigation vaut pour
+ * n'importe quelle collection, comme Ma collection depuis le lot 136. Il se
+ * rejoint désormais depuis Découvrir (carte-lien en tête) et depuis la fiche
+ * d'une série (« Évaluer une annonce »), et c'est Découvrir qui s'allume
+ * quand on y est.
  *
  * <p>Les Envies n'y sont pas : ce sont une lecture de Ma collection, pas une
  * destination (§16, décision close).
@@ -64,13 +68,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Découvrir',
     labelCourt: 'Découvrir',
     icon: Compass,
-    activeWhen: (p) => p.startsWith('/discover') || p.startsWith('/tier-lists'),
-  },
-  {
-    to: '/purchase-analysis',
-    label: 'Analyser une annonce',
-    labelCourt: 'Annonce',
-    icon: Scale,
-    activeWhen: (p) => p.startsWith('/purchase-analysis'),
+    // Les Tier Lists, les suggestions d'achat et l'analyse d'une annonce
+    // s'ouvrent depuis Découvrir et de nulle part ailleurs dans la
+    // navigation : c'est lui qui reste allumé quand on y est.
+    activeWhen: (p) =>
+      p.startsWith('/discover') ||
+      p.startsWith('/tier-lists') ||
+      p.startsWith('/suggestions') ||
+      p.startsWith('/purchase-analysis'),
   },
 ]

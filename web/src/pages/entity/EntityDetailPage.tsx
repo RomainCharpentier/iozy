@@ -586,7 +586,13 @@ export function EntityDetailPage() {
           groupeActif && !estInvite
             ? () =>
                 navigate('/purchase-analysis', {
-                  state: { seriesTitle: entity.title, editionName: groupeActif.editionName },
+                  state: {
+                    seriesTitle: entity.title,
+                    editionName: groupeActif.editionName,
+                    // L'analyse n'est plus une destination de la navigation
+                    // (lot 137) : elle dit d'où l'on vient, et c'est ici.
+                    retour: { to: `/entity/${entityId}`, libelle: entity.title },
+                  },
                 })
             : null
         }
