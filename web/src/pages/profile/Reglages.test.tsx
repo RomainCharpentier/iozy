@@ -1,11 +1,12 @@
 /**
- * <b>« Mon compte » et « Cet appareil » ne sont pas la même chose, et l'écran
- * doit le dire.</b>
+ * <b>« Mon compte » et « Cet appareil » ne sont pas la même chose, et la
+ * section doit le dire.</b>
  *
- * <p>C'est le seul écran de l'application qui mélange deux natures de
+ * <p>C'est le seul endroit de l'application qui mélange deux natures de
  * réglages : ce qui vit sur le serveur et te suit partout, et ce qui vit dans
  * le `localStorage` de CE navigateur et se perd en changeant de machine. Rien
  * ne distingue les deux à l'œil — un interrupteur ressemble à un interrupteur.
+ * Un écran « Paramètres » jusqu'au lot 140, une section de Profil depuis.
  *
  * <p>Deux défauts silencieux, donc : la phrase qui prévient disparaît (et
  * quelqu'un croit à une perte de réglage en ouvrant l'app sur son téléphone),
@@ -17,7 +18,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import { SettingsPage } from './SettingsPage'
+import { Reglages } from './Reglages'
 
 const auth = vi.hoisted(() => ({ useAuth: vi.fn() }))
 vi.mock('@/common/hooks/useAuth', () => auth)
@@ -40,7 +41,7 @@ beforeEach(() => {
     compte: { id: 'u1', email: 'romain@iozycore.local', pseudo: 'romain', admin: true },
     deconnexion,
   })
-  render(<SettingsPage />, { wrapper: enrobage })
+  render(<Reglages />, { wrapper: enrobage })
 })
 
 describe('« Mon compte »', () => {

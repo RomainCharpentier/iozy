@@ -325,12 +325,3 @@ export interface ImportRemarque {
   sujet: string
   detail: string
 }
-
-/** La réponse d'une IA à une question sur la collection - voir CollectionAnswer côté backend. */
-export interface CollectionAnswerDto {
-  reponse: string
-  /** Les fiches sur lesquelles la réponse s'appuie, vérifiées côté serveur : jamais un id inventé. */
-  oeuvres: { id: UUID; titre: string }[]
-  confiance: 'HIGH' | 'MEDIUM' | 'LOW'
-  modele: string
-}

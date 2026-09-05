@@ -113,7 +113,8 @@ describe('la langue des titres', () => {
     await chercher()
 
     const lien = screen.getByRole('link', { name: /Langue des titres/ })
-    expect(lien).toHaveAttribute('href', '/settings')
+    // Le réglage vit dans « Cet appareil », sur Profil (lot 140).
+    expect(lien).toHaveAttribute('href', '/profile')
   })
 
   it('n’apparaît pas avant qu’il y ait des titres à gouverner', async () => {

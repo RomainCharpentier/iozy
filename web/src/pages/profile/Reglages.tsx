@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react'
+import { useState, type DragEvent, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, GripVertical, Upload } from 'lucide-react'
 import { useAuth } from '@/common/hooks/useAuth'
@@ -8,11 +8,16 @@ import {
   setTitleComposition,
   type TitleComposition,
 } from '@/common/lib/titleLanguage'
-import { EnTeteSection } from '@/common/components/EnTeteSection'
-import { LienRetour } from '@/common/components/LienRetour'
 
 /**
- * Les réglages, rangés par <b>ce qu'ils concernent</b>.
+ * Les réglages, rangés par <b>ce qu'ils concernent</b> - sur la page Profil,
+ * en clair.
+ *
+ * <h2>Plus un écran, une section (lot 140)</h2>
+ * Ils ont été l'écran « Paramètres », atteint depuis Profil par un lien : deux
+ * écrans pour la même personne, et « ça doit être lisible direct ». Ce
+ * composant rend les deux sections sous le partage, sur Profil même ; les
+ * anciennes routes `/settings` y redirigent.
  *
  * <h2>Deux sections, et la frontière est réelle</h2>
  * <b>Mon compte</b> te suit partout : il vit sur le serveur, et l'export en
@@ -41,7 +46,7 @@ import { LienRetour } from '@/common/components/LienRetour'
  * devient le titre sauvegardé, les suivantes actives suivent entre
  * parenthèses dans l'ordre choisi ici.
  */
-export function SettingsPage() {
+export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivElement | null> }) {
   // État local reflétant localStorage - setTitleComposition() persiste ET
   // notifie les autres consommateurs (QuickAddPage) via un événement custom,
   // voir lib/titleLanguage.ts.
@@ -97,10 +102,6 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={{ to: '/profile', libelle: 'Mon profil' }} />
-
-      <EnTeteSection niveau={1} titre="Paramètres" />
-
       {compte && (
         // Nommée pour un lecteur d'écran (aria-labelledby) : sans nom
         // accessible, une <section> n'est pas un repère qu'on peut viser.
@@ -176,9 +177,13 @@ export function SettingsPage() {
         </section>
       )}
 
-      <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
-        Cet appareil
-      </h2>
+      {/* Ancré : « Langue des titres » du Catalogue arrive ici, pas en haut
+          d'un profil qu'il faudrait ensuite faire défiler. */}
+      <div ref={appareilRef} className="scroll-mt-4">
+        <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
+          Cet appareil
+        </h2>
+      </div>
       {/* Dit une fois : ce réglage vit dans le localStorage de ce navigateur,
           pas sur le compte. Sans cette phrase, quelqu'un qui ouvre l'app sur
           son téléphone croit à une perte de réglage. Le thème, lui aussi sur

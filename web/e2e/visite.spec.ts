@@ -74,7 +74,7 @@ test('visiter sans compte : le catalogue, rien de personnel, et aucune écriture
   await expect(pageVisiteur.getByRole('button', { name: 'Tome 2, manquant' })).toBeVisible()
 
   // --- Les écrans réservés aux comptes renvoient au catalogue
-  for (const chemin of ['/', '/profile', '/settings/import', '/administration/comptes']) {
+  for (const chemin of ['/', '/profile', '/profile/import', '/administration/comptes']) {
     await pageVisiteur.goto(chemin)
     await expect(pageVisiteur).toHaveURL(/\/add$/)
   }

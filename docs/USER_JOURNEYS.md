@@ -56,15 +56,16 @@ appartient :
   côté de l'avatar et pas dedans — elle n'accueille QUE ce qui décrit la
   collection (catégories, éditions de référence) et l'instance (comptes).
   **Mon profil** → l'avatar (le bouton aux
-  initiales), d'un clic. **Paramètres** → depuis Profil, le seul autre écran
-  qui parle de la même personne. Deux boutons dans l'en-tête, parce que ce sont
+  initiales), d'un clic — et les **réglages sont dessus**, en clair (lot 140 :
+  plus d'écran Paramètres, `/settings` y redirige ; « pas de sous-menu, ça
+  doit être lisible direct »). Deux boutons dans l'en-tête, parce que ce sont
   deux choses : l'administration a été une sous-partie de Paramètres, puis un
   lien de Profil, puis une entrée d'un menu déroulant de l'avatar — trois fois
   rangée derrière quelque chose qui appartient à l'utilisateur, alors que
   déclarer les catégories de sa collection n'est pas un réglage personnel. Les
-  deux écrans de réglages sont rangés par **ce que le réglage concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
-  déconnexion) et « Cet appareil » (langue des titres — dans le
-  `localStorage`, il ne suit pas le compte, et l'écran le dit) ;
+  réglages sont rangés par **ce que le réglage concerne** : Profil porte « Mon compte » (pseudo, adresse, export,
+  restauration) et « Cet appareil » (langue des titres — dans le
+  `localStorage`, il ne suit pas le compte, et la section le dit) ;
   Administration porte « Ma collection » (catégories, éditions de référence,
   import) et « Cette instance » (comptes, pour un administrateur).
 - **Catégories de collection** → deux chemins : Ma collection ▸ Plus d'outils,
@@ -1137,15 +1138,18 @@ n'appelant que l'endpoint public.
 
 ---
 
-## 10. Parcours — Profil, Paramètres, Administration
+## 10. Parcours — Profil (et ses réglages), Administration
 
 ### 54. Consulter son profil
 **Résultat** : valeur estimée (ou « Pas encore de prix renseigné »), nombre de
 titres et de tomes possédés, aperçu des Tier Lists, partage de collection, et
-l'entrée Paramètres. (« Évaluer un achat » et « Bilan annuel » en sont
-partis le 2026-08-29 : le premier est une destination de la barre de
-navigation, le second une lecture qui a rejoint Découvrir.)
-**Écrans** : `ProfilePage`, `ProfileValueHero`, `ProfileTierListsSection`
+les **réglages en clair** — « Mon compte » (adresse, emporter et restaurer sa
+collection) puis « Cet appareil » (langue des titres) — sans sous-écran
+(lot 140). (« Évaluer un achat » et « Bilan annuel » en sont partis le
+2026-08-29 : le premier est devenu une porte de Découvrir, le second une
+lecture qui a rejoint Découvrir ; « Demander à ma collection » (lot 117) a
+été retirée au lot 140.)
+**Écrans** : `ProfilePage`, `ProfileValueHero`, `ProfileTierListsSection`, `Reglages`
 **Statut** : `COMPLET`
 
 ### 55. Partager sa collection
@@ -1167,9 +1171,9 @@ auteur le plus présent.
 
 ### 57. Changer l'apparence et l'ordre des titres
 **Étapes** : l'icône **soleil / lune de l'en-tête**, sur tous les écrans, pour
-le thème (lot 138 ; jusque-là un interrupteur sous Paramètres) ; Paramètres ▸
-cocher/ordonner (glisser-déposer) les langues de titre (français, romaji,
-anglais).
+le thème (lot 138 ; jusque-là un interrupteur sous Paramètres) ; Profil ▸
+Cet appareil ▸ cocher/ordonner (glisser-déposer) les langues de titre
+(français, romaji, anglais) — sur la page Profil depuis le lot 140.
 **Résultat** : thème appliqué immédiatement et persisté sur l'appareil, les
 deux barres (desktop, mobile) montrant toujours le même mode ; l'ordre des
 langues décide du titre affiché partout.
@@ -1196,7 +1200,7 @@ renseigner se fait depuis la fiche.
 **Statut** : `COMPLET`
 
 ### 60. Exporter sa collection
-**Étapes** : Paramètres ▸ **Mon compte** ▸ « Emporter ma collection » →
+**Étapes** : Profil ▸ **Mon compte** ▸ « Emporter ma collection » →
 Télécharger en JSON ou en CSV (.zip). *(Sous Administration jusqu'au
 2026-08-29, à côté des catégories de collection — comme si emporter ses
 données était de la configuration technique. C'est le contraire : c'est la
@@ -1530,10 +1534,9 @@ IozyCore
 │
 ├── Profil  (/profile)                                     [mobile : OK]
 │   ├── 54 Profil · 55 Partager la collection · 56 Bilan annuel
-│   └── Paramètres (/settings)                             [mobile : OK]
-│       ├── 57 Thème et langues
-│       └── Administration (/administration)               [mobile : OK]
-│           └── 58 Types (aussi via Ma collection) · 59 Éditions · 60 Export
+│   ├── 57 Langue des titres · 60 Export (réglages sur la page, lot 140)
+│   └── Administration (/administration)                   [mobile : OK]
+│       └── 58 Types (aussi via Ma collection) · 59 Éditions
 │
 └── Pages publiques (hors AppShell)   → 61 collection partagée · 62 envies partagées
 ```
@@ -1600,10 +1603,10 @@ IozyCore
 | 54 | Consulter son profil | Profil | COMPLET | oui | oui |
 | 55 | Partager sa collection | Profil | COMPLET | oui | oui |
 | 56 | Générer le bilan annuel | Profil | COMPLET | oui | oui |
-| 57 | Changer l'apparence et l'ordre des titres | Paramètres / Administration | COMPLET | oui | oui |
-| 58 | Gérer les types de collection | Paramètres / Administration | COMPLET | oui | oui |
-| 59 | Consulter et nettoyer les éditions de référence | Paramètres / Administration | COMPLET | oui | oui |
-| 60 | Exporter sa collection | Paramètres ▸ Mon compte | COMPLET | oui | oui |
+| 57 | Changer l'apparence et l'ordre des titres | En-tête / Profil | COMPLET | oui | oui |
+| 58 | Gérer les types de collection | Administration | COMPLET | oui | oui |
+| 59 | Consulter et nettoyer les éditions de référence | Administration | COMPLET | oui | oui |
+| 60 | Exporter sa collection | Profil ▸ Mon compte | COMPLET | oui | oui |
 | 61 | Consulter une collection partagée | Lien public | COMPLET | oui | oui |
 | 62 | Consulter une liste d'envies partagée | Lien public | COMPLET | oui | oui |
 | 63 | Créer le premier compte | Porte (hors AppShell) | COMPLET | oui | oui |

@@ -1,42 +1,50 @@
-import { Link, useLocation } from 'react-router-dom'
-import { ChevronRight, Settings2, Sparkles } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/common/hooks/useAuth'
 import { ProfileValueHero } from './ProfileValueHero'
 import { ProfileTierListsSection } from './ProfileTierListsSection'
 import { ShareSection } from './ShareSection'
+import { Reglages } from './Reglages'
 import { useEffect, useRef } from 'react'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 
-// Une seule sortie, et elle parle de la même personne que cet écran.
+// Tout ce qui parle de cette personne, lisible d'un coup.
 //
 // Cet écran a servi de couloir : on y passait pour atteindre les réglages,
 // PUIS l'administration - trois niveaux pour déclarer une catégorie de
 // collection, et une administration rangée derrière les réglages de
 // l'utilisateur, ce qui n'a aucun sens. L'administration a désormais son
 // propre bouton dans l'en-tête (voir GlobalShortcuts) ; les réglages, eux,
-// restent ici, où ils sont chez eux.
+// sont ICI, en clair, et plus derrière un lien « Paramètres » (lot 140,
+// demande de l'utilisateur : « pas de sous-menu, ça doit être lisible
+// direct »). Un écran qui parle de la même personne n'a pas à en ouvrir un
+// second pour finir sa phrase.
 //
-// Ce qui a quitté cette liste : « Analyser une annonce » (l'une des quatre
-// destinations de la barre de navigation, donc un doublon exact) et « Bilan
-// annuel » (une lecture de la collection, partie rejoindre Découvrir).
+// Ce qui a quitté cette liste : « Analyser une annonce » (une destination de
+// la barre, puis une porte de Découvrir), « Bilan annuel » (une lecture de la
+// collection, partie rejoindre Découvrir), et « Demander à ma collection »
+// (lot 117, retirée au lot 140 : « ne sert à rien »).
 
 export function ProfilePage() {
   const { compte } = useAuth()
   // Arriver depuis « Ma collection ▸ Partager » doit montrer le partage tout
-  // de suite : la page Profil est longue, et un raccourci qui dépose en haut
-  // sans rien désigner ne raccourcit rien.
+  // de suite, et depuis « Langue des titres » du Catalogue les réglages de
+  // l'appareil : la page est longue, et un raccourci qui dépose en haut sans
+  // rien désigner ne raccourcit rien.
   const partageRef = useRef<HTMLDivElement>(null)
-  const focusPartage = (useLocation().state as { focusPartage?: boolean } | null)?.focusPartage
+  const appareilRef = useRef<HTMLDivElement>(null)
+  const etat = useLocation().state as { focusPartage?: boolean; focusAppareil?: boolean } | null
+  const focusPartage = etat?.focusPartage
+  const focusAppareil = etat?.focusAppareil
   useEffect(() => {
     if (focusPartage) partageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [focusPartage])
+    if (focusAppareil) appareilRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [focusPartage, focusAppareil])
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Le pseudo en sous-titre, pas une section : la section Compte a
-          rejoint Paramètres, où vivent aussi la déconnexion et l'export - un
-          seul endroit pour « mon compte » au lieu de deux moitiés. Mais un
-          écran qui s'appelle « Mon profil » doit quand même dire DE QUI. */}
+      {/* Le pseudo en sous-titre : un écran qui s'appelle « Mon profil »
+          doit dire DE QUI. L'adresse, l'export et la langue des titres sont
+          plus bas, dans les réglages - sur cette page, pas sur une autre. */}
       <EnTeteSection niveau={1} titre="Mon profil" sousTitre={compte?.pseudo} />
 
       <ProfileValueHero />
@@ -48,36 +56,7 @@ export function ProfilePage() {
         <ShareSection />
       </div>
 
-      {/* La collection interrogée en français (V3 de CONCEPTION.md §15,
-          Lot 117). Ici et pas dans Découvrir : Découvrir propose ce qu'on n'a
-          PAS, cette page parle de ce qu'on A. */}
-      <Link
-        to="/question"
-        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
-          <Sparkles size={18} />
-        </span>
-        <span className="flex-1">
-          <span className="block font-medium text-textPrimary">Demander à ma collection</span>
-          <span className="block text-xs text-textDim">Une question en français, une réponse appuyée sur tes fiches</span>
-        </span>
-        <ChevronRight size={18} className="shrink-0 text-textDim" />
-      </Link>
-
-      <Link
-        to="/settings"
-        className="flex items-center gap-3 rounded-xl bg-surface p-3 transition-colors hover:bg-surface2"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
-          <Settings2 size={18} />
-        </span>
-        <span className="flex-1">
-          <span className="block font-medium text-textPrimary">Paramètres</span>
-          <span className="block text-xs text-textDim">Ton compte, emporter ta collection, apparence</span>
-        </span>
-        <ChevronRight size={16} className="shrink-0 text-textDim" />
-      </Link>
+      <Reglages appareilRef={appareilRef} />
     </div>
   )
 }

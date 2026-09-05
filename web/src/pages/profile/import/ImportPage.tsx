@@ -58,7 +58,7 @@ export function ImportPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={{ to: '/settings', libelle: 'Paramètres' }} />
+      <LienRetour parDefaut={{ to: '/profile', libelle: 'Mon profil' }} />
 
       <EnTeteSection
         niveau={1}
