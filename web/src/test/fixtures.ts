@@ -20,7 +20,7 @@ import type {
   OwnershipResponse,
   TagDto,
   VariantDto,
-} from '../types/api'
+} from '@/common/types/api'
 
 /** Un identifiant lisible : le titre réduit à ce qui peut servir de clé. */
 function idDe(valeur: string): string {

@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -42,6 +43,8 @@ process.env.VITE_VERSION ??= versionDuPosteDeTravail()
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Le même alias que tsconfig.app.json : `@/` = src (Lot 134).
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [react(), tailwindcss()],
   server: {
     // "localhost" seul laissait Vite n'écouter QUE sur l'IPv6 ([::1]) sur

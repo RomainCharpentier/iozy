@@ -139,7 +139,7 @@ for (const [theme, palette] of [['clair', clair], ['sombre', sombre]]) {
 // ──────────────────────────────────────── Les pastilles d'avatar
 //
 // Elles ne viennent d'AUCUN token : leur teinte est déduite du pseudo, la même
-// dans les deux thèmes (voir src/theme/avatar.ts) - une couleur d'identité ne
+// dans les deux thèmes (voir src/common/theme/avatar.ts) - une couleur d'identité ne
 // change pas avec l'apparence. Ce qui compte est donc le contraste INTERNE de
 // la pastille, entre son fond et ses deux lettres.
 //
@@ -149,11 +149,11 @@ for (const [theme, palette] of [['clair', clair], ['sombre', sombre]]) {
 // Relue depuis sa source : une septième teinte ajoutée à `gradientPalettes`
 // serait vérifiée sans que personne y pense, et une teinte modifiée ferait
 // tomber ce contrôle plutôt que de passer inaperçue.
-const AVATARS = [...readFileSync(join(RACINE, 'src/theme/tokens.ts'), 'utf8')
-  .slice(readFileSync(join(RACINE, 'src/theme/tokens.ts'), 'utf8').indexOf('gradientPalettes'))
+const AVATARS = [...readFileSync(join(RACINE, 'src/common/theme/tokens.ts'), 'utf8')
+  .slice(readFileSync(join(RACINE, 'src/common/theme/tokens.ts'), 'utf8').indexOf('gradientPalettes'))
   .matchAll(/\['([0-9A-Fa-f]{6})',/g)].map((m) => `#${m[1]}`)
 if (AVATARS.length === 0) {
-  console.error("Palette d'avatars introuvable dans src/theme/tokens.ts")
+  console.error("Palette d'avatars introuvable dans src/common/theme/tokens.ts")
   process.exit(2)
 }
 for (const fond of AVATARS) {

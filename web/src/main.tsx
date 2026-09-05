@@ -9,10 +9,10 @@ import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
 import './index.css'
-import { applyStoredTheme } from './lib/theme'
+import { applyStoredTheme } from '@/common/lib/theme'
 
-import App from './App.tsx'
-import { ToastProvider } from './components/Toast'
+import App from '@/app/App'
+import { ToastProvider } from '@/common/components/Toast'
 
 // Avant le premier rendu React - évite un flash thème par défaut puis
 // thème stocké (voir lib/theme.ts).
