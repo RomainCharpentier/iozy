@@ -9,7 +9,7 @@ import com.iozycore.application.QuickAddService.QuickAddResult;
 import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.metadata.catalog.CatalogSearchService;
-import com.iozycore.metadata.manga.bnf.BnfCouverture;
+import com.iozycore.manga.metadata.bnf.BnfCouverture;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;

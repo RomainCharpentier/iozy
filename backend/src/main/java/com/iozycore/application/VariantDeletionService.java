@@ -2,13 +2,13 @@ package com.iozycore.application;
 
 import com.iozycore.domain.catalog.Entity;
 import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.MangaEditionRepository;
+import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.domain.catalog.Variant;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.domain.ownership.OwnershipRepository;
 import com.iozycore.domain.shared.EntityDeletionNotAllowedException;
 import com.iozycore.domain.shared.VariantDeletionNotAllowedException;
-import com.iozycore.purchaseanalysis.MarketPriceObservationRepository;
+import com.iozycore.manga.deals.MarketPriceObservationRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;

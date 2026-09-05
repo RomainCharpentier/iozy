@@ -2,10 +2,10 @@ package com.iozycore.api.insights;
 
 import com.iozycore.insights.CollectionValue;
 import com.iozycore.insights.DiscoveryCandidate;
-import com.iozycore.insights.CollectionProgress;
-import com.iozycore.insights.CollectionProgressService;
-import com.iozycore.insights.ReadingListService;
-import com.iozycore.insights.ReadingList;
+import com.iozycore.manga.insights.CollectionProgress;
+import com.iozycore.manga.insights.CollectionProgressService;
+import com.iozycore.manga.insights.ReadingListService;
+import com.iozycore.manga.insights.ReadingList;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.http.ResponseEntity;
@@ -130,12 +130,10 @@ public class InsightsController {
             + "ou jeux vidéo similaires aux tiens (IGDB). entityTypeCode attendu : MANGA, BOARD_GAME ou VIDEO_GAME")
     @GetMapping("/discover")
     public List<DiscoveryCandidate> discover(@RequestParam String entityTypeCode) {
-        return switch (entityTypeCode) {
-            case "MANGA" -> discoveryService.discoverManga();
-            case "BOARD_GAME" -> discoveryService.discoverBoardGames();
-            case "VIDEO_GAME" -> discoveryService.discoverVideoGames();
-            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "entityTypeCode doit être MANGA, BOARD_GAME ou VIDEO_GAME");
-        };
+        try {
+            return discoveryService.discover(entityTypeCode);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 }

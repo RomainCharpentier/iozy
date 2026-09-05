@@ -3,7 +3,7 @@ package com.iozycore.api.listing;
 import com.iozycore.listing.ListingResolution;
 import com.iozycore.listing.ListingSnapshot;
 import com.iozycore.listing.ListingSourceResolver;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PostMapping;

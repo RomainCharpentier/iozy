@@ -1,6 +1,6 @@
 package com.iozycore.listing;
 
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 
 import java.math.BigDecimal;
 import java.time.Instant;

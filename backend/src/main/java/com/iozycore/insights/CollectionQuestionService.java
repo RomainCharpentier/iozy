@@ -16,7 +16,7 @@ import com.iozycore.domain.tierlist.EntityRank;
 import com.iozycore.domain.tierlist.EntityRankRepository;
 import com.iozycore.domain.wishlist.WishlistEntry;
 import com.iozycore.domain.wishlist.WishlistEntryRepository;
-import com.iozycore.purchaseanalysis.ConfidenceLevel;
+import com.iozycore.insights.ConfidenceLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.iozycore.manga.insights.CollectionProgress;
+import com.iozycore.manga.insights.CollectionProgressService;
 
 /**
  * « Quels mangas j'ai commencés sans finir ? » - la collection interrogee en

@@ -5,7 +5,7 @@ import com.iozycore.listing.ListingProvider;
 import com.iozycore.listing.ListingResolution;
 import com.iozycore.listing.ListingSnapshot;
 import com.iozycore.listing.ListingSnapshot.ListingField;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;

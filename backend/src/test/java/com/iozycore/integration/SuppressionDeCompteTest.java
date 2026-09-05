@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iozycore.manga.deals.Volume;
 
 /**
  * <b>Supprimer un compte efface tout ce qui lui appartient — et RIEN d'autre.</b>

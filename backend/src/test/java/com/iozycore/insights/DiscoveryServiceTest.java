@@ -8,10 +8,7 @@ import com.iozycore.domain.catalog.EntityTypeRepository;
 import com.iozycore.domain.experience.Experience;
 import com.iozycore.domain.experience.ExperienceRepository;
 import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.boardgame.BggHotListFetcher;
-import com.iozycore.metadata.boardgame.BggThingFetcher;
-import com.iozycore.metadata.videogame.IgdbSimilarGamesFetcher;
-import com.iozycore.metadata.manga.jikan.JikanMetadataProvider;
+import com.iozycore.manga.metadata.jikan.JikanMetadataProvider;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -41,8 +38,7 @@ class DiscoveryServiceTest {
         ));
 
         DiscoveryService service = new DiscoveryService(
-                entityRepository, new InMemoryEntityTypeRepository(), experienceRepository, List.of(jikan),
-                new BggThingFetcher(), new BggHotListFetcher(), new StubIgdbSimilarGamesFetcher(List.of()));
+                entityRepository, new InMemoryEntityTypeRepository(), experienceRepository, List.of(jikan), List.of());
 
         List<DiscoveryCandidate> suggestions = service.discoverManga();
 
@@ -53,48 +49,9 @@ class DiscoveryServiceTest {
     @Test
     void returns_an_empty_list_when_nothing_is_owned() {
         DiscoveryService service = new DiscoveryService(
-                new InMemoryEntityRepository(), new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(),
-                List.of(new StubJikanMetadataProvider(List.of())), new BggThingFetcher(), new BggHotListFetcher(),
-                new StubIgdbSimilarGamesFetcher(List.of()));
+                new InMemoryEntityRepository(), new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(), List.of(new StubJikanMetadataProvider(List.of())), List.of());
 
         assertThat(service.discoverManga()).isEmpty();
-    }
-
-    @Test
-    void suggests_similar_video_games_excluding_owned_titles() {
-        InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
-
-        Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
-        hollowKnight.setAttribute("igdbId", "8123");
-        entityRepository.save(hollowKnight);
-
-        StubIgdbSimilarGamesFetcher igdb = new StubIgdbSimilarGamesFetcher(List.of(
-                new MetadataCandidate("IGDB", "8123", "Hollow Knight", null, Map.of()), // déjà possédé - doit être exclu
-                new MetadataCandidate("IGDB", "9001", "Tunic", null, Map.of())          // nouveau - doit apparaître
-        ));
-
-        DiscoveryService service = new DiscoveryService(
-                entityRepository, new InMemoryEntityTypeRepository(), new InMemoryExperienceRepository(),
-                List.of(new StubJikanMetadataProvider(List.of())), new BggThingFetcher(), new BggHotListFetcher(), igdb);
-
-        List<DiscoveryCandidate> suggestions = service.discoverVideoGames();
-
-        assertThat(suggestions).extracting(DiscoveryCandidate::title).containsExactly("Tunic");
-        assertThat(suggestions.get(0).source()).isEqualTo("IGDB");
-    }
-
-    private static class StubIgdbSimilarGamesFetcher extends IgdbSimilarGamesFetcher {
-        private final List<MetadataCandidate> results;
-
-        StubIgdbSimilarGamesFetcher(List<MetadataCandidate> results) {
-            super(null);
-            this.results = results;
-        }
-
-        @Override
-        public List<MetadataCandidate> fetchSimilarGames(String igdbId) {
-            return results;
-        }
     }
 
     private static class StubJikanMetadataProvider extends JikanMetadataProvider {
@@ -152,7 +109,7 @@ class DiscoveryServiceTest {
         }
     }
 
-    /** Seedé avec les 3 fixtures - suffisant pour discoverManga()/discoverBoardGames()/discoverVideoGames(). */
+    /** Seedé avec les 3 fixtures. */
     private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
         private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
                 EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,

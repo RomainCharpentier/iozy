@@ -2,6 +2,7 @@ package com.iozycore.application.admin;
 
 import java.util.Map;
 import java.util.UUID;
+import com.iozycore.manga.deals.Volume;
 
 /**
  * Ce que pèse chaque compte, et comment effacer le sien.

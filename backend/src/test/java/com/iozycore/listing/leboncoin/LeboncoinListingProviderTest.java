@@ -1,7 +1,7 @@
 package com.iozycore.listing.leboncoin;
 
 import com.iozycore.listing.ListingResolution;
-import com.iozycore.purchaseanalysis.ListingPlatform;
+import com.iozycore.listing.ListingPlatform;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

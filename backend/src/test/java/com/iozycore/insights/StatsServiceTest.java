@@ -1,9 +1,9 @@
 package com.iozycore.insights;
 
 import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.MangaEdition;
-import com.iozycore.domain.catalog.MangaEditionRepository;
-import com.iozycore.domain.catalog.EditionTier;
+import com.iozycore.manga.domain.MangaEdition;
+import com.iozycore.manga.domain.MangaEditionRepository;
+import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityType;
 import com.iozycore.domain.catalog.EntityTypeFixtures;
@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iozycore.manga.insights.CollectionProgressService;
 
 class StatsServiceTest {
 
