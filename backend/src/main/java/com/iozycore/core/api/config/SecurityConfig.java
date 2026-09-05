@@ -2,11 +2,13 @@ package com.iozycore.core.api.config;
 
 import com.iozycore.core.application.auth.AppUserDetailsService;
 import com.iozycore.core.application.auth.Invite;
+import com.iozycore.core.domain.user.AppUserRepository;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -78,6 +80,12 @@ import java.io.IOException;
  * lire (il en existe : analyser une annonce, lire un lien) tombe dans le même
  * refus, et c'est très bien : ce sont justement les appels coûteux, sortants ou
  * facturés, qu'une porte ouverte à tout Internet ne doit pas offrir.
+ *
+ * <h2>Une session ne vaut que tant que son compte existe</h2>
+ * La session retient le principal écrit à la connexion, et rien ne le relisait
+ * ensuite : un compte supprimé par l'administrateur restait « connecté » dans
+ * son navigateur. {@link SessionDUnCompteSupprime} relit le compte à chaque
+ * requête et ferme la session dès qu'il n'y en a plus.
  *
  * <h2>CSRF : activé, parce que le cookie voyage tout seul</h2>
  * C'est la contrepartie exacte du choix précédent. Un cookie de session part
@@ -167,6 +175,61 @@ public class SecurityConfig {
         }
     }
 
+    /**
+     * Un compte supprimé ne garde pas sa session.
+     *
+     * <h2>Le trou que ce filtre ferme</h2>
+     * La session retient le principal écrit à la connexion - identifiant,
+     * adresse, rôle - et plus rien ne le relisait ensuite. Supprimer un compte
+     * (voir {@code GestionDesComptes}) effaçait ses données et sa ligne, mais
+     * son navigateur restait « connecté » : une collection vide, et des
+     * écritures qui seraient reparties sous un identifiant que plus personne
+     * ne porte. Trouvé par le parcours Playwright d'import (lot 135), qui
+     * supprime un compte et attend la porte.
+     *
+     * <h2>Une clé primaire par requête, plutôt qu'un registre de sessions</h2>
+     * Spring Security sait expirer les sessions d'un principal, à condition de
+     * les enregistrer à l'entrée et de tenir un registre en mémoire - qui ne
+     * survit pas à un redémarrage, et qu'un magasin de sessions ajouté un jour
+     * ne verrait pas. Ici, une lecture par clé primaire de la table des
+     * comptes, à chaque requête qui en porte un : le prix d'une règle sans
+     * état, et elle reste vraie quelle que soit la forme de la session. Une
+     * visite n'est pas concernée, elle ne nomme aucun compte.
+     *
+     * <p>Avant l'autorisation, parce que c'en est une question : une session
+     * qui ne désigne plus personne n'est pas authentifiée. Elle répond 401
+     * comme si elle n'existait pas - ce que le client traduit en porte - et
+     * elle est invalidée, pour ne pas être rejouée.
+     */
+    static class SessionDUnCompteSupprime extends OncePerRequestFilter {
+
+        private final AppUserRepository comptes;
+
+        SessionDUnCompteSupprime(AppUserRepository comptes) {
+            this.comptes = comptes;
+        }
+
+        @Override
+        protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain chaine)
+                throws ServletException, IOException {
+            var authentification = SecurityContextHolder.getContext().getAuthentication();
+            if (authentification != null
+                    && authentification.getPrincipal() instanceof AppUserDetailsService.Principal principal
+                    && comptes.findById(principal.id()).isEmpty()) {
+                HttpSession session = requete.getSession(false);
+                if (session != null) {
+                    session.invalidate();
+                }
+                SecurityContextHolder.clearContext();
+                reponse.setStatus(HttpStatus.UNAUTHORIZED.value());
+                reponse.setContentType("application/json;charset=UTF-8");
+                reponse.getWriter().write("{\"error\":\"Ce compte n'existe plus.\"}");
+                return;
+            }
+            chaine.doFilter(requete, reponse);
+        }
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         // BCrypt, force par défaut (10) : lent à dessein, et le seul coût est
@@ -195,7 +258,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contextes,
+                                           AppUserRepository comptes) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
@@ -209,6 +273,10 @@ public class SecurityConfig {
                         // cookie lisible, c'est le principe même du montage.
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), UsernamePasswordAuthenticationFilter.class)
+                // AVANT l'autorisation : une session dont le compte a disparu
+                // n'est plus une session, et se traite comme une absence de
+                // session (voir la javadoc du filtre).
+                .addFilterBefore(new SessionDUnCompteSupprime(comptes), AuthorizationFilter.class)
                 // APRÈS l'autorisation : le refus ne s'applique qu'aux requêtes
                 // que les règles ci-dessous ont déjà acceptées (voir la javadoc
                 // du filtre).

@@ -30,9 +30,12 @@ services:
       DB_USER: iozycore
       DB_PASSWORD: iozycore_e2e
       # Les tests créent le PREMIER compte, qui est libre : aucun code
-      # d'invitation n'est nécessaire, et n'en poser aucun vérifie au passage
-      # que la porte reste fermée aux comptes suivants.
-      IOZYCORE_INVITE_CODE: ""
+      # d'invitation n'est nécessaire. Les comptes SUIVANTS l'exigent, et la
+      # suite le connaît (web/e2e/compte.ts) : le parcours d'import crée un
+      # second compte pour le supprimer ensuite - l'administrateur de la suite
+      # ne peut pas se supprimer lui-même. Un code faux reste refusé, et un
+      # parcours le vérifie (porte.spec.ts).
+      IOZYCORE_INVITE_CODE: code-e2e
       # Pas de TLS devant en local : un cookie `Secure` ne serait jamais posé.
       SESSION_COOKIE_SECURE: "false"
       # L'origine du serveur de dev lancé par Playwright (voir

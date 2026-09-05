@@ -1360,6 +1360,71 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 135 — les deux chemins sans filet : la visite, et le retour d'un export
+
+Deux refontes de 360 fichiers venaient d'être livrées (lots 133 et 134) sur la
+foi de 14 parcours Playwright. Deux chemins n'en avaient aucun, et c'étaient
+les deux où une régression ne se verrait pas : la **visite sans compte** — le
+seul endroit où une fuite de données personnelles ne se plaindrait à personne
+— et le **retour d'un export**, que le lot 115 avait joué à la main en
+réclamant le parcours « exporter, détruire, réimporter ».
+
+**La visite** (`visite.spec.ts`). Le compte de la suite possède un tome ; un
+contexte de navigateur neuf entre par « Visiter sans compte ». Ce qui se
+vérifie : l'arrivée sur le catalogue avec le bandeau « Mode visiteur » ; ni
+« Ma collection » ni « Scanner » proposés ; l'œuvre listée **sans** pastille de
+possession ; la fiche qui montre le tome 1 **manquant** et « 0 tome possédé
+sur 3 » — la progression du visiteur, c'est-à-dire de personne, pas celle de
+l'hôte — et pas d'« Éditer » ; « J'ai le tome 2 » refusé en une phrase, sans
+aller-retour, le tome toujours manquant ; les écrans réservés qui renvoient
+au catalogue. Puis la même session interrogée à l'API : `/me` en visite sans
+identifiant, `/ownerships` vide, `/export/json` — la lecture la plus large de
+l'application — qui rend le catalogue et **aucune** possession, envie ou
+expérience, et un `POST` refusé 403 « lecture seule » **avec** le jeton CSRF
+fourni, pour que le refus vienne bien de la visite. Le compte, lui, possède
+toujours son tome, et un seul. « Quitter » referme : la fiche redemande la
+porte.
+
+**Le retour d'un export** (`import.spec.ts`). La pile jetable est unique, on
+ne la détruit pas au milieu d'une suite : ce qui est détruit, c'est le
+**compte**, par l'administrateur — exactement ce qu'une suppression emporte
+(voir `GestionDesComptes`), le catalogue restant partagé. La pile a donc gagné
+un **code d'invitation** (`code-e2e`, `IOZYCORE_INVITE_CODE` de
+`docker-compose.e2e.yml`, connu de `e2e/compte.ts`) : un second compte se crée
+à l'écran, et `porte.spec.ts` vérifie désormais qu'un **code faux est refusé**
+plutôt que l'absence d'un bouton. Le parcours : créer le compte B, lui poser
+deux tomes sur quatre avec édition et prix, **télécharger** le JSON par le
+bouton (l'événement de téléchargement de Playwright, pas un appel d'API à
+part), relire le fichier — le titre, les deux possessions, et **ni l'adresse
+ni le mot de passe** du compte —, supprimer B depuis `/administration/comptes`,
+constater que sa session est morte, recréer B, voir l'œuvre au catalogue
+« Pas encore possédé », importer — l'analyse, puis « Importer », puis « Import
+terminé » — et retrouver « 2/4 tomes » dans Ma collection et les tomes sur la
+fiche. Renvoyer le même fichier : **0 à créer**, 2 possessions déjà là — seules
+les préférences d'analyse d'achat restent proposées, parce qu'elles se
+remplacent au lieu de s'ajouter.
+
+**Le trou trouvé : la session d'un compte supprimé lui survivait.**
+`GestionDesComptes` effaçait les données puis le compte, mais la session HTTP
+gardait le principal écrit à la connexion, et rien ne le relisait : `/api/auth/me`
+répondait 200, le navigateur restait « connecté » sur une collection vide, et
+une écriture serait repartie sous un identifiant que plus personne ne porte.
+`SecurityConfig.SessionDUnCompteSupprime`, posé **avant** l'autorisation,
+relit le compte par clé primaire à chaque requête qui en porte un ; s'il
+n'existe plus, la session est invalidée et la réponse est 401
+`{"error":"Ce compte n'existe plus."}` — ce que le client traduit en porte.
+Un registre de sessions Spring Security aurait évité la requête, au prix
+d'enregistrer chaque session à l'entrée dans une table en mémoire qui ne
+survit ni à un redémarrage ni à un magasin de sessions qu'on ajouterait :
+une clé primaire par requête est le prix d'une règle sans état. Conséquence
+dans les tests : le principal **fabriqué** des tests de contrat HTTP n'avait
+aucune ligne derrière lui — `HttpContractTestBase` pose désormais ce compte
+en base à chaque test, annulé avec lui. Un test de contrat
+(`AuthHttpContractTest`) garde la règle.
+
+Vérifié : 16 parcours Playwright sur pile jetable, 1 097 tests backend depuis
+`clean`, lint, typecheck et frontières du front.
+
 ### Lot 134 — le front rangé par page
 
 Après le backend, l'utilisateur a demandé le même soin pour le front, mais

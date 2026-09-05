@@ -23,13 +23,21 @@ test('sans compte, rien de la collection ne s’affiche', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
 })
 
-test('une instance sans code d’invitation ne propose pas de créer un compte', async ({ page }) => {
-  // Le premier compte existe (voir compte.setup), et aucun code n'est
-  // configuré : la création est fermée, et l'écran ne propose donc pas un
-  // chemin qui n'ouvrirait qu'un refus.
+test('un compte de plus exige le code d’invitation, et un faux code est refusé', async ({ page }) => {
+  // Le premier compte existe (voir compte.setup) : à partir de là, la porte a
+  // une clé. L'écran propose de créer un compte parce que la pile en a
+  // configuré une (voir docker-compose.e2e.yml) - sans code configuré, il ne
+  // proposerait rien du tout, ce qui n'ouvrirait qu'un refus.
   await page.goto('/')
+  await page.getByRole('button', { name: 'Créer un compte avec une invitation' }).click()
+  await page.getByLabel('Adresse e-mail').fill('intrus@iozycore.test')
+  await page.getByLabel('Mot de passe').fill('un-mot-de-passe-intrus')
+  await page.getByLabel('Pseudo').fill('intrus')
+  await page.getByLabel('Code d’invitation').fill('pas-le-bon-code')
+  await page.getByRole('button', { name: 'Créer mon compte' }).click()
 
-  await expect(page.getByRole('button', { name: /Créer un compte/ })).toHaveCount(0)
+  await expect(page.getByText("Code d'invitation invalide.")).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
 })
 
 test('un mot de passe faux ne dit pas si l’adresse existe', async ({ page }) => {

@@ -5,6 +5,9 @@ import com.iozycore.integration.PostgresIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iozycore.core.application.auth.AppUserDetailsService;
 import com.iozycore.core.domain.shared.DefaultOwner;
+import com.iozycore.core.domain.user.AppUser;
+import com.iozycore.core.domain.user.AppUserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
@@ -92,6 +95,27 @@ public abstract class HttpContractTestBase extends PostgresIntegrationTest {
     /** Celui de l'application : les tests sérialisent comme le client réel. */
     @Autowired
     protected ObjectMapper objectMapper;
+
+    @Autowired
+    private AppUserRepository comptes;
+
+    /**
+     * Le compte au nom duquel ces tests parlent <b>existe</b> en base.
+     *
+     * <p>Le principal ci-dessus est fabriqué, pas lu : aucune ligne ne se
+     * trouvait derrière lui, et rien ne s'en apercevait - jusqu'à ce que la
+     * chaîne de sécurité relise le compte à chaque requête pour fermer la
+     * session d'un compte supprimé (voir {@code SecurityConfig.SessionDUnCompteSupprime}).
+     * Un principal sans compte est précisément ce qu'elle refuse. La ligne
+     * est posée par test, et annulée avec lui.
+     */
+    @BeforeEach
+    void leCompteDeTestExiste() {
+        if (comptes.findById(DefaultOwner.ID).isEmpty()) {
+            comptes.save(AppUser.premier(IDENTITE_DE_TEST.email(), IDENTITE_DE_TEST.motDePasseHache(),
+                    IDENTITE_DE_TEST.pseudo()));
+        }
+    }
 
     /** Un identifiant syntaxiquement valide qui ne désigne rien. */
     protected static final String ABSENT = "00000000-0000-0000-0000-0000000000ff";
