@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, GripVertical, Moon, Sun, Upload } from 'lucide-react'
+import { Download, GripVertical, Upload } from 'lucide-react'
 import { useAuth } from '@/common/hooks/useAuth'
 import {
   TITLE_LANGUAGE_LABELS,
@@ -8,7 +8,6 @@ import {
   setTitleComposition,
   type TitleComposition,
 } from '@/common/lib/titleLanguage'
-import { useTheme } from '@/common/lib/theme'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 
@@ -19,9 +18,14 @@ import { LienRetour } from '@/common/components/LienRetour'
  * <b>Mon compte</b> te suit partout : il vit sur le serveur, et l'export en
  * fait partie - télécharger sa collection n'est pas de la configuration
  * technique, c'est la garantie de pouvoir partir. <b>Cet appareil</b> ne suit
- * rien : le thème et la langue des titres vivent dans le {@code localStorage}
- * de ce navigateur, et changer de machine les perd. La section le dit, parce
- * que personne ne peut le deviner.
+ * rien : la langue des titres vit dans le {@code localStorage} de ce
+ * navigateur, et changer de machine la perd. La section le dit, parce que
+ * personne ne peut le deviner.
+ *
+ * <p>Le thème clair ou sombre a vécu ici aussi, jusqu'au lot 138 : il se
+ * change depuis l'en-tête, d'un clic sur le soleil ou la lune (voir
+ * BoutonTheme). Un réglage qu'on change selon la lumière de la pièce n'a pas à
+ * se trouver à trois clics.
  *
  * <p>Ce qui n'est ici NI l'un NI l'autre - les catégories de collection, les
  * éditions de référence, l'import, les comptes - concerne le <b>contenu</b> de
@@ -43,7 +47,6 @@ export function SettingsPage() {
   // voir lib/titleLanguage.ts.
   const [composition, setComposition] = useState<TitleComposition>(getTitleComposition)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  const { theme, toggleTheme } = useTheme()
   const { compte } = useAuth()
 
 
@@ -176,51 +179,15 @@ export function SettingsPage() {
       <h2 id="section-cet-appareil" className="font-display text-lg font-semibold text-textPrimary">
         Cet appareil
       </h2>
-      {/* Dit une fois, pour les deux réglages qui suivent : ils vivent dans le
-          localStorage de ce navigateur, pas sur le compte. Sans cette phrase,
-          quelqu'un qui ouvre l'app sur son téléphone croit à une perte de
-          réglage. */}
+      {/* Dit une fois : ce réglage vit dans le localStorage de ce navigateur,
+          pas sur le compte. Sans cette phrase, quelqu'un qui ouvre l'app sur
+          son téléphone croit à une perte de réglage. Le thème, lui aussi sur
+          cet appareil, se change depuis l'en-tête (lot 138) - et on le dit,
+          pour qui vient le chercher ici où il a vécu. */}
       <p className="-mt-3 text-sm text-textDim">
-        Ces deux réglages restent sur cet appareil : ils ne suivent pas ton compte d'un navigateur à l'autre.
+        Ce réglage reste sur cet appareil : il ne suit pas ton compte d'un navigateur à l'autre. Le thème clair ou
+        sombre aussi, et il se change depuis l'en-tête, d'un clic sur le soleil ou la lune.
       </p>
-
-      {/* Pattern switch identique à celui de la maquette (role="switch" +
-          aria-checked, jamais un simple bouton texte pour un état à deux
-          valeurs). */}
-      <section className="flex items-center gap-3 rounded-xl bg-surface p-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface2 text-accentText">
-          {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-        </span>
-        <span className="flex-1">
-          <span className="block font-medium text-textPrimary">Thème {theme === 'dark' ? 'sombre' : 'clair'}</span>
-          <span className="block text-xs text-textDim">Basculer entre thème clair et sombre</span>
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={theme === 'dark'}
-          aria-label="Thème sombre"
-          onClick={toggleTheme}
-          // Le bouton fait 44 px de haut, le rail en garde 26 : la cible
-          // tactile grandit sans que l'interrupteur grossisse. Un rail de
-          // 44 px aurait l'air d'un bouton, pas d'un interrupteur - alors que
-          // 26 px se rate au pouce, et rater celui-ci change le thème de
-          // l'application.
-          className="flex h-11 shrink-0 items-center"
-        >
-          <span
-            className={`relative flex h-[26px] w-11 rounded-full p-0.5 transition-colors ${
-              theme === 'dark' ? 'bg-accent' : 'bg-surface2'
-            }`}
-          >
-            <span
-              className={`block h-[20px] w-[20px] rounded-full bg-white shadow-token-sm transition-transform ${
-                theme === 'dark' ? 'translate-x-[20px]' : 'translate-x-0'
-              }`}
-            />
-          </span>
-        </button>
-      </section>
 
       <section className="flex flex-col gap-2">
         <h3 className="font-display text-base font-semibold text-textPrimary">Titre des mangas</h3>

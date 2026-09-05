@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Wrench } from 'lucide-react'
 import { initiales } from '@/common/lib/initiales'
 import { BoutonSortie } from '@/common/components/BoutonSortie'
+import { BoutonTheme } from '@/common/components/BoutonTheme'
 import { couleurDuPseudo } from '@/common/theme/avatar'
 import { useAuth } from '@/common/hooks/useAuth'
 
@@ -30,11 +31,17 @@ import { useAuth } from '@/common/hooks/useAuth'
  * sort - « Se déconnecter » vivait à trois clics d'ici, dans les Paramètres,
  * c'est-à-dire nulle part pour qui ne connaît pas le chemin.
  *
- * <h2>Pendant une visite : la sortie, et rien d'autre</h2>
+ * <h2>Et le thème, pour tout le monde (lot 138)</h2>
+ * {@link BoutonTheme} ouvre la rangée : clair ou sombre d'un clic, là où l'on
+ * est, au lieu de trois clics jusqu'aux Paramètres. Une icône qui montre le
+ * mode courant, un nom qui dit l'action - la même règle que ses voisines.
+ *
+ * <h2>Pendant une visite : le thème, la sortie, et rien d'autre</h2>
  * Le profil et l'administration parlent tous deux de « chez soi », qu'un
  * visiteur n'a pas. L'avatar, surtout, aurait affiché des initiales qui ne
  * sont celles de personne : le seul endroit de l'application qui dit « c'est
- * toi » aurait menti.
+ * toi » aurait menti. Le thème, lui, est un réglage de l'appareil, pas du
+ * compte : il reste.
  *
  * <h2>Ce que ces boutons ne sont pas</h2>
  * Des destinations de navigation. Les quatre intentions quotidiennes vivent
@@ -71,7 +78,12 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
   // sortie, au même endroit que pour tout le monde - c'est même le seul
   // endroit d'où il puisse sortir.
   if (estInvite) {
-    return <BoutonSortie compact={compact} />
+    return (
+      <div className="flex items-center gap-2">
+        <BoutonTheme compact={compact} />
+        <BoutonSortie compact={compact} />
+      </div>
+    )
   }
 
   const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
@@ -84,6 +96,8 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="flex items-center gap-2">
+      <BoutonTheme compact={compact} />
+
       {/* L'outillage de l'application, sur son propre bouton. Une icône seule :
           l'en-tête doit rester calme, et « Administration » à côté d'un avatar
           ferait deux libellés pour deux choses qu'on ouvre rarement. Le nom est

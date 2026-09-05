@@ -1360,6 +1360,39 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 138 — le thème se change depuis l'en-tête
+
+Demandé tel quel : « extraire la fonction mode clair / sombre dans la barre
+de menu, avec juste une icône qui change selon le mode ». L'interrupteur
+vivait sous Paramètres ▸ Cet appareil, à trois clics de n'importe quel écran
+(avatar, Profil, Paramètres), pour un geste qu'on fait selon la lumière de la
+pièce, pas un réglage qu'on pose une fois.
+
+**`BoutonTheme`** ouvre la rangée des raccourcis de l'en-tête, desktop et
+mobile, visiteur compris (le thème est un réglage de l'appareil, pas du
+compte). L'icône montre le mode **courant** - la lune quand il fait sombre, le
+soleil quand il fait clair, ce que l'interrupteur montrait déjà - et le nom
+accessible dit l'**action** (« Passer en thème clair »), porté par
+`aria-label` et `title` comme Administration et la sortie. L'interrupteur des
+Paramètres est retiré, un seul geste pour un seul réglage ; la section « Cet
+appareil » dit où il est parti.
+
+**Le défaut trouvé en l'écrivant** : `useTheme` gardait un état par
+composant, relu au montage. Tant qu'un seul interrupteur existait, rien ne se
+voyait ; l'en-tête, lui, rend le bouton **deux fois** (barre desktop, barre
+mobile, l'une masquée par CSS), et deux états privés auraient divergé au
+premier clic - l'icône de l'autre barre aurait montré l'ancien mode, puis son
+clic l'aurait « rebasculé » vers celui qu'on venait de quitter. Le thème vit
+désormais dans un magasin de module souscrit par `useSyncExternalStore` :
+chaque bouton est une vue du même fait. Un test rend deux boutons, en clique
+un, et lit les deux.
+
+Vérifié : typecheck, lint, 339 tests web, contraste, frontières, build ; 16
+parcours Playwright ; et dans le navigateur, en mode visiteur : un clic sur
+la barre mobile fait passer les DEUX boutons au soleil, retire `data-theme`
+et mémorise « light », le clic suivant ramène tout au sombre. Aucun
+changement côté serveur.
+
 ### Lot 137 — la navigation ne nomme aucun univers
 
 Le lot 136 laissait une question ouverte, posée à l'utilisateur : « Analyser

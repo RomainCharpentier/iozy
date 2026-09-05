@@ -146,4 +146,19 @@ describe('pendant une visite sans compte', () => {
 
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Administration' })).not.toBeInTheDocument())
   })
+
+  it('garde le thème : un réglage de l’appareil, pas du compte', async () => {
+    await enVisite()
+
+    expect(await screen.findByRole('button', { name: /Passer en thème/ })).toBeInTheDocument()
+  })
+})
+
+describe('le thème', () => {
+  it('se change d’un clic depuis l’en-tête, sans passer par les Paramètres', async () => {
+    // Il y vivait, à trois clics de n'importe quel écran (lot 138).
+    await avatarDe('romain')
+
+    expect(screen.getByRole('button', { name: /Passer en thème/ })).toBeInTheDocument()
+  })
 })
