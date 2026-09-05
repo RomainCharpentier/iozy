@@ -1,19 +1,19 @@
 package com.iozycore.integration;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.manga.deals.CollectionStatus;
 import com.iozycore.manga.deals.CollectorPreferences;
 import com.iozycore.manga.deals.CollectorPreferencesRepository;
-import com.iozycore.listing.ShippingEstimateKind;
+import com.iozycore.core.listing.ShippingEstimateKind;
 import com.iozycore.manga.deals.Condition;
 import com.iozycore.manga.deals.EditionSuggestion;
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
 import com.iozycore.manga.deals.MarketPriceObservation;
@@ -66,10 +66,10 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
     private EntityRepository entityRepository;
 
     @Autowired
-    private com.iozycore.domain.ownership.OwnershipRepository ownershipRepository;
+    private com.iozycore.core.domain.ownership.OwnershipRepository ownershipRepository;
 
     @Autowired
-    private com.iozycore.application.QuickAddService quickAddService;
+    private com.iozycore.core.application.QuickAddService quickAddService;
 
     @Test
     void a_manga_edition_can_be_saved_reloaded_and_looked_up_case_insensitively() {
@@ -123,8 +123,8 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         // autre - le même PATCH /editions/{id} déjà utilisé par l'Analyse d'achat
         // fonctionne dessus sans distinction, aucune donnée dupliquée ni pipeline séparé.
         String seriesTitle = "Vinland Saga " + UUID.randomUUID();
-        com.iozycore.application.QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
-                EntityTypeFixtures.MANGA.id(), seriesTitle, com.iozycore.domain.ownership.OwnershipCondition.NEW,
+        com.iozycore.core.application.QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.MANGA.id(), seriesTitle, com.iozycore.core.domain.ownership.OwnershipCondition.NEW,
                 Map.of(), 1, "Deluxe");
 
         MangaEdition created = mangaEditionRepository.findBySeriesAndEdition(seriesTitle, "Deluxe").orElseThrow();
@@ -393,12 +393,12 @@ class PurchaseAnalysisPersistenceIntegrationTest extends PostgresIntegrationTest
         entity.addVariant("Tome 2", Map.of("volumeNumber", 2, "edition", "Standard"));
         entityRepository.save(entity);
 
-        ownershipRepository.save(com.iozycore.domain.ownership.Ownership.acquire(entity.id(),
+        ownershipRepository.save(com.iozycore.core.domain.ownership.Ownership.acquire(entity.id(),
                 entity.findVariantByLabel("Tome 1").orElseThrow().id(),
-                com.iozycore.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
-        ownershipRepository.save(com.iozycore.domain.ownership.Ownership.acquire(entity.id(),
+                com.iozycore.core.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
+        ownershipRepository.save(com.iozycore.core.domain.ownership.Ownership.acquire(entity.id(),
                 entity.findVariantByLabel("Tome 2").orElseThrow().id(),
-                com.iozycore.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
+                com.iozycore.core.domain.ownership.OwnershipCondition.NEW, LocalDate.now(), null));
 
         AnalyzeListingCommand command = new AnalyzeListingCommand(ListingPlatform.VINTED, null, "Lot avec doublons",
                 null, new BigDecimal("15"), BigDecimal.ZERO, ShippingEstimateKind.UNKNOWN, BigDecimal.ZERO, Condition.GOOD, false,

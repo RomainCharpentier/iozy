@@ -1,7 +1,7 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;

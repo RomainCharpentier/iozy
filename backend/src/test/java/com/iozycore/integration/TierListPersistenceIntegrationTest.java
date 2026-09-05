@@ -1,9 +1,9 @@
 package com.iozycore.integration;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.tierlist.*;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.tierlist.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

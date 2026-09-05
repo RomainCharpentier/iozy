@@ -1,18 +1,18 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.listing.ListingProvider;
-import com.iozycore.listing.ListingResolution;
-import com.iozycore.listing.ListingSnapshot;
-import com.iozycore.listing.ShippingEstimateKind;
-import com.iozycore.metadata.BarcodeMetadataProvider;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.listing.ListingProvider;
+import com.iozycore.core.listing.ListingResolution;
+import com.iozycore.core.listing.ListingSnapshot;
+import com.iozycore.core.listing.ShippingEstimateKind;
+import com.iozycore.core.metadata.BarcodeMetadataProvider;
 import com.iozycore.manga.metadata.FrenchTitleMatch;
 import com.iozycore.manga.metadata.FrenchTitleProvider;
-import com.iozycore.metadata.MetadataCandidate;
-import com.iozycore.metadata.MetadataProvider;
+import com.iozycore.core.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataProvider;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -118,14 +118,14 @@ public class FakeMetadataProviders {
              * vide - et fait passer une absence constatée pour une panne.
              */
             @Override
-            public com.iozycore.metadata.BarcodeLookup lookupDetailed(String barcode) {
+            public com.iozycore.core.metadata.BarcodeLookup lookupDetailed(String barcode) {
                 if (barcode.contains(DECLENCHE_PANNE)) {
-                    return com.iozycore.metadata.BarcodeLookup.unavailable();
+                    return com.iozycore.core.metadata.BarcodeLookup.unavailable();
                 }
                 if (barcode.contains(DECLENCHE_VIDE)) {
-                    return com.iozycore.metadata.BarcodeLookup.absent();
+                    return com.iozycore.core.metadata.BarcodeLookup.absent();
                 }
-                return com.iozycore.metadata.BarcodeLookup.found(new MetadataCandidate("SOURCE_DE_TEST",
+                return com.iozycore.core.metadata.BarcodeLookup.found(new MetadataCandidate("SOURCE_DE_TEST",
                         "fake-" + barcode, "Trouvé par code-barres", null, java.util.Map.of()));
             }
         };

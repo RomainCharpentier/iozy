@@ -4,7 +4,7 @@ package com.iozycore.manga.metadata;
  * Un titre français trouvé par un {@link FrenchTitleProvider}, accompagné de
  * la façon dont il a été trouvé : deux résultats n'ont pas du tout la même
  * valeur de preuve, et
- * {@link FrenchTitleService#findFrenchTitle(com.iozycore.domain.catalog.EntityType, String, String, java.util.List, String)}
+ * {@link FrenchTitleService#findFrenchTitle(com.iozycore.core.domain.catalog.EntityType, String, String, java.util.List, String)}
  * s'en sert pour arbitrer entre fournisseurs (une correspondance sur la
  * série cherchée l'emporte sur une simple trouvaille "du même auteur", quel
  * que soit l'ordre des fournisseurs) et pour décider s'il faut vérifier le

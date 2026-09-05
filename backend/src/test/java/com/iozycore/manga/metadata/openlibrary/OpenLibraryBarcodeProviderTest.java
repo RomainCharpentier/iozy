@@ -1,6 +1,6 @@
 package com.iozycore.manga.metadata.openlibrary;
 
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;

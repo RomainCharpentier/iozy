@@ -2,7 +2,7 @@ package com.iozycore.manga.deals;
 
 import java.net.URI;
 import java.util.Locale;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 
 /**
  * Reconnaître qu'on regarde <b>deux fois la même annonce</b>.

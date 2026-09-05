@@ -2,7 +2,7 @@ package com.iozycore.videogame.igdb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

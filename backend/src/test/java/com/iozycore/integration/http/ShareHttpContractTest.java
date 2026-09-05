@@ -1,15 +1,15 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.domain.shared.DefaultOwner;
-import com.iozycore.application.CatalogEntityResolver;
-import com.iozycore.application.QuickAddService;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.domain.share.ShareSettings;
-import com.iozycore.domain.share.ShareSettingsRepository;
-import com.iozycore.domain.wishlist.WishlistEntry;
-import com.iozycore.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.domain.shared.DefaultOwner;
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.application.QuickAddService;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.share.ShareSettings;
+import com.iozycore.core.domain.share.ShareSettingsRepository;
+import com.iozycore.core.domain.wishlist.WishlistEntry;
+import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

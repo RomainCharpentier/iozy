@@ -1,6 +1,6 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

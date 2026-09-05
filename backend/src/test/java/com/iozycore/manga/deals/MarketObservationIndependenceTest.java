@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 
 /**
  * <b>Un échantillon compte des vendeurs, pas des lignes en base.</b>

@@ -1,13 +1,13 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.manga.recognition.RecognitionImageLimits;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

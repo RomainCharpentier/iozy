@@ -1,13 +1,13 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.application.CatalogEntityResolver;
-import com.iozycore.domain.catalog.Entity;
+import com.iozycore.core.application.CatalogEntityResolver;
+import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.manga.deals.Condition;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 import com.iozycore.manga.deals.MarketPriceObservation;
 import com.iozycore.manga.deals.MarketPriceObservationRepository;
 import com.iozycore.manga.deals.PurchaseAnalysisRepository;

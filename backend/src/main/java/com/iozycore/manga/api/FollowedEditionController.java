@@ -2,7 +2,7 @@ package com.iozycore.manga.api;
 
 import com.iozycore.manga.api.FollowedEditionDtos.FollowEditionRequest;
 import com.iozycore.manga.api.FollowedEditionDtos.FollowedEditionResponse;
-import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.manga.domain.followededition.FollowedEdition;
 import com.iozycore.manga.domain.followededition.FollowedEditionRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * « L'édition que je collectionne » pour une série (voir
- * com.iozycore.domain.followededition, et le badge SUIVIE de la maquette
+ * com.iozycore.core.domain.followededition, et le badge SUIVIE de la maquette
  * « Fiche série - multi-éditions »).
  */
 @RestController

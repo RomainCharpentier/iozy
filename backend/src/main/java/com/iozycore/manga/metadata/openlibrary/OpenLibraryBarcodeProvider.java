@@ -2,9 +2,9 @@ package com.iozycore.manga.metadata.openlibrary;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.BarcodeMetadataProvider;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.BarcodeMetadataProvider;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,10 +58,10 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
      * dépassé ou un corps illisible n'en sont pas.
      */
     @Override
-    public com.iozycore.metadata.BarcodeLookup lookupDetailed(String barcode) {
+    public com.iozycore.core.metadata.BarcodeLookup lookupDetailed(String barcode) {
         String isbn = normalize(barcode);
         if (isbn.isEmpty()) {
-            return com.iozycore.metadata.BarcodeLookup.unavailable();
+            return com.iozycore.core.metadata.BarcodeLookup.unavailable();
         }
 
         try {
@@ -74,15 +74,15 @@ public class OpenLibraryBarcodeProvider implements BarcodeMetadataProvider {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 log.warn("Open Library a répondu {} pour l'ISBN '{}'", response.statusCode(), isbn);
-                return com.iozycore.metadata.BarcodeLookup.unavailable();
+                return com.iozycore.core.metadata.BarcodeLookup.unavailable();
             }
 
             return parse(response.body(), isbn)
-                    .map(com.iozycore.metadata.BarcodeLookup::found)
-                    .orElseGet(com.iozycore.metadata.BarcodeLookup::absent);
+                    .map(com.iozycore.core.metadata.BarcodeLookup::found)
+                    .orElseGet(com.iozycore.core.metadata.BarcodeLookup::absent);
         } catch (Exception e) {
             log.warn("Échec du lookup Open Library pour '{}' : {}", isbn, e.getMessage());
-            return com.iozycore.metadata.BarcodeLookup.unavailable();
+            return com.iozycore.core.metadata.BarcodeLookup.unavailable();
         }
     }
 

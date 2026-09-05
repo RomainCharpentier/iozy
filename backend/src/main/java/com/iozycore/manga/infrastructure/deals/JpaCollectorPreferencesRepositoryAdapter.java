@@ -1,6 +1,6 @@
 package com.iozycore.manga.infrastructure.deals;
 
-import com.iozycore.application.auth.UtilisateurCourant;
+import com.iozycore.core.application.auth.UtilisateurCourant;
 import com.iozycore.manga.deals.CollectorPreferences;
 import com.iozycore.manga.deals.CollectorPreferencesRepository;
 import com.iozycore.manga.deals.WeightLevel;

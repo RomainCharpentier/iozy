@@ -2,7 +2,7 @@ package com.iozycore.manga.deals.gemini;
 
 import com.iozycore.manga.deals.AiPriceEstimate;
 import com.iozycore.manga.deals.Condition;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

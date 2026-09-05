@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /**
  * Single mono-user row (see V4__purchase_analysis.sql and
- * {@link com.iozycore.domain.shared.DefaultOwner}).
+ * {@link com.iozycore.core.domain.shared.DefaultOwner}).
  * <p>
  * Cinq colonnes ont ete retirees au Lot 84 (voir
  * V24__drop_inert_collector_preferences.sql) : aucune ligne du moteur ne les

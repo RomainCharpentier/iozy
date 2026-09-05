@@ -1,6 +1,6 @@
 -- V15__entity_type_visual.sql
 -- Identité visuelle d'un type de collection (voir
--- com.iozycore.domain.catalog.EntityType) : un type créé par l'utilisateur
+-- com.iozycore.core.domain.catalog.EntityType) : un type créé par l'utilisateur
 -- prenait jusqu'ici le visuel de repli du client, sans moyen de le choisir,
 -- alors que les 4 univers connus ont chacun le leur.
 --

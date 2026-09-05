@@ -1,6 +1,6 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.listing.ShippingEstimateKind;
+import com.iozycore.core.listing.ShippingEstimateKind;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 
 /**
  * Déclarer qu'on ne connaît pas l'édition doit être un choix <b>utilisable</b>,

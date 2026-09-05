@@ -1,10 +1,10 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.shared.TexteRecherche;
-import com.iozycore.metadata.QuotaExceededException;
-import com.iozycore.metadata.SourceUnavailableException;
-import com.iozycore.metadata.TtlCache;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.shared.TexteRecherche;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
+import com.iozycore.core.metadata.TtlCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -3,7 +3,7 @@ package com.iozycore.manga.deals;
 import com.iozycore.manga.domain.EditionTier;
 import com.iozycore.manga.domain.MangaEdition;
 
-import com.iozycore.listing.ShippingEstimateKind;
+import com.iozycore.core.listing.ShippingEstimateKind;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -13,8 +13,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.iozycore.listing.ListingPlatform;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.listing.ListingPlatform;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /** End-to-end tests of {@link PurchaseAnalysisEngine}, replaying the specification's worked examples. */
 class PurchaseAnalysisEngineTest {

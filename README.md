@@ -36,6 +36,26 @@ ligne de commande.
 └─────────────────┘  (proxy /api en dev)
 ```
 
+### Un cœur et quatre univers
+
+Le backend est un **modulith DDD** découpé par type de collection
+(`backend/src/main/java/com/iozycore`) :
+
+| Module | Contenu |
+|---|---|
+| `core` | Ce qui vaut pour tous les types : catalogue générique (œuvres, tomes, types), possessions, envies, tier lists, comptes, partage, export, statistiques, annonces, et les **points d'extension** que les univers implémentent |
+| `manga` | Tomes et éditions françaises, éditions suivies, progression, liste de lecture, sources (AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), analyse d'achat d'un lot, reconnaissance des piles |
+| `videogame` | IGDB, jeux similaires pour Découvrir |
+| `boardgame` | BoardGameGeek, import d'une collection, hot list pour Découvrir |
+| `custom` | Les types de collection définis dans iozycore, sans fournisseur : saisie à la main, base iozycore seule |
+
+Chaque univers dépend du cœur, jamais l'inverse, jamais d'un autre univers ;
+chaque module a ses quatre couches (domaine sans framework, cas d'usage,
+persistance, API). Le test `ModulesTest` (Spring Modulith) vérifie ces
+frontières à chaque build et dessine la carte des modules dans
+`target/spring-modulith-docs`. C'est ce qui permet de sortir un univers en
+service à part le jour où il le faudra.
+
 Le backend peut être testé **seul** (via Swagger UI ou `requests.http`,
 sans aucune app cliente). L'app iOS et l'app Web ont chacune besoin du
 backend lancé pour fonctionner (elles appellent `http://localhost:8080/api`,

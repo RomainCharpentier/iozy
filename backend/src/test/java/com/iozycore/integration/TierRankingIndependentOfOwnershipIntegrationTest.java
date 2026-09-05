@@ -1,16 +1,16 @@
 package com.iozycore.integration;
 
-import com.iozycore.api.dto.TierListDtos.SetRankRequest;
-import com.iozycore.api.tierlist.TierListController;
-import com.iozycore.application.TierListService;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipCondition;
-import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.domain.tierlist.EntityRankRepository;
-import com.iozycore.domain.tierlist.Rank;
+import com.iozycore.core.api.dto.TierListDtos.SetRankRequest;
+import com.iozycore.core.api.tierlist.TierListController;
+import com.iozycore.core.application.TierListService;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipCondition;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.tierlist.EntityRankRepository;
+import com.iozycore.core.domain.tierlist.Rank;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

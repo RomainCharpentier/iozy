@@ -7,7 +7,7 @@ import com.iozycore.manga.recognition.RecognitionImage;
 import com.iozycore.manga.recognition.RecognitionImageFetcher;
 import com.iozycore.manga.recognition.RecognitionResult;
 import com.iozycore.manga.recognition.RecognizedItem;
-import com.iozycore.listing.ListingProvider;
+import com.iozycore.core.listing.ListingProvider;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;

@@ -2,9 +2,9 @@ package com.iozycore.manga.metadata.googlebooks;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.QuotaExceededException;
-import com.iozycore.metadata.SourceUnavailableException;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import com.iozycore.manga.metadata.VolumeCandidate;
 import com.iozycore.manga.metadata.VolumeSearchProvider;
 import org.slf4j.Logger;

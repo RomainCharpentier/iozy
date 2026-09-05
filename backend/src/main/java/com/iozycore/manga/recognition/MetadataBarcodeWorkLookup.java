@@ -1,15 +1,15 @@
 package com.iozycore.manga.recognition;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.manga.recognition.BarcodeWorkLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import com.iozycore.metadata.MetadataSearchService;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.metadata.MetadataSearchService;
+import com.iozycore.core.metadata.MetadataCandidate;
 
 /**
  * Branche la reconnaissance de codes-barres sur les providers bibliographiques

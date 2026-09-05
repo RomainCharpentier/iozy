@@ -1,10 +1,10 @@
 package com.iozycore.videogame;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.insights.DiscoveryCandidate;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.insights.DiscoveryCandidate;
+import com.iozycore.core.metadata.MetadataCandidate;
 import com.iozycore.videogame.igdb.IgdbSimilarGamesFetcher;
 import org.junit.jupiter.api.Test;
 

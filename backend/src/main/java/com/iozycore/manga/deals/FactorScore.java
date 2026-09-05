@@ -1,6 +1,6 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * The score (0-100) computed for a single {@link VerdictFactor}, always

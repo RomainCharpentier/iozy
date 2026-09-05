@@ -1,9 +1,9 @@
 package com.iozycore.manga.deals;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityTypeRepository;
 
 import org.junit.jupiter.api.Test;
 

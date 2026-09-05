@@ -1360,6 +1360,58 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 133 — un cœur et quatre univers
+
+Le lot 132 avait découpé `metadata` par univers ; l'utilisateur a jugé le
+résultat « pas bien rangé et trop complexe pour ce que ça fait », puis posé
+les règles : **DDD**, **séparer selon le type de collection** (mangas, jeux
+vidéo, jeux de société, types personnalisés iozycore), **laisser la
+possibilité de découper en sous-modules microservices**. Mon premier
+contre-plan (aplatir en dossiers par fonctionnalité) contredisait la première
+règle ; le second (contextes par fonction) contredisait la deuxième. D'où
+celui-ci.
+
+**La forme.** À la racine du paquet, un `core` et quatre univers : `manga`,
+`videogame`, `boardgame`, `custom`. Le cœur tient tout ce qui vaut pour tous
+les types ; un univers tient ce qui n'existe que pour le sien, avec ses
+quatre couches ; la racine d'un univers porte ses façades vers le cœur, ses
+sous-paquets sont privés.
+
+**La règle.** Un univers dépend du cœur, jamais l'inverse, jamais d'un autre
+univers. Là où le cœur touchait un univers, il déclare désormais un point
+d'extension que l'univers implémente :
+
+| Point d'extension (cœur) | Ce que le manga y met |
+|---|---|
+| `DiscoverySource` | même mangaka (jeux vidéo : IGDB similaires ; jeux de société : hot list BGG) |
+| `SeriesProgressSource` | la progression « X/Y » par édition de référence |
+| `OwnedValueSource` | prix neuf de l'édition × tomes possédés |
+| `CoverImageCheck` | une jaquette BnF n'est gardée que vivante |
+| `EditionLinker` | l'édition de référence retrouvée ou créée pour un tome |
+| `EntityDeletionGuard` | une série encore référencée par une édition ne se supprime pas |
+| `VariantDeletionHook` | l'édition orpheline effacée avec son dernier tome |
+| `TransferModule` | éditions, prix relevés, éditions suivies, préférences dans l'export et l'import |
+
+**Ce qui a bougé.** IGDB et la découverte des jeux vidéo → `videogame` ;
+BGG, l'import de collection, son contrôleur et la découverte → `boardgame` ;
+métadonnées manga, analyse d'achat, reconnaissance, éditions de référence,
+éditions suivies, progression, liste de lecture et leurs contrôleurs →
+`manga` ; les types personnalisés (service, contrôleur, DTO) → `custom` ;
+tout le reste sous `core/`. Le client Gemini et `ListingPlatform`, génériques,
+remontent dans le cœur. `DiscoveryService` n'est plus qu'un aiguillage.
+`git mv` partout, les tests suivent leurs classes ; le test du service de
+découverte est devenu trois tests d'univers.
+
+**La vérification.** Spring Modulith 1.2 (la ligne de Spring Boot 3.3) :
+`ModulesTest` vérifie les frontières à chaque build — le cœur est déclaré
+module OUVERT (les univers s'appuient sur son domaine, ses cas d'usage et ses
+contrats), les univers sont fermés — et dessine la carte des modules dans
+`target/spring-modulith-docs`. Ce qui reste volontairement dans le cœur :
+`DonneesParProprietaire` (l'effacement des données d'un compte, en SQL sur
+toutes les tables, y compris celles des univers — une donnée, pas une
+classe) et `TomeResolver` (résoudre un tome par numéro et édition est
+générique ; seule l'édition de référence est manga, par `EditionLinker`).
+
 ### Lot 132 — le paquet metadata réorganisé par univers
 
 Demande utilisateur du 2026-09-05 : « réorganise l'api pour bien séparer les

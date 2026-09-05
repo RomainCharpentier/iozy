@@ -1,8 +1,8 @@
 package com.iozycore.manga.recognition;
 
-import com.iozycore.listing.ListingProvider;
-import com.iozycore.listing.ListingResolution;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingProvider;
+import com.iozycore.core.listing.ListingResolution;
+import com.iozycore.core.listing.ListingPlatform;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -169,8 +169,8 @@ class RecognitionImageFetcherTest {
 
     @Test
     void the_real_vinted_provider_declares_its_image_cdn_and_only_that() {
-        com.iozycore.listing.vinted.VintedListingProvider vinted =
-                new com.iozycore.listing.vinted.VintedListingProvider(null);
+        com.iozycore.core.listing.vinted.VintedListingProvider vinted =
+                new com.iozycore.core.listing.vinted.VintedListingProvider(null);
 
         assertThat(vinted.allowedImageHosts()).contains("images1.vinted.net");
         // Les domaines de pages ne sont pas des hôtes d'images.

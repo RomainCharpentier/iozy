@@ -1,6 +1,6 @@
 package com.iozycore.manga.metadata;
 
-import com.iozycore.domain.catalog.EntityType;
+import com.iozycore.core.domain.catalog.EntityType;
 
 import java.util.List;
 

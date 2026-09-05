@@ -1,7 +1,7 @@
 package com.iozycore.integration.http;
 
-import com.iozycore.domain.catalog.Tag;
-import com.iozycore.domain.catalog.TagRepository;
+import com.iozycore.core.domain.catalog.Tag;
+import com.iozycore.core.domain.catalog.TagRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

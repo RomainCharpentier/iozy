@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import com.iozycore.insights.ConfidenceLevel;
+import com.iozycore.core.insights.ConfidenceLevel;
 
 /**
  * The full, immutable result of analyzing one listing - produced by

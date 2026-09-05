@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * Pre-purchase condition scale, from "sealed/mint" to "visible defects".
- * Distinct from {@link com.iozycore.domain.ownership.OwnershipCondition}
+ * Distinct from {@link com.iozycore.core.domain.ownership.OwnershipCondition}
  * (NEW/USED/DAMAGED), which only tracks a copy already in the collection -
  * this scale exists specifically to grade a second-hand listing before
  * buying it, as required by the purchase analysis specification.

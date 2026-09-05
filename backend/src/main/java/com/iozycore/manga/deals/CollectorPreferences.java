@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * Configurable collector profile driving {@link VerdictScorer} and
  * {@link NegotiationEngine} - single instance in Phase 1 (the app stays
- * mono-user, same convention as {@link com.iozycore.domain.shared.DefaultOwner}).
+ * mono-user, same convention as {@link com.iozycore.core.domain.shared.DefaultOwner}).
  * {@link #defaults()} matches the default profile described in the
  * specification verbatim; every field is meant to be user-editable
  * afterwards via {@code PATCH /api/purchase-analysis/preferences}.

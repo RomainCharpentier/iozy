@@ -5,7 +5,7 @@ import com.iozycore.manga.deals.CollectorPreferences;
 import com.iozycore.manga.deals.Condition;
 import com.iozycore.manga.deals.EditionSuggestion;
 import com.iozycore.manga.domain.EditionTier;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.deals.MarketPriceObservation;
 import com.iozycore.manga.deals.PurchaseAnalysis;
@@ -92,7 +92,7 @@ public class PurchaseAnalysisController {
                 // -> ESTIMATED), pour que la regle vive a un seul endroit.
                 request.shippingKind() == null || request.shippingKind().isBlank()
                         ? null
-                        : parseEnum(com.iozycore.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
+                        : parseEnum(com.iozycore.core.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
                 request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),
                 items, request.photoUrls(),

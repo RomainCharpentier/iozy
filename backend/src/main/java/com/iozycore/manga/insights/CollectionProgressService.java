@@ -1,12 +1,12 @@
 package com.iozycore.manga.insights;
 
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.manga.domain.MangaEdition;
 import com.iozycore.manga.domain.MangaEditionRepository;
-import com.iozycore.domain.catalog.Variant;
-import com.iozycore.domain.ownership.Ownership;
-import com.iozycore.domain.ownership.OwnershipRepository;
+import com.iozycore.core.domain.catalog.Variant;
+import com.iozycore.core.domain.ownership.Ownership;
+import com.iozycore.core.domain.ownership.OwnershipRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.iozycore.core.insights.CollectionProgress;
+import com.iozycore.core.insights.SeriesProgressSource;
 
 /**
  * SOURCE DE VÉRITÉ UNIQUE de la progression "X tomes possédés sur Y".
@@ -55,7 +57,7 @@ import java.util.stream.Collectors;
  * </ol>
  */
 @Service
-public class CollectionProgressService {
+public class CollectionProgressService implements SeriesProgressSource {
 
     private static final String EDITION = "edition";
     private static final String VOLUME_NUMBER = "volumeNumber";
@@ -74,6 +76,7 @@ public class CollectionProgressService {
 
     /** Progression de toutes les œuvres - une seule passe sur les Ownership, pour que
      * Ma collection n'ait pas à faire une requête par série. */
+    @Override
     public List<CollectionProgress> computeAll() {
         Map<UUID, List<Ownership>> activeByEntity = ownershipRepository.findAll().stream()
                 .filter(Ownership::isActive)
@@ -92,26 +95,14 @@ public class CollectionProgressService {
         Map<String, Integer> totals = new LinkedHashMap<>();
         for (MangaEdition edition : mangaEditionRepository.findAll()) {
             if (edition.entityId() != null && edition.totalVolumes() != null) {
-                totals.put(editionKey(edition.entityId(), edition.editionName()), edition.totalVolumes());
+                totals.put(CollectionProgress.editionKey(edition.entityId(), edition.editionName()), edition.totalVolumes());
             }
         }
         return totals;
     }
 
-    /**
-     * L'identité d'une édition : (œuvre, nom), à la casse et aux espaces près.
-     *
-     * <p>Publique parce qu'elle était RECOPIÉE - {@code StatsService} en avait
-     * sa propre version pour valoriser la collection au prix neuf (Lot 56).
-     * Deux copies d'une clé sont deux occasions de diverger, et c'est
-     * exactement ce qui a produit les écarts de progression des Lots 31 et 49 :
-     * la règle vit ici, avec le calcul qu'elle sert.
-     */
-    public static String editionKey(UUID entityId, String editionName) {
-        return entityId + "|" + editionName.trim().toLowerCase();
-    }
-
     /** Progression d'une œuvre précise - {@link Optional#empty()} si elle n'existe pas. */
+    @Override
     public Optional<CollectionProgress> compute(UUID entityId) {
         return entityRepository.findById(entityId)
                 .map(entity -> compute(entity, ownershipRepository.findByEntityId(entityId).stream()
@@ -156,7 +147,7 @@ public class CollectionProgressService {
 
             editions.add(new CollectionProgress.EditionProgress(editionName, sourceEditions,
                     List.copyOf(owned), List.copyOf(catalogued),
-                    editionName.isEmpty() ? null : totalsByEntityAndEdition.get(editionKey(entity.id(), editionName))));
+                    editionName.isEmpty() ? null : totalsByEntityAndEdition.get(CollectionProgress.editionKey(entity.id(), editionName))));
         }
 
         // Ordre stable et utile : l'édition la plus fournie d'abord (même règle

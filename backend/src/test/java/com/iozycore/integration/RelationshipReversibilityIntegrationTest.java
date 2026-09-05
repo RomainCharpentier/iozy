@@ -1,12 +1,12 @@
 package com.iozycore.integration;
 
-import com.iozycore.api.relationship.RelationshipController;
-import com.iozycore.api.relationship.RelationshipController.CreateRelationshipRequest;
-import com.iozycore.api.relationship.RelationshipController.UpdateRelationshipRequest;
-import com.iozycore.domain.catalog.Entity;
-import com.iozycore.domain.catalog.EntityRepository;
-import com.iozycore.domain.catalog.EntityTypeFixtures;
-import com.iozycore.domain.catalog.Relationship;
+import com.iozycore.core.api.relationship.RelationshipController;
+import com.iozycore.core.api.relationship.RelationshipController.CreateRelationshipRequest;
+import com.iozycore.core.api.relationship.RelationshipController.UpdateRelationshipRequest;
+import com.iozycore.core.domain.catalog.Entity;
+import com.iozycore.core.domain.catalog.EntityRepository;
+import com.iozycore.core.domain.catalog.EntityTypeFixtures;
+import com.iozycore.core.domain.catalog.Relationship;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.server.ResponseStatusException;

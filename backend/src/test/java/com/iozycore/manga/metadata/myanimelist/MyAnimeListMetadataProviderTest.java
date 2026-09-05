@@ -1,7 +1,7 @@
 package com.iozycore.manga.metadata.myanimelist;
 
-import com.iozycore.domain.catalog.EntityType;
-import com.iozycore.metadata.MetadataCandidate;
+import com.iozycore.core.domain.catalog.EntityType;
+import com.iozycore.core.metadata.MetadataCandidate;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

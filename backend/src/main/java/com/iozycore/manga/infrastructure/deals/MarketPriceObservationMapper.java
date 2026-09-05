@@ -2,7 +2,7 @@ package com.iozycore.manga.infrastructure.deals;
 
 import com.iozycore.manga.deals.Condition;
 import com.iozycore.manga.deals.MarketObservationOrigin;
-import com.iozycore.listing.ListingPlatform;
+import com.iozycore.core.listing.ListingPlatform;
 import com.iozycore.manga.deals.MarketPriceObservation;
 import com.iozycore.manga.deals.VolumeRange;
 

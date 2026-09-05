@@ -1,7 +1,7 @@
 package com.iozycore.manga.metadata.googlebooks;
 
-import com.iozycore.metadata.QuotaExceededException;
-import com.iozycore.metadata.SourceUnavailableException;
+import com.iozycore.core.metadata.QuotaExceededException;
+import com.iozycore.core.metadata.SourceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
