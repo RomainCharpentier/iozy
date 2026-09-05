@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 export type Theme = 'light' | 'dark'
 
@@ -16,10 +16,6 @@ function readStoredTheme(): Theme {
   return stored === 'light' || stored === 'dark' ? stored : DEFAULT_THEME
 }
 
-/** Applique l'attribut avant le premier rendu React (voir l'appel synchrone
- * dans main.tsx) - évite un flash thème-par-défaut puis thème-stocké au
- * chargement. `data-theme` uniquement pour "dark" : le clair reste la valeur
- * de base de :root dans index.css, pas besoin d'un attribut pour lui. */
 /**
  * Pose l'attribut pour le sombre, le RETIRE pour le clair.
  *
@@ -38,26 +34,56 @@ function appliquerAttribut(theme: Theme): void {
   }
 }
 
-export function applyStoredTheme(): void {
-  const theme = readStoredTheme()
-  appliquerAttribut(theme)
+/**
+ * UN seul état, hors de React, et tous les composants le lisent.
+ *
+ * <h2>Pourquoi plus un `useState` par composant</h2>
+ * Le hook gardait son propre état, relu dans le localStorage au montage. Tant
+ * qu'un seul interrupteur existait (Paramètres), personne ne le voyait. Le
+ * bouton de l'en-tête (lot 138) est rendu DEUX fois - par l'en-tête desktop et
+ * par l'en-tête mobile, dont l'un est masqué par CSS - et deux états privés
+ * auraient divergé au premier clic : l'icône de l'autre barre aurait montré
+ * l'ancien mode, et son clic suivant l'aurait « rebasculé » vers celui qu'on
+ * venait de quitter. Un magasin unique, souscrit par `useSyncExternalStore`,
+ * fait de chaque bouton une vue du même fait.
+ */
+let themeCourant: Theme = readStoredTheme()
+const abonnes = new Set<() => void>()
+
+function souscrire(rappel: () => void): () => void {
+  abonnes.add(rappel)
+  return () => abonnes.delete(rappel)
 }
 
-/** Hook de bascule thème clair/sombre - utilisé depuis Paramètres (voir
- * SettingsPage). Un seul état source (localStorage + attribut DOM), jamais
- * dupliqué en contexte React : peu de composants en ont besoin (le reste du
- * thème passe entièrement par les tokens CSS, pas par du JS conditionnel). */
+function lireTheme(): Theme {
+  return themeCourant
+}
+
+/** Applique l'attribut avant le premier rendu React (voir l'appel synchrone
+ * dans main.tsx) - évite un flash thème-par-défaut puis thème-stocké au
+ * chargement. `data-theme` uniquement pour "dark" : le clair reste la valeur
+ * de base de :root dans index.css, pas besoin d'un attribut pour lui. */
+export function applyStoredTheme(): void {
+  themeCourant = readStoredTheme()
+  appliquerAttribut(themeCourant)
+}
+
+export function setTheme(theme: Theme): void {
+  themeCourant = theme
+  appliquerAttribut(theme)
+  window.localStorage.setItem(STORAGE_KEY, theme)
+  for (const rappel of abonnes) rappel()
+}
+
+export function toggleTheme(): void {
+  setTheme(themeCourant === 'dark' ? 'light' : 'dark')
+}
+
+/** Le thème courant, et de quoi le changer - depuis l'en-tête (voir
+ * BoutonTheme). Un seul état source (ce module, le localStorage et l'attribut
+ * DOM) : le reste du thème passe entièrement par les tokens CSS, pas par du
+ * JS conditionnel. */
 export function useTheme(): { theme: Theme; setTheme: (t: Theme) => void; toggleTheme: () => void } {
-  const [theme, setThemeState] = useState<Theme>(readStoredTheme)
-
-  useEffect(() => {
-    appliquerAttribut(theme)
-    window.localStorage.setItem(STORAGE_KEY, theme)
-  }, [theme])
-
-  return {
-    theme,
-    setTheme: setThemeState,
-    toggleTheme: () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark')),
-  }
+  const theme = useSyncExternalStore(souscrire, lireTheme, () => DEFAULT_THEME)
+  return { theme, setTheme, toggleTheme }
 }

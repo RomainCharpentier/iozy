@@ -78,15 +78,19 @@ describe('« Mon compte »', () => {
 })
 
 describe('« Cet appareil »', () => {
-  it('prévient que ces réglages ne suivent pas le compte', () => {
-    // Thème et langue des titres vivent dans le localStorage de ce navigateur.
-    // Sans cette phrase, personne ne peut le deviner.
-    expect(screen.getByText(/restent sur cet appareil/)).toBeInTheDocument()
-    expect(screen.getByText(/ne suivent pas ton compte/)).toBeInTheDocument()
+  it('prévient que ce réglage ne suit pas le compte', () => {
+    // La langue des titres vit dans le localStorage de ce navigateur. Sans
+    // cette phrase, personne ne peut le deviner.
+    expect(screen.getByText(/reste sur cet appareil/)).toBeInTheDocument()
+    expect(screen.getByText(/ne suit pas ton compte/)).toBeInTheDocument()
   })
 
-  it('garde le thème et la langue des titres', () => {
-    expect(screen.getByRole('switch', { name: 'Thème sombre' })).toBeInTheDocument()
+  it('garde la langue des titres, et dit où le thème est parti', () => {
+    // L'interrupteur du thème a vécu ici jusqu'au lot 138. Il est dans
+    // l'en-tête, d'un clic sur le soleil ou la lune - et cet écran le dit,
+    // pour qui vient le chercher là où il l'a connu.
+    expect(screen.queryByRole('switch', { name: 'Thème sombre' })).not.toBeInTheDocument()
+    expect(screen.getByText(/soleil ou la lune/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Titre des mangas' })).toBeInTheDocument()
   })
 })
@@ -103,6 +107,6 @@ describe('l’administration', () => {
   it('n’emporte pas les réglages de cet appareil avec elle', () => {
     // Le déplacement ne doit vider ni l'une ni l'autre des deux sections.
     expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Thème sombre' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Titre des mangas' })).toBeInTheDocument()
   })
 })

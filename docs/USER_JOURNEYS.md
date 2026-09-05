@@ -63,12 +63,17 @@ appartient :
   rangée derrière quelque chose qui appartient à l'utilisateur, alors que
   déclarer les catégories de sa collection n'est pas un réglage personnel. Les
   deux écrans de réglages sont rangés par **ce que le réglage concerne** : Paramètres porte « Mon compte » (pseudo, adresse, export,
-  déconnexion) et « Cet appareil » (thème, langue des titres — dans le
-  `localStorage`, ils ne suivent pas le compte, et l'écran le dit) ;
+  déconnexion) et « Cet appareil » (langue des titres — dans le
+  `localStorage`, il ne suit pas le compte, et l'écran le dit) ;
   Administration porte « Ma collection » (catégories, éditions de référence,
   import) et « Cette instance » (comptes, pour un administrateur).
 - **Catégories de collection** → deux chemins : Ma collection ▸ Plus d'outils,
   et Administration. (Nommées « Types de collection » jusqu'au 2026-08-29.)
+- **Thème clair ou sombre** → l'icône soleil / lune de l'en-tête, desktop et
+  mobile, visiteur compris (lot 138). Elle montre le mode courant et son nom
+  dit l'action (« Passer en thème clair »). L'interrupteur a vécu sous
+  Paramètres ▸ Cet appareil jusque-là : trois clics pour un geste qu'on fait
+  selon la lumière de la pièce.
 
 Les deux routes `/public/*` vivent **hors** de `AppShell` : un visiteur d'un
 lien de partage ne voit jamais la navigation privée.
@@ -1160,11 +1165,14 @@ auteur le plus présent.
 **Statut** : `COMPLET` — export statique, **aucun lien public**.
 
 ### 57. Changer l'apparence et l'ordre des titres
-**Étapes** : Paramètres ▸ interrupteur **Thème sombre** ; cocher/ordonner
-(glisser-déposer) les langues de titre (français, romaji, anglais).
-**Résultat** : thème appliqué immédiatement et persisté ; l'ordre des langues
-décide du titre affiché partout.
-**Écrans** : `SettingsPage`, `titleLanguage.ts`
+**Étapes** : l'icône **soleil / lune de l'en-tête**, sur tous les écrans, pour
+le thème (lot 138 ; jusque-là un interrupteur sous Paramètres) ; Paramètres ▸
+cocher/ordonner (glisser-déposer) les langues de titre (français, romaji,
+anglais).
+**Résultat** : thème appliqué immédiatement et persisté sur l'appareil, les
+deux barres (desktop, mobile) montrant toujours le même mode ; l'ordre des
+langues décide du titre affiché partout.
+**Écrans** : `BoutonTheme`, `GlobalShortcuts`, `SettingsPage`, `titleLanguage.ts`
 **Statut** : `COMPLET`
 
 ### 58. Gérer les types de collection

@@ -20,6 +20,9 @@ const CLE = 'iozycore.theme'
 
 beforeEach(() => {
   localStorage.clear()
+  // Le thème vit dans un magasin de module (voir theme.ts) : sans ce retour
+  // au stocké, un test hériterait du dernier thème posé par le précédent.
+  applyStoredTheme()
   delete document.documentElement.dataset.theme
 })
 
@@ -74,5 +77,19 @@ describe('useTheme', () => {
     act(() => result.current.setTheme('dark'))
 
     expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
+  it('fait voir le même thème à tous ceux qui le lisent', () => {
+    // Le bouton de l'en-tête est rendu deux fois (barre desktop, barre
+    // mobile) : chaque hook gardait son propre état, et l'icône de l'autre
+    // barre aurait montré l'ancien mode après un clic - puis « rebasculé »
+    // vers celui qu'on venait de quitter. Un seul magasin, souscrit par tous.
+    const premier = renderHook(() => useTheme())
+    const second = renderHook(() => useTheme())
+
+    act(() => premier.result.current.toggleTheme())
+
+    expect(premier.result.current.theme).toBe('light')
+    expect(second.result.current.theme).toBe('light')
   })
 })
