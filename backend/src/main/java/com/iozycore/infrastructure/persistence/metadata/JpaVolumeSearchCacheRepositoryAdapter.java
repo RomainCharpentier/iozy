@@ -1,7 +1,7 @@
 package com.iozycore.infrastructure.persistence.metadata;
 
-import com.iozycore.metadata.VolumeCandidate;
-import com.iozycore.metadata.VolumeSearchCacheRepository;
+import com.iozycore.metadata.manga.VolumeCandidate;
+import com.iozycore.metadata.manga.VolumeSearchCacheRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

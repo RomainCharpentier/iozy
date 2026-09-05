@@ -22,7 +22,7 @@ public interface MetadataProvider {
      * (japonais/anglais/romaji pour un manga), comme Jikan/MyAnimeList - le
      * cas courant, d'où ce défaut.
      * <p>
-     * Sert à une seule chose (voir MetadataSearchService.namesAnotherKnownWork) :
+     * Sert à une seule chose (voir FrenchTitleService.namesAnotherKnownWork) :
      * reconnaître qu'un titre français trouvé par le seul nom de l'auteur est
      * en fait le titre d'une AUTRE œuvre de cet auteur. Le raisonnement
      * repose entièrement sur le fait qu'une traduction française n'existe PAS

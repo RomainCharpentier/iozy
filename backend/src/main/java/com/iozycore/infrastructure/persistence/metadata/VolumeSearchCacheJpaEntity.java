@@ -1,6 +1,6 @@
 package com.iozycore.infrastructure.persistence.metadata;
 
-import com.iozycore.metadata.VolumeCandidate;
+import com.iozycore.metadata.manga.VolumeCandidate;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;

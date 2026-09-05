@@ -12,7 +12,7 @@ package com.iozycore.metadata;
  * de la conversation) : le quota Google Books épuisé pendant une recherche
  * de tomes renvoyait silencieusement une liste vide, indiscernable côté
  * utilisateur d'une série qui n'a réellement aucune édition française -
- * MetadataSearchService.searchVolumes capture cette exception pour le
+ * TomeSearchService.searchVolumes capture cette exception pour le
  * signaler explicitement au client plutôt que de laisser croire à tort
  * "aucune édition trouvée".
  */

@@ -12,8 +12,8 @@ import com.iozycore.domain.catalog.MangaEdition;
 import com.iozycore.domain.catalog.MangaEditionRepository;
 import com.iozycore.domain.ownership.Ownership;
 import com.iozycore.domain.ownership.OwnershipRepository;
-import com.iozycore.metadata.bgg.BggCollectionFetcher;
-import com.iozycore.metadata.bgg.BggCollectionItem;
+import com.iozycore.metadata.boardgame.BggCollectionFetcher;
+import com.iozycore.metadata.boardgame.BggCollectionItem;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

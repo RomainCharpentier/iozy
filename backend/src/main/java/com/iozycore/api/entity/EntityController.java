@@ -8,7 +8,8 @@ import com.iozycore.application.QuickAddService;
 import com.iozycore.application.QuickAddService.QuickAddResult;
 import com.iozycore.application.VariantDeletionService;
 import com.iozycore.domain.catalog.Entity;
-import com.iozycore.metadata.bnf.BnfCouverture;
+import com.iozycore.metadata.catalog.CatalogSearchService;
+import com.iozycore.metadata.manga.bnf.BnfCouverture;
 import com.iozycore.domain.catalog.EntityRepository;
 import com.iozycore.domain.catalog.EntityTypeRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,17 +35,20 @@ public class EntityController {
     private final QuickAddService quickAddService;
     private final EntityDeletionService entityDeletionService;
     private final VariantDeletionService variantDeletionService;
+    private final CatalogSearchService catalogue;
 
     public EntityController(EntityRepository entityRepository,
                              EntityTypeRepository entityTypeRepository,
                              QuickAddService quickAddService,
                              EntityDeletionService entityDeletionService,
-                             VariantDeletionService variantDeletionService) {
+                             VariantDeletionService variantDeletionService,
+                             CatalogSearchService catalogue) {
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.quickAddService = quickAddService;
         this.entityDeletionService = entityDeletionService;
         this.variantDeletionService = variantDeletionService;
+        this.catalogue = catalogue;
     }
 
     @Operation(summary = "Ajout rapide (parcours 1) : crée une Entity et son Ownership initiale, "
@@ -89,7 +93,9 @@ public class EntityController {
     public List<EntityResponse> search(@RequestParam(required = false) String q,
                                         @RequestParam(required = false) UUID entityTypeId,
                                         @RequestParam(required = false) UUID tagId) {
-        return entityRepository.search(q, entityTypeId, tagId).stream()
+        // La recuperation via la base iozycore a son module (Lot 132) : la
+        // meme recherche sert l'ecran Rechercher, a cote des fournisseurs.
+        return catalogue.rechercher(q, entityTypeId, tagId).stream()
                 .map(EntityResponse::from)
                 .collect(Collectors.toList());
     }
