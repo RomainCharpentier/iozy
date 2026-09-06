@@ -104,6 +104,10 @@ class CatalogConfigurationHttpContractTest extends HttpContractTestBase {
                 // Les clients iOS/Web lisent cette liste au lieu d'une liste
                 // codée en dur : le champ doit être présent, même à false.
                 .andExpect(jsonPath("$.hasMetadataProvider").exists())
+                // Meme regle pour les decouvertes (lot 142) : c'est le type qui
+                // dit s'il en a une source, jamais une liste de codes a l'ecran.
+                // Un type cree ici n'en a aucune.
+                .andExpect(jsonPath("$.hasDiscoverySource").value(false))
                 .andReturn().getResponse().getContentAsString();
 
         UUID id = UUID.fromString(objectMapper.readTree(corps).get("id").asText());

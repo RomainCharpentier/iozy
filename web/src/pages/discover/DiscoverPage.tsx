@@ -1,28 +1,34 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, ChevronRight, ListOrdered, PartyPopper, Scale, Sparkles } from 'lucide-react'
+import { ChevronRight, ListOrdered, PartyPopper, Scale, Sparkles, Telescope } from 'lucide-react'
 import { DiscoverTierPreview } from './DiscoverTierPreview'
 import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
-import { DiscoverReleasesPanel } from './DiscoverReleasesPanel'
+import { DiscoverySection } from './DiscoverySection'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 
-type DiscoverTab = 'tiers' | 'opps' | 'releases'
+type DiscoverTab = 'tiers' | 'opps' | 'decouvertes'
 
 const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'tiers', label: 'Tier Lists', icon: ListOrdered },
   { id: 'opps', label: 'Opportunités', icon: Sparkles },
-  { id: 'releases', label: 'Prochaines sorties', icon: Bell },
+  { id: 'decouvertes', label: 'Découvertes', icon: Telescope },
 ]
 
 /** Sous 1100px (mobile ou desktop étroit) : 3 sous-onglets, un seul panneau
  * visible à la fois (role="tab"/aria-selected - le seul jeu d'onglets de
  * l'application). À partir de 1100px sur desktop : composition
  * éditoriale réelle - Tier Lists sur ~62%, Opportunités à côté (bordure de
- * séparation), Sorties en pleine largeur dessous - plus d'onglets à ce
+ * séparation), Découvertes en pleine largeur dessous - plus d'onglets à ce
  * stade (voir DS v1.1, commentaire source "Plus d'onglets à ce stade").
  * Un seul markup : la bascule est purement CSS (`hidden`/`min-[1100px]:flex`,
  * même principe que TabBar/DesktopHeader avec NAV_BREAKPOINT_PX), jamais du
- * contenu dupliqué entre les deux mises en page. */
+ * contenu dupliqué entre les deux mises en page.
+ *
+ * <p>L'écran du cœur (lot 142) : les Tier Lists valent pour tout univers, les
+ * opportunités viennent de ce qui a une progression, les découvertes de
+ * chaque univers qui sait en proposer. « Prochaines sorties », qui n'avait
+ * rien à dire faute de source, n'y est plus : un panneau vide n'est pas une
+ * promesse, c'est une case. */
 export function DiscoverPage() {
   const [tab, setTab] = useState<DiscoverTab>('tiers')
 
@@ -87,9 +93,9 @@ export function DiscoverPage() {
         </section>
 
         <section
-          className={`flex-col gap-3 min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:border-t min-[1100px]:border-surface2 min-[1100px]:pt-6 ${tab === 'releases' ? 'flex' : 'hidden'}`}
+          className={`flex-col gap-3 min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:border-t min-[1100px]:border-surface2 min-[1100px]:pt-6 ${tab === 'decouvertes' ? 'flex' : 'hidden'}`}
         >
-          <DiscoverReleasesPanel />
+          <DiscoverySection />
         </section>
       </div>
 

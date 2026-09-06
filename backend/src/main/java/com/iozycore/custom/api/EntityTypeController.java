@@ -6,6 +6,7 @@ import com.iozycore.custom.api.EntityTypeDtos.UpdateEntityTypeRequest;
 import com.iozycore.custom.EntityTypeService;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
+import com.iozycore.core.insights.DiscoverySource;
 import com.iozycore.core.metadata.MetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -28,18 +29,29 @@ public class EntityTypeController {
     private final EntityTypeRepository entityTypeRepository;
     private final EntityTypeService entityTypeService;
     private final List<MetadataProvider> metadataProviders;
+    private final List<DiscoverySource> discoverySources;
 
     public EntityTypeController(EntityTypeRepository entityTypeRepository, EntityTypeService entityTypeService,
-                                 List<MetadataProvider> metadataProviders) {
+                                 List<MetadataProvider> metadataProviders, List<DiscoverySource> discoverySources) {
         this.entityTypeRepository = entityTypeRepository;
         this.entityTypeService = entityTypeService;
         this.metadataProviders = metadataProviders;
+        this.discoverySources = discoverySources;
     }
 
     /** Un type personnalisé (créé via cet éditeur) n'a par construction aucun fournisseur -
      * seuls MANGA/VIDEO_GAME/BOARD_GAME en ont un aujourd'hui (Jikan/BGG/IGDB). */
     private boolean hasMetadataProvider(EntityType type) {
         return metadataProviders.stream().anyMatch(provider -> provider.supports(type));
+    }
+
+    /** Un univers qui sait proposer des decouvertes (voir DiscoverySource) - aucun type personnalise n'en a. */
+    private boolean hasDiscoverySource(EntityType type) {
+        return discoverySources.stream().anyMatch(source -> source.supports(type));
+    }
+
+    private EntityTypeResponse reponse(EntityType type) {
+        return EntityTypeResponse.from(type, hasMetadataProvider(type), hasDiscoverySource(type));
     }
 
     @Operation(summary = "Créer un nouveau type (code normalisé en UPPER_SNAKE_CASE, doit être unique)")
@@ -49,7 +61,7 @@ public class EntityTypeController {
         EntityType created = entityTypeService.create(request.code(), request.label(),
                 request.allowedExperienceTypes(), request.customFieldKeys(), request.colorKey(), request.iconKey(),
                 request.aspectKey());
-        return EntityTypeResponse.from(created, hasMetadataProvider(created));
+        return reponse(created);
     }
 
     @Operation(summary = "Lister tous les types existants - utilisé par les clients iOS/Web à la place "
@@ -57,7 +69,7 @@ public class EntityTypeController {
     @GetMapping
     public List<EntityTypeResponse> listAll() {
         return entityTypeRepository.findAll().stream()
-                .map(type -> EntityTypeResponse.from(type, hasMetadataProvider(type)))
+                .map(this::reponse)
                 .collect(Collectors.toList());
     }
 
@@ -65,7 +77,7 @@ public class EntityTypeController {
     @GetMapping("/{id}")
     public EntityTypeResponse getById(@PathVariable UUID id) {
         return entityTypeRepository.findById(id)
-                .map(type -> EntityTypeResponse.from(type, hasMetadataProvider(type)))
+                .map(this::reponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "EntityType introuvable : " + id));
     }
 
@@ -76,7 +88,7 @@ public class EntityTypeController {
     public EntityTypeResponse update(@PathVariable UUID id, @RequestBody UpdateEntityTypeRequest request) {
         EntityType updated = entityTypeService.update(id, request.label(), request.allowedExperienceTypes(),
                 request.customFieldKeys(), request.colorKey(), request.iconKey(), request.aspectKey());
-        return EntityTypeResponse.from(updated, hasMetadataProvider(updated));
+        return reponse(updated);
     }
 
     @Operation(summary = "Supprimer un type (bloqué si des Entity de ce type existent encore)")

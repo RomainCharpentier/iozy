@@ -132,6 +132,7 @@ export function typeDeCollection(code: string, label = code): EntityTypeDto {
     allowedExperienceTypes: [],
     customFieldKeys: [],
     hasMetadataProvider: false,
+    hasDiscoverySource: false,
     colorKey: null,
     iconKey: null,
     aspectKey: null,
