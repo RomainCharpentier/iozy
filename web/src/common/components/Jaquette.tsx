@@ -12,6 +12,9 @@ type Props = {
    * seul le cas d'échec rejoint le cas d'absence.
    */
   repli: ReactNode
+  /** Paresseuse par défaut (lot 141) : une liste de tomes ou de suggestions
+   *  ne charge que ce qui approche de l'écran. `eager` pour la jaquette du
+   *  hero d'une fiche, qui est toujours la première chose qu'on voit. */
   loading?: 'lazy' | 'eager'
 }
 
@@ -35,7 +38,7 @@ type Props = {
  * vingt et unième - c'est exactement ce qui s'est passé. Ici la règle vit à un
  * seul endroit.
  */
-export function Jaquette({ src, className, repli, loading }: Props) {
+export function Jaquette({ src, className, repli, loading = 'lazy' }: Props) {
   // On mémorise l'URL fautive, pas un simple booléen : sinon, corriger la
   // couverture d'une série (« Modifier la couverture ») laisserait le repli
   // affiché pour la NOUVELLE URL, qui n'a pourtant jamais échoué.

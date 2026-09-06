@@ -1360,6 +1360,77 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 141 — la mesure à volume : 300 séries, 3 000 tomes
+
+Jamais mesurée au-delà de six séries. Une collection de **300 séries de 10
+tomes** (édition de référence à 12), **80 jeux**, **100 envies** et **150
+lectures** a été posée sur la pile jetable **par l'API**, comme
+l'application le ferait - 3 000 ajouts rapides en 9 secondes, quatre séries
+de front (`semis.mjs`, scratchpad). Puis chaque route de lecture a été
+chronométrée trois fois avec le nombre de requêtes SQL qu'elle coûte
+(journal Hibernate, `SPRING_APPLICATION_JSON` et non `LOGGING_LEVEL_…`, qui
+perd la casse du logger), et chaque écran dans un vrai Chromium sur le
+serveur de dev.
+
+**Le serveur tient.** Toutes les routes répondent sous 100 ms avec un
+nombre de requêtes constant :
+
+| Route | Temps | Taille | SQL |
+|---|---|---|---|
+| `entities/search` (tout) | 35–70 ms | 676 Ko | 7 |
+| `ownerships` (3 000) | 17–26 ms | 740 Ko | 2 |
+| `insights/progress` | 31–52 ms | 151 Ko | 9 |
+| `insights/stats` · `value` · `yearly-recap` | 35–73 ms | < 1 Ko | 17 · 18 · 10 |
+| `near-complete-suggestions` | 48–70 ms | 89 Ko | 17 |
+| `export/json` | 49–92 ms | 1,8 Mo | 30 |
+| fiche : `entities/{id}`, `ownerships?entityId`, `progress/{id}`, `experiences`, `editions` | 5–15 ms | | 2–5 |
+| `insights/discover?MANGA` | **1,1–2,4 s** | vide | **307** |
+
+**Une seule route rampait : Découvrir pour les mangas.** Une requête de
+notes **par œuvre** (300), puis trois recherches chez les fournisseurs
+externes à chaque ouverture, pour un résultat qui ne change qu'avec les
+notes et la collection. Les notes se lisent en une requête (307 → **8**), et
+les suggestions sont **retenues une demi-heure** sous une clé qui porte
+exactement ce dont elles dépendent - mangaka favoris, titres possédés. Un
+résultat vide n'est pas retenu : un fournisseur qui tousse doit être
+réessayé. Sur la pile de mesure, les auteurs sont inventés et le résultat
+reste vide, donc les deux secondes de fournisseurs restent : c'est le test
+unitaire qui garde la mise en mémoire (`MangaDiscoveryTest`).
+
+**Côté écran, deux choses rampaient**, et une seule cause : les rails
+rendaient **toutes** leurs tuiles dans un défilement horizontal - 300 par
+rail, 3 000 dégroupées - que personne ne parcourt jusqu'au bout.
+
+| Écran (Chromium, serveur de dev) | Avant | Après |
+|---|---|---|
+| Ma collection, groupée | 401–410 ms, 2 765 nœuds | **295–314 ms, 1 001 nœuds** |
+| « Dégrouper », le clic seul | 919–949 ms | **110–121 ms** |
+| Rayon Manga, 300 en grille | 447–473 ms | 465–476 ms |
+| Catalogue, 380 lignes | 892–921 ms | 905–909 ms |
+| Statistiques, Découvrir, fiche | ≈ 950 ms dont 500 ms d'attente de réseau calme | inchangé |
+
+Un rail montre **48 tuiles au plus** (`TUILES_PAR_RAIL`), son compte dit
+toujours le total et « Tout voir » mène au rayon complet. Et les jaquettes se
+chargent **à l'approche de l'écran** (`loading="lazy"` sur les tuiles, et par
+défaut dans `Jaquette`) : sur la pile de mesure il n'y a aucune image, mais
+sur une vraie instance ce sont 300 requêtes chez Google Books au premier
+rendu de la page d'accueil.
+
+**Ce qui reste, et qui ne rampe pas encore** : le Catalogue rend ses 380
+lignes d'un bloc (≈ 0,9 s en dev, sans doute la moitié en production) - à
+borner ou paginer le jour où il approche le millier. Et deux charges utiles
+de la page d'accueil pèsent 1,4 Mo à elles deux (`entities/search`,
+`ownerships`) : acceptable en réseau local, à revoir si l'instance sort de la
+maison.
+
+**Piège retrouvé** : `docker compose up -d --build` a reconstruit l'image et
+laissé tourner l'ANCIEN conteneur - la première remesure de Découvrir disait
+encore 307 requêtes. `--force-recreate`, et vérifier l'identifiant d'image
+du conteneur (déjà noté au 2026-08-13, oublié le temps d'une mesure).
+
+Vérifié : typecheck, lint, 343 tests web, contraste, frontières, build ;
+1 100 tests backend ; 16 parcours Playwright.
+
 ### Lot 140 — le profil à plat, sans « Paramètres » ni « Demander à ma collection »
 
 Deux demandes, telles quelles : « sur le profil, je ne veux pas de sous-menu

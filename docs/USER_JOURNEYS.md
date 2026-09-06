@@ -90,7 +90,9 @@ lien de partage ne voit jamais la navigation privée.
 **Résultat** : un rail par type de collection possédé — le plus fourni en
 titres d'abord, puis par libellé (lot 136 : l'ordre vient des données, plus
 d'une liste de codes qui plaçait le manga en premier) —, une tuile par œuvre avec
-sa jaquette, son édition dominante et sa progression « X/Y tomes » ; en-tête
+sa jaquette, son édition dominante et sa progression « X/Y tomes » (48 tuiles
+au plus par rail, le compte dit le total, « Tout voir » montre le reste —
+lot 141) ; en-tête
 « N titres possédés · N ajouts ce mois ». Un signal « Plus que N tomes »
 apparaît quand il reste ≤ 3 tomes.
 **Branches** : collection vide → « Rien ici pour l'instant » + renvoi vers

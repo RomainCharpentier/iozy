@@ -75,9 +75,14 @@ export function CoverTile({
         style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
       >
         {showImage && (
+          // Chargée quand elle approche de l'écran, pas toutes d'un coup : une
+          // collection de 300 séries, c'est 300 jaquettes chez Google Books
+          // au premier rendu (lot 141).
           <img
             src={imageUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             onError={() => setImageFailed(true)}
             className="absolute inset-0 h-full w-full object-cover"
           />
