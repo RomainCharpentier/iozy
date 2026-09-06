@@ -392,7 +392,11 @@ concernée, même patron qu'un exemplaire possédé :
 Tag**, et de même dans la vue d'une catégorie. Jusque-là, un tag se posait et ne
 se relisait nulle part : le classement existait, il n'avait aucun lecteur. Un
 seul tag à la fois, comme le paramètre du serveur, et la section n'apparaît que
-si des tags existent.
+si des tags existent. **Et au Catalogue** (lot 143) : une rangée de puces
+« Tag » sous les catégories, qui se combine au type et au titre, vaut aussi
+pour un visiteur — un tag décrit l'œuvre, pas une collection —, et voyage
+dans l'URL (`?tag=`). C'était le lecteur qui manquait : Ma collection ne
+filtrait que ce qu'on possède, alors que le tag est une donnée du catalogue.
 
 **Qui peut poser un tag** (depuis le 2026-08-30) : **un administrateur, et lui
 seul**. Un tag décrit l'ŒUVRE — « seinen », « one-shot » — au même titre que sa

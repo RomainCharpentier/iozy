@@ -1360,6 +1360,34 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 143 — les tags : gardés, et lus là où ils vivent
+
+« Administrables, base vide, usage réel jamais observé » : la question était
+de les brancher ou de les retirer. L'audit avant de trancher : tout y est.
+Un administrateur crée un tag et le pose depuis la fiche (« Plus
+d'options »), le renomme ou le supprime depuis Administration avec le
+nombre d'œuvres qui le portent, Ma collection et le rayon filtrent dessus,
+l'export l'emporte et l'import le retrouve. Le retirer détruirait une
+fonctionnalité cohérente pour la seule raison qu'elle n'a pas encore servi.
+
+**Ce qui manquait** : le lecteur naturel. Un tag décrit une **œuvre** - il vit
+dans le catalogue partagé, c'est la décision du 2026-08-30 - mais on ne
+pouvait filtrer dessus que dans Ma collection, c'est-à-dire sur ce qu'on
+possède. Le **Catalogue** gagne une rangée de puces « Tag » sous les
+catégories, seulement s'il en existe (le filtre qui ne filtre jamais rien
+reste refusé) : un clic pose le tag, un second le retire, il se combine au
+type et au titre, voyage dans l'URL (`?tag=`) comme eux, et vaut pour un
+visiteur - les tags décrivent les œuvres, pas une collection. Le serveur le
+savait déjà (`/entities/search?tagId=`).
+
+Rien de plus : pas de tag sur les tuiles (« rien sur une tuile qu'on ne
+puisse ni filtrer ni trier » - ici on peut, mais ce serait du bruit sans
+demande), pas de création hors de la fiche. L'usage réel reste à observer ;
+la base de l'utilisateur est vide, et c'est à lui de poser le premier.
+
+Vérifié : typecheck, lint, 345 tests web, contraste, frontières, build ; 16
+parcours Playwright. Aucun changement côté serveur.
+
 ### Lot 142 — Découvrir, l'écran du cœur
 
 Le dernier écran à moitié manga, choisi par l'utilisateur parmi trois. La

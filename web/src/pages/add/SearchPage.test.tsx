@@ -39,6 +39,9 @@ const wishlist = vi.hoisted(() => ({
 }))
 vi.mock('@/common/hooks/useWishlist', () => wishlist)
 
+const tags = vi.hoisted(() => ({ listTags: vi.fn() }))
+vi.mock('@/common/api/tags', () => tags)
+
 const MANGA = { ...typeDeCollection('MANGA', 'Manga'), hasMetadataProvider: true }
 
 function enrobage({ children }: { children: ReactNode }) {
@@ -56,6 +59,7 @@ beforeEach(() => {
   api.listEntityTypes.mockResolvedValue([MANGA])
   api.searchEntities.mockResolvedValue([])
   api.listAllOwnerships.mockResolvedValue([])
+  tags.listTags.mockResolvedValue([])
   metadata.fetchFrenchTitle.mockResolvedValue(null)
   metadata.seriesSansTomesConnues.mockResolvedValue([])
   metadata.searchMetadata.mockResolvedValue([
@@ -97,6 +101,30 @@ describe('l’arrivée', () => {
 
     expect(await screen.findByText(/Seul le catalogue est parcouru/)).toBeInTheDocument()
     expect(metadata.searchMetadata).not.toHaveBeenCalled()
+  })
+})
+
+describe('les tags', () => {
+  it('ne propose aucune rangée de tags quand il n’en existe pas', async () => {
+    // Le filtre qui ne filtre jamais rien - déjà refusé sur Ma collection.
+    await waitFor(() => expect(api.listEntityTypes).toHaveBeenCalled())
+
+    expect(screen.queryByRole('group', { name: 'Filtrer par tag' })).not.toBeInTheDocument()
+  })
+
+  it('filtre le catalogue par un tag, et le second clic le retire', async () => {
+    // Un tag décrit une œuvre et vit dans le catalogue : c'est ici qu'il
+    // filtre le plus naturellement (lot 143). Un seul à la fois, comme le
+    // paramètre du serveur.
+    tags.listTags.mockResolvedValue([{ id: 't-seinen', label: 'seinen' }])
+    render(<SearchPage />, { wrapper: enrobage })
+    const seinen = await screen.findByRole('button', { name: 'seinen' })
+
+    await userEvent.click(seinen)
+    await waitFor(() => expect(api.searchEntities).toHaveBeenLastCalledWith(expect.objectContaining({ tagId: 't-seinen' })))
+
+    await userEvent.click(seinen)
+    await waitFor(() => expect(api.searchEntities).toHaveBeenLastCalledWith(expect.objectContaining({ tagId: undefined })))
   })
 })
 

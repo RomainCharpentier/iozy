@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
+import { listTags } from '@/common/api/tags'
 import { useAuth } from '@/common/hooks/useAuth'
 import { listAllOwnerships } from '@/common/api/ownerships'
 import { listEntityTypes } from '@/common/api/entityTypes'
@@ -93,6 +94,13 @@ export function SearchPage() {
   const [parametres, setParametres] = useSearchParams()
   const [entityTypeId, setEntityTypeId] = useState<string | undefined>(parametres.get('type') ?? undefined)
   const [title, setTitle] = useState(parametres.get('q') ?? '')
+  // Un tag décrit une ŒUVRE et vit dans le catalogue partagé : c'est donc ici,
+  // devant tout le catalogue, qu'il filtre le plus naturellement - Ma
+  // collection ne filtrait que ce qu'on possède (lot 143). Un seul à la fois,
+  // comme le paramètre du serveur.
+  const [tagId, setTagId] = useState<string | undefined>(parametres.get('tag') ?? undefined)
+  const tagsQuery = useQuery({ queryKey: queryKeys.tags.all, queryFn: listTags })
+  const tags = tagsQuery.data ?? []
   const [showBarcodeLookup, setShowBarcodeLookup] = useState(false)
   const [frenchTitles, setFrenchTitles] = useState<Record<string, string>>({})
 
@@ -117,9 +125,10 @@ export function SearchPage() {
   useEffect(() => {
     const voulu = new URLSearchParams()
     if (entityTypeId) voulu.set('type', entityTypeId)
+    if (tagId) voulu.set('tag', tagId)
     if (debouncedTitle.trim()) voulu.set('q', debouncedTitle.trim())
     if (voulu.toString() !== parametres.toString()) setParametres(voulu, { replace: true })
-  }, [entityTypeId, debouncedTitle, parametres, setParametres])
+  }, [entityTypeId, tagId, debouncedTitle, parametres, setParametres])
   // Un type sans fournisseur de métadonnées (type personnalisé créé depuis
   // Administration) n'a AUCUNE source externe : ni recherche, ni scan - voir
   // requiresMatch et EntityTypeDto.hasMetadataProvider. Sans ce garde, l'écran
@@ -149,8 +158,8 @@ export function SearchPage() {
     enabled: searchEnabled,
   })
   const localMatchQuery = useQuery({
-    queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId }),
-    queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId }),
+    queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId, tagId }),
+    queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId, tagId }),
     enabled: localSearchEnabled,
   })
   /**
@@ -345,6 +354,24 @@ export function SearchPage() {
           <Chip key={type.id} label={type.label} isActive={entityTypeId === type.id} onClick={() => choisirType(type.id)} />
         ))}
       </div>
+
+      {/* Les tags, seulement s'il en existe : une rangée vide serait le filtre
+          qui ne filtre jamais rien. Un clic pose le tag, un second le retire ;
+          il se combine au type et au titre, et il vaut aussi pour un visiteur
+          - les tags décrivent les œuvres, pas une collection. */}
+      {tags.length > 0 && (
+        <div role="group" aria-label="Filtrer par tag" className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Tag</span>
+          {tags.map((tag) => (
+            <Chip
+              key={tag.id}
+              label={tag.label}
+              isActive={tagId === tag.id}
+              onClick={() => setTagId(tagId === tag.id ? undefined : tag.id)}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label className="text-sm text-textDim" htmlFor="title">
