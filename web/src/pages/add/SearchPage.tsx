@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
@@ -116,8 +116,28 @@ export function SearchPage() {
   }
 
   const selectedType = entityTypesQuery.data?.find((t) => t.id === entityTypeId)
-  const parTome = useCollecteParTome(entityTypeId)
   const debouncedTitle = useDebouncedValue(title, 500)
+  /**
+   * Les catégories chez qui chercher : celle qui est choisie, ou TOUTES
+   * celles qui ont une source quand aucune ne l'est (lot 145).
+   *
+   * <p>Sous « Tout », la recherche externe était coupée - « un fournisseur
+   * s'interroge type par type » - et l'écran le disait en une phrase. Un
+   * titre tapé sans catégorie ne trouvait donc que le catalogue : « Injustice »
+   * ne répondait qu'après avoir choisi « Jeu vidéo », alors qu'on ne sait pas
+   * toujours d'avance de quel univers est ce qu'on cherche. Chaque source
+   * s'interroge toujours type par type ; c'est l'écran qui les interroge
+   * toutes, et les présente par catégorie.
+   */
+  const typesCherches = useMemo(
+    () => (entityTypeId ? (selectedType ? [selectedType] : []) : (entityTypesQuery.data ?? [])).filter((t) => t.hasMetadataProvider),
+    [entityTypeId, selectedType, entityTypesQuery.data],
+  )
+  const typeManga = typesCherches.find((t) => t.code === 'MANGA')
+  // La collecte PAR TOME (l'aperçu qui liste des tomes) ne concerne que le
+  // manga : c'est pour lui seul qu'on demande au serveur les séries qu'il
+  // sait déjà sans tome.
+  const parTome = useCollecteParTome(typeManga?.id ?? null)
 
   // L'URL suit la recherche RÉELLEMENT lancée, pas la frappe : même
   // temporisation que la requête, et `replace` pour ne pas empiler une entrée
@@ -135,8 +155,7 @@ export function SearchPage() {
   // lançait une recherche vouée à ne rien trouver, puis affichait "Aucun
   // résultat pour ce titre" - un échec annoncé là où il n'y avait tout
   // simplement rien à chercher.
-  const searchEnabled =
-    !estInvite && !!entityTypeId && !!selectedType?.hasMetadataProvider && debouncedTitle.trim().length >= 3
+  const searchEnabled = !estInvite && typesCherches.length > 0 && debouncedTitle.trim().length >= 3
   // La recherche LOCALE, elle, ne dépend d'aucun fournisseur : elle interroge
   // le catalogue déjà en base, gratuitement. La brancher sur searchEnabled
   // privait du garde-fou anti-doublon ("Déjà dans ta collection", voir plus
@@ -152,11 +171,19 @@ export function SearchPage() {
   // RESTREINDRE.
   const localSearchEnabled = true
 
-  const suggestionsQuery = useQuery({
-    queryKey: queryKeys.metadata.search(entityTypeId ?? '', debouncedTitle),
-    queryFn: ({ signal }) => searchMetadata(entityTypeId!, debouncedTitle, signal),
-    enabled: searchEnabled,
+  // Une requête PAR catégorie cherchée, en parallèle : une seule sous une
+  // catégorie choisie, une par source sous « Tout ». Chacune garde sa clé
+  // de cache (type, titre) : choisir ensuite « Manga » ne relance rien.
+  const recherches = useQueries({
+    queries: typesCherches.map((type) => ({
+      queryKey: queryKeys.metadata.search(type.id, debouncedTitle),
+      queryFn: ({ signal }: { signal?: AbortSignal }) => searchMetadata(type.id, debouncedTitle, signal),
+      enabled: searchEnabled,
+    })),
   })
+  const groupes = typesCherches.map((type, i) => ({ type, requete: recherches[i] }))
+  const groupeManga = groupes.find((g) => g.type.code === 'MANGA')
+  const suggestionsManga = groupeManga?.requete.data
   const localMatchQuery = useQuery({
     queryKey: queryKeys.entities.search({ q: debouncedTitle, entityTypeId, tagId }),
     queryFn: () => searchEntities({ q: debouncedTitle, entityTypeId, tagId }),
@@ -217,14 +244,14 @@ export function SearchPage() {
    * comme un manque (constaté sur « Hollow Knight »). Et ça évite une requête
    * qui ne pouvait rien rendre.
    */
-  const clesInterrogees = (suggestionsQuery.data ?? []).map((candidate) => ({
+  const clesInterrogees = (suggestionsManga ?? []).map((candidate) => ({
     title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
     author: indicesDe(candidate.attributes).author,
   }))
   const sansTomesQuery = useQuery({
-    queryKey: queryKeys.metadata.sansTomes(entityTypeId ?? '', clesInterrogees.map((c) => c.title).join('|')),
-    queryFn: () => seriesSansTomesConnues(entityTypeId!, clesInterrogees),
-    enabled: !!entityTypeId && parTome && clesInterrogees.length > 0,
+    queryKey: queryKeys.metadata.sansTomes(typeManga?.id ?? '', clesInterrogees.map((c) => c.title).join('|')),
+    queryFn: () => seriesSansTomesConnues(typeManga!.id, clesInterrogees),
+    enabled: !!typeManga && parTome && clesInterrogees.length > 0,
   })
   const titresSansTomes = new Set((sansTomesQuery.data ?? []).map((s) => s.title.trim().toLowerCase()))
 
@@ -232,18 +259,22 @@ export function SearchPage() {
   // voir l'ancien QuickAddPage.tsx pour le même mécanisme et son
   // raisonnement complet (cache 24h côté backend, capé pour contenir le
   // nombre d'appels externes).
+  // Les titres français ne concernent que le manga (Jikan/MyAnimeList/AniList
+  // ne les donnent pas) : c'est le groupe Manga qui est lu, qu'il soit seul
+  // ou parmi les catégories cherchées sous « Tout ».
+  const typeMangaId = typeManga?.id
   useEffect(() => {
     setFrenchTitles({})
-    if (!isFrenchEnabled(titleComposition) || !entityTypeId || !suggestionsQuery.data || suggestionsQuery.data.length === 0) {
+    if (!isFrenchEnabled(titleComposition) || !typeMangaId || !suggestionsManga || suggestionsManga.length === 0) {
       return
     }
     const controller = new AbortController()
-    suggestionsQuery.data
+    suggestionsManga
       .filter((c) => c.source === 'JIKAN' || c.source === 'MYANIMELIST' || c.source === 'ANILIST')
       .slice(0, 6)
       .forEach((candidate) => {
         const { author, malId, titleRomaji } = indicesDe(candidate.attributes)
-        fetchFrenchTitle(entityTypeId, candidate.title, { author, malId, titleRomaji, signal: controller.signal })
+        fetchFrenchTitle(typeMangaId, candidate.title, { author, malId, titleRomaji, signal: controller.signal })
           .then((frenchTitle) => {
             if (controller.signal.aborted || !frenchTitle) return
             setFrenchTitles((prev) => ({ ...prev, [candidateKey(candidate)]: frenchTitle }))
@@ -251,7 +282,7 @@ export function SearchPage() {
           .catch(() => {})
       })
     return () => controller.abort()
-  }, [suggestionsQuery.data, entityTypeId, titleComposition])
+  }, [suggestionsManga, typeMangaId, titleComposition])
 
   /**
    * Ouvrir un résultat mène à son APERÇU - la même page que sa fiche, mais
@@ -264,13 +295,13 @@ export function SearchPage() {
    * l'œuvre, et sa documentation dit déjà « jamais intégré au titre
    * réellement sauvegardé »). C'est sur lui que l'ajout dédupliquera.
    */
-  function ouvrirApercu(candidate: MetadataCandidateDto) {
-    if (!entityTypeId) return
+  function ouvrirApercu(candidate: MetadataCandidateDto, typeId: string) {
     const titre = resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
     // Le candidat voyage en raccourci pour éviter une seconde recherche à
     // l'arrivée ; l'URL reste seule maîtresse de l'identité (voir
-    // ApercuOeuvrePage).
-    navigate(`/apercu?type=${encodeURIComponent(entityTypeId)}&titre=${encodeURIComponent(titre)}`, {
+    // ApercuOeuvrePage). Le type est celui du GROUPE où le résultat a été
+    // trouvé : sous « Tout », ce n'est pas celui de l'écran.
+    navigate(`/apercu?type=${encodeURIComponent(typeId)}&titre=${encodeURIComponent(titre)}`, {
       state: { candidat: candidate, ...retourVersRecherche(search) },
     })
   }
@@ -287,15 +318,18 @@ export function SearchPage() {
     navigate(`/entity/${entity.id}`, { state: retourVersRecherche(search) })
   }
 
-  const showSearching = searchEnabled && suggestionsQuery.isFetching
-  const showSuggestions = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isSuccess && suggestionsQuery.data.length > 0
+  const showSearching = searchEnabled && groupes.some((g) => g.requete.isFetching)
+  // Un groupe se montre dès qu'il a répondu avec quelque chose ; les autres
+  // n'attendent pas la source la plus lente.
+  const groupesAvecResultats = searchEnabled
+    ? groupes.filter((g) => !g.requete.isFetching && g.requete.isSuccess && g.requete.data.length > 0)
+    : []
+  const groupesEnEchec = searchEnabled ? groupes.filter((g) => !g.requete.isFetching && g.requete.isError) : []
   const showNoResults =
     searchEnabled &&
-    !suggestionsQuery.isFetching &&
-    suggestionsQuery.isSuccess &&
-    suggestionsQuery.data.length === 0 &&
+    groupes.length > 0 &&
+    groupes.every((g) => !g.requete.isFetching && g.requete.isSuccess && g.requete.data.length === 0) &&
     localMatches.length === 0
-  const showSearchError = searchEnabled && !suggestionsQuery.isFetching && suggestionsQuery.isError
   const requiresMatch = !!selectedType?.hasMetadataProvider
 
   return (
@@ -387,18 +421,11 @@ export function SearchPage() {
         />
       </div>
 
-      {/* Deux silences qui se lisaient comme des pannes. Sous « Tout », la
-          recherche externe est coupée (un fournisseur s'interroge type par
-          type) ; sous trois caractères, elle l'est aussi (quota). Dans les
-          deux cas l'écran filtrait le catalogue sans un mot sur ce qu'il ne
-          faisait PAS - et « Naruto » tapé sous « Tout » ne proposait rien à
-          ajouter, sans dire pourquoi. */}
-      {!estInvite && title.trim().length > 0 && !entityTypeId && (
-        <p className="text-xs text-textDim">
-          Seul le catalogue est parcouru : choisis une catégorie pour chercher aussi chez une source externe.
-        </p>
-      )}
-      {!estInvite && requiresMatch && title.trim().length > 0 && title.trim().length < 3 && (
+      {/* Un silence qui se lisait comme une panne : sous trois caractères, la
+          recherche externe est coupée (quota), et l'écran filtrait le
+          catalogue sans un mot sur ce qu'il ne faisait PAS. Sous « Tout »,
+          elle ne l'est plus (lot 145) : toutes les sources sont interrogées. */}
+      {!estInvite && typesCherches.length > 0 && title.trim().length > 0 && title.trim().length < 3 && (
         <p className="text-xs text-textDim">Trois caractères au moins pour chercher chez une source externe.</p>
       )}
 
@@ -415,7 +442,7 @@ export function SearchPage() {
           passe par les mêmes sources externes que la recherche (voir
           MetadataSearchService.lookupByBarcode), il ne peut rien trouver ici. */}
       {!requiresMatch ? null : showBarcodeLookup ? (
-        <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={ouvrirApercu} />
+        <BarcodeLookupField entityTypeId={entityTypeId ?? ''} onFound={(candidate) => ouvrirApercu(candidate, entityTypeId ?? '')} />
       ) : (
         entityTypeId && (
           <button
@@ -498,10 +525,14 @@ export function SearchPage() {
           Recherche...
         </p>
       )}
-      {showSearchError && <p className="text-xs text-textDim">La recherche de métadonnées a échoué.</p>}
+      {groupesEnEchec.map((g) => (
+        <p key={g.type.id} className="text-xs text-textDim">
+          La recherche de métadonnées a échoué{typesCherches.length > 1 ? ` pour ${g.type.label}` : ''}.
+        </p>
+      ))}
       {showNoResults && <p className="text-xs text-textDim">Aucun résultat pour ce titre.</p>}
 
-      {showSuggestions && (
+      {groupesAvecResultats.length > 0 && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-xs font-semibold tracking-wide text-textDim uppercase">Suggestions</span>
@@ -523,68 +554,78 @@ export function SearchPage() {
               Langue des titres
             </Link>
           </div>
-          <ul className="flex flex-col gap-1.5">
-            {suggestionsQuery.data!.map((candidate) => (
-              <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
-                <button
-                  type="button"
-                  onClick={() => ouvrirApercu(candidate)}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                >
-                  <Jaquette
-                    src={candidate.imageUrl}
-                    className="h-16 w-11 shrink-0 rounded object-cover"
-                    repli={<span className="h-16 w-11 shrink-0 rounded bg-surface2" />}
-                  />
-                  <div className="flex min-w-0 flex-col">
-                    <TexteCoupe
-                      as="div"
-                      texte={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
-                      className="truncate text-sm font-medium text-textPrimary"
+          {/* Un groupe par catégorie cherchée, nommé seulement quand il y en a
+              plusieurs : sous « Manga », le mot répéterait la puce. */}
+          {groupesAvecResultats.map(({ type, requete }) => (
+            <section key={type.id} aria-label={type.label} className="flex flex-col gap-1.5">
+              {typesCherches.length > 1 && (
+                <h2 className="text-xs font-medium text-textDim">{type.label}</h2>
+              )}
+              <ul className="flex flex-col gap-1.5">
+                {requete.data!.map((candidate) => (
+                  <li key={candidateKey(candidate)} className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => ouvrirApercu(candidate, type.id)}
+                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                    >
+                      <Jaquette
+                        src={candidate.imageUrl}
+                        className="h-16 w-11 shrink-0 rounded object-cover"
+                        repli={<span className="h-16 w-11 shrink-0 rounded bg-surface2" />}
+                      />
+                      <div className="flex min-w-0 flex-col">
+                        <TexteCoupe
+                          as="div"
+                          texte={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
+                          className="truncate text-sm font-medium text-textPrimary"
+                        />
+                        <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
+                        {/* Signalé, jamais masqué : l'œuvre reste ajoutable à la
+                            main depuis son aperçu (voir AddVolumeSection). La
+                            mention évite seulement d'y arriver en s'attendant à
+                            une liste de tomes. Ne vaut que pour le manga. */}
+                        {type.code === 'MANGA' &&
+                          titresSansTomes.has(
+                            resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
+                              .trim()
+                              .toLowerCase(),
+                          ) && (
+                            <div className="mt-0.5 text-xs text-faint">Aucun tome connu — à saisir à la main</div>
+                          )}
+                      </div>
+                    </button>
+                    {/* Deux issues possibles pour une œuvre trouvée : « je
+                        l'achète » (le clic, qui mène à la saisie des tomes
+                        possédés) et « je la veux » - la seconde n'existait pas,
+                        faute de pouvoir référencer une œuvre sans la posséder. Le
+                        backend crée sa fiche catalogue, sans aucune possession. */}
+                    <WishlistToggle
+                      variant="inline"
+                      entityTypeId={type.id}
+                      external={{
+                        entityTypeId: type.id,
+                        // Le titre PRIMAIRE, pas celui affiché : la ligne montre
+                        // « Titre (Autre titre) » pour aider à reconnaître l'œuvre,
+                        // mais c'est sur le titre seul que porte la déduplication
+                        // côté backend. Envoyer le libellé composé créait une
+                        // seconde fiche pour la même œuvre dès qu'un autre chemin
+                        // (ouvrir la fiche, ajout rapide) utilisait le titre nu.
+                        title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
+                        // Même règle que partout ailleurs : la
+                        // jaquette du candidat est persistée sous la clé
+                        // partagée, sans quoi l'œuvre apparaîtrait sans visuel
+                        // dans les Envies et dans la liste partagée.
+                        attributes: candidate.imageUrl
+                          ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
+                          : candidate.attributes,
+                      }}
                     />
-                    <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
-                    {/* Signalé, jamais masqué : l'œuvre reste ajoutable à la
-                        main depuis son aperçu (voir AddVolumeSection). La
-                        mention évite seulement d'y arriver en s'attendant à
-                        une liste de tomes. */}
-                    {titresSansTomes.has(
-                      resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])
-                        .trim()
-                        .toLowerCase(),
-                    ) && (
-                      <div className="mt-0.5 text-xs text-faint">Aucun tome connu — à saisir à la main</div>
-                    )}
-                  </div>
-                </button>
-                {/* Deux issues possibles pour une œuvre trouvée : « je
-                    l'achète » (le clic, qui mène à la saisie des tomes
-                    possédés) et « je la veux » - la seconde n'existait pas,
-                    faute de pouvoir référencer une œuvre sans la posséder. Le
-                    backend crée sa fiche catalogue, sans aucune possession. */}
-                <WishlistToggle
-                  variant="inline"
-                  entityTypeId={entityTypeId!}
-                  external={{
-                    entityTypeId: entityTypeId!,
-                    // Le titre PRIMAIRE, pas celui affiché : la ligne montre
-                    // « Titre (Autre titre) » pour aider à reconnaître l'œuvre,
-                    // mais c'est sur le titre seul que porte la déduplication
-                    // côté backend. Envoyer le libellé composé créait une
-                    // seconde fiche pour la même œuvre dès qu'un autre chemin
-                    // (ouvrir la fiche, ajout rapide) utilisait le titre nu.
-                    title: resolvePrimaryTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)]),
-                    // Même règle que partout ailleurs : la
-                    // jaquette du candidat est persistée sous la clé
-                    // partagée, sans quoi l'œuvre apparaîtrait sans visuel
-                    // dans les Envies et dans la liste partagée.
-                    attributes: candidate.imageUrl
-                      ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
-                      : candidate.attributes,
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
       )}
     </div>
