@@ -6,6 +6,16 @@ import type { EntityTypeDto } from '@/common/types/api'
 import type { ShelfTile } from './shelfTiles'
 
 /**
+ * Un rail montre au plus autant de tuiles - le reste est derrière « Tout voir ».
+ *
+ * <p>Mesuré sur 300 séries (lot 141) : un rail rendait ses 300 tuiles, et
+ * dégroupé ses 3 000 tomes, dans un défilement horizontal que personne ne
+ * parcourt jusqu'au bout - une seconde de rendu pour des tuiles que l'écran
+ * ne montrera jamais. Le compte du rail, lui, dit toujours le total.
+ */
+export const TUILES_PAR_RAIL = 48
+
+/**
  * Une ligne par catégorie ayant au moins un titre possédé (voir la maquette
  * V1.2 - jamais de rail vide : ShelfPage filtre déjà les catégories à 0
  * avant d'atteindre ce composant). Halo teinté par univers en fond, scroll
@@ -17,6 +27,7 @@ import type { ShelfTile } from './shelfTiles'
 export function CategorySection({ entityType, tiles }: { entityType: EntityTypeDto; tiles: ShelfTile[] }) {
   const navigate = useNavigate()
   const visual = getEntityTypeVisual(entityType)
+  const affichees = tiles.slice(0, TUILES_PAR_RAIL)
 
   return (
     <section
@@ -37,7 +48,7 @@ export function CategorySection({ entityType, tiles }: { entityType: EntityTypeD
         </span>
       </button>
       <div className="defilement-discret flex gap-3 overflow-x-auto pb-3">
-        {tiles.map((tile) => (
+        {affichees.map((tile) => (
           <div key={tile.key} className="w-[130px] shrink-0 sm:w-[150px]">
             <CoverTile
               title={tile.title}
