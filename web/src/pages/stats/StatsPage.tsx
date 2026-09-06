@@ -5,7 +5,6 @@ import { getStats } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { StatCard } from './StatCard'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
-import { DiscoverySection } from './DiscoverySection'
 import { CollectionTimelineSection } from './CollectionTimelineSection'
 import { CollectionValueSection } from './CollectionValueSection'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
@@ -110,7 +109,6 @@ export function StatsPage() {
         </>
       )}
 
-      <DiscoverySection />
     </div>
   )
 }

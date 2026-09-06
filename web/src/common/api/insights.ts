@@ -33,6 +33,7 @@ export function getEntityProgress(entityId: string): Promise<CollectionProgressD
 }
 
 /** entityTypeCode doit être "MANGA", "BOARD_GAME" ou "VIDEO_GAME", renvoie 400 sinon. */
-export function discover(entityTypeCode: 'MANGA' | 'BOARD_GAME' | 'VIDEO_GAME'): Promise<DiscoveryCandidateDto[]> {
+/** Les découvertes d'un univers - à n'appeler que pour un type dont `hasDiscoverySource` est vrai (400 sinon). */
+export function discover(entityTypeCode: string): Promise<DiscoveryCandidateDto[]> {
   return get<DiscoveryCandidateDto[]>(`/insights/discover${buildQuery({ entityTypeCode })}`)
 }

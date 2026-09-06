@@ -917,12 +917,19 @@ Suppression idempotente.
 ## 7. Parcours — Découvrir
 
 ### 42. Parcourir Découvrir
-**Résultat** : trois panneaux — Tier Lists, Opportunités, Prochaines sorties.
+**Résultat** : trois panneaux — Tier Lists, Opportunités, **Découvertes**
+(lot 142 : les découvertes par univers ont quitté Statistiques, où rien ne
+les laissait chercher, pour l'écran qui porte leur nom ; elles remplacent
+« Prochaines sorties », un panneau qui n'avait rien à dire). En tête, la
+carte-lien « Analyser une annonce » (lot 137).
 **Desktop** les trois côte à côte au-delà de 1100 px ; **Mobile** un onglet à la
 fois.
 **Nature** : c'est un **hub d'aperçus**, pas une page interactive — chaque
-panneau montre un résumé et renvoie vers l'écran dédié.
-**Écrans** : `DiscoverPage`, `DiscoverTierPreview`, `DiscoverOpportunitiesPreview`
+panneau montre un résumé et renvoie vers l'écran dédié. C'est l'écran du
+cœur : les Tier Lists valent pour tout univers, les opportunités viennent de
+ce qui a une progression, les découvertes de chaque univers qui sait en
+proposer (`hasDiscoverySource` sur le type).
+**Écrans** : `DiscoverPage`, `DiscoverTierPreview`, `DiscoverOpportunitiesPreview`, `DiscoverySection`
 **Statut** : `COMPLET`
 
 ### 43. Ouvrir les opportunités
@@ -933,12 +940,26 @@ tomes manquants et le coût estimé pour compléter quand un prix est connu.
 codé en dur.
 **Statut** : `COMPLET`
 
-### 44. Consulter les prochaines sorties
-**Résultat** : « Pas encore de calendrier de sorties. » avec la raison — aucune
-source ne fournit de date fiable par tome, et la section arrivera quand une
-vraie donnée existera.
-**Statut** : `PARTIEL` — vide **assumé et expliqué**, sans donnée inventée ;
-aucune action possible depuis ce panneau.
+### 44. ~~Consulter les prochaines sorties~~ — retiré du produit (2026-09-06, lot 142)
+Le panneau annonçait qu'aucune source de calendrier n'existe. Un panneau qui
+n'a rien à dire n'est pas une promesse, c'est une case : il reviendra le jour
+où une vraie donnée de parution existera, jamais avant. Sa place est prise
+par les **Découvertes** (voir 42).
+
+### 44 bis. Découvrir ce que chaque univers propose
+**Point de départ** : Découvrir ▸ panneau Découvertes ▸ « Voir des
+suggestions » (à la demande : chaque univers interroge une source externe).
+**Résultat** : par catégorie qui a une source, une liste de suggestions avec
+**la raison toujours écrite** — pour le manga, d'autres œuvres des mêmes
+auteurs que tes mieux notés ; pour le jeu vidéo, des jeux proches de ceux que
+tu as (IGDB) ; pour le jeu de société, les jeux en vue qui partagent leurs
+mécaniques (BGG). « Ajouter » crée la fiche avec l'identifiant de la source.
+**Branches** : une catégorie sans rien à proposer le dit (« rien à proposer
+pour l'instant ») ; une catégorie personnalisée n'a pas de section ; une
+source en échec → bannière d'erreur pour cette catégorie seulement.
+**Écrans** : `DiscoverySection`
+**Backend** : `GET /insights/discover?entityTypeCode=…`
+**Statut** : `COMPLET` (vivait sous Statistiques jusqu'au lot 142)
 
 ---
 
@@ -1527,7 +1548,7 @@ IozyCore
 │                                       41 historique
 │
 ├── Découvrir  (/discover)                                 [mobile : OK]
-│   ├── 42 Hub d'aperçus · 43 Opportunités · 44 Prochaines sorties (vide assumé)
+│   ├── 42 Hub d'aperçus · 43 Opportunités · 44 bis Découvertes par univers (44 Sorties retiré)
 │   └── Tier Lists (/tier-lists) → 45 écran · 46 créer · 47 classer
 │                                  48 classement rapide · 49 gérer · 50 partager
 │
@@ -1592,7 +1613,8 @@ IozyCore
 | 41 | Consulter et rouvrir une analyse passée | Analyse d'achat | COMPLET | oui | oui |
 | 42 | Parcourir Découvrir | Découvrir | COMPLET | 3 colonnes | Onglets |
 | 43 | Ouvrir les opportunités | Découvrir | COMPLET | oui | oui |
-| 44 | Consulter les prochaines sorties | Découvrir | PARTIEL | oui | oui |
+| 44 | ~~Consulter les prochaines sorties~~ (retiré, lot 142) | Découvrir | — | — | — |
+| 44 bis | Découvrir ce que chaque univers propose | Découvrir | COMPLET | oui | oui |
 | 45 | Ouvrir l'écran Tier Lists | Tier Lists | COMPLET | oui | oui |
 | 46 | Créer une Tier List personnalisée | Tier Lists | COMPLET | oui | oui |
 | 47 | Classer une œuvre depuis un board | Tier Lists | COMPLET | Clic + glisser-déposer | Clic seul |
@@ -1622,7 +1644,7 @@ IozyCore
 ```text
 Nombre total de parcours identifiés : 64   (65 lignes, dont 1 retirée du produit)
 Parcours COMPLETS                   : 62
-Parcours PARTIELS                   :  2   (44 Prochaines sorties, 50 Partage des Tier Lists)
+Parcours PARTIELS                   :  1   (50 Partage des Tier Lists ; 44 Prochaines sorties retiré au lot 142)
 Parcours CASSÉS                     :  0
 Parcours MOCK / DÉMO                :  0
 

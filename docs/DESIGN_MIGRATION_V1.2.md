@@ -1360,6 +1360,35 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 142 — Découvrir, l'écran du cœur
+
+Le dernier écran à moitié manga, choisi par l'utilisateur parmi trois. La
+règle est celle de Ma collection et de la barre : **le cœur compose
+l'écran, chaque univers y branche ce qu'il sait proposer, et un panneau
+sans rien à dire n'apparaît pas.**
+
+**Ce que l'audit a trouvé** : les découvertes par univers existaient déjà -
+même auteur pour le manga, jeux proches pour le jeu vidéo (IGDB), jeux en
+vue aux mêmes mécaniques pour le jeu de société (BGG), trois
+`DiscoverySource` derrière une seule route - mais elles vivaient **en bas de
+Statistiques**, où rien ne les laissait chercher. Et Découvrir, l'écran qui
+porte leur nom, gardait à leur place un panneau « Prochaines sorties » qui
+n'annonçait qu'une absence de source.
+
+**Ce qui change** : le panneau vide s'en va, la section Découvertes prend sa
+place (pleine largeur sous les deux autres au-delà de 1100 px, troisième
+onglet en dessous). Elle reste à la demande (« Voir des suggestions ») - chaque
+univers interroge une source externe - et une catégorie sans rien à proposer
+le dit, pour qui. Le type porte désormais **`hasDiscoverySource`**, calculé
+par le serveur comme `hasMetadataProvider` : c'est le type qui dit s'il a
+une source, plus une liste de codes écrite dans l'écran, et un type
+personnalisé n'en a aucune. Statistiques ne parle plus que de statistiques.
+
+Vérifié : typecheck, lint, 343 tests web, contraste, frontières, build ;
+1 100 tests backend ; 16 parcours Playwright, celui de Découvrir ouvrant
+désormais les Découvertes et lisant « Manga : rien à proposer pour
+l'instant » sur une collection sans note.
+
 ### Lot 141 — la mesure à volume : 300 séries, 3 000 tomes
 
 Jamais mesurée au-delà de six séries. Une collection de **300 séries de 10

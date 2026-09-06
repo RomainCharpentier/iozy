@@ -264,6 +264,10 @@ export interface EntityTypeDto {
   // Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
   // type - jamais le cas pour un type personnalisé créé via cet éditeur.
   hasMetadataProvider: boolean
+  /** L'univers sait proposer des découvertes à partir de ce qu'on possède
+   *  (même auteur, jeux proches, jeux en vue…). C'est le type qui le dit,
+   *  jamais une liste de codes dans un écran (lot 142). */
+  hasDiscoverySource: boolean
   /** Identité visuelle choisie (voir lib/entityTypeVisuals) - null = visuel
    * par défaut. Des CLÉS, jamais des couleurs : seul le client sait les
    * traduire, et lui seul sait s'adapter au thème clair/sombre. */

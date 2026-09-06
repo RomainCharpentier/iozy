@@ -33,6 +33,13 @@ test('repérer une série presque complète depuis Découvrir, et rejoindre sa f
   const opportunite = page.getByRole('button', { name: new RegExp(titre) }).first()
   await expect(opportunite).toBeVisible()
 
+  // --- 1 bis. Les découvertes par univers vivent ici aussi (lot 142), à la
+  //     demande : sans note posée, le manga n'a aucun auteur favori à
+  //     proposer, et il le dit - un silence se lirait comme une panne.
+  await expect(page.getByRole('heading', { name: 'Découvertes' })).toBeVisible()
+  await page.getByRole('button', { name: 'Voir des suggestions' }).click()
+  await expect(page.getByText(/^Manga : rien à proposer/)).toBeVisible()
+
   // --- 2. « Tout voir » mène à l'écran complet
   await page.getByRole('button', { name: 'Tout voir' }).first().click()
   await expect(page).toHaveURL(/\/suggestions$/)

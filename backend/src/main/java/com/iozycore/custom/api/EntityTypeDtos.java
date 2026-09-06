@@ -28,12 +28,18 @@ public final class EntityTypeDtos {
     /** colorKey/iconKey : identité visuelle choisie par l'utilisateur, null = visuel
      * par défaut côté client (voir EntityType). Ce sont des CLÉS, pas des couleurs :
      * c'est le client qui les traduit, et lui seul sait s'adapter au thème. */
+    /** hasDiscoverySource : un univers sait proposer des decouvertes a partir de ce qu'on possede
+     * (DiscoverySource - meme auteur pour le manga, jeux proches pour le jeu video, jeux en vue aux
+     * memes mecaniques pour le jeu de societe). C'est le type qui le dit au client, jamais une liste
+     * de codes ecrite dans l'ecran (lot 142) : un type personnalise n'en a aucune. */
     public record EntityTypeResponse(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                                       Set<String> customFieldKeys, boolean hasMetadataProvider,
+                                      boolean hasDiscoverySource,
                                       String colorKey, String iconKey, String aspectKey) {
-        public static EntityTypeResponse from(EntityType t, boolean hasMetadataProvider) {
+        public static EntityTypeResponse from(EntityType t, boolean hasMetadataProvider, boolean hasDiscoverySource) {
             return new EntityTypeResponse(t.id(), t.code(), t.label(), t.allowedExperienceTypes(),
-                    t.customFieldKeys(), hasMetadataProvider, t.colorKey(), t.iconKey(), t.aspectKey());
+                    t.customFieldKeys(), hasMetadataProvider, hasDiscoverySource, t.colorKey(), t.iconKey(),
+                    t.aspectKey());
         }
     }
 }
