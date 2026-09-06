@@ -441,10 +441,11 @@ changement sur la source principale.
 **Branches** : recherche externe en échec → « La recherche de métadonnées a
 échoué » ; aucun résultat → « Aucun résultat pour ce titre » ; type **sans
 fournisseur** → aucune recherche externe, message dédié annoncé **avant** la
-saisie ; **« Tout » sélectionné** → seul le catalogue est parcouru, et l'écran
-le dit (« choisis une catégorie pour chercher aussi chez une source externe ») ;
-**moins de trois caractères** → même chose, dit aussi (Lot 116 — ces deux
-silences se lisaient comme des pannes).
+saisie ; **« Tout » sélectionné** → chaque catégorie qui a une source est
+interrogée en parallèle et les résultats sont présentés **par catégorie**
+(lot 145 — jusque-là seul le catalogue était parcouru sous « Tout », et
+« Injustice » ne répondait qu'après avoir choisi « Jeu vidéo ») ; **moins de
+trois caractères** → recherche externe coupée, et l'écran le dit (Lot 116).
 **Écrans** : `SearchPage`
 **Backend** : `GET /metadata/search`
 **Statut** : `COMPLET`

@@ -91,16 +91,39 @@ describe('les façons d’ajouter', () => {
 })
 
 describe('l’arrivée', () => {
-  it('ouvre sur « Tout », pas sur le premier type', async () => {
+  it('ouvre sur « Tout », et cherche alors chez toutes les sources', async () => {
     // Le premier type de l'instance était présélectionné pour un compte : le
     // Catalogue ne montrait alors qu'un univers pris pour les autres
-    // (lot 139). Ce qui se voit : taper un titre parcourt le catalogue seul,
-    // l'écran le dit, et aucune source externe n'est interrogée.
+    // (lot 139). Et sous « Tout », la recherche externe était coupée :
+    // « Injustice » ne répondait qu'après avoir choisi « Jeu vidéo »
+    // (lot 145). Taper un titre interroge désormais chaque catégorie qui a
+    // une source, sans en choisir une d'avance.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Manga' })).toBeInTheDocument())
     await userEvent.type(screen.getByRole('textbox'), 'berserk')
 
-    expect(await screen.findByText(/Seul le catalogue est parcouru/)).toBeInTheDocument()
-    expect(metadata.searchMetadata).not.toHaveBeenCalled()
+    await waitFor(() => expect(metadata.searchMetadata).toHaveBeenCalledWith(MANGA.id, 'berserk', expect.anything()), {
+      timeout: 3000,
+    })
+    expect(screen.queryByText(/Seul le catalogue est parcouru/)).not.toBeInTheDocument()
+  })
+
+  it('présente les résultats par catégorie quand plusieurs sont cherchées', async () => {
+    const jeuVideo = { ...typeDeCollection('VIDEO_GAME', 'Jeu vidéo'), hasMetadataProvider: true }
+    api.listEntityTypes.mockResolvedValue([MANGA, jeuVideo])
+    render(<SearchPage />, { wrapper: enrobage })
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Jeu vidéo' })).not.toHaveLength(0))
+
+    // Le dernier champ : celui de CE rendu, pas de celui posé par beforeEach.
+    const champs = screen.getAllByRole('textbox')
+    await userEvent.type(champs[champs.length - 1], 'berserk')
+
+    // Une requête par catégorie, et un groupe nommé pour chacune : le
+    // résultat dit d'où il vient, parce que l'écran ne l'a pas demandé.
+    await waitFor(() => expect(metadata.searchMetadata).toHaveBeenCalledWith(jeuVideo.id, 'berserk', expect.anything()), {
+      timeout: 3000,
+    })
+    expect(await screen.findByRole('region', { name: 'Jeu vidéo' }, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Manga' })).toBeInTheDocument()
   })
 })
 

@@ -1360,6 +1360,40 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 145 — chercher sous « Tout » interroge toutes les sources
+
+« J'ai testé la recherche de Injustice et ça ne fonctionne que si je
+sélectionne Jeu vidéo, c'est pas normal. » Sous « Tout », la recherche
+externe était coupée depuis le lot 116 — « un fournisseur s'interroge type
+par type » — et l'écran le disait en une phrase. C'était vrai des sources,
+pas une raison pour l'écran : on ne sait pas toujours d'avance de quel
+univers est ce qu'on cherche, et depuis le lot 139 c'est justement sur
+« Tout » qu'on arrive.
+
+**La chaîne** : les catégories cherchées sont celle qui est choisie, ou
+toutes celles qui ont une source quand aucune ne l'est (`typesCherches`).
+Une requête par catégorie, en parallèle (`useQueries`), chacune sous sa
+propre clé de cache (type, titre) — choisir ensuite « Manga » ne relance
+rien. Les résultats sont présentés **par catégorie**, nommée seulement
+quand il y en a plusieurs ; un groupe se montre dès qu'il a répondu, sans
+attendre la source la plus lente ; une source en échec le dit pour sa
+catégorie seule ; « Aucun résultat » n'est dit que lorsque toutes ont
+répondu vide. Ouvrir un résultat, ou le vouloir, porte le type du groupe où
+il a été trouvé, pas celui de l'écran. Les titres français et les séries
+« sans tome connu », qui ne valent que pour le manga, lisent le groupe
+Manga, seul ou parmi les autres. La phrase « seul le catalogue est parcouru »
+disparaît ; « trois caractères au moins » reste, pour toute catégorie qui a
+une source.
+
+Le coût : sous « Tout », trois requêtes externes par saisie temporisée
+(AniList, IGDB, BGG) au lieu d'une. Les trois ont des quotas par minute
+larges pour un usage humain, et un titre tapé une fois se met en cache par
+catégorie.
+
+Vérifié : typecheck, lint, tests web (deux nouveaux : « Tout » cherche chez
+toutes les sources, et présente par catégorie), contraste, frontières,
+build ; 16 parcours Playwright. Aucun changement côté serveur.
+
 ### Lot 144 — les éditions que mangacollec connaît : les romans écartés, les éditions secondaires cherchées par leur nom
 
 Le lot 131 laissait trois écarts avec mangacollec : des **éditions
