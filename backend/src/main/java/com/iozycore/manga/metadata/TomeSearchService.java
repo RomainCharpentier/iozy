@@ -181,6 +181,14 @@ public class TomeSearchService {
                 providerUnavailable = true;
             }
         }
+        // Les editions SECONDAIRES, completees chez qui sait chercher une
+        // edition par son nom (lot 144) - avant les sondes, qui ne comblent
+        // que les numeros absents de TOUTES les editions.
+        try {
+            result.addAll(completerLesEditionsSecondaires(entityType, seriesTitle, author, excludedTitleFragments, result));
+        } catch (QuotaExceededException | SourceUnavailableException e) {
+            providerUnavailable = true;
+        }
         // Deux fournisseurs (BnF puis Google Books, voir leurs @Order)
         // peuvent retrouver le même tome : la notice du PREMIER fait foi
         // (Lot 119 - la BnF a des champs structurés, Google Books devine
@@ -443,6 +451,94 @@ public class TomeSearchService {
         return combles;
     }
 
+    /** Au plus autant d'editions secondaires completees par recherche - trois pages Google Books chacune. */
+    private static final int EDITIONS_SECONDAIRES_MAX = 3;
+
+    /**
+     * Completer les editions SECONDAIRES (lot 144).
+     *
+     * <p>Mesure du 2026-09-05 contre mangacollec : l'edition simple etait
+     * exacte sur neuf series, mais Hokage restait a 19 sur 36, l'Édition
+     * originale de One Piece a 30 sur 66, Black Édition a 4 sur 6 - la BnF
+     * ne tient ces editions qu'en partie, et la sonde tome par tome ({@link
+     * #comblerLesTrous}) ne comble que les numeros absents de TOUTES les
+     * editions : un tome 25 present chez Kana n'est jamais sonde pour Hokage.
+     *
+     * <p>Google Books, lui, rend les tomes d'une edition quand on la cherche
+     * PAR SON NOM (« Naruto Hokage » : 300 fiches, les tomes Hokage de Kana
+     * parmi elles) - trois pages au plus par edition, trois editions au plus
+     * par recherche, les plus fournies d'abord. Une fiche n'est retenue que
+     * si elle parle bien de cette edition, dans le nom qu'on lui a lu ou
+     * dans son titre : la meme requete rend aussi les tomes de l'edition
+     * simple, qui n'ont rien a faire la. Elle prend alors le nom de
+     * l'edition qu'on completait - « Edition Hokage » lu chez Google Books
+     * rejoint « Hokage » lu a la BnF, au lieu d'en faire une seconde.
+     *
+     * <p>L'edition PRINCIPALE - la plus fournie - n'est jamais completee
+     * ainsi : c'est la sonde qui s'en charge, et chercher « Naruto Kana »
+     * rendrait tout et n'importe quoi.
+     */
+    private List<VolumeCandidate> completerLesEditionsSecondaires(EntityType entityType, String seriesTitle, String author,
+                                                                  List<String> excludedTitleFragments,
+                                                                  List<VolumeCandidate> dejaTrouves) {
+        Map<String, List<VolumeCandidate>> parEdition = new LinkedHashMap<>();
+        for (VolumeCandidate candidate : finaliser(new ArrayList<>(dejaTrouves))) {
+            parEdition.computeIfAbsent(cleEdition(candidate.edition()), cle -> new ArrayList<>()).add(candidate);
+        }
+        if (parEdition.size() < 2) {
+            return List.of();
+        }
+        String principale = parEdition.entrySet().stream()
+                .max(Comparator.comparingInt(entree -> entree.getValue().size()))
+                .map(Map.Entry::getKey)
+                .orElseThrow();
+        List<List<VolumeCandidate>> secondaires = parEdition.entrySet().stream()
+                .filter(entree -> !entree.getKey().equals(principale))
+                .map(Map.Entry::getValue)
+                .filter(tomes -> tomes.size() >= 2 && estNommee(tomes.get(0).edition()))
+                .sorted(Comparator.comparingInt((List<VolumeCandidate> tomes) -> tomes.size()).reversed())
+                .limit(EDITIONS_SECONDAIRES_MAX)
+                .toList();
+
+        List<VolumeCandidate> ajouts = new ArrayList<>();
+        for (List<VolumeCandidate> tomes : secondaires) {
+            String nom = tomes.get(0).edition();
+            String motCle = motCleDEdition(nom);
+            if (motCle.isBlank()) {
+                continue;
+            }
+            Set<Integer> presents = tomes.stream().map(VolumeCandidate::volumeNumber).collect(Collectors.toCollection(HashSet::new));
+            for (VolumeSearchProvider provider : volumeSearchProviders) {
+                if (!provider.supports(entityType)) {
+                    continue;
+                }
+                for (VolumeCandidate trouve : provider.searchEdition(seriesTitle, author, motCle, excludedTitleFragments)) {
+                    if (trouve.volumeNumber() < 1 || presents.contains(trouve.volumeNumber()) || !designeCetteEdition(trouve, motCle)) {
+                        continue;
+                    }
+                    ajouts.add(renommer(trouve, nom));
+                    presents.add(trouve.volumeNumber());
+                }
+            }
+        }
+        if (!ajouts.isEmpty()) {
+            log.info("Editions secondaires de '{}' completees : {} tome(s) retrouve(s)", seriesTitle, ajouts.size());
+        }
+        return ajouts;
+    }
+
+    /** « L'intégrale (Hachette) » -> « L'intégrale » : ce qu'on cherche chez un fournisseur, sans l'editeur que nommerBloc ajoute entre parentheses. */
+    private static String motCleDEdition(String edition) {
+        return edition == null ? "" : edition.replaceAll("\\s*\\([^)]*\\)", "").trim();
+    }
+
+    /** La fiche parle-t-elle de CETTE edition - dans le nom d'edition qu'on lui a lu, ou dans son titre ? */
+    private static boolean designeCetteEdition(VolumeCandidate candidate, String motCle) {
+        String cle = TexteRecherche.normaliser(motCle);
+        return TexteRecherche.normaliser(candidate.edition() == null ? "" : candidate.edition()).contains(cle)
+                || TexteRecherche.normaliser(candidate.title() == null ? "" : candidate.title()).contains(cle);
+    }
+
     static final String EDITION_INCONNUE = "Édition inconnue";
 
     /**
@@ -699,6 +795,17 @@ public class TomeSearchService {
 
     private static String prefixeIsbn(VolumeCandidate candidate) {
         String isbn = candidate.isbnNormalise();
-        return isbn == null || isbn.length() < LONGUEUR_PREFIXE_ISBN ? null : isbn.substring(0, LONGUEUR_PREFIXE_ISBN);
+        if (isbn == null) {
+            return null;
+        }
+        // Un ISBN-10 (notices d'avant 2007 a la BnF : « 2-87129-414-3 » pour
+        // le tome 1 de Naruto) designe le meme bloc d'editeur que l'ISBN-13
+        // que Google Books donne du meme livre (978-2-87129-414-1) : le
+        // prefixe se lit apres le 978, sinon les deux ne se rencontrent
+        // jamais et un vieux tome fait bloc a part (lot 144).
+        if (isbn.length() == 10) {
+            isbn = "978" + isbn;
+        }
+        return isbn.length() < LONGUEUR_PREFIXE_ISBN ? null : isbn.substring(0, LONGUEUR_PREFIXE_ISBN);
     }
 }

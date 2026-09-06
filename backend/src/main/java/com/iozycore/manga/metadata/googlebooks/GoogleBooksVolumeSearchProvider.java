@@ -502,6 +502,51 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
         }
     }
 
+    /** Pages lues au plus par edition, de 40 fiches : « One Piece Édition
+     *  originale » en annonce 300 (mesure du 2026-09-06), un tome francais
+     *  sur deux dans la premiere page - la BnF n'en tenait que 30 sur 66. */
+    private static final int PAGES_PAR_EDITION = 3;
+    private static final int FICHES_PAR_PAGE = 40;
+
+    /**
+     * Une edition cherchee par son NOM (lot 144) : {@code intitle:<serie>
+     * <edition>}, paginee. La recherche par serie s'arrete a une page ou
+     * l'edition simple prend toute la place ; « Naruto Hokage » rend les
+     * tomes Hokage de Kana, que la BnF ne tient qu'a moitie. L'appelant
+     * verifie que chaque fiche parle bien de cette edition (voir
+     * TomeSearchService.completerLesEditionsSecondaires) - ici on ne fait
+     * que lire, page apres page, jusqu'a une page sans rien.
+     */
+    @Override
+    public List<VolumeCandidate> searchEdition(String seriesTitle, String author, String editionName,
+                                               List<String> excludedTitleFragments) {
+        if (httpClient.isQuotaLikelyExhausted()) {
+            throw new QuotaExceededException("Quota Google Books probablement encore épuisé - édition « " + editionName
+                    + " » de '" + seriesTitle + "' non complétée");
+        }
+        String query = "intitle:" + seriesTitle + " " + editionName;
+        List<VolumeCandidate> trouves = new java.util.ArrayList<>();
+        for (int page = 0; page < PAGES_PAR_EDITION; page++) {
+            String url = SEARCH_URL.formatted(URLEncoder.encode(query, StandardCharsets.UTF_8))
+                    + "&startIndex=" + (page * FICHES_PAR_PAGE);
+            List<VolumeCandidate> fiches;
+            try {
+                fiches = parse(httpClient.get(url), seriesTitle, excludedTitleFragments, author);
+            } catch (QuotaExceededException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Échec de la recherche d'édition Google Books '{}' : {}", query, e.getMessage());
+                throw new SourceUnavailableException("Google Books n'a pas répondu pour l'édition « " + editionName
+                        + " » de " + seriesTitle);
+            }
+            if (fiches.isEmpty()) {
+                break;
+            }
+            trouves.addAll(fiches);
+        }
+        return trouves;
+    }
+
     /**
      * La sonde tome par tome (Lot 125) - idee empruntee, apres mesure, au
      * projet MangaCollector : {@code intitle:<serie> intitle:"Tome N"} au

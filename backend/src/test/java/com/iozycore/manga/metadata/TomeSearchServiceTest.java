@@ -225,6 +225,67 @@ class TomeSearchServiceTest {
                 volumes -> assertThat(volumes).hasSize(1)); // pas écrasé par un échec
     }
 
+    // ------------------------------------ Les editions secondaires (lot 144)
+
+    @Test
+    void completes_a_secondary_edition_by_searching_it_by_name_and_files_the_finds_under_it() {
+        // Mesure du 2026-09-05 : Naruto, Kana 72 et Hokage 19 sur 36 - la BnF
+        // ne tient l'edition Hokage qu'a moitie, et la sonde tome par tome ne
+        // comble que les numeros absents de TOUTES les editions.
+        List<VolumeCandidate> bnf = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            bnf.add(new VolumeCandidate("Kana", i, null, "Naruto T" + i, "978250500000" + i, 2002));
+        }
+        bnf.add(new VolumeCandidate("Hokage", 1, null, "Naruto Hokage T1", "9782505111111", 2022));
+        bnf.add(new VolumeCandidate("Hokage", 2, null, "Naruto Hokage T2", "9782505111112", 2022));
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(bnf);
+        provider.editionResults = Map.of("Hokage", List.of(
+                // deja la : ne doit pas doubler
+                new VolumeCandidate("Edition Hokage", 2, "http://c/2.jpg", "Naruto Edition Hokage Tome 2"),
+                // nouveau : rejoint « Hokage », pas une seconde edition « Edition Hokage »
+                new VolumeCandidate("Edition Hokage", 3, "http://c/3.jpg", "Naruto Edition Hokage Tome 3"),
+                // la meme requete rend aussi l'edition simple : rien a faire ici
+                new VolumeCandidate("Kana", 4, null, "Naruto Tome 4")));
+        TomeSearchService service = new TomeSearchService(List.of(provider), new FakeVolumeSearchCacheRepository());
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Naruto", "Kishimoto");
+
+        assertThat(provider.editionCalls).containsExactly("Hokage"); // jamais l'edition principale
+        assertThat(result.volumes().stream().filter(v -> v.edition().equals("Hokage")).map(VolumeCandidate::volumeNumber).sorted().toList())
+                .containsExactly(1, 2, 3);
+        assertThat(result.volumes().stream().filter(v -> v.edition().equals("Kana")).count()).isEqualTo(5);
+        assertThat(result.volumes()).extracting(VolumeCandidate::edition).doesNotContain("Edition Hokage");
+    }
+
+    @Test
+    void does_not_search_editions_by_name_when_the_series_has_only_one() {
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(List.of(
+                new VolumeCandidate("Kana", 1, null, "Death Note T1"), new VolumeCandidate("Kana", 2, null, "Death Note T2")));
+        provider.editionResults = Map.of("Kana", List.of(new VolumeCandidate("Kana", 3, null, "Death Note T3")));
+        TomeSearchService service = new TomeSearchService(List.of(provider), new FakeVolumeSearchCacheRepository());
+
+        service.searchVolumes(MANGA, "Death Note", "Ohba");
+
+        assertThat(provider.editionCalls).isEmpty();
+    }
+
+    @Test
+    void a_quota_hit_while_completing_an_edition_keeps_what_was_found_and_does_not_freeze_it() {
+        FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
+        FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(List.of(
+                new VolumeCandidate("Kana", 1, null, "Naruto T1"), new VolumeCandidate("Kana", 2, null, "Naruto T2"),
+                new VolumeCandidate("Kana", 3, null, "Naruto T3"),
+                new VolumeCandidate("Hokage", 1, null, "Naruto Hokage T1"), new VolumeCandidate("Hokage", 2, null, "Naruto Hokage T2")));
+        provider.editionFailure = new QuotaExceededException("quota");
+        TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
+
+        VolumeSearchResult result = service.searchVolumes(MANGA, "Naruto", "Kishimoto");
+
+        assertThat(result.volumes()).hasSize(5);
+        assertThat(result.providerUnavailable()).isTrue();
+        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty(); // rien de fige pendant la panne
+    }
+
     private static final class FakeVolumeSearchProvider implements VolumeSearchProvider {
         // Volontairement mutable (pas final) : force_refresh_bypasses_both_caches
         // simule une nouvelle parution entre deux appels.
@@ -239,6 +300,10 @@ class TomeSearchServiceTest {
         List<VolumeCandidate> additionalResults = List.of();
         RuntimeException additionalFailure;
         int additionalCallCount = 0;
+        // Les editions cherchees par leur nom (lot 144) : nom -> fiches rendues.
+        Map<String, List<VolumeCandidate>> editionResults = Map.of();
+        RuntimeException editionFailure;
+        final List<String> editionCalls = new ArrayList<>();
 
         FakeVolumeSearchProvider(List<VolumeCandidate> results) {
             this.results = results;
@@ -274,6 +339,15 @@ class TomeSearchServiceTest {
                 throw additionalFailure;
             }
             return additionalResults;
+        }
+
+        @Override
+        public List<VolumeCandidate> searchEdition(String seriesTitle, String author, String editionName, List<String> excludedTitleFragments) {
+            editionCalls.add(editionName);
+            if (editionFailure != null) {
+                throw editionFailure;
+            }
+            return editionResults.getOrDefault(editionName, List.of());
         }
     }
 

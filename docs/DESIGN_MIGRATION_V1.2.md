@@ -1360,6 +1360,91 @@ derrière le mode « pinceau » — ce qui manquait, c'est que ce mode se **nomm
 Pas de système de rôles : décision utilisateur, `Éditer` suffit pour l'instant.
 `AdministrationPage` reste atteignable par son chemin propre.
 
+### Lot 144 — les éditions que mangacollec connaît : les romans écartés, les éditions secondaires cherchées par leur nom
+
+Le lot 131 laissait trois écarts avec mangacollec : des **éditions
+secondaires** que la BnF ne tient qu'en partie (Hokage 19/36, France
+Loisirs, Black Édition 4/6, 1re édition de One Piece 30/66), des **« Hachette
+jeunesse »** rattachés à Naruto et One Piece, et les **éditions reliées**
+(variantes de jaquette, collectors) sans modèle. Deux mesures avant d'écrire
+une ligne :
+
+- **Les « Hachette jeunesse » sont des romans.** Les 66 notices Hachette de
+  Naruto à la BnF : 37 « l'intégrale » (le Kiosque, déjà juste) et des
+  notices en **Bibliothèque verte** (225$a ou 410$t) — les romans tirés de
+  l'anime, que la BnF rattache à la série par sa collection (« Le secret de
+  Nami », 225$a « One piece » $v 3). Ni des anime comics, ni des tomes.
+  `BnfVolumeSearchProvider` écarte désormais toute notice d'une collection de
+  romans jeunesse (Bibliothèque verte, rose). Naruto et One Piece n'ont plus
+  d'édition « Hachette jeunesse ».
+- **Google Books rend une édition quand on la cherche par son nom.**
+  « Naruto Hokage » : 300 fiches, les tomes Hokage de Kana parmi elles (20 à
+  30 sur la première page) ; « One Piece Édition originale » : 300 fiches, un
+  tome français sur deux. La recherche par série s'arrêtait à une page où
+  l'édition simple prend toute la place, et la sonde tome par tome (lot 125)
+  ne comble que les numéros absents de **toutes** les éditions — un tome 25
+  présent chez Kana n'était jamais sondé pour Hokage.
+
+**La chaîne** : après la passe des fournisseurs, les éditions secondaires
+(nommées, au moins deux tomes, jamais la principale, trois au plus, les plus
+fournies d'abord) sont cherchées par leur nom chez qui sait le faire —
+`VolumeSearchProvider.searchEdition`, que Google Books implémente en lisant
+jusqu'à trois pages. Une fiche n'est retenue que si elle parle bien de cette
+édition, dans le nom lu ou dans son titre (la même requête rend aussi
+l'édition simple), et elle prend alors le nom de l'édition qu'on complétait :
+« Edition Hokage » lu chez Google Books rejoint « Hokage » lu à la BnF au
+lieu d'en faire une seconde. Un quota ou une panne pendant cette passe
+garde ce qui est trouvé et ne fige rien, comme une sonde. V34 vide le cache
+durable des tomes (règle du lot 131).
+
+**Mesuré sur la pile jetable, caches vides, clé Google Books de la machine
+passée par l'environnement** — avec une limite : la clé était **à 429 dès
+Naruto** (le quota du jour, consommé par les mesures manuelles qui
+précèdent), puis a répondu par intermittence.
+
+| Série | Lot 131 | Lot 144 | Mangacollec |
+|---|---|---|---|
+| Naruto | Kana 72 ; L'intégrale 37 ; Hokage 19 ; France Loisirs 9 ; **Hachette jeunesse 15** | Kana 72 ; L'intégrale 37 ; Hokage 15–20 *(Google Books à 429 : non complété ; voir la variance BnF)* ; France Loisirs 9 ; **plus de Hachette jeunesse** | Kana 72 ; Hokage 36 ; Kiosque Hachette 37 ; FL 14 |
+| One Piece | Glénat 111 ; Éd. originale 30 ; **Hachette jeunesse 11** | Glénat 111 ; **Éd. originale 41** (10 tomes retrouvés par l'édition, avant le 429) ; **plus de Hachette jeunesse** | Glénat 112 ; 1re éd. 66 ; Log 50 |
+| Death Note | Kana 13 ; Black 4 ; FL 2 | inchangé — Google Books titre ses Black Édition sans numéro de tome | Kana 13 ; Black 6 ; FL 6 |
+
+Ce que la mesure dit et ne dit pas : les romans sont partis sur les deux
+séries ; la recherche par édition a retrouvé dix tomes de l'Édition originale
+avec une clé déjà à bout, et le test unitaire garde la mécanique (trois
+pages, fiches vérifiées, renommage). **Hokage reste à mesurer avec une clé
+fraîche** (recette dans `feedback-mangacollec-reference`) : rien ne permet
+d'écrire 36 tant qu'on ne l'a pas lu.
+
+**Trouvé au passage, et corrigé** : la première mesure sortait Naruto en
+« Kana 72 » **et** « Kana (2002) 2 [1-2] ». Les notices derrière : « Naruto,
+grand livre d'Uzumaki » T1-T2 (un art book), « Naruto, Konoha shinden / the
+steam ninja scrolls » T1-T2 (un roman), « Naruto, les liens, répliques
+célèbres » T1-T2 — chez Kana comme les 72 tomes, catalogués $a « Naruto » +
+$e « autre titre » + $h « Tome N », un $e que la règle du lot 131 lisait
+comme un sous-titre de tome. Ils prenaient la place des tomes 1 et 2, et la
+séparation par ISBN (lot 124) renvoyait les vrais — ISBN-10 de 2002, un
+« préfixe » que rien ne rapprochait des ISBN-13 — dans un bloc à part. Deux
+règles : **un $e partagé par plusieurs tomes dont la série a déjà les
+numéros sans $e est une autre œuvre** (un sous-titre porté par un seul tome,
+« Grande chance », reste un tome), et un $e qui nomme un guide, un art book,
+un roman écarte la notice ; et **un ISBN-10 se lit comme l'ISBN-13 du même
+livre** (préfixe après le 978). Naruto : Kana 72, et rien d'autre.
+
+**Vu, non traité** : d'une mesure à l'autre, l'édition Hokage lue à la BnF
+compte 15, 19 ou 20 tomes — la requête SRU paginée (quatre pages pour 341
+notices) ne fixe pas d'ordre de tri, et une notice peut glisser d'une page à
+l'autre entre deux requêtes. À stabiliser par une clé de tri dans la
+requête, quand la BnF sera remesurée avec une clé Google Books fraîche.
+
+**Les éditions reliées restent sans modèle.** Sur les huit séries mesurées,
+aucune variante n'apparaît comme une fausse édition ; les construire sans
+cas réel serait inventer une notion pour la remplir plus tard.
+
+Vérifié : 1 109 tests backend (dont neuf nouveaux : romans jeunesse, produit
+dérivé, autre œuvre sous le nom de la série, complétion d'une édition
+secondaire et ses bornes, pagination Google Books) ; 16 parcours Playwright ;
+aucun changement côté web.
+
 ### Lot 143 — les tags : gardés, et lus là où ils vivent
 
 « Administrables, base vide, usage réel jamais observé » : la question était

@@ -23,6 +23,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -212,12 +213,30 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         List<Map.Entry<String, VolumeCandidate>> differes = new ArrayList<>();
         // Les series 461 dont une notice a confirme le sous-titre cherche.
         Set<String> seriesConfirmees = new HashSet<>();
+        // Les tomes qui portent un $e qui ne designe aucune edition, groupes
+        // par ce $e ; et les numeros des tomes sans aucun $e (voir plus bas).
+        Map<String, List<VolumeCandidate>> parSousTitre = new LinkedHashMap<>();
+        Set<Integer> numerosSansSousTitre = new HashSet<>();
         for (String xml : pages) {
-            parseUnePage(xml, seriesTitle, excludedTitleFragments, candidates, differes, seriesConfirmees);
+            parseUnePage(xml, seriesTitle, excludedTitleFragments, candidates, differes, seriesConfirmees,
+                    parSousTitre, numerosSansSousTitre);
         }
         for (Map.Entry<String, VolumeCandidate> differe : differes) {
             if (seriesConfirmees.contains(differe.getKey())) {
                 candidates.add(differe.getValue());
+            }
+        }
+        // Un $e partage par PLUSIEURS tomes dont la serie a deja les numeros
+        // sans $e est une AUTRE oeuvre cataloguee sous le nom de la serie
+        // (lot 144) : « Naruto » + « Konoha shinden / the steam ninja
+        // scrolls » T1 et T2 - un roman -, « les liens, repliques celebres »
+        // T1 et T2, chez Kana comme les 72 tomes. Ils prenaient la place des
+        // tomes 1 et 2, et la separation par ISBN renvoyait les vrais dans une
+        // « Kana (2002) » a part. Un sous-titre porte par UN tome (« Grande
+        // chance », T21) reste un tome : il n'a pas de jumeau sans $e.
+        for (List<VolumeCandidate> groupe : parSousTitre.values()) {
+            if (groupe.size() >= 2 && groupe.stream().allMatch(c -> numerosSansSousTitre.contains(c.volumeNumber()))) {
+                candidates.removeAll(groupe);
             }
         }
         return candidates;
@@ -225,7 +244,8 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     private void parseUnePage(String xml, String seriesTitle, List<String> excludedTitleFragments,
                               List<VolumeCandidate> candidates, List<Map.Entry<String, VolumeCandidate>> differes,
-                              Set<String> seriesConfirmees) throws Exception {
+                              Set<String> seriesConfirmees, Map<String, List<VolumeCandidate>> parSousTitre,
+                              Set<Integer> numerosSansSousTitre) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
@@ -249,6 +269,15 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             // les notices qui ne disent rien (certains tomes n'ont pas de $b).
             String nature = subfield(titleField, "b");
             if (nature != null && !nature.toLowerCase().contains("texte imprim")) {
+                continue;
+            }
+            // Une collection de ROMANS jeunesse n'est jamais une edition du
+            // manga (lot 144) : Hachette range « Naruto » et « One piece » en
+            // Bibliothèque verte - des romans tires de l'anime, que la BnF
+            // rattache a la serie (225$a « One piece », 410$t « Bibliothèque
+            // verte ») et qui sortaient en « Hachette jeunesse » 15 et 11
+            // tomes a cote de Kana et Glénat. Mangacollec ne les compte pas.
+            if (estUnRomanJeunesse(record)) {
                 continue;
             }
             // Comparaison insensible à la casse (vérifié manuellement : la
@@ -354,6 +383,17 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 partsEdition.remove(sousTitreConsomme);
             }
             String edition = editionName(partsEdition);
+            // Un produit DERIVE n'est pas un tome (lot 144) : « Naruto, grand
+            // livre d'Uzumaki » T1 et T2 - un art book - est catalogue comme
+            // un tome, avec un $e qui ne designe aucune edition ; il prenait
+            // la place des tomes 1 et 2 de Kana, que la separation par ISBN
+            // renvoyait alors dans une « Kana (2002) » a part (mesure du
+            // 2026-09-06). Un $e qui nomme un guide, un art book, un roman,
+            // ecarte la notice ; un sous-titre de tome (« Grande chance »)
+            // reste un tome.
+            if (edition.isBlank() && estUnProduitDerive(partsEdition)) {
+                continue;
+            }
             // Le titre complet, TOUS les $e compris : « Dragon Ball » + « super »
             // doit rester reconnaissable comme « Dragon Ball Super » meme si
             // « super » ne fait pas une edition.
@@ -379,6 +419,12 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 differes.add(Map.entry(normalizeForComparison(serie), candidate));
             } else {
                 candidates.add(candidate);
+                if (edition.isBlank() && !partsEdition.isEmpty()) {
+                    parSousTitre.computeIfAbsent(normalizeForComparison(String.join(" ", partsEdition)), cle -> new ArrayList<>())
+                            .add(candidate);
+                } else if (partsEdition.isEmpty()) {
+                    numerosSansSousTitre.add(volumeNumber.getAsInt());
+                }
             }
         }
     }
@@ -484,6 +530,43 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             }
         }
         return null;
+    }
+
+    private static final Pattern PRODUIT_DERIVE = Pattern.compile(
+            "(?iu)\\b(?:grand livre|art ?books?|guides?|data ?books?|fan ?books?|illustrations|romans?|novels?"
+            + "|encyclop[ée]die|character books?|official books?)\\b");
+
+    private static boolean estUnProduitDerive(List<String> parts) {
+        return parts.stream().anyMatch(part -> PRODUIT_DERIVE.matcher(part).find());
+    }
+
+    /** Les collections de romans jeunesse connues, a la casse et aux accents pres. */
+    private static boolean estUnRomanJeunesse(Element record) {
+        for (String tag : List.of("225", "410")) {
+            for (Element champ : datafields(record, tag)) {
+                for (String code : List.of("a", "t")) {
+                    for (String valeur : subfields(champ, code)) {
+                        String pliee = normalizeForComparison(valeur);
+                        if (pliee.contains("biblioth") && (pliee.contains("verte") || pliee.contains("rose"))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<Element> datafields(Element record, String tag) {
+        List<Element> trouves = new ArrayList<>();
+        NodeList datafields = record.getElementsByTagName("mxc:datafield");
+        for (int i = 0; i < datafields.getLength(); i++) {
+            Element datafield = (Element) datafields.item(i);
+            if (tag.equals(datafield.getAttribute("tag"))) {
+                trouves.add(datafield);
+            }
+        }
+        return trouves;
     }
 
     private static Element firstDatafield(Element record, String tag) {

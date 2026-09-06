@@ -9,6 +9,48 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GoogleBooksVolumeSearchProviderTest {
 
+    // ------------------------------------ Une edition cherchee par son nom (lot 144)
+
+    @Test
+    void searchEdition_reads_the_pages_one_after_the_other_and_stops_at_the_first_empty_one() {
+        // « One Piece Édition originale » : 300 fiches annoncees, un tome
+        // francais sur deux dans la premiere page (mesure du 2026-09-06) -
+        // une seule page laissait l'edition a 30 tomes sur 66.
+        List<String> urls = new java.util.ArrayList<>();
+        GoogleBooksHttpClient client = new GoogleBooksHttpClient("", "") {
+            @Override
+            public String get(String url) {
+                urls.add(url);
+                if (url.contains("startIndex=0")) {
+                    return page("One Piece - Édition originale - Tome 24", "9782331015946");
+                }
+                if (url.contains("startIndex=40")) {
+                    return page("One Piece - Édition originale - Tome 45", "9782331026010");
+                }
+                return "{ \"totalItems\": 300 }";
+            }
+
+            @Override
+            public boolean isQuotaLikelyExhausted() {
+                return false;
+            }
+        };
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider(client);
+
+        List<VolumeCandidate> result = provider.searchEdition("One Piece", "Eiichiro Oda", "Édition originale", List.of());
+
+        assertThat(result).extracting(VolumeCandidate::volumeNumber).containsExactly(24, 45);
+        assertThat(urls).hasSize(3); // deux pages pleines, puis la premiere page vide arrete la lecture
+        assertThat(urls.get(0)).contains("intitle%3AOne+Piece+%C3%89dition+originale");
+    }
+
+    private static String page(String titre, String isbn) {
+        return """
+                { "items": [ { "volumeInfo": { "title": "%s", "language": "fr", "publisher": "Glénat Manga",
+                    "industryIdentifiers": [ { "type": "ISBN_13", "identifier": "%s" } ] } } ] }
+                """.formatted(titre, isbn);
+    }
+
     @Test
     void excludes_a_result_whose_listed_author_shares_no_word_with_the_expected_author() throws Exception {
         // Cas réel trouvé en continuant les tests sur "Monster" (voir

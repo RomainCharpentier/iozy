@@ -50,4 +50,20 @@ public interface VolumeSearchProvider {
                                               List<String> excludedTitleFragments) {
         return List.of();
     }
+
+    /**
+     * Les tomes d'UNE edition nommee - « Hokage », « Édition originale » - en
+     * cherchant la serie AVEC le nom de l'edition (lot 144). Une recherche par
+     * serie ne rend qu'une page, ou l'edition simple prend toute la place ;
+     * chercher une edition par son nom rend les siens. Vide par defaut : seul
+     * Google Books le sait faire utilement, la BnF ayant deja tout dit en une
+     * requete paginee.
+     *
+     * @throws QuotaExceededException / SourceUnavailableException comme une
+     *         sonde : l'appelant garde ce qu'il a, et ne fige rien
+     */
+    default List<VolumeCandidate> searchEdition(String seriesTitle, String author, String editionName,
+                                                List<String> excludedTitleFragments) {
+        return List.of();
+    }
 }
