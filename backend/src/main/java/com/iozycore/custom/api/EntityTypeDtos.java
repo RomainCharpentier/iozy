@@ -32,14 +32,18 @@ public final class EntityTypeDtos {
      * (DiscoverySource - meme auteur pour le manga, jeux proches pour le jeu video, jeux en vue aux
      * memes mecaniques pour le jeu de societe). C'est le type qui le dit au client, jamais une liste
      * de codes ecrite dans l'ecran (lot 142) : un type personnalise n'en a aucune. */
+    /** hasReleaseSource : un univers sait dater les sorties de ce type sans qu'on les saisisse (ReleaseSource -
+     * Google Books pour les tomes d'un manga, IGDB pour un jeu video, lot 146). Un type que personne ne couvre
+     * n'a au calendrier que les dates saisies sur ses fiches, et c'est le type qui le dit au client. */
     public record EntityTypeResponse(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                                       Set<String> customFieldKeys, boolean hasMetadataProvider,
-                                      boolean hasDiscoverySource,
+                                      boolean hasDiscoverySource, boolean hasReleaseSource,
                                       String colorKey, String iconKey, String aspectKey) {
-        public static EntityTypeResponse from(EntityType t, boolean hasMetadataProvider, boolean hasDiscoverySource) {
+        public static EntityTypeResponse from(EntityType t, boolean hasMetadataProvider, boolean hasDiscoverySource,
+                                              boolean hasReleaseSource) {
             return new EntityTypeResponse(t.id(), t.code(), t.label(), t.allowedExperienceTypes(),
-                    t.customFieldKeys(), hasMetadataProvider, hasDiscoverySource, t.colorKey(), t.iconKey(),
-                    t.aspectKey());
+                    t.customFieldKeys(), hasMetadataProvider, hasDiscoverySource, hasReleaseSource, t.colorKey(),
+                    t.iconKey(), t.aspectKey());
         }
     }
 }

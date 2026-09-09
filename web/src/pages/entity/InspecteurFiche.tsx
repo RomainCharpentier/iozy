@@ -1,3 +1,4 @@
+import { RELEASE_DATE_ATTRIBUTE_KEY, formatReleaseDate } from '@/common/lib/releaseDate'
 import type { ReactNode } from 'react'
 import { AlignLeft, Download, PenLine, UserRound } from 'lucide-react'
 import { tonDe } from './useTeinteJaquette'
@@ -165,12 +166,16 @@ export function ChampInspecteur({
   onChange,
   placeholder,
   type = 'text',
+  ariaLabel,
 }: {
   id: string
   valeur: string
   onChange: (valeur: string) => void
   placeholder?: string
-  type?: 'text' | 'number'
+  /** `date` pour la date de sortie (lot 146) : le sélecteur du navigateur écrit la valeur ISO attendue par le serveur. */
+  type?: 'text' | 'number' | 'date'
+  /** Le nom accessible du champ, quand le libellé de la rangée n'est qu'un texte voisin. */
+  ariaLabel?: string
 }) {
   return (
     <input
@@ -180,9 +185,17 @@ export function ChampInspecteur({
       value={valeur}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={ariaLabel}
       className="w-full rounded-lg bg-surface px-2.5 py-1.5 text-[13px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
     />
   )
+}
+
+/** La date de sortie saisie sur la fiche, lisible (« 14 octobre 2026 ») - absente quand rien n'est saisi (lot 146). */
+export function RangeeDateDeSortie({ attributs }: { attributs: Record<string, unknown> }) {
+  const libelle = formatReleaseDate(attributs[RELEASE_DATE_ATTRIBUTE_KEY])
+  if (!libelle) return null
+  return <RangeeInspecteur libelle="Date de sortie">{libelle}</RangeeInspecteur>
 }
 
 /**

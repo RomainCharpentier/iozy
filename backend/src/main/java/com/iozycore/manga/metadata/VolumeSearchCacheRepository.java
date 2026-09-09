@@ -1,5 +1,6 @@
 package com.iozycore.manga.metadata;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,4 +24,16 @@ public interface VolumeSearchCacheRepository {
 
     /** Oublie la ligne de cette cle, si elle existe - voir TomeSearchService.searchVolumes (Lot 126). */
     void delete(UUID entityTypeId, String seriesTitle, String author);
+
+    /**
+     * Les résultats stockés de plusieurs séries d'un type, en UNE lecture -
+     * ce que le calendrier des sorties demande pour toutes les séries
+     * possédées ou voulues, plutôt qu'une lecture par série (lot 146). Les
+     * titres sont attendus normalisés, comme pour {@link #find}. Une liste
+     * vide de titres rend une liste vide sans rien lire.
+     */
+    List<StoredVolumeSearch> findAllByEntityTypeIdAndSeriesTitleIn(UUID entityTypeId, Collection<String> seriesTitles);
+
+    /** Les clés stockées de ce type et leur fraîcheur, sans les tomes - pour choisir quoi relire la nuit (lot 146). */
+    List<StoredVolumeSearchKey> findKeysByEntityTypeId(UUID entityTypeId);
 }

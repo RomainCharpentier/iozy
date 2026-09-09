@@ -133,6 +133,7 @@ export function typeDeCollection(code: string, label = code): EntityTypeDto {
     customFieldKeys: [],
     hasMetadataProvider: false,
     hasDiscoverySource: false,
+    hasReleaseSource: false,
     colorKey: null,
     iconKey: null,
     aspectKey: null,

@@ -8203,3 +8203,24 @@ depuis** (2026-08-20, voir Lot 11 ci-dessous) : OpenLibrary résolvait
 - Suggestion "Opportunités" (`NearCompleteSuggestionDto`) ne porte pas `coverImageUrl` (donnée calculée, pas un DTO d'entité) - `DiscoverOpportunitiesPreview` croise avec `searchEntities({})` déjà en cache ailleurs dans l'app plutôt que d'ajouter un champ au DTO backend pour 3 miniatures d'aperçu.
 - Balayage responsive (Lot 10) : `window.innerWidth` seul s'est révélé peu fiable dans ce navigateur automatisé sous émulation de viewport - une page avec un vrai débordement horizontal peut faire remonter `window.innerWidth` égal au `scrollWidth` du contenu débordé plutôt qu'à la largeur réelle du viewport (confirmé indépendamment via `visualViewport.width` et `getComputedStyle(document.documentElement).width`, qui restent corrects). Toujours comparer `document.documentElement.clientWidth` (viewport réel) à `document.documentElement.scrollWidth` (contenu réel), jamais `window.innerWidth` seul, pour détecter un débordement dans cet environnement.
 - Un vrai débordement horizontal mobile (375px) a été trouvé sur Évaluer un achat (`/purchase-analysis`, PurchaseAnalysisPage.tsx) via cette méthode : deux rangées de formulaire (3 puis 4 champs) empilaient des `flex-1` sans jamais prévoir de repli, contrairement au patron déjà établi ailleurs dans l'app (ex. `AddVolumeSection.tsx` : 2 champs + bouton par rangée maximum). Corrigé par `flex-wrap` + `min-w` par champ (Lot 10, `c73d4c2`) - toujours grouper un champ à largeur fixe et son bouton d'action dans un sous-conteneur dédié pour qu'ils ne se séparent jamais au wrap.
+
+### Lot 146 — « Prochaines sorties » se débloque : le calendrier des sorties
+
+La ligne **Prochaines sorties** de la matrice (BLOCKED_BY_DATA, Lot 6) disait
+à quelle condition le panneau reviendrait : « le jour où une vraie source de
+calendrier de sorties est intégrée ». C'est fait, et avec les deux données
+qui manquaient :
+
+- **une date par tome** : Google Books l'écrit sur chaque fiche
+  (`publishedDate`, précommandes comprises) et la chaîne des tomes ne la
+  lisait pas — `VolumeCandidate.releaseDate` la porte désormais, à la
+  précision de la source (jour, mois, ou année seule dont rien n'est fait) ;
+  IGDB date les jeux vidéo ; et la fiche de n'importe quelle œuvre accepte une
+  date saisie ;
+- **suivre une série** : les éditions suivies existent depuis le Lot 26 ; le
+  calendrier montre l'édition suivie, sinon celles qu'on possède.
+
+La règle du Lot 6 tient : jamais une date approximative. Une année seule
+n'entre pas au calendrier, un mois se lit « date à préciser ». Le panneau
+revient sur Découvrir en quatrième sous-onglet (`DiscoverReleasesPreview`),
+et « Tout voir » mène au calendrier complet (`ReleasesPage`, `/releases`).

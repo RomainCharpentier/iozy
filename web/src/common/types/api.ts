@@ -268,6 +268,11 @@ export interface EntityTypeDto {
    *  (même auteur, jeux proches, jeux en vue…). C'est le type qui le dit,
    *  jamais une liste de codes dans un écran (lot 142). */
   hasDiscoverySource: boolean
+  /** L'univers sait dater les sorties de cette catégorie sans qu'on les
+   *  saisisse (Google Books pour les tomes, IGDB pour les jeux vidéo). Sans
+   *  source, seules les dates saisies sur une fiche entrent au calendrier
+   *  (lot 146). */
+  hasReleaseSource: boolean
   /** Identité visuelle choisie (voir lib/entityTypeVisuals) - null = visuel
    * par défaut. Des CLÉS, jamais des couleurs : seul le client sait les
    * traduire, et lui seul sait s'adapter au thème clair/sombre. */
@@ -328,4 +333,31 @@ export interface ImportRemarque {
   genre: 'RATTACHE' | 'IGNORE' | 'REMPLACE'
   sujet: string
   detail: string
+}
+
+// --- Calendrier des sorties (lot 146) ---
+export type ReleaseRelation = 'OWNED' | 'MISSING' | 'WANTED'
+
+export interface ReleaseEntryDto {
+  /** « 2026-10-14 » au jour près, « 2026-10 » au mois près - jamais une année seule. */
+  date: string
+  precision: 'DAY' | 'MONTH'
+  entityId: UUID
+  entityTitle: string
+  entityTypeId: UUID
+  /** Ce qui sort au sein de l'œuvre (« Tome 42 · Kana »), vide quand c'est l'œuvre elle-même. */
+  label: string
+  volumeNumber: number | null
+  editionName: string | null
+  coverImageUrl: string | null
+  /** Ce que cette sortie représente pour la collection - toujours écrit. */
+  relation: ReleaseRelation
+  /** D'où vient la date : GOOGLE_BOOKS, IGDB, ou MANUAL pour une date saisie sur la fiche. */
+  source: string
+}
+
+export interface ReleaseCalendarDto {
+  from: string
+  to: string
+  entries: ReleaseEntryDto[]
 }

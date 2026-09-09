@@ -7,6 +7,7 @@ import com.iozycore.custom.EntityTypeService;
 import com.iozycore.core.domain.catalog.EntityType;
 import com.iozycore.core.domain.catalog.EntityTypeRepository;
 import com.iozycore.core.insights.DiscoverySource;
+import com.iozycore.core.insights.ReleaseSource;
 import com.iozycore.core.metadata.MetadataProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,13 +31,16 @@ public class EntityTypeController {
     private final EntityTypeService entityTypeService;
     private final List<MetadataProvider> metadataProviders;
     private final List<DiscoverySource> discoverySources;
+    private final List<ReleaseSource> releaseSources;
 
     public EntityTypeController(EntityTypeRepository entityTypeRepository, EntityTypeService entityTypeService,
-                                 List<MetadataProvider> metadataProviders, List<DiscoverySource> discoverySources) {
+                                 List<MetadataProvider> metadataProviders, List<DiscoverySource> discoverySources,
+                                 List<ReleaseSource> releaseSources) {
         this.entityTypeRepository = entityTypeRepository;
         this.entityTypeService = entityTypeService;
         this.metadataProviders = metadataProviders;
         this.discoverySources = discoverySources;
+        this.releaseSources = releaseSources;
     }
 
     /** Un type personnalisé (créé via cet éditeur) n'a par construction aucun fournisseur -
@@ -50,8 +54,13 @@ public class EntityTypeController {
         return discoverySources.stream().anyMatch(source -> source.supports(type));
     }
 
+    /** Un univers qui sait dater les sorties de ce type (voir ReleaseSource, lot 146) - aucun type personnalise n'en a. */
+    private boolean hasReleaseSource(EntityType type) {
+        return releaseSources.stream().anyMatch(source -> source.supports(type));
+    }
+
     private EntityTypeResponse reponse(EntityType type) {
-        return EntityTypeResponse.from(type, hasMetadataProvider(type), hasDiscoverySource(type));
+        return EntityTypeResponse.from(type, hasMetadataProvider(type), hasDiscoverySource(type), hasReleaseSource(type));
     }
 
     @Operation(summary = "Créer un nouveau type (code normalisé en UPPER_SNAKE_CASE, doit être unique)")

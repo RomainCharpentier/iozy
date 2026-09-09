@@ -183,13 +183,15 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
                 continue;
             }
             String coverId = doc.path("cover_i").isNumber() ? doc.path("cover_i").asText() : null;
+            Integer annee = doc.path("first_publish_year").isNumber() ? doc.path("first_publish_year").asInt() : null;
             candidates.add(new VolumeCandidate(
                     editeur.trim(),
                     numero.getAsInt(),
                     coverId == null ? null : COVER_URL.formatted(coverId),
                     titre,
                     isbn,
-                    doc.path("first_publish_year").isNumber() ? doc.path("first_publish_year").asInt() : null));
+                    annee,
+                    annee == null ? null : String.valueOf(annee)));
         }
         return candidates;
     }

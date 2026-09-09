@@ -32,7 +32,8 @@ import { TierBadge } from '@/common/components/TierBadge'
 import { BoutonEnviesHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
-import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
+import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
+import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import { CLES_SOURCE, libelleDe, useBrouillonInspecteur } from './useBrouillonInspecteur'
 import { AideFlottante } from './AideFlottante'
 import { ReponseAssistant, type QuestionAssistant } from './AssistantSection'
@@ -793,6 +794,8 @@ export function EntityDetailPage() {
                   <RangeeInspecteur key={cle} libelle={libelleDe(cle)} saisie saisi={brouillon.attributs.saisi(cle)}>
                     <ChampInspecteur
                       id={`oeuvre-${cle}`}
+                      type={cle === RELEASE_DATE_ATTRIBUTE_KEY ? 'date' : 'text'}
+                      ariaLabel={libelleDe(cle)}
                       valeur={brouillon.attributs.valeur(cle)}
                       onChange={(v) => brouillon.attributs.saisir(cle, v)}
                     />
@@ -873,6 +876,7 @@ export function EntityDetailPage() {
               )}
               {editionInfo?.publisher && <RangeeInspecteur libelle="Éditeur">{editionInfo.publisher}</RangeeInspecteur>}
               {totalTomes !== null && <RangeeInspecteur libelle="Nombre de tomes">{totalTomes}</RangeeInspecteur>}
+              <RangeeDateDeSortie attributs={entity.attributes} />
             </div>
             )
           }

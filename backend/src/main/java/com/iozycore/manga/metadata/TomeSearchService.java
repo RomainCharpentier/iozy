@@ -163,6 +163,51 @@ public class TomeSearchService {
             }
         }
 
+        QueryOutcome outcome = queryProviders(entityType, seriesTitle, author, excludedTitleFragments, totalVolumes);
+        List<VolumeCandidate> result = finaliser(outcome.volumes());
+        boolean providerUnavailable = outcome.providerUnavailable();
+        // Une liste vide EST mise en cache (contrairement à barcodeCache/
+        // frenchTitleCache, voir le commentaire sur volumeSearchCache
+        // ci-dessus) - seul un résultat vide causé par un échec transitoire du
+        // fournisseur ne l'est jamais, pour ne pas condamner une recherche
+        // pendant des jours à cause d'une panne de quelques minutes.
+        //
+        // Sans auteur, jamais de cache durable (Lot 126) : « Doubt » seul
+        // designe aussi un homonyme chez un autre editeur, et une ligne
+        // ecrite sur ce titre nu resservait l'homonyme a chaque ouverture
+        // dont la recherche de metadonnees avait echoue. En memoire, une
+        // journee au plus.
+        boolean cacheDurable = !normalizedAuthor.isBlank();
+        if (!providerUnavailable) {
+            volumeSearchCache.put(cacheKey, result);
+            if (cacheDurable) {
+                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+            }
+        } else if (!result.isEmpty()) {
+            volumeSearchPartialCache.put(cacheKey, result);
+            if (forceRefresh) {
+                // « Actualiser » a parle : une ligne plus ancienne ne doit pas
+                // lui survivre. Pendant une panne, le resultat partiel ne
+                // peut pas etre fige comme complet, mais l'ancien ne peut
+                // pas non plus etre resservi a la prochaine ouverture - c'est
+                // exactement ce qui faisait revenir « 3 et 1 » apres « 4 et 2 »
+                // a chaque redemarrage (Lot 126).
+                volumeSearchCache.invalidate(cacheKey);
+                if (cacheDurable) {
+                    volumeSearchCacheRepository.delete(entityType.id(), normalizedTitle, normalizedAuthor);
+                }
+            }
+        }
+        return new VolumeSearchResult(result, providerUnavailable);
+    }
+
+    /** Ce que les fournisseurs ont répondu, et si l'un d'eux s'est tu. */
+    private record QueryOutcome(List<VolumeCandidate> volumes, boolean providerUnavailable) {
+    }
+
+    /** Interroge tous les fournisseurs compétents, complète les éditions secondaires et comble les trous - sans toucher aux caches. */
+    private QueryOutcome queryProviders(EntityType entityType, String seriesTitle, String author,
+                                        List<String> excludedTitleFragments, Integer totalVolumes) {
         // Boucle explicite (plutôt qu'un stream) : un fournisseur en échec ne
         // doit pas faire perdre les résultats déjà obtenus des AUTRES
         // fournisseurs compétents pour ce type (contrairement à un
@@ -203,40 +248,38 @@ public class TomeSearchService {
                 providerUnavailable = true;
             }
         }
-        result = finaliser(result);
-        // Une liste vide EST mise en cache (contrairement à barcodeCache/
-        // frenchTitleCache, voir le commentaire sur volumeSearchCache
-        // ci-dessus) - seul un résultat vide causé par un échec transitoire du
-        // fournisseur ne l'est jamais, pour ne pas condamner une recherche
-        // pendant des jours à cause d'une panne de quelques minutes.
-        //
-        // Sans auteur, jamais de cache durable (Lot 126) : « Doubt » seul
-        // designe aussi un homonyme chez un autre editeur, et une ligne
-        // ecrite sur ce titre nu resservait l'homonyme a chaque ouverture
-        // dont la recherche de metadonnees avait echoue. En memoire, une
-        // journee au plus.
-        boolean cacheDurable = !normalizedAuthor.isBlank();
-        if (!providerUnavailable) {
-            volumeSearchCache.put(cacheKey, result);
-            if (cacheDurable) {
-                volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
-            }
-        } else if (!result.isEmpty()) {
-            volumeSearchPartialCache.put(cacheKey, result);
-            if (forceRefresh) {
-                // « Actualiser » a parle : une ligne plus ancienne ne doit pas
-                // lui survivre. Pendant une panne, le resultat partiel ne
-                // peut pas etre fige comme complet, mais l'ancien ne peut
-                // pas non plus etre resservi a la prochaine ouverture - c'est
-                // exactement ce qui faisait revenir « 3 et 1 » apres « 4 et 2 »
-                // a chaque redemarrage (Lot 126).
-                volumeSearchCache.invalidate(cacheKey);
-                if (cacheDurable) {
-                    volumeSearchCacheRepository.delete(entityType.id(), normalizedTitle, normalizedAuthor);
-                }
-            }
+        return new QueryOutcome(result, providerUnavailable);
+    }
+
+    /**
+     * Relit les fournisseurs pour cette série et remplace le résultat stocké -
+     * SAUF si l'un d'eux s'est tu : le résultat déjà stocké reste alors en
+     * place, intact. C'est le rafraîchissement nocturne du calendrier des
+     * sorties (lot 146, voir MangaReleaseRefresh), et il diffère du bouton
+     * « Actualiser » sur un point : {@link #searchVolumes} avec
+     * {@code forceRefresh} EFFACE la ligne stockée quand un fournisseur
+     * manque, pour que l'utilisateur qui vient d'appuyer voie ce qui reste
+     * plutôt qu'un vieux résultat. La nuit, personne n'appuie sur rien, et
+     * une panne de Google Books ne doit pas vider une à une les séries
+     * relues jusqu'à ce qu'elle passe.
+     *
+     * @return vrai quand la relecture a abouti et remplacé le résultat stocké
+     */
+    public boolean refreshUnlessUnavailable(EntityType entityType, String seriesTitle, String author,
+                                            List<String> excludedTitleFragments, Integer totalVolumes) {
+        String normalizedTitle = normalize(seriesTitle);
+        String normalizedAuthor = normalize(author == null ? "" : author);
+        QueryOutcome outcome = queryProviders(entityType, seriesTitle, author, excludedTitleFragments, totalVolumes);
+        if (outcome.providerUnavailable()) {
+            return false;
         }
-        return new VolumeSearchResult(result, providerUnavailable);
+        List<VolumeCandidate> result = finaliser(outcome.volumes());
+        String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
+        volumeSearchCache.put(cacheKey, result);
+        if (!normalizedAuthor.isBlank()) {
+            volumeSearchCacheRepository.save(entityType.id(), normalizedTitle, normalizedAuthor, result);
+        }
+        return true;
     }
 
     /**
@@ -321,12 +364,18 @@ public class TomeSearchService {
         return new ArrayList<>(byKey.values());
     }
 
-    /** Le premier rencontré garde ses champs ; seule une jaquette manquante est prise chez le second. */
+    /** Le premier rencontré garde ses champs ; seule une jaquette manquante est prise chez le second -
+     *  et la date de parution la plus précise des deux, d'où qu'elle vienne (lot 146) : la BnF passe en
+     *  premier et ne date qu'à l'année, Google Books connaît le jour. */
     private static VolumeCandidate fusionnerTome(VolumeCandidate existing, VolumeCandidate replacement) {
+        String releaseDate = VolumeCandidate.mostPreciseReleaseDate(existing.releaseDate(), replacement.releaseDate());
         if (existing.imageUrl() != null || replacement.imageUrl() == null) {
-            return existing;
+            return java.util.Objects.equals(releaseDate, existing.releaseDate()) ? existing
+                    : new VolumeCandidate(existing.edition(), existing.volumeNumber(), existing.imageUrl(), existing.title(),
+                            existing.isbn(), existing.annee(), releaseDate);
         }
-        return new VolumeCandidate(existing.edition(), existing.volumeNumber(), replacement.imageUrl(), existing.title());
+        return new VolumeCandidate(existing.edition(), existing.volumeNumber(), replacement.imageUrl(), existing.title(),
+                null, null, releaseDate);
     }
 
     /**
@@ -388,7 +437,8 @@ public class TomeSearchService {
         for (VolumeCandidate candidate : candidates) {
             String edition = retenue.get(cleEdition(candidate.edition()));
             uniformises.add(edition.equals(candidate.edition()) ? candidate
-                    : new VolumeCandidate(edition, candidate.volumeNumber(), candidate.imageUrl(), candidate.title()));
+                    : new VolumeCandidate(edition, candidate.volumeNumber(), candidate.imageUrl(), candidate.title(),
+                            null, null, candidate.releaseDate()));
         }
         return uniformises;
     }
@@ -790,7 +840,7 @@ public class TomeSearchService {
 
     private static VolumeCandidate renommer(VolumeCandidate candidate, String edition) {
         return new VolumeCandidate(edition, candidate.volumeNumber(), candidate.imageUrl(), candidate.title(),
-                candidate.isbn(), candidate.annee());
+                candidate.isbn(), candidate.annee(), candidate.releaseDate());
     }
 
     private static String prefixeIsbn(VolumeCandidate candidate) {

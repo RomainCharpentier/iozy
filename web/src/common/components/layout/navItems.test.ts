@@ -26,6 +26,7 @@ const ROUTES: [chemin: string, destination: string][] = [
   ['/tier-lists', '/discover'],
   ['/tier-lists/board-1', '/discover'],
   ['/suggestions', '/discover'],
+  ['/releases', '/discover'],
   // L'analyse d'une annonce a quitté la barre (lot 137) : elle s'ouvre depuis
   // Découvrir, et c'est lui qui s'allume.
   ['/purchase-analysis', '/discover'],

@@ -41,6 +41,8 @@ export const queryKeys = {
      *  (`insights.progress`) emportent donc aussi la progression d'une œuvre,
      *  sans avoir à les recenser une seconde fois. */
     progressOf: (entityId: string) => ['insights', 'progress', entityId] as const,
+    /** Le calendrier des sorties d'une période - un mois à l'écran, trois pour l'aperçu de Découvrir. */
+    releases: (from: string, to: string) => ['insights', 'releases', from, to] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,

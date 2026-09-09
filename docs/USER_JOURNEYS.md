@@ -70,6 +70,11 @@ appartient :
   import) et « Cette instance » (comptes, pour un administrateur).
 - **Catégories de collection** → deux chemins : Ma collection ▸ Plus d'outils,
   et Administration. (Nommées « Types de collection » jusqu'au 2026-08-29.)
+- **Calendrier des sorties** → Découvrir ▸ panneau **Sorties** (quatrième
+  sous-onglet en mobile, pleine largeur en desktop), et « Tout voir » ouvre le
+  calendrier complet `/releases?mois=AAAA-MM` (lot 146) ; Découvrir s'allume
+  quand on y est. La date de sortie d'une œuvre se saisit sur sa fiche, en mode
+  Éditer, pour n'importe quelle catégorie.
 - **Thème clair ou sombre** → l'icône soleil / lune de l'en-tête, desktop et
   mobile, visiteur compris (lot 138). Elle montre le mode courant et son nom
   dit l'action (« Passer en thème clair »). L'interrupteur a vécu sous
@@ -922,19 +927,19 @@ Suppression idempotente.
 ## 7. Parcours — Découvrir
 
 ### 42. Parcourir Découvrir
-**Résultat** : trois panneaux — Tier Lists, Opportunités, **Découvertes**
+**Résultat** : quatre panneaux — Tier Lists, Opportunités, **Découvertes**
 (lot 142 : les découvertes par univers ont quitté Statistiques, où rien ne
-les laissait chercher, pour l'écran qui porte leur nom ; elles remplacent
-« Prochaines sorties », un panneau qui n'avait rien à dire). En tête, la
-carte-lien « Analyser une annonce » (lot 137).
-**Desktop** les trois côte à côte au-delà de 1100 px ; **Mobile** un onglet à la
-fois.
+les laissait chercher, pour l'écran qui porte leur nom) et **Sorties**
+(lot 146 : « Prochaines sorties » revient, avec des données cette fois — voir
+44). En tête, la carte-lien « Analyser une annonce » (lot 137).
+**Desktop** Tier Lists et Opportunités côte à côte au-delà de 1100 px, puis
+Découvertes et Sorties en pleine largeur ; **Mobile** un onglet à la fois.
 **Nature** : c'est un **hub d'aperçus**, pas une page interactive — chaque
 panneau montre un résumé et renvoie vers l'écran dédié. C'est l'écran du
 cœur : les Tier Lists valent pour tout univers, les opportunités viennent de
 ce qui a une progression, les découvertes de chaque univers qui sait en
 proposer (`hasDiscoverySource` sur le type).
-**Écrans** : `DiscoverPage`, `DiscoverTierPreview`, `DiscoverOpportunitiesPreview`, `DiscoverySection`
+**Écrans** : `DiscoverPage`, `DiscoverTierPreview`, `DiscoverOpportunitiesPreview`, `DiscoverySection`, `DiscoverReleasesPreview`
 **Statut** : `COMPLET`
 
 ### 43. Ouvrir les opportunités
@@ -945,11 +950,34 @@ tomes manquants et le coût estimé pour compléter quand un prix est connu.
 codé en dur.
 **Statut** : `COMPLET`
 
-### 44. ~~Consulter les prochaines sorties~~ — retiré du produit (2026-09-06, lot 142)
-Le panneau annonçait qu'aucune source de calendrier n'existe. Un panneau qui
-n'a rien à dire n'est pas une promesse, c'est une case : il reviendra le jour
-où une vraie donnée de parution existera, jamais avant. Sa place est prise
-par les **Découvertes** (voir 42).
+### 44. Consulter le calendrier des sorties
+**Point de départ** : Découvrir ▸ panneau **Sorties** — les trois premières
+sorties des trois mois à venir, datées — puis « Tout voir » → `/releases`, le
+calendrier complet, mois par mois (`?mois=AAAA-MM`, « Mois précédent »,
+« Mois suivant », « Aujourd'hui »).
+**Résultat** : les sorties du mois pour ce qu'on possède ou veut, **toutes
+catégories confondues**, rangées par jour ; une rangée de puces filtre par
+catégorie quand il y en a plusieurs. Chaque ligne dit ce qui sort (« Tome 72 ·
+Kana », ou la catégorie), d'où vient la date, et ce qu'elle représente pour la
+collection : **Possédé**, **Manquant**, **Envie**. Une ligne mène à la fiche.
+**Données** : **réelles**, et jamais approximatives. Les tomes datés par Google
+Books (le résultat de la recherche de tomes, relu chaque nuit pour les séries
+en cours), les jeux datés par IGDB (Europe d'abord), et la **date saisie sur la
+fiche** d'une œuvre, pour n'importe quelle catégorie — c'est ce qui met les
+jeux de société et les catégories personnalisées dans le même calendrier
+(BoardGameGeek ne donne que l'année). Une date connue au mois près se lit
+« Dans le mois, date à préciser » ; une année seule ne se lit pas du tout.
+**Branches** : un mois sans rien le dit, et dit d'où viendraient les dates
+(les catégories avec une source, celles où seule la fiche date — c'est le type
+qui le dit, `hasReleaseSource`) ; une catégorie choisie qui n'a plus rien
+retombe sur « Tout ».
+**Historique** : retiré du produit au lot 142 (2026-09-06) — le panneau
+annonçait qu'aucune source n'existait, et un panneau qui n'a rien à dire n'est
+pas une promesse, c'est une case. Revenu au lot 146 avec les données.
+**Écrans** : `ReleasesPage`, `DiscoverReleasesPreview`, `ReleaseRow`
+**Backend** : `GET /insights/releases?from=…&to=…`, `hasReleaseSource` sur
+`GET /entity-types`
+**Statut** : `COMPLET`
 
 ### 44 bis. Découvrir ce que chaque univers propose
 **Point de départ** : Découvrir ▸ panneau Découvertes ▸ « Voir des

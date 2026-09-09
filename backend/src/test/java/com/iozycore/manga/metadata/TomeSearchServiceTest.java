@@ -73,6 +73,34 @@ class TomeSearchServiceTest {
     }
 
     @Test
+    void keeps_the_most_precise_publication_date_when_two_providers_know_the_same_tome() {
+        // La BnF passe en premier et ne date qu'à l'année ; Google Books
+        // connaît le jour. Le calendrier des sorties (lot 146) a besoin du
+        // jour, quel que soit l'ordre des fournisseurs - avec ou sans
+        // jaquette côté BnF (les notices récentes en ont une).
+        FakeVolumeSearchProvider bnf = new FakeVolumeSearchProvider(List.of(
+                new VolumeCandidate("Kana", 72, "https://bnf/72.jpg", "Naruto 72", "9782505000723", 2026, "2026"),
+                new VolumeCandidate("Kana", 73, null, "Naruto 73", null, 2026, "2026")));
+        FakeVolumeSearchProvider googleBooks = new FakeVolumeSearchProvider(List.of(
+                new VolumeCandidate("Kana", 72, "https://gb/72.jpg", "Naruto - Tome 72", null, 2026, "2026-10-14"),
+                new VolumeCandidate("Kana", 73, "https://gb/73.jpg", "Naruto - Tome 73", null, 2026, "2026-12")));
+        TomeSearchService service = new TomeSearchService(List.of(bnf, googleBooks), new FakeVolumeSearchCacheRepository());
+
+        List<VolumeCandidate> volumes = service.searchVolumes(MANGA, "Naruto", "Kishimoto").volumes();
+
+        assertThat(volumes).hasSize(2);
+        VolumeCandidate tome72 = volumes.stream().filter(v -> v.volumeNumber() == 72).findFirst().orElseThrow();
+        VolumeCandidate tome73 = volumes.stream().filter(v -> v.volumeNumber() == 73).findFirst().orElseThrow();
+        // Le premier rencontré garde ses champs (jaquette, ISBN), et prend le jour.
+        assertThat(tome72.imageUrl()).isEqualTo("https://bnf/72.jpg");
+        assertThat(tome72.isbn()).isEqualTo("9782505000723");
+        assertThat(tome72.releaseDate()).isEqualTo("2026-10-14");
+        // Sans jaquette, il prend celle du second - et sa date, plus précise.
+        assertThat(tome73.imageUrl()).isEqualTo("https://gb/73.jpg");
+        assertThat(tome73.releaseDate()).isEqualTo("2026-12");
+    }
+
+    @Test
     void does_not_lose_another_providers_results_when_one_provider_hits_its_quota() {
         FakeVolumeSearchProvider failing = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
         FakeVolumeSearchProvider succeeding = new FakeVolumeSearchProvider(
@@ -370,6 +398,30 @@ class TomeSearchServiceTest {
         @Override
         public void delete(UUID entityTypeId, String seriesTitle, String author) {
             store.remove(entityTypeId + "|" + seriesTitle + "|" + author);
+        }
+
+        @Override
+        public List<StoredVolumeSearch> findAllByEntityTypeIdAndSeriesTitleIn(UUID entityTypeId, java.util.Collection<String> seriesTitles) {
+            List<StoredVolumeSearch> result = new java.util.ArrayList<>();
+            for (Map.Entry<String, List<VolumeCandidate>> entry : store.entrySet()) {
+                String[] parts = entry.getKey().split("\\|", -1);
+                if (parts[0].equals(entityTypeId.toString()) && seriesTitles.contains(parts[1])) {
+                    result.add(new StoredVolumeSearch(parts[1], parts[2], entry.getValue(), java.time.Instant.now()));
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public List<StoredVolumeSearchKey> findKeysByEntityTypeId(UUID entityTypeId) {
+            List<StoredVolumeSearchKey> result = new java.util.ArrayList<>();
+            for (String key : store.keySet()) {
+                String[] parts = key.split("\\|", -1);
+                if (parts[0].equals(entityTypeId.toString())) {
+                    result.add(new StoredVolumeSearchKey(parts[1], parts[2], java.time.Instant.now()));
+                }
+            }
+            return result;
         }
     }
 }

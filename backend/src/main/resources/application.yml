@@ -3,6 +3,20 @@
 # livraison à nommer.
 iozycore:
   version: ${IOZYCORE_VERSION:dev}
+  releases:
+    # Le calendrier des sorties (lot 146) relit chaque nuit les séries de
+    # mangas EN COURS pour que les tomes annoncés finissent par y être - le
+    # résultat d'une recherche de tomes n'est sinon jamais rappelé. Quelques
+    # séries par nuit, les plus anciennes d'abord, jamais plus : le quota
+    # journalier de Google Books reste à ceux qui l'utilisent le jour. Une
+    # panne d'un fournisseur arrête la nuit sans rien effacer.
+    refresh:
+      enabled: ${RELEASES_REFRESH_ENABLED:true}
+      # À 4 h 30, heure du serveur : personne ne cherche de tomes à cette heure-là.
+      cron: "0 30 4 * * *"
+      series-per-run: ${RELEASES_REFRESH_SERIES_PER_NIGHT:10}
+      # Une série relue il y a moins d'une semaine ne l'est pas à nouveau.
+      stale-after-days: 7
 
 spring:
   application:

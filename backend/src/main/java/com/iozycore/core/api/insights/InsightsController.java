@@ -4,6 +4,8 @@ import com.iozycore.core.insights.CollectionValue;
 import com.iozycore.core.insights.DiscoveryCandidate;
 import com.iozycore.core.insights.CollectionProgress;
 import com.iozycore.core.insights.DiscoveryService;
+import com.iozycore.core.insights.ReleaseCalendarService;
+import com.iozycore.core.api.insights.ReleaseCalendarDtos.ReleaseCalendarResponse;
 import com.iozycore.core.insights.StatsService;
 import com.iozycore.core.insights.StatsSummary;
 import com.iozycore.core.insights.YearlyRecap;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import com.iozycore.core.insights.SeriesProgressGateway;
@@ -30,12 +33,15 @@ public class InsightsController {
     private final StatsService statsService;
     private final DiscoveryService discoveryService;
     private final SeriesProgressGateway collectionProgressService;
+    private final ReleaseCalendarService releaseCalendarService;
 
     public InsightsController(StatsService statsService, DiscoveryService discoveryService,
-                               SeriesProgressGateway collectionProgressService) {
+                               SeriesProgressGateway collectionProgressService,
+                               ReleaseCalendarService releaseCalendarService) {
         this.statsService = statsService;
         this.discoveryService = discoveryService;
         this.collectionProgressService = collectionProgressService;
+        this.releaseCalendarService = releaseCalendarService;
     }
 
     @Operation(summary = "Statistiques agrégées : nombre d'entités/possessions par type, "
@@ -91,6 +97,29 @@ public class InsightsController {
             return discoveryService.discover(entityTypeCode);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Calendrier des sorties : ce qui sort entre deux dates (incluses, un an au plus) pour les "
+            + "œuvres possédées ou en envie, toutes catégories confondues - tomes datés par Google Books pour les "
+            + "mangas, dates IGDB pour les jeux vidéo, et la date saisie sur une fiche pour n'importe quelle œuvre. "
+            + "Jamais une date approximative : une source qui ne connaît que l'année ne met rien ici. "
+            + "400 sur une date illisible, une période à l'envers ou plus longue qu'un an.")
+    @GetMapping("/releases")
+    public ReleaseCalendarResponse releases(@RequestParam String from, @RequestParam String to) {
+        try {
+            return ReleaseCalendarResponse.from(releaseCalendarService.releasesBetween(parseDay(from, "from"), parseDay(to, "to")));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    /** Une date ISO au jour près, sans quoi le message nomme le paramètre en cause plutôt que de laisser passer un 500. */
+    private static LocalDate parseDay(String value, String parameter) {
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Le paramètre '" + parameter + "' attend une date AAAA-MM-JJ : " + value);
         }
     }
 }

@@ -68,12 +68,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Découvrir',
     labelCourt: 'Découvrir',
     icon: Compass,
-    // Les Tier Lists, les suggestions d'achat et l'analyse d'une annonce
-    // s'ouvrent depuis Découvrir et de nulle part ailleurs dans la
-    // navigation : c'est lui qui reste allumé quand on y est.
+    // Les Tier Lists, les suggestions d'achat, le calendrier des sorties et
+    // l'analyse d'une annonce s'ouvrent depuis Découvrir et de nulle part
+    // ailleurs dans la navigation : c'est lui qui reste allumé quand on y est.
     activeWhen: (p) =>
       p.startsWith('/discover') ||
       p.startsWith('/tier-lists') ||
+      p.startsWith('/releases') ||
       p.startsWith('/suggestions') ||
       p.startsWith('/purchase-analysis'),
   },
