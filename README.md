@@ -43,9 +43,9 @@ Le backend est un **modulith DDD** découpé par type de collection
 
 | Module | Contenu |
 |---|---|
-| `core` | Ce qui vaut pour tous les types : catalogue générique (œuvres, tomes, types), possessions, envies, tier lists, comptes, partage, export, statistiques, annonces, et les **points d'extension** que les univers implémentent |
-| `manga` | Tomes et éditions françaises, éditions suivies, progression, liste de lecture, sources (AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), analyse d'achat d'un lot, reconnaissance des piles |
-| `videogame` | IGDB, jeux similaires pour Découvrir |
+| `core` | Ce qui vaut pour tous les types : catalogue générique (œuvres, tomes, types), possessions, envies, tier lists, comptes, partage, export, statistiques, calendrier des sorties, annonces, et les **points d'extension** que les univers implémentent |
+| `manga` | Tomes et éditions françaises, éditions suivies, progression, sources (AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), dates de parution des tomes pour le calendrier des sorties (relues la nuit pour les séries en cours), analyse d'achat d'un lot, reconnaissance des piles |
+| `videogame` | IGDB : recherche, jeux similaires pour Découvrir, dates de sortie pour le calendrier |
 | `boardgame` | BoardGameGeek, import d'une collection, hot list pour Découvrir |
 | `custom` | Les types de collection définis dans iozycore, sans fournisseur : saisie à la main, base iozycore seule |
 
@@ -333,6 +333,35 @@ rien configurer. Une recherche de tomes déjà faite une fois n'est jamais
 refaite : elle est gardée en base (`volume_search_cache`), fournisseurs
 disponibles ou non.
 
+## Le calendrier des sorties
+
+Découvrir ▸ **Sorties**, et « Tout voir » ouvre le calendrier complet, mois par
+mois (`/releases?mois=2026-10`) : ce qui sort pour ce que tu possèdes ou veux,
+**toutes catégories confondues**, avec pour chaque ligne ce qu'elle représente
+pour ta collection - possédé, manquant, envie.
+
+| Catégorie | D'où vient la date |
+|---|---|
+| Manga | Le jour de parution de chaque tome, tel que Google Books le connaît (précommandes comprises) - le même résultat que la grille des tomes d'une fiche. La BnF et Open Library ne datent qu'à l'année : rien n'en est déduit |
+| Jeu vidéo | La date de sortie IGDB, Europe d'abord, puis monde, puis Amérique du Nord - au jour ou au mois près, jamais « 2026 » ni « Q4 2026 » |
+| Jeu de société, catégories personnalisées | BoardGameGeek ne donne que l'année. La **date de sortie saisie sur la fiche** (mode Éditer, « Date de sortie ») entre au calendrier - elle marche pour n'importe quelle œuvre, manga et jeu vidéo compris |
+
+**Jamais une date approximative** : une source qui ne connaît que l'année ne
+met rien au calendrier, et une date connue au mois près se lit « date à
+préciser » dans son mois.
+
+Le résultat d'une recherche de tomes est stocké une fois pour toutes ; pour
+que les tomes annoncés finissent par apparaître, l'API **relit chaque nuit**
+(4 h 30) quelques séries de mangas **en cours** - les plus anciennes d'abord,
+jamais celles relues depuis moins d'une semaine. C'est borné pour laisser le
+quota Google Books à la journée, et une panne d'un fournisseur arrête la nuit
+sans rien effacer. Deux variables dans `backend/.env` :
+
+```
+RELEASES_REFRESH_ENABLED=true          # false : ne jamais relire la nuit
+RELEASES_REFRESH_SERIES_PER_NIGHT=10   # ~10 requêtes Google Books par série
+```
+
 ## Obtenir et configurer un Client ID MyAnimeList (optionnel, recommandé)
 
 Jikan (utilisé pour la recherche manga) est un wrapper tiers non-officiel :
@@ -537,6 +566,12 @@ et le package Java si tu veux aussi renommer ça via ton IDE).
   dégradé — sans `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`, la recherche et la
   découverte jeux vidéo renvoient simplement une liste vide (voir "Obtenir
   et configurer des identifiants IGDB/Twitch" plus haut).
+- Le **calendrier des sorties** ne date que ce qu'une source sait dater :
+  les tomes d'une série sans auteur connu (aucun résultat de recherche n'est
+  stocké pour elle), les jeux vidéo ajoutés à la main (sans identifiant IGDB)
+  et les jeux de société (BoardGameGeek ne donne que l'année) n'y entrent que
+  par la date saisie sur leur fiche. La date d'un tome ne se saisit pas à la
+  main : seule l'œuvre porte une date de sortie.
 - Le **lookup par code-barres** ne couvre que les mangas (ISBN, via Open
   Library) — les jeux vidéo/société utilisent des codes-barres UPC/EAN,
   hors du périmètre d'Open Library ; le scan y pré-remplit juste le code brut.

@@ -25,9 +25,16 @@ import com.iozycore.core.domain.shared.TexteRecherche;
  *                     {@code TomeSearchService.separerLesEditionsHomonymes}).
  * @param annee        année de publication, ou null - sert à NOMMER une édition
  *                     ainsi séparée, jamais à décider de la séparation.
+ * @param releaseDate  la date de parution telle que la source la connaît, en
+ *                     ISO partiel : « 2026-10-14 », « 2026-10 » ou « 2026 » -
+ *                     ou null. C'est ce que lit le calendrier des sorties
+ *                     (lot 146), qui n'y prend que le jour et le mois : une
+ *                     année seule n'est pas une date de calendrier. Google
+ *                     Books donne le jour (précommandes comprises), la BnF et
+ *                     Open Library l'année seule.
  */
 public record VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title,
-                               String isbn, Integer annee) {
+                               String isbn, Integer annee, String releaseDate) {
 
     /**
      * Les deux champs d'identification d'édition sont facultatifs : ce
@@ -37,7 +44,28 @@ public record VolumeCandidate(String edition, int volumeNumber, String imageUrl,
      * dizaines de sites d'appel.
      */
     public VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title) {
-        this(edition, volumeNumber, imageUrl, title, null, null);
+        this(edition, volumeNumber, imageUrl, title, null, null, null);
+    }
+
+    /** Sans date de parution - les sites d'appel d'avant le calendrier des sorties (lot 146). */
+    public VolumeCandidate(String edition, int volumeNumber, String imageUrl, String title, String isbn, Integer annee) {
+        this(edition, volumeNumber, imageUrl, title, isbn, annee, null);
+    }
+
+    /**
+     * La date la plus précise des deux - « 2026-10-14 » l'emporte sur
+     * « 2026-10 », qui l'emporte sur « 2026 » ; à précision égale, la première.
+     * C'est ainsi qu'un tome vu par la BnF (année seule) et par Google Books
+     * (jour) garde le jour, quel que soit le fournisseur passé en premier.
+     */
+    public static String mostPreciseReleaseDate(String first, String second) {
+        if (first == null) {
+            return second;
+        }
+        if (second == null) {
+            return first;
+        }
+        return second.length() > first.length() ? second : first;
     }
 
     /** Les chiffres de l'ISBN, sans tirets ni espaces - null si absent ou vide. */

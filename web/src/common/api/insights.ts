@@ -1,5 +1,5 @@
 import { get, buildQuery } from './client'
-import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
+import type { CollectionProgressDto, CollectionValueDto, DiscoveryCandidateDto, MonthlyPointDto, ReleaseCalendarDto, StatsSummaryDto, YearlyRecapDto } from '@/common/types/api'
 
 export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
@@ -36,4 +36,9 @@ export function getEntityProgress(entityId: string): Promise<CollectionProgressD
 /** Les découvertes d'un univers - à n'appeler que pour un type dont `hasDiscoverySource` est vrai (400 sinon). */
 export function discover(entityTypeCode: string): Promise<DiscoveryCandidateDto[]> {
   return get<DiscoveryCandidateDto[]>(`/insights/discover${buildQuery({ entityTypeCode })}`)
+}
+
+/** Les sorties entre deux jours inclus (un an au plus), toutes catégories confondues (lot 146). */
+export function getReleaseCalendar(from: string, to: string): Promise<ReleaseCalendarDto> {
+  return get<ReleaseCalendarDto>(`/insights/releases${buildQuery({ from, to })}`)
 }

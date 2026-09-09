@@ -51,6 +51,9 @@ services:
       GOOGLE_BOOKS_API_KEY: ""
       GEMINI_API_KEY: ""
       GEMINI_MODEL: ""
+      # Rien à relire la nuit sur une pile jetable sans fournisseur : le
+      # calendrier des sorties n'y montre que les dates saisies à la main.
+      RELEASES_REFRESH_ENABLED: "false"
     ports:
       # 8090 et non 8080 : la pile de développement peut tourner en même temps.
       - "8090:8080"

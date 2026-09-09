@@ -1,3 +1,4 @@
+import { RELEASE_DATE_ATTRIBUTE_KEY } from '@/common/lib/releaseDate'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { mergeEntityAttributes, removeEntityAttribute } from '@/common/api/entities'
@@ -110,6 +111,7 @@ export function texteDe(valeur: unknown): string {
  * types livrés. Une clé inconnue (champ personnalisé créé par l'utilisateur)
  * est affichée telle quelle, juste rendue lisible. */
 const LIBELLES: Record<string, string> = {
+  releaseDate: 'Date de sortie',
   mangaka: 'Mangaka',
   author: 'Auteur',
   publisher: 'Éditeur',
@@ -138,6 +140,11 @@ export function libelleDe(cle: string): string {
 }
 
 const AUCUNE: string[] = []
+
+/** Ce que toute œuvre peut compléter, quel que soit son type : sa date de
+ *  sortie, qui met les catégories sans source au calendrier des sorties
+ *  (lot 146). Proposée même absente, comme les rouages d'un manga. */
+const CLES_OEUVRE_PROPOSEES = [RELEASE_DATE_ATTRIBUTE_KEY]
 
 export function useBrouillonInspecteur({
   entityId,
@@ -176,7 +183,7 @@ export function useBrouillonInspecteur({
   // des attributs réellement présents (ce que l'API a rempli). Aucune clé
   // libre n'est créée ici : inventer un champ, c'est modifier le TYPE.
   const { cles, clesOeuvre, clesSource } = useMemo(() => {
-    const toutes = [...new Set([...customFieldKeys, ...clesSourceProposees, ...Object.keys(attributes)])].filter(
+    const toutes = [...new Set([...customFieldKeys, ...CLES_OEUVRE_PROPOSEES, ...clesSourceProposees, ...Object.keys(attributes)])].filter(
       (cle) => !CLES_HORS_COLONNES.includes(cle),
     )
     const ordreSource = CLES_SOURCE.map((c) => c.cle).filter((cle) => toutes.includes(cle))

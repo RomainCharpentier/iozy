@@ -78,6 +78,30 @@ class GoogleBooksVolumeSearchProviderTest {
     }
 
     @Test
+    void reads_the_publication_date_at_the_precision_google_books_gives_it() throws Exception {
+        // Le calendrier des sorties (lot 146) lit le jour quand la fiche le
+        // porte - une précommande aussi -, le mois ou l'année sinon, et rien
+        // d'une forme inattendue. L'année seule reste dans `annee`, qui sert à
+        // nommer une édition.
+        GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
+        String body = """
+                {
+                  "items": [
+                    { "volumeInfo": { "title": "Naruto - Tome 72", "language": "fr", "publisher": "Kana", "publishedDate": "2026-10-14" } },
+                    { "volumeInfo": { "title": "Naruto - Tome 73", "language": "fr", "publisher": "Kana", "publishedDate": "2026-12" } },
+                    { "volumeInfo": { "title": "Naruto - Tome 74", "language": "fr", "publisher": "Kana", "publishedDate": "2027" } },
+                    { "volumeInfo": { "title": "Naruto - Tome 75", "language": "fr", "publisher": "Kana", "publishedDate": "bientôt" } }
+                  ]
+                }
+                """;
+
+        List<VolumeCandidate> result = provider.parse(body, "Naruto", List.of(), null);
+
+        assertThat(result).extracting(VolumeCandidate::releaseDate).containsExactly("2026-10-14", "2026-12", "2027", null);
+        assertThat(result).extracting(VolumeCandidate::annee).containsExactly(2026, 2026, 2027, null);
+    }
+
+    @Test
     void keeps_a_result_with_no_author_listed_even_when_the_expected_author_is_known() throws Exception {
         // La plupart des fiches françaises n'ont pas le champ auteur
         // correctement renseigné (vérifié manuellement, voir historique) -

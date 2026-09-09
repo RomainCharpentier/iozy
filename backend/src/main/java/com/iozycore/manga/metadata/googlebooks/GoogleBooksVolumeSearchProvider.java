@@ -474,7 +474,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             // ci-dessus) - sentinelle résolue par resolveOneShotFallback,
             // jamais renvoyée telle quelle à l'appelant.
             candidates.add(new VolumeCandidate(edition, volumeNumber.orElse(0), imageUrl, title,
-                    isbn13(volumeInfo), annee(volumeInfo)));
+                    isbn13(volumeInfo), annee(volumeInfo), releaseDate(volumeInfo)));
         }
         return candidates;
     }
@@ -487,6 +487,21 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
             }
         }
         return null;
+    }
+
+    /**
+     * « 2010-02-04 », « 2010-02 » ou « 2010 », tels que Google Books les
+     * écrit - c'est la date de parution que lit le calendrier des sorties
+     * (lot 146). Une fiche de précommande porte un jour à venir. Toute autre
+     * forme est ignorée : mieux vaut pas de date qu'une date lue de travers.
+     */
+    private static String releaseDate(JsonNode volumeInfo) {
+        String date = volumeInfo.path("publishedDate").asText(null);
+        if (date == null) {
+            return null;
+        }
+        String trimmed = date.trim();
+        return trimmed.matches("\\d{4}(-\\d{2}(-\\d{2})?)?") ? trimmed : null;
     }
 
     /** « 2009 », « 2010-02-04 » : les quatre premiers chiffres, ou null. */
@@ -578,7 +593,7 @@ public class GoogleBooksVolumeSearchProvider implements VolumeSearchProvider {
                     trouves.add(candidate);
                 } else if (candidate.volumeNumber() == 0 && candidate.isbnNormalise() != null) {
                     trouves.add(new VolumeCandidate(candidate.edition(), volumeNumber, candidate.imageUrl(),
-                            candidate.title(), candidate.isbn(), candidate.annee()));
+                            candidate.title(), candidate.isbn(), candidate.annee(), candidate.releaseDate()));
                 }
             }
             return trouves;

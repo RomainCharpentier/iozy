@@ -413,8 +413,12 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
             // L'URL de jaquette est posée ici mais VÉRIFIÉE par searchVolumes
             // (voir la javadoc de la classe) : parse() reste sans réseau.
+            // La BnF ne date qu'à l'année (« DL 2024 ») : le calendrier des
+            // sorties n'en fait rien, mais la fusion avec Google Books garde
+            // la date la plus précise des deux (voir VolumeCandidate).
+            Integer annee = anneeDe(record);
             VolumeCandidate candidate = new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record),
-                    displayTitle, isbnDe(record), anneeDe(record));
+                    displayTitle, isbnDe(record), annee, annee == null ? null : String.valueOf(annee));
             if (differe) {
                 differes.add(Map.entry(normalizeForComparison(serie), candidate));
             } else {

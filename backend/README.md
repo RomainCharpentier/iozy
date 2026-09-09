@@ -313,6 +313,31 @@ continue de fonctionner seul, comme avant - comportement inchangé.
    fait, renseigne `MAL_CLIENT_ID=<ton-client-id>`, puis relance
    `docker compose up --build`.
 
+## Calendrier des sorties
+
+`GET /api/insights/releases?from=2026-10-01&to=2026-10-31` - les sorties de la
+période (bornes incluses, un an au plus, 400 au-delà ou sur une date illisible)
+pour les œuvres possédées ou en envie, toutes catégories confondues, dans
+l'ordre du calendrier. Chaque ligne porte `date` (« 2026-10-14 » ou
+« 2026-10 »), `precision` (`DAY`/`MONTH`), l'œuvre, ce qui sort en son sein
+(`label`, `volumeNumber`, `editionName`), sa jaquette, `relation`
+(`OWNED`/`MISSING`/`WANTED`) et `source` (`GOOGLE_BOOKS`, `IGDB`, `MANUAL`).
+
+Le cœur ne connaît aucune source de dates : `ReleaseSource` est le point
+d'extension (`core/insights`), `MangaReleases` et `VideoGameReleases` ses
+implémentations. Le cœur lit lui-même l'attribut `releaseDate` d'une œuvre
+(« 2026-10-14 » ou « 2026-10 », saisi sur la fiche), pour toute catégorie. Une
+année seule n'est jamais une date de calendrier. `GET /api/entity-types` dit
+par `hasReleaseSource` quelles catégories un univers sait dater.
+
+Les dates des tomes viennent du résultat stocké de la recherche de tomes
+(`volume_search_cache`, champ `releaseDate` de chaque `VolumeCandidate`, lu chez
+Google Books) ; `MangaReleaseRefresh` relit chaque nuit (4 h 30, réglable par
+`iozycore.releases.refresh.*`) quelques séries **en cours** pour que les tomes
+annoncés y entrent, sans jamais effacer un résultat quand un fournisseur se tait
+(`TomeSearchService.refreshUnlessUnavailable`). Les dates IGDB sont lues en un
+appel pour tous les jeux et retenues un jour.
+
 ## Découverte heuristique (mangaka / catégories BGG / similarité IGDB)
 
 `GET /api/insights/discover?entityTypeCode=MANGA|BOARD_GAME|VIDEO_GAME` -

@@ -60,6 +60,7 @@ const AdministrationPage = page(() => import('@/pages/profile/administration/Adm
 const ComptesPage = page(() => import('@/pages/profile/administration/ComptesPage'), 'ComptesPage')
 const TagsPage = page(() => import('@/pages/profile/administration/TagsPage'), 'TagsPage')
 const SuggestionsPage = page(() => import('@/pages/suggestions/SuggestionsPage'), 'SuggestionsPage')
+const ReleasesPage = page(() => import('@/pages/releases/ReleasesPage'), 'ReleasesPage')
 const CollectionRecapPage = page(() => import('@/pages/recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('@/pages/scan/ScanPage'), 'ScanPage')
 const StatsPage = page(() => import('@/pages/stats/StatsPage'), 'StatsPage')
@@ -197,6 +198,7 @@ export default function App() {
                   <Route path="/administration/comptes" element={<ComptesPage />} />
                   <Route path="/administration/tags" element={<TagsPage />} />
                   <Route path="/suggestions" element={<SuggestionsPage />} />
+                  <Route path="/releases" element={<ReleasesPage />} />
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
                   {/* L'écran Envies a disparu dans Ma collection (lot C) - mais

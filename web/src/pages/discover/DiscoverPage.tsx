@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ListOrdered, PartyPopper, Scale, Sparkles, Telescope } from 'lucide-react'
+import { CalendarDays, ChevronRight, ListOrdered, PartyPopper, Scale, Sparkles, Telescope } from 'lucide-react'
 import { DiscoverTierPreview } from './DiscoverTierPreview'
 import { DiscoverOpportunitiesPreview } from './DiscoverOpportunitiesPreview'
 import { DiscoverySection } from './DiscoverySection'
+import { DiscoverReleasesPreview } from './DiscoverReleasesPreview'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 
-type DiscoverTab = 'tiers' | 'opps' | 'decouvertes'
+type DiscoverTab = 'tiers' | 'opps' | 'decouvertes' | 'sorties'
 
 const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'tiers', label: 'Tier Lists', icon: ListOrdered },
   { id: 'opps', label: 'Opportunités', icon: Sparkles },
   { id: 'decouvertes', label: 'Découvertes', icon: Telescope },
+  { id: 'sorties', label: 'Sorties', icon: CalendarDays },
 ]
 
 /** Sous 1100px (mobile ou desktop étroit) : 3 sous-onglets, un seul panneau
@@ -26,9 +28,11 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
  *
  * <p>L'écran du cœur (lot 142) : les Tier Lists valent pour tout univers, les
  * opportunités viennent de ce qui a une progression, les découvertes de
- * chaque univers qui sait en proposer. « Prochaines sorties », qui n'avait
- * rien à dire faute de source, n'y est plus : un panneau vide n'est pas une
- * promesse, c'est une case. */
+ * chaque univers qui sait en proposer. « Prochaines sorties » en était parti
+ * faute de source - un panneau vide n'est pas une promesse, c'est une case -
+ * et y revient au lot 146 avec des données : les tomes datés par Google
+ * Books, les jeux datés par IGDB, les dates saisies sur les fiches. Quatrième
+ * sous-onglet en mobile, pleine largeur sous les Découvertes en desktop. */
 export function DiscoverPage() {
   const [tab, setTab] = useState<DiscoverTab>('tiers')
 
@@ -96,6 +100,12 @@ export function DiscoverPage() {
           className={`flex-col gap-3 min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:border-t min-[1100px]:border-surface2 min-[1100px]:pt-6 ${tab === 'decouvertes' ? 'flex' : 'hidden'}`}
         >
           <DiscoverySection />
+        </section>
+
+        <section
+          className={`flex-col gap-3 min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:border-t min-[1100px]:border-surface2 min-[1100px]:pt-6 ${tab === 'sorties' ? 'flex' : 'hidden'}`}
+        >
+          <DiscoverReleasesPreview />
         </section>
       </div>
 
