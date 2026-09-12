@@ -51,6 +51,7 @@ export function CategoryPage() {
     progression,
     owned,
     oeuvresVoulues,
+    oeuvresSuivies,
     tomesVoulus,
     wishlist,
   } = donnees
@@ -67,12 +68,12 @@ export function CategoryPage() {
   const retenuesPour = useCallback(
     (filtre: FiltreCollection) =>
       duType.filter((e) => {
-        const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)
+        const etat = etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)
         if (!correspondAuFiltre(etat, filtre)) return false
         if (!filtres.porteLeTag(e)) return false
         return !etat.possede || matchesCompletionFilter(e, filtres.status, progression)
       }),
-    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, filtres, progression],
+    [duType, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies, filtres, progression],
   )
 
   const contexteAplatissement = useMemo(
@@ -81,10 +82,11 @@ export function CategoryPage() {
       owned,
       tomesVoulus,
       oeuvresVoulues,
+      oeuvresSuivies,
       depuisTome: (variantId: string) => venues.parTome.get(variantId) ?? '',
       depuisOeuvre: (entityId: string) => venues.parOeuvre.get(entityId) ?? '',
     }),
-    [ownerships, owned, tomesVoulus, oeuvresVoulues, venues],
+    [ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies, venues],
   )
 
   /** Ce que chaque filtre donnerait dans la VUE COURANTE - même règle que sur
@@ -97,7 +99,7 @@ export function CategoryPage() {
         ? retenues.length
         : aplatirEnElements(retenues, filtre, contexteAplatissement).length
     }
-    return { tout: compter('tout'), possedes: compter('possedes'), envies: compter('envies') }
+    return { tout: compter('tout'), possedes: compter('possedes'), suivies: compter('suivies'), envies: compter('envies') }
   }, [retenuesPour, preferences.vue, contexteAplatissement])
 
   const entities = useMemo(
@@ -109,12 +111,13 @@ export function CategoryPage() {
     () =>
       entities.map((e) =>
         buildShelfTile(e, progression, {
-          possede: etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues).possede,
+          possede: etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies).possede,
+          suivi: oeuvresSuivies.has(e.id),
           tomesVoulus: e.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(e.id) ? 1 : 0),
           prioritaire: preferences.filtre === 'envies',
         }),
       ),
-    [entities, owned, progression, ownerships, tomesVoulus, oeuvresVoulues, preferences.filtre],
+    [entities, owned, progression, ownerships, tomesVoulus, oeuvresVoulues, oeuvresSuivies, preferences.filtre],
   )
 
   // Un seul type ici : pas de badge de type sur les tuiles, il serait le même
@@ -137,9 +140,9 @@ export function CategoryPage() {
   const mangasPossedes = useMemo(
     () =>
       entityType?.code === 'MANGA'
-        ? duType.filter((e) => etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues).possede)
+        ? duType.filter((e) => etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies).possede)
         : [],
-    [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues],
+    [entityType, duType, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
   )
 
   // Aucun chiffre tant que tout n'est pas arrivé, sans quoi la page annonce une
@@ -215,7 +218,9 @@ export function CategoryPage() {
           <p className="font-display text-base font-semibold text-textPrimary">
             {preferences.filtre === 'envies'
               ? 'Aucune envie en cours dans cette catégorie.'
-              : 'Rien ne correspond à ces filtres.'}
+              : preferences.filtre === 'suivies'
+                ? 'Aucune œuvre suivie dans cette catégorie.'
+                : 'Rien ne correspond à ces filtres.'}
           </p>
           {filtres.nombreActifs > 0 && (
             <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">

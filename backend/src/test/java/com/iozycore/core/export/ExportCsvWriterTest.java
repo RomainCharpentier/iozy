@@ -28,7 +28,7 @@ class ExportCsvWriterTest {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
                 // Quatre familles ajoutees au Lot 79, meme critere qu'au Lot 33.
-                List.of(), List.of(), List.of(), null));
+                List.of(), List.of(), List.of(), List.of(), null));
 
         // Les familles ajoutées au Lot 33 (éditions de référence, classements)
         // et au Lot 79 (relevés de prix, édition suivie, types de collection,
@@ -39,7 +39,7 @@ class ExportCsvWriterTest {
                 "entities.csv", "variants.csv", "ownerships.csv", "experiences.csv",
                 "wishlist.csv", "relationships.csv", "tags.csv",
                 "editions.csv", "general-rankings.csv", "tier-lists.csv",
-                "market-observations.csv", "followed-editions.csv", "entity-types.csv",
+                "market-observations.csv", "followed-editions.csv", "followed-works.csv", "entity-types.csv",
                 "collector-preferences.csv");
     }
 
@@ -49,7 +49,7 @@ class ExportCsvWriterTest {
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(sampleEntity(entityId)), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), null);
 
         String csv = writer.writeAll(document).get("entities.csv");
         List<String> lines = List.of(csv.strip().split("\n"));
@@ -63,7 +63,7 @@ class ExportCsvWriterTest {
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(sampleEntity(UUID.randomUUID())), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), null);
 
         String csv = writer.writeAll(document).get("variants.csv");
         List<String> lines = List.of(csv.strip().split("\n"));
@@ -80,7 +80,7 @@ class ExportCsvWriterTest {
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(), List.of(ownership), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), null);
 
         String csv = writer.writeAll(document).get("ownerships.csv");
 
@@ -94,7 +94,7 @@ class ExportCsvWriterTest {
         ExportDocument document = new ExportDocument("2026-08-11T00:00:00Z",
                 List.of(entity), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), List.of(), List.of(), null);
 
         String csv = writer.writeAll(document).get("entities.csv");
 

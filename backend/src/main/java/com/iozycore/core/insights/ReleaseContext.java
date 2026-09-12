@@ -64,12 +64,9 @@ public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to
 
     /** La relation d'une œuvre entière à la collection - possédée d'abord, voulue sinon. */
     public Optional<ReleaseEntry.Relation> relationOf(UUID entityId) {
-        if (isOwned(entityId)) {
-            return Optional.of(ReleaseEntry.Relation.OWNED);
-        }
-        if (isWanted(entityId) || wantedVariantIdsByEntity().containsKey(entityId)) {
-            return Optional.of(ReleaseEntry.Relation.WANTED);
-        }
-        return Optional.empty();
+        // Une œuvre du contexte est suivie par construction : sa sortie est
+        // possédée, ou à acheter. L'envie n'existe plus à son niveau (un état à
+        // la fois), seulement au tome - voir les univers.
+        return Optional.of(isOwned(entityId) ? ReleaseEntry.Relation.OWNED : ReleaseEntry.Relation.MISSING);
     }
 }

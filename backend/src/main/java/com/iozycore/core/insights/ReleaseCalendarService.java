@@ -1,5 +1,8 @@
 package com.iozycore.core.insights;
 
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
+
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
@@ -22,7 +25,10 @@ import java.util.stream.Collectors;
 
 /**
  * Le calendrier des sorties : ce qui sort, quand, pour les œuvres qu'on
- * possède ou qu'on veut - toutes catégories confondues.
+ * SUIT - toutes catégories confondues. Suivre est le troisième état d'une
+ * œuvre, à côté de posséder et vouloir (voir WorkFollowing) : c'est lui, et
+ * lui seul, qui met une œuvre au calendrier ; possessions et envies ne
+ * disent plus que ce que chaque sortie représente.
  *
  * <h2>D'où viennent les dates</h2>
  * De deux endroits, et de deux seulement. Chaque univers qui a une vraie
@@ -67,15 +73,18 @@ public class ReleaseCalendarService {
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
+    private final FollowedWorkRepository followedWorkRepository;
     private final List<ReleaseSource> sources;
 
     public ReleaseCalendarService(EntityTypeRepository entityTypeRepository, EntityRepository entityRepository,
                                   OwnershipRepository ownershipRepository,
-                                  WishlistEntryRepository wishlistEntryRepository, List<ReleaseSource> sources) {
+                                  WishlistEntryRepository wishlistEntryRepository,
+                                  FollowedWorkRepository followedWorkRepository, List<ReleaseSource> sources) {
         this.entityTypeRepository = entityTypeRepository;
         this.entityRepository = entityRepository;
         this.ownershipRepository = ownershipRepository;
         this.wishlistEntryRepository = wishlistEntryRepository;
+        this.followedWorkRepository = followedWorkRepository;
         this.sources = sources;
     }
 
@@ -94,11 +103,14 @@ public class ReleaseCalendarService {
                 .filter(Ownership::isActive)
                 .toList();
         List<WishlistEntry> wishlist = wishlistEntryRepository.findAll();
-        Set<UUID> ofInterest = new HashSet<>();
-        activeOwnerships.forEach(ownership -> ofInterest.add(ownership.entityId()));
-        wishlist.forEach(entry -> ofInterest.add(entry.entityId()));
+        // Seules les œuvres SUIVIES entrent au calendrier (un état à la fois :
+        // Possédé / Suivi / Envie). Possessions et envies ne servent plus qu'à
+        // dire ce que chaque sortie représente.
+        Set<UUID> ofInterest = followedWorkRepository.findAll().stream()
+                .map(FollowedWork::entityId)
+                .collect(Collectors.toCollection(HashSet::new));
         if (ofInterest.isEmpty()) {
-            // Rien de possédé ni de voulu : aucune source à consulter, aucun catalogue à lire.
+            // Rien de suivi : aucune source à consulter, aucun catalogue à lire.
             return new ReleaseCalendar(from, to, List.of());
         }
 

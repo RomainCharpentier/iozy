@@ -60,6 +60,7 @@ beforeEach(() => {
     // passerait pour la mauvaise raison.
     owned: new Set(['tome-1']),
     oeuvresVoulues: new Set<string>(),
+    oeuvresSuivies: new Set<string>(),
     tomesVoulus: new Set<string>(),
     wishlist: { entries: [], variantsVoulus: new Set<string>(), isLoading: false },
     chargement: false,

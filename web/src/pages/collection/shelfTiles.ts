@@ -75,7 +75,7 @@ function nearCompletionSignal(missing: number): string | undefined {
 export function buildShelfTile(
   entity: EntityResponse,
   progression: Map<string, CollectionProgressDto>,
-  envie: { possede: boolean; tomesVoulus: number; prioritaire: boolean } = {
+  envie: { possede: boolean; suivi?: boolean; tomesVoulus: number; prioritaire: boolean } = {
     possede: true,
     tomesVoulus: 0,
     prioritaire: false,
@@ -90,7 +90,7 @@ export function buildShelfTile(
     return {
       key: entity.id,
       title: entity.title,
-      subtitle: envie.possede ? 'Possédé' : 'Dans mes envies',
+      subtitle: envie.possede ? 'Possédé' : envie.suivi ? 'Suivie' : 'Dans mes envies',
       imageUrl: coverImageUrlFrom(entity.attributes),
       entityId: entity.id,
     }
@@ -220,7 +220,11 @@ export function groupByEntityType(
 interface EtatOeuvre {
   possede: boolean
   voulu: boolean
+  /** Suivie : le troisième état, celui qui met l'œuvre au calendrier des sorties. */
+  suivi: boolean
 }
+
+const AUCUNE_SUIVIE: Set<string> = new Set()
 
 export function etatDeLOeuvre(
   entity: EntityResponse,
@@ -228,9 +232,11 @@ export function etatDeLOeuvre(
   owned: Set<string>,
   tomesVoulus: Set<string>,
   oeuvresVoulues: Set<string>,
+  oeuvresSuivies: Set<string> = AUCUNE_SUIVIE,
 ): EtatOeuvre {
   return {
     possede: isOwned(entity, ownerships, owned),
+    suivi: oeuvresSuivies.has(entity.id),
     voulu:
       oeuvresVoulues.has(entity.id) || entity.variants.some((variant) => tomesVoulus.has(variant.id)),
   }
@@ -239,7 +245,8 @@ export function etatDeLOeuvre(
 export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): boolean {
   if (filtre === 'possedes') return etat.possede
   if (filtre === 'envies') return etat.voulu
-  return etat.possede || etat.voulu
+  if (filtre === 'suivies') return etat.suivi
+  return etat.possede || etat.voulu || etat.suivi
 }
 
 /**
@@ -252,7 +259,7 @@ export function correspondAuFiltre(etat: EtatOeuvre, filtre: FiltreCollection): 
  * ressembleraient trait pour trait.
  */
 export interface TuileElement extends ShelfTile {
-  etat: 'possede' | 'voulu'
+  etat: 'possede' | 'voulu' | 'suivi'
   /** Le type porte le format de jaquette (2/3 pour un manga, carré pour un
    *  jeu de société) : sans lui, la grille plate mélangerait les cadres. */
   entityTypeId: string
@@ -287,6 +294,8 @@ export function aplatirEnElements(
     owned: Set<string>
     tomesVoulus: Set<string>
     oeuvresVoulues: Set<string>
+    /** Les œuvres suivies : une œuvre d'une pièce suivie sans être possédée est une tuile « Suivie ». */
+    oeuvresSuivies?: Set<string>
     /** Depuis quand cet élément est possédé, ou voulu - selon ce qu'il est. */
     depuisTome: (variantId: string) => string
     depuisOeuvre: (entityId: string) => string
@@ -295,12 +304,16 @@ export function aplatirEnElements(
   const tuiles: TuileElement[] = []
   for (const entity of entities) {
     if (entity.variants.length === 0) {
-      const etat = isOwned(entity, ownershipsDe(entity, contexte.ownerships), contexte.owned) ? 'possede' : 'voulu'
+      const etat = isOwned(entity, ownershipsDe(entity, contexte.ownerships), contexte.owned)
+        ? ('possede' as const)
+        : contexte.oeuvresSuivies?.has(entity.id)
+          ? ('suivi' as const)
+          : ('voulu' as const)
       if (retenu(etat, filtre)) {
         tuiles.push({
           key: entity.id,
           title: entity.title,
-          subtitle: etat === 'possede' ? 'Possédé' : 'Dans mes envies',
+          subtitle: etat === 'possede' ? 'Possédé' : etat === 'suivi' ? 'Suivie' : 'Dans mes envies',
           imageUrl: coverImageUrlFrom(entity.attributes),
           entityId: entity.id,
           entityTypeId: entity.entityTypeId,
@@ -337,9 +350,10 @@ export function aplatirEnElements(
   return tuiles
 }
 
-function retenu(etat: 'possede' | 'voulu', filtre: FiltreCollection): boolean {
+function retenu(etat: 'possede' | 'voulu' | 'suivi', filtre: FiltreCollection): boolean {
   if (filtre === 'possedes') return etat === 'possede'
   if (filtre === 'envies') return etat === 'voulu'
+  if (filtre === 'suivies') return etat === 'suivi'
   return true
 }
 

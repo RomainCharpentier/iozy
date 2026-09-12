@@ -1,15 +1,19 @@
 import { Link } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { Jaquette } from './Jaquette'
 import { TexteCoupe } from './TexteCoupe'
-import { LIBELLES_RELATION, libelleDateCourte, libelleSource } from '@/common/lib/releaseDate'
+import { LIBELLES_RELATION, libelleDateCourte } from '@/common/lib/releaseDate'
 import type { Retour } from '@/common/lib/retour'
 import type { ReleaseEntryDto } from '@/common/types/api'
 
-/** La pastille par relation : manquant est l'action, possédé la confirmation, envie l'attente. */
-const CLASSE_RELATION: Record<string, string> = {
-  OWNED: 'bg-softBtn text-textDim',
+/**
+ * Ce qui appelle une pastille : à acheter est l'action, envie l'attente.
+ * Possédé n'appelle rien - un relevé discret suffit, une pastille de plus
+ * ferait crier une ligne qui n'a rien à demander.
+ */
+const PASTILLES: Record<string, string> = {
   MISSING: 'bg-accentTint text-accentText',
-  WANTED: 'bg-warningTint text-warningInk',
+  WANTED: 'bg-warningTint text-warning',
 }
 
 /**
@@ -17,6 +21,9 @@ const CLASSE_RELATION: Record<string, string> = {
  * en son sein, et ce que ça représente pour la collection - toujours écrit,
  * comme la raison d'une opportunité de Découvrir. Partagée par le calendrier
  * et par son aperçu de Découvrir (lot 146), d'où sa place dans `common`.
+ *
+ * <p>D'où vient la date ne s'écrit pas ici : c'est de la plomberie, et la
+ * fiche de l'œuvre la porte déjà pour qui veut savoir.
  *
  * @param date       le libellé de date à écrire en tête de ligne - absent quand
  *                   la liste est déjà groupée par jour
@@ -36,6 +43,8 @@ export function ReleaseRow({
 }) {
   const sousTitre = entry.label || typeLabel || ''
   const dateAffichee = date ? libelleDateCourte(entry.date) : null
+  const relation = LIBELLES_RELATION[entry.relation] ?? entry.relation
+  const pastille = PASTILLES[entry.relation]
   return (
     <Link
       to={`/entity/${entry.entityId}`}
@@ -55,11 +64,15 @@ export function ReleaseRow({
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <TexteCoupe texte={entry.entityTitle} className="truncate text-sm font-semibold text-textPrimary" />
         {sousTitre && <TexteCoupe texte={sousTitre} className="truncate text-xs text-textDim" />}
-        <span className="text-[11px] text-faint">{libelleSource(entry.source)}</span>
       </span>
-      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${CLASSE_RELATION[entry.relation] ?? CLASSE_RELATION.OWNED}`}>
-        {LIBELLES_RELATION[entry.relation] ?? entry.relation}
-      </span>
+      {pastille ? (
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${pastille}`}>{relation}</span>
+      ) : (
+        <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-textDim">
+          <Check size={12} aria-hidden="true" />
+          {relation}
+        </span>
+      )}
     </Link>
   )
 }

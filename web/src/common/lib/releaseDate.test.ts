@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  JOURS_DE_LA_SEMAINE_COURTS,
   formatReleaseDate,
   isoLocal,
   libelleDateCourte,
@@ -7,10 +8,10 @@ import {
   libelleMois,
   parseReleaseDate,
   periodeAVenir,
-  phraseDeCouverture,
+  periodeSurUnAn,
+  titreDuJour,
   yearMonthLocal,
 } from './releaseDate'
-import { typeDeCollection } from '@/test/fixtures'
 
 describe('parseReleaseDate', () => {
   it('lit un jour et un mois, et refuse le reste', () => {
@@ -30,7 +31,12 @@ describe('les libellés en français', () => {
     expect(libelleDateCourte('2026-10-14')).toBe('14 oct.')
     expect(libelleDateCourte('2026-10')).toBe('oct. 2026')
     expect(libelleJour('2026-10-14')).toBe('mercredi 14 octobre')
+    expect(titreDuJour('2026-10-14')).toBe('Mercredi 14 octobre')
     expect(libelleMois('2026-10')).toBe('Octobre 2026')
+  })
+
+  it('nomme les colonnes de la semaine, lundi en tête', () => {
+    expect(JOURS_DE_LA_SEMAINE_COURTS).toEqual(['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'])
   })
 
   it('date l’appareil en heure locale, pas en UTC', () => {
@@ -43,19 +49,9 @@ describe('les libellés en français', () => {
     expect(periodeAVenir(new Date(2026, 8, 9))).toEqual({ from: '2026-09-09', to: '2026-12-09' })
     expect(periodeAVenir(new Date(2026, 10, 30))).toEqual({ from: '2026-11-30', to: '2027-03-02' })
   })
-})
 
-describe('phraseDeCouverture', () => {
-  it('dit ce que chaque catégorie apporte, d’après le type lui-même', () => {
-    const manga = { ...typeDeCollection('MANGA', 'Manga'), hasReleaseSource: true }
-    const jeu = { ...typeDeCollection('VIDEO_GAME', 'Jeu vidéo'), hasReleaseSource: true }
-    const societe = typeDeCollection('BOARD_GAME', 'Jeu de société')
-
-    expect(phraseDeCouverture([manga, jeu, societe])).toBe(
-      'Les dates de Manga et Jeu vidéo viennent de leurs sources, pour ce que tu possèdes ou veux. ' +
-        'Pour Jeu de société, renseigne « Date de sortie » sur la fiche d\'une œuvre.',
-    )
-    expect(phraseDeCouverture([societe])).toBe('Pour Jeu de société, renseigne « Date de sortie » sur la fiche d\'une œuvre.')
-    expect(phraseDeCouverture([])).toBe('')
+  it('ouvre la fenêtre de ce qui vient sur un an moins un jour, bissextile compris', () => {
+    expect(periodeSurUnAn(new Date(2026, 8, 10))).toEqual({ from: '2026-09-10', to: '2027-09-09' })
+    expect(periodeSurUnAn(new Date(2028, 1, 29))).toEqual({ from: '2028-02-29', to: '2029-02-28' })
   })
 })

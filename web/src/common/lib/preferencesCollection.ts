@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react'
  * appareil, comme le thème et la composition des titres (voir lib/theme et
  * lib/titleLanguage, dont ce module reprend le patron).
  */
-export type FiltreCollection = 'tout' | 'possedes' | 'envies'
+export type FiltreCollection = 'tout' | 'possedes' | 'suivies' | 'envies'
 export type VueCollection = 'groupee' | 'plate'
 export type TriCollection = 'recent' | 'titre'
 
@@ -31,7 +31,7 @@ const CLE = 'iozycore.preferencesCollection'
  *  un écran, et celle que la page a toujours eue. */
 const DEFAUT: PreferencesCollection = { filtre: 'tout', vue: 'groupee', tri: 'recent' }
 
-const FILTRES: FiltreCollection[] = ['tout', 'possedes', 'envies']
+const FILTRES: FiltreCollection[] = ['tout', 'possedes', 'suivies', 'envies']
 const VUES: VueCollection[] = ['groupee', 'plate']
 const TRIS: TriCollection[] = ['recent', 'titre']
 

@@ -955,11 +955,19 @@ codé en dur.
 sorties des trois mois à venir, datées — puis « Tout voir » → `/releases`, le
 calendrier complet, mois par mois (`?mois=AAAA-MM`, « Mois précédent »,
 « Mois suivant », « Aujourd'hui »).
-**Résultat** : les sorties du mois pour ce qu'on possède ou veut, **toutes
-catégories confondues**, rangées par jour ; une rangée de puces filtre par
-catégorie quand il y en a plusieurs. Chaque ligne dit ce qui sort (« Tome 72 ·
-Kana », ou la catégorie), d'où vient la date, et ce qu'elle représente pour la
-collection : **Possédé**, **Manquant**, **Envie**. Une ligne mène à la fiche.
+**Résultat** : les sorties des œuvres **suivies**, et d'elles seules - suivre
+est le troisième état d'une œuvre, avec possédée et voulue, un seul à la fois
+(voir 45). Le mois en **grille**, lundi en tête - chaque jour à sa place,
+aujourd'hui marqué, les jaquettes de ce qui sort dans la case du jour - puis
+l'**agenda** du mois dessous, rangé par jour ; toucher une case ne garde que ce
+jour (« Tout le mois » ramène). Une rangée de puces filtre par catégorie quand
+il y en a plusieurs. Chaque ligne dit ce qui sort (« Tome 72 · Kana », ou la
+catégorie) et ce que ça représente pour la collection : **À acheter**, ou
+simplement **Possédé** (**Envie** ne subsiste que sur un tome voulu d'une série
+suivie). Une ligne mène à la fiche ; la source de
+la date, elle, ne s'y écrit pas. À droite de la grille sur desktop (dessous en
+mobile), **À venir** liste tout ce qui sort dans l'année, mois par mois, dans
+l'ordre du calendrier ; choisir une ligne amène la grille sur son jour.
 **Données** : **réelles**, et jamais approximatives. Les tomes datés par Google
 Books (le résultat de la recherche de tomes, relu chaque nuit pour les séries
 en cours), les jeux datés par IGDB (Europe d'abord), et la **date saisie sur la
@@ -967,16 +975,32 @@ fiche** d'une œuvre, pour n'importe quelle catégorie — c'est ce qui met les
 jeux de société et les catégories personnalisées dans le même calendrier
 (BoardGameGeek ne donne que l'année). Une date connue au mois près se lit
 « Dans le mois, date à préciser » ; une année seule ne se lit pas du tout.
-**Branches** : un mois sans rien le dit, et dit d'où viendraient les dates
-(les catégories avec une source, celles où seule la fiche date — c'est le type
-qui le dit, `hasReleaseSource`) ; une catégorie choisie qui n'a plus rien
-retombe sur « Tout ».
+**Branches** : un mois sans rien garde sa grille et le dit en une ligne, avec
+où se saisit une date ; une catégorie choisie qui n'a plus rien retombe sur
+« Tout », un jour choisi qui n'a plus rien sur le mois entier.
 **Historique** : retiré du produit au lot 142 (2026-09-06) — le panneau
 annonçait qu'aucune source n'existait, et un panneau qui n'a rien à dire n'est
 pas une promesse, c'est une case. Revenu au lot 146 avec les données.
 **Écrans** : `ReleasesPage`, `DiscoverReleasesPreview`, `ReleaseRow`
 **Backend** : `GET /insights/releases?from=…&to=…`, `hasReleaseSource` sur
 `GET /entity-types`
+**Statut** : `COMPLET`
+
+### 45. Suivre une œuvre
+**Point de départ** : la fiche d'une œuvre, bouton « Suivre cette œuvre » à
+côté du cœur des envies ; sur un manga, suivre une édition (badge SUIVIE) suit
+aussi la série.
+**Résultat** : la pastille **Suivie** sous le titre, l'œuvre dans Ma collection
+sous le filtre **Suivies**, et ses sorties au calendrier (voir 44). Un seul
+état à la fois : suivre retire l'envie de l'œuvre ; « Ajouter à mes envies »
+sur l'œuvre entière, ou l'acquérir d'une pièce, retire le suivi. Un tome ne
+change rien à l'état de sa série - acheter le tome 12 d'une série suivie,
+c'est ce que suivre veut dire.
+**Branches** : « Ne plus suivre » depuis le même bouton, avec « Annuler »
+dans le message ; une visite ne voit pas le bouton.
+**Écrans** : `FicheHero` (`BoutonSuivreHero`), `BarreVues`, `ReleasesPage`
+**Backend** : `PUT/DELETE/GET /followed-works`, `WorkFollowing` (la règle
+« un état à la fois »), table `followed_work` (V35)
 **Statut** : `COMPLET`
 
 ### 44 bis. Découvrir ce que chaque univers propose

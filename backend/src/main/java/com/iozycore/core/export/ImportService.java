@@ -1,5 +1,8 @@
 package com.iozycore.core.export;
 
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
+
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
@@ -82,6 +85,7 @@ public class ImportService {
     private final OwnershipRepository ownershipRepository;
     private final ExperienceRepository experienceRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
+    private final FollowedWorkRepository followedWorkRepository;
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
@@ -92,6 +96,7 @@ public class ImportService {
                          TagRepository tagRepository,
                          RelationshipRepository relationshipRepository, OwnershipRepository ownershipRepository,
                          ExperienceRepository experienceRepository, WishlistEntryRepository wishlistEntryRepository,
+                         FollowedWorkRepository followedWorkRepository,
                          EntityRankRepository entityRankRepository, TierListRepository tierListRepository,
                          TierListItemRepository tierListItemRepository,
                          List<TransferModule> modules) {
@@ -102,6 +107,7 @@ public class ImportService {
         this.ownershipRepository = ownershipRepository;
         this.experienceRepository = experienceRepository;
         this.wishlistEntryRepository = wishlistEntryRepository;
+        this.followedWorkRepository = followedWorkRepository;
         this.entityRankRepository = entityRankRepository;
         this.tierListRepository = tierListRepository;
         this.tierListItemRepository = tierListItemRepository;
@@ -156,6 +162,7 @@ public class ImportService {
             possessions();
             experiences();
             envies();
+            oeuvresSuivies();
             relations();
             classementsGeneraux();
             tierLists();
@@ -327,6 +334,26 @@ public class ImportService {
                 if (ecrire && modifiee) {
                     oeuvres.put(e.id(), entityRepository.save(oeuvre));
                 }
+            }
+        }
+
+        private void oeuvresSuivies() {
+            cumul.section("followedWorks", "Œuvres suivies");
+            for (ExportDocument.FollowedWorkExport f : liste(doc.followedWorks())) {
+                String sujet = nonVide(f.entityTitle(), "?");
+                UUID entityId = oeuvreId(f.entityId());
+                if (entityId == null) {
+                    cumul.ignore("followedWorks", sujet, "oeuvre non importee");
+                    continue;
+                }
+                if (!oeuvresACreer.contains(f.entityId()) && followedWorkRepository.findByEntityId(entityId).isPresent()) {
+                    cumul.rattache("followedWorks", sujet, "deja suivie");
+                    continue;
+                }
+                if (ecrire) {
+                    followedWorkRepository.save(FollowedWork.follow(entityId, f.followedAt()));
+                }
+                cumul.cree("followedWorks");
             }
         }
 

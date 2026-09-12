@@ -336,9 +336,19 @@ disponibles ou non.
 ## Le calendrier des sorties
 
 Découvrir ▸ **Sorties**, et « Tout voir » ouvre le calendrier complet, mois par
-mois (`/releases?mois=2026-10`) : ce qui sort pour ce que tu possèdes ou veux,
-**toutes catégories confondues**, avec pour chaque ligne ce qu'elle représente
-pour ta collection - possédé, manquant, envie.
+mois (`/releases?mois=2026-10`) : le mois en grille, aujourd'hui marqué, les
+jaquettes dans la case du jour, puis l'agenda dessous - ce qui sort pour les
+œuvres que tu **suis**, **toutes catégories confondues**, avec pour chaque
+ligne ce que ça représente pour ta collection : possédé, ou à acheter. À
+côté de la grille, **tout ce qui vient dans l'année**, mois par mois.
+
+**Suivre** est le troisième état d'une œuvre, à côté de **possédé** et
+**envie** - un seul à la fois. Suivre retire l'envie de l'œuvre ; vouloir
+l'œuvre entière, ou la posséder d'une pièce, retire le suivi. Un tome, lui,
+ne change rien à l'état de sa série : acheter le tome 12 d'une série suivie,
+c'est exactement ce que suivre veut dire. Le bouton « Suivre » est sur chaque
+fiche ; pour un manga, suivre une édition suit aussi la série. Ma collection
+filtre sur **Suivies** comme sur Possédés et Envies.
 
 | Catégorie | D'où vient la date |
 |---|---|

@@ -157,7 +157,7 @@ describe('etatDeLOeuvre et correspondAuFiltre', () => {
   it('une œuvre est voulue dès qu’un seul de ses tomes l’est', () => {
     const etat = etatDeLOeuvre(serie, [], new Set(), new Set(['tome-2']), new Set())
 
-    expect(etat).toEqual({ possede: false, voulu: true })
+    expect(etat).toEqual({ possede: false, voulu: true, suivi: false })
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
     expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
     expect(correspondAuFiltre(etat, 'tout')).toBe(true)
@@ -167,7 +167,7 @@ describe('etatDeLOeuvre et correspondAuFiltre', () => {
     const possessions = [possession({ entityId: serie.id, variantId: 'tome-1' })]
     const etat = etatDeLOeuvre(serie, possessions, ownedVariantIds(possessions), new Set(['tome-2']), new Set())
 
-    expect(etat).toEqual({ possede: true, voulu: true })
+    expect(etat).toEqual({ possede: true, voulu: true, suivi: false })
     expect(correspondAuFiltre(etat, 'possedes')).toBe(true)
     expect(correspondAuFiltre(etat, 'envies')).toBe(true)
   })
@@ -176,7 +176,18 @@ describe('etatDeLOeuvre et correspondAuFiltre', () => {
     const jeu = oeuvre({ titre: 'Hades', typeId: 'type-video-game' })
     const etat = etatDeLOeuvre(jeu, [], new Set(), new Set(), new Set([jeu.id]))
 
-    expect(etat).toEqual({ possede: false, voulu: true })
+    expect(etat).toEqual({ possede: false, voulu: true, suivi: false })
+  })
+
+  it('une œuvre suivie a son état à elle : sous « Suivies » et sous « Tout », pas sous « Envies »', () => {
+    const jeu = oeuvre({ titre: 'Silksong', typeId: 'type-video-game' })
+    const etat = etatDeLOeuvre(jeu, [], new Set(), new Set(), new Set(), new Set([jeu.id]))
+
+    expect(etat).toEqual({ possede: false, voulu: false, suivi: true })
+    expect(correspondAuFiltre(etat, 'suivies')).toBe(true)
+    expect(correspondAuFiltre(etat, 'tout')).toBe(true)
+    expect(correspondAuFiltre(etat, 'envies')).toBe(false)
+    expect(correspondAuFiltre(etat, 'possedes')).toBe(false)
   })
 })
 

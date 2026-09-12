@@ -1,5 +1,7 @@
 package com.iozycore.core.api.wishlist;
 
+import com.iozycore.core.application.WorkFollowing;
+
 import com.iozycore.core.api.dto.WishlistDtos.AddToWishlistRequest;
 import com.iozycore.core.api.dto.WishlistDtos.LookupResponse;
 import com.iozycore.core.api.dto.WishlistDtos.WishlistEntryResponse;
@@ -35,19 +37,22 @@ public class WishlistController {
     private final EntityTypeRepository entityTypeRepository;
     private final CatalogEntityResolver catalogEntityResolver;
     private final TomeResolver tomeResolver;
+    private final WorkFollowing workFollowing;
 
     public WishlistController(WishlistEntryRepository wishlistEntryRepository,
                                OwnershipRepository ownershipRepository,
                                EntityRepository entityRepository,
                                EntityTypeRepository entityTypeRepository,
                                CatalogEntityResolver catalogEntityResolver,
-                               TomeResolver tomeResolver) {
+                               TomeResolver tomeResolver,
+                               WorkFollowing workFollowing) {
         this.wishlistEntryRepository = wishlistEntryRepository;
         this.ownershipRepository = ownershipRepository;
         this.entityRepository = entityRepository;
         this.entityTypeRepository = entityTypeRepository;
         this.catalogEntityResolver = catalogEntityResolver;
         this.tomeResolver = tomeResolver;
+        this.workFollowing = workFollowing;
     }
 
     @Operation(summary = "Ajouter aux envies l'objet réellement voulu : un tome (variantId, ou volumeNumber "
@@ -61,6 +66,11 @@ public class WishlistController {
 
         if (variantId != null) {
             refuserSiDejaPossede(variantId);
+        }
+        // Un état à la fois (Possédé / Suivi / Envie) : vouloir l'ŒUVRE entière,
+        // c'est ne plus la suivre. Vouloir un tome ne dit rien de sa série.
+        if (variantId == null) {
+            workFollowing.wantedAsAWhole(entityId);
         }
 
         // Idempotent : un même objet déjà voulu n'en crée pas un second. Sans

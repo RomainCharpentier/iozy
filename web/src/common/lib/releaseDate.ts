@@ -1,5 +1,3 @@
-import type { EntityTypeDto } from '@/common/types/api'
-
 /**
  * Une date de sortie, telle que le serveur la connaît : au jour près
  * (« 2026-10-14 ») ou au mois près (« 2026-10 »). Jamais une année seule -
@@ -57,6 +55,11 @@ function formatter(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...options })
 }
 
+/** Intl écrit les mois et les jours en minuscules : un titre veut une majuscule. */
+function capitaliser(texte: string): string {
+  return texte.charAt(0).toUpperCase() + texte.slice(1)
+}
+
 /** « 14 octobre 2026 », « octobre 2026 » - ou null quand la valeur n'est pas une date. */
 export function formatReleaseDate(value: unknown): string | null {
   const parts = parseReleaseDate(value)
@@ -75,20 +78,33 @@ export function libelleDateCourte(value: unknown): string | null {
     : formatter({ month: 'short', year: 'numeric' }).format(dateUtc(parts))
 }
 
-/** « mardi 14 octobre » - l'intertitre d'un jour dans un mois déjà nommé. */
+/** « mardi 14 octobre » - un jour nommé dans une phrase, ou le nom accessible d'une case. */
 export function libelleJour(isoDay: string): string {
   const parts = parseReleaseDate(isoDay)
   if (!parts || parts.precision !== 'DAY') return isoDay
   return formatter({ weekday: 'long', day: 'numeric', month: 'long' }).format(dateUtc(parts))
 }
 
+/** « Mardi 14 octobre » - le même jour, en intertitre de ses sorties. */
+export function titreDuJour(isoDay: string): string {
+  return capitaliser(libelleJour(isoDay))
+}
+
 /** « Octobre 2026 » - le titre d'un mois. */
 export function libelleMois(yearMonth: string): string {
   const parts = parseReleaseDate(yearMonth)
   if (!parts) return yearMonth
-  const libelle = formatter({ month: 'long', year: 'numeric' }).format(dateUtc(parts))
-  return libelle.charAt(0).toUpperCase() + libelle.slice(1)
+  return capitaliser(formatter({ month: 'long', year: 'numeric' }).format(dateUtc(parts)))
 }
+
+/**
+ * « lun. » … « dim. », lundi en tête : les colonnes de la grille du mois. Le
+ * 1er janvier 2024 est un lundi - n'importe quelle semaine ferait l'affaire,
+ * celle-là se vérifie d'un coup d'œil.
+ */
+export const JOURS_DE_LA_SEMAINE_COURTS: readonly string[] = Array.from({ length: 7 }, (_, i) =>
+  formatter({ weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))),
+)
 
 /** « 2026-09-09 » pour la date locale de l'appareil - jamais `toISOString`, qui parle en UTC et change de jour le soir. */
 export function isoLocal(date: Date): string {
@@ -109,45 +125,25 @@ export function periodeAVenir(aujourdHui: Date, mois = 3): { from: string; to: s
   return { from: isoLocal(aujourdHui), to: isoLocal(fin) }
 }
 
+/**
+ * Ce qu'une sortie représente pour la collection, dit comme une action ou un
+ * état - « à acheter » est ce qu'on fait d'un tome qui manque, pas un constat
+ * de manque. Une relation inconnue s'affiche telle quelle plutôt que de
+ * disparaître.
+ */
 export const LIBELLES_RELATION: Record<string, string> = {
   OWNED: 'Possédé',
-  MISSING: 'Manquant',
+  MISSING: 'À acheter',
   WANTED: 'Envie',
 }
 
-/** D'où vient une date - nommée, jamais devinée. Une source inconnue s'affiche telle quelle. */
-export function libelleSource(source: string): string {
-  switch (source) {
-    case 'GOOGLE_BOOKS':
-      return 'Google Books'
-    case 'IGDB':
-      return 'IGDB'
-    case 'MANUAL':
-      return 'Date saisie sur la fiche'
-    default:
-      return source
-  }
-}
-
 /**
- * Ce que le calendrier sait, et ne sait pas, faire pour chaque catégorie -
- * dit par les types eux-mêmes (`hasReleaseSource`), jamais par une liste de
- * codes écrite ici. Vide sans catégorie.
+ * D'aujourd'hui à la veille du même jour l'an prochain, en dates locales - la
+ * fenêtre de la liste de tout ce qui vient. Un jour de moins qu'une année
+ * pleine : le serveur refuse 366 jours et plus, et une année bissextile en
+ * compte 366.
  */
-export function phraseDeCouverture(types: EntityTypeDto[]): string {
-  const avecSource = types.filter((t) => t.hasReleaseSource).map((t) => t.label)
-  const sansSource = types.filter((t) => !t.hasReleaseSource).map((t) => t.label)
-  const phrases: string[] = []
-  if (avecSource.length > 0) {
-    phrases.push(`Les dates de ${enumerer(avecSource)} viennent de leurs sources, pour ce que tu possèdes ou veux.`)
-  }
-  if (sansSource.length > 0) {
-    phrases.push(`Pour ${enumerer(sansSource)}, renseigne « Date de sortie » sur la fiche d'une œuvre.`)
-  }
-  return phrases.join(' ')
-}
-
-function enumerer(libelles: string[]): string {
-  if (libelles.length <= 1) return libelles.join('')
-  return `${libelles.slice(0, -1).join(', ')} et ${libelles[libelles.length - 1]}`
+export function periodeSurUnAn(aujourdHui: Date): { from: string; to: string } {
+  const veille = new Date(aujourdHui.getFullYear() + 1, aujourdHui.getMonth(), aujourdHui.getDate() - 1)
+  return { from: isoLocal(aujourdHui), to: isoLocal(veille) }
 }

@@ -1,5 +1,8 @@
 package com.iozycore.integration;
 
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
+
 import com.iozycore.core.application.auth.AppUserDetailsService;
 import com.iozycore.core.application.auth.Invite;
 import com.iozycore.core.application.auth.Visite;
@@ -86,6 +89,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     @Autowired private EntityRankRepository classements;
     @Autowired private TierListRepository tierLists;
     @Autowired private FollowedEditionRepository editionsSuivies;
+    @Autowired private FollowedWorkRepository oeuvresSuivies;
     @Autowired private EntityRepository catalogue;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ShareSettingsRepository partages;
@@ -98,7 +102,7 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
     void nettoyerEtRefermerLaSession() {
         for (UUID oeuvre : oeuvresCreees) {
             for (String table : List.of("ownership", "experience", "wishlist_entry", "entity_rank",
-                    "followed_edition", "tier_list_item")) {
+                    "followed_edition", "followed_work", "tier_list_item")) {
                 jdbc.update("DELETE FROM " + table + " WHERE entity_id = ?", oeuvre);
             }
             jdbc.update("DELETE FROM entity WHERE id = ?", oeuvre);
@@ -368,5 +372,21 @@ class IsolationParProprietaireTest extends PostgresIntegrationTest {
         connecte(ALICE);
         assertThat(classements.findByEntityId(serie.id())).isPresent();
         assertThat(editionsSuivies.findByEntityId(serie.id())).isPresent();
+    }
+
+    @Test
+    void une_oeuvre_suivie_n_appartient_qu_a_celui_qui_la_suit() {
+        Entity serie = oeuvre("Frieren");
+        connecte(ALICE);
+        oeuvresSuivies.save(FollowedWork.follow(serie.id(), LocalDate.now()));
+
+        connecte(BOB);
+        assertThat(oeuvresSuivies.findByEntityId(serie.id())).isEmpty();
+        assertThat(oeuvresSuivies.findAll()).noneMatch(w -> w.entityId().equals(serie.id()));
+        // Bob « ne suit plus » sans effet sur Alice : le retrait passe par une lecture cloisonnée.
+        oeuvresSuivies.deleteByEntityId(serie.id());
+
+        connecte(ALICE);
+        assertThat(oeuvresSuivies.findByEntityId(serie.id())).isPresent();
     }
 }

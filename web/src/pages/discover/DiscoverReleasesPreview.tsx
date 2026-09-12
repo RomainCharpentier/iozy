@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { getReleaseCalendar } from '@/common/api/insights'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
-import { periodeAVenir, phraseDeCouverture } from '@/common/lib/releaseDate'
+import { periodeAVenir } from '@/common/lib/releaseDate'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ReleaseRow } from '@/common/components/ReleaseRow'
@@ -43,9 +43,7 @@ export function DiscoverReleasesPreview() {
       {calendrierQuery.isSuccess && sorties.length === 0 && (
         <div className={CLASSE_CARTE}>
           <p className="text-sm font-semibold text-textPrimary">Rien d'annoncé pour les trois prochains mois.</p>
-          {typesQuery.data && typesQuery.data.length > 0 && (
-            <p className="mt-2 text-sm text-textDim">{phraseDeCouverture(typesQuery.data)}</p>
-          )}
+          <p className="mt-1 text-sm text-textDim">Suis une œuvre depuis sa fiche pour voir ses sorties ici.</p>
         </div>
       )}
 

@@ -92,7 +92,7 @@ class MangaReleasesTest {
     }
 
     @Test
-    void a_wanted_series_shows_its_most_complete_edition_as_wanted() {
+    void a_followed_series_nobody_owns_shows_its_most_complete_edition_as_missing() {
         Entity spy = serie("Spy x Family", "Endo, Tatsuya");
         cache.store("spy x family", "endo tatsuya",
                 tome("Kurokawa", 14, "2026-10-08", null),
@@ -103,7 +103,7 @@ class MangaReleasesTest {
                 List.of(WishlistEntry.add(spy.id(), LocalDate.now()))));
 
         assertThat(entries).extracting(ReleaseEntry::label).containsExactly("Tome 14 · Kurokawa", "Tome 15 · Kurokawa");
-        assertThat(entries).extracting(ReleaseEntry::relation).containsOnly(ReleaseEntry.Relation.WANTED);
+        assertThat(entries).extracting(ReleaseEntry::relation).containsOnly(ReleaseEntry.Relation.MISSING);
         assertThat(entries.get(1).date()).isEqualTo(ReleaseDate.ofMonth(YearMonth.of(2026, 10)));
     }
 

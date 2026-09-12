@@ -20,6 +20,8 @@ export const queryKeys = {
     from: (entityId: string) => ['relationships', 'from', entityId] as const,
     to: (entityId: string) => ['relationships', 'to', entityId] as const,
   },
+  /** Les œuvres suivies du compte : le troisième état, à côté des possessions et des envies. */
+  followedWorks: { all: ['followedWorks'] as const },
   wishlist: {
     all: ['wishlist'] as const,
 

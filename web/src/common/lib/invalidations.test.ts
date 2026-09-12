@@ -13,7 +13,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { QueryClient } from '@tanstack/react-query'
-import { invaliderApresEnvie, invaliderApresPossession } from './invalidations'
+import { invaliderApresEnvie, invaliderApresPossession, invaliderApresSuivi } from './invalidations'
 import { queryKeys } from './queryKeys'
 
 /** Un client réduit à ce que ces fonctions lui demandent. */
@@ -32,7 +32,9 @@ describe('après une possession', () => {
 
     invaliderApresPossession(client)
 
-    expect(prefixes()).toEqual(['entities', 'ownerships', 'insights/progress'])
+    // Posséder l'œuvre d'une pièce retire le suivi (un état à la fois), et le
+    // calendrier ne montre que le suivi : les deux deviennent faux aussi.
+    expect(prefixes()).toEqual(['entities', 'followedWorks', 'insights/releases', 'ownerships', 'insights/progress'])
   })
 })
 
@@ -46,7 +48,8 @@ describe('après une envie', () => {
 
     invaliderApresEnvie(client)
 
-    expect(prefixes()).toEqual(['wishlist', 'entities', 'insights/progress'])
+    // Vouloir l'œuvre entière retire le suivi : le suivi et le calendrier suivent.
+    expect(prefixes()).toEqual(['wishlist', 'followedWorks', 'insights/releases', 'entities', 'insights/progress'])
   })
 })
 
@@ -58,5 +61,13 @@ describe('les préfixes eux-mêmes', () => {
     expect(queryKeys.entities.detail('berserk').slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.entities.search({ q: 'ber' }).slice(0, 1)).toEqual(queryKeys.entities.all)
     expect(queryKeys.insights.progressOf('berserk').slice(0, 2)).toEqual(queryKeys.insights.progress)
+  })
+})
+
+describe('après un suivi', () => {
+  it('invalide le suivi, l’envie qu’il a pu retirer, le catalogue et le calendrier', () => {
+    const { client, prefixes } = clientEspion()
+    invaliderApresSuivi(client)
+    expect(prefixes()).toEqual(['followedWorks', 'wishlist', 'entities', 'insights/releases'])
   })
 })

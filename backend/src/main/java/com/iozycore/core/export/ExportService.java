@@ -1,5 +1,8 @@
 package com.iozycore.core.export;
 
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
+
 import com.iozycore.core.domain.catalog.Entity;
 import com.iozycore.core.domain.catalog.EntityRepository;
 import com.iozycore.core.domain.catalog.EntityType;
@@ -42,6 +45,7 @@ public class ExportService {
     private final OwnershipRepository ownershipRepository;
     private final ExperienceRepository experienceRepository;
     private final WishlistEntryRepository wishlistEntryRepository;
+    private final FollowedWorkRepository followedWorkRepository;
     private final RelationshipRepository relationshipRepository;
     private final TagRepository tagRepository;
     private final EntityRankRepository entityRankRepository;
@@ -53,6 +57,7 @@ public class ExportService {
     public ExportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
                           OwnershipRepository ownershipRepository, ExperienceRepository experienceRepository,
                           WishlistEntryRepository wishlistEntryRepository,
+                          FollowedWorkRepository followedWorkRepository,
                           RelationshipRepository relationshipRepository, TagRepository tagRepository,
                           EntityRankRepository entityRankRepository,
                           TierListRepository tierListRepository,
@@ -63,6 +68,7 @@ public class ExportService {
         this.ownershipRepository = ownershipRepository;
         this.experienceRepository = experienceRepository;
         this.wishlistEntryRepository = wishlistEntryRepository;
+        this.followedWorkRepository = followedWorkRepository;
         this.relationshipRepository = relationshipRepository;
         this.tagRepository = tagRepository;
         this.entityRankRepository = entityRankRepository;
@@ -100,6 +106,10 @@ public class ExportService {
 
         List<ExportDocument.WishlistEntryExport> wishlistExports = wishlistEntryRepository.findAll().stream()
                 .map(entry -> toWishlistExport(entry, entitiesById, variantLabelsById))
+                .toList();
+
+        List<ExportDocument.FollowedWorkExport> followedWorkExports = followedWorkRepository.findAll().stream()
+                .map(work -> toFollowedWorkExport(work, entitiesById))
                 .toList();
 
         List<ExportDocument.RelationshipExport> relationshipExports = relationshipRepository.findAll().stream()
@@ -150,7 +160,7 @@ public class ExportService {
 
         return new ExportDocument(Instant.now().toString(), entityExports, ownershipExports, experienceExports,
                 wishlistExports, relationshipExports, tagExports, univers.editions(), generalRankExports,
-                tierListExports, univers.marketObservations(), univers.followedEditions(), typeExports,
+                tierListExports, univers.marketObservations(), univers.followedEditions(), followedWorkExports, typeExports,
                 univers.collectorPreferences());
     }
 
@@ -199,6 +209,11 @@ public class ExportService {
         return new ExportDocument.WishlistEntryExport(entry.id(), entry.entityId(),
                 entity != null ? entity.title() : null, variantId,
                 variantId != null ? variantLabelsById.get(variantId) : null, entry.addedAt());
+    }
+
+    private static ExportDocument.FollowedWorkExport toFollowedWorkExport(FollowedWork work, Map<UUID, Entity> entitiesById) {
+        Entity entity = entitiesById.get(work.entityId());
+        return new ExportDocument.FollowedWorkExport(work.entityId(), entity != null ? entity.title() : null, work.followedAt());
     }
 
     private static ExportDocument.RelationshipExport toRelationshipExport(Relationship relationship, Map<UUID, Entity> entitiesById) {
