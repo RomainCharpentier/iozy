@@ -26,6 +26,9 @@ import { queryKeys } from './queryKeys'
  */
 export function invaliderApresPossession(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
+  // Posséder l'œuvre d'une pièce retire le suivi (un état à la fois).
+  queryClient.invalidateQueries({ queryKey: queryKeys.followedWorks.all })
+  queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
   queryClient.invalidateQueries({ queryKey: ['ownerships'] })
   queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
 }
@@ -39,6 +42,17 @@ export function invaliderApresPossession(queryClient: QueryClient) {
  */
 export function invaliderApresEnvie(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
+  // Vouloir l'œuvre entière retire le suivi, et le calendrier ne montre que le suivi.
+  queryClient.invalidateQueries({ queryKey: queryKeys.followedWorks.all })
+  queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
   queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
+}
+
+/** Après avoir suivi ou cessé de suivre une œuvre : l'état, l'envie qu'il a pu retirer, et le calendrier. */
+export function invaliderApresSuivi(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.followedWorks.all })
+  queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all })
+  queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
+  queryClient.invalidateQueries({ queryKey: ['insights', 'releases'] })
 }

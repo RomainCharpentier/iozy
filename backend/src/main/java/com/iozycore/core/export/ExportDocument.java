@@ -35,6 +35,8 @@ public record ExportDocument(
         // l'absence d'enfermement.
         List<MarketObservationExport> marketObservations,
         List<FollowedEditionExport> followedEditions,
+        // Ajoutées le 2026-09-11 avec l'état Suivi : saisi à la main, comme une envie.
+        List<FollowedWorkExport> followedWorks,
         List<EntityTypeExport> entityTypes,
         CollectorPreferencesExport collectorPreferences
 ) {
@@ -79,6 +81,9 @@ public record ExportDocument(
     }
 
     /** Classement général d'une œuvre (échelle S-F), hors Tier List nommée. */
+    public record FollowedWorkExport(UUID entityId, String entityTitle, LocalDate followedAt) {
+    }
+
     public record GeneralRankExport(UUID entityId, String entityTitle, String rank) {
     }
 

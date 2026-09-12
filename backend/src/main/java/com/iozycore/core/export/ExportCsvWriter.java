@@ -65,6 +65,11 @@ public class ExportCsvWriter {
                 w -> List.of(str(w.id()), str(w.entityId()), str(w.entityTitle()), str(w.variantId()),
                         str(w.variantLabel()), str(w.addedAt()))));
 
+        files.put("followed-works.csv", writeCsv(
+                List.of("entityId", "entityTitle", "followedAt"),
+                document.followedWorks(),
+                f -> List.of(str(f.entityId()), str(f.entityTitle()), str(f.followedAt()))));
+
         files.put("relationships.csv", writeCsv(
                 List.of("id", "sourceEntityId", "sourceEntityTitle", "targetEntityId", "targetEntityTitle", "relationshipType"),
                 document.relationships(),

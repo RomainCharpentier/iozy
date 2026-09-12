@@ -1,9 +1,10 @@
-import { ArrowDownWideNarrow, Grid2x2, Heart, Layers, LayoutList } from 'lucide-react'
+import { ArrowDownWideNarrow, CalendarCheck, Grid2x2, Heart, Layers, LayoutList } from 'lucide-react'
 import type { FiltreCollection, TriCollection, VueCollection } from '@/common/lib/preferencesCollection'
 
 const FILTRES: { cle: FiltreCollection; libelle: string }[] = [
   { cle: 'tout', libelle: 'Tout' },
   { cle: 'possedes', libelle: 'Possédés' },
+  { cle: 'suivies', libelle: 'Suivies' },
   { cle: 'envies', libelle: 'Envies' },
 ]
 
@@ -74,6 +75,7 @@ export function BarreVues({
               }`}
             >
               {cle === 'envies' && <Heart size={13} className={actif ? 'fill-current' : undefined} />}
+              {cle === 'suivies' && <CalendarCheck size={13} />}
               {libelle}
               {comptes && <span className={actif ? 'text-textDim' : 'text-faint'}>{comptes[cle]}</span>}
             </button>

@@ -105,6 +105,10 @@ function contentWidthFor(pathname: string): ContentWidth {
   // résumé d'annonce, une liste de tomes en pastilles et des propositions
   // groupées, à l'étroit sur 672 px alors que l'écran est vide autour.
   if (pathname.startsWith('/purchase-analysis')) return 'medium'
+  // Le calendrier des sorties pose une grille de sept colonnes et, à côté,
+  // la liste de tout ce qui vient dans l'année (lot 146) : deux colonnes qui
+  // ne tiennent pas dans 672 px.
+  if (pathname.startsWith('/releases')) return 'medium'
   return 'narrow'
 }
 

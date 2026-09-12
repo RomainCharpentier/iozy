@@ -44,25 +44,44 @@ test('dater une œuvre sur sa fiche, puis la retrouver au calendrier et sur Déc
   await page.getByRole('button', { name: 'Ajouter à ma collection' }).click()
   await expect(page).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
 
+  //     Suivre l'œuvre : c'est CET état qui la met au calendrier - posséder ne suffit pas.
+  await page.getByRole('button', { name: 'Suivre cette œuvre' }).click()
+  await expect(page.getByText('Suivie', { exact: true })).toBeVisible()
+
   // --- 2. La date se saisit avec le reste de la fiche, en un seul « Éditer »
   await page.getByRole('button', { name: 'Éditer', exact: true }).click()
   await page.getByLabel('Date de sortie').fill(iso(SORTIE))
   await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()
+  //     Enregistrer ne referme pas le mode Éditer : le champ montre l'ISO tant
+  //     qu'on y est. Une fois l'enregistrement passé, « Terminer » rend la
+  //     lecture - c'est là que la date se relit.
+  await expect(page.getByRole('button', { name: 'Enregistrer la fiche' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Terminer', exact: true }).click()
 
   //     Et se relit en français, à la même place, sans rechargement.
   const dateLisible = libelle({ day: 'numeric', month: 'long', year: 'numeric' })
   await expect(page.getByText(dateLisible)).toBeVisible()
 
-  // --- 3. Le calendrier la range sous son jour, avec ce qu'elle est pour la collection
+  // --- 3. Le calendrier la met dans sa case, et l'agenda sous son jour, avec ce qu'elle est pour la collection
   const mois = iso(SORTIE).slice(0, 7)
   await page.goto(`/releases?mois=${mois}`)
   const titreDuMois = libelle({ month: 'long', year: 'numeric' })
   await expect(page.getByRole('heading', { name: titreDuMois.charAt(0).toUpperCase() + titreDuMois.slice(1) })).toBeVisible()
-  await expect(page.getByRole('heading', { level: 3, name: libelle({ weekday: 'long', day: 'numeric', month: 'long' }) })).toBeVisible()
+  const jour = libelle({ weekday: 'long', day: 'numeric', month: 'long' })
+  await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
   const ligne = page.getByRole('link', { name: new RegExp(oeuvre) })
   await expect(ligne).toContainText(univers)
-  await expect(ligne).toContainText('Date saisie sur la fiche')
   await expect(ligne).toContainText('Possédé')
+
+  //     Sa case dans la grille dit combien ; la choisir ne garde que ce jour, « Tout le mois » rouvre l'agenda.
+  await page.getByRole('button', { name: `${jour}, 1 sortie` }).click()
+  await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
+  await page.getByRole('button', { name: 'Tout le mois' }).click()
+
+  //     La liste de tout ce qui vient, à côté de la grille, la connaît aussi : la choisir ramène la grille sur son jour.
+  await page.getByRole('complementary', { name: 'À venir' }).getByRole('button', { name: new RegExp(oeuvre) }).click()
+  await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Tout le mois' })).toBeVisible()
 
   //     Le mois d'avant ne la montre pas, et le dit.
   await page.getByRole('button', { name: 'Mois précédent' }).click()

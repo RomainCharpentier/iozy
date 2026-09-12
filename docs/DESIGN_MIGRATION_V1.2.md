@@ -8224,3 +8224,20 @@ La règle du Lot 6 tient : jamais une date approximative. Une année seule
 n'entre pas au calendrier, un mois se lit « date à préciser ». Le panneau
 revient sur Découvrir en quatrième sous-onglet (`DiscoverReleasesPreview`),
 et « Tout voir » mène au calendrier complet (`ReleasesPage`, `/releases`).
+
+Premier retour d'usage (2026-09-10) : une liste des seuls jours qui ont une
+sortie ne fait pas un calendrier. L'écran est repris en **grille mensuelle**
+(lundi en tête, aujourd'hui marqué, jaquettes dans les cases, `GrilleDuMois`)
+avec l'agenda dessous ; les lignes ne nomment plus leur source, « Manquant »
+devient « À acheter », et les quatre sous-onglets de Découvrir tiennent dans la
+largeur d'un téléphone. Dans la foulée, la liste de **tout ce qui vient sur
+un an** prend place à droite de la grille (`ListeAVenir`, page élargie à
+960 px sur desktop) : la grille montre un mois, la liste répond à « qu'est-ce
+qui m'attend ? » sans tourner les pages.
+
+Deuxième retour (2026-09-11) : « dans le calendrier on n'affiche que les
+œuvres suivies - c'est un état comme possédé, une trinité, chaque état est
+unique ». D'où l'état **Suivi** dans le cœur (`followed_work`, `WorkFollowing`),
+le bouton « Suivre » sur toute fiche, le filtre **Suivies** de Ma collection,
+et le calendrier qui ne lit plus que les œuvres suivies : posséder dit ce
+qu'on a, vouloir ce qu'on aimerait, suivre ce dont on attend les sorties.

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Heart, Pencil, Scale } from 'lucide-react'
+import { Heart, Pencil, Scale, CalendarCheck, CalendarPlus } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
 import { tonDe } from './useTeinteJaquette'
@@ -34,6 +34,8 @@ export function FicheHero({
   onCouverture,
   onEvaluer,
   actionEnvies,
+  actionSuivre,
+  etat = null,
   modeEdition = false,
   onBasculerMode,
   editions,
@@ -57,6 +59,11 @@ export function FicheHero({
   /** null pour un type sans notion d'annonce à évaluer, et à l'ajout. */
   onEvaluer?: (() => void) | null
   actionEnvies?: ReactNode
+  /** Le bouton « Suivre » (voir BoutonSuivreHero) ; absent en visite. */
+  actionSuivre?: ReactNode
+  /** Ce que l'œuvre est pour la collection - Suivie, Possédée, Dans mes envies :
+   *  un seul état à la fois ; null quand elle n'est rien de tout ça. */
+  etat?: { libelle: string; couleur: string } | null
   /**
    * Le passage en mode édition, dans l'en-tête de la fiche - donc sur TOUTE
    * fiche, quel que soit son type.
@@ -137,8 +144,16 @@ export function FicheHero({
                 {titre}
               </h1>
               {auteur && <span className="text-[15px] text-textDim">{auteur}</span>}
-              {(statut || annees) && (
+              {(etat || statut || annees) && (
                 <div className="flex flex-wrap items-center gap-4 text-[13.5px]">
+                  {etat && (
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
+                      style={{ color: etat.couleur, background: `color-mix(in srgb, ${etat.couleur} 14%, transparent)` }}
+                    >
+                      {etat.libelle}
+                    </span>
+                  )}
                   {statut && (
                     <span className="inline-flex items-center gap-[7px] font-medium" style={{ color: statut.couleur }}>
                       <span
@@ -154,7 +169,7 @@ export function FicheHero({
               )}
             </div>
 
-            {(onEvaluer || actionEnvies || onBasculerMode) && (
+            {(onEvaluer || actionEnvies || actionSuivre || onBasculerMode) && (
             <div className="flex shrink-0 items-center gap-2">
               {onBasculerMode && (
                 <button
@@ -180,6 +195,7 @@ export function FicheHero({
                 </button>
               )}
               {actionEnvies}
+              {actionSuivre}
             </div>
             )}
           </div>
@@ -218,6 +234,36 @@ export function BoutonEnviesHero({
       }`}
     >
       <Heart size={17} className={dedans ? 'fill-current' : undefined} />
+    </button>
+  )
+}
+
+/** Le bouton « Suivre » du hero : même forme que le bouton des envies, un
+ *  calendrier pour icône - suivre, c'est attendre les sorties. Le nom
+ *  accessible porte l'ACTION ; l'état, lui, se lit dans la pastille du titre. */
+export function BoutonSuivreHero({
+  suivie,
+  onBasculer,
+  disabled,
+}: {
+  suivie: boolean
+  onBasculer: () => void
+  disabled?: boolean
+}) {
+  const libelle = suivie ? 'Ne plus suivre cette œuvre' : 'Suivre cette œuvre'
+  return (
+    <button
+      type="button"
+      onClick={onBasculer}
+      disabled={disabled}
+      aria-label={libelle}
+      aria-pressed={suivie}
+      title={libelle}
+      className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50 ${
+        suivie ? 'bg-accentTint text-accentText' : 'bg-surface text-textDim shadow-token-sm hover:text-accentText'
+      }`}
+    >
+      {suivie ? <CalendarCheck size={17} /> : <CalendarPlus size={17} />}
     </button>
   )
 }

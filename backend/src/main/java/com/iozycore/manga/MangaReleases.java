@@ -99,10 +99,9 @@ public class MangaReleases implements ReleaseSource {
 
         List<ReleaseEntry> entries = new ArrayList<>();
         for (Entity entity : series) {
-            Optional<ReleaseEntry.Relation> seriesRelation = context.relationOf(entity.id());
             StoredVolumeSearch stored = storedByKey.get(StoredVolumeSearch.key(
                     TexteRecherche.normaliser(entity.title()), TexteRecherche.normaliser(authorOf(entity))));
-            if (seriesRelation.isEmpty() || stored == null) {
+            if (stored == null) {
                 continue;
             }
             Map<UUID, Variant> variantsById = entity.variants().stream()
@@ -121,8 +120,9 @@ public class MangaReleases implements ReleaseSource {
                 String key = candidate.key();
                 ReleaseEntry.Relation relation = ownedKeys.contains(key) ? ReleaseEntry.Relation.OWNED
                         : wantedKeys.contains(key) ? ReleaseEntry.Relation.WANTED
-                        : seriesRelation.get() == ReleaseEntry.Relation.OWNED ? ReleaseEntry.Relation.MISSING
-                        : ReleaseEntry.Relation.WANTED;
+                        // La série est suivie : un tome qu'on n'a pas est à acheter, sauf
+                        // celui qu'on a dit vouloir - l'envie d'un tome reste un état du tome.
+                        : ReleaseEntry.Relation.MISSING;
                 entries.add(new ReleaseEntry(date.get(), entity.id(), entity.title(), entity.entityTypeId(),
                         "Tome " + candidate.volumeNumber() + " · " + candidate.edition(), candidate.volumeNumber(),
                         candidate.edition(), candidate.imageUrl() != null ? candidate.imageUrl() : coverOf(entity),

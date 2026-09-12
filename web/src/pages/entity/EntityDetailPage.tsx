@@ -18,6 +18,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { useWishlist } from '@/common/hooks/useWishlist'
+import { useOeuvresSuivies } from '@/common/hooks/useOeuvresSuivies'
 import { gradientFor } from '@/common/theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { creatorFrom } from './creatorInfo'
@@ -29,7 +30,7 @@ import { usePropositionTomes } from './usePropositionTomes'
 import { useTeinteJaquette } from './useTeinteJaquette'
 import { CLASSE_BANDE_PLEINE_LARGEUR, CLASSE_CONTENU_BANDE } from '@/common/components/layout/AppShell'
 import { TierBadge } from '@/common/components/TierBadge'
-import { BoutonEnviesHero, FicheHero } from './FicheHero'
+import { BoutonEnviesHero, BoutonSuivreHero, FicheHero } from './FicheHero'
 import { CartesEditions, type EditionAffichee } from './CartesEditions'
 import { GrilleTomes, type FiltreTomes } from './GrilleTomes'
 import { ChampInspecteur, ColonneSource, InspecteurFiche, RangeeDateDeSortie, RangeeInspecteur, ReleveInspecteur } from './InspecteurFiche'
@@ -92,6 +93,7 @@ export function EntityDetailPage() {
   // raccourci disparaît alors, la page reste entière.
   const retour = retourDepuis(useLocation().state)
   const wishlist = useWishlist()
+  const suivis = useOeuvresSuivies()
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
@@ -504,6 +506,18 @@ export function EntityDetailPage() {
   }
   const jaquettesManquantes = variantsMissingCover(entity).length
   const dansEnvies = !!wishlist.entryFor(entityId)
+  const suivie = suivis.estSuivie(entityId)
+  const possedee = ownerships.some((o) => o.status === 'OWNED')
+  // Un seul état à la fois (Possédé / Suivi / Envie). Suivie l'emporte à
+  // l'affichage : on suit ce qu'on collectionne encore, même avec des tomes en
+  // main ; puis possédée ; puis voulue.
+  const etatCollection = suivie
+    ? { libelle: 'Suivie', couleur: 'var(--color-accentText)' }
+    : possedee
+      ? { libelle: 'Possédée', couleur: 'var(--color-ok)' }
+      : dansEnvies
+        ? { libelle: 'Dans mes envies', couleur: 'var(--color-warning)' }
+        : null
   const tomesVoulus = wishlist.variantsVoulus
 
   // `totalVolumes` SEUL, jamais le nombre de tomes catalogués en repli : ce
@@ -602,6 +616,12 @@ export function EntityDetailPage() {
             <BoutonEnviesHero dedans={dansEnvies} onBasculer={() => void basculerEnvies()} disabled={wishlist.isPending} />
           )
         }
+        actionSuivre={
+          estInvite ? null : (
+            <BoutonSuivreHero suivie={suivie} onBasculer={() => suivis.basculer(entityId)} disabled={suivis.isPending} />
+          )
+        }
+        etat={etatCollection}
         modeEdition={modeEdition}
         onBasculerMode={estInvite ? undefined : basculerModeEdition}
         editions={

@@ -31,8 +31,9 @@ import { useFiltresCollection } from './useFiltresCollection'
  */
 const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n: number) => string>> = {
   groupee: {
-    tout: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
+    tout: (n) => `titre${n > 1 ? 's' : ''}`,
     possedes: (n) => `titre${n > 1 ? 's' : ''} possédé${n > 1 ? 's' : ''}`,
+    suivies: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
     envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
   },
   // Sans nom d'objet en vue dégroupée : « tome » ne vaut que pour un manga, et
@@ -41,6 +42,7 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
   plate: {
     tout: (n) => `possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
     possedes: (n) => `possédé${n > 1 ? 's' : ''}`,
+    suivies: () => 'suivis',
     envies: () => 'dans mes envies',
   },
 }
@@ -49,6 +51,12 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
   if (filtresActifs) {
     return { titre: 'Rien ne correspond à ces filtres.', detail: '' }
+  }
+  if (filtre === 'suivies') {
+    return {
+      titre: 'Aucune œuvre suivie.',
+      detail: 'Sur une fiche, « Suivre cette œuvre » la fera apparaître ici, et ses sorties au calendrier.',
+    }
   }
   if (filtre === 'envies') {
     return {
@@ -114,6 +122,7 @@ export function ShelfPage() {
     progression,
     owned,
     oeuvresVoulues,
+    oeuvresSuivies,
     tomesVoulus,
     wishlist,
   } = donnees
@@ -121,8 +130,8 @@ export function ShelfPage() {
   // L'état de chaque œuvre, calculé une fois : les trois compteurs de la barre
   // et la liste affichée le lisent tous, au lieu de le redériver chacun.
   const etats = useMemo(
-    () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues)])),
-    [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues],
+    () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)])),
+    [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
   )
 
   const venues = useMemo(() => indexerVenues(ownerships, wishlist.entries), [ownerships, wishlist.entries])
@@ -172,7 +181,7 @@ export function ShelfPage() {
         ? retenues.length
         : aplatirEnElements(retenues, filtre, contexteAplatissement).length
     }
-    return { tout: compter('tout'), possedes: compter('possedes'), envies: compter('envies') }
+    return { tout: compter('tout'), possedes: compter('possedes'), suivies: compter('suivies'), envies: compter('envies') }
   }, [retenuesPour, preferences.vue, contexteAplatissement])
 
   const triees = useMemo(
@@ -183,6 +192,7 @@ export function ShelfPage() {
   const envieDe = useMemo(
     () => (entity: EntityResponse) => ({
       possede: etats.get(entity.id)?.possede ?? false,
+      suivi: etats.get(entity.id)?.suivi ?? false,
       tomesVoulus:
         entity.variants.filter((v) => tomesVoulus.has(v.id)).length + (oeuvresVoulues.has(entity.id) ? 1 : 0),
       prioritaire: preferences.filtre === 'envies',

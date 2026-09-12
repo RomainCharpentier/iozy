@@ -27,7 +27,7 @@ class VideoGameReleasesTest {
     private static final LocalDate NOVEMBER_30 = LocalDate.of(2026, 11, 30);
 
     @Test
-    void dates_the_owned_and_wanted_games_known_to_igdb_in_one_call() {
+    void dates_the_followed_games_known_to_igdb_in_one_call_owned_or_not() {
         Entity owned = game("Hollow Knight: Silksong", "1942");
         Entity wanted = game("Tunic 2", "7346");
         Entity byHand = game("Saisi à la main", null);
@@ -57,7 +57,8 @@ class VideoGameReleasesTest {
         assertThat(silksong.source()).isEqualTo("IGDB");
         assertThat(silksong.label()).isEmpty();
         ReleaseEntry tunic = entries.stream().filter(e -> e.entityId().equals(wanted.id())).findFirst().orElseThrow();
-        assertThat(tunic.relation()).isEqualTo(ReleaseEntry.Relation.WANTED);
+        // Suivi mais pas possédé : à acheter. L'envie n'est plus un état de l'œuvre au calendrier.
+        assertThat(tunic.relation()).isEqualTo(ReleaseEntry.Relation.MISSING);
     }
 
     @Test

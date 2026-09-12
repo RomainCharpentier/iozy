@@ -57,7 +57,7 @@ describe('DiscoverReleasesPreview', () => {
     })
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
 
-    expect(await screen.findByRole('link', { name: /14 nov\..*Silksong.*Jeu vidéo.*IGDB.*Envie/ })).toHaveAttribute('href', '/entity/Silksong')
+    expect(await screen.findByRole('link', { name: /14 nov\..*Silksong.*Jeu vidéo.*Envie/ })).toHaveAttribute('href', '/entity/Silksong')
     expect(screen.getByRole('link', { name: /Tunic 2/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Trois/ })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Quatre/ })).not.toBeInTheDocument()
@@ -68,11 +68,11 @@ describe('DiscoverReleasesPreview', () => {
     expect(to > from).toBe(true)
   })
 
-  it('dit quand rien n’est annoncé, et d’où viendraient les dates', async () => {
+  it('dit quand rien n’est annoncé, et comment suivre une œuvre', async () => {
     insights.getReleaseCalendar.mockResolvedValue({ from: '', to: '', entries: [] })
     render(<DiscoverReleasesPreview />, { wrapper: enrobage })
 
     expect(await screen.findByText("Rien d'annoncé pour les trois prochains mois.")).toBeInTheDocument()
-    expect(await screen.findByText(/Les dates de Jeu vidéo viennent de leurs sources/)).toBeInTheDocument()
+    expect(screen.getByText("Suis une œuvre depuis sa fiche pour voir ses sorties ici.")).toBeInTheDocument()
   })
 })

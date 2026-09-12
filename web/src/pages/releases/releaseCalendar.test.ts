@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { bornesDuMois, compterParCategorie, moisDepuisParametre, moisPrecedent, moisSuivant, rangerParJour } from './releaseCalendar'
+import {
+  bornesDuMois,
+  cleDeSortie,
+  compterParCategorie,
+  grilleDuMois,
+  grouperParMois,
+  moisDepuisParametre,
+  moisPrecedent,
+  moisSuivant,
+  rangerParJour,
+} from './releaseCalendar'
 import type { ReleaseEntryDto } from '@/common/types/api'
 
 function sortie(date: string, precision: 'DAY' | 'MONTH' = 'DAY', entityTypeId = 'type-manga'): ReleaseEntryDto {
@@ -35,6 +45,42 @@ describe('le mois regardé', () => {
   })
 })
 
+describe('grilleDuMois', () => {
+  it('commence le lundi, complète les semaines avec les mois voisins, et s’arrête à la dernière', () => {
+    // Septembre 2026 commence un mardi et finit un mercredi.
+    const semaines = grilleDuMois('2026-09')
+
+    expect(semaines).toHaveLength(5)
+    expect(semaines[0].map((c) => c.iso)).toEqual([
+      '2026-08-31',
+      '2026-09-01',
+      '2026-09-02',
+      '2026-09-03',
+      '2026-09-04',
+      '2026-09-05',
+      '2026-09-06',
+    ])
+    expect(semaines[0][0]).toEqual({ iso: '2026-08-31', jour: 31, horsMois: true })
+    expect(semaines[0][1]).toEqual({ iso: '2026-09-01', jour: 1, horsMois: false })
+    expect(semaines[4][6]).toEqual({ iso: '2026-10-04', jour: 4, horsMois: true })
+    expect(semaines.flat().filter((c) => !c.horsMois)).toHaveLength(30)
+  })
+
+  it('tient en quatre semaines pleines quand le mois s’y prête, six quand il déborde', () => {
+    // Février 2027 : 28 jours, du lundi 1er au dimanche 28.
+    const court = grilleDuMois('2027-02')
+    expect(court).toHaveLength(4)
+    expect(court[0][0].iso).toBe('2027-02-01')
+    expect(court.flat().some((c) => c.horsMois)).toBe(false)
+
+    // Janvier 2000 commence un samedi : cinq jours de décembre devant, six lignes.
+    const long = grilleDuMois('2000-01')
+    expect(long).toHaveLength(6)
+    expect(long[0][0].iso).toBe('1999-12-27')
+    expect(long[5][6].iso).toBe('2000-02-06')
+  })
+})
+
 describe('rangerParJour', () => {
   it('groupe par jour dans l’ordre reçu, et met à part ce qui n’a pas de jour', () => {
     const range = rangerParJour([
@@ -58,5 +104,25 @@ describe('rangerParJour', () => {
       ['type-manga', 2],
       ['type-jeu', 1],
     ])
+  })
+
+  it('distingue deux tomes d’une même œuvre par leur clé', () => {
+    const base = sortie('2026-10-02')
+    expect(cleDeSortie(base)).not.toBe(cleDeSortie({ ...base, label: 'Tome 73 · Kana' }))
+    expect(cleDeSortie(base)).toBe(cleDeSortie({ ...base }))
+  })
+})
+
+describe('grouperParMois', () => {
+  it('range dans l’ordre du calendrier, mois par mois, les dates à préciser en fin de mois', () => {
+    const mars = sortie('2026-03-19')
+    const fevrierAPreciser = sortie('2026-02', 'MONTH')
+    const fevrier = sortie('2026-02-03')
+    const groupes = grouperParMois([mars, fevrierAPreciser, fevrier])
+
+    expect(groupes.map((g) => g.mois)).toEqual(['2026-02', '2026-03'])
+    expect(groupes[0].entries).toEqual([fevrier, fevrierAPreciser])
+    expect(groupes[1].entries).toEqual([mars])
+    expect(grouperParMois([])).toEqual([])
   })
 })

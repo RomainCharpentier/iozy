@@ -16,7 +16,7 @@ const TABS: { id: DiscoverTab; label: string; icon: typeof Sparkles }[] = [
   { id: 'sorties', label: 'Sorties', icon: CalendarDays },
 ]
 
-/** Sous 1100px (mobile ou desktop étroit) : 3 sous-onglets, un seul panneau
+/** Sous 1100px (mobile ou desktop étroit) : 4 sous-onglets, un seul panneau
  * visible à la fois (role="tab"/aria-selected - le seul jeu d'onglets de
  * l'application). À partir de 1100px sur desktop : composition
  * éditoriale réelle - Tier Lists sur ~62%, Opportunités à côté (bordure de
@@ -66,7 +66,11 @@ export function DiscoverPage() {
         <ChevronRight size={16} className="shrink-0 text-textDim" />
       </Link>
 
-      <div role="tablist" className="defilement-discret flex gap-1 overflow-x-auto border-b border-surface2 min-[1100px]:hidden">
+      {/* Quatre onglets qui tiennent TOUS dans la largeur d'un téléphone : une
+          colonne chacun, l'icône au-dessus du libellé sous 640 px. La rangée
+          défilante d'avant coupait le quatrième hors écran (lot 146) - un
+          onglet qu'on ne voit pas n'existe pas. */}
+      <div role="tablist" className="grid grid-cols-4 border-b border-surface2 min-[1100px]:hidden">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -74,7 +78,7 @@ export function DiscoverPage() {
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`flex min-h-[46px] shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 text-sm font-semibold transition-colors ${
+            className={`flex min-h-[52px] flex-col items-center justify-center gap-1 border-b-2 px-1 pb-1.5 text-[11px] font-semibold transition-colors sm:min-h-[46px] sm:flex-row sm:gap-2 sm:text-sm ${
               tab === id ? 'border-accent text-accentText' : 'border-transparent text-textDim'
             }`}
           >

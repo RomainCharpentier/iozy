@@ -10,6 +10,8 @@ import com.iozycore.core.domain.ownership.OwnershipCondition;
 import com.iozycore.core.domain.ownership.OwnershipRepository;
 import com.iozycore.core.domain.wishlist.WishlistEntry;
 import com.iozycore.core.domain.wishlist.WishlistEntryRepository;
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -37,9 +39,10 @@ class ReleaseCalendarServiceTest {
     private final InMemoryEntityRepository entities = new InMemoryEntityRepository();
     private final InMemoryOwnershipRepository ownerships = new InMemoryOwnershipRepository();
     private final InMemoryWishlistEntryRepository wishlist = new InMemoryWishlistEntryRepository();
+    private final InMemoryFollowedWorkRepository followed = new InMemoryFollowedWorkRepository();
 
     private ReleaseCalendarService service(ReleaseSource... sources) {
-        return new ReleaseCalendarService(types, entities, ownerships, wishlist, List.of(sources));
+        return new ReleaseCalendarService(types, entities, ownerships, wishlist, followed, List.of(sources));
     }
 
     // ------------------------------------------------------------ Les dates saisies sur une fiche
@@ -48,6 +51,7 @@ class ReleaseCalendarServiceTest {
     void lists_a_hand_written_release_date_of_an_owned_work_of_any_category() {
         Entity game = boardGame("Ark Nova", "2026-10-14");
         ownerships.save(Ownership.acquire(game.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        suivre(game);
 
         ReleaseCalendar calendar = service().releasesBetween(OCTOBER_1, OCTOBER_31);
 
@@ -64,29 +68,33 @@ class ReleaseCalendarServiceTest {
     }
 
     @Test
-    void a_wanted_work_is_listed_as_wanted_and_a_month_precision_is_kept() {
+    void a_followed_work_nobody_owns_is_listed_as_missing_and_a_month_precision_is_kept() {
         Entity game = boardGame("Dune Imperium", "2026-10");
-        wishlist.save(WishlistEntry.add(game.id(), LocalDate.now()));
+        suivre(game);
 
         ReleaseCalendar calendar = service().releasesBetween(OCTOBER_1, OCTOBER_31);
 
         assertThat(calendar.entries()).singleElement().satisfies(entry -> {
-            assertThat(entry.relation()).isEqualTo(ReleaseEntry.Relation.WANTED);
+            assertThat(entry.relation()).isEqualTo(ReleaseEntry.Relation.MISSING);
             assertThat(entry.date().precision()).isEqualTo(ReleaseDate.Precision.MONTH);
         });
     }
 
     @Test
-    void ignores_dates_outside_the_period_and_years_alone_and_works_nobody_holds_or_wants() {
+    void ignores_dates_outside_the_period_and_years_alone_and_works_nobody_follows() {
         Entity inNovember = boardGame("Trop tard", "2026-11-02");
         ownerships.save(Ownership.acquire(inNovember.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         Entity yearOnly = boardGame("Juste une année", "2026");
         ownerships.save(Ownership.acquire(yearOnly.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
-        boardGame("Ni possédé ni voulu", "2026-10-10");
+        Entity notFollowed = boardGame("Possédé mais pas suivi", "2026-10-10");
+        ownerships.save(Ownership.acquire(notFollowed.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         Entity sold = boardGame("Revendu", "2026-10-12");
         Ownership soldOwnership = Ownership.acquire(sold.id(), null, OwnershipCondition.USED, LocalDate.now(), null);
         soldOwnership.markSold();
         ownerships.save(soldOwnership);
+
+        // Le revendu n'est pas suivi : suivi, il s'afficherait « à acheter », et ce serait juste.
+        suivre(inNovember, yearOnly);
 
         assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries()).isEmpty();
     }
@@ -97,6 +105,7 @@ class ReleaseCalendarServiceTest {
         game.setAttribute("coverImageUrl", "https://img/ark-nova.jpg");
         entities.save(game);
         ownerships.save(Ownership.acquire(game.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        suivre(game);
 
         assertThat(service().releasesBetween(OCTOBER_1, OCTOBER_31).entries().get(0).coverImageUrl())
                 .isEqualTo("https://img/ark-nova.jpg");
@@ -110,6 +119,7 @@ class ReleaseCalendarServiceTest {
         Entity ark = boardGame("Ark Nova", null);
         ownerships.save(Ownership.acquire(naruto.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         ownerships.save(Ownership.acquire(ark.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        suivre(naruto, ark);
         RecordingSource mangaSource = new RecordingSource("MANGA");
         RecordingSource gameSource = new RecordingSource("VIDEO_GAME");
 
@@ -122,7 +132,7 @@ class ReleaseCalendarServiceTest {
         assertThat(context.activeOwnerships()).extracting(Ownership::entityId).containsExactly(naruto.id());
         assertThat(context.from()).isEqualTo(OCTOBER_1);
         assertThat(context.to()).isEqualTo(OCTOBER_31);
-        // Aucun jeu vidéo possédé : la source n'est pas dérangée.
+        // Aucun jeu vidéo suivi : la source n'est pas dérangée.
         assertThat(gameSource.contexts).isEmpty();
     }
 
@@ -132,6 +142,7 @@ class ReleaseCalendarServiceTest {
         Entity ark = boardGame("Ark Nova", "2026-10-14");
         ownerships.save(Ownership.acquire(naruto.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         ownerships.save(Ownership.acquire(ark.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+        suivre(naruto, ark);
         RecordingSource mangaSource = new RecordingSource("MANGA",
                 tome(naruto, 73, LocalDate.of(2026, 10, 14)),
                 tome(naruto, 72, LocalDate.of(2026, 10, 2)));
@@ -144,7 +155,7 @@ class ReleaseCalendarServiceTest {
     }
 
     @Test
-    void reads_nothing_and_asks_nobody_when_nothing_is_owned_nor_wanted() {
+    void reads_nothing_and_asks_nobody_when_nothing_is_followed() {
         manga("Naruto");
         RecordingSource mangaSource = new RecordingSource("MANGA");
 
@@ -160,6 +171,7 @@ class ReleaseCalendarServiceTest {
         for (int i = 0; i < 40; i++) {
             Entity serie = manga("Série " + i);
             ownerships.save(Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
+            suivre(serie);
         }
 
         service(new RecordingSource("MANGA")).releasesBetween(OCTOBER_1, OCTOBER_31);
@@ -167,6 +179,7 @@ class ReleaseCalendarServiceTest {
         assertThat(entities.readsByType).isEqualTo(types.findAll().size());
         assertThat(ownerships.reads).isEqualTo(1);
         assertThat(wishlist.reads).isEqualTo(1);
+        assertThat(followed.reads).isEqualTo(1);
     }
 
     @Test
@@ -206,6 +219,13 @@ class ReleaseCalendarServiceTest {
             entity.setAttribute(ReleaseCalendarService.RELEASE_DATE_ATTRIBUTE, releaseDate);
         }
         return entities.save(entity);
+    }
+
+    /** Suivre : ce qui met une œuvre au calendrier, quoi qu'on en possède. */
+    private void suivre(Entity... oeuvres) {
+        for (Entity oeuvre : oeuvres) {
+            followed.save(FollowedWork.follow(oeuvre.id(), LocalDate.now()));
+        }
     }
 
     private static ReleaseEntry tome(Entity serie, int number, LocalDate day) {
@@ -388,6 +408,33 @@ class ReleaseCalendarServiceTest {
         @Override
         public void deleteById(UUID id) {
             store.remove(id);
+        }
+    }
+
+    private static class InMemoryFollowedWorkRepository implements FollowedWorkRepository {
+        private final Map<UUID, FollowedWork> store = new HashMap<>();
+        int reads;
+
+        @Override
+        public FollowedWork save(FollowedWork work) {
+            store.put(work.id(), work);
+            return work;
+        }
+
+        @Override
+        public Optional<FollowedWork> findByEntityId(UUID entityId) {
+            return store.values().stream().filter(w -> w.entityId().equals(entityId)).findFirst();
+        }
+
+        @Override
+        public List<FollowedWork> findAll() {
+            reads++;
+            return new ArrayList<>(store.values());
+        }
+
+        @Override
+        public void deleteByEntityId(UUID entityId) {
+            store.values().removeIf(w -> w.entityId().equals(entityId));
         }
     }
 }

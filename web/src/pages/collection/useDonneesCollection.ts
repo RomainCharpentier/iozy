@@ -6,6 +6,7 @@ import { listEntityTypes } from '@/common/api/entityTypes'
 import { getCollectionProgress } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { useWishlist } from '@/common/hooks/useWishlist'
+import { useOeuvresSuivies } from '@/common/hooks/useOeuvresSuivies'
 import { indexerProgression } from './shelfTiles'
 import { ownedVariantIds } from '@/common/lib/ownership'
 import type {
@@ -42,6 +43,7 @@ const AUCUNE_PROGRESSION: CollectionProgressDto[] = []
  */
 export function useDonneesCollection() {
   const wishlist = useWishlist()
+  const suivis = useOeuvresSuivies()
 
   const entitiesQuery = useQuery({
     queryKey: queryKeys.entities.search({}),
@@ -64,6 +66,7 @@ export function useDonneesCollection() {
     [progressQuery.data],
   )
   const owned = useMemo(() => ownedVariantIds(ownerships), [ownerships])
+  const oeuvresSuivies = useMemo(() => new Set(suivis.suivies.map((s) => s.entityId)), [suivis.suivies])
   const oeuvresVoulues = useMemo(
     () => new Set(wishlist.entries.filter((e) => !e.variantId).map((e) => e.entityId)),
     [wishlist.entries],
@@ -76,6 +79,7 @@ export function useDonneesCollection() {
     progression,
     owned,
     oeuvresVoulues,
+    oeuvresSuivies,
     tomesVoulus: wishlist.variantsVoulus,
     wishlist,
     /**

@@ -1,5 +1,8 @@
 package com.iozycore.integration.http;
 
+import com.iozycore.core.domain.follow.FollowedWork;
+import com.iozycore.core.domain.follow.FollowedWorkRepository;
+
 import com.iozycore.core.application.QuickAddService;
 import com.iozycore.core.domain.catalog.EntityTypeFixtures;
 import com.iozycore.core.domain.ownership.OwnershipCondition;
@@ -36,6 +39,8 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
 
     @Autowired
     private WishlistEntryRepository wishlistEntryRepository;
+    @Autowired
+    private FollowedWorkRepository followedWorkRepository;
 
     @Test
     void lists_a_hand_dated_owned_work_with_everything_the_calendar_page_needs() throws Exception {
@@ -43,6 +48,8 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
         QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.BOARD_GAME.id(), title, OwnershipCondition.NEW,
                 Map.of("releaseDate", "2026-10-14", "coverImageUrl", "https://img/ark-nova.jpg"));
+        // Possédée ne suffit plus : c'est SUIVIE qui met une œuvre au calendrier.
+        followedWorkRepository.save(FollowedWork.follow(result.entityId(), LocalDate.now()));
 
         mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
                 .andExpect(status().isOk())
@@ -67,12 +74,11 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
     }
 
     @Test
-    void a_wanted_work_dated_to_a_month_is_listed_as_wanted_at_month_precision() throws Exception {
+    void a_followed_work_dated_to_a_month_is_listed_at_month_precision() throws Exception {
         String title = "Dune Imperium " + UUID.randomUUID();
         QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
                 EntityTypeFixtures.BOARD_GAME.id(), title, OwnershipCondition.NEW, Map.of("releaseDate", "2026-11"));
-        // Un exemplaire est né avec la fiche : l'œuvre est possédée ET voulue, et possédée l'emporte.
-        wishlistEntryRepository.save(WishlistEntry.add(result.entityId(), LocalDate.now()));
+        followedWorkRepository.save(FollowedWork.follow(result.entityId(), LocalDate.now()));
 
         mockMvc.perform(get("/api/insights/releases").param("from", "2026-11-01").param("to", "2026-11-30"))
                 .andExpect(status().isOk())
@@ -109,5 +115,16 @@ class ReleaseCalendarHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$[?(@.code == 'VIDEO_GAME')].hasReleaseSource").value(true))
                 // BoardGameGeek ne date qu'à l'année : rien d'automatique, seulement la fiche.
                 .andExpect(jsonPath("$[?(@.code == 'BOARD_GAME')].hasReleaseSource").value(false));
+    }
+
+    @Test
+    void an_owned_work_nobody_follows_stays_out_of_the_calendar() throws Exception {
+        QuickAddService.QuickAddResult result = quickAddService.addNewEntityWithOwnership(
+                EntityTypeFixtures.BOARD_GAME.id(), "Pas suivi " + UUID.randomUUID(), OwnershipCondition.NEW,
+                Map.of("releaseDate", "2026-10-20"));
+
+        mockMvc.perform(get("/api/insights/releases").param("from", "2026-10-01").param("to", "2026-10-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[?(@.entityId == '" + result.entityId() + "')]").doesNotExist());
     }
 }

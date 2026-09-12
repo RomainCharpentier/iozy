@@ -1,5 +1,7 @@
 package com.iozycore.manga.api;
 
+import com.iozycore.core.application.WorkFollowing;
+
 import com.iozycore.manga.api.FollowedEditionDtos.FollowEditionRequest;
 import com.iozycore.manga.api.FollowedEditionDtos.FollowedEditionResponse;
 import com.iozycore.core.domain.catalog.EntityRepository;
@@ -27,11 +29,14 @@ public class FollowedEditionController {
 
     private final FollowedEditionRepository followedEditionRepository;
     private final EntityRepository entityRepository;
+    private final WorkFollowing workFollowing;
 
     public FollowedEditionController(FollowedEditionRepository followedEditionRepository,
-                                     EntityRepository entityRepository) {
+                                     EntityRepository entityRepository,
+                                     WorkFollowing workFollowing) {
         this.followedEditionRepository = followedEditionRepository;
         this.entityRepository = entityRepository;
+        this.workFollowing = workFollowing;
     }
 
     /**
@@ -49,7 +54,11 @@ public class FollowedEditionController {
         FollowedEdition aEnregistrer = followedEditionRepository.findByEntityId(request.entityId())
                 .map(existante -> existante.suivreALaPlace(request.editionName()))
                 .orElseGet(() -> FollowedEdition.create(request.entityId(), request.editionName()));
-        return FollowedEditionResponse.from(followedEditionRepository.save(aEnregistrer));
+        FollowedEditionResponse reponse = FollowedEditionResponse.from(followedEditionRepository.save(aEnregistrer));
+        // Suivre une édition, c'est suivre la série (l'état Suivi du cœur) : c'est
+        // ce qui la fait entrer au calendrier des sorties.
+        workFollowing.follow(request.entityId());
+        return reponse;
     }
 
     @Operation(summary = "Ne plus suivre d'édition pour cette série")
