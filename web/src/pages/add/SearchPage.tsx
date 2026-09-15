@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
+import { Camera, Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
 import { listTags } from '@/common/api/tags'
@@ -351,7 +351,12 @@ export function SearchPage() {
           Administration, ce qui n'a jamais eu de sens : récupérer ses jeux
           depuis BoardGameGeek, c'est AJOUTER à sa collection - la même
           intention que taper un titre ou scanner un code-barres, avec une
-          troisième source. Rien d'administratif là-dedans. */}
+          troisième source. Rien d'administratif là-dedans.
+
+          L'import depuis une photo de l'étagère (lot 147) est la quatrième :
+          la maquette d'origine prévoyait déjà « photo » parmi les façons
+          d'ajouter, le moteur de lecture existait pour les annonces, il ne
+          manquait que la porte. */}
       {/* Les deux mènent à des écrans d'AJOUT, fermés à un visiteur (voir
           lib/accesInvite) : les lui proposer l'aurait renvoyé ici sans un mot,
           ce qui se lit comme une panne. C'est la règle générale de cette
@@ -371,6 +376,13 @@ export function SearchPage() {
           >
             <Upload size={16} />
             Importer depuis BGG
+          </Link>
+          <Link
+            to="/import-photo"
+            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm transition-transform hover:-translate-y-0.5"
+          >
+            <Camera size={16} />
+            Importer depuis une photo
           </Link>
         </div>
       )}

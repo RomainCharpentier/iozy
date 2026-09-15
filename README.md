@@ -44,7 +44,7 @@ Le backend est un **modulith DDD** découpé par type de collection
 | Module | Contenu |
 |---|---|
 | `core` | Ce qui vaut pour tous les types : catalogue générique (œuvres, tomes, types), possessions, envies, tier lists, comptes, partage, export, statistiques, calendrier des sorties, annonces, et les **points d'extension** que les univers implémentent |
-| `manga` | Tomes et éditions françaises, éditions suivies, progression, sources (AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), dates de parution des tomes pour le calendrier des sorties (relues la nuit pour les séries en cours), analyse d'achat d'un lot, reconnaissance des piles |
+| `manga` | Tomes et éditions françaises, éditions suivies, progression, sources (AniList, Jikan, MyAnimeList, Google Books, BnF, Open Library), dates de parution des tomes pour le calendrier des sorties (relues la nuit pour les séries en cours), analyse d'achat d'un lot, reconnaissance des piles, import de l'étagère depuis des photos |
 | `videogame` | IGDB : recherche, jeux similaires pour Découvrir, dates de sortie pour le calendrier |
 | `boardgame` | BoardGameGeek, import d'une collection, hot list pour Découvrir |
 | `custom` | Les types de collection définis dans iozycore, sans fournisseur : saisie à la main, base iozycore seule |

@@ -233,7 +233,7 @@ Navigation par onglets : Étagères / Recherche / Wishlist / Statistiques. Fiche
 
 - **V1 (MVP)** : cœur fonctionnel, 3 types, sans IA.
 - **V2** : éditeur de types dynamique, app Web, calcul automatique de valeur, premières briques IA (OCR, reconnaissance code-barres avancée).
-- **V3** : requêtes en langage naturel, reconnaissance d'image IA, relations enrichies (sagas, adaptations), nouveaux modules (Voyages, Restaurants, Objets de collection).
+- **V3** : requêtes en langage naturel, reconnaissance d'image IA (livrée pour le manga : photos d'annonce, puis import de l'étagère, lot 147), relations enrichies (sagas, adaptations), nouveaux modules (Voyages, Restaurants, Objets de collection).
 
 ---
 

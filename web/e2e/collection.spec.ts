@@ -72,8 +72,10 @@ test('créer un univers, y ajouter une œuvre, et la retrouver plutôt que la du
   //     est tombée le jour où un parcours au nom alphabétiquement antérieur
   //     est arrivé. Un test dont la vérité dépend de l'ordre des fichiers ne
   //     vérifie pas ce qu'il croit.
+  //     Et depuis le lot « Suivre » (e4dd418), le décompte de la vue « Tout »
+  //     dit « N titres » tout court - « suivis » est devenu un filtre à part.
   await page.goto('/')
-  await expect(page.getByText(/\d+ titres? suivis?/)).toBeVisible()
+  await expect(page.getByText(/\d+ titres?( ·|$)/)).toBeVisible()
   await expect(page.getByRole('heading', { name: univers })).toBeVisible()
   await expect(page.getByRole('button', { name: new RegExp(`^${univers} 1 Tout voir$`) })).toBeVisible()
   // La tuile porte le titre ET son état : « Possédé » plutôt qu'un décompte de

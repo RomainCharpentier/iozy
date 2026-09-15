@@ -14,6 +14,7 @@ describe('ce qu’une visite ne peut pas atteindre', () => {
   it('ferme les écrans dont le sujet est d’écrire', () => {
     expect(estReserveeAuxComptes('/scan')).toBe(true)
     expect(estReserveeAuxComptes('/import-bgg')).toBe(true)
+    expect(estReserveeAuxComptes('/import-photo')).toBe(true)
     // Chaque étape d'une analyse est un POST, dont certains sortent chez un
     // fournisseur ou chez un modèle : une porte ouverte à tout Internet n'a
     // pas à offrir ça.

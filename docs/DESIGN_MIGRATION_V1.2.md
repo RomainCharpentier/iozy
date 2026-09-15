@@ -8241,3 +8241,61 @@ unique ». D'où l'état **Suivi** dans le cœur (`followed_work`, `WorkFollowin
 le bouton « Suivre » sur toute fiche, le filtre **Suivies** de Ma collection,
 et le calendrier qui ne lit plus que les œuvres suivies : posséder dit ce
 qu'on a, vouloir ce qu'on aimerait, suivre ce dont on attend les sorties.
+
+### Lot 147 — Importer depuis une photo de l'étagère
+
+La matrice (ligne « Recherche », Lot 5) citait quatre façons d'ajouter dans
+la maquette d'origine : scan, annonce, lot, **photo**. Les trois premières
+existaient ; la quatrième attendait un moteur. Or ce moteur est là depuis
+l'analyse d'annonce (`docs/LISTING_RECOGNITION.md`) et avait été écrit
+générique — « la même mécanique servira une photo de bibliothèque ». Ce lot
+ne lit donc rien de nouveau : il ouvre la porte, et écrit derrière.
+
+- **Ce que l'étagère ajoute à la lecture** (`manga/shelfimport/ShelfImportService`) :
+  sur une annonce on se demande ce qu'on achèterait, sur son étagère ce qu'on
+  a déjà. Chaque tome lu porte donc `alreadyOwned` — une possession active de
+  ce numéro, quelle que soit l'édition, parce qu'une tranche lue de travers
+  coûte moins qu'un doublon — et une série absente du catalogue reçoit la
+  fiche que le Catalogue créerait (`proposal` : titre exact d'abord, sinon
+  tous les mots lus ; 20 recherches par analyse au plus, le reste est dit).
+- **Deux temps, comme l'import d'un export** : `POST /api/shelf-import/analyze-photos`
+  (multipart, n'écrit rien) puis `POST /api/shelf-import/apply` (une
+  transaction, l'ajout rapide tome par tome, `ALREADY_OWNED` revérifié au
+  moment d'écrire). Le serveur ne garde rien entre les deux : l'écran renvoie
+  ce qu'il a montré — titre, numéro, édition, fiche gardée ou non.
+- **L'écran** (`pages/import-photo/ImportPhotoPage`, `/import-photo`, réservé
+  aux comptes) reprend la forme du panneau d'annonce — une série par groupe,
+  tomes en pastilles, édition une fois par série — et y ajoute : possédé =
+  coché et inerte, « tome non lu » = un numéro à saisir, fiche proposée avec
+  jaquette, gardée ou écartée. Quatrième porte du Catalogue, à côté de
+  Scanner et de l'import BGG.
+- **Mutualisé au passage** : `common/lib/reconnaissance` (mots de la
+  confiance, phrase de chaque issue de lecture, identité d'un candidat) et
+  `common/lib/photosAAnalyser` (tri par taille et nombre, plus la
+  **réduction** d'une photo de téléphone trop lourde : 2400, 1800 puis
+  1400 px). L'analyse d'annonce les utilise aussi désormais : ses photos de
+  plus de 3 Mo sont réduites au lieu d'être écartées.
+
+Règles tenues : rien de ce que l'IA lit n'est écrit sans geste (le garde-fou
+de la Phase 2) ; les photos quittent la machine et le sous-titre le dit avant
+le choix des fichiers ; sans clé Gemini, l'écran dit « non configurée » et
+les codes-barres visibles restent lus en local. Tests : 13 unitaires
+(`ShelfImportServiceTest`), 5 de contrat HTTP, 4 sur l'écran, 6 sur le tri
+des photos ; frontières de modules inchangées (`ModulesTest`).
+
+Vérifié en direct (2026-09-15) sur la pile jetable avec le vrai moteur (clé
+passée par un fichier d'override, jamais dans `docker-compose.e2e.yml`) et
+une **étagère synthétique** — huit tranches HTML rendues en PNG, aucune donnée
+réelle : Naruto 1-3, Bleach 1, One Piece 5-6 et Death Note 7 lus en
+confiance élevée avec leur éditeur (« KANA (lu sur la photo) »), les quatre
+fiches proposées par les sources avec jaquette, Fullmetal Alchemist en
+confiance moyenne sans numéro (« tome non lu, n° »). Import : 7 tomes,
+4 séries créées, jaquettes sur Ma collection. La même photo relue :
+« 8 tomes lus, dont 7 déjà possédés », rien à ajouter. Lecture en 9 à 18 s ;
+mobile 390 px sans débordement. Deux corrections nées de cette passe : le
+serveur ne pré-coche jamais une série hors catalogue (règle du lot
+d'annonce), c'est donc l'écran qui coche une lecture sûre d'une série
+nouvelle — sinon « Ajouter 0 tome » sur une étagère entière ; et la lecture
+précédente s'efface dès qu'une nouvelle photo part, sans quoi l'écran
+montrait, le temps de la lecture, des tomes « à ajouter » qui venaient
+d'être importés.

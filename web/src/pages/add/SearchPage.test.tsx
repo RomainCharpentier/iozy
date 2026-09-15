@@ -87,6 +87,8 @@ describe('les façons d’ajouter', () => {
     // Sous Administration jusqu'au 2026-08-29 : récupérer ses jeux depuis
     // BoardGameGeek, c'est ajouter à sa collection, pas administrer.
     expect(screen.getByRole('link', { name: 'Importer depuis BGG' })).toHaveAttribute('href', '/import-bgg')
+    // La quatrième façon d'ajouter (lot 147) : lire une photo de l'étagère.
+    expect(screen.getByRole('link', { name: 'Importer depuis une photo' })).toHaveAttribute('href', '/import-photo')
   })
 })
 
