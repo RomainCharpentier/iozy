@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, ArrowLeft, Camera, Check, HelpCircle, X } from 'lucide-react'
 import { analyserLEtagere, importerDepuisLEtagere } from '@/common/api/shelfImport'
 import { preparerLesPhotos } from '@/common/lib/photosAAnalyser'
 import { resumerNumeros } from '@/common/lib/numerosDeTomes'
+import { PhotoAnnotee, type Cadre, type EtatCadre } from './PhotoAnnotee'
+import { ValidationUnParUn, type Extrait } from './ValidationUnParUn'
 import {
   COULEURS_CONFIANCE,
   LIBELLES_CONFIANCE,
@@ -91,6 +93,15 @@ function pluriel(n: number, un: string, plusieurs: string): string {
   return n > 1 ? plusieurs : un
 }
 
+/** Une URL locale pour montrer la photo - vide là où le navigateur ne sait pas en fabriquer (jsdom). */
+function creerUrl(fichier: File): string {
+  return typeof URL.createObjectURL === 'function' ? URL.createObjectURL(fichier) : ''
+}
+
+function revoquerUrl(url: string) {
+  if (url && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url)
+}
+
 export function ImportPhotoPage() {
   const queryClient = useQueryClient()
   const champFichiers = useRef<HTMLInputElement | null>(null)
@@ -108,7 +119,13 @@ export function ImportPhotoPage() {
    * relire noir sur blanc ce qui partirait. Le bouton du premier écran ne
    * fait que passer au second ; seul celui de la relecture écrit.
    */
-  const [etape, setEtape] = useState<'verification' | 'relecture'>('verification')
+  const [etape, setEtape] = useState<'verification' | 'unparun' | 'relecture'>('verification')
+  /** Les photos envoyées, telles que le navigateur peut les montrer : des URLs locales, révoquées quand on en change. */
+  const [urls, setUrls] = useState<string[]>([])
+  const [tailles, setTailles] = useState<Record<number, { w: number; h: number }>>({})
+  /** L'extrait en cours dans la validation un par un. */
+  const [pas, setPas] = useState(0)
+  useEffect(() => () => urls.forEach(revoquerUrl), [urls])
 
   const lecture = useMutation({
     mutationFn: analyserLEtagere,
@@ -119,6 +136,7 @@ export function ImportPhotoPage() {
       setFichesChoisies({})
       setGroupesRetires({})
       setEtape('verification')
+      setPas(0)
     },
   })
 
@@ -142,6 +160,8 @@ export function ImportPhotoPage() {
         // pendant la nouvelle ferait relire des tomes d'une autre photo, ou
         // d'avant l'import - « déjà possédé » y serait faux.
         setResultat(null)
+        setUrls(retenues.map(creerUrl))
+        setTailles({})
         importation.reset()
         lecture.mutate(retenues)
       }
@@ -288,6 +308,73 @@ export function ImportPhotoPage() {
   const dejaPossedes = lignes.filter((ligne) => ligne.entree.alreadyOwned).length
   const enCours = lecture.isPending || importation.isPending
 
+  // ------------------------------------------- Les cadres sur la photo, les extraits
+
+  /** L'état d'un tome, le même sur sa pastille et sur son cadre. */
+  function etatDe(ligne: Ligne): EtatCadre {
+    if (ligne.entree.alreadyOwned) return 'possede'
+    if (numeroDe(ligne) === null) return 'sansNumero'
+    return estCoche(ligne) ? 'coche' : 'decoche'
+  }
+
+  /** Les lignes encore à l'écran, avec leur série - une série retirée emporte ses cadres. */
+  const lignesEnPlace = lignes.flatMap((ligne) => {
+    const groupe = groupes.find((g) => g.lignes.includes(ligne))
+    return groupe ? [{ ligne, groupe }] : []
+  })
+
+  /** Un cadre par tome que le moteur a su situer, photo par photo. */
+  const cadresParPhoto = new Map<number, Cadre[]>()
+  for (const { ligne, groupe } of lignesEnPlace) {
+    const numero = numeroDe(ligne)
+    for (const box of ligne.entree.item.boxes) {
+      const cadre: Cadre = {
+        cle: ligne.cle,
+        libelle: numero === null ? '?' : `T${numero}`,
+        titre: groupe.titre,
+        etat: etatDe(ligne),
+        box,
+        indice: ligne.entree.item.evidence.join(' · ') || undefined,
+      }
+      cadresParPhoto.set(box.image, [...(cadresParPhoto.get(box.image) ?? []), cadre])
+    }
+  }
+  const nombreDePhotos = Math.max(urls.length, ...[...cadresParPhoto.keys()].map((i) => i + 1), 0)
+
+  /**
+   * Ce que la validation un par un fait défiler : par photo, de gauche à
+   * droite - l'ordre d'une rangée - puis ce que le moteur n'a pas su situer.
+   * Un tome déjà possédé n'a rien à valider.
+   */
+  const extraits: Extrait[] = lignesEnPlace
+    .filter(({ ligne }) => !ligne.entree.alreadyOwned)
+    .map(({ ligne, groupe }) => ({
+      cle: ligne.cle,
+      titre: groupe.titre,
+      numero: numeroDe(ligne),
+      editionLue: ligne.entree.item.editionHint,
+      confiance: ligne.entree.item.confidence,
+      indice: ligne.entree.item.evidence.join(' · '),
+      box: ligne.entree.item.boxes[0] ?? null,
+      etat: etatDe(ligne),
+    }))
+    .sort((a, b) => {
+      if (!a.box || !b.box) return Number(!a.box) - Number(!b.box)
+      return a.box.image - b.box.image || a.box.left - b.box.left
+    })
+
+  /** Un clic sur un cadre : la pastille bascule ; sans numéro, la revue s'ouvre sur ce livre pour le saisir. */
+  function basculerCadre(cadre: Cadre) {
+    const place = lignesEnPlace.find(({ ligne }) => ligne.cle === cadre.cle)
+    if (!place || cadre.etat === 'possede') return
+    if (cadre.etat === 'sansNumero') {
+      setPas(Math.max(0, extraits.findIndex((extrait) => extrait.cle === cadre.cle)))
+      setEtape('unparun')
+      return
+    }
+    corriger(cadre.cle, estCoche(place.ligne) ? { decoche: true, coche: false } : { coche: true, decoche: false })
+  }
+
   const messageVision =
     resultat && !(resultat.visionStatus === 'NOTHING_RECOGNIZED' && resultat.items.length > 0)
       ? MESSAGES_VISION[resultat.visionStatus]
@@ -344,6 +431,23 @@ export function ImportPhotoPage() {
 
       {importation.data ? (
         <Rapport rapport={importation.data} />
+      ) : resultat && etape === 'unparun' ? (
+        <ValidationUnParUn
+          extraits={extraits}
+          index={pas}
+          urls={urls}
+          tailles={tailles}
+          onConfirmer={(cle, numero) => {
+            corriger(cle, numero === null ? { coche: true, decoche: false } : { coche: true, decoche: false, numero })
+            setPas((p) => p + 1)
+          }}
+          onEcarter={(cle) => {
+            corriger(cle, { decoche: true, coche: false })
+            setPas((p) => p + 1)
+          }}
+          onAller={(index) => setPas(Math.max(0, index))}
+          onTerminer={() => setEtape('verification')}
+        />
       ) : resultat && etape === 'relecture' ? (
         <Relecture
           series={relecture}
@@ -382,6 +486,37 @@ export function ImportPhotoPage() {
                 {resultat.requestedImageCount - resultat.analyzedImageCount} photo(s) sur{' '}
                 {resultat.requestedImageCount} n’étaient pas lisibles.
               </p>
+            )}
+
+            {/* La photo, avec un cadre là où chaque livre a été vu : la pastille
+                posée sur l'image. Un clic coche ou décoche, comme sur la
+                pastille ; « Valider un par un » fait défiler chaque cadre en
+                gros plan avec ce qui en a été lu. */}
+            {nombreDePhotos > 0 && lignes.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: nombreDePhotos }, (_, i) => (
+                  <PhotoAnnotee
+                    key={i}
+                    src={urls[i] ?? ''}
+                    numero={i + 1}
+                    cadres={cadresParPhoto.get(i) ?? []}
+                    taille={tailles[i]}
+                    onBasculer={basculerCadre}
+                    onTaille={(taille) => setTailles((prev) => ({ ...prev, [i]: taille }))}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPas(0)
+                    setEtape('unparun')
+                  }}
+                  disabled={extraits.length === 0}
+                  className="min-h-11 self-start rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-40"
+                >
+                  Valider un par un ({extraits.length})
+                </button>
+              </div>
             )}
 
             <>

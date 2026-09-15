@@ -114,6 +114,10 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.items[0].item.entityId").value(serie.id().toString()))
                 .andExpect(jsonPath("$.items[0].alreadyOwned").value(false))
                 .andExpect(jsonPath("$.items[0].proposal").doesNotExist())
+                // Où le livre a été vu : de quoi dessiner un cadre sur la photo.
+                .andExpect(jsonPath("$.items[0].item.boxes[0].image").value(0))
+                .andExpect(jsonPath("$.items[0].item.boxes[0].top").value(0.1))
+                .andExpect(jsonPath("$.items[0].item.boxes[0].right").value(0.3))
                 .andExpect(jsonPath("$.notInCatalogCount").value(0))
                 .andExpect(jsonPath("$.analyzedImageCount").value(1))
                 .andExpect(jsonPath("$.requestedImageCount").value(1))

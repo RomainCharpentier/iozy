@@ -1013,7 +1013,10 @@ l'écran le dit.
 téléphone trop lourde est réduite avant l'envoi) → lecture → vérifier : tomes
 en pastilles par série, possédés cochés et inertes, « tome non lu » à
 numéroter, « tout cocher / tout décocher » par série pour qui préfère cocher à
-la main, l'indice de lecture au survol de chaque pastille, édition une fois
+la main, l'indice de lecture au survol de chaque pastille, **la photo avec un
+cadre par tome situé** (même état, même geste que la pastille) et **« Valider
+un par un »** : chaque cadre en gros plan avec ce qui en a été lu, à confirmer,
+corriger ou écarter, de gauche à droite ; édition une fois
 par série, fiche proposée pour une série nouvelle (gardée ou écartée ; un
 simple premier résultat de recherche est une « fiche possible », à prendre
 d'un clic) → « Vérifier l'ajout de N tomes » → **relecture** : ce qui sera

@@ -8347,3 +8347,24 @@ réessaie désormais un 503 ou un 429 jusqu'à trois tentatives (1,5 s puis
 3 s d'attente), pour tous les appels Gemini - photos, fiches d'édition, prix -
 et rend tout autre statut tel quel. Quatre tests (`GeminiRequestsTest`) avec
 des réponses scriptées, sans réseau.
+
+**« Montrer la photo et ce qu'on en extrait, des carrés, valider un par un »**
+(retour du 2026-09-15, soir). La vérification se faisait sur une liste ; la
+photo, elle, restait dans le téléphone. Trois pièces :
+
+- **le moteur situe chaque livre** : le prompt demande `box_2d`
+  (`[ymin, xmin, ymax, xmax]` en millièmes, la convention Gemini) et
+  `boxImage` ; `RecognizedBox` (fractions de 0 à 1, bornées, jamais vide)
+  voyage dans `RecognizedItem.boxes`, se fusionne photo par photo dans
+  `mergedWith`, et sort dans `RecognizedItemResponse.boxes`. Un cadre absent
+  ou malformé ne coûte que le cadre - la lecture reste entière ;
+- **la photo annotée** (`PhotoAnnotee`) : la pastille du tome posée sur
+  l'image, même état (coché, décoché, possédé, numéro non lu), même geste ;
+  l'URL locale de la photo vient de `URL.createObjectURL`, révoquée quand on
+  en change ;
+- **valider un par un** (`ValidationUnParUn`) : chaque cadre en gros plan -
+  la photo en fond, agrandie et décalée sur le cadre (`recadrage.ts`, testé
+  sans navigateur) - avec ce qui en a été lu, confiance et indice ; on
+  confirme, on corrige le numéro, on écarte, puis le suivant, de gauche à
+  droite, photo par photo. Rien n'est écrit : chaque geste coche ou décoche
+  la pastille, la relecture avant écriture reste le seul passage obligé.

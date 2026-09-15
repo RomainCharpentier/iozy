@@ -74,7 +74,9 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                   "ean": "<code EAN/ISBN si tu lis distinctement ses chiffres, sinon null>",
                   "confidence": "<HIGH, MEDIUM ou LOW>",
                   "evidence": "<en 6 mots maximum, ce que tu vois qui justifie ta réponse>",
-                  "sourceImages": [<index des photos où tu le vois>]
+                  "sourceImages": [<index des photos où tu le vois>],
+                  "boxImage": <index de la photo où tu le vois le mieux>,
+                  "box_2d": [<ymin>, <xmin>, <ymax>, <xmax>]
                 }
               ],
               "unidentifiedCount": <nombre de livres visibles que tu n'arrives PAS à identifier>
@@ -87,6 +89,9 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             - volumeNumber null est une bonne réponse quand le numéro n'est pas lisible. Ne le devine pas.
             - editionHint null est une bonne réponse. Ne choisis pas une édition parce qu'elle est courante.
             - confidence HIGH seulement si titre ET numéro sont nettement lisibles.
+            - box_2d : le rectangle qui entoure CE livre sur la photo boxImage, en millièmes de sa hauteur et de \
+            sa largeur (0 à 1000), dans l'ordre [ymin, xmin, ymax, xmax]. Serré sur le livre lui-même : ni son \
+            voisin, ni la rangée entière. Si tu ne sais pas le situer, mets box_2d à null.
             - Rien ne t'est dit du contenu attendu : décris uniquement ce que tu vois.""";
 
     @Value("${gemini.api-key:}")
@@ -138,7 +143,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             }
 
             String json = GeminiRequests.extractText(objectMapper, response.body());
-            return json == null ? RecognitionResult.unavailable() : parse(json);
+            return json == null ? RecognitionResult.unavailable() : parse(objectMapper, json);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -151,7 +156,8 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
         }
     }
 
-    private RecognitionResult parse(String json) throws Exception {
+    /** Package-private et statique : la lecture du JSON se teste sans réseau. */
+    static RecognitionResult parse(ObjectMapper objectMapper, String json) throws Exception {
         JsonNode root = objectMapper.readTree(json);
         List<RecognizedItem> items = new ArrayList<>();
 
@@ -162,6 +168,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                 // identifié gonflerait le lot d'une ligne vide.
                 continue;
             }
+            Set<Integer> photos = indexPhotos(node);
             items.add(RecognizedItem.fromVision(
                     titre,
                     entier(node, "volumeNumber"),
@@ -169,7 +176,8 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                     eanValide(texte(node, "ean")),
                     confiance(texte(node, "confidence")),
                     evidence(node),
-                    indexPhotos(node)));
+                    photos,
+                    boites(node, photos)));
         }
 
         int nonIdentifies = Math.max(0, root.path("unidentifiedCount").asInt(0));
@@ -214,6 +222,34 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             }
         }
         return index;
+    }
+
+    /**
+     * Le cadre du livre, si le modèle a su le situer : {@code box_2d} en
+     * millièmes, sur la photo {@code boxImage} - à défaut la première des
+     * photos où il dit l'avoir vu. Quatre nombres ou rien : un tableau
+     * incomplet, un texte, un rectangle sans surface ne donnent pas de cadre,
+     * et la lecture reste entière sans lui.
+     */
+    private static List<com.iozycore.manga.recognition.RecognizedBox> boites(JsonNode node, Set<Integer> photos) {
+        JsonNode boite = node.path("box_2d");
+        if (!boite.isArray() || boite.size() != 4) {
+            return List.of();
+        }
+        for (JsonNode valeur : boite) {
+            if (!valeur.isNumber()) {
+                return List.of();
+            }
+        }
+        Integer image = entier(node, "boxImage");
+        if (image == null || image < 0) {
+            image = photos.isEmpty() ? 0 : photos.iterator().next();
+        }
+        return com.iozycore.manga.recognition.RecognizedBox
+                .fromThousandths(image, boite.get(0).asDouble(), boite.get(1).asDouble(), boite.get(2).asDouble(),
+                        boite.get(3).asDouble())
+                .map(List::of)
+                .orElse(List.of());
     }
 
     private static String texte(JsonNode node, String champ) {

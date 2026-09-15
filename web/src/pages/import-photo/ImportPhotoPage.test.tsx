@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { ImportPhotoPage } from './ImportPhotoPage'
-import type { RecognizedItemDto } from '@/common/types/listingRecognition'
+import type { BoxDto, RecognizedItemDto } from '@/common/types/listingRecognition'
 import type { FicheProposeeDto, ShelfAnalysisDto, ShelfItemDto } from '@/common/types/shelfImport'
 
 const api = vi.hoisted(() => ({ analyserLEtagere: vi.fn(), importerDepuisLEtagere: vi.fn() }))
@@ -32,6 +32,7 @@ function lu(titre: string, tome: number | null, extra: Partial<RecognizedItemDto
     sourceLabels: ['photos'],
     evidence: [`Chiffre ${tome ?? '?'} sur la tranche`],
     sourceImages: [0],
+    boxes: [],
     catalogStatus: 'MATCHED',
     entityId: 'naruto-id',
     editionOptions: [],
@@ -50,11 +51,21 @@ const FICHE_BLEACH: FicheProposeeDto = {
 }
 
 /** Une série nouvelle, lue sûrement, avec sa fiche retrouvée par le titre. */
-function nouvelle(titre: string, tome: number | null, fiche: FicheProposeeDto | null = FICHE_BLEACH): ShelfItemDto {
+/** Un cadre sur la photo 1, entre deux fractions de sa largeur - une tranche, haute et étroite, sauf dit autrement. */
+function cadre(left: number, right: number, top = 0.1, bottom = 0.9): BoxDto {
+  return { image: 0, top, left, bottom, right }
+}
+
+function nouvelle(
+  titre: string,
+  tome: number | null,
+  fiche: FicheProposeeDto | null = FICHE_BLEACH,
+  boxes: BoxDto[] = [],
+): ShelfItemDto {
   return {
     // Le serveur ne pré-coche jamais une série hors catalogue (règle du lot
     // d'annonce) : sur une étagère, c'est l'écran qui coche la lecture sûre.
-    item: lu(titre, tome, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false }),
+    item: lu(titre, tome, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false, boxes }),
     alreadyOwned: false,
     proposal: fiche,
     proposalByTitle: fiche !== null,
@@ -69,10 +80,21 @@ const LECTURE: ShelfAnalysisDto = {
   requestedImageCount: 1,
   lookupsSkipped: 0,
   items: [
-    { item: lu('Naruto', 4, { editionHint: 'Kana' }), alreadyOwned: true, proposal: null, proposalByTitle: false },
-    { item: lu('Naruto', 5, { editionHint: 'Kana' }), alreadyOwned: false, proposal: null, proposalByTitle: false },
-    nouvelle('Bleach', 1),
-    nouvelle('Bleach', null),
+    {
+      item: lu('Naruto', 4, { editionHint: 'Kana', boxes: [cadre(0, 0.1)] }),
+      alreadyOwned: true,
+      proposal: null,
+      proposalByTitle: false,
+    },
+    {
+      item: lu('Naruto', 5, { editionHint: 'Kana', boxes: [cadre(0.1, 0.2)] }),
+      alreadyOwned: false,
+      proposal: null,
+      proposalByTitle: false,
+    },
+    nouvelle('Bleach', 1, FICHE_BLEACH, [cadre(0.2, 0.3)]),
+    // Une couverture posée de face : large, donc étiquette à l'horizontale.
+    nouvelle('Bleach', null, FICHE_BLEACH, [cadre(0.3, 0.6, 0.5, 0.9)]),
   ],
 }
 
@@ -167,6 +189,60 @@ describe('ce que la photo montre', () => {
 
     expect(await screen.findByRole('button', { name: 'Masked (lu sur la photo)' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Standard' })).toBeInTheDocument()
+  })
+
+  it('pose un cadre par tome sur la photo, dans l’état de sa pastille, et un clic le bascule', async () => {
+    const user = await envoyerUnePhoto()
+
+    const cadreT5 = await screen.findByRole('checkbox', { name: 'T5 de Naruto sur la photo 1' })
+    expect(cadreT5).toBeChecked()
+    expect(cadreT5).toHaveAttribute('title', 'Chiffre 5 sur la tranche')
+    // Une tranche est bien plus haute que large : son étiquette se lit de haut
+    // en bas ; une couverture posée de face garde la sienne à l'horizontale.
+    expect(within(cadreT5).getByText('T5')).toHaveClass('[writing-mode:vertical-rl]')
+    const cadreCouverture = screen.getByRole('checkbox', { name: '? de Bleach sur la photo 1' })
+    expect(within(cadreCouverture).getByText('?')).not.toHaveClass('[writing-mode:vertical-rl]')
+    const cadrePossede = screen.getByRole('checkbox', { name: 'T4 de Naruto sur la photo 1, déjà possédé' })
+    expect(cadrePossede).toBeChecked()
+    expect(cadrePossede).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: '? de Bleach sur la photo 1' })).not.toBeChecked()
+
+    await user.click(cadreT5)
+
+    expect(cadreT5).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'T5 de Naruto' })).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Vérifier l’ajout de 1 tome' })).toBeEnabled()
+  })
+
+  it('fait valider les extraits un par un : confirmer, écarter, saisir un numéro, puis revenir', async () => {
+    const user = await envoyerUnePhoto()
+    await user.click(await screen.findByRole('button', { name: 'Valider un par un (3)' }))
+
+    // Naruto T5 d'abord : c'est le cadre le plus à gauche des non possédés.
+    expect(await screen.findByText('Extrait 1 sur 3 : le morceau de photo, et ce qui en a été lu.')).toBeInTheDocument()
+    expect(screen.getByText('Naruto')).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Numéro du tome' })).toHaveValue(5)
+    await user.click(screen.getByRole('button', { name: 'Écarter' }))
+
+    expect(await screen.findByText('Extrait 2 sur 3 : le morceau de photo, et ce qui en a été lu.')).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Numéro du tome' })).toHaveValue(1)
+    await user.click(screen.getByRole('button', { name: 'C’est bien ça' }))
+
+    // Le tome non lu : rien à confirmer tant qu'un numéro n'est pas saisi.
+    expect(await screen.findByText('Extrait 3 sur 3 : le morceau de photo, et ce qui en a été lu.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'C’est bien ça' })).toBeDisabled()
+    await user.type(screen.getByRole('spinbutton', { name: 'Numéro du tome' }), '2')
+    await user.click(screen.getByRole('button', { name: 'C’est bien ça' }))
+
+    expect(await screen.findByText('Tout est passé en revue')).toBeInTheDocument()
+    expect(screen.getByText(/2 confirmés, 1 écarté/)).toBeInTheDocument()
+    expect(api.importerDepuisLEtagere).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Revenir à la vue d’ensemble' }))
+
+    // Naruto écarté, Bleach 1 et 2 confirmés : deux tomes à ajouter.
+    expect(await screen.findByRole('button', { name: 'Vérifier l’ajout de 2 tomes' })).toBeEnabled()
+    expect(screen.getByRole('checkbox', { name: 'T5 de Naruto' })).not.toBeChecked()
   })
 
   it('dit quand le moteur n’est pas configuré, sans rien proposer', async () => {

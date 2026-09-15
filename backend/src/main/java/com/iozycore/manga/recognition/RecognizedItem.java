@@ -39,10 +39,12 @@ import java.util.TreeSet;
  * @param evidence        pourquoi cet élément est proposé, en clair - peut être vide
  * @param sourceImages    index des photos qui l'ont soutenu, 0-based. <b>Vide</b> pour une
  *                        proposition venue du seul texte : on ne lui invente pas une photo
+ * @param boxes           où il a été vu sur ces photos - au plus une boîte par photo, souvent
+ *                        aucune : le texte et les codes-barres n'ont pas de place sur une image
  */
 public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String editionHint, String ean,
                               RecognitionConfidence confidence, Set<RecognitionSource> sources,
-                              List<String> evidence, Set<Integer> sourceImages) {
+                              List<String> evidence, Set<Integer> sourceImages, List<RecognizedBox> boxes) {
 
     /** Au-delà, c'est une lecture erronée, pas un tome - même borne que ListingTextParser. */
     public static final int NUMERO_DE_TOME_MAX = 300;
@@ -76,6 +78,14 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         sourceImages = sourceImages == null
                 ? Set.of()
                 : Collections.unmodifiableSet(new LinkedHashSet<>(new TreeSet<>(sourceImages)));
+        boxes = boxes == null ? List.of() : List.copyOf(boxes);
+    }
+
+    /** Sans boîte : ce que le texte et les codes-barres produisent, et ce que la plupart des tests construisent. */
+    public RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String editionHint, String ean,
+                          RecognitionConfidence confidence, Set<RecognitionSource> sources,
+                          List<String> evidence, Set<Integer> sourceImages) {
+        this(seriesTitleRaw, volumeNumber, editionHint, ean, confidence, sources, evidence, sourceImages, List.of());
     }
 
     private static String blankToNull(String valeur) {
@@ -111,6 +121,14 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
                                              Set<Integer> sourceImages) {
         return new RecognizedItem(seriesTitle, volumeNumber, editionHint, ean, confidence,
                 EnumSet.of(RecognitionSource.VISION), evidence, sourceImages);
+    }
+
+    /** La lecture d'une photo, avec l'endroit où le moteur a vu le livre. */
+    public static RecognizedItem fromVision(String seriesTitle, Integer volumeNumber, String editionHint, String ean,
+                                             RecognitionConfidence confidence, List<String> evidence,
+                                             Set<Integer> sourceImages, List<RecognizedBox> boxes) {
+        return new RecognizedItem(seriesTitle, volumeNumber, editionHint, ean, confidence,
+                EnumSet.of(RecognitionSource.VISION), evidence, sourceImages, boxes);
     }
 
     /**
@@ -159,6 +177,11 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
         Set<Integer> images = new TreeSet<>(sourceImages);
         images.addAll(autre.sourceImages());
 
+        // Vu sur deux photos : deux cadres, un par photo. Le même cadre deux
+        // fois (la même lecture rendue deux fois) ne compte qu'une fois.
+        List<RecognizedBox> boites = new ArrayList<>(boxes);
+        autre.boxes().stream().filter(boite -> !boites.contains(boite)).forEach(boites::add);
+
         List<String> raisons = new ArrayList<>(evidence);
         autre.evidence().stream().filter(raison -> !raisons.contains(raison)).forEach(raisons::add);
 
@@ -176,6 +199,7 @@ public record RecognizedItem(String seriesTitleRaw, Integer volumeNumber, String
                 confidence.higherOf(autre.confidence()),
                 provenances,
                 raisons,
-                images);
+                images,
+                boites);
     }
 }
