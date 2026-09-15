@@ -62,15 +62,18 @@ public class ShelfImportController {
     }
 
     /**
-     * @param item         la lecture, telle que l'analyse d'annonce la rend - même forme, même écran
-     * @param alreadyOwned un exemplaire de ce numéro est encore possédé : coché et inerte à l'écran
-     * @param proposal     la fiche proposée pour une série inconnue, ou null
+     * @param item            la lecture, telle que l'analyse d'annonce la rend - même forme, même écran
+     * @param alreadyOwned    un exemplaire de ce numéro est encore possédé : coché et inerte à l'écran
+     * @param proposal        la fiche proposée pour une série inconnue, ou null
+     * @param proposalByTitle vrai si le titre de la fiche correspond à ce qui a été lu (gardée
+     *                        d'office) ; faux si elle n'est que le premier résultat de la
+     *                        recherche (montrée, gardée seulement sur un geste)
      */
     public record ShelfItemResponse(RecognitionController.RecognizedItemResponse item, boolean alreadyOwned,
-                                    ProposalResponse proposal) {
+                                    ProposalResponse proposal, boolean proposalByTitle) {
         static ShelfItemResponse from(ShelfItem item) {
             return new ShelfItemResponse(RecognitionController.RecognizedItemResponse.from(item.resolved()),
-                    item.alreadyOwned(), ProposalResponse.from(item.proposal()));
+                    item.alreadyOwned(), ProposalResponse.from(item.proposal()), item.proposalByTitle());
         }
     }
 

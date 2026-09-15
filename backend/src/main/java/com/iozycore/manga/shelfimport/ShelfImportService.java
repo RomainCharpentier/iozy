@@ -175,7 +175,7 @@ public class ShelfImportService {
         Optional<EntityType> manga = catalogue.mangaType();
 
         Map<UUID, Set<Integer>> numerosPossedes = new HashMap<>();
-        Map<String, Optional<MetadataCandidate>> fichesParTitre = new LinkedHashMap<>();
+        Map<String, Optional<Proposition>> fichesParTitre = new LinkedHashMap<>();
         int recherchesSautees = 0;
 
         List<ShelfItem> items = new ArrayList<>(analyse.items().size());
@@ -184,20 +184,21 @@ public class ShelfImportService {
                     && numerosPossedes.computeIfAbsent(item.entityId(), this::numerosPossedes)
                             .contains(item.recognized().volumeNumber());
 
-            MetadataCandidate fiche = null;
+            Proposition fiche = null;
             if (item.catalogStatus() == CatalogStatus.NOT_IN_CATALOG && manga.isPresent()) {
                 String cle = TexteRecherche.normaliser(item.displayTitle());
                 if (fichesParTitre.containsKey(cle)) {
                     fiche = fichesParTitre.get(cle).orElse(null);
                 } else if (fichesParTitre.size() < RECHERCHES_MAX) {
-                    Optional<MetadataCandidate> trouvee = proposerUneFiche(manga.get(), item.displayTitle());
+                    Optional<Proposition> trouvee = proposerUneFiche(manga.get(), item.displayTitle());
                     fichesParTitre.put(cle, trouvee);
                     fiche = trouvee.orElse(null);
                 } else {
                     recherchesSautees++;
                 }
             }
-            items.add(new ShelfItem(item, possede, fiche));
+            items.add(new ShelfItem(item, possede, fiche == null ? null : fiche.fiche(),
+                    fiche != null && fiche.parLeTitre()));
         }
 
         return new ShelfAnalysis(analyse.visionStatus(), items, analyse.unidentifiedCount(),
@@ -256,7 +257,18 @@ public class ShelfImportService {
      * plus lâche : une fiche fausse proposée avec assurance coûte plus qu'une
      * série créée avec son seul titre.
      */
-    private Optional<MetadataCandidate> proposerUneFiche(EntityType manga, String titreLu) {
+    /**
+     * @param fiche      la fiche proposée
+     * @param parLeTitre vrai quand son titre correspond à ce qui a été lu ; faux
+     *                   quand elle n'est que le premier résultat de la recherche
+     */
+    record Proposition(MetadataCandidate fiche, boolean parLeTitre) {
+    }
+
+    /** En deçà, un titre lu est trop vague pour qu'un premier résultat de recherche vaille quelque chose. */
+    static final int MOTS_MIN_POUR_LE_PREMIER_RESULTAT = 2;
+
+    private Optional<Proposition> proposerUneFiche(EntityType manga, String titreLu) {
         List<MetadataCandidate> candidats;
         try {
             candidats = catalogue.chercher(manga, titreLu);
@@ -275,12 +287,26 @@ public class ShelfImportService {
                 .filter(c -> c.title() != null && TexteRecherche.normaliser(c.title()).equals(lu))
                 .findFirst();
         if (exacte.isPresent()) {
-            return exacte;
+            return exacte.map(c -> new Proposition(c, true));
         }
-        return candidats.stream()
+        Optional<MetadataCandidate> contient = candidats.stream()
                 .filter(c -> c.title() != null
                         && TexteRecherche.contientChaqueMot(TexteRecherche.normaliser(c.title()), lu))
                 .findFirst();
+        if (contient.isPresent()) {
+            return contient.map(c -> new Proposition(c, true));
+        }
+        // Le titre français d'une étagère (« L'Attaque des Titans ») ne ressemble
+        // pas au titre romaji ou anglais de la fiche (« Shingeki no Kyojin ») ;
+        // la recherche, elle, le retrouve par ses synonymes. Le premier résultat
+        // est alors PROPOSÉ mais pas cru : l'écran le montre comme une piste, et
+        // ne le garde que si l'utilisateur le dit. Jamais sur un mot seul : trop
+        // vague pour qu'un premier résultat désigne quelque chose.
+        long mots = java.util.Arrays.stream(lu.split(" ")).filter(mot -> !mot.isBlank()).count();
+        if (mots >= MOTS_MIN_POUR_LE_PREMIER_RESULTAT) {
+            return Optional.of(new Proposition(candidats.get(0), false));
+        }
+        return Optional.empty();
     }
 
     // ================================================================ Écriture
