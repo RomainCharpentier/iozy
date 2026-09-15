@@ -1012,8 +1012,14 @@ l'écran le dit.
 **Étapes** : Choisir des photos (jusqu'à 8, une rangée par photo ; une photo de
 téléphone trop lourde est réduite avant l'envoi) → lecture → vérifier : tomes
 en pastilles par série, possédés cochés et inertes, « tome non lu » à
-numéroter, édition une fois par série, fiche proposée pour une série nouvelle
-(gardée ou écartée) → « Ajouter N tomes à ma collection ».
+numéroter, « tout cocher / tout décocher » par série pour qui préfère cocher à
+la main, l'indice de lecture au survol de chaque pastille, édition une fois
+par série, fiche proposée pour une série nouvelle (gardée ou écartée ; un
+simple premier résultat de recherche est une « fiche possible », à prendre
+d'un clic) → « Vérifier l'ajout de N tomes » → **relecture** : ce qui sera
+ajouté, série par série (numéros repliés « 11, 48, 51 à 74 », édition, fiche
+ou création avec le seul titre), rien d'écrit à ce stade → « Ajouter N tomes à
+ma collection », ou « Revenir à la vérification ».
 **Résultat** : les tomes ajoutés (série retrouvée ou créée, tome retrouvé ou
 créé, possession), le rapport ligne par ligne avec un lien vers chaque fiche.
 Un tome encore possédé n'est jamais réécrit, même en relançant la même photo.
