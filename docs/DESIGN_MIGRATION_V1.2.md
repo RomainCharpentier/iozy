@@ -8319,3 +8319,21 @@ n'était pas pré-coché. Deux corrections nées de cet essai :
 - **L'édition lue sur la photo** (« Masked ») n'était proposée que pour une
   série nouvelle ; elle l'est maintenant aussi quand la série est déjà au
   catalogue et que ses éditions connues ne la couvrent pas.
+
+**« Il faudrait une vérification manuelle avant d'ajouter »** (retour du
+2026-09-15, après l'essai sur la vraie étagère). L'écran de vérification
+existait, mais tout y était pré-coché et un seul clic écrivait 33 tomes : la
+vérification était possible, pas demandée. Trois choses changent :
+
+- **deux temps avant d'écrire** : « Vérifier l'ajout de N tomes » ne fait
+  que passer à une **relecture** - ce qui sera ajouté, série par série, avec
+  les numéros repliés (« 11, 48, 51 à 74 », `resumerNumeros`), l'édition
+  retenue, la fiche gardée ou la création avec le seul titre - et c'est là,
+  et là seulement, que « Ajouter N tomes à ma collection » écrit ; « Revenir
+  à la vérification » ne perd rien. Même patron que l'import d'un export :
+  « ce que l'import ferait », puis « Importer » ;
+- **cocher à la main** : « tout décocher / tout cocher » par série, pour
+  partir de rien ;
+- **l'indice de lecture** (« Chiffre 62 sur la tranche ») au survol de
+  chaque pastille : ce que le lecteur a vu, pour juger sans revenir à la
+  photo.

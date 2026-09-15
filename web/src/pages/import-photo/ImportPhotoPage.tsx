@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Camera, Check, HelpCircle, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Camera, Check, HelpCircle, X } from 'lucide-react'
 import { analyserLEtagere, importerDepuisLEtagere } from '@/common/api/shelfImport'
 import { preparerLesPhotos } from '@/common/lib/photosAAnalyser'
+import { resumerNumeros } from '@/common/lib/numerosDeTomes'
 import {
   COULEURS_CONFIANCE,
   LIBELLES_CONFIANCE,
@@ -38,11 +39,14 @@ import type {
  * collection ? ». D'où les tomes **déjà possédés**, cochés et inertes, et la
  * **fiche proposée** pour une série encore inconnue du catalogue.
  *
- * <h2>Rien n'est écrit avant le geste</h2>
- * La lecture ne crée rien. « Ajouter N tomes à ma collection » envoie
- * exactement ce que l'écran montre coché - titre, numéro, édition, fiche
- * gardée ou non - et le serveur écrit en une transaction, en refusant de
- * créer un second exemplaire d'un tome encore possédé.
+ * <h2>Rien n'est écrit avant le geste - et le geste vient en deux temps</h2>
+ * La lecture ne crée rien. « Vérifier l'ajout de N tomes » passe à une
+ * relecture qui montre, série par série, ce qui partirait ; c'est là que
+ * « Ajouter N tomes à ma collection » envoie exactement ce qui est coché -
+ * titre, numéro, édition, fiche gardée ou non - et le serveur écrit en une
+ * transaction, en refusant de créer un second exemplaire d'un tome encore
+ * possédé. Demandé après le premier essai sur une vraie étagère : tout
+ * pré-coché, un seul clic écrivait 33 tomes.
  *
  * <h2>Les photos quittent la machine</h2>
  * Le sous-titre le dit avant le choix des fichiers, et rien ne part sans ce
@@ -77,6 +81,12 @@ interface Groupe {
   lignes: Ligne[]
 }
 
+/** Une série telle que la relecture la montre : ce qui partirait, et rien d'autre. */
+interface SerieARelire {
+  groupe: Groupe
+  numeros: number[]
+}
+
 function pluriel(n: number, un: string, plusieurs: string): string {
   return n > 1 ? plusieurs : un
 }
@@ -93,6 +103,12 @@ export function ImportPhotoPage() {
   /** La fiche proposée, gardée ou non - explicitement ; sans choix, la règle par défaut s'applique (voir ficheGardee). */
   const [fichesChoisies, setFichesChoisies] = useState<Record<string, boolean>>({})
   const [groupesRetires, setGroupesRetires] = useState<Record<string, boolean>>({})
+  /**
+   * Deux temps avant d'écrire : vérifier (cocher, corriger, choisir), puis
+   * relire noir sur blanc ce qui partirait. Le bouton du premier écran ne
+   * fait que passer au second ; seul celui de la relecture écrit.
+   */
+  const [etape, setEtape] = useState<'verification' | 'relecture'>('verification')
 
   const lecture = useMutation({
     mutationFn: analyserLEtagere,
@@ -102,6 +118,7 @@ export function ImportPhotoPage() {
       setEditions({})
       setFichesChoisies({})
       setGroupesRetires({})
+      setEtape('verification')
     },
   })
 
@@ -232,6 +249,18 @@ export function ImportPhotoPage() {
     setCorrections((prev) => ({ ...prev, [cle]: { ...prev[cle], ...patch } }))
   }
 
+  /** Tout cocher ou tout décocher dans une série - les tomes possédés ne bougent pas. */
+  function basculerGroupe(groupe: Groupe, cocher: boolean) {
+    setCorrections((prev) => {
+      const suivant = { ...prev }
+      for (const ligne of groupe.lignes) {
+        if (ligne.entree.alreadyOwned) continue
+        suivant[ligne.cle] = { ...suivant[ligne.cle], coche: cocher, decoche: !cocher }
+      }
+      return suivant
+    })
+  }
+
   function tomesAImporter(): TomeAImporter[] {
     return groupes.flatMap((groupe) => {
       const edition = editionDe(groupe)
@@ -249,6 +278,13 @@ export function ImportPhotoPage() {
   }
 
   const aImporter = tomesAImporter()
+  /** Ce que la relecture affiche : par série, les numéros qui partiraient. */
+  const relecture: SerieARelire[] = groupes
+    .map((groupe) => ({
+      groupe,
+      numeros: groupe.lignes.filter(estImportable).map((ligne) => numeroDe(ligne) as number),
+    }))
+    .filter((serie) => serie.numeros.length > 0)
   const dejaPossedes = lignes.filter((ligne) => ligne.entree.alreadyOwned).length
   const enCours = lecture.isPending || importation.isPending
 
@@ -308,6 +344,16 @@ export function ImportPhotoPage() {
 
       {importation.data ? (
         <Rapport rapport={importation.data} />
+      ) : resultat && etape === 'relecture' ? (
+        <Relecture
+          series={relecture}
+          titreDe={titreDe}
+          editionDe={editionDe}
+          ficheGardee={ficheGardee}
+          enCours={enCours}
+          onAjouter={() => importation.mutate(aImporter)}
+          onRevenir={() => setEtape('verification')}
+        />
       ) : (
         resultat && (
           <section aria-labelledby="titre-lecture" className="flex flex-col gap-3">
@@ -338,6 +384,7 @@ export function ImportPhotoPage() {
               </p>
             )}
 
+            <>
             {groupes.length > 0 && (
               <div className="flex flex-col gap-2">
                 {groupes.map((groupe) => (
@@ -356,6 +403,7 @@ export function ImportPhotoPage() {
                         estCoche(ligne) ? { decoche: true, coche: false } : { coche: true, decoche: false },
                       )
                     }
+                    onBasculerTout={(cocher) => basculerGroupe(groupe, cocher)}
                     onNumero={(ligne, numero) =>
                       corriger(ligne.cle, { numero, coche: numero !== undefined, decoche: false })
                     }
@@ -381,29 +429,33 @@ export function ImportPhotoPage() {
               </p>
             )}
 
+            {/* Pas encore l'ajout : ce bouton passe à la relecture, où ce
+                qui partirait s'affiche noir sur blanc. L'écriture vient
+                de là-bas, et de là-bas seulement. */}
             {lignes.length > 0 && (
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => importation.mutate(aImporter)}
+                  onClick={() => setEtape('relecture')}
                   disabled={aImporter.length === 0 || enCours}
                   className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-40"
                 >
-                  {importation.isPending
-                    ? 'Ajout…'
-                    : `Ajouter ${aImporter.length} ${pluriel(aImporter.length, 'tome', 'tomes')} à ma collection`}
+                  {aImporter.length === 0
+                    ? 'Rien de coché à ajouter'
+                    : `Vérifier l’ajout de ${aImporter.length} ${pluriel(aImporter.length, 'tome', 'tomes')}`}
                 </button>
                 {aImporter.length === 0 && dejaPossedes === lignes.length && (
                   <span className="text-xs text-textDim">Tout ce qui a été lu est déjà dans ta collection.</span>
                 )}
               </div>
             )}
-
-            {importation.isError && (
-              <ErrorBanner message="L’ajout a échoué : rien n’a été écrit. Tu peux réessayer." />
-            )}
+            </>
           </section>
         )
+      )}
+
+      {importation.isError && (
+        <ErrorBanner message="L’ajout a échoué : rien n’a été écrit. Tu peux réessayer." />
       )}
     </div>
   )
@@ -418,6 +470,7 @@ function GroupeEtagere({
   onEdition,
   onFiche,
   onBasculerTome,
+  onBasculerTout,
   onNumero,
   onRetirer,
 }: {
@@ -429,11 +482,16 @@ function GroupeEtagere({
   onEdition: (editionName: string) => void
   onFiche: (garder: boolean) => void
   onBasculerTome: (ligne: Ligne) => void
+  onBasculerTout: (cocher: boolean) => void
   onNumero: (ligne: Ligne, numero: number | undefined) => void
   onRetirer: () => void
 }) {
   const aChoisir = groupe.lignes.some((ligne) => !ligne.entree.alreadyOwned)
   const nouvelle = groupe.catalogStatus === 'NOT_IN_CATALOG'
+  const selectionnables = groupe.lignes.filter((ligne) => !ligne.entree.alreadyOwned && numeroDe(ligne) !== null)
+  const toutesCochees = selectionnables.length > 0 && selectionnables.every(estCoche)
+  /** Ce que le lecteur a vu pour ce tome (« Chiffre 62 sur la tranche ») - au survol, pour vérifier à la main. */
+  const indice = (ligne: Ligne) => ligne.entree.item.evidence.join(' · ') || undefined
 
   return (
     <div className="flex flex-col gap-1.5 rounded-lg bg-surface p-2.5">
@@ -503,6 +561,7 @@ function GroupeEtagere({
             return (
               <label
                 key={ligne.cle}
+                title={indice(ligne)}
                 className={`flex min-h-11 items-center gap-1 rounded-lg px-2.5 text-xs font-medium ${
                   coche && numero !== null ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                 }`}
@@ -530,6 +589,7 @@ function GroupeEtagere({
               role="checkbox"
               aria-checked={coche}
               aria-label={`${libelle} de ${groupe.titre}${possede ? ', déjà possédé' : ''}`}
+              title={indice(ligne)}
               className={`flex min-h-11 items-center gap-1 rounded-lg px-2.5 text-xs font-medium ${
                 possede ? 'bg-okTint text-ok' : coche ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
               }`}
@@ -539,6 +599,17 @@ function GroupeEtagere({
             </button>
           )
         })}
+
+        {/* Pour qui préfère partir de rien et cocher à la main, tome par tome. */}
+        {selectionnables.length > 1 && (
+          <button
+            type="button"
+            onClick={() => onBasculerTout(!toutesCochees)}
+            className="min-h-11 rounded-lg px-2.5 text-xs font-medium text-textDim underline underline-offset-2"
+          >
+            {toutesCochees ? 'tout décocher' : 'tout cocher'}
+          </button>
+        )}
       </div>
 
       {/* Une seule fois pour la série : l'édition n'est pas une propriété du tome. */}
@@ -591,6 +662,89 @@ function GroupeEtagere({
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * La relecture : ce qui partirait, série par série, noir sur blanc - et le
+ * seul bouton qui écrit. Rien de ce qui est affiché ici n'est encore dans la
+ * collection ; « Revenir » ramène à la vérification sans rien perdre.
+ */
+function Relecture({
+  series,
+  titreDe,
+  editionDe,
+  ficheGardee,
+  enCours,
+  onAjouter,
+  onRevenir,
+}: {
+  series: SerieARelire[]
+  titreDe: (groupe: Groupe) => string
+  editionDe: (groupe: Groupe) => string
+  ficheGardee: (groupe: Groupe) => FicheProposeeDto | null
+  enCours: boolean
+  onAjouter: () => void
+  onRevenir: () => void
+}) {
+  const tomes = series.reduce((total, serie) => total + serie.numeros.length, 0)
+  const creees = series.filter((serie) => serie.groupe.catalogStatus === 'NOT_IN_CATALOG').length
+
+  return (
+    <section aria-labelledby="titre-relecture" className="flex flex-col gap-3">
+      <EnTeteSection
+        niveau={2}
+        titre={<span id="titre-relecture">Ce qui sera ajouté</span>}
+        sousTitre={`${tomes} ${pluriel(tomes, 'tome', 'tomes')} dans ${series.length} ${pluriel(series.length, 'série', 'séries')}${
+          creees > 0 ? `, dont ${creees} ${pluriel(creees, 'série créée', 'séries créées')}` : ''
+        }. Rien n’est écrit tant que tu n’as pas confirmé.`}
+      />
+
+      <ul className="flex flex-col divide-y divide-line rounded-xl bg-surface px-3">
+        {series.map(({ groupe, numeros }) => {
+          const edition = editionDe(groupe)
+          const fiche = ficheGardee(groupe)
+          const nouvelle = groupe.catalogStatus === 'NOT_IN_CATALOG'
+          return (
+            <li key={groupe.cle} className="flex flex-col gap-0.5 py-2 text-sm">
+              <span className="font-medium text-textPrimary">{titreDe(groupe)}</span>
+              <span className="text-textPrimary">
+                {numeros.length} {pluriel(numeros.length, 'tome', 'tomes')} : {resumerNumeros(numeros)}
+              </span>
+              <span className="text-xs text-textDim">
+                {edition ? `édition ${edition}` : 'édition non renseignée'}
+                {' · '}
+                {nouvelle
+                  ? fiche
+                    ? `série créée avec la fiche « ${fiche.title} »`
+                    : 'série créée avec ce seul titre'
+                  : 'série déjà au catalogue'}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onAjouter}
+          disabled={enCours}
+          className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-40"
+        >
+          {enCours ? 'Ajout…' : `Ajouter ${tomes} ${pluriel(tomes, 'tome', 'tomes')} à ma collection`}
+        </button>
+        <button
+          type="button"
+          onClick={onRevenir}
+          disabled={enCours}
+          className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-40"
+        >
+          <ArrowLeft size={14} />
+          Revenir à la vérification
+        </button>
+      </div>
+    </section>
   )
 }
 
