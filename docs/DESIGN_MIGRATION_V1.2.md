@@ -8299,3 +8299,23 @@ nouvelle — sinon « Ajouter 0 tome » sur une étagère entière ; et la lectu
 précédente s'efface dès qu'une nouvelle photo part, sans quoi l'écran
 montrait, le temps de la lecture, des tomes « à ajouter » qui venaient
 d'être importés.
+
+**Premier essai sur une vraie étagère** (2026-09-15, photo de l'utilisateur :
+une rangée de Bleach, White Blood, L'Attaque des Titans, deux hors-séries et
+un livre à moitié caché) : les 26 numéros de Bleach lus sans un seul faux
+(11, 48, 51 à 74, plus le 73 posé de face), White Blood 1 à 5, L'Attaque des
+Titans 3 et 17 - 33 tomes importés en un clic, avec les fiches AniList de
+Bleach et White Blood ; « Masked » et « 13 Blades » sont revenus « Bleach,
+tome non lu » avec leur mention lue ; le livre caché, en confiance moyenne,
+n'était pas pré-coché. Deux corrections nées de cet essai :
+
+- **L'Attaque des Titans n'avait pas de fiche** : le titre français lu ne
+  ressemble ni au romaji ni à l'anglais que rendent les sources (« Shingeki
+  no Kyojin », « Attack on Titan »), alors que la recherche, elle, le
+  retrouve par ses synonymes. Le premier résultat est désormais proposé
+  comme une **piste** (`proposalByTitle=false`, « Fiche possible, à
+  vérifier »), montrée avec sa jaquette mais **pas gardée d'office** - un
+  clic pour la prendre. Jamais sur un titre d'un seul mot, trop vague.
+- **L'édition lue sur la photo** (« Masked ») n'était proposée que pour une
+  série nouvelle ; elle l'est maintenant aussi quand la série est déjà au
+  catalogue et que ses éditions connues ne la couvrent pas.

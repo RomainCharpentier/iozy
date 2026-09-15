@@ -57,19 +57,21 @@ const LECTURE: ShelfAnalysisDto = {
   requestedImageCount: 1,
   lookupsSkipped: 0,
   items: [
-    { item: lu('Naruto', 4, { editionHint: 'Kana' }), alreadyOwned: true, proposal: null },
-    { item: lu('Naruto', 5, { editionHint: 'Kana' }), alreadyOwned: false, proposal: null },
+    { item: lu('Naruto', 4, { editionHint: 'Kana' }), alreadyOwned: true, proposal: null, proposalByTitle: false },
+    { item: lu('Naruto', 5, { editionHint: 'Kana' }), alreadyOwned: false, proposal: null, proposalByTitle: false },
     {
       // Le serveur ne pré-coche jamais une série hors catalogue (règle du lot
       // d'annonce) : sur une étagère, c'est l'écran qui coche la lecture sûre.
       item: lu('Bleach', 1, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false }),
       alreadyOwned: false,
       proposal: FICHE_BLEACH,
+      proposalByTitle: true,
     },
     {
       item: lu('Bleach', null, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false }),
       alreadyOwned: false,
       proposal: FICHE_BLEACH,
+      proposalByTitle: true,
     },
   ],
 }
@@ -173,6 +175,7 @@ describe('ce que la photo montre', () => {
           item: lu('Bleach', 3, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false, confidence: 'MEDIUM' }),
           alreadyOwned: false,
           proposal: null,
+          proposalByTitle: false,
         },
       ],
     })
@@ -181,6 +184,83 @@ describe('ce que la photo montre', () => {
 
     expect(await screen.findByRole('checkbox', { name: 'T3 de Bleach' })).not.toBeChecked()
     expect(screen.getByRole('button', { name: 'Ajouter 0 tome à ma collection' })).toBeDisabled()
+  })
+
+  it('montre un premier résultat de recherche comme une piste, sans le garder d’office', async () => {
+    api.analyserLEtagere.mockResolvedValue({
+      ...LECTURE,
+      items: [
+        {
+          item: lu("L'Attaque des Titans", 3, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false }),
+          alreadyOwned: false,
+          proposal: { ...FICHE_BLEACH, title: 'Shingeki no Kyojin' },
+          proposalByTitle: false,
+        },
+      ],
+    })
+    const user = await envoyerUnePhoto()
+
+    expect(await screen.findByText('Fiche possible, à vérifier')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sans la fiche' })).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(screen.getByRole('button', { name: 'Ajouter 1 tome à ma collection' }))
+
+    // Le titre lu, sans attributs ni jaquette : la piste n'a pas été prise.
+    await waitFor(() => expect(api.importerDepuisLEtagere).toHaveBeenCalledTimes(1))
+    expect(api.importerDepuisLEtagere.mock.calls[0][0]).toEqual([{ seriesTitle: "L'Attaque des Titans", volumeNumber: 3 }])
+  })
+
+  it('garde la piste quand l’utilisateur le dit, avec son titre et sa fiche', async () => {
+    api.analyserLEtagere.mockResolvedValue({
+      ...LECTURE,
+      items: [
+        {
+          item: lu("L'Attaque des Titans", 3, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false }),
+          alreadyOwned: false,
+          proposal: { ...FICHE_BLEACH, title: 'Shingeki no Kyojin' },
+          proposalByTitle: false,
+        },
+      ],
+    })
+    const user = await envoyerUnePhoto()
+
+    await user.click(await screen.findByRole('button', { name: 'Sans la fiche' }))
+    expect(screen.getByRole('button', { name: 'Fiche gardée' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Ajouter 1 tome à ma collection' }))
+
+    await waitFor(() => expect(api.importerDepuisLEtagere).toHaveBeenCalledTimes(1))
+    expect(api.importerDepuisLEtagere.mock.calls[0][0]).toEqual([
+      {
+        seriesTitle: 'Shingeki no Kyojin',
+        volumeNumber: 3,
+        attributes: { mangaka: 'Tite Kubo' },
+        coverImageUrl: 'https://img.invalid/bleach.jpg',
+      },
+    ])
+  })
+
+  it('propose l’édition lue sur la photo même quand la série est déjà au catalogue', async () => {
+    api.analyserLEtagere.mockResolvedValue({
+      ...LECTURE,
+      items: [
+        {
+          item: lu('Bleach', null, {
+            catalogStatus: 'EDITION_TO_CONFIRM',
+            editionHint: 'Masked',
+            preselected: false,
+            editionOptions: [{ editionId: 'e1', editionName: 'Standard', totalVolumes: 74 }],
+          }),
+          alreadyOwned: false,
+          proposal: null,
+          proposalByTitle: false,
+        },
+      ],
+    })
+
+    await envoyerUnePhoto()
+
+    expect(await screen.findByRole('button', { name: 'Masked (lu sur la photo)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Standard' })).toBeInTheDocument()
   })
 
   it('dit quand le moteur n’est pas configuré, sans rien proposer', async () => {

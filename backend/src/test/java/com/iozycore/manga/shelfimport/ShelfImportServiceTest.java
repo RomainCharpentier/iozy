@@ -104,6 +104,7 @@ class ShelfImportServiceTest {
 
         assertThat(analyse.items().get(0).proposal()).isNotNull();
         assertThat(analyse.items().get(0).proposal().title()).isEqualTo("Naruto");
+        assertThat(analyse.items().get(0).proposalByTitle()).isTrue();
     }
 
     @Test
@@ -116,12 +117,24 @@ class ShelfImportServiceTest {
     }
 
     @Test
-    void nothing_is_proposed_when_no_sheet_matches_the_title_read() {
+    void a_single_word_title_without_any_matching_sheet_gets_nothing() {
         catalogue.source("Naruto", fiche("Bleach"));
 
         ShelfAnalysis analyse = service(inconnu("Naruto", 1)).analyze(List.of(), 1);
 
         assertThat(analyse.items().get(0).proposal()).isNull();
+    }
+
+    @Test
+    void a_french_title_of_several_words_gets_the_first_search_result_as_a_lead_not_as_a_match() {
+        // Ce que la recherche retrouve par ses synonymes, sans qu'aucun titre
+        // rendu ne ressemble à ce qui a été lu sur la tranche.
+        catalogue.source("L'Attaque des Titans", fiche("Shingeki no Kyojin"), fiche("Attack on Titan: Junior High"));
+
+        ShelfAnalysis analyse = service(inconnu("L'Attaque des Titans", 3)).analyze(List.of(), 1);
+
+        assertThat(analyse.items().get(0).proposal().title()).isEqualTo("Shingeki no Kyojin");
+        assertThat(analyse.items().get(0).proposalByTitle()).isFalse();
     }
 
     @Test

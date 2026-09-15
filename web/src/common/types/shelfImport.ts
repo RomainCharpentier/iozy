@@ -26,6 +26,13 @@ export interface ShelfItemDto {
   alreadyOwned: boolean
   /** `null` si la série est connue, si rien ne correspond, ou si la recherche n'a pas été faite. */
   proposal: FicheProposeeDto | null
+  /**
+   * Vrai quand le titre de la fiche correspond à ce qui a été lu : gardée
+   * d'office. Faux quand elle n'est que le premier résultat de la recherche
+   * (titre français lu, fiche en romaji) : montrée comme une piste, gardée
+   * seulement si l'utilisateur le dit.
+   */
+  proposalByTitle: boolean
 }
 
 export interface ShelfAnalysisDto {

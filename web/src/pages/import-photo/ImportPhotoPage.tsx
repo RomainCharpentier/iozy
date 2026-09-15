@@ -73,6 +73,7 @@ interface Groupe {
   sourceLabels: string[]
   confiance: RecognitionConfidence
   proposal: FicheProposeeDto | null
+  proposalByTitle: boolean
   lignes: Ligne[]
 }
 
@@ -89,7 +90,8 @@ export function ImportPhotoPage() {
   const [corrections, setCorrections] = useState<Record<string, Correction>>({})
   /** L'édition choisie par série ; absente = pas encore choisie, '' = sans édition. */
   const [editions, setEditions] = useState<Record<string, string>>({})
-  const [fichesEcartees, setFichesEcartees] = useState<Record<string, boolean>>({})
+  /** La fiche proposée, gardée ou non - explicitement ; sans choix, la règle par défaut s'applique (voir ficheGardee). */
+  const [fichesChoisies, setFichesChoisies] = useState<Record<string, boolean>>({})
   const [groupesRetires, setGroupesRetires] = useState<Record<string, boolean>>({})
 
   const lecture = useMutation({
@@ -98,7 +100,7 @@ export function ImportPhotoPage() {
       setResultat(reponse)
       setCorrections({})
       setEditions({})
-      setFichesEcartees({})
+      setFichesChoisies({})
       setGroupesRetires({})
     },
   })
@@ -154,7 +156,10 @@ export function ImportPhotoPage() {
       if (RANG_CONFIANCE[item.confidence] < RANG_CONFIANCE[existant.confiance]) {
         existant.confiance = item.confidence
       }
-      if (!existant.proposal && ligne.entree.proposal) existant.proposal = ligne.entree.proposal
+      if (!existant.proposal && ligne.entree.proposal) {
+        existant.proposal = ligne.entree.proposal
+        existant.proposalByTitle = ligne.entree.proposalByTitle
+      }
       continue
     }
     groupes.push({
@@ -166,6 +171,7 @@ export function ImportPhotoPage() {
       sourceLabels: item.sourceLabels,
       confiance: item.confidence,
       proposal: ligne.entree.proposal,
+      proposalByTitle: ligne.entree.proposalByTitle,
       lignes: [ligne],
     })
   }
@@ -204,8 +210,17 @@ export function ImportPhotoPage() {
     return groupe.editionLue ?? SANS_EDITION
   }
 
+  /**
+   * La fiche qui partira avec la série. Retrouvée par son titre : gardée
+   * d'office. Simple premier résultat de recherche (titre français lu, fiche
+   * en romaji) : montrée comme une piste, gardée seulement si l'utilisateur le
+   * dit - une fiche fausse importée avec assurance coûte plus qu'une série
+   * créée avec son seul titre.
+   */
   function ficheGardee(groupe: Groupe): FicheProposeeDto | null {
-    return groupe.catalogStatus === 'NOT_IN_CATALOG' && !fichesEcartees[groupe.cle] ? groupe.proposal : null
+    if (groupe.catalogStatus !== 'NOT_IN_CATALOG' || !groupe.proposal) return null
+    const gardee = fichesChoisies[groupe.cle] ?? groupe.proposalByTitle
+    return gardee ? groupe.proposal : null
   }
 
   /** Le titre envoyé : celui de la fiche gardée, sinon celui du catalogue ou de la lecture. */
@@ -334,7 +349,7 @@ export function ImportPhotoPage() {
                     numeroDe={numeroDe}
                     estCoche={estCoche}
                     onEdition={(nom) => setEditions((prev) => ({ ...prev, [groupe.cle]: nom }))}
-                    onFiche={(garder) => setFichesEcartees((prev) => ({ ...prev, [groupe.cle]: !garder }))}
+                    onFiche={(garder) => setFichesChoisies((prev) => ({ ...prev, [groupe.cle]: garder }))}
                     onBasculerTome={(ligne) =>
                       corriger(
                         ligne.cle,
@@ -457,7 +472,9 @@ function GroupeEtagere({
             repli={<span className="flex h-12 w-8 shrink-0 items-center justify-center rounded bg-surface2 text-xs text-textDim">?</span>}
           />
           <div className="flex min-w-0 flex-col">
-            <span className="text-xs text-textDim">Fiche proposée</span>
+            <span className="text-xs text-textDim">
+              {groupe.proposalByTitle ? 'Fiche proposée' : 'Fiche possible, à vérifier'}
+            </span>
             <TexteCoupe texte={groupe.proposal.title} className="truncate text-sm text-textPrimary" />
           </div>
           <button
@@ -546,7 +563,10 @@ function GroupeEtagere({
               {option.editionName}
             </button>
           ))}
-          {nouvelle && groupe.editionLue && (
+          {/* Ce que la photo dit de l'édition (« Masked », « Perfect ») vaut
+              d'être proposé même quand la série est déjà au catalogue : ses
+              éditions connues ne la couvrent pas forcément. */}
+          {groupe.editionLue && !groupe.editionOptions.some((option) => option.editionName === groupe.editionLue) && (
             <button
               type="button"
               onClick={() => onEdition(groupe.editionLue as string)}
