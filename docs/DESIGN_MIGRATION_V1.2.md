@@ -8337,3 +8337,13 @@ vérification était possible, pas demandée. Trois choses changent :
 - **l'indice de lecture** (« Chiffre 62 sur la tranche ») au survol de
   chaque pastille : ce que le lecteur a vu, pour juger sans revenir à la
   photo.
+
+**Premier essai de l'utilisateur en local** (2026-09-15, le soir) : « Rien
+n'a pu être lu… L'analyse des photos n'a pas pu aboutir. » Le journal disait
+la cause : Gemini a répondu **503**, « This model is currently experiencing
+high demand… Please try again later » - un pic de charge chez Google, que
+l'app rendait honnêtement mais au premier essai. `GeminiRequests.avecReprises`
+réessaie désormais un 503 ou un 429 jusqu'à trois tentatives (1,5 s puis
+3 s d'attente), pour tous les appels Gemini - photos, fiches d'édition, prix -
+et rend tout autre statut tel quel. Quatre tests (`GeminiRequestsTest`) avec
+des réponses scriptées, sans réseau.

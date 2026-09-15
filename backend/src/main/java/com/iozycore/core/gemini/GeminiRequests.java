@@ -29,7 +29,47 @@ public final class GeminiRequests {
      */
     private static final String DEFAULT_MODEL = "gemini-3.5-flash";
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GeminiRequests.class);
+
+    /** Les statuts qui disent « réessaie » : modèle saturé (503) ou quota de la minute (429). */
+    static final java.util.Set<Integer> A_REESSAYER = java.util.Set.of(429, 503);
+
+    /** Trois tentatives au plus, 1,5 s puis 3 s d'attente entre elles. */
+    static final int TENTATIVES_MAX = 3;
+    static final long PAUSE_INITIALE_MS = 1500;
+
     private GeminiRequests() {
+    }
+
+    /** Un envoi qui peut lever - la signature de {@code HttpClient.send}. */
+    interface Envoi {
+        HttpResponse<String> executer() throws Exception;
+    }
+
+    /**
+     * Réessaie quand Google dit de réessayer.
+     *
+     * <p>« This model is currently experiencing high demand. Spikes in demand
+     * are usually temporary. Please try again later. » - un 503 de ce genre
+     * dure rarement plus de quelques secondes. Constaté le 2026-09-15 sur la
+     * première photo d'étagère de l'utilisateur : la lecture avait échoué net,
+     * alors que la même requête passait quinze secondes plus tard. Une
+     * reprise ou deux, avec une courte attente, évitent de rendre « n'a pas
+     * pu aboutir » pour un incident que personne n'aurait vu. Tout autre
+     * statut est rendu tel quel : un 400 ou un 401 ne changera pas en
+     * attendant.
+     */
+    static HttpResponse<String> avecReprises(Envoi envoi, long pauseInitialeMs) throws Exception {
+        HttpResponse<String> reponse = envoi.executer();
+        long pause = pauseInitialeMs;
+        for (int tentative = 2; tentative <= TENTATIVES_MAX && A_REESSAYER.contains(reponse.statusCode()); tentative++) {
+            log.warn("Gemini a répondu {} - nouvelle tentative ({}/{}) dans {} ms", reponse.statusCode(), tentative,
+                    TENTATIVES_MAX, pause);
+            Thread.sleep(pause);
+            pause *= 2;
+            reponse = envoi.executer();
+        }
+        return reponse;
     }
 
     /** Resolves the configured model, falling back to {@link #DEFAULT_MODEL} when blank - see the field's javadoc. */
@@ -88,7 +128,8 @@ public final class GeminiRequests {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        // Le corps est une chaîne : la requête se renvoie telle quelle.
+        return avecReprises(() -> httpClient.send(request, HttpResponse.BodyHandlers.ofString()), PAUSE_INITIALE_MS);
     }
 
     /** The model's raw text output (a JSON string, since generationConfig.responseMimeType asked for JSON) - null if absent. */
