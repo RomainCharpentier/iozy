@@ -63,6 +63,7 @@ const SuggestionsPage = page(() => import('@/pages/suggestions/SuggestionsPage')
 const ReleasesPage = page(() => import('@/pages/releases/ReleasesPage'), 'ReleasesPage')
 const CollectionRecapPage = page(() => import('@/pages/recap/CollectionRecapPage'), 'CollectionRecapPage')
 const ScanPage = page(() => import('@/pages/scan/ScanPage'), 'ScanPage')
+const ImportPhotoPage = page(() => import('@/pages/import-photo/ImportPhotoPage'), 'ImportPhotoPage')
 const StatsPage = page(() => import('@/pages/stats/StatsPage'), 'StatsPage')
 const EditionsPage = page(() => import('@/pages/editions/EditionsPage'), 'EditionsPage')
 const EntityTypesPage = page(() => import('@/pages/entity-types/EntityTypesPage'), 'EntityTypesPage')
@@ -201,6 +202,7 @@ export default function App() {
                   <Route path="/releases" element={<ReleasesPage />} />
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
+                  <Route path="/import-photo" element={<ImportPhotoPage />} />
                   {/* L'écran Envies a disparu dans Ma collection (lot C) - mais
                       un lien partagé ou un signet peut encore pointer ici :
                       il emmène au bon endroit plutôt qu'à une page introuvable. */}

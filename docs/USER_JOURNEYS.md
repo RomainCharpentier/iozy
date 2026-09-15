@@ -1003,6 +1003,29 @@ dans le message ; une visite ne voit pas le bouton.
 « un état à la fois »), table `followed_work` (V35)
 **Statut** : `COMPLET`
 
+### 45 bis. Importer depuis une photo de l'étagère
+**Point de départ** : Catalogue ▸ « Importer depuis une photo » (`/import-photo`,
+réservé aux comptes).
+**Préconditions** : une clé Gemini configurée sur l'instance pour lire les
+tranches ; sans elle, seuls les codes-barres visibles sont lus, en local, et
+l'écran le dit.
+**Étapes** : Choisir des photos (jusqu'à 8, une rangée par photo ; une photo de
+téléphone trop lourde est réduite avant l'envoi) → lecture → vérifier : tomes
+en pastilles par série, possédés cochés et inertes, « tome non lu » à
+numéroter, édition une fois par série, fiche proposée pour une série nouvelle
+(gardée ou écartée) → « Ajouter N tomes à ma collection ».
+**Résultat** : les tomes ajoutés (série retrouvée ou créée, tome retrouvé ou
+créé, possession), le rapport ligne par ligne avec un lien vers chaque fiche.
+Un tome encore possédé n'est jamais réécrit, même en relançant la même photo.
+**Branches** : rien de lu → « essaie une photo plus proche » ; moteur non
+configuré ou indisponible → message dédié ; livres visibles non identifiés →
+comptés, à ajouter depuis le Catalogue.
+**Écrans** : `ImportPhotoPage`
+**Backend** : `POST /shelf-import/analyze-photos`, `POST /shelf-import/apply`,
+`ShelfImportService` (réutilise `ListingRecognitionService` et l'ajout rapide)
+**Statut** : `COMPLET` (vérifié en direct avec le vrai moteur sur une étagère
+synthétique ; la caméra du téléphone n'est pas exerçable ici).
+
 ### 44 bis. Découvrir ce que chaque univers propose
 **Point de départ** : Découvrir ▸ panneau Découvertes ▸ « Voir des
 suggestions » (à la demande : chaque univers interroge une source externe).

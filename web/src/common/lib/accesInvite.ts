@@ -36,6 +36,7 @@ const RESERVEES_AUX_COMPTES = [
   '/scan',
   '/apercu',
   '/import-bgg',
+  '/import-photo',
   // Analyser une annonce : chaque étape est un POST, dont certains sortent
   // chez un fournisseur ou chez un modèle. Une porte ouverte à tout Internet
   // n'a pas à offrir ça.

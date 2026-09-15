@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Sparkles, Check, X, AlertCircle, HelpCircle, ImagePlus } from 'lucide-react'
-import {
-  analyzeListing,
-  analyzeUploadedPhotos,
-  MAX_OCTETS_PAR_PHOTO,
-  MAX_PHOTOS_ENVOYEES,
-} from '@/common/api/listingRecognition'
+import { analyzeListing, analyzeUploadedPhotos } from '@/common/api/listingRecognition'
 import type {
   AnalyzeListingResponse,
   EditionOptionDto,
   RecognitionConfidence,
-  RecognitionStatus,
   RecognizedItemDto,
 } from '@/common/types/listingRecognition'
+import {
+  COULEURS_CONFIANCE,
+  LIBELLES_CONFIANCE,
+  MESSAGES_VISION,
+  RANG_CONFIANCE,
+  cleSerie,
+  identite,
+} from '@/common/lib/reconnaissance'
+import { preparerLesPhotos } from '@/common/lib/photosAAnalyser'
 import { EDITION_INCONNUE } from './EditionPicker'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 
@@ -38,52 +41,10 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
  * corrections sont mémorisées par identité de candidat, pas par position.
  */
 
-const LIBELLES_CONFIANCE: Record<RecognitionConfidence, string> = {
-  HIGH: 'confiance élevée',
-  MEDIUM: 'confiance moyenne',
-  LOW: 'piste incertaine',
-}
-
-const COULEURS_CONFIANCE: Record<RecognitionConfidence, string> = {
-  HIGH: 'text-ok',
-  MEDIUM: 'text-textDim',
-  LOW: 'text-warning',
-}
-
-const RANG_CONFIANCE: Record<RecognitionConfidence, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
-
-/**
- * Chaque issue a sa phrase. Un bandeau unique confondrait « ces photos ne
- * montrent rien de lisible » avec « le service est cassé », alors que la
- * première ne se réessaie pas et la seconde si.
- */
-const MESSAGES_VISION: Record<RecognitionStatus, string> = {
-  OK: '',
-  PARTIAL: '',
-  NOTHING_RECOGNIZED: "Les photos n'ont rien ajouté de lisible.",
-  NO_USABLE_IMAGE: 'Aucune photo exploitable.',
-  NO_ENGINE: "L'analyse des photos n'est pas configurée sur cette instance.",
-  UNAVAILABLE: "L'analyse des photos n'a pas pu aboutir. Vous pouvez réessayer.",
-}
-
 export interface ElementConfirme {
   seriesTitle: string
   editionName: string
   volumeNumber: number
-}
-
-/**
- * L'identité d'un candidat, stable d'une analyse à l'autre.
- *
- * C'est la clé des corrections : ni l'index dans la liste (qui bouge dès qu'une
- * source ajoute un élément), ni le contenu corrigé.
- */
-function identite(item: RecognizedItemDto): string {
-  return `${cleSerie(item)}|${item.volumeNumber ?? '?'}|${(item.editionHint ?? '').toLowerCase()}`
-}
-
-function cleSerie(item: RecognizedItemDto): string {
-  return item.seriesTitleAsRead.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
 interface Correction {
@@ -183,31 +144,21 @@ export function ListingDetectionPanel({
   const choisirPhotos = (liste: FileList | null) => {
     setRefusees(null)
     if (!liste || liste.length === 0) return
-
-    // Filtré ICI plutôt que de laisser le serveur refuser : dire « cette photo
-    // fait 8 Mo » au moment du choix évite un aller-retour et une erreur qui
-    // ne nommerait pas le fichier fautif.
-    const tous = Array.from(liste)
-    const tropLourdes = tous.filter((f) => f.size > MAX_OCTETS_PAR_PHOTO)
-    const retenues = tous.filter((f) => f.size <= MAX_OCTETS_PAR_PHOTO).slice(0, MAX_PHOTOS_ENVOYEES)
-
-    const raisons: string[] = []
-    if (tropLourdes.length > 0) {
-      raisons.push(
-        `${tropLourdes.length} photo${tropLourdes.length > 1 ? 's' : ''} de plus de 3 Mo ${
-          tropLourdes.length > 1 ? 'ont' : 'a'
-        } été écartée${tropLourdes.length > 1 ? 's' : ''}`,
-      )
-    }
-    if (tous.length - tropLourdes.length > MAX_PHOTOS_ENVOYEES) {
-      raisons.push(`seules les ${MAX_PHOTOS_ENVOYEES} premières sont analysées`)
-    }
-    setRefusees(raisons.length > 0 ? `${raisons.join(', ')}.` : null)
+    // Copié AVANT de vider le champ : la FileList est vivante, la vider
+    // viderait aussi ce qu'on tient.
+    const fichiers = Array.from(liste)
 
     // Le champ est vidé pour que rechoisir le MÊME fichier relance bien une
     // analyse : sans cela, l'événement `change` ne se déclenche pas.
     if (champFichiers.current) champFichiers.current.value = ''
-    if (retenues.length > 0) envoiPhotos.mutate(retenues)
+
+    // Réduction et tri partagés avec l'import d'étagère (photosAAnalyser) :
+    // une photo de téléphone trop lourde est réduite plutôt qu'écartée, et
+    // ce qui ne part pas est dit au moment du choix, en nommant la raison.
+    void preparerLesPhotos(fichiers).then(({ retenues, message }) => {
+      setRefusees(message)
+      if (retenues.length > 0) envoiPhotos.mutate(retenues)
+    })
   }
 
   const enCours = mutation.isPending || envoiPhotos.isPending
@@ -415,7 +366,7 @@ export function ListingDetectionPanel({
               type="button"
               onClick={() => mutation.mutate(true)}
               disabled={enCours}
-              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accentText disabled:opacity-50"
+              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accentInk disabled:opacity-50"
             >
               <Sparkles size={14} />
               {mutation.isPending ? 'Analyse…' : analysePhotosFaite ? 'Relancer les photos' : 'Analyser les photos'}
@@ -433,7 +384,7 @@ export function ListingDetectionPanel({
             className={`flex min-h-11 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold disabled:opacity-50 ${
               imageUrls.length > 0
                 ? 'bg-surface text-textPrimary'
-                : 'bg-accent text-accentText'
+                : 'bg-accent text-accentInk'
             }`}
           >
             <ImagePlus size={14} />
@@ -653,7 +604,7 @@ function GroupeSerie({
                 dansLeLot
                   ? 'bg-okTint text-ok'
                   : coche
-                    ? 'bg-accent text-accentText'
+                    ? 'bg-accent text-accentInk'
                     : 'bg-surface2 text-textDim'
               }`}
             >
@@ -686,7 +637,7 @@ function GroupeSerie({
               aria-pressed={editionChoisie === option.editionName}
               className={`min-h-11 rounded-lg px-2.5 text-xs font-medium ${
                 editionChoisie === option.editionName
-                  ? 'bg-accent text-accentText'
+                  ? 'bg-accent text-accentInk'
                   : 'bg-surface2 text-textPrimary'
               }`}
             >
@@ -699,7 +650,7 @@ function GroupeSerie({
             aria-pressed={editionChoisie === EDITION_INCONNUE}
             className={`min-h-11 rounded-lg px-2.5 text-xs font-medium ${
               editionChoisie === EDITION_INCONNUE
-                ? 'bg-accent text-accentText'
+                ? 'bg-accent text-accentInk'
                 : 'bg-surface2 text-textDim'
             }`}
           >

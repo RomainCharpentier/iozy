@@ -75,7 +75,7 @@ export function EditionPicker({
             aria-pressed={value === edition.editionName}
             className={`min-h-11 rounded-lg px-3 text-xs font-medium ${
               value === edition.editionName
-                ? 'bg-accent text-accentText'
+                ? 'bg-accent text-accentInk'
                 : 'bg-surface2 text-textPrimary hover:bg-surface'
             }`}
           >
@@ -94,7 +94,7 @@ export function EditionPicker({
           aria-pressed={value === EDITION_INCONNUE}
           className={`min-h-11 rounded-lg px-3 text-xs font-medium ${
             value === EDITION_INCONNUE
-              ? 'bg-accent text-accentText'
+              ? 'bg-accent text-accentInk'
               : 'bg-surface2 text-textDim hover:bg-surface'
           }`}
         >

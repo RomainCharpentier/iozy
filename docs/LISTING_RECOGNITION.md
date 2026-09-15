@@ -923,3 +923,16 @@ multimodale).
 **Web** : `types/listingRecognition.ts`, `api/listingRecognition.ts`,
 `routes/PurchaseAnalysis/ListingDetectionPanel.tsx`, branchement dans
 `PurchaseAnalysisPage.tsx`.
+
+## 9. L'étagère : le même moteur, une autre question
+
+Le § 1 promettait que la mécanique servirait « une photo de bibliothèque ou
+un import de collection ». C'est fait (lot 147, `manga/shelfimport`) :
+l'import d'étagère appelle `analyzeUploadedPhotos` sans titre ni
+description, puis pose les deux questions qu'une annonce ne pose pas — ce
+tome est-il **déjà possédé** (une possession active de ce numéro, toute
+édition confondue), et pour une série hors catalogue, quelle **fiche** les
+sources proposent-elles (titre exact, sinon tous les mots lus). L'écriture
+passe par l'ajout rapide, en une transaction, et refuse le second
+exemplaire. Rien n'a changé ici : le moteur ne sait toujours pas d'où
+viennent les photos, et il ne reçoit toujours aucun texte.
