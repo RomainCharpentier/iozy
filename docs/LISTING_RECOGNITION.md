@@ -936,3 +936,14 @@ sources proposent-elles (titre exact, sinon tous les mots lus). L'écriture
 passe par l'ajout rapide, en une transaction, et refuse le second
 exemplaire. Rien n'a changé ici : le moteur ne sait toujours pas d'où
 viennent les photos, et il ne reçoit toujours aucun texte.
+
+## 10. Le cadre : où le livre a été vu
+
+Depuis l'import d'étagère, le prompt demande aussi `box_2d` - le rectangle du
+livre en millièmes de la photo, la convention de Gemini - et `boxImage`, la
+photo où il est le mieux vu. `RecognizedBox` le porte en fractions de 0 à 1,
+borné à la photo, jamais vide ; la consolidation garde un cadre par photo.
+Un cadre malformé ou absent ne change rien à la lecture : le texte et les
+codes-barres n'en ont pas, et le moteur peut lire un titre sans savoir le
+situer. L'écran s'en sert pour poser la pastille du tome sur l'image et pour
+recadrer chaque livre en gros plan dans la validation un par un.

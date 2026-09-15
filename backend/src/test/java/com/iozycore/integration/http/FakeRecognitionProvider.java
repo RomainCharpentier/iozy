@@ -154,8 +154,12 @@ public class FakeRecognitionProvider {
 
             private RecognizedItem item(String titre, Integer tome, String edition,
                                          RecognitionConfidence confiance, Set<Integer> photos) {
+                // Un cadre par élément, sur la première photo où il est vu :
+                // l'écran de vérification doit pouvoir le dessiner.
+                int photo = photos.isEmpty() ? 0 : photos.iterator().next();
                 return RecognizedItem.fromVision(titre, tome, edition, null, confiance,
-                        List.of("lecture de test"), photos);
+                        List.of("lecture de test"), photos,
+                        List.of(new com.iozycore.manga.recognition.RecognizedBox(photo, 0.1, 0.2, 0.9, 0.3)));
             }
         };
     }

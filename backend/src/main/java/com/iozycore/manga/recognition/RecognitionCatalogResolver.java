@@ -126,7 +126,7 @@ public class RecognitionCatalogResolver {
         return editionName == null || editionName.equals(item.editionHint())
                 ? item
                 : new RecognizedItem(item.seriesTitleRaw(), item.volumeNumber(), editionName, item.ean(),
-                        item.confidence(), item.sources(), item.evidence(), item.sourceImages());
+                        item.confidence(), item.sources(), item.evidence(), item.sourceImages(), item.boxes());
     }
 
     /**

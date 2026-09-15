@@ -84,10 +84,15 @@ public class RecognitionController {
                                          String entityTypeCode) {
     }
 
+    /** Où le livre a été vu : la photo (index d'envoi) et un rectangle en fractions de 0 à 1. */
+    public record BoxResponse(int image, double top, double left, double bottom, double right) {
+    }
+
     public record RecognizedItemResponse(String seriesTitle, String seriesTitleAsRead, Integer volumeNumber,
                                           String editionHint, boolean hasExactIdentifier,
                                           String confidence, List<String> sources, List<String> sourceLabels,
                                           List<String> evidence, List<Integer> sourceImages,
+                                          List<BoxResponse> boxes,
                                           String catalogStatus, UUID entityId,
                                           List<EditionOptionResponse> editionOptions,
                                           boolean preselected, boolean readyForAnalysis) {
@@ -111,6 +116,9 @@ public class RecognitionController {
                     sources.stream().map(RecognitionSource::label).toList(),
                     item.recognized().evidence(),
                     List.copyOf(item.recognized().sourceImages()),
+                    item.recognized().boxes().stream()
+                            .map(b -> new BoxResponse(b.imageIndex(), b.top(), b.left(), b.bottom(), b.right()))
+                            .toList(),
                     item.catalogStatus().name(),
                     item.entityId(),
                     item.editionOptions().stream().map(EditionOptionResponse::from).toList(),

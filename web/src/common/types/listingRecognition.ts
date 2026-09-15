@@ -33,6 +33,16 @@ export interface EditionOptionDto {
   totalVolumes: number | null
 }
 
+/** Un rectangle sur une photo, en fractions de sa largeur et de sa hauteur (0 à 1). */
+export interface BoxDto {
+  /** La photo, dans l'ordre d'envoi. */
+  image: number
+  top: number
+  left: number
+  bottom: number
+  right: number
+}
+
 export interface RecognizedItemDto {
   /** Le titre du catalogue s'il existe, sinon ce qui a été lu. */
   seriesTitle: string
@@ -49,6 +59,8 @@ export interface RecognizedItemDto {
   evidence: string[]
   /** Index 0-based des photos. Vide pour une proposition venue du seul texte. */
   sourceImages: number[]
+  /** Où le livre a été vu : au plus un cadre par photo, souvent aucun (texte, code-barres). */
+  boxes: BoxDto[]
   catalogStatus: CatalogStatus
   entityId: string | null
   editionOptions: EditionOptionDto[]

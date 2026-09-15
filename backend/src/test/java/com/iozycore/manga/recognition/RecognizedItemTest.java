@@ -16,6 +16,29 @@ class RecognizedItemTest {
     }
 
     @Test
+    void merging_two_readings_keeps_one_box_per_photo_and_none_twice() {
+        RecognizedBox surLaPremiere = new RecognizedBox(0, 0.1, 0.2, 0.9, 0.3);
+        RecognizedBox surLaSeconde = new RecognizedBox(1, 0.2, 0.5, 0.8, 0.6);
+        RecognizedItem vuDeuxFois = RecognizedItem.fromVision("Platinum End", 4, null, null,
+                RecognitionConfidence.HIGH, List.of(), Set.of(0), List.of(surLaPremiere));
+        RecognizedItem revu = RecognizedItem.fromVision("Platinum End", 4, null, null,
+                RecognitionConfidence.MEDIUM, List.of(), Set.of(0, 1), List.of(surLaPremiere, surLaSeconde));
+
+        RecognizedItem fusion = vuDeuxFois.mergedWith(revu);
+
+        assertThat(fusion.boxes()).containsExactly(surLaPremiere, surLaSeconde);
+        assertThat(fusion.sourceImages()).containsExactly(0, 1);
+    }
+
+    @Test
+    void a_reading_without_box_stays_a_full_reading() {
+        RecognizedItem sansCadre = item("Platinum End", 4, null, null, RecognitionConfidence.HIGH);
+
+        assertThat(sansCadre.boxes()).isEmpty();
+        assertThat(sansCadre.volumeNumber()).isEqualTo(4);
+    }
+
+    @Test
     void an_item_without_a_read_title_is_not_an_item() {
         assertThatThrownBy(() -> item(null, 1, null, null, RecognitionConfidence.HIGH))
                 .isInstanceOf(IllegalArgumentException.class);
