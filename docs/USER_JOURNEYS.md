@@ -1010,19 +1010,21 @@ réservé aux comptes).
 tranches ; sans elle, seuls les codes-barres visibles sont lus, en local, et
 l'écran le dit.
 **Étapes** : Choisir des photos (jusqu'à 8, une rangée par photo ; une photo de
-téléphone trop lourde est réduite avant l'envoi) → lecture → vérifier : tomes
-en pastilles par série, possédés cochés et inertes, « tome non lu » à
-numéroter, « tout cocher / tout décocher » par série pour qui préfère cocher à
-la main, l'indice de lecture au survol de chaque pastille, **la photo avec un
-cadre par tome situé** (même état, même geste que la pastille) et **« Valider
-un par un »** : chaque cadre en gros plan avec ce qui en a été lu, à confirmer,
-corriger ou écarter, de gauche à droite ; édition une fois
-par série, fiche proposée pour une série nouvelle (gardée ou écartée ; un
-simple premier résultat de recherche est une « fiche possible », à prendre
-d'un clic) → « Vérifier l'ajout de N tomes » → **relecture** : ce qui sera
-ajouté, série par série (numéros repliés « 11, 48, 51 à 74 », édition, fiche
-ou création avec le seul titre), rien d'écrit à ce stade → « Ajouter N tomes à
-ma collection », ou « Revenir à la vérification ».
+téléphone trop lourde est réduite avant l'envoi) → lecture → **validation un
+par un**, dès qu'il y a quelque chose à valider : pour chaque livre, de gauche
+à droite, la photo avec son seul cadre pour le situer, le cadre en gros plan,
+ce qui en a été lu (confiance, indice, édition lue) et le numéro dans un champ ;
+« C'est bien ça » confirme, « Écarter » décoche, « Passer » avance, un numéro
+non lu se saisit avant de confirmer ; rien n'est écrit, chaque geste coche ou
+décoche la pastille → **récapitulatif** par série : tomes en pastilles,
+possédés cochés et inertes, « tout cocher / tout décocher », l'indice au
+survol, édition une fois par série, fiche proposée pour une série nouvelle
+(gardée ou écartée ; un simple premier résultat de recherche est une « fiche
+possible », à prendre d'un clic), « Valider un par un » pour repasser →
+« Vérifier l'ajout de N tomes » → **relecture** : ce qui sera ajouté, série par
+série (numéros repliés « 11, 48, 51 à 74 », édition, fiche ou création avec le
+seul titre), rien d'écrit à ce stade → « Ajouter N tomes à ma collection », ou
+« Revenir à la vérification ».
 **Résultat** : les tomes ajoutés (série retrouvée ou créée, tome retrouvé ou
 créé, possession), le rapport ligne par ligne avec un lien vers chaque fiche.
 Un tome encore possédé n'est jamais réécrit, même en relançant la même photo.

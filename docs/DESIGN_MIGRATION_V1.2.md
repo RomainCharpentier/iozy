@@ -8382,3 +8382,15 @@ depuis le Catalogue. » `worthRetrying()` reste faux pour lui. Leçon : le
 palier gratuit se compte en jetons par jour, et une photo d'étagère en
 consomme beaucoup - une lecture en direct par changement de code, pas une
 par capture d'écran.
+
+**« La vue d'ensemble est mal gérée et inutile »** (retour du 2026-09-16 :
+« on valide un par un et pour chacun on voit un cadre à chaque fois »). Les
+36 cadres sur une photo réduite ne se lisaient pas, et la validation un par
+un faisait déjà le travail. La photo annotée quitte donc le récapitulatif ;
+la vérification, c'est **un par un, dès la lecture** : pour chaque livre, la
+photo avec son seul cadre (`PhotoAnnotee` en mode non interactif, un cadre
+à la fois, étiquette verticale sur une tranche) pour le situer, puis le gros
+plan et la lecture. Le récapitulatif par série vient après - cocher en bloc,
+édition, fiche, « Valider un par un » pour repasser - puis la relecture avant
+écriture, inchangée. Sans rien à valider (tout possédé, rien lu, quota), on
+arrive directement au récapitulatif, qui dit pourquoi.
