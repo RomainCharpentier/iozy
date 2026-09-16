@@ -165,10 +165,12 @@ public class ListingRecognitionService {
         }
 
         RecognitionResult vu = lireSansJamaisCasser(moteur, images, context);
-        if (vu.status() == RecognitionStatus.UNAVAILABLE) {
-            // Le moteur a échoué : ce que le texte disait reste vrai, et ce que
-            // les codes-barres ont donné aussi.
-            return terminer(avec(texte.items(), depuisCodes), texte, RecognitionStatus.UNAVAILABLE,
+        if (vu.status() == RecognitionStatus.UNAVAILABLE || vu.status() == RecognitionStatus.QUOTA_EXCEEDED) {
+            // Le moteur a échoué, ou n'a plus le droit de répondre : ce que le
+            // texte disait reste vrai, et ce que les codes-barres ont donné aussi.
+            // Le statut est rendu tel quel - « réessaie » et « quota atteint »
+            // n'appellent pas la même phrase à l'écran.
+            return terminer(avec(texte.items(), depuisCodes), texte, vu.status(),
                     0, images.size(), demandees);
         }
 

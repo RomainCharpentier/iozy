@@ -31,6 +31,10 @@ export const MESSAGES_VISION: Record<RecognitionStatus, string> = {
   NOTHING_RECOGNIZED: "Les photos n'ont rien ajouté de lisible.",
   NO_USABLE_IMAGE: 'Aucune photo exploitable.',
   NO_ENGINE: "L'analyse des photos n'est pas configurée sur cette instance.",
+  // Un quota n'est pas une panne : réessayer dans la minute ne donnera rien,
+  // et le dire évite trois essais pour rien.
+  QUOTA_EXCEEDED:
+    "Le service d'analyse d'images a atteint son quota du jour. Réessaie demain, ou ajoute les tomes depuis le Catalogue.",
   UNAVAILABLE: "L'analyse des photos n'a pas pu aboutir. Vous pouvez réessayer.",
 }
 

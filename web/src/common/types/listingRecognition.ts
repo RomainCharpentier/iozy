@@ -23,6 +23,7 @@ export type RecognitionStatus =
   | 'NOTHING_RECOGNIZED'
   | 'NO_USABLE_IMAGE'
   | 'NO_ENGINE'
+  | 'QUOTA_EXCEEDED'
   | 'UNAVAILABLE'
 
 export type CatalogStatus = 'MATCHED' | 'EDITION_TO_CONFIRM' | 'NOT_IN_CATALOG'

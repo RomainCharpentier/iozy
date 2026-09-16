@@ -34,9 +34,14 @@ public record RecognitionResult(RecognitionStatus status, List<RecognizedItem> i
         return new RecognitionResult(status, items, unidentifiedCount);
     }
 
-    /** Le moteur n'a pas pu répondre - panne, quota, délai dépassé. */
+    /** Le moteur n'a pas pu répondre - panne, délai dépassé. */
     public static RecognitionResult unavailable() {
         return new RecognitionResult(RecognitionStatus.UNAVAILABLE, List.of(), 0);
+    }
+
+    /** Le quota du service est atteint : réessayer maintenant ne servirait à rien, l'écran doit le dire. */
+    public static RecognitionResult quotaExceeded() {
+        return new RecognitionResult(RecognitionStatus.QUOTA_EXCEEDED, List.of(), 0);
     }
 
     /** Aucun moteur n'est configuré : IozyCore fonctionne sans, l'écran le dit. */

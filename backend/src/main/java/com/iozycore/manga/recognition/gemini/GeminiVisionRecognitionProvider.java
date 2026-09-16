@@ -139,7 +139,12 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                 log.warn("Gemini vision ({}) a répondu {} pour {} photo(s) : {}",
                         GeminiRequests.effectiveModel(model), response.statusCode(), images.size(),
                         GeminiRequests.snippet(response.body()));
-                return RecognitionResult.unavailable();
+                // Un 429 qui subsiste après les reprises de GeminiRequests n'est
+                // plus un pic de charge : c'est le quota. Réessayer tout de suite
+                // ne servirait à rien, et l'écran doit dire autre chose.
+                return response.statusCode() == 429
+                        ? RecognitionResult.quotaExceeded()
+                        : RecognitionResult.unavailable();
             }
 
             String json = GeminiRequests.extractText(objectMapper, response.body());

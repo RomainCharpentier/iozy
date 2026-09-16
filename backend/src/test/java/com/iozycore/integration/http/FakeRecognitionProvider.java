@@ -42,6 +42,7 @@ public class FakeRecognitionProvider {
     public static final String DECLENCHE_DOUBLON = "doublon";
     public static final String DECLENCHE_HORS_CATALOGUE = "hors-catalogue";
     public static final String DECLENCHE_EDITION_INCONNUE = "edition-inconnue";
+    public static final String DECLENCHE_QUOTA = "quota-epuise";
 
     /**
      * Combien de fois un moteur de vision a réellement été sollicité.
@@ -123,6 +124,9 @@ public class FakeRecognitionProvider {
 
                 if (declencheur.contains(DECLENCHE_PANNE)) {
                     return RecognitionResult.unavailable();
+                }
+                if (declencheur.contains(DECLENCHE_QUOTA)) {
+                    return RecognitionResult.quotaExceeded();
                 }
                 if (declencheur.contains(DECLENCHE_RIEN)) {
                     return RecognitionResult.recognized(List.of(), 0);

@@ -8368,3 +8368,17 @@ photo, elle, restait dans le téléphone. Trois pièces :
   confirme, on corrige le numéro, on écarte, puis le suivant, de gauche à
   droite, photo par photo. Rien n'est écrit : chaque geste coche ou décoche
   la pastille, la relecture avant écriture reste le seul passage obligé.
+
+**Le quota, dit comme tel** (2026-09-15, 21 h). Après une trentaine de
+lectures dans la journée, Gemini a répondu 429 « You exceeded your current
+quota » ; les reprises n'y pouvaient rien, et l'écran disait « n'a pas pu
+aboutir, vous pouvez réessayer » - faux : réessayer dans la minute ne
+donnerait rien. Nouveau statut `QUOTA_EXCEEDED` (`RecognitionResult.quotaExceeded`,
+rendu par le provider sur un 429 qui subsiste après les reprises), propagé
+tel quel par `ListingRecognitionService` - le texte et les codes-barres
+restent lus - et une phrase à part à l'écran : « Le service d'analyse
+d'images a atteint son quota du jour. Réessaie demain, ou ajoute les tomes
+depuis le Catalogue. » `worthRetrying()` reste faux pour lui. Leçon : le
+palier gratuit se compte en jetons par jour, et une photo d'étagère en
+consomme beaucoup - une lecture en direct par changement de code, pas une
+par capture d'écran.
