@@ -8394,3 +8394,22 @@ plan et la lecture. Le récapitulatif par série vient après - cocher en bloc,
 édition, fiche, « Valider un par un » pour repasser - puis la relecture avant
 écriture, inchangée. Sans rien à valider (tout possédé, rien lu, quota), on
 arrive directement au récapitulatif, qui dit pourquoi.
+
+**Le repli quand le principal n'en peut plus** (2026-09-16, soir). Nouveau
+rapport « n'a pas pu aboutir » sur la même photo : dans les journaux,
+`gemini-3.5-flash` a répondu 503 trois fois de suite, puis la quatrième
+requête a dépassé les 45 s. Les reprises ne suffisent pas quand la saturation
+dure la soirée. Vérifié à la main au même moment : `gemini-3.5-flash-lite`
+répondait en une seconde. `GeminiRequests.avecRepli` : le principal d'abord,
+avec ses reprises ; s'il reste en 503 ou ne répond pas à temps
+(`HttpTimeoutException`), la même requête - le corps est une chaîne, il se
+renvoie tel quel - repart une fois vers le repli, `gemini-3.5-flash-lite` par
+défaut, `GEMINI_FALLBACK_MODEL` pour en changer, le même nom que le principal
+pour désactiver. Un 429 n'est jamais rejoué ailleurs : le quota vaut pour la
+clé, pas pour un modèle, et rejouer ne ferait qu'y ajouter. Le repli vaut
+pour la lecture des photos ; les appels texte (fiches d'édition, prix) gardent
+leurs seules reprises - leur délai est court et leur absence n'a jamais
+bloqué personne. Huit tests de plus (`GeminiRequestsTest`, 12) avec un envoi
+scripté par nom de modèle, sans réseau. Le message d'écran dit désormais
+pourquoi et quand : « le service est saturé ou n'a pas répondu à temps.
+Réessaie dans quelques minutes. »

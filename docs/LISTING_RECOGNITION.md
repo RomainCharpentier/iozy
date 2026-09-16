@@ -169,7 +169,9 @@ Gemini.
 | | |
 |---|---|
 | Modèle | `gemini-3.5-flash` par défaut (`GeminiRequests.DEFAULT_MODEL`), surchargeable par `GEMINI_MODEL` |
-| Appels par analyse | **1**, quelles que soient les photos — toutes partent dans la même requête |
+| Reprises | un 503 (modèle saturé) ou un 429 (quota de la minute) est réessayé jusqu'à **3 tentatives** (1,5 s puis 3 s d'attente) ; tout autre statut est rendu tel quel (`GeminiRequests.avecReprises`) |
+| Repli | si le principal reste en 503 après ses reprises, ou ne répond pas dans le délai, la même requête repart **une fois** vers `gemini-3.5-flash-lite` (`GeminiRequests.DEFAULT_FALLBACK_MODEL`, surchargeable par `GEMINI_FALLBACK_MODEL` ; le même nom que le principal désactive). Un 429 n'est jamais rejoué ailleurs : le quota vaut pour la clé |
+| Appels par analyse | **1** en temps normal, quelles que soient les photos — toutes partent dans la même requête ; jusqu'à 3 + 1 quand Google sature |
 | Photos par analyse | **8 au maximum** ; au-delà, la requête est refusée en 400, jamais tronquée en silence |
 | Taille envoyée | 3 Mo par photo, **12 Mo cumulés**. Mesuré sur le smoke test : 3 tranches synthétiques = **34 Ko** ; des photos d'annonce réelles tiennent typiquement en quelques centaines de Ko |
 | Délai | 45 s pour la requête vision (contre 20 s pour les appels texte : plusieurs Mo à téléverser ne se comparent pas à une question en texte) |

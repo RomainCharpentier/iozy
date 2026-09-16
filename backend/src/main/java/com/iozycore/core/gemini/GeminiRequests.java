@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -72,6 +73,45 @@ public final class GeminiRequests {
         return reponse;
     }
 
+    /** Le repli quand le modèle principal sature : la variante « lite » de la même génération, moins demandée. */
+    static final String DEFAULT_FALLBACK_MODEL = "gemini-3.5-flash-lite";
+
+    /** Un envoi vers un modèle donné - la même requête, une autre adresse. */
+    interface EnvoiParModele {
+        HttpResponse<String> executer(String modele) throws Exception;
+    }
+
+    /**
+     * Le modèle principal d'abord, avec ses reprises ; s'il reste saturé (503)
+     * ou ne répond pas à temps, le repli, une fois. Un 429 n'est pas repris
+     * ailleurs : un quota atteint vaut pour la clé, pas pour un modèle. Sans
+     * repli, la réponse du principal est rendue telle quelle et un délai
+     * dépassé remonte comme avant.
+     */
+    static HttpResponse<String> avecRepli(EnvoiParModele envoi, String principal, String repli) throws Exception {
+        HttpResponse<String> reponse;
+        try {
+            reponse = envoi.executer(principal);
+        } catch (HttpTimeoutException e) {
+            if (repli == null) {
+                throw e;
+            }
+            log.warn("Gemini ({}) n'a pas répondu à temps - repli sur {}", principal, repli);
+            return envoi.executer(repli);
+        }
+        if (reponse.statusCode() == 503 && repli != null) {
+            log.warn("Gemini ({}) reste saturé après les reprises - repli sur {}", principal, repli);
+            return envoi.executer(repli);
+        }
+        return reponse;
+    }
+
+    /** Le repli effectif : le configuré, sinon {@link #DEFAULT_FALLBACK_MODEL} ; aucun s'il est le principal. */
+    static String effectiveFallbackModel(String configured, String principal) {
+        String repli = configured == null || configured.isBlank() ? DEFAULT_FALLBACK_MODEL : configured.trim();
+        return repli.equals(principal) ? null : repli;
+    }
+
     /** Resolves the configured model, falling back to {@link #DEFAULT_MODEL} when blank - see the field's javadoc. */
     public static String effectiveModel(String configuredModel) {
         return configuredModel == null || configuredModel.isBlank() ? DEFAULT_MODEL : configuredModel;
@@ -108,6 +148,20 @@ public final class GeminiRequests {
      */
     public static HttpResponse<String> send(HttpClient httpClient, ObjectMapper objectMapper, String apiKey, String model,
                                       String prompt, List<InlineImage> images, Duration timeout) throws Exception {
+        return send(httpClient, objectMapper, apiKey, model, null, prompt, images, timeout);
+    }
+
+    /**
+     * La même enveloppe, avec un modèle de repli : quand le modèle principal
+     * reste saturé après les reprises (503) ou ne répond pas à temps, la même
+     * requête repart une fois vers {@code fallbackModel} - par défaut la
+     * variante « lite » de la même génération, moins demandée. Constaté le
+     * 2026-09-16 au soir : gemini-3.5-flash ne répondait plus du tout pendant
+     * que gemini-3.5-flash-lite répondait en une seconde.
+     */
+    public static HttpResponse<String> send(HttpClient httpClient, ObjectMapper objectMapper, String apiKey, String model,
+                                      String fallbackModel, String prompt, List<InlineImage> images,
+                                      Duration timeout) throws Exception {
         List<Map<String, Object>> parts = new ArrayList<>();
         for (InlineImage image : images) {
             parts.add(Map.of("inline_data", Map.of(
@@ -120,16 +174,23 @@ public final class GeminiRequests {
                 "contents", List.of(Map.of("parts", parts)),
                 "generationConfig", Map.of("responseMimeType", "application/json", "temperature", 0.2)));
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpointFor(effectiveModel(model))))
+        String principal = effectiveModel(model);
+        String repli = effectiveFallbackModel(fallbackModel, principal);
+        // Le corps est une chaîne : la même requête se renvoie telle quelle,
+        // vers le modèle principal puis, s'il le faut, vers le repli.
+        return avecRepli(modele -> avecReprises(() -> httpClient.send(
+                        requete(apiKey, modele, requestBody, timeout), HttpResponse.BodyHandlers.ofString()),
+                PAUSE_INITIALE_MS), principal, repli);
+    }
+
+    private static HttpRequest requete(String apiKey, String modele, String requestBody, Duration timeout) {
+        return HttpRequest.newBuilder()
+                .uri(URI.create(endpointFor(modele)))
                 .timeout(timeout)
                 .header("x-goog-api-key", apiKey)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
-
-        // Le corps est une chaîne : la requête se renvoie telle quelle.
-        return avecReprises(() -> httpClient.send(request, HttpResponse.BodyHandlers.ofString()), PAUSE_INITIALE_MS);
     }
 
     /** The model's raw text output (a JSON string, since generationConfig.responseMimeType asked for JSON) - null if absent. */

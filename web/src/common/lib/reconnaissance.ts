@@ -35,7 +35,8 @@ export const MESSAGES_VISION: Record<RecognitionStatus, string> = {
   // et le dire évite trois essais pour rien.
   QUOTA_EXCEEDED:
     "Le service d'analyse d'images a atteint son quota du jour. Réessaie demain, ou ajoute les tomes depuis le Catalogue.",
-  UNAVAILABLE: "L'analyse des photos n'a pas pu aboutir. Vous pouvez réessayer.",
+  UNAVAILABLE:
+    "L'analyse des photos n'a pas pu aboutir : le service est saturé ou n'a pas répondu à temps. Réessaie dans quelques minutes.",
 }
 
 /**

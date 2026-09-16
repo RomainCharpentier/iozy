@@ -155,3 +155,7 @@ gemini:
   # vide), donc le vrai défaut ("gemini-3.5-flash") vit côté code (voir
   # GeminiEditionAdvisor/GeminiMarketPriceAdvisor), pas ici.
   model: ${GEMINI_MODEL:}
+  # Le modèle qui prend le relais quand le principal sature ou ne répond pas à
+  # temps. Même règle : le vrai défaut ("gemini-3.5-flash-lite") vit côté code
+  # (GeminiRequests). Mettre le même nom que le principal désactive le repli.
+  fallback-model: ${GEMINI_FALLBACK_MODEL:}
