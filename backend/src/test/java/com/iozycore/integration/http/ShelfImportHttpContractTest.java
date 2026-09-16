@@ -212,4 +212,15 @@ class ShelfImportHttpContractTest extends HttpContractTestBase {
 
         assertThat(possessionsActives(serie.id())).isZero();
     }
+
+    @Test
+    void a_spent_quota_is_named_as_such_rather_than_as_something_to_retry() throws Exception {
+        typeManga();
+
+        mockMvc.perform(multipart(ROUTE_ANALYSE).file(photo(FakeRecognitionProvider.DECLENCHE_QUOTA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visionStatus").value("QUOTA_EXCEEDED"))
+                .andExpect(jsonPath("$.items", hasSize(0)))
+                .andExpect(jsonPath("$.analyzedImageCount").value(1));
+    }
 }

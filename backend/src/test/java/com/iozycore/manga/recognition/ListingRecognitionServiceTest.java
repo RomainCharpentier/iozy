@@ -53,6 +53,18 @@ class ListingRecognitionServiceTest {
         return RecognizedItem.fromVision(titre, tome, edition, null, confiance, List.of(), index);
     }
 
+    @Test
+    void a_spent_quota_is_reported_as_such_and_the_rest_of_the_reading_survives() {
+        ListingRecognitionService.Analysis analyse = service(FakeImageRecognitionProvider.rendant(
+                RecognitionResult.quotaExceeded()))
+                .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
+
+        // Pas UNAVAILABLE : l'écran ne doit pas inviter à réessayer tout de suite.
+        assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.QUOTA_EXCEEDED);
+        assertThat(analyse.items()).isEmpty();
+        assertThat(analyse.analyzedImageCount()).isEqualTo(1);
+    }
+
     // ====================================================== Le cas nominal
 
     @Test
