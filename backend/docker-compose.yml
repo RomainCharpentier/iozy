@@ -68,6 +68,9 @@ services:
       # l'analyse d'achat reste absente (adaptateur auto-désactivé).
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
+      # Optionnel - le modèle de relais quand le principal sature (défaut côté
+      # code : gemini-3.5-flash-lite) ; le même nom que le principal désactive.
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-}
     ports:
       - "8080:8080"
     volumes:

@@ -8,17 +8,25 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Réessayer quand Google dit de réessayer - et seulement dans ce cas.
+ * Réessayer quand Google dit de réessayer - et seulement dans ce cas ; puis
+ * le repli, une fois, quand le principal n'en peut vraiment plus.
  */
 class GeminiRequestsTest {
+
+    private static final String PRINCIPAL = "gemini-3.5-flash";
+    private static final String REPLI = "gemini-3.5-flash-lite";
 
     /** Une suite de statuts servis dans l'ordre ; compte les envois. */
     private static final class EnvoisScriptes implements GeminiRequests.Envoi {
@@ -78,6 +86,114 @@ class GeminiRequestsTest {
             assertThat(reponse.statusCode()).isEqualTo(statut);
             assertThat(envois.envois).isEqualTo(1);
         }
+    }
+
+    // ------------------------------------------------------------ Le repli
+
+    /**
+     * Un envoi par modèle : un statut par nom de modèle, et un délai dépassé
+     * pour tout modèle sans statut ; note les modèles appelés, dans l'ordre.
+     */
+    private static final class EnvoisParModele implements GeminiRequests.EnvoiParModele {
+        private final Map<String, Integer> statuts;
+        private final List<String> appels = new ArrayList<>();
+
+        EnvoisParModele(Map<String, Integer> statuts) {
+            this.statuts = statuts;
+        }
+
+        @Override
+        public HttpResponse<String> executer(String modele) throws Exception {
+            appels.add(modele);
+            Integer statut = statuts.get(modele);
+            if (statut == null) {
+                throw new HttpTimeoutException("délai dépassé pour " + modele);
+            }
+            return reponse(statut);
+        }
+    }
+
+    @Test
+    void a_primary_still_saturated_after_its_retries_is_replayed_once_on_the_fallback() throws Exception {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(PRINCIPAL, 503, REPLI, 200));
+
+        HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, REPLI);
+
+        assertThat(reponse.statusCode()).isEqualTo(200);
+        assertThat(envois.appels).containsExactly(PRINCIPAL, REPLI);
+    }
+
+    @Test
+    void a_primary_that_does_not_answer_in_time_is_replayed_on_the_fallback() throws Exception {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(REPLI, 200));
+
+        HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, REPLI);
+
+        assertThat(reponse.statusCode()).isEqualTo(200);
+        assertThat(envois.appels).containsExactly(PRINCIPAL, REPLI);
+    }
+
+    @Test
+    void the_fallback_answer_is_returned_as_is_even_when_it_fails_too() throws Exception {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(PRINCIPAL, 503, REPLI, 503));
+
+        HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, REPLI);
+
+        assertThat(reponse.statusCode()).isEqualTo(503);
+        assertThat(envois.appels).containsExactly(PRINCIPAL, REPLI);
+    }
+
+    @Test
+    void a_quota_answer_is_never_replayed_on_the_fallback() throws Exception {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(PRINCIPAL, 429, REPLI, 200));
+
+        HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, REPLI);
+
+        assertThat(reponse.statusCode()).isEqualTo(429);
+        assertThat(envois.appels).containsExactly(PRINCIPAL);
+    }
+
+    @Test
+    void a_good_answer_from_the_primary_never_touches_the_fallback() throws Exception {
+        for (int statut : new int[] {200, 400, 401, 404, 500}) {
+            EnvoisParModele envois = new EnvoisParModele(Map.of(PRINCIPAL, statut, REPLI, 200));
+
+            HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, REPLI);
+
+            assertThat(reponse.statusCode()).isEqualTo(statut);
+            assertThat(envois.appels).containsExactly(PRINCIPAL);
+        }
+    }
+
+    @Test
+    void without_a_fallback_the_primary_answer_is_returned_as_is() throws Exception {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(PRINCIPAL, 503, REPLI, 200));
+
+        HttpResponse<String> reponse = GeminiRequests.avecRepli(envois, PRINCIPAL, null);
+
+        assertThat(reponse.statusCode()).isEqualTo(503);
+        assertThat(envois.appels).containsExactly(PRINCIPAL);
+    }
+
+    @Test
+    void without_a_fallback_a_timeout_propagates_as_before() {
+        EnvoisParModele envois = new EnvoisParModele(Map.of(REPLI, 200));
+
+        assertThatThrownBy(() -> GeminiRequests.avecRepli(envois, PRINCIPAL, null))
+                .isInstanceOf(HttpTimeoutException.class);
+        assertThat(envois.appels).containsExactly(PRINCIPAL);
+    }
+
+    @Test
+    void the_fallback_defaults_to_the_lite_variant_and_is_never_the_primary_itself() {
+        assertThat(GeminiRequests.effectiveFallbackModel(null, PRINCIPAL)).isEqualTo(REPLI);
+        assertThat(GeminiRequests.effectiveFallbackModel("   ", PRINCIPAL)).isEqualTo(REPLI);
+        assertThat(GeminiRequests.effectiveFallbackModel(" gemini-2.5-flash ", PRINCIPAL)).isEqualTo("gemini-2.5-flash");
+        // Le même nom que le principal désactive le repli - c'est le réglage
+        // documenté pour ne jamais rejouer ailleurs.
+        assertThat(GeminiRequests.effectiveFallbackModel(PRINCIPAL, PRINCIPAL)).isNull();
+        // Et la lite comme principal n'a pas de repli vers elle-même.
+        assertThat(GeminiRequests.effectiveFallbackModel(null, REPLI)).isNull();
     }
 
     // ------------------------------------------------------------ Une réponse minimale

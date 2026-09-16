@@ -100,6 +100,10 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
     @Value("${gemini.model:}")
     private String model;
 
+    /** Le modèle qui prend le relais quand le principal sature - voir GeminiRequests.avecRepli. */
+    @Value("${gemini.fallback-model:}")
+    private String fallbackModel;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
@@ -132,7 +136,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                     .map(image -> new GeminiRequests.InlineImage(image.mediaType(), image.bytes()))
                     .toList();
 
-            HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model,
+            HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model, fallbackModel,
                     PROMPT.formatted(images.size()), jointes, TIMEOUT);
 
             if (response.statusCode() != 200) {

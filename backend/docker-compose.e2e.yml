@@ -51,6 +51,7 @@ services:
       GOOGLE_BOOKS_API_KEY: ""
       GEMINI_API_KEY: ""
       GEMINI_MODEL: ""
+      GEMINI_FALLBACK_MODEL: ""
       # Rien à relire la nuit sur une pile jetable sans fournisseur : le
       # calendrier des sorties n'y montre que les dates saisies à la main.
       RELEASES_REFRESH_ENABLED: "false"
