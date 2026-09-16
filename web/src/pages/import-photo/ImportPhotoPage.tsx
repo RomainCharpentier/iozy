@@ -5,7 +5,7 @@ import { AlertCircle, ArrowLeft, Camera, Check, HelpCircle, X } from 'lucide-rea
 import { analyserLEtagere, importerDepuisLEtagere } from '@/common/api/shelfImport'
 import { preparerLesPhotos } from '@/common/lib/photosAAnalyser'
 import { resumerNumeros } from '@/common/lib/numerosDeTomes'
-import { PhotoAnnotee, type Cadre, type EtatCadre } from './PhotoAnnotee'
+import type { EtatCadre } from './PhotoAnnotee'
 import { ValidationUnParUn, type Extrait } from './ValidationUnParUn'
 import {
   COULEURS_CONFIANCE,
@@ -135,7 +135,11 @@ export function ImportPhotoPage() {
       setEditions({})
       setFichesChoisies({})
       setGroupesRetires({})
-      setEtape('verification')
+      // La vérification, c'est un par un : dès qu'il y a quelque chose à
+      // valider, on y entre directement ; le récapitulatif par série vient
+      // après. Sans rien à valider (tout possédé, rien lu), le récapitulatif
+      // dit pourquoi.
+      setEtape(reponse.items.some((entree) => !entree.alreadyOwned) ? 'unparun' : 'verification')
       setPas(0)
     },
   })
@@ -323,24 +327,6 @@ export function ImportPhotoPage() {
     return groupe ? [{ ligne, groupe }] : []
   })
 
-  /** Un cadre par tome que le moteur a su situer, photo par photo. */
-  const cadresParPhoto = new Map<number, Cadre[]>()
-  for (const { ligne, groupe } of lignesEnPlace) {
-    const numero = numeroDe(ligne)
-    for (const box of ligne.entree.item.boxes) {
-      const cadre: Cadre = {
-        cle: ligne.cle,
-        libelle: numero === null ? '?' : `T${numero}`,
-        titre: groupe.titre,
-        etat: etatDe(ligne),
-        box,
-        indice: ligne.entree.item.evidence.join(' · ') || undefined,
-      }
-      cadresParPhoto.set(box.image, [...(cadresParPhoto.get(box.image) ?? []), cadre])
-    }
-  }
-  const nombreDePhotos = Math.max(urls.length, ...[...cadresParPhoto.keys()].map((i) => i + 1), 0)
-
   /**
    * Ce que la validation un par un fait défiler : par photo, de gauche à
    * droite - l'ordre d'une rangée - puis ce que le moteur n'a pas su situer.
@@ -363,17 +349,6 @@ export function ImportPhotoPage() {
       return a.box.image - b.box.image || a.box.left - b.box.left
     })
 
-  /** Un clic sur un cadre : la pastille bascule ; sans numéro, la revue s'ouvre sur ce livre pour le saisir. */
-  function basculerCadre(cadre: Cadre) {
-    const place = lignesEnPlace.find(({ ligne }) => ligne.cle === cadre.cle)
-    if (!place || cadre.etat === 'possede') return
-    if (cadre.etat === 'sansNumero') {
-      setPas(Math.max(0, extraits.findIndex((extrait) => extrait.cle === cadre.cle)))
-      setEtape('unparun')
-      return
-    }
-    corriger(cadre.cle, estCoche(place.ligne) ? { decoche: true, coche: false } : { coche: true, decoche: false })
-  }
 
   const messageVision =
     resultat && !(resultat.visionStatus === 'NOTHING_RECOGNIZED' && resultat.items.length > 0)
@@ -437,6 +412,7 @@ export function ImportPhotoPage() {
           index={pas}
           urls={urls}
           tailles={tailles}
+          onTaille={(image, taille) => setTailles((prev) => ({ ...prev, [image]: taille }))}
           onConfirmer={(cle, numero) => {
             corriger(cle, numero === null ? { coche: true, decoche: false } : { coche: true, decoche: false, numero })
             setPas((p) => p + 1)
@@ -488,35 +464,20 @@ export function ImportPhotoPage() {
               </p>
             )}
 
-            {/* La photo, avec un cadre là où chaque livre a été vu : la pastille
-                posée sur l'image. Un clic coche ou décoche, comme sur la
-                pastille ; « Valider un par un » fait défiler chaque cadre en
-                gros plan avec ce qui en a été lu. */}
-            {nombreDePhotos > 0 && lignes.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {Array.from({ length: nombreDePhotos }, (_, i) => (
-                  <PhotoAnnotee
-                    key={i}
-                    src={urls[i] ?? ''}
-                    numero={i + 1}
-                    cadres={cadresParPhoto.get(i) ?? []}
-                    taille={tailles[i]}
-                    onBasculer={basculerCadre}
-                    onTaille={(taille) => setTailles((prev) => ({ ...prev, [i]: taille }))}
-                  />
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPas(0)
-                    setEtape('unparun')
-                  }}
-                  disabled={extraits.length === 0}
-                  className="min-h-11 self-start rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-40"
-                >
-                  Valider un par un ({extraits.length})
-                </button>
-              </div>
+            {/* La vérification se fait un par un, sur la photo ; ce récapitulatif
+                sert à cocher en bloc, choisir l'édition et la fiche par série,
+                et à repasser en revue si besoin. */}
+            {extraits.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPas(0)
+                  setEtape('unparun')
+                }}
+                className="min-h-11 self-start rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm"
+              >
+                Valider un par un ({extraits.length})
+              </button>
             )}
 
             <>

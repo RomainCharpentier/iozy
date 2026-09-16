@@ -1,12 +1,12 @@
 import type { BoxDto } from '@/common/types/listingRecognition'
 
 /**
- * La photo, avec un cadre là où le moteur a vu chaque livre.
+ * La photo, avec un cadre là où le moteur a vu un livre.
  *
- * Chaque cadre est la pastille du tome, posée sur la photo : même état
- * (coché, décoché, déjà possédé, numéro non lu), même geste - un clic coche
- * ou décoche. C'est ce qui permet de vérifier une lecture sans quitter
- * l'image : « T62 » écrit sur le cadre du 62e livre, ou sur le 61e.
+ * Dans la validation un par un, un seul cadre à la fois : celui du livre en
+ * cours, pour situer le gros plan sur l'étagère. Le cadre porte l'état du
+ * tome (coché, décoché, déjà possédé, numéro non lu) et son numéro ; sur une
+ * tranche étroite, le numéro se lit de haut en bas, comme le titre imprimé.
  */
 export type EtatCadre = 'coche' | 'decoche' | 'possede' | 'sansNumero'
 
@@ -56,6 +56,7 @@ export function PhotoAnnotee({
   cadres,
   enCours,
   taille,
+  interactif = true,
   onBasculer,
   onTaille,
 }: {
@@ -68,7 +69,9 @@ export function PhotoAnnotee({
   enCours?: string
   /** Les dimensions de la photo, une fois chargée - pour orienter les étiquettes. */
   taille?: { w: number; h: number }
-  onBasculer: (cadre: Cadre) => void
+  /** Faux : les cadres se regardent sans se cliquer - la validation un par un ne montre que le cadre en cours. */
+  interactif?: boolean
+  onBasculer?: (cadre: Cadre) => void
   onTaille?: (taille: { w: number; h: number }) => void
 }) {
   return (
@@ -85,6 +88,34 @@ export function PhotoAnnotee({
       )}
       {cadres.map((cadre) => {
         const possede = cadre.etat === 'possede'
+        const nom = `${cadre.libelle} de ${cadre.titre} sur la photo ${numero}${possede ? ', déjà possédé' : ''}`
+        const position = {
+          left: `${cadre.box.left * 100}%`,
+          top: `${cadre.box.top * 100}%`,
+          width: `${(cadre.box.right - cadre.box.left) * 100}%`,
+          height: `${(cadre.box.bottom - cadre.box.top) * 100}%`,
+        }
+        const classes = `absolute rounded border-2 ${BORDURE[cadre.etat]} ${
+          enCours === cadre.cle ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface2' : ''
+        }`
+        const etiquette = (
+          <span
+            className={`absolute left-0 top-0 whitespace-nowrap font-semibold ${PASTILLE[cadre.etat]} ${
+              etiquetteVerticale(cadre.box, taille)
+                ? 'rounded-b [writing-mode:vertical-rl] px-px py-1 text-[9px] leading-none'
+                : 'rounded-br px-1 text-[10px] leading-4'
+            }`}
+          >
+            {cadre.libelle}
+          </span>
+        )
+        if (!interactif) {
+          return (
+            <div key={cadre.cle} role="img" aria-label={nom} title={cadre.indice} style={position} className={classes}>
+              {etiquette}
+            </div>
+          )
+        }
         return (
           <button
             key={cadre.cle}
@@ -92,28 +123,13 @@ export function PhotoAnnotee({
             role="checkbox"
             aria-checked={cadre.etat === 'coche' || possede}
             disabled={possede}
-            aria-label={`${cadre.libelle} de ${cadre.titre} sur la photo ${numero}${possede ? ', déjà possédé' : ''}`}
+            aria-label={nom}
             title={cadre.indice}
-            onClick={() => onBasculer(cadre)}
-            style={{
-              left: `${cadre.box.left * 100}%`,
-              top: `${cadre.box.top * 100}%`,
-              width: `${(cadre.box.right - cadre.box.left) * 100}%`,
-              height: `${(cadre.box.bottom - cadre.box.top) * 100}%`,
-            }}
-            className={`absolute rounded border-2 ${BORDURE[cadre.etat]} ${
-              enCours === cadre.cle ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface2' : ''
-            }`}
+            onClick={() => onBasculer?.(cadre)}
+            style={position}
+            className={classes}
           >
-            <span
-              className={`absolute left-0 top-0 whitespace-nowrap font-semibold ${PASTILLE[cadre.etat]} ${
-                etiquetteVerticale(cadre.box, taille)
-                  ? 'rounded-b [writing-mode:vertical-rl] px-px py-1 text-[9px] leading-none'
-                  : 'rounded-br px-1 text-[10px] leading-4'
-              }`}
-            >
-              {cadre.libelle}
-            </span>
+            {etiquette}
           </button>
         )
       })}

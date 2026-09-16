@@ -3,14 +3,18 @@ import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { COULEURS_CONFIANCE, LIBELLES_CONFIANCE } from '@/common/lib/reconnaissance'
 import type { BoxDto, RecognitionConfidence } from '@/common/types/listingRecognition'
-import type { EtatCadre } from './PhotoAnnotee'
+import { PhotoAnnotee, type EtatCadre } from './PhotoAnnotee'
 import { rapportDuBloc, recadrer } from './recadrage'
 
 /**
- * Valider les lectures une par une : le morceau de photo où le moteur a vu
- * le livre, en gros plan, et ce qu'il en a lu. On confirme, on corrige le
- * numéro, ou on écarte - puis le suivant. Rien n'est écrit ici : chaque geste
- * ne fait que cocher ou décocher la pastille correspondante.
+ * La vérification : les lectures une par une.
+ *
+ * Pour chaque livre, la photo avec son seul cadre - pour le situer sur
+ * l'étagère - puis ce cadre en gros plan et ce qui en a été lu. On confirme,
+ * on corrige le numéro, ou on écarte, puis le suivant, de gauche à droite.
+ * Rien n'est écrit ici : chaque geste ne fait que cocher ou décocher la
+ * pastille correspondante ; le récapitulatif par série vient après, et la
+ * relecture avant écriture reste le seul passage obligé.
  */
 export interface Extrait {
   cle: string
@@ -33,6 +37,7 @@ export function ValidationUnParUn({
   onEcarter,
   onAller,
   onTerminer,
+  onTaille,
 }: {
   extraits: Extrait[]
   index: number
@@ -42,6 +47,7 @@ export function ValidationUnParUn({
   onEcarter: (cle: string) => void
   onAller: (index: number) => void
   onTerminer: () => void
+  onTaille?: (image: number, taille: { w: number; h: number }) => void
 }) {
   const total = extraits.length
   const extrait = extraits[index]
@@ -56,18 +62,20 @@ export function ValidationUnParUn({
           titre={<span id="titre-un-par-un">Tout est passé en revue</span>}
           sousTitre={`${confirmes} ${confirmes > 1 ? 'confirmés' : 'confirmé'}, ${ecartes} ${ecartes > 1 ? 'écartés' : 'écarté'}${
             total - confirmes - ecartes > 0 ? `, ${total - confirmes - ecartes} sans numéro` : ''
-          }. Rien n’est écrit : la vue d’ensemble te montre le résultat, puis tu relis avant d’ajouter.`}
+          }. Rien n’est écrit : le récapitulatif te montre le résultat par série, puis tu relis avant d’ajouter.`}
         />
         <button
           type="button"
           onClick={onTerminer}
           className="min-h-11 self-start rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
         >
-          Revenir à la vue d’ensemble
+          Voir le récapitulatif
         </button>
       </section>
     )
   }
+
+  const libelle = extrait.numero === null ? '?' : `T${extrait.numero}`
 
   return (
     <section aria-labelledby="titre-un-par-un" className="flex flex-col gap-3">
@@ -81,10 +89,34 @@ export function ValidationUnParUn({
             onClick={onTerminer}
             className="min-h-11 rounded-xl bg-surface px-3 text-sm font-semibold text-textPrimary shadow-token-sm"
           >
-            Vue d’ensemble
+            Récapitulatif
           </button>
         }
       />
+
+      {/* La photo entière avec le seul cadre du livre en cours : de quoi le
+          situer sur l'étagère avant de le regarder de près. */}
+      {extrait.box && (
+        <PhotoAnnotee
+          src={urls[extrait.box.image] ?? ''}
+          numero={extrait.box.image + 1}
+          taille={tailles[extrait.box.image]}
+          interactif={false}
+          enCours={extrait.cle}
+          cadres={[
+            {
+              cle: extrait.cle,
+              libelle,
+              titre: extrait.titre,
+              etat: extrait.etat,
+              box: extrait.box,
+              indice: extrait.indice || undefined,
+            },
+          ]}
+          onTaille={(taille) => onTaille?.(extrait.box?.image ?? 0, taille)}
+        />
+      )}
+
       <FicheExtrait
         key={extrait.cle}
         extrait={extrait}
