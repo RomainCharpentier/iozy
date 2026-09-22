@@ -49,7 +49,7 @@ export function TierSummarySection({
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-display text-[16.5px] font-semibold text-textPrimary">Mes classements</h3>
-        <Link to="/tier-lists" className="text-[13.5px] font-medium text-accentText">
+        <Link to="/tier-lists" className="flex min-h-11 items-center text-[13.5px] font-medium text-accentText">
           Toutes mes Tier Lists
         </Link>
       </div>
@@ -77,7 +77,9 @@ export function TierSummarySection({
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3 rounded-[15px] bg-gradient-to-br from-background to-surface2 p-4">
-          <span className="flex min-h-11 flex-1 items-center text-sm text-textDim">
+          {/* `min-w` : sans lui, la phrase se tassait sur quatre lignes de deux
+              mots à côté du bouton au lieu de passer dessous (390 px). */}
+          <span className="flex min-h-11 min-w-[200px] flex-1 items-center text-sm text-textDim">
             Cette œuvre n'est classée nulle part.
           </span>
           <button

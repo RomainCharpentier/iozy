@@ -29,7 +29,9 @@ export function InspecteurFiche({
   source,
 }: {
   teinte: [number, number, number]
-  personnel: ReactNode
+  /** Absente pour un visiteur : il n'a ni note, ni lectures, ni classement, et
+   *  la colonne lui annonçait « Pas encore notée » - rien à noter, personne. */
+  personnel?: ReactNode
   oeuvre: ReactNode
   source: ReactNode
 }) {
@@ -44,13 +46,15 @@ export function InspecteurFiche({
       }}
     >
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-        <ColonneInspecteur
-          titre="Personnel"
-          icone={<UserRound size={16} className="text-accentText" />}
-          souligne="bg-accent/30"
-        >
-          {personnel}
-        </ColonneInspecteur>
+        {personnel !== undefined && (
+          <ColonneInspecteur
+            titre="Personnel"
+            icone={<UserRound size={16} className="text-accentText" />}
+            souligne="bg-accent/30"
+          >
+            {personnel}
+          </ColonneInspecteur>
+        )}
         <ColonneInspecteur titre="Œuvre" icone={<AlignLeft size={16} className="text-textDim" />} souligne="bg-line">
           {oeuvre}
         </ColonneInspecteur>

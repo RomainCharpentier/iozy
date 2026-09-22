@@ -720,8 +720,9 @@ export function EntityDetailPage() {
       <div className="pt-6">
         <InspecteurFiche
           teinte={teinte}
+          // Rien de personnel pour un visiteur (voir InspecteurFiche).
           personnel={
-            <>
+            estInvite ? undefined : <>
               <ReleveInspecteur
                 libelle="Tier list">
                 {generalRank ? (
@@ -754,7 +755,7 @@ export function EntityDetailPage() {
                     value={brouillon.attributs.valeur('note')}
                     onChange={(e) => brouillon.attributs.saisir('note', e.target.value)}
                     rows={3}
-                    placeholder="Ce que tu veux retenir sur cette série…"
+                    placeholder="Ce que tu veux retenir sur cette œuvre…"
                     aria-label="Mes remarques"
                     className="w-full rounded-xl bg-surface px-3 py-2 text-[13.5px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
                   />
@@ -1050,9 +1051,9 @@ export function EntityDetailPage() {
               setTitleInput(entity.title)
               setEditingTitle(true)
             }}
-            className="w-fit text-[13px] text-textDim underline"
+            className="flex min-h-11 w-fit items-center text-[13px] text-textDim underline"
           >
-            Renommer la série
+            Renommer l’œuvre
           </button>
 
           {/* Séparé visuellement et nommé, en bas de l'espace d'édition
@@ -1064,7 +1065,7 @@ export function EntityDetailPage() {
               Zone sensible
             </span>
             <p className="text-[13px] text-textDim">
-              Supprimer la fiche efface la série du catalogue. Contrairement à « vendu » ou « perdu », qui
+              Supprimer la fiche efface l’œuvre du catalogue. Contrairement à « vendu » ou « perdu », qui
               gardent une trace, c&apos;est définitif - et refusé tant qu&apos;un exemplaire ou une lecture y
               est rattaché.
             </p>

@@ -63,7 +63,8 @@ test('saisir une annonce, et voir les tomes déjà possédés corriger le verdic
   //     sur six, donc 7,50 € par tome réellement gagné et non 5 €.
   await expect(page.getByText('Tomes déjà possédés : 1, 2')).toBeVisible()
   await expect(page.getByText(/4 tomes utiles/)).toBeVisible()
-  await expect(page.getByText(/7\.50 €\/tome utile/)).toBeVisible()
+  // « 7,50 € » : virgule décimale et espace fine insécable devant le symbole (lot 148).
+  await expect(page.getByText(/7,50\s€\/tome utile/)).toBeVisible()
 })
 
 test('un lot sans doublon ne parle pas de doublons', async ({ page }) => {

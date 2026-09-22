@@ -24,6 +24,7 @@ import { Jaquette } from '@/common/components/Jaquette'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import type { EtatRetour } from '@/common/lib/retour'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
+import { nomDeSource } from '@/common/lib/sources'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -33,7 +34,7 @@ import { indicesDe } from '@/common/lib/indicesOeuvre'
 function candidateSubtitle(candidate: MetadataCandidateDto): string {
   const mediaType = candidate.attributes.mediaType
   const startYear = candidate.attributes.startYear
-  return [typeof mediaType === 'string' ? mediaType : null, typeof startYear === 'string' ? startYear : null, candidate.source]
+  return [typeof mediaType === 'string' ? mediaType : null, typeof startYear === 'string' ? startYear : null, nomDeSource(candidate.source)]
     .filter((part): part is string => !!part)
     .join(' · ')
 }

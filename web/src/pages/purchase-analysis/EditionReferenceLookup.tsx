@@ -7,6 +7,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { Chip } from '@/common/components/Chip'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EDITION_TIERS, EDITION_TIER_LABELS, type EditionTier, type MangaEditionDto } from '@/common/types/purchaseAnalysis'
+import { formaterEuros } from '@/common/lib/formats'
 
 const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as const
 
@@ -119,7 +120,7 @@ export function EditionReferenceLookup({
         <CircleCheck size={13} />
         Édition connue · {EDITION_TIER_LABELS[edition.tier]}
         {edition.totalVolumes !== null && ` · ${edition.totalVolumes} tomes`}
-        {edition.retailPriceNewPerVolume !== null && ` · ${edition.retailPriceNewPerVolume} €/tome neuf`}
+        {edition.retailPriceNewPerVolume !== null && ` · ${formaterEuros(edition.retailPriceNewPerVolume)}/tome neuf`}
       </p>
     )
   }

@@ -180,7 +180,7 @@ export function GrilleVolumes({
             <button
               type="button"
               onClick={action.onClick}
-              className="flex aspect-[2/3] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-lineStrong px-1.5 text-center text-[10px] leading-tight font-medium text-faint transition-colors hover:border-accent hover:bg-accentTint hover:text-accentText"
+              className="flex aspect-[2/3] flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-lineStrong px-1.5 text-center text-[11px] leading-tight font-medium text-faint transition-colors hover:border-accent hover:bg-accentTint hover:text-accentText"
             >
               <Plus size={15} />
               {action.libelle}

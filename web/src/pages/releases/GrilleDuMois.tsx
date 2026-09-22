@@ -130,7 +130,7 @@ function Case({
             repli={<span className="h-6 w-4 rounded-[3px] bg-surface2 sm:h-8 sm:w-[22px]" />}
           />
         ))}
-        {nb > JAQUETTES_PAR_CASE && <span className="text-[10px] font-semibold text-textDim">+{nb - JAQUETTES_PAR_CASE}</span>}
+        {nb > JAQUETTES_PAR_CASE && <span className="text-[11px] font-semibold text-textDim">+{nb - JAQUETTES_PAR_CASE}</span>}
       </span>
     </button>
   )

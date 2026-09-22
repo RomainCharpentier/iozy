@@ -99,12 +99,12 @@ export function CoverTile({
         <TexteCoupe texte={title} className="line-clamp-2 text-sm font-semibold text-textPrimary" />
         {subtitle && <TexteCoupe texte={subtitle} className="mt-1 line-clamp-1 text-xs text-textDim" />}
         {typeLabel && (
-          <span className="mt-1.5 w-fit rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-textDim">
+          <span className="mt-1.5 w-fit rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-textDim">
             {typeLabel}
           </span>
         )}
         {signal && (
-          <span className="mt-1.5 w-fit rounded-full bg-accentTint px-2 py-0.5 text-[10px] font-semibold text-accentText">
+          <span className="mt-1.5 w-fit rounded-full bg-accentTint px-2 py-0.5 text-[11px] font-semibold text-accentText">
             {signal}
           </span>
         )}

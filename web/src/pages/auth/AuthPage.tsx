@@ -177,7 +177,7 @@ export function AuthPage() {
         <button
           type="button"
           onClick={() => setMode(enCreation ? 'connexion' : 'creation')}
-          className="self-center text-sm text-accentText underline underline-offset-4"
+          className="flex min-h-11 items-center self-center text-sm text-accentText underline underline-offset-4"
         >
           {enCreation ? 'J’ai déjà un compte' : 'Créer un compte avec une invitation'}
         </button>

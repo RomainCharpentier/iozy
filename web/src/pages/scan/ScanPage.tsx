@@ -274,7 +274,9 @@ export function ScanPage() {
               {entry.status === 'not-found' && <HelpCircle size={16} className="shrink-0 text-textDim" />}
               {entry.status === 'unavailable' && <HelpCircle size={16} className="shrink-0 text-warning" />}
               {entry.status === 'error' && <XCircle size={16} className="shrink-0 text-danger" />}
-              <TexteCoupe texte={libelleEntree(entry)} className="min-w-0 flex-1 truncate text-textPrimary" />
+              {/* Deux lignes plutôt qu'une coupée : « Une source n'a pas répondu… »
+                  perdait sa fin derrière « Chercher par titre » sur 390 px. */}
+              <TexteCoupe texte={libelleEntree(entry)} className="line-clamp-2 min-w-0 flex-1 text-textPrimary" />
               {entry.volumeNumber !== undefined && (
                 <span className="shrink-0 text-xs text-textDim">
                   Tome {entry.volumeNumber}
@@ -291,7 +293,7 @@ export function ScanPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/add')}
-                  className="shrink-0 text-xs text-textDim underline hover:text-textPrimary"
+                  className="flex min-h-11 shrink-0 items-center text-xs text-textDim underline hover:text-textPrimary"
                 >
                   Chercher par titre
                 </button>
