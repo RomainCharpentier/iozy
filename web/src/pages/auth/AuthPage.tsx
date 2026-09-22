@@ -58,10 +58,19 @@ export function AuthPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-display text-2xl font-bold text-textPrimary">IozyCore</h1>
-        <p className="text-sm text-textDim">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-10">
+      {/* Une lueur d'accent en haut, rien d'autre : la porte est le premier
+          écran qu'on voit, elle doit ressembler à l'application, pas à un
+          formulaire posé sur du vide. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(70%_60%_at_50%_0%,var(--color-accentTint),transparent_70%)]"
+      />
+      <div className="flex flex-col gap-2">
+        <h1 className="font-display text-4xl font-bold tracking-[-0.03em] text-textPrimary">
+          Iozy<span className="text-accent">Core</span>
+        </h1>
+        <p className="text-[15px] leading-relaxed text-textDim">
           {aucunCompteSurLInstance
             ? 'Personne n’a encore de compte ici. Le premier créé reprend la collection déjà enregistrée.'
             : 'Ta collection, ce qu’il te manque, et ce que vaut une annonce.'}
@@ -82,7 +91,7 @@ export function AuthPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            className="champ"
           />
         </label>
 
@@ -104,7 +113,7 @@ export function AuthPage() {
               aria-describedby={enCreation ? 'auth-mot-de-passe-regle' : undefined}
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+              className="champ"
             />
           </label>
           {enCreation && (
@@ -131,7 +140,7 @@ export function AuthPage() {
                 aria-describedby="auth-pseudo-regle"
                 value={pseudo}
                 onChange={(e) => setPseudo(e.target.value)}
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                className="champ"
               />
             </label>
             {/* La règle est écrite AVANT la saisie, pas rendue en refus après :
@@ -154,7 +163,7 @@ export function AuthPage() {
               required
               value={codeInvitation}
               onChange={(e) => setCodeInvitation(e.target.value)}
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+              className="champ"
             />
           </label>
         )}
@@ -162,7 +171,7 @@ export function AuthPage() {
         <button
           type="submit"
           disabled={enCours}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {enCours ? 'Un instant…' : enCreation ? 'Créer mon compte' : 'Se connecter'}
         </button>
@@ -191,7 +200,7 @@ export function AuthPage() {
             type="button"
             onClick={() => visite.mutate()}
             disabled={enCours}
-            className="min-h-11 rounded-xl bg-surface2 px-4 text-sm font-semibold text-textPrimary disabled:opacity-50"
+            className="btn-secondaire"
           >
             {visite.isPending ? 'Un instant…' : 'Visiter sans compte'}
           </button>

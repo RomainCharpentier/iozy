@@ -21,6 +21,7 @@ import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { useToast } from '@/common/lib/toast'
 import type { Rank, TierListEntryDto } from '@/common/types/tierList'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
+import { Squelette } from '@/common/components/Squelette'
 
 /** Board d'une Tier List PERSONNALISÉE - même rendu que le classement
  * général (voir TierBoard), rangs actifs propres à cette liste (voir
@@ -121,7 +122,7 @@ export function CustomTierBoardPage() {
   })
 
   if (detailQuery.isError) return <ErrorBanner message={detailQuery.error.message} />
-  if (detailQuery.isLoading || !detailQuery.data) return <p className="text-textDim">Chargement...</p>
+  if (detailQuery.isLoading || !detailQuery.data) return <Squelette lignes={3} />
 
   const { list, ranked, unranked } = detailQuery.data
   const rankedByRank = Object.fromEntries(list.activeRanks.map((r) => [r, ranked.filter((e) => e.rank === r)]))
@@ -162,7 +163,7 @@ export function CustomTierBoardPage() {
             <button
               type="button"
               onClick={() => quickRank.start(unranked)}
-              className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-3.5 text-sm font-semibold text-textPrimary shadow-token-sm"
+              className="btn-secondaire"
             >
               <Zap size={15} />
               Classer rapidement ({unranked.length})
@@ -171,7 +172,7 @@ export function CustomTierBoardPage() {
           <button
             type="button"
             onClick={() => setAddingItems(true)}
-            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
+            className="btn-primaire"
           >
             <Plus size={15} />
             Ajouter
@@ -204,14 +205,14 @@ export function CustomTierBoardPage() {
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
                       autoFocus
-                      className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                      className="champ"
                     />
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => renameMutation.mutate(nameInput.trim())}
                         disabled={!nameInput.trim() || renameMutation.isPending}
-                        className="flex-1 rounded-lg bg-accent px-2 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
+                        className="btn-primaire flex-1"
                       >
                         Enregistrer
                       </button>

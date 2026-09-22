@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getReleaseCalendar } from '@/common/api/insights'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { isoLocal, libelleMois, titreDuJour } from '@/common/lib/releaseDate'
 import { Chip } from '@/common/components/Chip'
-import { CLASSE_CARTE } from '@/common/components/Carte'
+import { EtatVide } from '@/common/components/EtatVide'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { LienRetour } from '@/common/components/LienRetour'
@@ -15,6 +15,7 @@ import { ReleaseRow } from '@/common/components/ReleaseRow'
 import { GrilleDuMois } from './GrilleDuMois'
 import { ListeAVenir } from './ListeAVenir'
 import { bornesDuMois, cleDeSortie, compterParCategorie, moisDepuisParametre, moisPrecedent, moisSuivant, rangerParJour } from './releaseCalendar'
+import { Squelette } from '@/common/components/Squelette'
 
 const PARAMETRE_MOIS = 'mois'
 
@@ -149,13 +150,14 @@ export function ReleasesPage() {
 
           <GrilleDuMois mois={mois} parJour={parJour} jourChoisi={jourActif} onChoisir={setJourChoisi} aujourdHui={aujourdHui} />
 
-          {calendrierQuery.isLoading && <p className="text-sm text-textDim">Chargement...</p>}
+          {calendrierQuery.isLoading && <Squelette lignes={3} />}
 
           {calendrierQuery.isSuccess && toutes.length === 0 && (
-            <div className={CLASSE_CARTE}>
-              <p className="text-sm font-semibold text-textPrimary">Rien ne sort en {libelleMois(mois).toLowerCase()} pour les œuvres que tu suis.</p>
-              <p className="mt-1 text-sm text-textDim">Suis une œuvre depuis sa fiche pour voir ses sorties ici.</p>
-            </div>
+            <EtatVide
+              icone={CalendarDays}
+              titre={`Rien ne sort en ${libelleMois(mois).toLowerCase()} pour les œuvres que tu suis.`}
+              detail="Suis une œuvre depuis sa fiche pour voir ses sorties ici."
+            />
           )}
 
           {!jourActif && range.aPreciser.length > 0 && (

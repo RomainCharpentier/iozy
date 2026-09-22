@@ -12,7 +12,7 @@ interface ChipProps {
 /** Pastille capsule - filtres de type (Shelf) et affichage de tags (EntityDetail). */
 export function Chip({ label, isActive = false, onClick, count }: ChipProps) {
   const className = `inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-    isActive ? 'bg-accent text-accentInk' : 'bg-surface text-textDim'
+    isActive ? 'bg-accent text-accentInk' : 'bg-surface text-textDim ring-1 ring-line'
   }`
   const content = (
     <>

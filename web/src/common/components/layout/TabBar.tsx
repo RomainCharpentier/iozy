@@ -32,7 +32,7 @@ export function TabBar() {
   const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 flex items-stretch gap-1 border-t border-surface2 bg-surface px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+    <nav className="barre-verre fixed inset-x-0 bottom-0 z-10 flex items-stretch gap-1 border-t border-line px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
       {destinations.map(({ to, labelCourt, icon: Icon, activeWhen }) => {
         const active = activeWhen(pathname)
         return (

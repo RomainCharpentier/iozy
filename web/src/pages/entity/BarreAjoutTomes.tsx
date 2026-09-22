@@ -57,7 +57,7 @@ export function BarreAjoutTomes({
           type="button"
           onClick={onAjouter}
           disabled={enCours || attente}
-          className="flex min-h-12 items-center gap-2.5 rounded-[14px] bg-accent px-5 text-sm font-semibold text-accentInk shadow-token-accent transition-transform hover:-translate-y-px disabled:opacity-50"
+          className="btn-primaire"
         >
           {enCours ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
           {enCours ? 'Ajout en cours...' : `Ajouter à ma collection`}

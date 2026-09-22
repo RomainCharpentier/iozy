@@ -69,9 +69,9 @@ export function CoverTile({
   const showImage = !!imageUrl && !imageFailed
 
   return (
-    <button type="button" onClick={onClick} className={`flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer' : 'cursor-default'}`}>
+    <button type="button" onClick={onClick} className={`flex w-full min-w-0 flex-col text-left ${onClick ? 'cursor-pointer transition-transform active:scale-[0.98]' : 'cursor-default'}`}>
       <div
-        className={`relative w-full overflow-hidden rounded-2xl ${aspectClassName}`}
+        className={`relative w-full overflow-hidden rounded-2xl ring-1 ring-line shadow-token-sm ${aspectClassName}`}
         style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
       >
         {showImage && (

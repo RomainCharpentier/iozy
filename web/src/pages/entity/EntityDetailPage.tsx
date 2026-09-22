@@ -51,6 +51,7 @@ import { retourDepuis } from '@/common/lib/retour'
 import { useToast } from '@/common/lib/toast'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { invaliderApresPossession } from '@/common/lib/invalidations'
+import { SqueletteFiche } from '@/common/components/Squelette'
 
 /**
  * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
@@ -458,7 +459,7 @@ export function EntityDetailPage() {
         : null,
   })
 
-  if (entityQuery.isPending || progressQuery.isPending) return <p className="text-textDim">Chargement...</p>
+  if (entityQuery.isPending || progressQuery.isPending) return <SqueletteFiche />
   if (entityQuery.isError) return <ErrorBanner message={entityQuery.error.message} />
   if (progressQuery.isError) return <ErrorBanner message={progressQuery.error.message} />
   if (!entity) return null
@@ -761,7 +762,7 @@ export function EntityDetailPage() {
                     rows={3}
                     placeholder="Ce que tu veux retenir sur cette œuvre…"
                     aria-label="Mes remarques"
-                    className="w-full rounded-xl bg-surface px-3 py-2 text-[13.5px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
+                    className="champ w-full"
                   />
                 ) : remarques ? (
                   <span className="text-[13.5px] whitespace-pre-line text-textPrimary">{remarques}</span>
@@ -930,7 +931,7 @@ export function EntityDetailPage() {
               type="button"
               onClick={() => void brouillon.enregistrer().then(terminerEdition)}
               disabled={brouillon.enCours}
-              className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+              className="btn-primaire"
             >
               {brouillon.enCours ? 'Enregistrement...' : 'Enregistrer et terminer'}
             </button>
@@ -948,7 +949,7 @@ export function EntityDetailPage() {
               type="button"
               onClick={() => void brouillon.enregistrer()}
               disabled={brouillon.enCours || !brouillon.modifie}
-              className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+              className="btn-primaire"
             >
               {brouillon.enCours ? 'Enregistrement...' : 'Enregistrer la fiche'}
             </button>
@@ -1187,13 +1188,13 @@ function ChampCorrection({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus
-        className="min-w-0 flex-1 rounded-lg bg-surface px-3 py-2 text-sm text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
+        className="champ min-w-0 flex-1"
       />
       <button
         type="button"
         onClick={onValider}
         disabled={!valeur.trim() || enCours}
-        className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+        className="btn-primaire shrink-0"
       >
         Enregistrer
       </button>

@@ -106,7 +106,7 @@ export function ShareSection() {
             type="button"
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
-            className="flex min-h-11 w-fit items-center rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire w-fit"
           >
             {generateMutation.isPending ? 'Génération...' : 'Générer un lien'}
           </button>
@@ -174,7 +174,7 @@ export function ShareSection() {
             <button
               type="button"
               onClick={copierLeLien}
-              className="flex min-h-11 items-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
+              className="btn-primaire"
             >
               <Copy size={14} />
               {copie ? 'Lien copié' : 'Copier'}
@@ -184,7 +184,7 @@ export function ShareSection() {
               onClick={() => generateMutation.mutate()}
               disabled={generateMutation.isPending}
               title="L'ancien lien cessera de fonctionner."
-              className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface2 px-3 text-sm font-medium text-textPrimary disabled:opacity-50"
+              className="btn-secondaire"
             >
               <RefreshCw size={14} />
               Régénérer

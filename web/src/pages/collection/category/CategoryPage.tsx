@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { LienRetour } from '@/common/components/LienRetour'
-import { SlidersHorizontal } from 'lucide-react'
+import { CalendarCheck, Heart, Layers, SlidersHorizontal } from 'lucide-react'
 import { CoverTile } from '@/pages/collection/CoverTile'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
@@ -17,10 +17,11 @@ import { indexerVenues, trierOeuvres } from '@/pages/collection/venues'
 import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/preferencesCollection'
 
 import { CollectionFilters } from '@/pages/collection/CollectionFilters'
-import { CLASSE_CARTE } from '@/common/components/Carte'
+import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from '@/pages/collection/useDonneesCollection'
 import { useFiltresCollection } from '@/pages/collection/useFiltresCollection'
 import { RattrapageJaquettes } from './RattrapageJaquettes'
+import { SqueletteGrille } from '@/common/components/Squelette'
 
 
 /**
@@ -182,7 +183,7 @@ export function CategoryPage() {
           className={`flex w-fit min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
             filtres.nombreActifs > 0
               ? 'border-transparent bg-accentTint text-accentText'
-              : 'border-fieldBorder text-textDim hover:bg-rowHover'
+              : 'border-line bg-surface text-textPrimary shadow-token-sm hover:bg-rowHover'
           }`}
         >
           <SlidersHorizontal size={15} />
@@ -201,23 +202,26 @@ export function CategoryPage() {
       {donnees.erreurs.map((message) => (
         <ErrorBanner key={message} message={message} />
       ))}
-      {isLoading && <p className="text-textDim">Chargement...</p>}
+      {isLoading && <SqueletteGrille />}
 
       {!isLoading && donnees.listeChargee && affiches === 0 && (
-        <div className={CLASSE_CARTE}>
-          <p className="font-display text-base font-semibold text-textPrimary">
-            {preferences.filtre === 'envies'
+        <EtatVide
+          icone={preferences.filtre === 'envies' ? Heart : preferences.filtre === 'suivies' ? CalendarCheck : Layers}
+          titre={
+            preferences.filtre === 'envies'
               ? 'Aucune envie en cours dans cette catégorie.'
               : preferences.filtre === 'suivies'
                 ? 'Aucune œuvre suivie dans cette catégorie.'
-                : 'Rien ne correspond à ces filtres.'}
-          </p>
-          {filtres.nombreActifs > 0 && (
-            <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">
-              Réinitialiser les filtres
-            </button>
-          )}
-        </div>
+                : 'Rien ne correspond à ces filtres.'
+          }
+          action={
+            filtres.nombreActifs > 0 ? (
+              <button type="button" onClick={filtres.reinitialiser} className="btn-secondaire">
+                Réinitialiser les filtres
+              </button>
+            ) : undefined
+          }
+        />
       )}
 
       <div className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">

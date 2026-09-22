@@ -9,6 +9,7 @@ import { RANKS, type Rank } from '@/common/types/tierList'
 import type { SharedCollectionItemDto, SharedTierBoardDto, SharedWishlistItemDto } from '@/common/types/share'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * L'espace partagé, vu par quelqu'un qui n'a pas de compte.
@@ -72,7 +73,7 @@ export function SharedSpacePage() {
         </h1>
       </header>
 
-      {sharedQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {sharedQuery.isLoading && <Squelette lignes={3} />}
       {notFound && <p className="text-textDim">Ce lien n'existe pas ou n'est plus actif.</p>}
       {sharedQuery.isError && !notFound && (
         <p className="text-textDim">Impossible de charger cette page pour le moment.</p>

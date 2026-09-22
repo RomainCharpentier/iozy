@@ -113,7 +113,7 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
         <button
           type="submit"
           disabled={!newLabel.trim() || createMutation.isPending}
-          className="shrink-0 rounded-xl bg-textPrimary px-4 py-3 text-[13.5px] font-medium text-background hover:bg-accent hover:text-accentInk disabled:opacity-50"
+          className="btn-primaire shrink-0"
         >
           Ajouter ce tag
         </button>

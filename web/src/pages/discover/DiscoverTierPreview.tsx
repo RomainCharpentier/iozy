@@ -8,6 +8,7 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { useDonneesTierLists } from '@/common/hooks/useDonneesTierLists'
+import { Squelette } from '@/common/components/Squelette'
 
 const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
@@ -23,7 +24,7 @@ export function DiscoverTierPreview() {
   const donnees = useDonneesTierLists()
 
   if (donnees.erreur) return <ErrorBanner message={donnees.erreur} />
-  if (donnees.chargement) return <p className="text-textDim">Chargement...</p>
+  if (donnees.chargement) return <Squelette lignes={3} />
 
   const universes = donnees.univers.filter((u) => u.counts.total > 0)
 

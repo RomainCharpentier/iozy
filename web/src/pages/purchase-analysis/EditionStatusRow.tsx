@@ -131,7 +131,7 @@ export function EditionStatusRow({
               key={edition.id}
               type="button"
               onClick={() => onChange(edition.editionName)}
-              className="min-h-11 rounded-lg bg-surface2 px-3 text-xs font-medium text-textPrimary"
+              className="btn-secondaire"
             >
               {edition.editionName}
               {edition.totalVolumes !== null && (

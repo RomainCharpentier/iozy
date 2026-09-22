@@ -10,6 +10,7 @@ import { CollectionValueSection } from './CollectionValueSection'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterDecimal } from '@/common/lib/formats'
+import { Squelette } from '@/common/components/Squelette'
 
 export function StatsPage() {
 
@@ -43,7 +44,7 @@ export function StatsPage() {
       <EnTeteSection niveau={1} titre="Statistiques" />
 
       {statsQuery.isError && <ErrorBanner message={statsQuery.error.message} />}
-      {statsQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {statsQuery.isLoading && <Squelette lignes={3} />}
 
       {statsQuery.data && (
         <>

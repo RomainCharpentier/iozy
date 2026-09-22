@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Camera, Languages, Loader2, ScanBarcode, ScanLine, Upload } from 'lucide-react'
+import { Camera, Languages, Loader2, ScanBarcode, ScanLine, SearchX, Upload } from 'lucide-react'
 import { fetchFrenchTitle, searchMetadata, seriesSansTomesConnues } from '@/common/api/metadata'
 import { searchEntities } from '@/common/api/entities'
 import { listTags } from '@/common/api/tags'
@@ -25,6 +25,7 @@ import { EnTeteSection } from '@/common/components/EnTeteSection'
 import type { EtatRetour } from '@/common/lib/retour'
 import { indicesDe } from '@/common/lib/indicesOeuvre'
 import { nomDeSource } from '@/common/lib/sources'
+import { EtatVide } from '@/common/components/EtatVide'
 
 /** ex: "Manga · 1999 · MYANIMELIST" - voir le commentaire d'usage dans le rendu
  * de la liste de suggestions. mediaType/startYear sont absents pour les
@@ -430,7 +431,7 @@ export function SearchPage() {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Un titre, un auteur…"
           autoComplete="off"
-          className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ"
         />
       </div>
 
@@ -533,7 +534,7 @@ export function SearchPage() {
         <button
           type="button"
           onClick={() => ouvrirApercuManuel(title)}
-          className="flex w-fit items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk"
+          className="btn-primaire w-fit"
         >
           Ajouter « {title.trim()} »
         </button>
@@ -550,7 +551,14 @@ export function SearchPage() {
           La recherche de métadonnées a échoué{typesCherches.length > 1 ? ` pour ${g.type.label}` : ''}.
         </p>
       ))}
-      {showNoResults && <p className="text-xs text-textDim">Aucun résultat pour ce titre.</p>}
+      {showNoResults && (
+        <EtatVide
+          compact
+          icone={SearchX}
+          titre="Aucun résultat pour ce titre."
+          detail="Vérifie l'orthographe, ou essaie un autre mot du titre."
+        />
+      )}
 
       {groupesAvecResultats.length > 0 && (
         <div className="flex flex-col gap-2">

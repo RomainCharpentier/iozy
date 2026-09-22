@@ -7,6 +7,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
+import { Squelette } from '@/common/components/Squelette'
 
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
  * édition nommée est connue mais incomplète, les plus proches de la
@@ -30,7 +31,7 @@ export function SuggestionsPage() {
       />
 
       {suggestionsQuery.isError && <ErrorBanner message={suggestionsQuery.error.message} />}
-      {suggestionsQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {suggestionsQuery.isLoading && <Squelette lignes={3} />}
       {suggestionsQuery.isSuccess && suggestionsQuery.data.length === 0 && (
         <p className="text-textDim">
           Rien à suggérer pour l'instant - ça se remplit au fur et à mesure que tu renseignes des éditions connues

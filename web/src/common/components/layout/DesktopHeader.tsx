@@ -23,7 +23,7 @@ function NavLinkItem({ to, label, icon: Icon, activeWhen }: NavItem) {
       // pour la même information, dont l'un - le trait accroché à -10px -
       // débordait de l'en-tête.
       className={`flex h-[46px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-medium transition-colors ${
-        active ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-textDim hover:bg-rowHover'
+        active ? 'bg-surface2 font-semibold text-textPrimary shadow-token-sm ring-1 ring-line' : 'text-textDim hover:bg-rowHover'
       }`}
     >
       <Icon size={20} strokeWidth={active ? 2.15 : 1.75} />
@@ -46,7 +46,7 @@ export function DesktopHeader() {
   const destinations = estInvite ? NAV_ITEMS.filter((item) => !estReserveeAuxComptes(item.to)) : NAV_ITEMS
 
   return (
-    <header className="sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line bg-surface2 md:block">
+    <header className="barre-verre sticky top-0 z-10 hidden h-16 shrink-0 border-b border-line md:block">
       <div className="mx-auto flex h-full w-[min(100%-48px,1600px)] items-center gap-6">
         {/* « Iozy » en encre, « core » en accent (maquette v4) : la marque
             porte l'accent dans son propre nom, elle n'a pas besoin d'un bloc

@@ -10,6 +10,7 @@ import type { MangaEditionDto } from '@/common/types/purchaseAnalysis'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * "Éditions de référence" - la seule vue d'ensemble du référentiel
@@ -66,7 +67,7 @@ export function EditionsPage() {
         />
       </div>
 
-      {editionsQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {editionsQuery.isLoading && <Squelette lignes={3} />}
       {editionsQuery.isError && <ErrorBanner message={editionsQuery.error.message} />}
       {deleteMutation.isError && <ErrorBanner message={deleteMutation.error.message} />}
 

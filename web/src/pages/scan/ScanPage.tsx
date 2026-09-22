@@ -234,12 +234,12 @@ export function ScanPage() {
             placeholder="9782505..."
             inputMode="numeric"
             autoComplete="off"
-            className="min-w-0 flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            className="champ min-w-0 flex-1"
           />
           <button
             type="submit"
             disabled={!manualCode.trim() || processing || !!pending}
-            className="flex min-h-11 shrink-0 items-center rounded-lg bg-surface2 px-4 text-sm font-semibold text-textPrimary disabled:opacity-50"
+            className="btn-secondaire shrink-0"
           >
             {processing ? 'Recherche...' : 'Chercher'}
           </button>

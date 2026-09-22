@@ -9,6 +9,7 @@ import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import type { TagDto } from '@/common/types/api'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * Les tags de l'instance, et de quoi faire le ménage.
@@ -70,7 +71,7 @@ export function TagsPage() {
       />
 
       {tagsQuery.isError && <ErrorBanner message={tagsQuery.error.message} />}
-      {tagsQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {tagsQuery.isLoading && <Squelette lignes={3} />}
 
       {tagsQuery.isSuccess && tags.length === 0 && (
         <p className="text-textDim">
@@ -153,12 +154,12 @@ function LigneTag({
             value={libelle}
             onChange={(e) => setLibelle(e.target.value)}
             aria-label={`Nouveau nom du tag ${tag.label}`}
-            className="min-w-0 flex-1 rounded-lg bg-surface2 px-2.5 py-2 text-sm text-textPrimary focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            className="champ min-w-0 flex-1"
           />
           <button
             type="submit"
             disabled={!libelle.trim() || renommage.isPending}
-            className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire"
           >
             <Check size={14} />
             Renommer

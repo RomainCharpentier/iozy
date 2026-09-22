@@ -79,7 +79,7 @@ export function ListingSummaryCard({
         <button
           type="button"
           onClick={onEdit}
-          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-xs font-semibold text-textPrimary"
+          className="btn-secondaire shrink-0"
         >
           <Pencil size={13} />
           Modifier

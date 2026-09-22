@@ -8536,3 +8536,57 @@ premier tap arme la tuile, qui pose la question sur place (« Retirer » /
 désarme. À la souris c'est un clic de plus ; au doigt c'est la différence
 entre un geste voulu et un geste qui part en défilant. Cinq tests
 (`GrilleVolumes.test.tsx`).
+
+### Lot 149 — Le rendu : un système, pas des retouches
+
+« Ça a changé visuellement ? Je veux vraiment un rendu hyper pro et moderne »
+(2026-09-22, après le lot 148). Non, le lot 148 corrigeait des défauts sans
+toucher au style. Et le style, lui, n'avait pas de système : cinquante boutons
+primaires écrits de quatorze façons (`py-1.5`, `py-2`, `py-2.5`, `py-3`,
+`rounded-lg`, `rounded-xl`, `rounded-[14px]`…), cent soixante-cinq
+`rounded-lg` à côté de cent dix-sept `rounded-xl`, des champs de 36 px, vingt-
+neuf « Chargement... » en gris, des états vides écrits à chaque fois autrement.
+Aucun n'était faux ; ensemble ils faisaient une interface qui hésite - et c'est
+l'hésitation qui se lit comme « pas pro ». L'identité (terracotta, Space
+Grotesk et Inter, sombre chaud) ne bouge pas : c'est la cohérence qui manquait.
+
+**Le système** (`index.css`, utilitaires Tailwind v4 nommés, chacun dit une
+chose une fois) :
+
+- **`btn-primaire` / `btn-secondaire` / `btn-discret` / `btn-danger`** :
+  44 px, rayon 12, `font-semibold`, contraction de 2 % à la pression, état
+  désactivé commun ; le primaire porte l'ombre teintée, le secondaire une
+  surface, un filet (`ring-line`) et une ombre douce ;
+- **`champ`** : 44 px, rayon 12, filet intérieur, anneau d'accent au focus,
+  placeholder en `faint` ;
+- **`barre-verre`** : les trois barres de navigation (en-tête mobile, en-tête
+  desktop, barre du pouce) deviennent translucides et floutées, avec un filet
+  `line` - le contenu passe dessous ;
+- **`squelette`** et le composant `Squelette` (lignes, rail d'accueil, grille,
+  liste, fiche) : la forme de ce qui vient, annoncée une fois aux lecteurs
+  d'écran, à la place des « Chargement... » - vingt-quatre remplacés par
+  signature, l'accueil reçoit deux rails, un rayon sa grille, la fiche sa
+  jaquette et sa grille ;
+- **`EtatVide`** : une pastille teintée avec l'icône, un titre en police de
+  titrage, la phrase qui dit par où sortir, l'action - accueil (avec « Ouvrir
+  le Catalogue »), rayon, Tier Lists, calendrier, historique d'analyses, et une
+  forme compacte pour « Aucun résultat » du Catalogue ;
+- **`compteur`** (chiffres tabulaires) et le respect de
+  `prefers-reduced-motion`.
+
+**Appliqué par signature de classes** (`systeme.mjs`, scratchpad) : un
+`className` qui contient `bg-accent` + `text-accentInk` + une graisse est un
+bouton primaire, `bg-surface(2)` + `text-textPrimary` + une hauteur un
+secondaire, `focus:ring-2 focus:ring-accent` sans graisse un champ - 40, 23 et
+42 remplacements dans cinquante-sept fichiers, en gardant les modificateurs de
+mise en page (`w-full`, `shrink-0`, `self-start`…). Puis à la main : les
+barres, les tuiles (filet + ombre + pression), les cartes (`border-line` au
+lieu de `border-surface2`, invisible en sombre), les puces inactives (filet),
+le message éphémère (filet), la pastille active de la barre desktop, les
+boutons « Filtres » et « … » alignés sur le secondaire, la porte (lueur
+d'accent en haut, mot-marque en 36 px avec « Core » en accent, champs et
+bouton du système).
+
+Vérifié : 423 tests web, 18 parcours Playwright, typecheck, lint, contraste
+(116 combinaisons), build ; captures des écrans clés en sombre et en clair,
+mobile et desktop, et le squelette de l'accueil sous une API ralentie.

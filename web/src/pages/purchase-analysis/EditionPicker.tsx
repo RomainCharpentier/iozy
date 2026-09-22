@@ -63,7 +63,7 @@ export function EditionPicker({
         placeholder="ex: Perfect Edition"
         aria-label={ariaLabel}
         autoComplete="off"
-        className="min-h-11 rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+        className="champ"
       />
 
       <div className="flex flex-wrap gap-1.5">

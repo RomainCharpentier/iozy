@@ -458,3 +458,70 @@ button:disabled {
     background: var(--color-faint);
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Le système (lot 149) : un seul bouton, un seul champ, une seule barre.
+
+   Cinquante boutons primaires s'écrivaient de quatorze façons (`py-1.5`,
+   `py-2`, `py-2.5`, `py-3`, `rounded-lg`, `rounded-xl`, `rounded-[14px]`…),
+   et cent soixante-cinq `rounded-lg` côtoyaient cent dix-sept `rounded-xl`.
+   Aucun n'était faux ; ensemble ils faisaient une interface qui hésite. Ces
+   utilitaires disent chaque chose une fois, et les écrans les nomment.
+
+   Rayons : 12 px (boutons, champs, puces, lignes), 16 px (tuiles, cartes
+   courantes), 20 px (grandes cartes), 24 px (nappes et panneaux). Hauteur
+   des contrôles : 44 px. Pression : la surface se contracte de 2 %.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Le bouton primaire : l'accent, plein, avec son ombre teintée. */
+@utility btn-primaire {
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold whitespace-nowrap text-accentInk shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* Le bouton secondaire : une surface, un filet, une ombre douce. */
+@utility btn-secondaire {
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-surface px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-line shadow-token-sm transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* Le bouton discret : du texte, rien autour - pour « Annuler », les liens d'action. */
+@utility btn-discret {
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold whitespace-nowrap text-textDim transition duration-150 select-none hover:text-textPrimary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* Le bouton de danger : plein, pour ce qui détruit et l'a déjà dit. */
+@utility btn-danger {
+  @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-danger px-4 text-sm font-semibold whitespace-nowrap text-dangerInk transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* Le champ de saisie : 44 px, filet intérieur, anneau d'accent au focus. */
+@utility champ {
+  @apply min-h-11 rounded-xl bg-surface2 px-3.5 py-2 text-sm text-textPrimary ring-1 ring-fieldBorder ring-inset transition-shadow duration-150 placeholder:text-faint focus:ring-2 focus:ring-accent focus:outline-none disabled:opacity-50;
+}
+
+/* Une barre de navigation en verre : translucide, floutée, un filet. */
+@utility barre-verre {
+  @apply bg-surface/85 backdrop-blur-xl backdrop-saturate-150;
+}
+
+/* Un bloc en attente de ses données : la forme de ce qui va venir. */
+@utility squelette {
+  @apply animate-pulse rounded-xl bg-surface2;
+}
+
+/* Les compteurs s'alignent : chaque chiffre a la même largeur. */
+@utility compteur {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Le mouvement s'efface pour qui l'a demandé au système. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

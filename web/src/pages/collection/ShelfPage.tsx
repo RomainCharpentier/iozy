@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { BarChart3, Layers, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { BarChart3, CalendarCheck, Heart, Layers, Library, Link2, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { CategorySection } from './CategorySection'
 import { CollectionFilters } from './CollectionFilters'
@@ -20,9 +20,10 @@ import { usePreferencesCollection, type FiltreCollection } from '@/common/lib/pr
 import { useModalA11y } from '@/common/hooks/useModalA11y'
 import type { EntityResponse } from '@/common/types/api'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
-import { CLASSE_CARTE } from '@/common/components/Carte'
+import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesCollection } from './useDonneesCollection'
 import { useFiltresCollection } from './useFiltresCollection'
+import { SqueletteRail } from '@/common/components/Squelette'
 
 /**
  * Ce que compte le sous-titre, selon ce qu'on regarde. Un décompte doit nommer
@@ -314,7 +315,7 @@ export function ShelfPage() {
           className={`flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors ${
             filtres.nombreActifs > 0
               ? 'border-transparent bg-accentTint text-accentText'
-              : 'border-fieldBorder text-textDim hover:bg-rowHover'
+              : 'border-line bg-surface text-textPrimary shadow-token-sm hover:bg-rowHover'
           }`}
         >
           <SlidersHorizontal size={15} />
@@ -346,7 +347,7 @@ export function ShelfPage() {
           // sinon son nom accessible du seul title, jamais annoncé au toucher.
           aria-label="Plus d'outils"
           aria-expanded={hubMenuOpen}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-fieldBorder text-textDim transition-colors hover:bg-rowHover"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-textPrimary shadow-token-sm transition-colors hover:bg-rowHover"
         >
           <MoreHorizontal size={16} />
         </button>
@@ -356,17 +357,39 @@ export function ShelfPage() {
         <ErrorBanner key={message} message={message} />
       ))}
 
-      {isLoading && <p className="mt-6 text-textDim">Chargement...</p>}
+      {isLoading && (
+        <div className="mt-6 flex flex-col gap-2">
+          <SqueletteRail />
+          <SqueletteRail tuiles={3} />
+        </div>
+      )}
 
       {!isLoading && donnees.listeChargee && affiches === 0 && (
-        <div className={`mt-6 ${CLASSE_CARTE}`}>
-          <p className="font-display text-base font-semibold text-textPrimary">{vide.titre}</p>
-          <p className="mt-1 text-sm text-textDim">{vide.detail}</p>
-          {filtres.nombreActifs > 0 && (
-            <button type="button" onClick={filtres.reinitialiser} className="mt-3 w-fit text-sm font-semibold text-accentText">
-              Réinitialiser les filtres
-            </button>
-          )}
+        <div className="mt-6">
+          <EtatVide
+            icone={
+              filtres.nombreActifs > 0
+                ? SlidersHorizontal
+                : preferences.filtre === 'envies'
+                  ? Heart
+                  : preferences.filtre === 'suivies'
+                    ? CalendarCheck
+                    : Library
+            }
+            titre={vide.titre}
+            detail={vide.detail || undefined}
+            action={
+              filtres.nombreActifs > 0 ? (
+                <button type="button" onClick={filtres.reinitialiser} className="btn-secondaire">
+                  Réinitialiser les filtres
+                </button>
+              ) : preferences.filtre === 'tout' ? (
+                <Link to="/add" className="btn-primaire">
+                  Ouvrir le Catalogue
+                </Link>
+              ) : undefined
+            }
+          />
         </div>
       )}
 

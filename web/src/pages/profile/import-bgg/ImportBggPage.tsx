@@ -52,12 +52,12 @@ export function ImportBggPage() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Pseudo BoardGameGeek"
             autoFocus
-            className="min-w-0 flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:ring-2 focus:ring-accent/50 focus:outline-none"
+            className="champ min-w-0 flex-1"
           />
           <button
             type="submit"
             disabled={importMutation.isPending || !username.trim()}
-            className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire shrink-0"
           >
             {importMutation.isPending ? 'Import...' : 'Importer'}
           </button>

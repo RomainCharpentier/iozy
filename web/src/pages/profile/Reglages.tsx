@@ -139,14 +139,14 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
               <a
                 href="/api/export/json"
                 download
-                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
+                className="btn-secondaire"
               >
                 Télécharger en JSON
               </a>
               <a
                 href="/api/export/csv"
                 download
-                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
+                className="btn-secondaire"
               >
                 Télécharger en CSV (.zip)
               </a>
@@ -168,7 +168,7 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
             <div className="mt-1 flex flex-wrap gap-2">
               <Link
                 to="/profile/import"
-                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
+                className="btn-secondaire"
               >
                 Importer un fichier
               </Link>

@@ -7,6 +7,7 @@ import { periodeAVenir } from '@/common/lib/releaseDate'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ReleaseRow } from '@/common/components/ReleaseRow'
+import { Squelette } from '@/common/components/Squelette'
 
 const MAX_PREVIEW = 3
 
@@ -38,7 +39,7 @@ export function DiscoverReleasesPreview() {
       </div>
 
       {calendrierQuery.isError && <ErrorBanner message={calendrierQuery.error.message} />}
-      {calendrierQuery.isLoading && <p className="text-sm text-textDim">Chargement...</p>}
+      {calendrierQuery.isLoading && <Squelette lignes={3} />}
 
       {calendrierQuery.isSuccess && sorties.length === 0 && (
         <div className={CLASSE_CARTE}>

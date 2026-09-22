@@ -19,7 +19,7 @@ import type { ReactNode } from 'react'
  * autre disparaît. La bordure `surface2` est ce qui la fait tenir dans les
  * deux thèmes - invisible en clair, structurante en sombre.
  */
-export const CLASSE_CARTE = 'rounded-[20px] border border-surface2 bg-surface p-5 shadow-token-sm sm:p-6'
+export const CLASSE_CARTE = 'rounded-[20px] border border-line bg-surface p-5 shadow-token-sm sm:p-6'
 
 /** Même carte, en zone de danger : pas d'ombre ni de bordure, un fond teinté
  *  qui signale à lui seul qu'on n'est plus dans le contenu ordinaire (voir la

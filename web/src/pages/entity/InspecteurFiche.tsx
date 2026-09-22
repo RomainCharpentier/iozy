@@ -190,7 +190,7 @@ export function ChampInspecteur({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       aria-label={ariaLabel}
-      className="w-full rounded-lg bg-surface px-2.5 py-1.5 text-[13px] text-textPrimary placeholder:text-faint focus:ring-2 focus:ring-accent/50 focus:outline-none"
+      className="champ w-full"
     />
   )
 }
