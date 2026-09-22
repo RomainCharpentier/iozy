@@ -8527,6 +8527,12 @@ formulaires, sort du compte, et regarde la largeur tablette (820 px). Le script
   encore notée », « Aucune enregistrée », « Non classée » - rien à noter,
   personne. Elle disparaît hors compte.
 
-Vu et laissé tel quel, à trancher : sur la fiche, toucher un tome possédé le
-retire aussitôt (avec « Annuler ») - au doigt, en défilant, c'est un geste
-qui peut partir tout seul.
+**Tranché (même jour, « tranche toi-même »)** : sur la fiche, toucher un tome
+possédé le retirait aussitôt - retrait réel de l'exemplaire, date d'acquisition
+comprise, rattrapable six secondes par « Annuler ». L'ajout, lui, ne détruit
+rien. Le retrait demande donc un second geste, sans boîte de dialogue : le
+premier tap arme la tuile, qui pose la question sur place (« Retirer » /
+« Garder »), le second retire, et « Annuler » reste. Toucher un autre tome
+désarme. À la souris c'est un clic de plus ; au doigt c'est la différence
+entre un geste voulu et un geste qui part en défilant. Cinq tests
+(`GrilleVolumes.test.tsx`).

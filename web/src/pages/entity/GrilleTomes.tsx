@@ -29,6 +29,7 @@ export function GrilleTomes({
   onFiltre,
   tuiles,
   onChoisirTome,
+  onRetirerTome,
   onJeLAi,
   tomesVoulus,
   onBasculerEnvie,
@@ -45,6 +46,9 @@ export function GrilleTomes({
   onFiltre: (filtre: FiltreVolumes) => void
   tuiles: TomeTile[]
   onChoisirTome: (numero: number) => void
+  /** Retirer un tome possédé - la grille ne l'appelle qu'au second geste
+   *  (voir GrilleVolumes), jamais sur un simple tap. */
+  onRetirerTome: (numero: number) => void
   /** « Je l'ai » - ajoute le tome en un clic. */
   onJeLAi: (numero: number) => void
   /** Les identifiants des tomes de cette œuvre qui sont dans les envies. */
@@ -86,6 +90,7 @@ export function GrilleTomes({
         filtre={filtre}
         onFiltre={onFiltre}
         onActiver={(cle) => onChoisirTome(Number(cle))}
+        onRetirer={(cle) => onRetirerTome(Number(cle))}
         // Les deux gestes agissent désormais sur place : depuis que l'ajout ne
         // demande plus ni état ni prix, « Je l'ai » n'a pas plus à ouvrir un
         // panneau que « Je le veux ».
