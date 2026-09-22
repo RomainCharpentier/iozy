@@ -106,7 +106,9 @@ export function buildShelfTile(
   return {
     key: entity.id,
     title: entity.title,
-    subtitle: edition ? `${edition} · ${countPart}` : countPart,
+    // Le décompte d'abord : sur un rayon à trois colonnes, le sous-titre est
+    // coupé, et c'est « 4/43 tomes » qu'il faut lire, pas le nom de l'éditeur.
+    subtitle: edition ? `${countPart} · ${edition}` : countPart,
     imageUrl: coverImageUrlFrom(entity.attributes),
     entityId: entity.id,
     signal:

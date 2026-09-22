@@ -8,6 +8,7 @@ import { djb2Hash } from '@/common/theme/gradient'
 import { gradientPalettes } from '@/common/theme/tokens'
 import type { YearlyRecapDto } from '@/common/types/api'
 import { LienRetour } from '@/common/components/LienRetour'
+import { formaterDecimal } from '@/common/lib/formats'
 
 /** Même algorithme que gradientFor (theme/gradient.ts), mais renvoie les 2
  * couleurs hexadécimales brutes plutôt qu'une chaîne CSS - nécessaire pour
@@ -78,9 +79,9 @@ export function CollectionRecapPage() {
     }
 
     line(String(recap.acquisitionsCount), recap.acquisitionsCount > 1 ? 'ajouts à la collection' : 'ajout à la collection')
-    line(String(recap.seriesStartedCount), recap.seriesStartedCount > 1 ? 'séries commencées' : 'série commencée')
+    line(String(recap.seriesStartedCount), recap.seriesStartedCount > 1 ? 'titres commencés' : 'titre commencé')
     line(
-      String(recap.experiencesCount) + (recap.averageRating !== null ? ` (${recap.averageRating.toFixed(1)}/10)` : ''),
+      String(recap.experiencesCount) + (recap.averageRating !== null ? ` (${formaterDecimal(recap.averageRating)}/10)` : ''),
       recap.experiencesCount > 1 ? 'expériences enregistrées' : 'expérience enregistrée',
     )
 
@@ -113,7 +114,7 @@ export function CollectionRecapPage() {
           aria-label="Année du bilan"
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="rounded-lg bg-surface2 px-2.5 py-1.5 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="min-h-11 rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
         >
           {availableYears.map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -147,7 +148,7 @@ export function CollectionRecapPage() {
                 <div>
                   <p className="font-display text-5xl font-bold">{recapQuery.data.seriesStartedCount}</p>
                   <p className="text-sm text-white/85">
-                    {recapQuery.data.seriesStartedCount > 1 ? 'séries commencées' : 'série commencée'}
+                    {recapQuery.data.seriesStartedCount > 1 ? 'titres commencés' : 'titre commencé'}
                   </p>
                 </div>
                 <div>
@@ -155,7 +156,7 @@ export function CollectionRecapPage() {
                     {recapQuery.data.experiencesCount}
                     {recapQuery.data.averageRating !== null && (
                       <span className="ml-2 text-2xl font-normal text-white/85">
-                        ({recapQuery.data.averageRating.toFixed(1)}/10)
+                        ({formaterDecimal(recapQuery.data.averageRating)}/10)
                       </span>
                     )}
                   </p>
@@ -173,7 +174,7 @@ export function CollectionRecapPage() {
                 )}
                 {recapQuery.data.acquisitionsByType.length > 1 && (
                   <p className="text-sm text-white/85">
-                    {recapQuery.data.acquisitionsByType.map((t) => `${t.count} ${t.entityTypeLabel.toLowerCase()}`).join(' · ')}
+                    {recapQuery.data.acquisitionsByType.map((t) => `${t.entityTypeLabel} ${t.count}`).join(' · ')}
                   </p>
                 )}
               </>

@@ -176,10 +176,12 @@ public class PurchaseAnalysisController {
         if (!blocages.none()) {
             List<String> raisons = new ArrayList<>();
             if (blocages.linkedVolumes() > 0) {
-                raisons.add(blocages.linkedVolumes() + " tome(s) y sont encore rattachés");
+                raisons.add(blocages.linkedVolumes()
+                        + (blocages.linkedVolumes() > 1 ? " tomes y sont encore rattachés" : " tome y est encore rattaché"));
             }
             if (blocages.linkedObservations() > 0) {
-                raisons.add(blocages.linkedObservations() + " observation(s) de prix s'y réfèrent encore");
+                raisons.add(blocages.linkedObservations()
+                        + (blocages.linkedObservations() > 1 ? " observations de prix s'y réfèrent encore" : " observation de prix s'y réfère encore"));
             }
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Impossible de supprimer cette édition : " + String.join(" et ", raisons));

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, CircleDashed } from 'lucide-react'
 import { getCollectionValue, getStats } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * Hero "Valeur estimée" de Profil (voir DS v1.1 §44 : "la valeur domine, le
@@ -42,7 +43,7 @@ export function ProfileValueHero() {
         {confidence === 'indisponible' ? (
           <span className="font-display text-2xl font-bold text-textPrimary">Pas encore de prix renseigné</span>
         ) : (
-          <span className="font-display text-4xl font-bold tracking-tight text-textPrimary">{totalKnownValue.toFixed(2)} €</span>
+          <span className="font-display text-4xl font-bold tracking-tight text-textPrimary">{formaterEuros(totalKnownValue)}</span>
         )}
         <span
           className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -63,7 +64,7 @@ export function ProfileValueHero() {
           </span>
           <span className="flex flex-col gap-0.5">
             <span className="font-display text-xl font-bold text-textPrimary">{statsQuery.data.totalActiveOwnerships}</span>
-            <span className="text-[11px] tracking-wide text-textDim uppercase">Tomes possédés</span>
+            <span className="text-[11px] tracking-wide text-textDim uppercase">Exemplaires possédés</span>
           </span>
         </span>
       )}

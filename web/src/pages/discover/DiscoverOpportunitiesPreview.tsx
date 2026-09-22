@@ -9,6 +9,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_CARTE } from '@/common/components/Carte'
+import { formaterEuros } from '@/common/lib/formats'
 
 const MAX_PREVIEW = 3
 
@@ -75,7 +76,7 @@ export function DiscoverOpportunitiesPreview() {
               <span className="text-xs font-semibold text-accentText">
                 {s.missingCount} tome{s.missingCount > 1 ? 's' : ''} manquant{s.missingCount > 1 ? 's' : ''} pour compléter
                 {s.estimatedCostToComplete !== null &&
-                  ` · ~${s.estimatedCostToComplete.toFixed(2)} €${base === null ? '' : ` (${base})`}`}
+                  ` · ~${formaterEuros(s.estimatedCostToComplete)}${base === null ? '' : ` (${base})`}`}
               </span>
             </span>
             <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accentInk">

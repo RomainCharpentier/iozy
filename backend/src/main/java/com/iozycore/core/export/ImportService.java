@@ -277,7 +277,7 @@ public class ImportService {
                     }
                     cumul.rattache("entities", titre, tomesAjoutes == 0
                             ? "oeuvre deja au catalogue, rien a ajouter"
-                            : "oeuvre deja au catalogue, " + tomesAjoutes + " tome(s) ajoute(s)");
+                            : "oeuvre deja au catalogue, " + tomesAjoutes + (tomesAjoutes > 1 ? " tomes ajoutes" : " tome ajoute"));
                 } else {
                     oeuvre = Entity.create(typeId, e.title());
                     if (e.attributes() != null) {

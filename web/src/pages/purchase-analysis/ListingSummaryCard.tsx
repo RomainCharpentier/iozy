@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { LISTING_PLATFORM_LABELS, type ListingPlatform, type ShippingEstimateKind } from '@/common/types/purchaseAnalysis'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * Ce qu'IozyCore a compris de l'annonce, en quelques lignes.
@@ -30,7 +31,7 @@ function libelleTotal(kind: ShippingEstimateKind): string {
 }
 
 function euros(valeur: number): string {
-  return `${valeur.toFixed(2)} €`
+  return `${formaterEuros(valeur)}`
 }
 
 export function ListingSummaryCard({

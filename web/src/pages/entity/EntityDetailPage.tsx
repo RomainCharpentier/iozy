@@ -22,6 +22,7 @@ import { useOeuvresSuivies } from '@/common/hooks/useOeuvresSuivies'
 import { gradientFor } from '@/common/theme/gradient'
 import { COVER_IMAGE_ATTRIBUTE_KEY, coverImageUrlFrom } from '@/common/lib/coverImage'
 import { creatorFrom } from './creatorInfo'
+import { libelleExperienceType, libelleSectionExperiences } from '@/common/lib/experiences'
 import { buildTiles } from './tomeTiles'
 import { numeroDe, variantLabel } from '@/common/lib/attributsTome'
 import type { OwnershipResponse } from '@/common/types/api'
@@ -764,7 +765,7 @@ export function EntityDetailPage() {
                 )}
               </ReleveInspecteur>
               <ReleveInspecteur
-                libelle="Lectures">
+                libelle={libelleSectionExperiences(entityType?.allowedExperienceTypes ?? [])}>
                 {experiences.length === 0 ? (
                   <span className="text-[13.5px] text-faint">Aucune enregistrée</span>
                 ) : (
@@ -773,7 +774,7 @@ export function EntityDetailPage() {
                       const tome = entity.variants.find((v) => v.id === experience.variantId)
                       return (
                         <span key={experience.id} className="text-[13.5px] text-textPrimary">
-                          · {tome ? variantLabel(tome) : 'Série entière'}
+                          · {tome ? variantLabel(tome) : entity.variants.length > 0 ? 'Série entière' : libelleExperienceType(experience.experienceType)}
                         </span>
                       )
                     })}
@@ -878,7 +879,12 @@ export function EntityDetailPage() {
               </div>
             ) : (
             <div className="flex flex-col">
-              {auteur && <RangeeInspecteur libelle={isManga ? 'Mangaka' : 'Auteur'}>{auteur}</RangeeInspecteur>}
+              {/* « Auteur » coiffait le studio d'un jeu vidéo : le mot suit l'attribut lu (voir creatorFrom). */}
+              {auteur && (
+                <RangeeInspecteur libelle={isManga ? 'Mangaka' : entityType?.code === 'VIDEO_GAME' ? 'Studio' : 'Auteur'}>
+                  {auteur}
+                </RangeeInspecteur>
+              )}
               {ongoing !== null && (
                 <RangeeInspecteur libelle="Statut">
                   <span

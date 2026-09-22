@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getCollectionValue } from '@/common/api/insights'
 import { queryKeys } from '@/common/lib/queryKeys'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * Ce que vaut la collection, au prix NEUF.
@@ -30,7 +31,7 @@ export function CollectionValueSection() {
     <section className="flex flex-col gap-2">
       <h2 className="font-display text-lg font-semibold text-textPrimary">Valeur de la collection</h2>
       <div className="rounded-xl bg-surface p-3">
-        <p className="font-display text-3xl font-bold text-textPrimary">{totalKnownValue.toFixed(2)} €</p>
+        <p className="font-display text-3xl font-bold text-textPrimary">{formaterEuros(totalKnownValue)}</p>
         <p className="text-sm text-textDim">
           {fullyCovered
             ? `Au prix neuf, sur les ${totalActiveOwnershipCount} possession${totalActiveOwnershipCount > 1 ? 's' : ''} actuelles`
@@ -40,7 +41,7 @@ export function CollectionValueSection() {
           <ul className="mt-2 flex flex-col gap-0.5 text-sm text-textDim">
             {byType.map((type) => (
               <li key={type.entityTypeLabel}>
-                {type.entityTypeLabel} : {type.knownValue.toFixed(2)} € ({type.pricedCount}/{type.totalCount})
+                {type.entityTypeLabel} : {formaterEuros(type.knownValue)} ({type.pricedCount}/{type.totalCount})
               </li>
             ))}
           </ul>

@@ -51,7 +51,7 @@ export function DesktopHeader() {
         {/* « Iozy » en encre, « core » en accent (maquette v4) : la marque
             porte l'accent dans son propre nom, elle n'a pas besoin d'un bloc
             coloré autour. */}
-        <Link to="/" className="font-display text-lg font-semibold tracking-[-0.02em] text-textPrimary">
+        <Link to="/" className="flex h-full items-center font-display text-lg font-semibold tracking-[-0.02em] text-textPrimary">
           Iozy<span className="text-accent">core</span>
         </Link>
         <nav className="flex h-full items-center gap-1.5">

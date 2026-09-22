@@ -9,6 +9,7 @@ import { CollectionTimelineSection } from './CollectionTimelineSection'
 import { CollectionValueSection } from './CollectionValueSection'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { formaterDecimal } from '@/common/lib/formats'
 
 export function StatsPage() {
 
@@ -85,7 +86,7 @@ export function StatsPage() {
                     {type.activeOwnershipCount} exemplaire{type.activeOwnershipCount > 1 ? 's' : ''} possédé
                     {type.activeOwnershipCount > 1 ? 's' : ''} · {type.experienceCount} expérience
                     {type.experienceCount > 1 ? 's' : ''}
-                    {type.averageRating !== null && ` · note moyenne ${type.averageRating.toFixed(1)}/10`}
+                    {type.averageRating !== null && ` · note moyenne ${formaterDecimal(type.averageRating)}/10`}
                   </p>
                 </li>
               ))}

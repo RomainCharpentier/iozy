@@ -5,6 +5,7 @@ import com.iozycore.manga.domain.MangaEdition;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -149,9 +150,10 @@ public class PurchaseAnalysisEngine {
                 if (completeness.missingCount() > 0) {
                     editionWarnings.add(new Warning(WarningSeverity.INFO,
                             completeness.missingCount() + "/" + completeness.totalVolumes()
-                                    + " tome(s) manquant(s) pour compléter cette édition"
+                                    + (completeness.missingCount() > 1 ? " tomes manquants" : " tome manquant")
+                                    + " pour compléter cette édition"
                                     + (completeness.estimatedCostToComplete() != null
-                                            ? " (~" + completeness.estimatedCostToComplete().setScale(2, RoundingMode.HALF_UP) + " €"
+                                            ? " (~" + String.format(Locale.FRANCE, "%,.2f €", completeness.estimatedCostToComplete())
                                                     + switch (completeness.costToCompleteBasis()) {
                                                         case THEORETICAL_ONLY -> ", estimation théorique";
                                                         case AI_ESTIMATED -> ", estimation IA - non vérifiée";

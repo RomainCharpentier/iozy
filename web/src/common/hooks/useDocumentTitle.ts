@@ -56,8 +56,13 @@ export function useDocumentTitleFromHeading(cle: string): void {
     const lire = () =>
       (document.querySelector('main h1') ?? document.querySelector('h1'))?.textContent
 
+    // « … » est le titre d'attente d'une page dont le libellé arrive après
+    // (un rayon, un classement général) : ce n'est pas un titre, on attend le
+    // vrai - sinon l'onglet restait « … · IozyCore » (lot 148).
+    const utilisable = (titre: string | null | undefined) => !!titre && !/^[\s.…]*$/.test(titre)
+
     const immediat = lire()
-    if (immediat?.trim()) {
+    if (utilisable(immediat)) {
       appliquer(immediat)
       return
     }
@@ -72,12 +77,15 @@ export function useDocumentTitleFromHeading(cle: string): void {
 
     const observateur = new MutationObserver(() => {
       const trouve = lire()
-      if (trouve?.trim()) {
+      if (utilisable(trouve)) {
         appliquer(trouve)
         observateur.disconnect()
       }
     })
-    observateur.observe(cible, { childList: true, subtree: true })
+    // `characterData` : React remplace le TEXTE d'un h1 déjà rendu (« … » puis
+    // « Manga ») sans toucher à ses nœuds - une observation limitée aux enfants
+    // ne le verrait jamais.
+    observateur.observe(cible, { childList: true, subtree: true, characterData: true })
 
     // Une page qui n'a pas de h1 du tout ne doit pas laisser un observateur
     // vivant derrière elle.

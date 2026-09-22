@@ -62,7 +62,7 @@ export function EditionsPage() {
         <EnTeteSection
           niveau={1}
           titre="Éditions de référence"
-          sousTitre="Le nombre de tomes, l'éditeur et les alertes de chaque édition. C'est d'ici que vient la progression X/Y affichée sur tes séries — une édition non renseignée affiche simplement le nombre de tomes possédés."
+          sousTitre="Le nombre de tomes, l'éditeur et les alertes de chaque édition. C'est d'ici que vient la progression X/Y affichée sur tes séries — une édition non renseignée affiche simplement le nombre de tomes possédés. Les prix relevés viennent des annonces analysées, ou se saisissent à la main."
         />
       </div>
 

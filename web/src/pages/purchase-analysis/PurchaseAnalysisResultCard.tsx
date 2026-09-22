@@ -9,6 +9,7 @@ import { SeriesBreakdownItem } from './SeriesBreakdownItem'
 import { LISTING_PLATFORM_LABELS } from '@/common/types/purchaseAnalysis'
 import type { PurchaseAnalysisDto, WarningSeverity } from '@/common/types/purchaseAnalysis'
 import { CLASSE_CARTE } from '@/common/components/Carte'
+import { formaterEuros } from '@/common/lib/formats'
 
 const CONFIDENCE_LABELS = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Faible' } as const
 
@@ -49,7 +50,7 @@ function libelleTotal(kind: PurchaseAnalysisDto['listing']['shippingKind']): str
 }
 
 function euros(value: number | null): string {
-  return value === null ? 'Non calculable' : `${value.toFixed(2)} €`
+  return value === null ? 'Non calculable' : `${formaterEuros(value)}`
 }
 
 /** Résultat complet d'une analyse ("ANALYSER LE LOT") - verdict, prix,
@@ -103,7 +104,7 @@ export function PurchaseAnalysisResultCard({
 
   const offerText =
     negotiation.recommendedOffer !== null
-      ? `Bonjour, seriez-vous d'accord pour ${negotiation.recommendedOffer.toFixed(2)} € pour ce lot ? Merci !`
+      ? `Bonjour, seriez-vous d'accord pour ${formaterEuros(negotiation.recommendedOffer)} pour ce lot ? Merci !`
       : ''
 
   async function copyOfferText() {
@@ -234,7 +235,7 @@ export function PurchaseAnalysisResultCard({
           <span>
             Ce lot contient des tomes que tu possèdes déjà (voir le détail par série) - il reste intéressant jusqu'à{' '}
             {analysis.totalMaxWorthwhilePrice !== null
-              ? `~${analysis.totalMaxWorthwhilePrice.toFixed(2)} €`
+              ? `~${formaterEuros(analysis.totalMaxWorthwhilePrice)}`
               : 'un montant non calculable (prix/tome inconnu)'}
             , compte tenu des doublons.
           </span>
@@ -275,7 +276,7 @@ export function PurchaseAnalysisResultCard({
           onClick={() => setShowOfferText((v) => !v)}
           disabled={!offerText}
           title={!offerText ? "Pas assez de données pour proposer un montant d'offre" : undefined}
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-semibold text-accentInk disabled:opacity-50"
         >
           Faire une offre
         </button>
@@ -288,19 +289,19 @@ export function PurchaseAnalysisResultCard({
               ? "Aucun tome de ce lot ne se rattache à une fiche connue"
               : `Ajouter les ${tomesDuLot.length} tomes de ce lot à mes envies`
           }
-          className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
           <Heart size={15} />
           {tomesDuLot.length > 1 ? `Vouloir ces ${tomesDuLot.length} tomes` : 'Ajouter à mes envies'}
         </button>
         <Link
           to="/purchase-analysis/history"
-          className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary"
+          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary"
         >
           <Scale size={15} />
           Comparer les annonces
         </Link>
-        <button type="button" onClick={onReset} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-textDim">
+        <button type="button" onClick={onReset} className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-textDim">
           <ResetIcon size={15} />
           {resetLabel}
         </button>

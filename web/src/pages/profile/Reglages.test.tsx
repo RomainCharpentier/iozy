@@ -14,7 +14,7 @@
  * redevient une affaire de configuration technique).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -109,5 +109,24 @@ describe('l’administration', () => {
     // Le déplacement ne doit vider ni l'une ni l'autre des deux sections.
     expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Titre des mangas' })).toBeInTheDocument()
+  })
+})
+
+describe('l’ordre des langues de titre', () => {
+  it('se change aux flèches, pas seulement à la souris', () => {
+    // Le glisser-déposé HTML n'existe pas au doigt : sur un téléphone, l'ordre
+    // était impossible à changer (lot 148). Les flèches valent partout.
+    const ordre = () => screen.getAllByRole('listitem').map((li) => li.textContent ?? '')
+    expect(ordre()[0]).toContain('Français')
+    expect(screen.getByRole('button', { name: 'Monter Français' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descendre Français' }))
+
+    expect(ordre()[0]).toContain('Romaji')
+    expect(ordre()[1]).toContain('Français')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Monter Français' }))
+
+    expect(ordre()[0]).toContain('Français')
   })
 })

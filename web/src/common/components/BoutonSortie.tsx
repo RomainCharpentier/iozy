@@ -37,7 +37,7 @@ export function BoutonSortie({ compact = false }: { compact?: boolean }) {
   const { estInvite, deconnexion } = useAuth()
   // Les mêmes deux tailles que les autres raccourcis d'en-tête : elles se
   // lisent comme une rangée, pas comme trois boutons dessinés séparément.
-  const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
+  const taille = compact ? 'h-11 w-11' : 'h-10 w-10'
   const mot = estInvite ? 'Quitter' : 'Se déconnecter'
 
   return (

@@ -6,6 +6,7 @@ import { libelleBaseCourt } from '@/common/lib/basePrix'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { formaterEuros } from '@/common/lib/formats'
 
 /** "Suggestions d'achats" (Mon profil) - séries déjà en collection dont une
  * édition nommée est connue mais incomplète, les plus proches de la
@@ -56,7 +57,7 @@ export function SuggestionsPage() {
                 {suggestion.estimatedCostToComplete !== null && (
                   <>
                     {' '}
-                    · ~{suggestion.estimatedCostToComplete.toFixed(2)} € pour compléter
+                    · ~{formaterEuros(suggestion.estimatedCostToComplete)} pour compléter
                     {base !== null && ` (${base})`}
                   </>
                 )}
