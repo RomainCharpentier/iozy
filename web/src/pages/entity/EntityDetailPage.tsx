@@ -686,14 +686,18 @@ export function EntityDetailPage() {
             filtre={filtre}
             onFiltre={setFiltre}
             tuiles={tuiles}
-            onChoisirTome={(numero) => {
-              // Un seul geste, dans les deux sens : le tome entre dans la
-              // collection ou en sort. Plus de surface intermédiaire.
+            onChoisirTome={(numero) =>
+              // Un tome manquant entre dans la collection d'un geste : rien à
+              // remplir, rien à perdre.
+              ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
+            }
+            onRetirerTome={(numero) => {
+              // Le retrait ne vient qu'au second geste - la tuile pose la
+              // question (voir GrilleVolumes) : il supprime l'exemplaire, et
+              // « Annuler » n'a que six secondes pour le rendre.
               const tuile = tuiles.find((t) => t.volumeNumber === numero)
               if (tuile?.status === 'owned' && tuile.variant) {
                 retraitTome.mutate(ownerships.filter((o) => o.variantId === tuile.variant!.id))
-              } else {
-                ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
               }
             }}
             onJeLAi={(numero) =>

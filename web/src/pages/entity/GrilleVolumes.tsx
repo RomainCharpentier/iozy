@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { Check, CheckCheck, Heart, Plus } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Check, CheckCheck, Heart, Plus, Trash2, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 
 /**
@@ -63,6 +63,7 @@ export function GrilleVolumes({
   onActiver,
   onJeLAi,
   onJeLeVeux,
+  onRetirer,
   filtre,
   onFiltre,
   enTete,
@@ -76,6 +77,11 @@ export function GrilleVolumes({
    *  sélection, où cocher EST le geste. */
   onJeLAi?: (cle: string) => void
   onJeLeVeux?: (cle: string) => void
+  /** Retirer un tome POSSÉDÉ de la collection - en deux gestes (voir
+   *  TuileVolume) : avec cette prop, activer une tuile possédée l'ARME au lieu
+   *  d'appeler `onActiver`, et c'est la tuile qui pose la question. Absente,
+   *  l'activation garde son sens d'avant. */
+  onRetirer?: (cle: string) => void
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
   /** Ce qui se dit à gauche des filtres, sur la MÊME ligne : l'édition
@@ -91,6 +97,9 @@ export function GrilleVolumes({
   // Sur `volumes` et non sur `visibles` : un compteur qui ne compterait que ce
   // qui est déjà à l'écran dirait toujours le total de la vue courante.
   const possedes = volumes.filter((volume) => volume.possede).length
+  // Le tome dont la tuile demande confirmation avant de le retirer - un seul à
+  // la fois : armer un autre tome désarme le premier.
+  const [armee, setArmee] = useState<string | null>(null)
   const comptes: Record<FiltreVolumes, number> = {
     tous: volumes.length,
     manquants: volumes.length - possedes,
@@ -167,9 +176,28 @@ export function GrilleVolumes({
               key={volume.cle}
               volume={volume}
               mode={mode}
-              onActiver={() => onActiver(volume.cle)}
+              onActiver={() => {
+                // Un tome possédé ne se retire qu'au second geste : le premier
+                // l'arme (un second tap sur la même tuile la désarme).
+                if (onRetirer && mode === 'navigation' && volume.possede) {
+                  setArmee((courante) => (courante === volume.cle ? null : volume.cle))
+                  return
+                }
+                setArmee(null)
+                onActiver(volume.cle)
+              }}
               onJeLAi={onJeLAi ? () => onJeLAi(volume.cle) : undefined}
               onJeLeVeux={onJeLeVeux ? () => onJeLeVeux(volume.cle) : undefined}
+              armee={armee === volume.cle}
+              onRetirer={
+                onRetirer
+                  ? () => {
+                      setArmee(null)
+                      onRetirer(volume.cle)
+                    }
+                  : undefined
+              }
+              onGarder={() => setArmee(null)}
             />
           ))}
           {/* Le libellé est ÉCRIT, pas seulement dans un `title` : « ajouter »
@@ -198,12 +226,19 @@ function TuileVolume({
   onActiver,
   onJeLAi,
   onJeLeVeux,
+  armee = false,
+  onRetirer,
+  onGarder,
 }: {
   volume: VolumeAffiche
   mode: 'navigation' | 'selection'
   onActiver: () => void
   onJeLAi?: () => void
   onJeLeVeux?: () => void
+  /** La tuile pose sa question « Retirer ? » (voir le bloc en bas). */
+  armee?: boolean
+  onRetirer?: () => void
+  onGarder?: () => void
 }) {
   const selection = mode === 'selection'
   // En sélection, un tome déjà possédé n'est PAS atténué : le cocher reste
@@ -223,6 +258,9 @@ function TuileVolume({
         // Deux sémantiques : un interrupteur en sélection (l'état compte et
         // doit être annoncé), un simple bouton en navigation (il mène ailleurs).
         aria-pressed={selection ? volume.actif : undefined}
+        // Une tuile possédée qui peut se retirer déploie sa question : l'attribut
+        // le dit à qui ne voit pas l'écran.
+        aria-expanded={!selection && volume.possede && onRetirer ? armee : undefined}
         aria-label={
           selection
             ? `Tome ${volume.numero}${volume.possede ? ', déjà possédé' : ''}`
@@ -233,7 +271,7 @@ function TuileVolume({
         className={`relative flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-lg bg-handle transition ${
           attenue ? 'opacity-[.42] grayscale-[1] contrast-[.92] ring-1 ring-line ring-inset' : 'shadow-token-sm'
         } ${volume.voulu && !selection ? 'ring-2 ring-accent ring-inset' : ''} ${
-          volume.actif ? 'outline-2 outline-offset-2 outline-accent' : ''
+          volume.actif ? 'outline-2 outline-offset-2 outline-accent' : armee ? 'outline-2 outline-offset-2 outline-danger' : ''
         }`}
       >
         <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
@@ -284,8 +322,9 @@ function TuileVolume({
 
           Souris uniquement, et inertes hors survol : ces boutons ne doivent ni
           intercepter un clic destiné à la tuile, ni s'intercaler dans l'ordre
-          de tabulation. Le clavier et le tactile passent par la tuile, qui
-          ouvre le panneau du tome - où les mêmes actions sont nommées. */}
+          de tabulation. Le clavier et le tactile passent par la tuile : un
+          tome manquant s'ajoute d'un geste, un tome possédé arme sa question
+          « Retirer ? » (voir le bloc en bas). */}
       {!selection && !volume.possede && (onJeLAi || onJeLeVeux) && (
         <div
           className={`pointer-events-none absolute inset-0 grid overflow-hidden rounded-lg opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 ${
@@ -322,6 +361,36 @@ function TuileVolume({
               {volume.voulu ? 'Retirer' : 'Je le veux'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* La question d'un tome possédé, posée sur la tuile elle-même. Un tap
+          retirait aussitôt un exemplaire - sa date d'acquisition avec -
+          rattrapable six secondes par « Annuler » : au doigt, sur une grille
+          de soixante-quatorze cases, le geste le plus facile à faire sans le
+          vouloir. Le premier tap arme, et deux vrais boutons, nommés,
+          atteignables au doigt comme au clavier, font le reste ; l'ajout, lui,
+          ne détruit rien et reste un seul geste (lot 148). */}
+      {!selection && volume.possede && onRetirer && armee && (
+        <div className="absolute inset-0 grid grid-rows-2 overflow-hidden rounded-lg">
+          <button
+            type="button"
+            onClick={onRetirer}
+            aria-label={`Retirer le tome ${volume.numero} de ma collection`}
+            className="flex items-center justify-center gap-1 bg-scrim text-[11px] font-medium text-white hover:bg-danger hover:text-dangerInk"
+          >
+            <Trash2 size={12} />
+            Retirer
+          </button>
+          <button
+            type="button"
+            onClick={onGarder}
+            aria-label={`Garder le tome ${volume.numero}`}
+            className="flex items-center justify-center gap-1 border-t border-white/25 bg-scrim text-[11px] font-medium text-white hover:bg-ok hover:text-background"
+          >
+            <X size={12} />
+            Garder
+          </button>
         </div>
       )}
     </div>
