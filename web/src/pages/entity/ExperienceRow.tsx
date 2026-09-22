@@ -122,7 +122,7 @@ export function ExperienceRow({
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label={`Actions sur l'expérience ${libelleExperienceType(experience.experienceType)}${variantSuffix}`}
-          className="shrink-0 rounded-lg p-1.5 text-faint hover:text-textPrimary"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-faint hover:text-textPrimary"
         >
           <MoreHorizontal size={16} />
         </button>

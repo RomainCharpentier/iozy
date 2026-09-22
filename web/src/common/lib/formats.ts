@@ -16,9 +16,15 @@
  */
 const EUROS = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-/** « 7,20 € », « 1 234,50 € ». */
+/**
+ * « 7,20 € », « 1 234,50 € ».
+ *
+ * L'espace fine insécable (U+202F) que produit `fr-FR` est presque invisible
+ * dans les polices de l'interface : « 1695,10 € » se lisait sans séparateur.
+ * Une insécable ordinaire garde le groupe soudé et se voit.
+ */
 export function formaterEuros(valeur: number): string {
-  return EUROS.format(valeur)
+  return EUROS.format(valeur).replace(/\u202f/g, '\u00a0')
 }
 
 /** « 4,7 » - une note, une moyenne : virgule décimale, nombre de décimales fixé. */

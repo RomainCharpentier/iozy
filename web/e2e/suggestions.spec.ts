@@ -54,7 +54,7 @@ test('repérer une série presque complète depuis Découvrir, et rejoindre sa f
   await expect(ligne).toContainText('Standard')
   await expect(ligne).toContainText('6/8 tomes')
   await expect(ligne).toContainText('2 manquants')
-  await expect(ligne).toContainText('18.00 €')
+  await expect(ligne).toContainText(/18,00\s€/)
   await expect(ligne).toContainText('théorique')
 
   // --- 4. Et elle emmène là où on peut agir

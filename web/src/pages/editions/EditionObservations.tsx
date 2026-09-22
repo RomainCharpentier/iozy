@@ -344,11 +344,11 @@ function FormulaireDeRelevé({
         <button
           type="submit"
           disabled={enregistrement.isPending}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-accent px-3 text-xs font-semibold text-accentInk disabled:opacity-50"
         >
           {enregistrement.isPending ? 'Enregistrement...' : 'Enregistrer'}
         </button>
-        <button type="button" onClick={onAnnuler} className="rounded-lg px-3 py-1.5 text-xs text-textDim">
+        <button type="button" onClick={onAnnuler} className="min-h-11 rounded-lg px-3 text-xs text-textDim">
           Annuler
         </button>
       </div>

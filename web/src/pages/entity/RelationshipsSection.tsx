@@ -54,7 +54,7 @@ export function RelationshipsSection({ entityId, relationshipsFrom, relationship
           type="button"
           onClick={() => setFormOpen((v) => !v)}
           aria-expanded={formOpen}
-          className="flex items-center gap-1.5 text-[13.5px] font-medium text-accentText"
+          className="flex min-h-11 items-center gap-1.5 text-[13.5px] font-medium text-accentText"
         >
           <Plus size={14} />
           Ajouter une relation

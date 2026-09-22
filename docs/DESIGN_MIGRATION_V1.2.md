@@ -8491,3 +8491,42 @@ des langues aux flèches.
 Reste noté, hors de ce lot : le scan par caméra n'existe pas sur iPhone
 (`BarcodeDetector` absent de Safari) - l'écran le dit et propose la saisie du
 code, mais c'est le geste le plus fréquent d'un ajout au téléphone.
+
+**Seconde passe (même jour) : ce qui ne se voit qu'en agissant.** « C'est
+tout ? » - non. La première passe photographiait des écrans au repos ; celle-ci
+ouvre les panneaux et les modales, entre en mode édition, remplit les
+formulaires, sort du compte, et regarde la largeur tablette (820 px). Le script
+`captures2.mjs` enchaîne ces gestes avec la même sonde. Trouvé et corrigé :
+
+- **au doigt, encore** : les liens du mode édition de la fiche (« Toutes mes
+  Tier Lists », « Ajouter une expérience », « Ajouter une relation »,
+  « Renommer », 20 px), le menu d'une expérience (28 px), les puces d'univers
+  de la modale « Nouvelle Tier List » (32 px), les boutons du relevé de prix
+  (28 px), « Chercher par titre » du scan (16 px), et sur la porte « Créer un
+  compte avec une invitation » / « J'ai déjà un compte » (20 px) ;
+- **le survol qui restait collé** : un écran tactile n'a pas de survol, il a
+  un dernier élément touché, et le navigateur y laisse `:hover` jusqu'au
+  toucher suivant - les deux règles maison d'index.css (fond et éclaircissement
+  au survol) éclairaient donc chaque bouton après le tap, comme resté enfoncé.
+  Elles passent sous `@media (hover: hover)`, comme les variantes `hover:` de
+  Tailwind le font déjà ;
+- **les plus petits textes** : 9 px sous le bouton Scan, 10 px sur les badges
+  des tuiles, la tuile « ajouter un tome », le « +N » du calendrier et l'axe de
+  la frise - remontés d'un point ;
+- **encore des mots** : « 7.2 €/tome neuf » dans la fiche d'édition de
+  l'analyse, « ANILIST » et « GOOGLE_BOOKS » en capitales dans les suggestions
+  du Catalogue (`common/lib/sources` écrit AniList, Google Books,
+  BoardGameGeek), « Renommer la série » et « efface la série » sur la fiche
+  d'un jeu vidéo (« l'œuvre »), l'espace fine insécable de `fr-FR` que les
+  polices de l'interface rendent invisible (« 1695,10 € » se lisait sans
+  séparateur) remplacée par une insécable ordinaire ;
+- **ce qui se tassait ou se coupait** : « Cette œuvre n'est classée nulle
+  part » sur quatre lignes de deux mots à côté de son bouton ; le message du
+  scan « Une source n'a pas répondu… » coupé derrière « Chercher par titre » ;
+- **le visiteur** : la colonne « Personnel » de la fiche lui annonçait « Pas
+  encore notée », « Aucune enregistrée », « Non classée » - rien à noter,
+  personne. Elle disparaît hors compte.
+
+Vu et laissé tel quel, à trancher : sur la fiche, toucher un tome possédé le
+retire aussitôt (avec « Annuler ») - au doigt, en défilant, c'est un geste
+qui peut partir tout seul.

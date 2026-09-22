@@ -341,18 +341,29 @@ button, a, input, textarea, select {
    supérieure, donc un bouton déjà rempli (`bg-accent`) garde sa couleur, et
    seul un bouton arrondi SANS remplissage reçoit ce fond. */
 @layer base {
-  button:not(:disabled)[class*="rounded"]:hover,
-  a[class*="rounded"]:hover {
-    background-color: var(--color-hoverSurface);
+  @media (hover: hover) {
+    button:not(:disabled)[class*="rounded"]:hover,
+    a[class*="rounded"]:hover {
+      background-color: var(--color-hoverSurface);
+    }
   }
 }
 
 /* Hors couche, donc appliqué à tous : c'est ce qui fait réagir les boutons
    pleins et les dégradés, que la règle ci-dessus laisse volontairement
-   intacts. */
-button:not(:disabled):hover,
-a:hover {
-  filter: brightness(var(--hover-brightness));
+   intacts.
+
+   `@media (hover: hover)`, sur les deux règles : un écran tactile n'a pas de
+   survol, il a un « dernier élément touché » - et le navigateur y laisse
+   l'état :hover collé jusqu'au toucher suivant. Un bouton restait donc
+   éclairci après le tap, comme s'il était resté enfoncé (lot 148). Tailwind
+   gère déjà ses propres variantes `hover:` ainsi ; ces deux règles maison
+   ne le faisaient pas. */
+@media (hover: hover) {
+  button:not(:disabled):hover,
+  a:hover {
+    filter: brightness(var(--hover-brightness));
+  }
 }
 
 /* Le curseur main sur ce qui se clique.

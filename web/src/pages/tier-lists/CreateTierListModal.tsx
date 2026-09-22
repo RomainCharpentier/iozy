@@ -109,7 +109,7 @@ export function CreateTierListModal({
                   type="button"
                   onClick={() => setEntityTypeId(type.id)}
                   aria-pressed={entityTypeId === type.id}
-                  className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium transition-colors ${
                     entityTypeId === type.id ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                   }`}
                 >
@@ -123,7 +123,7 @@ export function CreateTierListModal({
                 type="button"
                 onClick={() => setEntityTypeId(null)}
                 aria-pressed={entityTypeId === null}
-                className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium transition-colors ${
                   entityTypeId === null ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                 }`}
               >

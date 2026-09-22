@@ -30,13 +30,13 @@ export function CollectionTimelineSection() {
         <div className="flex h-32 min-w-fit items-end gap-2">
           {points.map((point) => (
             <div key={point.month} className="flex w-8 shrink-0 flex-col items-center gap-1">
-              <span className="text-[10px] text-textDim">{point.tomesAdded}</span>
+              <span className="text-[11px] text-textDim">{point.tomesAdded}</span>
               <div
                 title={`${point.tomesAdded} tome${point.tomesAdded > 1 ? 's' : ''} en ${formatMonth(point.month)}`}
                 className="w-full rounded-t bg-accent"
                 style={{ height: `${Math.max(4, (point.tomesAdded / maxCount) * 80)}px` }}
               />
-              <span className="whitespace-nowrap text-[10px] text-textDim">{formatMonth(point.month)}</span>
+              <span className="whitespace-nowrap text-[11px] text-textDim">{formatMonth(point.month)}</span>
             </div>
           ))}
         </div>
