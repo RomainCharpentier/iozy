@@ -25,7 +25,7 @@ export function PageIntrouvable() {
       />
       <Link
         to="/"
-        className="flex min-h-11 w-fit items-center gap-2 rounded-[14px] bg-accent px-4 text-sm font-semibold text-accentInk"
+        className="btn-primaire w-fit"
       >
         <Compass size={16} />
         Retour à ma collection

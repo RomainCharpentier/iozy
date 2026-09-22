@@ -7,6 +7,7 @@ import { Jaquette } from '@/common/components/Jaquette'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import type { ReleaseEntryDto } from '@/common/types/api'
 import { cleDeSortie, grouperParMois } from './releaseCalendar'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * Tout ce qui vient dans l'année, mois par mois, dans l'ordre du calendrier
@@ -45,7 +46,7 @@ export function ListeAVenir({
       </div>
 
       {query.isError && <ErrorBanner message={query.error.message} />}
-      {query.isLoading && <p className="text-sm text-textDim">Chargement...</p>}
+      {query.isLoading && <Squelette lignes={3} />}
       {query.isSuccess && mois.length === 0 && <p className="text-sm text-textDim">Rien d'annoncé pour l'année qui vient.</p>}
 
       {mois.map((m) => (

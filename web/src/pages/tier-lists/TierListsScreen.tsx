@@ -9,8 +9,9 @@ import { boardPreviewRows } from '@/common/lib/tierListVisuals'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
-import { CLASSE_CARTE } from '@/common/components/Carte'
+import { EtatVide } from '@/common/components/EtatVide'
 import { useDonneesTierLists } from '@/common/hooks/useDonneesTierLists'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
@@ -67,7 +68,7 @@ export function TierListsScreen() {
               <button
                 type="button"
                 onClick={() => setCreatingFor({ id: sections[0].entityType.id })}
-                className="flex min-h-11 items-center gap-2 rounded-[14px] bg-accent px-4 text-sm font-semibold text-accentInk"
+                className="btn-primaire"
               >
                 <Plus size={16} />
                 Nouvelle Tier List
@@ -78,16 +79,17 @@ export function TierListsScreen() {
       </div>
 
       {donnees.erreur && <ErrorBanner message={donnees.erreur} />}
-      {chargement && <p className="text-textDim">Chargement...</p>}
+      {chargement && <Squelette lignes={3} />}
 
       {/* `!chargement` en garde : sans lui, l'état vide clignoterait à chaque
           ouverture, le temps que les données arrivent - « Rien à classer »
           affiché à quelqu'un qui a justement des choses à classer. */}
       {!chargement && sections.length === 0 && (
-        <div className={`${CLASSE_CARTE} text-center`}>
-          <p className="font-display text-base font-semibold text-textPrimary">Rien à classer pour l'instant</p>
-          <p className="mt-1.5 text-sm text-textDim">Ajoute des œuvres à ta collection pour commencer à les classer.</p>
-        </div>
+        <EtatVide
+          icone={ListOrdered}
+          titre="Rien à classer pour l'instant"
+          detail="Ajoute des œuvres à ta collection pour commencer à les classer."
+        />
       )}
 
       {sections.map(({ entityType, board, counts, lists }) => {

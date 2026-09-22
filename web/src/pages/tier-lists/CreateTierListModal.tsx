@@ -96,7 +96,7 @@ export function CreateTierListModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="ex: Mes mangas préférés"
               data-modal-initial-focus
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+              className="champ"
             />
           </div>
 
@@ -158,7 +158,7 @@ export function CreateTierListModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="resize-none rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+              className="champ resize-none"
             />
           </div>
 
@@ -169,7 +169,7 @@ export function CreateTierListModal({
             type="button"
             onClick={() => name.trim() && createMutation.mutate()}
             disabled={!name.trim() || createMutation.isPending}
-            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire w-full"
           >
             {createMutation.isPending ? 'Création...' : 'Créer la Tier List'}
           </button>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { History, Trash2 } from 'lucide-react'
 import { deleteAnalysis, listAnalysisHistory } from '@/common/api/purchaseAnalysis'
 import { queryKeys } from '@/common/lib/queryKeys'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
@@ -9,6 +9,8 @@ import { VerdictBadge } from '@/pages/purchase-analysis/VerdictBadge'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
+import { Squelette } from '@/common/components/Squelette'
+import { EtatVide } from '@/common/components/EtatVide'
 
 /** "Comparer les annonces" (prévu dès le plan initial de l'Analyse d'achat,
  * jamais construit jusqu'ici) - liste toutes les analyses passées (les plus
@@ -42,12 +44,13 @@ export function AnalysisHistoryPage() {
 
       {historyQuery.isError && <ErrorBanner message={historyQuery.error.message} />}
       {deleteMutation.isError && <ErrorBanner message={deleteMutation.error.message} />}
-      {historyQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {historyQuery.isLoading && <Squelette lignes={3} />}
       {historyQuery.isSuccess && sorted.length === 0 && (
-        <p className="text-textDim">
-          Aucune analyse enregistrée pour l'instant - depuis "Analyser une annonce", chaque lot analysé vient s'ajouter
-          ici pour comparer une nouvelle annonce aux précédentes.
-        </p>
+        <EtatVide
+          icone={History}
+          titre="Aucune analyse enregistrée pour l'instant"
+          detail="Depuis « Analyser une annonce », chaque lot analysé vient s'ajouter ici pour comparer une nouvelle annonce aux précédentes."
+        />
       )}
 
       <ul className="flex flex-col gap-2">

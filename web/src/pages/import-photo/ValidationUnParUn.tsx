@@ -67,7 +67,7 @@ export function ValidationUnParUn({
         <button
           type="button"
           onClick={onTerminer}
-          className="min-h-11 self-start rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk"
+          className="btn-primaire self-start"
         >
           Voir le récapitulatif
         </button>
@@ -87,7 +87,7 @@ export function ValidationUnParUn({
           <button
             type="button"
             onClick={onTerminer}
-            className="min-h-11 rounded-xl bg-surface px-3 text-sm font-semibold text-textPrimary shadow-token-sm"
+            className="btn-secondaire"
           >
             Récapitulatif
           </button>
@@ -202,7 +202,7 @@ function FicheExtrait({
             aria-label="Numéro du tome"
             value={numero}
             onChange={(e) => setNumero(e.target.value)}
-            className="w-20 rounded-lg bg-surface2 px-2 py-1.5 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ w-20"
           />
           {extrait.numero === null && numeroSaisi === null && (
             <span className="text-xs text-warning">non lu : à saisir</span>
@@ -214,7 +214,7 @@ function FicheExtrait({
             type="button"
             onClick={() => onConfirmer(numeroSaisi)}
             disabled={numeroSaisi === null || numeroSaisi < 1 || extrait.etat === 'possede'}
-            className="flex min-h-11 items-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-40"
+            className="btn-primaire"
           >
             <Check size={14} />
             C’est bien ça
@@ -223,7 +223,7 @@ function FicheExtrait({
             type="button"
             onClick={onEcarter}
             disabled={extrait.etat === 'possede'}
-            className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface2 px-4 text-sm font-semibold text-textPrimary disabled:opacity-40"
+            className="btn-secondaire"
           >
             <X size={14} />
             Écarter

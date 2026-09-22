@@ -9,6 +9,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { iconFor } from '@/common/theme/icon'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { Squelette } from '@/common/components/Squelette'
 
 /** Éditeur de types dynamique : liste des catégories de la collection (les
  * 3 types MVP historiques + tout type créé par l'utilisateur). Accessible
@@ -58,7 +59,7 @@ export function EntityTypesPage() {
           <button
             type="button"
             onClick={() => navigate('/types/new')}
-            className="flex min-h-11 items-center gap-2 rounded-[14px] bg-accent px-4 text-sm font-semibold text-accentInk"
+            className="btn-primaire"
           >
             <Plus size={16} />
             Nouveau type
@@ -68,7 +69,7 @@ export function EntityTypesPage() {
 
       {errorMessage && <ErrorBanner message={errorMessage} />}
       {entityTypesQuery.isError && <ErrorBanner message={entityTypesQuery.error.message} />}
-      {entityTypesQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {entityTypesQuery.isLoading && <Squelette lignes={3} />}
 
       {/* Sans ça, quelqu'un qui a supprimé ses types voyait un titre, un bouton,
           et rien entre les deux - une page qui a l'air inachevée plutôt que

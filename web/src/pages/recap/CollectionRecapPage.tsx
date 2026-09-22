@@ -9,6 +9,7 @@ import { gradientPalettes } from '@/common/theme/tokens'
 import type { YearlyRecapDto } from '@/common/types/api'
 import { LienRetour } from '@/common/components/LienRetour'
 import { formaterDecimal } from '@/common/lib/formats'
+import { Squelette } from '@/common/components/Squelette'
 
 /** Même algorithme que gradientFor (theme/gradient.ts), mais renvoie les 2
  * couleurs hexadécimales brutes plutôt qu'une chaîne CSS - nécessaire pour
@@ -114,7 +115,7 @@ export function CollectionRecapPage() {
           aria-label="Année du bilan"
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="min-h-11 rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ"
         >
           {availableYears.map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -123,7 +124,7 @@ export function CollectionRecapPage() {
       </div>
 
       {recapQuery.isError && <ErrorBanner message={recapQuery.error.message} />}
-      {recapQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {recapQuery.isLoading && <Squelette lignes={3} />}
 
       {recapQuery.data && (
         <>
@@ -185,7 +186,7 @@ export function CollectionRecapPage() {
             <button
               type="button"
               onClick={() => downloadImage(recapQuery.data)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk"
+              className="btn-primaire"
             >
               <Download size={16} />
               Télécharger l'image

@@ -7,6 +7,7 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { TierBadge } from '@/common/components/TierBadge'
 import { TierPicker } from '@/common/components/TierPicker'
 import { RANKS, type Rank } from '@/common/types/tierList'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * "Mes classements" (voir DS v1.1 §52) : rang général visuellement dominant
@@ -55,7 +56,7 @@ export function TierSummarySection({
       </div>
 
       {summaryQuery.isLoading ? (
-        <p className="text-sm text-textDim">Chargement...</p>
+        <Squelette lignes={3} />
       ) : generalRank ? (
         // Le rang général est visuellement DOMINANT (voir DS v1.1 §52) : c'est
         // le jugement porté sur l'œuvre, pas une ligne de liste parmi d'autres.
@@ -70,7 +71,7 @@ export function TierSummarySection({
           <button
             type="button"
             onClick={() => setPicking(true)}
-            className="shrink-0 rounded-xl bg-surface px-3.5 py-2.5 text-[13px] font-medium text-textPrimary shadow-token-sm"
+            className="btn-secondaire shrink-0"
           >
             Modifier
           </button>
@@ -85,7 +86,7 @@ export function TierSummarySection({
           <button
             type="button"
             onClick={() => setPicking(true)}
-            className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk transition-transform hover:-translate-y-0.5"
+            className="btn-primaire"
           >
             <Sparkles size={15} />
             Classer cette œuvre

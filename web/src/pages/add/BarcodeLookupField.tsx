@@ -41,13 +41,13 @@ export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupField
             setNotFound(false)
           }}
           placeholder="ex: 9782723492607"
-          className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ flex-1"
         />
         <button
           type="button"
           onClick={() => barcode.trim() && mutation.mutate()}
           disabled={!barcode.trim() || mutation.isPending}
-          className="flex items-center gap-1.5 rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="btn-secondaire"
         >
           {mutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ScanBarcode size={16} />}
           {mutation.isPending ? 'Recherche...' : 'Rechercher'}

@@ -34,7 +34,7 @@ export function AjoutDirect({
         onClick={onAjouter}
         disabled={enCours || attente}
         title={attente ? "Les informations de l'œuvre ne sont pas encore chargées" : undefined}
-        className="flex min-h-12 w-fit items-center gap-2 rounded-[14px] bg-accent px-5 text-sm font-semibold text-accentInk shadow-token-accent disabled:opacity-50"
+        className="btn-primaire w-fit"
       >
         {enCours ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
         Ajouter à ma collection

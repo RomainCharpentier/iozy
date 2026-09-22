@@ -20,7 +20,7 @@ import { GlobalShortcuts } from './GlobalShortcuts'
  */
 export function MobileHeader() {
   return (
-    <header className="sticky top-0 z-10 border-b border-surface2 bg-surface md:hidden">
+    <header className="barre-verre sticky top-0 z-10 border-b border-line md:hidden">
       <div className="flex h-14 items-center gap-3 px-4">
         <Link to="/" className="flex h-full items-center font-display text-base font-semibold tracking-[-0.02em] text-textPrimary">
           Iozy<span className="text-accent">core</span>

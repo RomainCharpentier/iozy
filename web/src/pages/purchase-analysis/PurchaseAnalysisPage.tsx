@@ -546,7 +546,7 @@ export function PurchaseAnalysisPage() {
                               setAskingPrice(e.target.value)
                             }}
                             placeholder="ex: 216"
-                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            className="champ w-full"
                           />
                         </div>
                         <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
@@ -570,7 +570,7 @@ export function PurchaseAnalysisPage() {
                               setShippingFee(e.target.value)
                             }}
                             placeholder="0"
-                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            className="champ w-full"
                           />
                         </div>
                         <div className="flex min-w-[110px] flex-1 flex-col gap-1.5">
@@ -588,7 +588,7 @@ export function PurchaseAnalysisPage() {
                               setBuyerProtectionFee(e.target.value)
                             }}
                             placeholder="0"
-                            className="min-h-11 w-full rounded-lg bg-surface2 px-3 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            className="champ w-full"
                           />
                         </div>
                       </div>
@@ -610,7 +610,7 @@ export function PurchaseAnalysisPage() {
                               setRawTitle(e.target.value)
                             }}
                             placeholder="ex: Lot 20th Century Boys Perfect Edition + Sanctuary Perfect"
-                            className="min-h-11 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            className="champ"
                             autoComplete="off"
                           />
                         </div>
@@ -627,7 +627,7 @@ export function PurchaseAnalysisPage() {
                             }}
                             rows={3}
                             placeholder="Ce que le vendeur décrit (état, tomes inclus, éditions…)"
-                            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            className="champ"
                           />
                         </div>
                         <ListingPhotos
@@ -728,7 +728,7 @@ export function PurchaseAnalysisPage() {
                 value={seriesTitle}
                 onChange={(e) => setSeriesTitle(e.target.value)}
                 placeholder="ex: 20th Century Boys"
-                className="min-h-11 w-full rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="champ w-full"
                 autoComplete="off"
               />
             </div>
@@ -745,7 +745,7 @@ export function PurchaseAnalysisPage() {
                   value={volumesText}
                   onChange={(e) => setVolumesText(e.target.value)}
                   placeholder="1-11"
-                  className="min-h-11 w-24 rounded-lg bg-surface2 px-2.5 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  className="champ w-24"
                   autoComplete="off"
                 />
               </div>
@@ -759,7 +759,7 @@ export function PurchaseAnalysisPage() {
                 // un bouton en icône seule - voir Lot 29.
                 aria-label="Ajouter une autre série au lot"
                 title="Ajouter une AUTRE série au lot - celle en cours de saisie est déjà comptée"
-                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-xs font-semibold text-textPrimary disabled:opacity-50"
+                className="btn-secondaire shrink-0"
               >
                 <Plus size={14} />
                 Autre série
@@ -836,7 +836,7 @@ export function PurchaseAnalysisPage() {
           type="button"
           onClick={() => analyzeMutation.mutate()}
           disabled={!canAnalyze || analyzeMutation.isPending}
-          className="min-h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {analyzeMutation.isPending ? 'Évaluation…' : 'Évaluer ce lot'}
         </button>

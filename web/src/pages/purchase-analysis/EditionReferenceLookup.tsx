@@ -177,7 +177,7 @@ export function EditionReferenceLookup({
           value={publisher}
           onChange={(e) => setPublisher(e.target.value)}
           placeholder="Éditeur (ex: Kana)"
-          className="min-w-0 flex-1 rounded-lg bg-surface px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ min-w-0 flex-1"
         />
         <input
           type="number"
@@ -185,7 +185,7 @@ export function EditionReferenceLookup({
           value={totalVolumes}
           onChange={(e) => setTotalVolumes(e.target.value)}
           placeholder="Nb de tomes"
-          className="w-28 rounded-lg bg-surface px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ w-28"
         />
         <input
           type="number"
@@ -194,7 +194,7 @@ export function EditionReferenceLookup({
           value={retailPrice}
           onChange={(e) => setRetailPrice(e.target.value)}
           placeholder="Prix neuf/tome €"
-          className="w-32 rounded-lg bg-surface px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ w-32"
         />
       </div>
       <div className="flex flex-wrap gap-3 text-xs text-textDim">
@@ -216,7 +216,7 @@ export function EditionReferenceLookup({
           value={betterEditionNote}
           onChange={(e) => setBetterEditionNote(e.target.value)}
           placeholder="Détail (ex: Perfect Edition annoncée pour 2026)"
-          className="rounded-lg bg-surface px-2.5 py-1.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ"
         />
       )}
 
@@ -227,7 +227,7 @@ export function EditionReferenceLookup({
           type="button"
           onClick={() => createMutation.mutate()}
           disabled={createMutation.isPending}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {createMutation.isPending ? 'Enregistrement...' : 'Enregistrer cette édition'}
         </button>

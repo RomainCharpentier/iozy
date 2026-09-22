@@ -8,6 +8,7 @@ import { UNIVERSE_ASPECTS, UNIVERSE_ICONS, UNIVERSE_PALETTE, colorVarFor } from 
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { Squelette } from '@/common/components/Squelette'
 
 interface EntityTypeFormPageProps {
   mode: 'create' | 'edit'
@@ -130,7 +131,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
       <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
         <LienRetour parDefaut={{ to: '/types', libelle: 'Catégories de collection' }} />
         <EnTeteSection niveau={1} titre="Modifier le type" />
-        <p className="text-textDim">Chargement...</p>
+        <Squelette lignes={3} />
       </div>
     )
   }
@@ -153,7 +154,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                 if (mode === 'create' && !codeEditedByHand) setCode(codeFromLabel(e.target.value))
               }}
               placeholder="ex : Films, Vinyles..."
-              className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+              className="champ"
             />
           </div>
 
@@ -175,7 +176,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                   setCode(e.target.value)
                 }}
                 placeholder="ex : FILM, VINYLE..."
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm uppercase text-textPrimary placeholder:text-textDim placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="champ"
               />
               <p className="text-xs text-textDim">
                 Déduit du label, modifiable ici. Ne pourra plus être changé après la création.
@@ -275,7 +276,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
         <button
           type="submit"
           disabled={!label.trim() || !code.trim() || mutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {mutation.isPending ? 'Enregistrement...' : mode === 'create' ? 'Créer' : 'Enregistrer'}
         </button>
@@ -329,13 +330,13 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
             }
           }}
           placeholder={placeholder}
-          className="flex-1 rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+          className="champ flex-1"
         />
         <button
           type="button"
           onClick={add}
           disabled={!newValue.trim()}
-          className="min-h-11 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="btn-secondaire"
         >
           Ajouter
         </button>

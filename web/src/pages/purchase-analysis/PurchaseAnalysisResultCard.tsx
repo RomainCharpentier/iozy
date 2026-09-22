@@ -276,7 +276,7 @@ export function PurchaseAnalysisResultCard({
           onClick={() => setShowOfferText((v) => !v)}
           disabled={!offerText}
           title={!offerText ? "Pas assez de données pour proposer un montant d'offre" : undefined}
-          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           Faire une offre
         </button>
@@ -289,14 +289,14 @@ export function PurchaseAnalysisResultCard({
               ? "Aucun tome de ce lot ne se rattache à une fiche connue"
               : `Ajouter les ${tomesDuLot.length} tomes de ce lot à mes envies`
           }
-          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="btn-secondaire"
         >
           <Heart size={15} />
           {tomesDuLot.length > 1 ? `Vouloir ces ${tomesDuLot.length} tomes` : 'Ajouter à mes envies'}
         </button>
         <Link
           to="/purchase-analysis/history"
-          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary"
+          className="btn-secondaire"
         >
           <Scale size={15} />
           Comparer les annonces
@@ -313,7 +313,7 @@ export function PurchaseAnalysisResultCard({
             readOnly
             value={offerText}
             rows={2}
-            className="resize-none rounded-lg bg-surface p-2 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ resize-none"
           />
           <button
             type="button"

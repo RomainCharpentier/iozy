@@ -10,6 +10,7 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { formaterEuros } from '@/common/lib/formats'
+import { Squelette } from '@/common/components/Squelette'
 
 const MAX_PREVIEW = 3
 
@@ -46,7 +47,7 @@ export function DiscoverOpportunitiesPreview() {
       </div>
 
       {suggestionsQuery.isError && <ErrorBanner message={suggestionsQuery.error.message} />}
-      {suggestionsQuery.isLoading && <p className="text-sm text-textDim">Chargement...</p>}
+      {suggestionsQuery.isLoading && <Squelette lignes={3} />}
 
       {suggestionsQuery.isSuccess && suggestions.length === 0 && (
         <div className={CLASSE_CARTE}>

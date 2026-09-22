@@ -344,7 +344,7 @@ function FormulaireDeRelevé({
         <button
           type="submit"
           disabled={enregistrement.isPending}
-          className="min-h-11 rounded-lg bg-accent px-3 text-xs font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {enregistrement.isPending ? 'Enregistrement...' : 'Enregistrer'}
         </button>

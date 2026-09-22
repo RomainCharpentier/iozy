@@ -196,7 +196,7 @@ export function ListingDetectionPanel({
         <button
           type="button"
           onClick={() => champFichiers.current?.click()}
-          className="flex min-h-11 items-center gap-1.5 self-start rounded-lg bg-surface px-3.5 text-sm font-semibold text-textPrimary"
+          className="btn-secondaire self-start"
         >
           <ImagePlus size={14} />
           Envoyer mes photos
@@ -366,7 +366,7 @@ export function ListingDetectionPanel({
               type="button"
               onClick={() => mutation.mutate(true)}
               disabled={enCours}
-              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+              className="btn-primaire"
             >
               <Sparkles size={14} />
               {mutation.isPending ? 'Analyse…' : analysePhotosFaite ? 'Relancer les photos' : 'Analyser les photos'}
@@ -460,7 +460,7 @@ export function ListingDetectionPanel({
             <button
               type="button"
               onClick={() => onPrefillSeries(serieAnnoncee)}
-              className="flex min-h-11 items-center gap-1.5 self-start rounded-lg bg-surface2 px-3 text-sm font-semibold text-textPrimary"
+              className="btn-secondaire self-start"
             >
               Renseigner les tomes de {serieAnnoncee}
             </button>
@@ -524,7 +524,7 @@ export function ListingDetectionPanel({
             type="button"
             onClick={() => onConfirm(confirmables)}
             disabled={confirmables.length === 0}
-            className="min-h-11 rounded-lg bg-surface px-3 text-sm font-semibold text-textPrimary disabled:opacity-40"
+            className="btn-secondaire"
           >
             Ajouter {confirmables.length} tome{confirmables.length > 1 ? 's' : ''} au lot
           </button>

@@ -176,7 +176,7 @@ export function FicheHero({
                   type="button"
                   onClick={onBasculerMode}
                   aria-pressed={modeEdition}
-                  className={`flex h-[42px] items-center gap-1.5 rounded-xl px-3.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors ${
+                  className={`flex h-11 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold whitespace-nowrap transition-colors ${
                     modeEdition ? 'bg-accent text-accentInk' : 'bg-softBtn text-textDim hover:text-textPrimary'
                   }`}
                 >
@@ -188,7 +188,7 @@ export function FicheHero({
                 <button
                   type="button"
                   onClick={onEvaluer}
-                  className="flex items-center gap-2.5 rounded-xl bg-accent px-4 py-[11px] text-sm font-semibold whitespace-nowrap text-accentInk shadow-token-accent transition-transform hover:-translate-y-px"
+                  className="btn-primaire"
                 >
                   <Scale size={16} />
                   Évaluer

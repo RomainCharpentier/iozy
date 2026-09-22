@@ -144,7 +144,7 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
                   type="button"
                   onClick={() => addMutation.mutate(candidate)}
                   disabled={addMutation.isPending}
-                  className="shrink-0 rounded-lg bg-surface2 px-3 py-1.5 text-xs font-medium text-textPrimary disabled:opacity-50"
+                  className="btn-secondaire shrink-0"
                 >
                   Ajouter
                 </button>

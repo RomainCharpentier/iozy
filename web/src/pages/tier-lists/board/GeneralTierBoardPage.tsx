@@ -12,6 +12,7 @@ import { TierBoard } from '@/pages/tier-lists/TierBoard'
 import { TierPicker } from '@/common/components/TierPicker'
 import { useQuickRank } from '@/pages/tier-lists/useQuickRank'
 import { RANKS, type Rank, type TierListEntryDto } from '@/common/types/tierList'
+import { Squelette } from '@/common/components/Squelette'
 
 /** Board du classement GÉNÉRAL d'un univers - toujours l'échelle complète
  * S-F (voir DS v1.1 §45), candidats = toute œuvre réellement possédée de
@@ -77,7 +78,7 @@ export function GeneralTierBoardPage() {
           <button
             type="button"
             onClick={() => quickRank.start(boardQuery.data.unranked)}
-            className="ml-auto flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-sm font-semibold text-accentInk"
+            className="btn-primaire ml-auto shrink-0"
           >
             <Zap size={15} />
             Classer rapidement ({boardQuery.data.unranked.length})
@@ -86,7 +87,7 @@ export function GeneralTierBoardPage() {
       </div>
 
       {boardQuery.isError && <ErrorBanner message={boardQuery.error.message} />}
-      {boardQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {boardQuery.isLoading && <Squelette lignes={3} />}
       {rankMutation.isError && <ErrorBanner message={rankMutation.error.message} />}
 
       {boardQuery.data && (

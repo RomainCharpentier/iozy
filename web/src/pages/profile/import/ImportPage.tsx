@@ -148,7 +148,7 @@ function Rapport({
               type="button"
               onClick={appliquer}
               disabled={enCours}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+              className="btn-primaire"
             >
               {enCours ? 'Import…' : 'Importer'}
             </button>

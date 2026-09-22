@@ -7,6 +7,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { PurchaseAnalysisResultCard } from '@/pages/purchase-analysis/PurchaseAnalysisResultCard'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { Squelette } from '@/common/components/Squelette'
 
 /** Une analyse passée précise, revue en entier (même carte de résultat que
  * juste après "ANALYSER LE LOT") - voir AnalysisHistoryPage pour la liste. */
@@ -25,7 +26,7 @@ export function AnalysisHistoryDetailPage() {
       <EnTeteSection niveau={1} titre={`Analyse du ${formatDate(analysisQuery.data?.requestedAt)}`} />
 
       {analysisQuery.isError && <ErrorBanner message={analysisQuery.error.message} />}
-      {analysisQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {analysisQuery.isLoading && <Squelette lignes={3} />}
 
       {analysisQuery.data && (
         <PurchaseAnalysisResultCard

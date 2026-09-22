@@ -175,13 +175,13 @@ export function RelationshipRow({
             onChange={(e) => setType(e.target.value)}
             placeholder="Ou un type personnalisé..."
             aria-label="Type de relation"
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ"
           />
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={!type.trim() || updateMutation.isPending}
-              className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+              className="btn-primaire"
             >
               {updateMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
             </button>

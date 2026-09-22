@@ -11,6 +11,7 @@ import { useModalA11y } from '@/common/hooks/useModalA11y'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 import { Jaquette } from '@/common/components/Jaquette'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * Ajout d'œuvres à une Tier List personnalisée - étape explicite obligatoire
@@ -96,7 +97,7 @@ export function AddTierListItemsPanel({
 
         <div className="flex-1 overflow-y-auto p-4">
           {entitiesQuery.isError && <ErrorBanner message={entitiesQuery.error.message} />}
-          {(entitiesQuery.isLoading || ownershipsQuery.isLoading) && <p className="text-sm text-textDim">Chargement...</p>}
+          {(entitiesQuery.isLoading || ownershipsQuery.isLoading) && <Squelette lignes={3} />}
 
           {entitiesQuery.isSuccess && ownershipsQuery.isSuccess && candidates.length === 0 && (
             <p className="text-sm text-textDim">
@@ -146,7 +147,7 @@ export function AddTierListItemsPanel({
             type="button"
             onClick={() => selected.size > 0 && addMutation.mutate()}
             disabled={selected.size === 0 || addMutation.isPending}
-            className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire w-full"
           >
             {addMutation.isPending
               ? 'Ajout...'

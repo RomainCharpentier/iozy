@@ -95,7 +95,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
               <select
                 value={variantId}
                 onChange={(e) => setVariantId(e.target.value)}
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-accent/50"
+                className="champ"
               >
                 <option value="">Toute la série</option>
                 {variants.map((v) => (
@@ -125,13 +125,13 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
             onChange={(e) => setComment(e.target.value)}
             placeholder="Commentaire (optionnel)"
             rows={2}
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ"
           />
 
           <button
             type="submit"
             disabled={addMutation.isPending}
-            className="self-start rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="btn-primaire self-start"
           >
             {addMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
           </button>

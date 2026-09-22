@@ -47,7 +47,7 @@ export function useDocumentTitleFromHeading(cle: string): void {
       const propre = (titre ?? '').replace(/\s+/g, ' ').trim()
       // « IozyCore · IozyCore » : le titre d'un écran qui porte le nom de
       // l'application ne se suffixe pas de lui-même.
-      document.title = !propre || propre === BASE ? BASE : `${propre} · ${BASE}`
+      document.title = !propre || propre.toLowerCase() === BASE.toLowerCase() ? BASE : `${propre} · ${BASE}`
     }
 
     // `main h1` d'abord, puis n'importe quel `h1` : la page de partage public

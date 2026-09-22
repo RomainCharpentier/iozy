@@ -142,7 +142,7 @@ export function AddVolumeSection({
             value={volumeNumber}
             onChange={(e) => setVolumeNumber(e.target.value)}
             placeholder="ex: 12"
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ"
           />
         </div>
         <div className="flex min-w-0 flex-[2] flex-col gap-1.5">
@@ -154,7 +154,7 @@ export function AddVolumeSection({
             value={edition}
             onChange={(e) => setEdition(e.target.value)}
             placeholder="ex: Kana, Black Édition..."
-            className="rounded-lg bg-surface2 px-3 py-2 text-sm text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50"
+            className="champ"
             autoComplete="off"
           />
         </div>
@@ -198,7 +198,7 @@ export function AddVolumeSection({
           type="button"
           onClick={() => addMutation.mutate()}
           disabled={totalVolumesToAdd === 0 || addMutation.isPending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+          className="btn-primaire"
         >
           {addMutation.isPending
             ? 'Ajout...'

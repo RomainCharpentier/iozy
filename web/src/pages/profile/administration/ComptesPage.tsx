@@ -8,6 +8,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { CLASSE_CARTE } from '@/common/components/Carte'
 import { LienRetour } from '@/common/components/LienRetour'
+import { Squelette } from '@/common/components/Squelette'
 
 /**
  * Les comptes de l'instance — pour qui en répond.
@@ -56,7 +57,7 @@ export function ComptesPage() {
       />
 
       {comptesQuery.isError && <ErrorBanner message={comptesQuery.error.message} />}
-      {comptesQuery.isLoading && <p className="text-textDim">Chargement...</p>}
+      {comptesQuery.isLoading && <Squelette lignes={3} />}
 
       <ul className="flex flex-col gap-2">
         {(comptesQuery.data ?? []).map((compte) => (

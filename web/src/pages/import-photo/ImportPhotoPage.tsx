@@ -474,7 +474,7 @@ export function ImportPhotoPage() {
                   setPas(0)
                   setEtape('unparun')
                 }}
-                className="min-h-11 self-start rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm"
+                className="btn-secondaire self-start"
               >
                 Valider un par un ({extraits.length})
               </button>
@@ -534,7 +534,7 @@ export function ImportPhotoPage() {
                   type="button"
                   onClick={() => setEtape('relecture')}
                   disabled={aImporter.length === 0 || enCours}
-                  className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-40"
+                  className="btn-primaire"
                 >
                   {aImporter.length === 0
                     ? 'Rien de coché à ajouter'
@@ -826,7 +826,7 @@ function Relecture({
           type="button"
           onClick={onAjouter}
           disabled={enCours}
-          className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-40"
+          className="btn-primaire"
         >
           {enCours ? 'Ajout…' : `Ajouter ${tomes} ${pluriel(tomes, 'tome', 'tomes')} à ma collection`}
         </button>
@@ -834,7 +834,7 @@ function Relecture({
           type="button"
           onClick={onRevenir}
           disabled={enCours}
-          className="flex min-h-11 items-center gap-1.5 rounded-xl bg-surface px-4 text-sm font-semibold text-textPrimary shadow-token-sm disabled:opacity-40"
+          className="btn-secondaire"
         >
           <ArrowLeft size={14} />
           Revenir à la vérification
