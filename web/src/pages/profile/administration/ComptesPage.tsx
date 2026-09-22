@@ -143,7 +143,7 @@ function LigneCompte({
           <button
             type="button"
             onClick={onDemander}
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-danger/35 px-3 py-2 text-[13px] font-medium text-dangerText hover:border-dangerText hover:bg-dangerText hover:text-dangerInk"
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-danger/35 px-3 text-[13px] font-medium text-dangerText hover:border-dangerText hover:bg-dangerText hover:text-dangerInk"
           >
             <Trash2 size={14} />
             Supprimer

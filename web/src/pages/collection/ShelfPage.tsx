@@ -66,7 +66,7 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
   }
   return {
     titre: "Rien ici pour l'instant.",
-    detail: 'Utilise l\'onglet "Rechercher" pour commencer ta collection.',
+    detail: 'Utilise l\'onglet « Catalogue » pour commencer ta collection.',
   }
 }
 

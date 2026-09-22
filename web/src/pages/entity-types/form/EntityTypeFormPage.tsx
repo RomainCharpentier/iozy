@@ -195,7 +195,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                 aria-pressed={colorKey === entry.key}
                 aria-label={entry.label}
                 title={entry.label}
-                className={`h-9 w-9 rounded-full transition-transform hover:-translate-y-0.5 ${
+                className={`h-11 w-11 rounded-full transition-transform hover:-translate-y-0.5 ${
                   colorKey === entry.key ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''
                 }`}
                 style={{ background: colorVarFor(entry.key) }}
@@ -218,7 +218,7 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                 aria-pressed={iconKey === key}
                 aria-label={iconLabel}
                 title={iconLabel}
-                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
                   iconKey === key ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                 }`}
               >
@@ -335,7 +335,7 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
           type="button"
           onClick={add}
           disabled={!newValue.trim()}
-          className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary disabled:opacity-50"
         >
           Ajouter
         </button>

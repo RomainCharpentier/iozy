@@ -73,6 +73,20 @@ describe('quand le titre arrive après', () => {
 
     await waitFor(() => expect(document.title).toBe('Statistiques · IozyCore'))
   })
+
+  it('ne prend pas « … » pour un titre, et suit le libellé qui le remplace', async () => {
+    // Un rayon affiche « … » le temps que le nom de la catégorie arrive, puis
+    // React remplace le TEXTE du h1 sans toucher au nœud : l'onglet restait
+    // « … · IozyCore » (constaté sur /collection/:id, lot 148).
+    poser('<main><h1>…</h1></main>')
+    renderHook(() => useDocumentTitleFromHeading('/collection/manga'))
+
+    expect(document.title).toBe('IozyCore')
+
+    document.querySelector('h1')!.firstChild!.nodeValue = 'Manga'
+
+    await waitFor(() => expect(document.title).toBe('Manga · IozyCore'))
+  })
 })
 
 describe('quand l’écran change sans que l’URL bouge', () => {

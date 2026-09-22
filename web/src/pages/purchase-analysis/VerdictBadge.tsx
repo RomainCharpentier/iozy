@@ -20,7 +20,7 @@ const CONFIG: Record<Verdict, { label: string; icon: typeof Check; className: st
 export function VerdictBadge({ verdict, score }: { verdict: Verdict; score?: number }) {
   const { label, icon: Icon, className } = CONFIG[verdict]
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${className}`}>
+    <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap ${className}`}>
       <Icon size={18} strokeWidth={2.5} />
       {label}
       {score !== undefined && <span className="font-normal opacity-80">· {score}/100</span>}

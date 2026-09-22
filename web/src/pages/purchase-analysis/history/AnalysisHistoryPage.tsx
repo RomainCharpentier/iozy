@@ -8,6 +8,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { VerdictBadge } from '@/pages/purchase-analysis/VerdictBadge'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { formaterEuros } from '@/common/lib/formats'
 
 /** "Comparer les annonces" (prévu dès le plan initial de l'Analyse d'achat,
  * jamais construit jusqu'ici) - liste toutes les analyses passées (les plus
@@ -64,10 +65,10 @@ export function AnalysisHistoryPage() {
                     <p className="text-xs text-textDim">{analysis.seriesTitles.join(', ')}</p>
                   )}
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <VerdictBadge verdict={analysis.verdict} score={analysis.verdictScore} />
                   <span className="shrink-0 text-sm text-textDim">
-                    {analysis.totalRealCost.toFixed(2)} € · {new Date(analysis.createdAt).toLocaleDateString('fr-FR')}
+                    {formaterEuros(analysis.totalRealCost)} · {new Date(analysis.createdAt).toLocaleDateString('fr-FR')}
                   </span>
                 </div>
               </button>

@@ -6,6 +6,7 @@ import type { EditionProgressDto, ExperienceResponse, VariantDto } from '@/commo
 import type { PriceBasis } from '@/common/types/purchaseAnalysis'
 import { editionDe, numeroDe } from '@/common/lib/attributsTome'
 import { libelleBaseLong } from '@/common/lib/basePrix'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * Les réponses de l'assistant : deux questions FIXES, dont la réponse est
@@ -220,7 +221,7 @@ function MissingAnswer({
       )}
       {estimatedCostToComplete !== null && (
         <p className="text-xs text-textDim">
-          Environ {estimatedCostToComplete.toFixed(2)} € pour compléter{base === null ? '.' : ` (${base}).`}
+          Environ {formaterEuros(estimatedCostToComplete)} pour compléter{base === null ? '.' : ` (${base}).`}
         </p>
       )}
       <button type="button" onClick={onEvaluateListing} className="w-fit text-xs font-semibold text-accentText underline">

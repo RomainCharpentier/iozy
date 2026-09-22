@@ -25,6 +25,7 @@ import { LotContentList } from './LotContentList'
 import { PurchaseAnalysisResultCard } from './PurchaseAnalysisResultCard'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * D'où l'on revient : Découvrir, qui porte la porte de cet écran depuis le
@@ -331,10 +332,10 @@ export function PurchaseAnalysisPage() {
     if (!askingPrice.trim() || Number.isNaN(prix)) return null
     const port = shippingFee.trim() ? Number(shippingFee) : 0
     const protection = buyerProtectionFee.trim() ? Number(buyerProtectionFee) : 0
-    const total = (prix + port + protection).toFixed(2)
-    if (shippingKind === 'UNKNOWN') return `sous-total connu ${total} €`
-    if (shippingKind === 'FROM') return `coût minimum ${total} €`
-    return `coût estimé ${total} €`
+    const total = formaterEuros(prix + port + protection)
+    if (shippingKind === 'UNKNOWN') return `sous-total connu ${total}`
+    if (shippingKind === 'FROM') return `coût minimum ${total}`
+    return `coût estimé ${total}`
   })()
 
   const titreLotRef = useRef<HTMLHeadingElement>(null)

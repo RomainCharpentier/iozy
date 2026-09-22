@@ -22,7 +22,7 @@ export function ImportBggPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <LienRetour parDefaut={{ to: '/add', libelle: 'Rechercher' }} />
+      <LienRetour parDefaut={{ to: '/add', libelle: 'Catalogue' }} />
 
       <EnTeteSection
         niveau={1}
@@ -57,7 +57,7 @@ export function ImportBggPage() {
           <button
             type="submit"
             disabled={importMutation.isPending || !username.trim()}
-            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentInk disabled:opacity-50"
+            className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-semibold text-accentInk disabled:opacity-50"
           >
             {importMutation.isPending ? 'Import...' : 'Importer'}
           </button>

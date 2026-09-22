@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { retourDepuis } from '@/common/lib/retour'
-import { ArrowLeft, Zap } from 'lucide-react'
+import { useLocation, useParams } from 'react-router-dom'
+import { LienRetour } from '@/common/components/LienRetour'
+import { Zap } from 'lucide-react'
 import { getGeneralBoard, setGeneralRank } from '@/common/api/tierLists'
 import { listEntityTypes } from '@/common/api/entityTypes'
 import { queryKeys } from '@/common/lib/queryKeys'
@@ -18,9 +18,7 @@ import { RANKS, type Rank, type TierListEntryDto } from '@/common/types/tierList
  * ce type (voir TierListService.ownedEntitiesOfType côté backend). */
 export function GeneralTierBoardPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
-  const navigate = useNavigate()
   // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
-  const retour = retourDepuis(useLocation().state) ?? { to: '/tier-lists', libelle: 'Tier Lists' }
   const queryClient = useQueryClient()
   const [activeEntry, setActiveEntry] = useState<TierListEntryDto | null>(null)
   const quickRank = useQuickRank()
@@ -65,19 +63,10 @@ export function GeneralTierBoardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
-          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
-          revenait autrefois par Tier Lists, et le bouton Précédent du
-          navigateur disait alors autre chose que celui de la page (UX-8).
-          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
-      <button
-        type="button"
-        onClick={() => navigate(retour.to)}
-        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
-      >
-        <ArrowLeft size={15} />
-        {retour.libelle}
-      </button>
+      {/* Le lien de retour commun : 44 px de haut (la copie manuelle d'ici en
+          faisait 20), la destination nommée par celui qui a ouvert l'écran
+          (voir lib/retour), sinon le parent naturel - lien reçu, F5. */}
+      <LienRetour parDefaut={{ to: '/tier-lists', libelle: 'Tier Lists' }} />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />

@@ -86,7 +86,7 @@ export function GlobalShortcuts({ compact = false }: { compact?: boolean }) {
     )
   }
 
-  const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
+  const taille = compact ? 'h-11 w-11' : 'h-10 w-10'
   const marque = initiales(compte?.pseudo ?? '') || 'IO'
   // Le pseudo est DIT, pas seulement dessiné : « RO » lu à voix haute par un
   // lecteur d'écran n'apprend rien à personne.

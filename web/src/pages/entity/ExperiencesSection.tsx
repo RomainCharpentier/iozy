@@ -7,6 +7,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { ExperienceRow } from './ExperienceRow'
 import { variantLabel } from '@/common/lib/attributsTome'
 import type { ExperienceResponse, VariantDto } from '@/common/types/api'
+import { libelleExperienceType } from '@/common/lib/experiences'
 
 interface ExperiencesSectionProps {
   entityId: string
@@ -83,7 +84,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
                   experienceType === type ? 'bg-accent text-accentInk' : 'bg-surface2 text-textDim'
                 }`}
               >
-                {type}
+                {libelleExperienceType(type)}
               </button>
             ))}
           </div>
@@ -151,6 +152,7 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
             experience={experience}
             entityId={entityId}
             variant={experience.variantId ? variantsById.get(experience.variantId) : undefined}
+            parTome={variants.length > 0}
           />
         ))}
       </ul>

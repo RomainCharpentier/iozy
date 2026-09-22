@@ -60,7 +60,8 @@ describe('la référence marché', () => {
     render(<ListingAssessmentCard assessment={evaluation()} />)
 
     const ligne = ligneDeReference()
-    expect(ligne).toContain('50.00 €')
+    // Virgule décimale et espace fine insécable devant le symbole : l'écriture française (lot 148).
+    expect(ligne).toMatch(/50,00\s€/)
     expect(ligne).toContain('confiance bonne')
     expect(ligne).toContain('3 annonces comparables')
     expect(ligne).toContain('resserrés à 12 % près')
@@ -132,7 +133,7 @@ describe('l’absence de référence', () => {
     )
 
     expect(screen.getByText('Référence insuffisante')).toBeInTheDocument()
-    expect(screen.queryByText(/50\.00 €/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/50,00\s€/)).not.toBeInTheDocument()
   })
 
   it('une provenance non conservée ne se lit pas comme un prix de marché', () => {
@@ -157,7 +158,7 @@ describe('le coût par élément', () => {
   it('dit « au moins » quand le port n’est qu’un « à partir de »', () => {
     render(<ListingAssessmentCard assessment={evaluation()} shippingKind="FROM" />)
 
-    expect(screen.getByText(/au moins/)).toHaveTextContent('5.00 € / élément')
+    expect(screen.getByText(/au moins/)).toHaveTextContent('5,00 € / élément')
   })
 
   it('ne répète pas le coût utile quand aucun doublon ne le distingue', () => {

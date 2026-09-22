@@ -23,7 +23,7 @@ import { useTheme } from '@/common/lib/theme'
  */
 export function BoutonTheme({ compact = false }: { compact?: boolean }) {
   const { theme, toggleTheme } = useTheme()
-  const taille = compact ? 'h-9 w-9' : 'h-[38px] w-[38px]'
+  const taille = compact ? 'h-11 w-11' : 'h-10 w-10'
   const action = theme === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre'
   const Icone = theme === 'dark' ? Moon : Sun
 

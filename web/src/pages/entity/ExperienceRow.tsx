@@ -7,6 +7,8 @@ import { useToast } from '@/common/lib/toast'
 import { variantLabel } from '@/common/lib/attributsTome'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import type { ExperienceResponse, VariantDto } from '@/common/types/api'
+import { libelleExperienceType } from '@/common/lib/experiences'
+import { formaterDateCourte } from '@/common/lib/formats'
 
 /**
  * Une expérience enregistrée, avec de quoi la corriger ou la retirer.
@@ -30,10 +32,14 @@ export function ExperienceRow({
   experience,
   entityId,
   variant,
+  parTome = true,
 }: {
   experience: ExperienceResponse
   entityId: string
   variant?: VariantDto
+  /** Faux pour une œuvre qui se possède d'une pièce (jeu vidéo, jeu de
+   *  société) : « Toute la série » n'y veut rien dire, la date suffit. */
+  parTome?: boolean
 }) {
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -99,10 +105,12 @@ export function ExperienceRow({
     <li className="rounded-[15px] bg-background px-4 py-3 text-sm">
       <div className="flex items-center gap-3.5">
         <span className="shrink-0 rounded-full bg-accentTint px-2.5 py-1 text-[11.5px] font-medium text-accentText">
-          {experience.experienceType}
+          {libelleExperienceType(experience.experienceType)}
         </span>
         <span className="min-w-0 flex-1 truncate text-[14.5px] text-textPrimary">
-          {variant ? variantLabel(variant) : 'Toute la série'}
+          {[variant ? variantLabel(variant) : parTome ? 'Toute la série' : null, formaterDateCourte(experience.occurredAt)]
+            .filter(Boolean)
+            .join(' · ')}
         </span>
         {experience.rating !== null && (
           <span className="flex shrink-0 items-center gap-1.5 font-display text-[14.5px] font-bold text-textPrimary">
@@ -113,7 +121,7 @@ export function ExperienceRow({
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          aria-label={`Actions sur l'expérience ${experience.experienceType}${variantSuffix}`}
+          aria-label={`Actions sur l'expérience ${libelleExperienceType(experience.experienceType)}${variantSuffix}`}
           className="shrink-0 rounded-lg p-1.5 text-faint hover:text-textPrimary"
         >
           <MoreHorizontal size={16} />

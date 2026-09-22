@@ -8413,3 +8413,81 @@ bloqué personne. Huit tests de plus (`GeminiRequestsTest`, 12) avec un envoi
 scripté par nom de modèle, sans réseau. Le message d'écran dit désormais
 pourquoi et quand : « le service est saturé ou n'a pas répondu à temps.
 Réessaie dans quelques minutes. »
+
+### Lot 148 — La finition : ce que chaque écran montrait de travers
+
+« Il y a plein de petits problèmes UX/UI à améliorer » (2026-09-22). Pas de
+liste fournie : le lot commence par un relevé. Trente-quatre écrans photographiés
+sur la pile jetable, connecté, avec une collection semée par l'API pour
+ressembler à une vraie (neuf séries AniList avec jaquettes et éditions, quatre
+jeux de société, trois jeux vidéo, envies, suivis, tier list, partage, tags,
+expériences) - à 390 px et à 1 280 px, en sombre et en clair - et, sur chaque
+page, une sonde qui mesure ce que l'œil ne voit pas : débordement horizontal,
+cibles de moins de 40 px, textes tronqués, contrôles sans nom, images cassées,
+anglais résiduel, erreurs de console. Puis les captures lues une à une.
+
+**Ce qui débordait.** Sur téléphone, l'accueil et chaque rayon faisaient
+défiler la page de côté : les quatre filtres « Tout · Possédés · Suivies ·
+Envies », posés à leur largeur naturelle avec leurs comptes, dépassaient 390 px,
+et le navigateur mobile élargissait la fenêtre de rendu à 430 px - la barre du
+pouce sortait de l'écran avec elle (mesuré : le bouton Scan à 422 px sur 390).
+Les quatre filtres prennent désormais toute la largeur, chacun sa part, en
+12 px sous 640 px ; leur forme compacte reste celle du desktop.
+
+**Ce qui ne répondait pas au doigt.** Le relevé a compté une vingtaine de
+cibles sous 44 px, dont quatre sous 25 : les lignes du Catalogue (le bouton ne
+mesurait que sa ligne de texte, 24 px, le reste de la carte était inerte),
+« Relever ce prix comme observation de marché » (16 px), les liens de retour
+écrits à la main du rayon et du classement général (20 px, remplacés par
+`LienRetour`), les quatre boutons de l'en-tête (36 px -> 44 px), les nuanciers
+du formulaire de type, le sélecteur d'année du bilan, les filtres de tomes de la
+fiche, les liens d'export. Les flèches de la langue des titres sont la même
+question sous un autre angle : le glisser-déposer HTML n'existe pas au doigt, et
+sur un téléphone l'ordre ne pouvait pas changer.
+
+**Ce qui était écrit de travers.** Les montants s'écrivaient « 901.65 € » à
+vingt-quatre endroits - point décimal, pas de séparateur de milliers - et les
+notes « 4.7/10 » : `common/lib/formats` (`Intl.NumberFormat` en `fr-FR`) les
+écrit « 901,65 € », « 1 234,50 € », « 4,7 ». Côté serveur, le conseil de
+négociation concaténait un BigDecimal brut (« la valeur estimée (20.8000) »),
+et trois phrases disaient « tome(s) manquant(s) » ; elles se déclinent au
+pluriel. L'éditeur d'expériences affichait les codes de la base - « READ »,
+« IN_PROGRESS », « ABANDONED » - en pastilles au milieu d'un écran français :
+`common/lib/experiences` les dit (« Lu », « En cours », « Abandonné »), et la
+rangée de la fiche ne s'appelle plus « Lectures » devant un jeu vidéo
+(« Parties »), ni « Série entière » pour une œuvre qui n'a pas de tomes ;
+« Auteur » coiffait le studio d'un jeu vidéo. L'accueil vide renvoyait à
+l'onglet « Rechercher », renommé Catalogue depuis le lot 139 ; l'import BGG
+aussi. Le hero du profil disait « tomes possédés » là où Statistiques dit
+« exemplaires » - c'est un écran du cœur. Le bilan annuel écrivait « 4 jeu de
+société » (le libellé du type après un nombre ne se met pas au pluriel tout
+seul : le nombre passe après) et « séries commencées » pour des jeux. Le champ
+de fichier de la restauration disait « Choose File / No file chosen », en
+anglais quel que soit le navigateur : un libellé habillé en bouton l'ouvre.
+
+**Ce qui se lisait mal.** Sur le Catalogue à 390 px, les titres des jeux
+étaient coupés à dix caractères (« Les Aventurie… », « The Legend o… ») par
+les deux pastilles à droite : le titre peut prendre deux lignes, le cœur
+« envies » ne montre que son icône sous 640 px, et il disparaît sur ce qu'on
+possède déjà - vouloir un jeu qu'on a n'a pas de sens. Sur un rayon à trois
+colonnes, le sous-titre d'une série était coupé après l'éditeur (« Glénat ·
+4/43… ») : le décompte passe en premier. Le badge de verdict de l'historique
+se pliait sur trois lignes (« Prix / correct · / 55/100 »). Le bouton de tri
+disait l'état (« Récents d'abord ») pendant que son nom accessible disait
+l'action (« Trier par titre ») : il nomme l'action, comme son voisin
+« Dégrouper ». L'onglet du navigateur restait « … · IozyCore » sur un rayon :
+le titre d'attente n'est plus pris pour un titre, et l'observateur suit
+désormais le texte du h1, pas seulement ses nœuds. Les éditions de référence
+répétaient dix-neuf fois la même phrase d'explication sous chaque édition sans
+prix relevé ; elle est dite une fois, en tête.
+
+Vérifié par une seconde passe de captures et de sondes : plus aucun
+débordement, plus aucune cible sous 36 px hors cases à cocher (dont le libellé
+est la cible), et les cinquante-six fichiers de tests web plus les tests du
+moteur d'achat au vert. Quatre tests de plus : les formats, les libellés
+d'expériences, le titre d'onglet qui suit un h1 dont le texte change, l'ordre
+des langues aux flèches.
+
+Reste noté, hors de ce lot : le scan par caméra n'existe pas sur iPhone
+(`BarcodeDetector` absent de Safari) - l'écran le dit et propose la saisie du
+code, mais c'est le geste le plus fréquent d'un ajout au téléphone.

@@ -71,14 +71,27 @@ export function ImportPage() {
           <Upload size={16} className="shrink-0 text-accentText" />
           Fichier d’export (.json)
         </label>
+        {/* Le champ natif disait « Choose File / No file chosen », en anglais
+            quel que soit le navigateur. Il reste là pour la mécanique, invisible
+            (`sr-only`, donc toujours au clavier), et c'est un libellé habillé en
+            bouton qui l'ouvre ; le nom du fichier choisi s'affiche dessous. */}
         <input
           id="fichier-import"
           type="file"
           accept="application/json,.json"
           onChange={surFichier}
           disabled={enCours}
-          className="text-sm text-textDim file:mr-3 file:rounded-lg file:border-0 file:bg-surface2 file:px-3 file:py-2 file:text-sm file:font-medium file:text-textPrimary hover:file:bg-surface"
+          className="peer sr-only"
         />
+        <label
+          htmlFor="fichier-import"
+          className={`flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accentInk peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent ${
+            enCours ? 'pointer-events-none opacity-50' : ''
+          }`}
+        >
+          <Upload size={16} />
+          Choisir un fichier
+        </label>
         {nomFichier && (
           <p className="text-xs text-textDim" aria-live="polite">
             {analyse.isPending ? `Analyse de ${nomFichier}…` : nomFichier}

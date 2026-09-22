@@ -138,7 +138,7 @@ export function GrilleVolumes({
                   aria-checked={actif}
                   aria-label={`${libelle} : ${compte} tome${compte > 1 ? 's' : ''}`}
                   onClick={() => onFiltre(cle)}
-                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
+                  className={`flex min-h-10 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
                     actif ? 'font-semibold text-textPrimary' : 'text-faint hover:text-textPrimary'
                   }`}
                 >

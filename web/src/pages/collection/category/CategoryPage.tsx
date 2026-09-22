@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { retourDepuis } from '@/common/lib/retour'
-import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { LienRetour } from '@/common/components/LienRetour'
+import { SlidersHorizontal } from 'lucide-react'
 import { CoverTile } from '@/pages/collection/CoverTile'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { getEntityTypeVisual } from '@/common/lib/entityTypeVisuals'
@@ -39,7 +39,6 @@ export function CategoryPage() {
   const { entityTypeId } = useParams<{ entityTypeId: string }>()
   const navigate = useNavigate()
   // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
-  const retour = retourDepuis(useLocation().state) ?? { to: '/', libelle: 'Ma collection' }
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
 
@@ -152,19 +151,10 @@ export function CategoryPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
-          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
-          revenait autrefois par Tier Lists, et le bouton Précédent du
-          navigateur disait alors autre chose que celui de la page (UX-8).
-          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
-      <button
-        type="button"
-        onClick={() => navigate(retour.to)}
-        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-textDim"
-      >
-        <ArrowLeft size={15} />
-        {retour.libelle}
-      </button>
+      {/* Le lien de retour commun : 44 px de haut (la copie manuelle d'ici en
+          faisait 20), la destination nommée par celui qui a ouvert l'écran
+          (voir lib/retour), sinon le parent naturel - lien reçu, F5. */}
+      <LienRetour parDefaut={{ to: '/', libelle: 'Ma collection' }} />
 
       <div className="flex items-center gap-2.5">
         <span className="h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: visual.color }} />

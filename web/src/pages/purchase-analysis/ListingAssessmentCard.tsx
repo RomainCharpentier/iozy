@@ -9,6 +9,7 @@ import type {
   TrustSignal,
 } from '@/common/types/purchaseAnalysis'
 import { CLASSE_CARTE } from '@/common/components/Carte'
+import { formaterEuros } from '@/common/lib/formats'
 
 /**
  * Le verdict personnalisé : trois dimensions gardées distinctes, puis la
@@ -87,7 +88,7 @@ const MANQUES: Record<ReferenceGap, string | null> = {
 }
 
 function euros(v: number | null): string {
-  return v === null ? '—' : `${v.toFixed(2)} €`
+  return v === null ? '—' : `${formaterEuros(v)}`
 }
 
 export function ListingAssessmentCard({

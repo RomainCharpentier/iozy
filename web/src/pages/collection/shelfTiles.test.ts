@@ -32,7 +32,7 @@ describe('buildShelfTile', () => {
     const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1)] })
     const tuile = buildShelfTile(serie, progressionDe(serie, edition({ nom: 'Glénat', possedes: [1, 2], total: 41 })))
 
-    expect(tuile.subtitle).toBe('Glénat · 2/41 tomes')
+    expect(tuile.subtitle).toBe('2/41 tomes · Glénat')
   })
 
   it('sans total connu, compte ce qu’on a sans inventer de dénominateur', () => {

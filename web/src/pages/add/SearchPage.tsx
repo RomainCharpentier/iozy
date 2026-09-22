@@ -486,10 +486,15 @@ export function SearchPage() {
               return (
                 <div
                   key={entity.id}
-                  className="flex items-center gap-2.5 rounded-xl bg-surface p-2.5 transition-transform hover:-translate-y-0.5"
+                  className="flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-1 transition-transform hover:-translate-y-0.5"
                 >
-                  <button type="button" onClick={() => goToEntity(entity)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-                    <TexteCoupe texte={entity.title} className="flex-1 truncate text-sm font-medium text-textPrimary" />
+                  {/* Le bouton prend toute la hauteur de la ligne (44 px au moins) :
+                      il ne mesurait que sa ligne de texte, 24 px, et le reste de la
+                      carte ne répondait pas au doigt. Le titre peut prendre deux
+                      lignes plutôt que d'être coupé à dix caractères sur téléphone -
+                      c'est lui qui distingue une ligne de sa voisine. */}
+                  <button type="button" onClick={() => goToEntity(entity)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1 text-left">
+                    <TexteCoupe texte={entity.title} className="line-clamp-2 flex-1 text-sm font-medium text-textPrimary" />
                     {/* Deux états bien distincts : possédée, ou seulement
                         connue (fiche existante sans aucun exemplaire - typique
                         d'une œuvre mise en envies). */}
@@ -507,7 +512,9 @@ export function SearchPage() {
                       </span>
                     )}
                   </button>
-                  {!estInvite && (
+                  {/* Pas de cœur sur ce qu'on possède déjà : vouloir un jeu qu'on a
+                      n'a pas de sens, et la pastille « Possédé » dit déjà tout. */}
+                  {!estInvite && !possede && (
                     <WishlistToggle entityId={entity.id} entityTypeId={entity.entityTypeId} variant="inline" />
                   )}
                 </div>
@@ -590,7 +597,7 @@ export function SearchPage() {
                         <TexteCoupe
                           as="div"
                           texte={candidateDisplayTitle(candidate, titleComposition, frenchTitles[candidateKey(candidate)])}
-                          className="truncate text-sm font-medium text-textPrimary"
+                          className="line-clamp-2 text-sm font-medium text-textPrimary"
                         />
                         <div className="text-xs text-textDim">{candidateSubtitle(candidate)}</div>
                         {/* Signalé, jamais masqué : l'œuvre reste ajoutable à la

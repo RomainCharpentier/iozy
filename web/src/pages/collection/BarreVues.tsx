@@ -24,7 +24,14 @@ const FILTRES: { cle: FiltreCollection; libelle: string }[] = [
  *
  * <p>La vue est un interrupteur à deux positions : groupée (une carte par
  * GROUPE) ou dégroupée (les éléments eux-mêmes). Le libellé dit ce vers quoi
- * on bascule, jamais l'état courant - un bouton nomme son action.
+ * on bascule, jamais l'état courant - un bouton nomme son action. Le tri suit
+ * la même règle (lot 148) : « Par titre » quand on est par récence, « Récents
+ * d'abord » quand on est par titre - son libellé disait l'état pendant que son
+ * nom accessible disait l'action, deux voix pour un seul bouton.
+ *
+ * <p>Sur téléphone, les quatre filtres prennent toute la largeur, chacun sa
+ * part : posés à leur largeur naturelle, ils dépassaient 390 px et c'est la
+ * page entière qui se mettait à défiler de côté (lot 148).
  *
  * <p>« Grouper » / « Dégrouper », et non « voir les tomes » : le tome est le
  * vocabulaire du manga, pas celui du concept. Chaque type de collection a ses
@@ -59,7 +66,7 @@ export function BarreVues({
       <div
         role="radiogroup"
         aria-label="Filtrer ma collection"
-        className="flex items-center gap-1 rounded-full bg-softBtn p-1"
+        className="flex w-full items-center gap-1 rounded-full bg-softBtn p-1 sm:w-auto"
       >
         {FILTRES.map(({ cle, libelle }) => {
           const actif = cle === filtre
@@ -70,7 +77,7 @@ export function BarreVues({
               role="radio"
               aria-checked={actif}
               onClick={() => onFiltre(cle)}
-              className={`flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] whitespace-nowrap transition-colors ${
+              className={`flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 text-[12px] whitespace-nowrap transition-colors sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-[13px] ${
                 actif ? 'bg-surface font-semibold text-textPrimary shadow-token-sm' : 'text-faint hover:text-textPrimary'
               }`}
             >
@@ -96,11 +103,10 @@ export function BarreVues({
       <button
         type="button"
         onClick={() => onTri(tri === 'recent' ? 'titre' : 'recent')}
-        aria-label={tri === 'recent' ? 'Trier par titre' : 'Trier par arrivée récente'}
         className="flex min-h-9 items-center gap-2 rounded-full border border-fieldBorder px-3.5 text-[13px] font-medium text-textDim transition-colors hover:bg-rowHover hover:text-textPrimary"
       >
-        {tri === 'recent' ? <ArrowDownWideNarrow size={14} /> : <LayoutList size={14} />}
-        {tri === 'recent' ? 'Récents d\u2019abord' : 'Par titre'}
+        {tri === 'recent' ? <LayoutList size={14} /> : <ArrowDownWideNarrow size={14} />}
+        {tri === 'recent' ? 'Par titre' : 'Récents d\u2019abord'}
       </button>
     </div>
   )

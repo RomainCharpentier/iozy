@@ -5,6 +5,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { libelleBaseCourt } from '@/common/lib/basePrix'
 import type { ItemAnalysisDto, ListingDto, WarningSeverity } from '@/common/types/purchaseAnalysis'
 import { EDITION_TIER_LABELS } from '@/common/types/purchaseAnalysis'
+import { formaterEuros } from '@/common/lib/formats'
 
 const WARNING_ICONS: Record<WarningSeverity, typeof Info> = {
   INFO: Info,
@@ -87,7 +88,7 @@ export function SeriesBreakdownItem({
           </p>
         </div>
         {item.itemCostShare !== null && (
-          <span className="shrink-0 text-xs text-textDim">~{item.itemCostShare.toFixed(2)} €</span>
+          <span className="shrink-0 text-xs text-textDim">~{formaterEuros(item.itemCostShare)}</span>
         )}
       </div>
 
@@ -101,9 +102,9 @@ export function SeriesBreakdownItem({
           <span>
             {duplicates.usefulVolumeCount} tome{duplicates.usefulVolumeCount > 1 ? 's' : ''} utile
             {duplicates.usefulVolumeCount > 1 ? 's' : ''}
-            {duplicates.pricePerUsefulVolume !== null && ` · ~${duplicates.pricePerUsefulVolume.toFixed(2)} €/tome utile`}
+            {duplicates.pricePerUsefulVolume !== null && ` · ~${formaterEuros(duplicates.pricePerUsefulVolume)}/tome utile`}
             {duplicates.maxWorthwhilePrice !== null &&
-              ` · reste intéressant jusqu'à ~${duplicates.maxWorthwhilePrice.toFixed(2)} €`}
+              ` · reste intéressant jusqu'à ~${formaterEuros(duplicates.maxWorthwhilePrice)}`}
           </span>
         </div>
       )}
@@ -123,7 +124,7 @@ export function SeriesBreakdownItem({
               {completeness.estimatedCostToComplete !== null && (
                 <span className="text-textDim">
                   {' '}
-                  (~{completeness.estimatedCostToComplete.toFixed(2)} €
+                  (~{formaterEuros(completeness.estimatedCostToComplete)}
                   {baseCoutRestant === null ? ')' : `, ${baseCoutRestant})`}
                 </span>
               )}
@@ -146,20 +147,20 @@ export function SeriesBreakdownItem({
                 regroupe. Les appeler « annonces » ici gonflerait l'échantillon
                 aux yeux du lecteur. */}
             Prix observé sur {marketPrice.observationCount} relevé{marketPrice.observationCount > 1 ? 's' : ''}
-            {marketPrice.observedMedian !== null && ` · médiane ${marketPrice.observedMedian.toFixed(2)} €/tome`}
+            {marketPrice.observedMedian !== null && ` · médiane ${formaterEuros(marketPrice.observedMedian)}/tome`}
           </span>
         )}
         {marketPrice.basis === 'AI_ESTIMATED' && (
           <span className="rounded-full border border-dashed border-warning px-2 py-0.5 text-warning">
             Estimation IA — non vérifiée
-            {marketPrice.aiEstimatedPrice !== null && ` · ${marketPrice.aiEstimatedPrice.toFixed(2)} €/tome`}
+            {marketPrice.aiEstimatedPrice !== null && ` · ${formaterEuros(marketPrice.aiEstimatedPrice)}/tome`}
             {' '}(confiance {CONFIDENCE_LABELS[marketPrice.confidence]})
           </span>
         )}
         {marketPrice.basis === 'THEORETICAL_ONLY' && (
           <span className="rounded-full border border-dashed border-textDim px-2 py-0.5 text-textDim">
             {marketPrice.theoreticalEstimate !== null
-              ? `Estimation théorique · ${marketPrice.theoreticalEstimate.toFixed(2)} €/tome neuf`
+              ? `Estimation théorique · ${formaterEuros(marketPrice.theoreticalEstimate)}/tome neuf`
               : 'Aucune donnée de prix disponible'}
           </span>
         )}
@@ -184,7 +185,7 @@ export function SeriesBreakdownItem({
               type="button"
               onClick={() => observationMutation.mutate()}
               disabled={observationMutation.isPending}
-              className="flex items-center gap-1.5 text-textDim underline hover:text-textPrimary disabled:opacity-50"
+              className="flex min-h-11 items-center gap-1.5 text-textDim underline hover:text-textPrimary disabled:opacity-50"
             >
               <BookmarkPlus size={13} className="shrink-0" />
               {observationMutation.isPending ? 'Enregistrement...' : 'Relever ce prix comme observation de marché'}

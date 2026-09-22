@@ -2,6 +2,7 @@ package com.iozycore.manga.deals;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
 
 /**
  * Produces the three-price negotiation output (recommended offer / target
@@ -51,8 +52,16 @@ public class NegotiationEngine {
                     "Le prix demandé dépasse la valeur estimée - propose une offre proche de la fourchette juste.", true);
         }
         return NegotiationRecommendation.skip(
-                "Le prix demandé (" + askingPrice + ") dépasse très largement la valeur estimée (" + fairValue
-                        + ") - passer son tour est plus réaliste que négocier.");
+                "Le prix demandé (" + euros(askingPrice) + ") dépasse très largement la valeur estimée ("
+                        + euros(fairValue) + ") - passer son tour est plus réaliste que négocier.");
+    }
+
+    /**
+     * Un montant tel qu'on le lit : « 20,80 € ». La phrase concaténait le BigDecimal
+     * brut, et l'écran affichait « (20.8000) » - l'échelle interne du calcul, pas un prix.
+     */
+    private static String euros(BigDecimal value) {
+        return String.format(Locale.FRANCE, "%,.2f €", value);
     }
 
     private static BigDecimal round(BigDecimal value) {

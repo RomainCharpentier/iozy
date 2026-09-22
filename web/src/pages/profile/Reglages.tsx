@@ -1,6 +1,6 @@
 import { useState, type DragEvent, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, GripVertical, Upload } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, GripVertical, Upload } from 'lucide-react'
 import { useAuth } from '@/common/hooks/useAuth'
 import {
   TITLE_LANGUAGE_LABELS,
@@ -135,18 +135,18 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
               volontairement : l'historique d'analyses d'achat (des instantanés, pas des données saisies) et les
               jetons de partage, qui sont des secrets.
             </p>
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 flex flex-wrap gap-2">
               <a
                 href="/api/export/json"
                 download
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
               >
                 Télécharger en JSON
               </a>
               <a
                 href="/api/export/csv"
                 download
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
               >
                 Télécharger en CSV (.zip)
               </a>
@@ -165,10 +165,10 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
               Renvoie le fichier JSON téléchargé ci-dessus - depuis une autre installation, ou une sauvegarde. Tu vois
               d'abord ce que l'import ferait ; ce qui existe déjà est retrouvé, jamais dupliqué ni modifié.
             </p>
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 flex flex-wrap gap-2">
               <Link
-                to="/settings/import"
-                className="rounded-lg bg-surface2 px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surface"
+                to="/profile/import"
+                className="flex min-h-11 items-center whitespace-nowrap rounded-lg bg-surface2 px-3 text-sm font-medium text-textPrimary hover:bg-surface"
               >
                 Importer un fichier
               </Link>
@@ -196,12 +196,12 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
 
       <section className="flex flex-col gap-2">
         <h3 className="font-display text-base font-semibold text-textPrimary">Titre des mangas</h3>
+        {/* Dit en trois phrases ce qu'un paragraphe de six lignes noyait sous
+            les noms des fournisseurs : ce que le réglage change, et comment on
+            le change. */}
         <p className="text-sm text-textDim">
-          Fais glisser pour choisir l'ordre, coche/décoche pour activer/désactiver. La première langue active
-          disponible devient le titre ajouté à ta collection ; les suivantes actives apparaissent entre parenthèses.
-          "Français" déclenche une recherche best-effort supplémentaire (Open Library, puis Google Books en repli) -
-          ni Jikan ni MyAnimeList n'en fournissent nativement. "Anglais" et "Romaji" n'appellent jamais cette
-          recherche : aucun appel externe en plus si "Français" est décoché.
+          La première langue cochée devient le titre enregistré ; les suivantes s'affichent entre parenthèses. Les
+          flèches changent l'ordre. « Français » demande une recherche de plus aux sources, les deux autres non.
         </p>
 
         <ul className="mt-2 flex flex-col gap-2">
@@ -212,7 +212,7 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
               onDragStart={handleDragStart(index)}
               onDragOver={handleDragOver(index)}
               onDragEnd={() => setDraggedIndex(null)}
-              className={`flex items-center gap-3 rounded-xl bg-surface p-3 text-sm text-textPrimary ${
+              className={`flex items-center gap-3 rounded-xl bg-surface py-1 pr-1.5 pl-3 text-sm text-textPrimary ${
                 draggedIndex === index ? 'opacity-50' : ''
               }`}
             >
@@ -231,6 +231,28 @@ export function Reglages({ appareilRef }: { appareilRef?: RefObject<HTMLDivEleme
                   principal
                 </span>
               )}
+              {/* Les flèches, parce que le glisser-déposer HTML n'existe pas au
+                  doigt : sur un téléphone, l'ordre était impossible à changer. */}
+              <span className="flex shrink-0 items-center">
+                <button
+                  type="button"
+                  onClick={() => reorder(index, index - 1)}
+                  disabled={index === 0}
+                  aria-label={`Monter ${TITLE_LANGUAGE_LABELS[item.language]}`}
+                  className="flex h-11 w-9 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
+                >
+                  <ChevronUp size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => reorder(index, index + 1)}
+                  disabled={index === composition.length - 1}
+                  aria-label={`Descendre ${TITLE_LANGUAGE_LABELS[item.language]}`}
+                  className="flex h-11 w-9 items-center justify-center rounded-lg text-textDim hover:text-textPrimary disabled:opacity-30"
+                >
+                  <ChevronDown size={18} />
+                </button>
+              </span>
             </li>
           ))}
         </ul>

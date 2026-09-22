@@ -58,7 +58,7 @@ export function WishlistToggle({
   const base = 'flex items-center gap-1.5 font-semibold transition-colors disabled:opacity-50'
   const taille =
     variant === 'inline'
-      ? 'rounded-lg px-2 py-1 text-xs'
+      ? 'min-h-11 rounded-lg px-2 text-xs'
       : 'min-h-12 rounded-[14px] px-4 text-sm'
   // Hors d'une ligne de liste, c'est une VRAIE action secondaire, avec sa
   // propre surface (maquette v4) : posé nu à côté d'un bouton plein, il ne se
@@ -101,7 +101,11 @@ export function WishlistToggle({
       className={`${base} ${taille} ${couleur}`}
     >
       {dedans ? <HeartOff size={variant === 'inline' ? 13 : 16} /> : <Heart size={variant === 'inline' ? 13 : 16} />}
-      {dedans ? 'Dans vos envies' : 'Ajouter aux envies'}
+      {/* En ligne sur téléphone, le cœur suffit : le texte prenait la place du
+          titre à côté duquel il vit. Le nom accessible dit toujours l'action. */}
+      <span className={variant === 'inline' ? 'hidden sm:inline' : undefined}>
+        {dedans ? 'Dans vos envies' : 'Ajouter aux envies'}
+      </span>
     </button>
   )
 }

@@ -13,6 +13,7 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 // diverger deux vocabulaires qui décrivent la même chose.
 import { CONDITION_LABELS, LISTING_PLATFORM_LABELS } from '@/common/types/purchaseAnalysis'
 import type { Condition, ListingPlatform, MarketPriceObservationDto } from '@/common/types/purchaseAnalysis'
+import { formaterEuros } from '@/common/lib/formats'
 
 const CHAMP =
   'min-h-11 rounded-lg bg-surface2 px-2.5 text-xs text-textPrimary placeholder:text-textDim focus:outline-none focus:ring-2 focus:ring-accent/50'
@@ -155,10 +156,7 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
       )}
 
       {observations.length === 0 && !formulaireOuvert && (
-        <span className="text-[11px] text-textDim">
-          Aucun prix relevé pour cette édition. Les annonces que tu analyses viennent s'ajouter ici, et tu peux en
-          saisir un à la main.
-        </span>
+        <span className="text-[11px] text-textDim">Aucun prix relevé pour cette édition.</span>
       )}
       {/* Dit d'où la liste se remplit, une fois, plutôt qu'une notification
           après chaque analyse - le geste est déjà fait, le rappeler à chaque
@@ -175,7 +173,7 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
         {observations.map((observation) => (
           <li key={observation.id} className="flex items-center gap-2 text-xs">
             <span className="min-w-0 flex-1 truncate text-textDim">
-              <span className="font-semibold text-textPrimary">{observation.observedPrice.toFixed(2)} €</span>
+              <span className="font-semibold text-textPrimary">{formaterEuros(observation.observedPrice)}</span>
               {' · '}
               {observationLabel(observation)}
               {' · '}
@@ -188,7 +186,7 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
               type="button"
               onClick={() => deleteMutation.mutate(observation)}
               disabled={deleteMutation.isPending}
-              aria-label={`Supprimer le prix relevé de ${observation.observedPrice.toFixed(2)} € pour ${editionName}`}
+              aria-label={`Supprimer le prix relevé de ${formaterEuros(observation.observedPrice)} pour ${editionName}`}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textDim hover:bg-dangerTint hover:text-dangerText disabled:opacity-50"
             >
               <Trash2 size={13} />
