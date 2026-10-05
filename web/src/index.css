@@ -509,6 +509,13 @@ button:disabled {
   @apply animate-pulse rounded-xl bg-surface2;
 }
 
+/* Une ligne de liste longue : le navigateur ne la rend que près de l'écran.
+   La hauteur réservée évite que la barre de défilement saute. */
+@utility ligne-differee {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3.75rem;
+}
+
 /* Les compteurs s'alignent : chaque chiffre a la même largeur. */
 @utility compteur {
   font-variant-numeric: tabular-nums;
