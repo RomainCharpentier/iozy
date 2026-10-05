@@ -16,15 +16,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Découvrir, pour les jeux vidéo : des jeux similaires à ceux qu'on possède,
- * tels qu'IGDB les relie - la façade du module {@code videogame} vers le
- * cœur (Lot 133).
+ * Discover, for video games: games similar to the ones the user owns,
+ * as IGDB links them - the facade of the {@code videogame} module towards the
+ * core (Batch 133).
  *
- * <p>Plus simple que les jeux de société : IGDB expose la similarité
- * directement par jeu, pas besoin de croiser catégories et mécaniques via un
- * second signal. Même limite assumée : seuls les jeux dont l'igdbId a été
- * capturé (ajoutés par la recherche) sont examinés - un jeu ajouté à la main
- * n'est pas pris en compte.
+ * <p>Simpler than board games: IGDB exposes similarity
+ * directly per game, no need to cross categories and mechanics through a
+ * second signal. Same accepted limit: only games whose igdbId was
+ * captured (added through search) are examined - a game added by hand
+ * is not taken into account.
  */
 @Component
 public class VideoGameDiscovery implements DiscoverySource {
@@ -69,7 +69,7 @@ public class VideoGameDiscovery implements DiscoverySource {
                     break;
                 }
                 if (ownedTitles.contains(TexteRecherche.normaliser(similar.title()))) {
-                    continue; // déjà dans la collection
+                    continue; // already in the collection
                 }
                 suggestions.add(new DiscoveryCandidate(
                         "IGDB", similar.externalId(), similar.title(), similar.imageUrl(),

@@ -24,41 +24,41 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Le calendrier des sorties : ce qui sort, quand, pour les œuvres qu'on
- * SUIT - toutes catégories confondues. Suivre est le troisième état d'une
- * œuvre, à côté de posséder et vouloir (voir WorkFollowing) : c'est lui, et
- * lui seul, qui met une œuvre au calendrier ; possessions et envies ne
- * disent plus que ce que chaque sortie représente.
+ * The release calendar: what comes out, when, for the works we
+ * FOLLOW - all categories mixed. Following is the third state of a
+ * work, next to owning and wanting (see WorkFollowing): it alone
+ * puts a work on the calendar; possessions and wishes only
+ * say what each release represents.
  *
- * <h2>D'où viennent les dates</h2>
- * De deux endroits, et de deux seulement. Chaque univers qui a une vraie
- * source (Google Books pour les tomes d'un manga, IGDB pour un jeu vidéo) est
- * une {@link ReleaseSource} ; le cœur ne connaît aucune d'elles. Et pour
- * n'importe quelle œuvre, l'attribut {@value #RELEASE_DATE_ATTRIBUTE} saisi
- * sur sa fiche - c'est ce qui met les jeux de société et les catégories
- * personnalisées dans le même calendrier, alors qu'aucune source ne sait
- * leur jour de sortie (BoardGameGeek ne donne que l'année).
+ * <h2>Where the dates come from</h2>
+ * From two places, and only two. Each universe that has a real
+ * source (Google Books for the volumes of a manga, IGDB for a video game) is
+ * a {@link ReleaseSource}; the core knows none of them. And for
+ * any work, the attribute {@value #RELEASE_DATE_ATTRIBUTE} typed
+ * on its detail page - this is what puts board games and custom
+ * categories in the same calendar, although no source knows
+ * their release day (BoardGameGeek only gives the year).
  *
- * <h2>Ce qu'il ne fait jamais</h2>
- * Inventer une date. « Prochaines sorties » a été retiré de Découvrir au lot
- * 142 précisément parce qu'aucune donnée n'existait, et le journal de design
- * (§44) exige qu'il ne revienne « jamais avec une date approximative ». Une
- * source qui ne connaît que l'année ne met rien ici.
+ * <h2>What it never does</h2>
+ * Invent a date. "Upcoming releases" was removed from Discover in batch
+ * 142 precisely because no data existed, and the design log
+ * (§44) requires that it "never come back with an approximate date". A
+ * source that only knows the year puts nothing here.
  *
- * <h2>Une lecture par catégorie, pas une par œuvre</h2>
- * Les possessions et les envies sont lues une fois, le catalogue une fois par
- * catégorie, et chaque source reçoit tout cela indexé ({@link ReleaseContext})
- * : sur 300 séries, une source qui relirait les possessions par œuvre
- * coûterait 300 requêtes (lot 141).
+ * <h2>One read per category, not one per work</h2>
+ * Possessions and wishes are read once, the catalog once per
+ * category, and each source receives all of this indexed ({@link ReleaseContext})
+ * : on 300 series, a source that would reread the possessions per work
+ * would cost 300 queries (batch 141).
  */
 @Service
 public class ReleaseCalendarService {
 
-    /** L'attribut d'une œuvre qui porte sa date de sortie saisie à la main : « 2026-10-14 » ou « 2026-10 ». */
+    /** The attribute of a work that carries its release date typed by hand: "2026-10-14" or "2026-10". */
     public static final String RELEASE_DATE_ATTRIBUTE = "releaseDate";
-    /** La source d'une date saisie sur la fiche - le client la nomme comme telle. */
+    /** The source of a date typed on the detail page - the client names it as such. */
     public static final String MANUAL_SOURCE = "MANUAL";
-    /** Un an et un jour : de quoi tourner les pages d'une année entière, pas de quoi charger tout l'historique. */
+    /** One year and one day: enough to turn the pages of a whole year, not enough to load all the history. */
     static final int MAX_PERIOD_DAYS = 366;
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
@@ -88,13 +88,13 @@ public class ReleaseCalendarService {
         this.sources = sources;
     }
 
-    /** Vrai quand un univers sait dater les sorties de cette catégorie sans qu'on les saisisse. */
+    /** True when a universe can date the releases of this category without them being typed. */
     public boolean hasReleaseSource(EntityType entityType) {
         return sources.stream().anyMatch(source -> source.supports(entityType));
     }
 
     /**
-     * @throws IllegalArgumentException période absente, à l'envers, ou plus longue qu'une année
+     * @throws IllegalArgumentException period missing, reversed, or longer than a year
      */
     public ReleaseCalendar releasesBetween(LocalDate from, LocalDate to) {
         validatePeriod(from, to);
@@ -103,14 +103,14 @@ public class ReleaseCalendarService {
                 .filter(Ownership::isActive)
                 .toList();
         List<WishlistEntry> wishlist = wishlistEntryRepository.findAll();
-        // Seules les œuvres SUIVIES entrent au calendrier (un état à la fois :
-        // Possédé / Suivi / Envie). Possessions et envies ne servent plus qu'à
-        // dire ce que chaque sortie représente.
+        // Only FOLLOWED works enter the calendar (one state at a time:
+        // Owned / Followed / Wish). Possessions and wishes now only serve to
+        // say what each release represents.
         Set<UUID> ofInterest = followedWorkRepository.findAll().stream()
                 .map(FollowedWork::entityId)
                 .collect(Collectors.toCollection(HashSet::new));
         if (ofInterest.isEmpty()) {
-            // Rien de suivi : aucune source à consulter, aucun catalogue à lire.
+            // Nothing followed: no source to consult, no catalog to read.
             return new ReleaseCalendar(from, to, List.of());
         }
 
@@ -138,7 +138,7 @@ public class ReleaseCalendarService {
         return new ReleaseCalendar(from, to, entries);
     }
 
-    /** Les dates saisies sur les fiches - pour toute catégorie, qu'un univers la couvre ou non. */
+    /** The dates typed on the detail pages - for any category, whether a universe covers it or not. */
     private static List<ReleaseEntry> manualReleases(ReleaseContext context) {
         List<ReleaseEntry> entries = new ArrayList<>();
         for (Entity entity : context.entities()) {

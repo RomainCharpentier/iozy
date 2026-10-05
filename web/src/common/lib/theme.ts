@@ -4,10 +4,10 @@ export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'iozycore.theme'
 
-/** Sombre par défaut (voir index.css) - l'app n'a connu que le sombre
- * jusqu'ici, un premier chargement clair aurait surpris sans raison. Choix
- * explicite et persistant, jamais un suivi de `prefers-color-scheme` (même
- * logique que l'ancien mode unique forcé). */
+/** Dark by default (see index.css) - the app has only known dark so far, a
+ * light first load would have been a surprise for no reason. An explicit and
+ * persistent choice, never a follow of `prefers-color-scheme` (same logic as
+ * the old forced single mode). */
 const DEFAULT_THEME: Theme = 'dark'
 
 function readStoredTheme(): Theme {
@@ -17,14 +17,13 @@ function readStoredTheme(): Theme {
 }
 
 /**
- * Pose l'attribut pour le sombre, le RETIRE pour le clair.
+ * Sets the attribute for dark, REMOVES it for light.
  *
- * Affecter `undefined` à `dataset.theme` ne supprime pas l'attribut : il le
- * fixe à la chaîne `"undefined"`. Le clair fonctionnait quand même, par
- * accident - `[data-theme="dark"]` ne correspond simplement pas à
- * `"undefined"` - mais le DOM portait un attribut qui ne veut rien dire, et
- * tout futur sélecteur du genre `:root:not([data-theme])` aurait échoué sans
- * raison visible.
+ * Assigning `undefined` to `dataset.theme` does not delete the attribute: it
+ * sets it to the string `"undefined"`. Light still worked, by accident -
+ * `[data-theme="dark"]` simply does not match `"undefined"` - but the DOM
+ * carried an attribute that means nothing, and any future selector like
+ * `:root:not([data-theme])` would have failed for no visible reason.
  */
 function appliquerAttribut(theme: Theme): void {
   if (theme === 'dark') {
@@ -35,17 +34,17 @@ function appliquerAttribut(theme: Theme): void {
 }
 
 /**
- * UN seul état, hors de React, et tous les composants le lisent.
+ * ONE single state, outside React, and all the components read it.
  *
- * <h2>Pourquoi plus un `useState` par composant</h2>
- * Le hook gardait son propre état, relu dans le localStorage au montage. Tant
- * qu'un seul interrupteur existait (Paramètres), personne ne le voyait. Le
- * bouton de l'en-tête (lot 138) est rendu DEUX fois - par l'en-tête desktop et
- * par l'en-tête mobile, dont l'un est masqué par CSS - et deux états privés
- * auraient divergé au premier clic : l'icône de l'autre barre aurait montré
- * l'ancien mode, et son clic suivant l'aurait « rebasculé » vers celui qu'on
- * venait de quitter. Un magasin unique, souscrit par `useSyncExternalStore`,
- * fait de chaque bouton une vue du même fait.
+ * <h2>Why no longer a `useState` per component</h2>
+ * The hook kept its own state, read again from localStorage on mount. As long
+ * as only one switch existed (Settings), nobody saw it. The header button
+ * (batch 138) is rendered TWICE - by the desktop header and by the mobile
+ * header, one of which is hidden by CSS - and two private states would have
+ * diverged at the first click: the icon of the other bar would have shown the
+ * old mode, and its next click would have "toggled it back" to the one we
+ * had just left. A single store, subscribed to by `useSyncExternalStore`,
+ * makes each button a view of the same fact.
  */
 let themeCourant: Theme = readStoredTheme()
 const abonnes = new Set<() => void>()
@@ -59,10 +58,10 @@ function lireTheme(): Theme {
   return themeCourant
 }
 
-/** Applique l'attribut avant le premier rendu React (voir l'appel synchrone
- * dans main.tsx) - évite un flash thème-par-défaut puis thème-stocké au
- * chargement. `data-theme` uniquement pour "dark" : le clair reste la valeur
- * de base de :root dans index.css, pas besoin d'un attribut pour lui. */
+/** Applies the attribute before the first React render (see the synchronous
+ * call in main.tsx) - avoids a flash default-theme then stored-theme at
+ * load. `data-theme` only for "dark": light stays the base value of :root
+ * in index.css, no need for an attribute for it. */
 export function applyStoredTheme(): void {
   themeCourant = readStoredTheme()
   appliquerAttribut(themeCourant)
@@ -79,10 +78,10 @@ export function toggleTheme(): void {
   setTheme(themeCourant === 'dark' ? 'light' : 'dark')
 }
 
-/** Le thème courant, et de quoi le changer - depuis l'en-tête (voir
- * BoutonTheme). Un seul état source (ce module, le localStorage et l'attribut
- * DOM) : le reste du thème passe entièrement par les tokens CSS, pas par du
- * JS conditionnel. */
+/** The current theme, and the means to change it - from the header (see
+ * BoutonTheme). One single source state (this module, localStorage and the
+ * DOM attribute): the rest of the theme goes entirely through the CSS
+ * tokens, not through conditional JS. */
 export function useTheme(): { theme: Theme; setTheme: (t: Theme) => void; toggleTheme: () => void } {
   const theme = useSyncExternalStore(souscrire, lireTheme, () => DEFAULT_THEME)
   return { theme, setTheme, toggleTheme }

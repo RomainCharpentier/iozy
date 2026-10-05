@@ -1,10 +1,10 @@
 package com.iozycore.core.insights;
 
 /**
- * Une suggestion de découverte (UC "séries que je n'ai pas" / recommandations
- * heuristiques). reason explique pourquoi la suggestion est faite - jamais
- * un vrai moteur de recommandation IA (voir DiscoveryService), toujours
- * traçable jusqu'à un signal concret (auteur, catégorie...).
+ * A discovery suggestion (UC "series I do not have" / heuristic
+ * recommendations). reason explains why the suggestion is made - never
+ * a real AI recommendation engine (see DiscoveryService), always
+ * traceable to a concrete signal (author, category...).
  */
 public record DiscoveryCandidate(String source, String externalId, String title, String imageUrl, String reason) {
 }

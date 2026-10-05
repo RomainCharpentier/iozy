@@ -8,9 +8,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Toutes les progressions que les univers savent calculer, vues comme une
- * seule source - ce que le cœur consomme (Lot 133). Sans univers à tomes,
- * la liste est vide et rien ne casse.
+ * All the progress values that the universes can compute, seen as one
+ * source - what the core consumes (Batch 133). With no universe with volumes,
+ * the list is empty and nothing breaks.
  */
 @Service
 public class SeriesProgressGateway {

@@ -12,18 +12,18 @@ import { CLASSE_CARTE } from '@/common/components/Carte'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * Le verdict personnalisé : trois dimensions gardées distinctes, puis la
- * synthèse qui domine.
+ * The personalised verdict: three dimensions kept distinct, then the
+ * summary that dominates.
  *
- * L'ordre d'affichage est celui de la décision. D'abord ce que le lot
- * **t'apporte** — un lot qui n'apporte rien n'est jamais une bonne affaire,
- * si peu cher soit-il. Ensuite le **prix**, qui ne tranche qu'une fois
- * l'intérêt établi. Enfin les **points à vérifier**, qui ne se mélangent
- * jamais aux deux premiers : un prix très bas est un bon prix ET un point de
- * vigilance, les deux à la fois, et les fondre ferait perdre l'un ou l'autre.
+ * The display order is the order of the decision. First what the batch
+ * **brings you** — a batch that brings nothing is never a good deal,
+ * however cheap it is. Then the **price**, which only decides once
+ * the interest is established. Last the **points to check**, which never mix
+ * with the first two: a very low price is a good price AND a point of
+ * caution, both at once, and merging them would lose one or the other.
  *
- * Aucune note sur 100 nulle part : IozyCore ne mesure pas une probabilité de
- * fraude, il montre ce qu'il voit et nomme ce qu'il en déduit.
+ * No score out of 100 anywhere: IozyCore does not measure a probability of
+ * fraud, it shows what it sees and names what it deduces from it.
  */
 
 const SYNTHESES: Record<AssessmentHeadline, { titre: string; ton: 'bon' | 'neutre' | 'attention' }> = {
@@ -63,12 +63,12 @@ const SIGNAUX: Record<TrustSignal, string> = {
 const CONFIANCES: Record<string, string> = { HIGH: 'bonne', MEDIUM: 'moyenne', LOW: 'faible' }
 
 /**
- * Ce qui manque, et donc quoi faire.
+ * What is missing, and so what to do.
  *
- * « Référence insuffisante » tout court laisse sans prise. Dire QUEL relevé
- * ajouter transforme un écran muet en écran utile - et c'est la seule chose
- * qui rende la sévérité du filtrage acceptable : on refuse de comparer, mais
- * on explique comment obtenir une comparaison.
+ * "Référence insuffisante" alone gives nothing to act on. Saying WHICH record to
+ * add turns a silent screen into a useful one - and it is the only thing
+ * that makes the severity of the filtering acceptable: we refuse to compare, but
+ * we explain how to obtain a comparison.
  */
 const MANQUES: Record<ReferenceGap, string | null> = {
   NONE: null,
@@ -96,9 +96,9 @@ export function ListingAssessmentCard({
   shippingKind = 'UNKNOWN',
 }: {
   assessment: ListingAssessmentDto
-  /** Ce que vaut la livraison retenue. Les coûts par élément se calculent sur le
-   * coût d'acquisition : ils héritent donc de ses réserves - minimum quand le
-   * port est un « à partir de », incomplet quand aucun port n'est connu. */
+  /** What the retained delivery is worth. The costs per item are computed on the
+   * acquisition cost: they therefore inherit its reservations - minimum when the
+   * shipping is a "from", incomplete when no shipping is known. */
   shippingKind?: ShippingEstimateKind
 }) {
   const { collectionFit: fit, trust } = assessment
@@ -110,10 +110,10 @@ export function ListingAssessmentCard({
 
   return (
     <div className={`flex flex-col gap-4 ${CLASSE_CARTE}`}>
-      {/* Le verdict domine : un seul signal principal par carte. */}
+      {/* The verdict dominates: a single main signal per card. */}
       <h2 className={`font-display text-lg font-bold ${couleurSynthese}`}>{synthese.titre}</h2>
 
-      {/* 1. Ce que ça t'apporte. La question qu'aucun comparateur ne sait poser. */}
+      {/* 1. What it brings you. The question no comparison tool knows how to ask. */}
       <section className="flex flex-col gap-1.5">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-textDim uppercase">
           <Layers size={12} />
@@ -135,11 +135,11 @@ export function ListingAssessmentCard({
               <p className="text-sm text-textDim">
                 {coutEstMinimum && 'au moins '}
                 {euros(fit.pricePerItem)} / élément
-                {/* Le chiffre qui décide vraiment : sans les doublons, le prix
-                    affiché flatte l'affaire. */}
-                {/* Sans aucun doublon, les deux montants sont identiques :
-                    les afficher tous les deux n'apprend rien et noie le chiffre
-                    qui compte quand il y en a un. */}
+                {/* The figure that really decides: without the duplicates, the displayed
+                    price flatters the deal. */}
+                {/* With no duplicate, the two amounts are identical:
+                    showing both teaches nothing and drowns the figure
+                    that counts when there is one. */}
                 {fit.pricePerUsefulItem !== null && fit.pricePerUsefulItem !== fit.pricePerItem && (
                   <>
                     {' · '}
@@ -150,8 +150,8 @@ export function ListingAssessmentCard({
                 )}
               </p>
             )}
-            {/* Ces coûts se calculent sur le coût d'acquisition : sans livraison
-                connue, ils sont sous-évalués, et le taire les rendrait faux. */}
+            {/* These costs are computed on the acquisition cost: without known
+                delivery, they are underestimated, and keeping quiet would make them wrong. */}
             {fit.pricePerItem !== null && livraisonInconnue && (
               <p className="text-xs text-textDim">Livraison non incluse : ces coûts sont sous-évalués.</p>
             )}
@@ -162,22 +162,22 @@ export function ListingAssessmentCard({
         )}
       </section>
 
-      {/* 2. Le prix, séparément - et honnête sur ce qu'il ne sait pas. */}
+      {/* 2. The price, separately - and honest about what it does not know. */}
       <section className="flex flex-col gap-1.5 border-t border-surface2 pt-3">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-textDim uppercase">
           <Tag size={12} />
           Prix
         </span>
         <p className="text-sm font-semibold text-textPrimary">{PRIX[assessment.pricePosition]}</p>
-        {/* Dire sur QUOI porte la comparaison : le prix de l'article, hors
-            frais, comme les annonces auxquelles on le compare. */}
+        {/* Say WHAT the comparison covers: the price of the item, excluding
+            fees, like the listings it is compared to. */}
         <p className="text-xs text-textDim">Comparé sur le prix de l'annonce, hors frais.</p>
         {assessment.pricePosition === 'REFERENCE_UNAVAILABLE' ? (
           <p className="text-xs text-textDim">
-            {/* « Pas assez » et « rien du tout » ne se disent pas pareil : des
-                comparables existent parfois, en nombre insuffisant pour
-                trancher, et le dire évite de renvoyer l'utilisateur chercher
-                une donnée qu'il a déjà saisie. */}
+            {/* "Not enough" and "nothing at all" are not said the same way: comparables
+                sometimes exist, in insufficient number to
+                decide, and saying so avoids sending the user to look for
+                data they have already entered. */}
             {assessment.referenceConfidence === 'LOW' && assessment.referenceSampleSize > 0
               ? `${assessment.referenceSampleSize} annonce${
                   assessment.referenceSampleSize > 1 ? 's' : ''
@@ -188,10 +188,10 @@ export function ListingAssessmentCard({
                 } — référence insuffisante pour juger le prix. Un ou deux relevés de plus suffiraient.`
               : (MANQUES[assessment.referenceGap] ??
                 'Pas assez de prix relevés comparables pour situer cette offre.')}
-            {/* « Aucune donnée » et « des données, mais aucune comparable » ne
-                se disent pas pareil : le second dit à l'utilisateur que ses
-                relevés existent et que c'est leur FORME qui ne correspond pas -
-                donc quoi relever ensuite. */}
+            {/* "No data" and "data, but no comparable" are not said the
+                same way: the second tells the user that their
+                records exist and that it is their SHAPE that does not match -
+                so what to record next. */}
             {assessment.referenceExaminedCount > 0 && assessment.referenceSampleSize === 0 && (
               <>
                 {' '}
@@ -208,32 +208,32 @@ export function ListingAssessmentCard({
               ` · ${assessment.deviationPercent > 0 ? '+' : ''}${assessment.deviationPercent} %`}
             {' · confiance '}
             {CONFIANCES[assessment.referenceConfidence] ?? assessment.referenceConfidence}
-            {/* La taille de l'échantillon décide de ce que vaut la médiane :
-                la cacher rendrait « confiance bonne » invérifiable. Ce nombre
-                compte des ANNONCES distinctes, pas des relevés : une même offre
-                suivie plusieurs fois n'en vaut qu'une. */}
+            {/* The size of the sample decides what the median is worth:
+                hiding it would make "good confidence" unverifiable. This number
+                counts distinct LISTINGS, not records: the same offer
+                followed several times is worth only one. */}
             {assessment.referenceSampleSize > 0 &&
               ` · ${assessment.referenceSampleSize} annonce${assessment.referenceSampleSize > 1 ? 's' : ''} comparable${
                 assessment.referenceSampleSize > 1 ? 's' : ''
               }`}
-            {/* Ce qui rend une référence DISCUTABLE, et donc corrigeable : à
-                quel point les comparables s'accordent, et de quand date le plus
-                récent. Sans ça, « confiance bonne » reste à croire sur parole. */}
+            {/* What makes a reference DEBATABLE, and so correctable: how
+                much the comparables agree, and how old the most
+                recent one is. Without it, "good confidence" has to be taken on trust. */}
             {assessment.referenceSpreadPercent !== null &&
               ` · resserrés à ${assessment.referenceSpreadPercent} % près`}
             {assessment.referenceMostRecentObservation !== null &&
               ` · le plus récent le ${new Date(assessment.referenceMostRecentObservation).toLocaleDateString('fr-FR')}`}
-            {/* Dire d'où vient le chiffre, toujours : ce sont des prix relevés
-                dans IozyCore, pas des transactions réelles. */}
+            {/* Always say where the figure comes from: these are prices recorded
+                in IozyCore, not real transactions. */}
             {' — tes prix relevés sur des lots de même forme et de taille voisine, pas des ventes conclues.'}
           </p>
         ) : (
-          /* Analyse antérieure aux règles actuelles. Son chiffre venait souvent
-             d'une estimation - parfois d'un modèle de langage - que rien ne
-             distinguait alors d'un marché observé. Le verdict enregistré reste
-             celui qui a été rendu ce jour-là : on ne réécrit pas le passé. Mais
-             on cesse de présenter ce chiffre comme une référence de marché, et
-             surtout de lui attribuer une « confiance bonne ». */
+          /* Analysis from before the current rules. Its figure often came from
+             an estimate - sometimes a language model - that nothing
+             then distinguished from an observed market. The saved verdict stays
+             the one that was given that day: we do not rewrite the past. But
+             we stop presenting this figure as a market reference, and
+             above all giving it a "good confidence". */
           <p className="text-xs text-warning">
             Estimation utilisée lors de cette analyse : {euros(assessment.referencePrice)}
             {assessment.deviationPercent !== null &&
@@ -244,7 +244,7 @@ export function ListingAssessmentCard({
         )}
       </section>
 
-      {/* 3. Les points à vérifier - jamais fondus dans le prix. */}
+      {/* 3. The points to check - never merged into the price. */}
       <section className="flex flex-col gap-1.5 border-t border-surface2 pt-3">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-textDim uppercase">
           <ShieldQuestion size={12} />
@@ -268,8 +268,8 @@ export function ListingAssessmentCard({
         )}
         {trust.signals.includes('PRICE_FAR_BELOW_REFERENCE') && (
           <p className="text-xs text-textDim">
-            {/* Le dire explicitement : un prix très bas reste une bonne affaire
-                du côté prix. Ce n'est pas une accusation. */}
+            {/* Say it explicitly: a very low price stays a good deal
+                on the price side. It is not an accusation. */}
             Un prix très bas appelle la prudence, mais reste une vraie occasion possible — les deux lectures
             coexistent.
           </p>

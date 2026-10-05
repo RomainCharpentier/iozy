@@ -11,15 +11,15 @@ const STATUS_OPTIONS: { value: CompletionFilter; label: string }[] = [
 ]
 
 /**
- * Popover desktop / bottom sheet mobile - même contenu, un seul composant
- * responsive (même pattern que TierPicker).
- * Deux filtres, tous deux calculables aujourd'hui : "État de la collection"
- * (même logique que Suggestions d'achats/complétude de fiche) et "Tag", dont
- * la section n'apparaît QUE si des tags existent - sans quoi ce serait
- * exactement le filtre qui ne filtre jamais rien qu'on a refusé d'ajouter
- * ici. La maquette V1.2 prévoit aussi "Sortie annoncée" et "Classement" (par
- * Tier List) - omis, BLOCKED_BY_DATA (aucune date de sortie ni aucun
- * classement n'existe côté backend, voir docs/DESIGN_MIGRATION_V1.2.md).
+ * Desktop popover / mobile bottom sheet - same content, a single responsive
+ * component (same pattern as TierPicker).
+ * Two filters, both computable today: "État de la collection"
+ * (same logic as Purchase suggestions / detail page completeness) and "Tag", whose
+ * section appears ONLY if tags exist - otherwise this would be
+ * exactly the filter that never filters anything, which we refused to add
+ * here. The V1.2 mockup also plans "Sortie annoncée" and "Classement" (by
+ * Tier List) - left out, BLOCKED_BY_DATA (no release date and no
+ * ranking exists on the backend, see docs/DESIGN_MIGRATION_V1.2.md).
  */
 export function CollectionFilters({
   open,
@@ -40,18 +40,18 @@ export function CollectionFilters({
   onTagChange: (tagId: string | null) => void
   onReset: () => void
 }) {
-  // Escape + piège de focus + focus rendu au déclencheur - voir
-  // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
+  // Escape + focus trap + focus returned to the trigger - see
+  // useModalA11y (Batch 9, generic, shared by all the dialogs of the app).
   const containerRef = useModalA11y<HTMLDivElement>(open, onClose)
 
   if (!open) return null
 
   return (
     <>
-      {/* Overlay cliquable-pour-fermer uniquement au pouce (sheet plein
-          écran) - desktop reste un simple popover ancré, fermeture par clic
-          extérieur gérée par un calque transparent plein écran (voir la
-          maquette V1.2, ligne ~1752 : overlay sans fond visible en desktop). */}
+      {/* Overlay clickable-to-close only for the thumb (full
+          screen sheet) - desktop stays a simple anchored popover, closing by click
+          outside handled by a transparent full-screen layer (see the
+          V1.2 mockup, line ~1752: overlay without visible background on desktop). */}
       <div className="fixed inset-0 z-40 bg-black/40 md:bg-transparent" onClick={onClose} />
       <div
         ref={containerRef}
@@ -100,9 +100,9 @@ export function CollectionFilters({
               ))}
             </div>
           </div>
-          {/* Aucun tag posé nulle part : pas de section. Un filtre qui ne
-              peut rien retenir dit surtout à l'utilisateur qu'il lui manque
-              quelque chose, sans dire quoi. */}
+          {/* No tag set anywhere: no section. A filter that
+              cannot keep anything mostly tells the user that something is missing,
+              without saying what. */}
           {tags.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="px-2 text-[11px] font-semibold tracking-wide text-textDim uppercase">Tag</span>

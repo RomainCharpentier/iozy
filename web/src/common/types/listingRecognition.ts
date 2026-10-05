@@ -1,19 +1,20 @@
 /**
- * Détection des éléments d'une annonce : ce qu'IozyCore croit qu'elle contient,
- * à partir de son texte et — si on le demande — de ses photos.
+ * Detection of the items of a listing: what IozyCore thinks it contains,
+ * from its text and — if asked — its photos.
  *
- * Ce sont des PROPOSITIONS. Rien n'a été écrit dans le catalogue ni dans la
- * collection : l'utilisateur confirme, corrige ou supprime avant que quoi que
- * ce soit n'entre dans une analyse.
+ * These are PROPOSALS. Nothing was written in the catalog or in the
+ * collection: the user confirms, corrects or deletes before anything enters
+ * an analysis.
  */
 
-/** Confiance dans la LECTURE. Jamais un pourcentage : aucun moteur n'est calibré. */
+/** Confidence in the READING. Never a percentage: no engine is calibrated. */
 export type RecognitionConfidence = 'HIGH' | 'MEDIUM' | 'LOW'
 
 /**
- * D'où vient une proposition — dimension distincte de la confiance.
- * « Le titre annonce les tomes 1 à 14 » est une lecture certaine d'une source
- * déclarative : sûre sur ce qui est écrit, pas sur ce que le vendeur possède.
+ * Where a proposal comes from — a dimension distinct from confidence.
+ * "The title announces volumes 1 to 14" is a certain reading of a
+ * declarative source: sure about what is written, not about what the seller
+ * owns.
  */
 export type RecognitionSource = 'TEXT' | 'VISION' | 'EAN'
 
@@ -34,9 +35,9 @@ export interface EditionOptionDto {
   totalVolumes: number | null
 }
 
-/** Un rectangle sur une photo, en fractions de sa largeur et de sa hauteur (0 à 1). */
+/** A rectangle on a photo, as fractions of its width and height (0 to 1). */
 export interface BoxDto {
-  /** La photo, dans l'ordre d'envoi. */
+  /** The photo, in sending order. */
   image: number
   top: number
   left: number
@@ -45,22 +46,22 @@ export interface BoxDto {
 }
 
 export interface RecognizedItemDto {
-  /** Le titre du catalogue s'il existe, sinon ce qui a été lu. */
+  /** The catalog title if it exists, otherwise what was read. */
   seriesTitle: string
-  /** Ce qui a été lu, tel quel — pour que l'écart reste visible. */
+  /** What was read, as it is — so that the gap stays visible. */
   seriesTitleAsRead: string
   volumeNumber: number | null
   editionHint: string | null
   hasExactIdentifier: boolean
   confidence: RecognitionConfidence
-  /** Par priorité décroissante : EAN, puis TEXT, puis VISION. */
+  /** In decreasing priority: EAN, then TEXT, then VISION. */
   sources: RecognitionSource[]
-  /** Les mêmes, en clair : « annonce », « photos », « code-barres ». */
+  /** The same, in plain words: "annonce", "photos", "code-barres". */
   sourceLabels: string[]
   evidence: string[]
-  /** Index 0-based des photos. Vide pour une proposition venue du seul texte. */
+  /** 0-based index of the photos. Empty for a proposal that came from the text alone. */
   sourceImages: number[]
-  /** Où le livre a été vu : au plus un cadre par photo, souvent aucun (texte, code-barres). */
+  /** Where the book was seen: at most one frame per photo, often none (text, barcode). */
   boxes: BoxDto[]
   catalogStatus: CatalogStatus
   entityId: string | null
@@ -70,33 +71,33 @@ export interface RecognizedItemDto {
 }
 
 export interface AnalyzeListingResponse {
-  /** null quand aucune photo n'a été demandée — pas un échec, une absence de question. */
+  /** null when no photo was requested — not a failure, an absence of question. */
   visionStatus: RecognitionStatus | null
   items: RecognizedItemDto[]
   unidentifiedCount: number
   notInCatalogCount: number
-  /** Ce que le seul texte a produit : « l'annonce en décrit déjà N ». */
+  /** What the text alone produced: "the listing already describes N". */
   textItemCount: number
   analyzedImageCount: number
   requestedImageCount: number
   /**
-   * Ce que l'annonce affirme contenir **sans dire lesquels** — « 9 tomes de
-   * Naruto ». `null` quand elle ne le dit pas, ou quand les numéros sont connus
-   * (ils font alors foi).
+   * What the listing claims to contain **without saying which ones** — "9
+   * volumes of Naruto". `null` when it does not say, or when the numbers are
+   * known (they then prevail).
    *
-   * Volontairement **hors de `items`** : dérouler 1 à 9 fabriquerait un verdict
-   * d'achat calculé sur des tomes que personne n'a vus — le vendeur peut avoir
-   * les tomes 14 à 22.
+   * Deliberately **outside `items`**: unrolling 1 to 9 would build a purchase
+   * verdict computed on volumes that nobody has seen — the seller may have
+   * volumes 14 to 22.
    */
   announcedVolumeCount: number | null
-  /** La série nommée dans ce cas, `null` si le titre n'en désigne aucune. */
+  /** The series named in this case, `null` if the title designates none. */
   announcedSeriesTitle: string | null
 }
 
 export interface AnalyzeListingRequest {
   title?: string
   description?: string
-  /** Absent = analyse du texte seul, donc aucun appel de moteur. */
+  /** Absent = analysis of the text alone, so no engine call. */
   imageUrls?: string[]
   entityTypeCode?: string
 }

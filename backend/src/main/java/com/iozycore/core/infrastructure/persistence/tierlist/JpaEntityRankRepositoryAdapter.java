@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 interface EntityRankJpaRepository extends JpaRepository<EntityRankJpaEntity, UUID> {
 
     /**
-     * Charger par identifiant, mais PAR UNE REQUÊTE.
+     * Load by id, but THROUGH A QUERY.
      *
-     * <p>{@code findById} de JPA charge par clé primaire sans passer par une
-     * requête : Hibernate n'y applique pas le cloisonnement par propriétaire
-     * (voir ProprietaireCourant), et la ligne d'un AUTRE compte remonte -
-     * constaté en écrivant le test d'isolation, qui passait sur les listes et
-     * échouait sur les chargements par identifiant. Cette variante est une
-     * requête dérivée, donc filtrée comme les autres.
+     * <p>JPA {@code findById} loads by primary key without a query:
+     * Hibernate does not apply the owner isolation there
+     * (see ProprietaireCourant), and the row of ANOTHER account comes back -
+     * found while writing the isolation test, which passed on the lists and
+     * failed on loads by id. This variant is a derived
+     * query, so it is filtered like the others.
      */
     Optional<EntityRankJpaEntity> findOneByEntityId(UUID entityId);
     List<EntityRankJpaEntity> findByEntityIdIn(Set<UUID> entityIds);
@@ -60,11 +60,11 @@ class JpaEntityRankRepositoryAdapter implements EntityRankRepository {
 
     @Override
     public void deleteByEntityId(UUID entityId) {
-        // Passer par une LECTURE filtrée, jamais par un deleteById : celui-ci
-        // charge par clé primaire sans requête, donc sans le cloisonnement par
-        // propriétaire - il effaçait la ligne d'un autre compte, sans erreur et
-        // sans trace (constaté par le test d'isolation). Rien à supprimer est
-        // aussi le cas normal : le contrat du port est idempotent.
+        // Go through a filtered READ, never through deleteById: it
+        // loads by primary key without a query, so without the owner
+        // isolation - it deleted the row of another account, with no error and
+        // no trace (found by the isolation test). Nothing to delete is
+        // also the normal case: the port contract is idempotent.
         jpaRepository.findOneByEntityId(entityId).ifPresent(jpaRepository::delete);
     }
 

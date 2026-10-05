@@ -3,19 +3,19 @@ package com.iozycore.manga.recognition;
 import java.util.List;
 
 /**
- * Ce qu'un moteur de reconnaissance rend pour un ensemble de photos.
+ * What a recognition engine returns for a set of photos.
  *
- * <h2>Une panne n'est pas une exception</h2>
- * Un moteur indisponible, une image illisible ou un résultat partiel sont des
- * <b>issues normales</b> du parcours, comme pour {@code ListingResolution} :
- * elles se distinguent par {@link #status()}, et le parcours manuel reprend la
- * main derrière. Rien ici ne doit jamais empêcher d'analyser une annonce à la
- * main.
+ * <h2>A failure is not an exception</h2>
+ * An unavailable engine, an unreadable image or a partial result are
+ * <b>normal outcomes</b> of the flow, as for {@code ListingResolution}:
+ * they are told apart by {@link #status()}, and the manual flow takes
+ * over behind them. Nothing here must ever prevent analysing a listing by
+ * hand.
  *
- * @param items            ce qui a été reconnu - vide est un résultat valide
- * @param unidentifiedCount nombre d'éléments visibles mais non identifiés ; l'écran doit
- *                          les montrer, sinon l'utilisateur croit que le lot est plus petit
- *                          qu'il n'est
+ * @param items            what was recognised - empty is a valid result
+ * @param unidentifiedCount number of items that are visible but not identified; the screen must
+ *                          show them, otherwise the user believes the batch is smaller
+ *                          than it is
  */
 public record RecognitionResult(RecognitionStatus status, List<RecognizedItem> items, int unidentifiedCount) {
 
@@ -26,30 +26,30 @@ public record RecognitionResult(RecognitionStatus status, List<RecognizedItem> i
     }
 
     public static RecognitionResult recognized(List<RecognizedItem> items, int unidentifiedCount) {
-        // Rien de reconnu mais des éléments vus : c'est un résultat partiel, pas
-        // un succès - l'écran doit le dire autrement.
+        // Nothing recognised but items seen: it is a partial result, not
+        // a success - the screen must say it differently.
         RecognitionStatus status = items == null || items.isEmpty()
                 ? (unidentifiedCount > 0 ? RecognitionStatus.PARTIAL : RecognitionStatus.NOTHING_RECOGNIZED)
                 : (unidentifiedCount > 0 ? RecognitionStatus.PARTIAL : RecognitionStatus.OK);
         return new RecognitionResult(status, items, unidentifiedCount);
     }
 
-    /** Le moteur n'a pas pu répondre - panne, délai dépassé. */
+    /** The engine could not answer - failure, timeout. */
     public static RecognitionResult unavailable() {
         return new RecognitionResult(RecognitionStatus.UNAVAILABLE, List.of(), 0);
     }
 
-    /** Le quota du service est atteint : réessayer maintenant ne servirait à rien, l'écran doit le dire. */
+    /** The quota of the service is reached: trying again now would be useless, the screen must say so. */
     public static RecognitionResult quotaExceeded() {
         return new RecognitionResult(RecognitionStatus.QUOTA_EXCEEDED, List.of(), 0);
     }
 
-    /** Aucun moteur n'est configuré : IozyCore fonctionne sans, l'écran le dit. */
+    /** No engine is configured: IozyCore works without it, the screen says so. */
     public static RecognitionResult noEngine() {
         return new RecognitionResult(RecognitionStatus.NO_ENGINE, List.of(), 0);
     }
 
-    /** Aucune photo exploitable n'a pu être récupérée. */
+    /** No usable photo could be fetched. */
     public static RecognitionResult noUsableImage() {
         return new RecognitionResult(RecognitionStatus.NO_USABLE_IMAGE, List.of(), 0);
     }

@@ -14,17 +14,17 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Le provider Vinted, <b>réseau remplacé par un faux</b> : la suite ne dépend
- * ni de Vinted en direct, ni d'une annonce qui existera encore demain. Les
- * pages fournies sont fabriquées et ne reproduisent que la forme constatée sur
- * une page publique.
+ * The Vinted provider, <b>network replaced by a fake</b>: the suite depends
+ * neither on live Vinted, nor on a listing that will still exist tomorrow. The
+ * pages provided are fabricated and only reproduce the shape seen on
+ * a public page.
  * <p>
- * Deux exigences sont vérifiées ici plus que les autres : un résultat
- * <b>partiel</b> reste utilisable, et une <b>donnée absente reste absente</b>.
+ * Two requirements are checked here more than the others: a <b>partial</b>
+ * result stays usable, and an <b>absent datum stays absent</b>.
  */
 class VintedListingProviderTest {
 
-    /** Faux récupérateur : rend la page (ou l'échec) qu'on lui a fixé, sans réseau. */
+    /** Fake fetcher: returns the page (or the failure) it was given, without network. */
     private static class FetcherFactice extends ListingHttpFetcher {
         private Fetched reponse;
         private String urlDemandee;
@@ -45,7 +45,7 @@ class VintedListingProviderTest {
         return new ListingHttpFetcher.Fetched(html, URI.create("https://www.vinted.fr/items/42"), null);
     }
 
-    // ------------------------------------------------------ Détection de source
+    // ------------------------------------------------------ Source detection
 
     @Test
     void reconnait_les_domaines_vinted_par_leur_hote() {
@@ -69,13 +69,13 @@ class VintedListingProviderTest {
 
         provider.resolve("https://www.vinted.fr/items/42");
 
-        // Chaque provider apporte SA liste blanche : aucun n'hérite de celle
-        // d'un autre, et il n'existe pas de liste globale.
+        // Each provider brings ITS OWN whitelist: none inherits that
+        // of another, and there is no global list.
         assertThat(fetcher.hotesRecus).contains("www.vinted.fr", "vinted.fr").doesNotContain("localhost");
         assertThat(fetcher.urlDemandee).isEqualTo("https://www.vinted.fr/items/42");
     }
 
-    // ------------------------------------------------------------- Récupération
+    // ------------------------------------------------------------- Fetching
 
     @Test
     void rend_un_succes_quand_tout_a_pu_etre_lu() {
@@ -99,20 +99,20 @@ class VintedListingProviderTest {
                 .containsExactlyInAnyOrder(ListingField.TITLE, ListingField.DESCRIPTION,
                         ListingField.PRICE, ListingField.SHIPPING_FEE, ListingField.BUYER_PROTECTION_FEE,
                         ListingField.IMAGES);
-        // Les frais annoncés par l'annonce : sans eux, le coût réel partirait
-        // de zéro et rendrait tout verdict trop favorable.
+        // The costs announced by the listing: without them, the real cost would start
+        // from zero and make every verdict too favourable.
         assertThat(resolution.snapshot().shippingFee()).isEqualByComparingTo("4.99");
         assertThat(resolution.snapshot().buyerProtectionFee()).isEqualByComparingTo("1.20");
-        // Le snapshot est daté : c'est un état à un instant T, pas un lien vivant.
+        // The snapshot is dated: it is a state at a given time, not a live link.
         assertThat(resolution.snapshot().retrievedAt()).isNotNull();
-        // L'URL canonique remplace celle qui a été collée.
+        // The canonical URL replaces the one that was pasted.
         assertThat(resolution.snapshot().sourceUrl()).isEqualTo("https://www.vinted.fr/items/42-un-lot");
     }
 
     @Test
     void un_resultat_partiel_reste_utilisable_et_dit_ce_qui_manque() {
-        // Titre et prix lus, photos et description illisibles - le cas courant
-        // si Vinted change la forme de ses données embarquées.
+        // Title and price read, photos and description unreadable - the common case
+        // if Vinted changes the shape of its embedded data.
         fetcher.reponse = page("""
                 <meta property="og:title" content="Un lot | Vinted"/>
                 <script>x:{\\"price\\":{\\"amount\\":\\"55.5\\",\\"currency_code\\":\\"EUR\\"}}</script>""");
@@ -123,7 +123,7 @@ class VintedListingProviderTest {
         assertThat(resolution.hasData()).isTrue();
         assertThat(resolution.snapshot().retrievedFields())
                 .containsExactlyInAnyOrder(ListingField.TITLE, ListingField.PRICE);
-        // Rien n'est inventé pour combler les trous.
+        // Nothing is invented to fill the gaps.
         assertThat(resolution.snapshot().description()).isNull();
         assertThat(resolution.snapshot().imageUrls()).isEmpty();
     }
@@ -139,7 +139,7 @@ class VintedListingProviderTest {
         assertThat(resolution.snapshot().retrievedFields()).doesNotContain(ListingField.PRICE);
     }
 
-    // ------------------------------------------------------------------- Échecs
+    // ------------------------------------------------------------------- Failures
 
     @Test
     void une_annonce_supprimee_est_une_erreur_metier_distincte() {
@@ -149,7 +149,7 @@ class VintedListingProviderTest {
 
         assertThat(resolution.status()).isEqualTo(ListingResolution.Status.LISTING_NOT_FOUND);
         assertThat(resolution.snapshot()).isNull();
-        // L'URL reste connue : le parcours manuel continue avec le lien.
+        // The URL stays known: the manual flow continues with the link.
         assertThat(resolution.url()).isEqualTo("https://www.vinted.fr/items/42");
     }
 
@@ -173,8 +173,8 @@ class VintedListingProviderTest {
 
     @Test
     void une_page_qui_repond_mais_ne_livre_rien_est_traitee_comme_indisponible() {
-        // Répondre 200 avec une page inattendue ne vaut pas mieux qu'une panne :
-        // il n'y a rien à pré-remplir, et l'utilisateur doit le savoir.
+        // Answering 200 with an unexpected page is no better than an outage:
+        // there is nothing to pre-fill, and the user must know.
         fetcher.reponse = page("<html><body>Rien d'exploitable</body></html>");
 
         ListingResolution resolution = provider.resolve("https://www.vinted.fr/items/42");

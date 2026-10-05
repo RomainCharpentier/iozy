@@ -11,26 +11,26 @@ interface ManualVolume {
 }
 
 /**
- * Parcours MANUEL (voir la grille de tomes pour le
- * parcours CONTEXTUEL, déclenché depuis un clic sur une tuile déjà visible -
- * les deux sont volontairement distincts, voir "deux modes d'ajout") : pour
- * un tome qui n'apparaît pas encore dans la grille (numéro/édition hors de
- * ce qui est déjà connu). Complète une édition déjà en collection avec un ou
- * plusieurs tomes manquants (ex: les tomes 4 et 5 d'une "Black Edition"
- * jamais retrouvés par la recherche automatique côté BnF/Google Books - trou
- * de données source, pas un bug, voir historique de la conversation sur
+ * MANUAL path (see the volume grid for the
+ * CONTEXTUAL path, started from a click on a tile that is already visible -
+ * the two are deliberately separate, see "two ways to add"): for
+ * a volume that does not appear in the grid yet (number/edition outside
+ * what is already known). Completes an edition already in the collection with one or
+ * more missing volumes (e.g. volumes 4 and 5 of a "Black Edition"
+ * never found by the automatic search on the BnF/Google Books side - a gap
+ * in the source data, not a bug, see the conversation history on
  * "Death Note").
  * <p>
- * `quickAdd` matche déjà une Entity existante par (entityTypeId, title) côté
- * backend (voir QuickAddService) - il suffit de réutiliser le titre exact de
- * la série déjà en collection, aucun nouvel endpoint nécessaire.
+ * `quickAdd` already matches an existing Entity by (entityTypeId, title) on the
+ * backend side (see QuickAddService) - it is enough to reuse the exact title of
+ * the series already in the collection, no new endpoint is needed.
  * <p>
- * Même mécanique de file d'attente que QuickAddPage.tsx (voir
- * queueManualVolume) - permet d'enchaîner plusieurs tomes avant de valider
- * une seule fois, l'édition restant pré-remplie d'un tome au suivant. Reste
- * volontairement plus complet que le clic sur une tuile (numéro ET édition à
- * saisir, plusieurs tomes à la fois) : le parcours manuel n'a par définition
- * aucun contexte déjà connu à réutiliser.
+ * Same queue mechanism as QuickAddPage.tsx (see
+ * queueManualVolume) - it lets you chain several volumes before confirming
+ * once, the edition staying pre-filled from one volume to the next. It stays
+ * deliberately more complete than a click on a tile (number AND edition to
+ * enter, several volumes at once): the manual path has by definition
+ * no known context to reuse.
  */
 export function AddVolumeSection({
   entityId,
@@ -41,21 +41,21 @@ export function AddVolumeSection({
   onFermer,
   onAjoute,
 }: {
-  /** Absent depuis un aperçu : l'œuvre n'a pas encore de fiche, `quickAdd`
-   *  la créera. Ne sert qu'à rafraîchir les caches de la fiche courante. */
+  /** Absent from a preview: the work has no detail page yet, `quickAdd`
+   *  will create it. Only used to refresh the caches of the current page. */
   entityId?: string
   entityTypeId: string
   title: string
-  /** Recopiés sur l'Entity créée. Indispensables depuis un aperçu : sans eux
-   *  la fiche naîtrait sans jaquette ni auteur - même piège qu'au Lot 32. */
+  /** Copied onto the created Entity. Essential from a preview: without them
+   *  the page would be born without a cover or author - same trap as in Batch 32. */
   attributes?: Record<string, unknown>
-  /** Ouvert/fermé décidé par « Mes tomes » : la maquette v4 place le
-   *  déclencheur « Ajouter un tome » dans l'en-tête de la section, pas sous la
-   *  grille - le formulaire, lui, reste ici, sous les tuiles qu'il complète. */
+  /** Open/closed state decided by "Mes tomes": mockup v4 puts the
+   *  "Ajouter un tome" trigger in the section header, not under the
+   *  grid - the form itself stays here, under the tiles it completes. */
   ouvert: boolean
   onFermer: () => void
-  /** Appelé avec l'identifiant de la fiche après un ajout réussi - c'est ce
-   *  qui permet à un aperçu de basculer vers la fiche qui vient de naître. */
+  /** Called with the id of the detail page after a successful add - this is what
+   *  lets a preview switch to the page that was just born. */
   onAjoute?: (entityId: string) => void
 }) {
   const queryClient = useQueryClient()
@@ -78,15 +78,15 @@ export function AddVolumeSection({
       let addedCount = 0
       let alreadyOwnedCount = 0
       let identifiant = entityId
-      // Séquentiel : voir QuickAddPage.tsx pour la même précaution (l'Entity
-      // existe déjà ici, mais un Variant à créer par appel reste plus sûr
-      // qu'un Promise.all en cas d'erreur partielle).
+      // Sequential: see QuickAddPage.tsx for the same precaution (the Entity
+      // already exists here, but one Variant to create per call is still safer
+      // than a Promise.all in case of a partial error).
       for (const item of items) {
         const result = await quickAdd({
           entityTypeId,
           title,
-          // Ajouter tient en un clic : ni état ni prix demandés ici, tous deux
-          // corrigeables ensuite sur l'exemplaire (voir OwnershipDetails).
+          // Adding takes one click: no condition or price asked here, both can be
+          // fixed later on the copy (see OwnershipDetails).
           condition: 'NEW',
           attributes,
           volumeNumber: item.volumeNumber,
@@ -126,10 +126,10 @@ export function AddVolumeSection({
       <h2 className="font-display text-sm font-semibold text-textPrimary">Ajouter un tome</h2>
 
       <div className="flex items-end gap-2">
-        {/* min-w-0 : sans lui, ces colonnes gardent min-width:auto et ne peuvent
-        pas descendre sous la largeur intrinsèque de leur champ (~175 px chacun).
-        Deux champs côte à côte imposaient alors 510 px, et l'écran débordait
-        horizontalement sur un téléphone. */}
+        {/* min-w-0: without it, these columns keep min-width:auto and cannot
+        go below the intrinsic width of their field (~175 px each).
+        Two fields side by side then needed 510 px, and the screen overflowed
+        horizontally on a phone. */}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <label className="text-sm text-textDim" htmlFor="addVolumeNumber">
             Tome n°

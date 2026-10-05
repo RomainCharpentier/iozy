@@ -50,12 +50,12 @@ const FICHE_BLEACH: FicheProposeeDto = {
   attributes: { mangaka: 'Tite Kubo' },
 }
 
-/** Un cadre sur la photo 1, entre deux fractions de sa largeur - une tranche, haute et étroite, sauf dit autrement. */
+/** A frame on photo 1, between two fractions of its width - a spine, tall and narrow, unless said otherwise. */
 function cadre(left: number, right: number, top = 0.1, bottom = 0.9): BoxDto {
   return { image: 0, top, left, bottom, right }
 }
 
-/** Une série nouvelle, lue sûrement, avec sa fiche retrouvée par le titre. */
+/** A new series, read with certainty, with its work page found by the title. */
 function nouvelle(
   titre: string,
   tome: number | null,
@@ -63,8 +63,8 @@ function nouvelle(
   boxes: BoxDto[] = [],
 ): ShelfItemDto {
   return {
-    // Le serveur ne pré-coche jamais une série hors catalogue (règle du lot
-    // d'annonce) : sur une étagère, c'est l'écran qui coche la lecture sûre.
+    // The server never pre-checks a series that is outside the catalog (rule of the
+    // listing batch): on a shelf, it is the screen that checks the certain reading.
     item: lu(titre, tome, { catalogStatus: 'NOT_IN_CATALOG', entityId: null, preselected: false, boxes }),
     alreadyOwned: false,
     proposal: fiche,
@@ -93,7 +93,7 @@ const LECTURE: ShelfAnalysisDto = {
       proposalByTitle: false,
     },
     nouvelle('Bleach', 1, FICHE_BLEACH, [cadre(0.2, 0.3)]),
-    // Une couverture posée de face : large, donc étiquette à l'horizontale.
+    // A cover laid face on: wide, so the label is horizontal.
     nouvelle('Bleach', null, FICHE_BLEACH, [cadre(0.3, 0.6, 0.5, 0.9)]),
   ],
 }
@@ -103,7 +103,7 @@ async function envoyerUnePhoto() {
   render(<ImportPhotoPage />, { wrapper: enrobage })
   const photo = new File([new Uint8Array(64)], 'etagere.jpg', { type: 'image/jpeg' })
   await user.upload(screen.getByLabelText('Choisir des photos de l’étagère'), photo)
-  // userEvent recopie les fichiers : on compare le nom, pas l'instance.
+  // userEvent copies the files: we compare the name, not the instance.
   await waitFor(() => expect(api.analyserLEtagere).toHaveBeenCalledTimes(1))
   const envoyees = api.analyserLEtagere.mock.calls[0][0] as File[]
   expect(envoyees.map((f) => f.name)).toEqual([photo.name])
@@ -111,8 +111,8 @@ async function envoyerUnePhoto() {
 }
 
 /**
- * Après la lecture, l'écran entre dans la validation un par un dès qu'il y a
- * quelque chose à valider ; le récapitulatif par série est un clic plus loin.
+ * After the reading, the screen enters the one-by-one validation as soon as there is
+ * something to validate; the summary by series is one click further.
  */
 async function auRecapitulatif(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('heading', { name: /Valider un par un|Ce que la photo montre/ })
@@ -136,16 +136,16 @@ beforeEach(() => {
   })
 })
 
-describe('la validation un par un', () => {
-  it('commence dès la lecture, avec la photo et le seul cadre du livre en cours', async () => {
+describe('the one-by-one validation', () => {
+  it('starts right after the reading, with the photo and the single frame of the current book', async () => {
     const user = await envoyerUnePhoto()
 
-    // Naruto T5 d'abord : c'est le cadre le plus à gauche des non possédés.
+    // Naruto T5 first: it is the leftmost frame of the not owned ones.
     expect(await screen.findByText('Extrait 1 sur 3 : le morceau de photo, et ce qui en a été lu.')).toBeInTheDocument()
     expect(screen.getByText('Naruto')).toBeInTheDocument()
     const cadreT5 = screen.getByRole('img', { name: 'T5 de Naruto sur la photo 1' })
     expect(cadreT5).toHaveAttribute('title', 'Chiffre 5 sur la tranche')
-    // Une tranche est bien plus haute que large : son étiquette se lit de haut en bas.
+    // A spine is much taller than wide: its label is read from top to bottom.
     expect(screen.getByText('T5')).toHaveClass('[writing-mode:vertical-rl]')
     expect(screen.queryByRole('img', { name: /T1 de Bleach/ })).not.toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: 'Numéro du tome' })).toHaveValue(5)
@@ -156,8 +156,8 @@ describe('la validation un par un', () => {
     expect(screen.getByRole('spinbutton', { name: 'Numéro du tome' })).toHaveValue(1)
     await user.click(screen.getByRole('button', { name: 'C’est bien ça' }))
 
-    // Le tome non lu, posé de face : étiquette à l'horizontale, et rien à
-    // confirmer tant qu'un numéro n'est pas saisi.
+    // The unread volume, laid face on: horizontal label, and nothing to
+    // confirm until a number is typed.
     expect(await screen.findByText('Extrait 3 sur 3 : le morceau de photo, et ce qui en a été lu.')).toBeInTheDocument()
     expect(screen.getByText('?')).not.toHaveClass('[writing-mode:vertical-rl]')
     expect(screen.getByRole('button', { name: 'C’est bien ça' })).toBeDisabled()
@@ -170,12 +170,12 @@ describe('la validation un par un', () => {
 
     await user.click(screen.getByRole('button', { name: 'Voir le récapitulatif' }))
 
-    // Naruto écarté, Bleach 1 et 2 confirmés : deux tomes à ajouter.
+    // Naruto set aside, Bleach 1 and 2 confirmed: two volumes to add.
     expect(await screen.findByRole('button', { name: 'Vérifier l’ajout de 2 tomes' })).toBeEnabled()
     expect(screen.getByRole('checkbox', { name: 'T5 de Naruto' })).not.toBeChecked()
   })
 
-  it('se rouvre depuis le récapitulatif', async () => {
+  it('reopens from the summary', async () => {
     const user = await envoyerUnePhoto()
     await auRecapitulatif(user)
 
@@ -185,8 +185,8 @@ describe('la validation un par un', () => {
   })
 })
 
-describe('le récapitulatif', () => {
-  it('coche les tomes lus, montre les possédés inertes et propose la fiche d’une série nouvelle', async () => {
+describe('the summary', () => {
+  it('checks the read volumes, shows the owned ones as inert and offers the work page of a new series', async () => {
     const user = await envoyerUnePhoto()
     await auRecapitulatif(user)
 
@@ -197,21 +197,21 @@ describe('le récapitulatif', () => {
     expect(possede).toBeDisabled()
     const t5 = screen.getByRole('checkbox', { name: 'T5 de Naruto' })
     expect(t5).toBeChecked()
-    // Ce que le lecteur a vu, au survol : de quoi vérifier à la main.
+    // What the reader saw, on hover: enough to check by hand.
     expect(t5).toHaveAttribute('title', 'Chiffre 5 sur la tranche')
     expect(screen.getByRole('checkbox', { name: 'T1 de Bleach' })).toBeChecked()
     expect(screen.getByText('Fiche proposée')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fiche gardée' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Vérifier l’ajout de 2 tomes' })).toBeEnabled()
     expect(screen.getByText(/1 livre visible mais non identifié/)).toBeInTheDocument()
-    // Une fois la lecture affichée, le geste principal est l'ajout : le choix
-    // d'autres photos reste possible, mais passe en second plan.
+    // Once the reading is shown, the main action is the add: choosing
+    // other photos is still possible, but moves to the background.
     const autres = screen.getByRole('button', { name: 'Analyser d’autres photos' })
     expect(autres).toBeEnabled()
     expect(autres.className).toContain('bg-surface')
   })
 
-  it('ne pré-coche pas une lecture incertaine d’une série nouvelle', async () => {
+  it('does not pre-check an uncertain reading of a new series', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       items: [
@@ -228,7 +228,7 @@ describe('le récapitulatif', () => {
     expect(screen.getByRole('button', { name: 'Rien de coché à ajouter' })).toBeDisabled()
   })
 
-  it('propose l’édition lue sur la photo même quand la série est déjà au catalogue', async () => {
+  it('offers the edition read on the photo even when the series is already in the catalog', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       items: [
@@ -252,7 +252,7 @@ describe('le récapitulatif', () => {
     expect(screen.getByRole('button', { name: 'Standard' })).toBeInTheDocument()
   })
 
-  it('dit quand le moteur n’est pas configuré, sans rien proposer', async () => {
+  it('says when the engine is not configured, without offering anything', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       visionStatus: 'NO_ENGINE',
@@ -268,7 +268,7 @@ describe('le récapitulatif', () => {
     expect(screen.queryByRole('button', { name: /Ajouter|Vérifier|Rien de coché|Valider un par un/ })).not.toBeInTheDocument()
   })
 
-  it('dit quand le quota du service est atteint, sans inviter à réessayer tout de suite', async () => {
+  it('says when the quota of the service is reached, without inviting to retry right away', async () => {
     api.analyserLEtagere.mockResolvedValue({ ...LECTURE, visionStatus: 'QUOTA_EXCEEDED', items: [], unidentifiedCount: 0 })
 
     await envoyerUnePhoto()
@@ -282,12 +282,12 @@ describe('le récapitulatif', () => {
   })
 })
 
-describe('avant d’écrire', () => {
-  it('relit noir sur blanc ce qui partirait, et n’écrit rien tant que ce n’est pas confirmé', async () => {
+describe('before writing', () => {
+  it('rereads in black and white what would be sent, and writes nothing until it is confirmed', async () => {
     const user = await envoyerUnePhoto()
     await auRecapitulatif(user)
 
-    // Le tome dont la photo ne donnait pas le numéro : saisi, il compte.
+    // The volume whose photo did not give the number: once typed, it counts.
     await user.type(screen.getByRole('spinbutton', { name: 'Numéro du tome non lu de Bleach' }), '2')
     await user.click(screen.getByRole('button', { name: 'Vérifier l’ajout de 3 tomes' }))
 
@@ -303,7 +303,7 @@ describe('avant d’écrire', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ajouter 3 tomes à ma collection' }))
 
-    // La mutation reçoit aussi un contexte TanStack : seul le premier argument compte.
+    // The mutation also receives a TanStack context: only the first argument counts.
     await waitFor(() => expect(api.importerDepuisLEtagere).toHaveBeenCalledTimes(1))
     expect(api.importerDepuisLEtagere.mock.calls[0][0]).toEqual([
       { seriesTitle: 'Naruto', volumeNumber: 5, edition: 'Kana' },
@@ -325,7 +325,7 @@ describe('avant d’écrire', () => {
     expect(screen.getByText('ajouté, série créée')).toBeInTheDocument()
   })
 
-  it('revenir à la vérification ne perd rien et n’écrit rien', async () => {
+  it('going back to the check loses nothing and writes nothing', async () => {
     const user = await envoyerUnePhoto()
     await auRecapitulatif(user)
     await user.click(screen.getByRole('checkbox', { name: 'T5 de Naruto' }))
@@ -339,7 +339,7 @@ describe('avant d’écrire', () => {
     expect(api.importerDepuisLEtagere).not.toHaveBeenCalled()
   })
 
-  it('résume les suites de numéros, et permet de tout décocher pour cocher à la main', async () => {
+  it('summarizes the runs of numbers, and allows unchecking everything to check by hand', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       items: [1, 2, 3, 4, 7].map((numero) => nouvelle('Bleach', numero)),
@@ -358,7 +358,7 @@ describe('avant d’écrire', () => {
     expect(screen.getByRole('button', { name: 'Vérifier l’ajout de 5 tomes' })).toBeEnabled()
   })
 
-  it('n’envoie que ce qui est coché, sans la fiche écartée', async () => {
+  it('sends only what is checked, without the work page that was set aside', async () => {
     const user = await envoyerUnePhoto()
     await auRecapitulatif(user)
     await user.click(screen.getByRole('checkbox', { name: 'T5 de Naruto' }))
@@ -368,12 +368,12 @@ describe('avant d’écrire', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ajouter 1 tome à ma collection' }))
 
-    // Sans la fiche : le titre lu, sans attributs ni jaquette.
+    // Without the work page: the title that was read, with no attributes or cover.
     await waitFor(() => expect(api.importerDepuisLEtagere).toHaveBeenCalledTimes(1))
     expect(api.importerDepuisLEtagere.mock.calls[0][0]).toEqual([{ seriesTitle: 'Bleach', volumeNumber: 1 }])
   })
 
-  it('montre un premier résultat de recherche comme une piste, sans le garder d’office', async () => {
+  it('shows a first search result as a lead, without keeping it by default', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       items: [
@@ -392,12 +392,12 @@ describe('avant d’écrire', () => {
     await user.click(screen.getByRole('button', { name: 'Vérifier l’ajout de 1 tome' }))
     await user.click(await screen.findByRole('button', { name: 'Ajouter 1 tome à ma collection' }))
 
-    // Le titre lu, sans attributs ni jaquette : la piste n'a pas été prise.
+    // The title that was read, with no attributes or cover: the lead was not taken.
     await waitFor(() => expect(api.importerDepuisLEtagere).toHaveBeenCalledTimes(1))
     expect(api.importerDepuisLEtagere.mock.calls[0][0]).toEqual([{ seriesTitle: "L'Attaque des Titans", volumeNumber: 3 }])
   })
 
-  it('garde la piste quand l’utilisateur le dit, avec son titre et sa fiche', async () => {
+  it('keeps the lead when the user says so, with its title and work page', async () => {
     api.analyserLEtagere.mockResolvedValue({
       ...LECTURE,
       items: [

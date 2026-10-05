@@ -1,44 +1,44 @@
 package com.iozycore.manga.recognition;
 
 /**
- * L'issue d'une analyse de photos. Nommée plutôt que réduite à un booléen :
- * « rien reconnu » et « moteur en panne » appellent des phrases différentes à
- * l'écran, et une seule des deux vaut la peine d'être réessayée.
+ * The outcome of a photo analysis. Named rather than reduced to a boolean:
+ * "nothing recognised" and "engine down" call for different sentences on
+ * screen, and only one of the two is worth trying again.
  *
- * <p>Aucune de ces issues n'est une erreur d'API : la route rend 200 dans tous
- * les cas, comme {@code POST /listing-metadata/resolve}. Un bandeau rouge
- * confondrait « ces photos ne montrent pas de tomes lisibles » avec « le
- * service est cassé ».
+ * <p>None of these outcomes is an API error: the route returns 200 in all
+ * cases, like {@code POST /listing-metadata/resolve}. A red banner
+ * would confuse "these photos show no readable volumes" with "the
+ * service is broken".
  */
 public enum RecognitionStatus {
 
-    /** Tout ce qui était visible a été identifié. */
+    /** Everything that was visible was identified. */
     OK,
 
-    /** Une partie identifiée, une partie non - le cas le plus fréquent sur un lot. */
+    /** One part identified, one part not - the most frequent case on a batch. */
     PARTIAL,
 
-    /** Le moteur a répondu, mais n'a rien su lire sur ces photos. */
+    /** The engine answered, but could not read anything on these photos. */
     NOTHING_RECOGNIZED,
 
-    /** Aucune photo exploitable : hôte non autorisé, format refusé, trop lourde, illisible. */
+    /** No usable photo: host not allowed, format refused, too heavy, unreadable. */
     NO_USABLE_IMAGE,
 
-    /** Aucun moteur configuré - IozyCore marche sans, la saisie manuelle reste entière. */
+    /** No engine configured - IozyCore works without it, manual entry stays whole. */
     NO_ENGINE,
 
     /**
-     * Le service a atteint son quota - sur le palier gratuit, un compte de jetons
-     * par jour, qu'une photo d'étagère consomme vite. Réessayer dans la minute
-     * ne donnera rien : c'est demain, ou le Catalogue à la main. Distingué de
-     * UNAVAILABLE parce que l'écran doit dire l'un et pas l'autre.
+     * The service reached its quota - on the free tier, a token count
+     * per day, which a shelf photo uses up quickly. Trying again within the minute
+     * will give nothing: it is tomorrow, or the Catalogue by hand. Told apart from
+     * UNAVAILABLE because the screen must say one and not the other.
      */
     QUOTA_EXCEEDED,
 
-    /** Le moteur a échoué : panne, délai dépassé. Réessayer plus tard a du sens. */
+    /** The engine failed: failure, timeout. Trying again later makes sense. */
     UNAVAILABLE;
 
-    /** Vrai si réessayer peut donner autre chose - sert à décider d'afficher « Réessayer ». */
+    /** True if trying again can give something different - used to decide to show "Réessayer". */
     public boolean worthRetrying() {
         return this == UNAVAILABLE;
     }

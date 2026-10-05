@@ -4,7 +4,7 @@ import com.iozycore.manga.metadata.bnf.BnfCouverture;
 import com.iozycore.core.metadata.CoverImageCheck;
 import org.springframework.stereotype.Component;
 
-/** Une jaquette de la BnF n'est gardée que si elle existe vraiment (voir BnfCouverture) ; toute autre adresse passe. */
+/** A BnF cover is kept only if it really exists (see BnfCouverture); any other address passes. */
 @Component
 public class BnfCoverImageCheck implements CoverImageCheck {
 

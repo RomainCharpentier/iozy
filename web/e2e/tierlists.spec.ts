@@ -2,54 +2,53 @@ import { expect, test } from '@playwright/test'
 import { serieAvecEdition } from './amorcage'
 
 /**
- * <b>Classer ses œuvres, de la liste vide au rang attribué.</b>
+ * <b>Rank one's works, from the empty list to the assigned rank.</b>
  *
- * <p>Le neuvième des dix parcours structurants, et celui qui traverse le plus
- * de surfaces : un écran, un dialogue de création, un panneau d'ajout, un
- * sélecteur de rang. Quatre composants dont chacun a ses tests, et dont
- * l'enchaînement n'en avait aucun - or c'est là que ça casse : une liste créée
- * qui n'apparaît pas, une œuvre ajoutée qui reste invisible, un rang choisi
- * qui ne se pose pas.
+ * <p>The ninth of the ten structuring journeys, and the one that crosses the
+ * most surfaces: a screen, a creation dialog, an add panel, a rank selector.
+ * Four components each with their own tests, whose sequence had none - yet
+ * this is where it breaks: a created list that does not appear, an added work
+ * that stays invisible, a chosen rank that is not applied.
  */
 
-test('créer une Tier List, y ajouter une œuvre, et lui donner un rang', async ({ page }) => {
+test('create a Tier List, add a work to it, and give it a rank', async ({ page }) => {
   const titre = `Berserk ${Date.now()}`
   const nomDeLaListe = `Mes préférés ${Date.now()}`
   await serieAvecEdition(page, { titre, edition: 'Standard', totalVolumes: 3, tomePossede: 1 })
 
-  // --- 1. Créer la liste
+  // --- 1. Create the list
   await page.goto('/tier-lists')
   await page.getByRole('button', { name: 'Nouvelle Tier List' }).click()
   await page.getByLabel('Nom').fill(nomDeLaListe)
   await page.getByRole('button', { name: 'Manga', exact: true }).click()
   await page.getByRole('button', { name: 'Créer la Tier List' }).click()
 
-  // Créer emmène SUR la liste : elle est vide, et c'est le moment où l'on veut
-  // la remplir.
+  // Creating takes us TO the list: it is empty, and this is the moment when
+  // we want to fill it.
   await expect(page).toHaveURL(/\/tier-lists\/[0-9a-f-]{36}$/)
   await expect(page.getByRole('heading', { name: nomDeLaListe })).toBeVisible()
 
-  // --- 2. Y ajouter l'œuvre
+  // --- 2. Add the work to it
   await page.getByRole('button', { name: 'Ajouter', exact: true }).click()
-  // Le titre paraît deux fois sur la tuile (le repli de jaquette et la
-  // légende) : on vise le BOUTON qui les contient, pas un des deux textes.
+  // The title appears twice on the tile (the cover fallback and the caption):
+  // we target the BUTTON that contains them, not one of the two texts.
   await page.getByRole('button', { name: titre }).first().click()
-  // Le bouton du panneau annonce COMBIEN il va ajouter - « Ajouter (1) » -
-  // et il faut le viser DANS le dialogue : celui du board, derrière, porte le
-  // même mot et reste dans la page.
+  // The panel button announces HOW MANY it will add - "Ajouter (1)" - and it
+  // must be targeted INSIDE the dialog: the one of the board, behind it,
+  // carries the same word and stays in the page.
   await page.getByRole('dialog').getByRole('button', { name: 'Ajouter (1)' }).click()
 
-  // Ajoutée mais pas encore classée : les deux états sont distincts, et c'est
-  // tout l'intérêt d'une Tier List (« dans la liste » n'est pas « rangée »).
+  // Added but not yet ranked: the two states are distinct, and this is the
+  // whole point of a Tier List ("in the list" is not "ranked").
   await expect(page.getByRole('button', { name: `${titre}, non classée` })).toBeVisible()
 
-  // --- 3. Lui donner un rang
+  // --- 3. Give it a rank
   await page.getByRole('button', { name: `${titre}, non classée` }).click()
   await page.getByRole('button', { name: 'S', exact: true }).click()
 
   await expect(page.getByRole('button', { name: `${titre}, rang S` })).toBeVisible()
   await expect(page.getByRole('button', { name: `${titre}, non classée` })).toHaveCount(0)
 
-  // --- 4. Le retour nomme d'où l'on vient (UX-8)
+  // --- 4. The back button names where we come from (UX-8)
   await expect(page.getByRole('button', { name: 'Tier Lists' })).toBeVisible()
 })

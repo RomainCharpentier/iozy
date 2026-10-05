@@ -17,48 +17,48 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Lit une annonce Vinted publique pour pré-remplir un brouillon d'analyse.
+ * Reads a public Vinted listing to pre-fill an analysis draft.
  *
- * <h2>Ce que Vinted permet, constaté le 2026-08-21</h2>
- * Une page d'annonce {@code /items/<id>} répond 200 à une simple requête
- * anonyme, sans connexion ni cookie, et publie des balises <b>OpenGraph</b>
- * (titre, description, URL canonique, photo principale) - des métadonnées
- * destinées à être lues par d'autres. Le {@code robots.txt} du site n'interdit
- * pas {@code /items} aux agents génériques.
+ * <h2>What Vinted allows, observed on 2026-08-21</h2>
+ * A listing page {@code /items/<id>} answers 200 to a simple anonymous
+ * request, without login or cookie, and publishes <b>OpenGraph</b> tags
+ * (title, description, canonical URL, main photo) - metadata
+ * meant to be read by others. The {@code robots.txt} of the site does not
+ * forbid {@code /items} to generic agents.
  * <p>
- * Le <b>prix</b> et la <b>liste complète des photos</b> ne figurent en revanche
- * dans aucune donnée structurée publiée : ils ne vivent que dans le contenu
- * embarqué par le rendu de la page. On les lit au mieux (voir
- * {@link VintedPageParser}) en sachant que Vinted peut en changer la forme sans
- * préavis - leur absence dégrade alors le résultat en {@code PARTIAL}, elle ne
- * le fait pas échouer.
+ * The <b>price</b> and the <b>full list of photos</b>, however, are not in
+ * any published structured data: they only live in the content
+ * embedded by the page rendering. They are read as well as possible (see
+ * {@link VintedPageParser}) knowing that Vinted can change their shape without
+ * notice - their absence then degrades the result to {@code PARTIAL}, it does not
+ * make it fail.
  *
- * <h2>Ce que Vinted empêche, et qu'on ne contourne pas</h2>
- * L'API interne du site exige une session et des jetons ; l'utiliser
- * supposerait de reproduire un mécanisme d'authentification. Ce n'est pas fait,
- * et ne doit pas l'être : aucune connexion, aucun cookie de compte, aucune
- * usurpation de navigateur, aucun contournement de protection anti-robot. La
- * requête annonce honnêtement IozyCore et n'est déclenchée que par un
- * utilisateur qui vient de coller ce lien précis.
+ * <h2>What Vinted prevents, and what we do not work around</h2>
+ * The internal API of the site requires a session and tokens; using it
+ * would mean reproducing an authentication mechanism. This is not done,
+ * and must not be: no login, no account cookie, no
+ * browser impersonation, no workaround of the anti-robot protection. The
+ * request honestly announces IozyCore and is only triggered by a
+ * user who has just pasted this exact link.
  *
- * <h2>Ce qui n'est pas récupéré, volontairement</h2>
- * Rien sur le vendeur (pseudo, avatar, localisation) : ces données n'entrent
- * dans aucun calcul de verdict et n'ont donc pas à être lues ni conservées.
+ * <h2>What is not retrieved, on purpose</h2>
+ * Nothing about the seller (nickname, avatar, location): this data does not enter
+ * any verdict computation and so does not have to be read or kept.
  */
 @Component
 public class VintedListingProvider implements ListingProvider {
 
     /**
-     * Une annonce n'a pas besoin de plus pour être reconnue de visu, et ce
-     * plafond garde la réponse, l'affichage et la mémoire dans des limites
-     * prévisibles.
+     * A listing does not need more to be recognized at a glance, and this
+     * cap keeps the response, the display and the memory within
+     * predictable limits.
      */
     static final int MAX_IMAGES = 12;
 
     /**
-     * Liste blanche stricte, propre à ce provider. Vinted opère un domaine par
-     * pays ; chacun est nommé explicitement plutôt que déduit d'un motif du
-     * genre « tout ce qui contient vinted », qui accepterait
+     * Strict whitelist, specific to this provider. Vinted operates one domain per
+     * country; each one is named explicitly rather than deduced from a pattern
+     * like "everything that contains vinted", which would accept
      * {@code vinted.attaquant.example}.
      */
     private static final Set<String> ALLOWED_HOSTS = buildAllowedHosts();
@@ -89,10 +89,10 @@ public class VintedListingProvider implements ListingProvider {
     }
 
     /**
-     * Le CDN d'images de Vinted, énuméré hôte par hôte pour la même raison que
-     * les domaines de pages : un motif « tout ce qui finit par vinted.net »
-     * accepterait {@code vinted.net.attaquant.example}. Les photos d'annonce y
-     * sont servies sous {@code imagesN.vinted.net}.
+     * The Vinted image CDN, listed host by host for the same reason as
+     * the page domains: a pattern "everything ending with vinted.net"
+     * would accept {@code vinted.net.attaquant.example}. The listing photos are
+     * served there under {@code imagesN.vinted.net}.
      */
     private static final Set<String> ALLOWED_IMAGE_HOSTS = buildAllowedImageHosts();
 
@@ -115,9 +115,9 @@ public class VintedListingProvider implements ListingProvider {
     }
 
     /**
-     * Détection de source : uniquement sur l'hôte, jamais sur « l'URL contient
-     * vinted » - {@code https://phishing.example/vinted.fr} ne serait pas une
-     * annonce Vinted.
+     * Source detection: only on the host, never on "the URL contains
+     * vinted" - {@code https://phishing.example/vinted.fr} would not be a
+     * Vinted listing.
      */
     @Override
     public boolean supports(String url) {
@@ -156,18 +156,18 @@ public class VintedListingProvider implements ListingProvider {
 
         ListingSnapshot snapshot = new ListingSnapshot(
                 ListingPlatform.VINTED,
-                // L'URL canonique quand la page la donne : deux liens vers la même
-                // annonce (avec ou sans slug, avec des paramètres de suivi) se
-                // ramènent alors à la même adresse.
+                // The canonical URL when the page gives it: two links to the same
+                // listing (with or without slug, with tracking parameters) then
+                // come down to the same address.
                 page.canonicalUrl() != null ? page.canonicalUrl() : fetched.finalUri().toString(),
                 page.externalId(), page.title(), page.description(), page.price(), page.currency(),
                 page.shippingFee(), page.shippingKind(), page.buyerProtectionFee(),
                 page.imageUrls(), Instant.now(), retrieved);
 
         if (snapshot.isEmpty()) {
-            // La page a bien répondu mais n'a livré aucun des champs attendus :
-            // pour l'utilisateur, c'est indiscernable d'une indisponibilité, et
-            // il n'y a rien à pré-remplir.
+            // The page did answer but delivered none of the expected fields:
+            // for the user, it is indistinguishable from an unavailability, and
+            // there is nothing to pre-fill.
             return ListingResolution.failed(ListingResolution.Status.UNAVAILABLE, ListingPlatform.VINTED, url);
         }
         return retrieved.size() == ListingField.values().length

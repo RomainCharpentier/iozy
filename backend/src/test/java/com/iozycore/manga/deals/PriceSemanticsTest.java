@@ -16,24 +16,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * <b>Deux grandeurs, deux usages — et surtout, jamais la même.</b>
+ * <b>Two quantities, two uses — and above all, never the same one.</b>
  *
- * <h2>Le biais que ces tests interdisent</h2>
- * Les prix d'annonces comparables sont affichés <b>hors frais</b>. Comparer un
- * coût d'acquisition frais compris (14,03 €) à une médiane hors frais (12 €)
- * reviendrait à comparer deux choses différentes et à déclarer « trop cher »
- * une annonce qui ne l'est pas. Le positionnement marché se fait donc sur le
- * <b>prix de l'article seul</b>.
+ * <h2>The bias these tests forbid</h2>
+ * The prices of comparable listings are shown <b>without fees</b>. Comparing an
+ * acquisition cost with fees included (14.03 EUR) to a median without fees (12 EUR)
+ * would compare two different things and declare "too expensive"
+ * a listing that is not. The market positioning is therefore done on the
+ * <b>price of the item alone</b>.
  * <p>
- * À l'inverse, ce que l'achat coûte vraiment inclut la protection et la
- * livraison : c'est <b>ce montant-là</b> qui doit servir au coût par élément
- * utile, sinon l'utilisateur croit payer 5 € le tome quand il en paie 7.
+ * Conversely, what the purchase really costs includes protection and
+ * delivery: it is <b>this amount</b> that must be used for the cost per useful
+ * item, otherwise the user thinks they pay 5 EUR a volume when they pay 7.
  *
- * <h2>Et « minimum » n'est pas « réel »</h2>
- * Quand plusieurs modes de livraison existent, la source affiche le moins
- * cher : le total qui en découle est un plancher, et l'analyse enregistrée doit
- * s'en souvenir - un « à partir de 2,83 € » ne doit jamais se relire plus tard
- * comme un tarif ferme.
+ * <h2>And "minimum" is not "real"</h2>
+ * When several delivery modes exist, the source shows the cheapest:
+ * the resulting total is a floor, and the saved analysis must
+ * remember it - a "from 2.83 EUR" must never be read back later
+ * as a firm rate.
  */
 class PriceSemanticsTest {
 
@@ -45,29 +45,29 @@ class PriceSemanticsTest {
                 List.of(), Instant.now());
     }
 
-    // ------------------------------------------------ La séparation des bases
+    // ------------------------------------------------ The separation of bases
 
     @Test
     void le_positionnement_marche_se_fait_sur_le_prix_de_l_article_pas_sur_le_cout_d_acquisition() {
-        // Le cas du cahier des charges : 10 + 1,20 + « à partir de 2,83 » = 14,03,
-        // contre une médiane comparable de 12 (hors frais, comme toute annonce).
+        // The case of the specification: 10 + 1.20 + "from 2.83" = 14.03,
+        // against a comparable median of 12 (without fees, like every listing).
         Listing listing = annonce(new BigDecimal("10"), new BigDecimal("2.83"),
                 ShippingEstimateKind.FROM, new BigDecimal("1.20"));
         BigDecimal medianeComparable = new BigDecimal("12");
 
         assertThat(listing.totalRealCost()).isEqualByComparingTo("14.03");
 
-        // Comparé sur le PRIX DE L'ARTICLE : 10 contre 12 = sous la référence.
+        // Compared on the PRICE OF THE ITEM: 10 against 12 = below the reference.
         PricePosition surPrixArticle = DealAssessmentPolicy.positionOf(
                 listing.askingPrice(), medianeComparable, MarketReferenceConfidence.HIGH);
-        // Comparé sur le coût d'acquisition, ce serait 14,03 contre 12 : « cher ».
+        // Compared on the acquisition cost, it would be 14.03 against 12: "expensive".
         PricePosition surCoutAcquisition = DealAssessmentPolicy.positionOf(
                 listing.totalRealCost(), medianeComparable, MarketReferenceConfidence.HIGH);
 
         assertThat(surPrixArticle).isEqualTo(PricePosition.GOOD_PRICE);
         assertThat(surCoutAcquisition).isEqualTo(PricePosition.RATHER_EXPENSIVE);
-        // Les deux diffèrent : c'est exactement pourquoi confondre les bases
-        // renverserait le verdict d'une annonce correcte.
+        // The two differ: this is exactly why mixing the bases
+        // would reverse the verdict of a correct listing.
         assertThat(surPrixArticle).isNotEqualTo(surCoutAcquisition);
     }
 
@@ -76,19 +76,19 @@ class PriceSemanticsTest {
         Listing listing = annonce(new BigDecimal("10"), new BigDecimal("2.83"),
                 ShippingEstimateKind.FROM, new BigDecimal("1.20"));
 
-        // 2 éléments, tous utiles : 14,03 / 2, pas 10 / 2.
+        // 2 items, all useful: 14.03 / 2, not 10 / 2.
         CollectionFit fit = CollectionFit.of(2, 0, 0, listing.totalRealCost());
 
         assertThat(fit.pricePerUsefulItem()).isEqualByComparingTo("7.02");
-        // Le prix affiché seul donnerait 5,00 € - l'utilisateur croirait payer
-        // 30 % de moins que la réalité.
+        // The price shown alone would give 5.00 EUR - the user would think they pay
+        // 30 % less than reality.
         assertThat(fit.pricePerUsefulItem()).isNotEqualByComparingTo("5.00");
     }
 
     @Test
     void la_vigilance_sur_un_prix_bas_se_juge_aussi_sur_le_prix_de_l_article() {
-        // Sinon les frais gonfleraient artificiellement le prix et masqueraient
-        // un article réellement bradé.
+        // Otherwise fees would artificially inflate the price and hide
+        // an item that is really sold off.
         Listing listing = annonce(new BigDecimal("4"), new BigDecimal("3"),
                 ShippingEstimateKind.FROM, new BigDecimal("1"));
 
@@ -98,7 +98,7 @@ class PriceSemanticsTest {
         assertThat(surArticle.signals()).contains(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
     }
 
-    // ------------------------------------------- Minimum estimé vs coût ferme
+    // ------------------------------------------- Estimated minimum vs firm cost
 
     @Test
     void un_port_a_partir_de_rend_le_cout_d_acquisition_minimal_pas_ferme() {
@@ -106,7 +106,7 @@ class PriceSemanticsTest {
                 ShippingEstimateKind.FROM, new BigDecimal("1.20"));
 
         assertThat(listing.totalRealCost()).isEqualByComparingTo("14.03");
-        // 14,03 € est un plancher : le point relais choisi peut coûter plus.
+        // 14.03 EUR is a floor: the chosen pickup point may cost more.
         assertThat(listing.acquisitionCostIsLowerBound()).isTrue();
     }
 
@@ -125,9 +125,9 @@ class PriceSemanticsTest {
         Listing inconnue = annonce(new BigDecimal("10"), null,
                 ShippingEstimateKind.UNKNOWN, new BigDecimal("1.20"));
 
-        // Les deux totalisent 11,20 faute de mieux, mais ne veulent pas dire la
-        // même chose : l'une est complète, l'autre incomplète. Seule la nature
-        // permet à l'écran de le dire.
+        // Both total 11.20 for lack of better, but do not mean the
+        // same thing: one is complete, the other incomplete. Only the nature
+        // lets the screen say so.
         assertThat(offerte.totalRealCost()).isEqualByComparingTo("11.20");
         assertThat(offerte.shippingKind()).isEqualTo(ShippingEstimateKind.FREE);
         assertThat(inconnue.shippingKind()).isEqualTo(ShippingEstimateKind.UNKNOWN);
@@ -135,13 +135,13 @@ class PriceSemanticsTest {
 
     @Test
     void une_nature_absente_ne_devient_jamais_une_livraison_offerte() {
-        // Le piège : supposer FREE minorerait le coût sans que rien ne le signale.
+        // The trap: assuming FREE would understate the cost without anything signalling it.
         Listing sansNature = sansNature(null);
 
         assertThat(sansNature.shippingKind()).isEqualTo(ShippingEstimateKind.UNKNOWN);
     }
 
-    /** Même annonce, nature volontairement omise : c'est le domaine qui tranche. */
+    /** Same listing, nature deliberately omitted: the domain decides. */
     private static Listing sansNature(BigDecimal port) {
         return new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot", null,
                 new BigDecimal("10"), port, null, new BigDecimal("1.20"), Condition.VERY_GOOD, false,
@@ -149,18 +149,18 @@ class PriceSemanticsTest {
                 List.of(), Instant.now());
     }
 
-    // --------------------------------------- Un montant saisi n'est pas « inconnu »
+    // --------------------------------------- An entered amount is not "unknown"
 
     @Test
     void un_port_saisi_a_la_main_est_estime_compte_dans_le_cout_et_n_est_jamais_dit_non_communique() {
-        // Le cas exact du cahier des charges : 10 + 1,20 + 5,90 saisis.
+        // The exact case of the specification: 10 + 1.20 + 5.90 entered.
         Listing listing = annonce(new BigDecimal("10"), new BigDecimal("5.90"),
                 ShippingEstimateKind.ESTIMATED, new BigDecimal("1.20"));
 
         assertThat(listing.shippingKind()).isEqualTo(ShippingEstimateKind.ESTIMATED);
         assertThat(listing.totalRealCost()).isEqualByComparingTo("17.10");
-        // Ni un plancher (rien ne dit que ce sera plus cher), ni une absence :
-        // c'est ce dernier point qui interdit l'affichage « non communiquée ».
+        // Neither a floor (nothing says it will cost more), nor an absence:
+        // this last point is what forbids the display "not communicated".
         assertThat(listing.acquisitionCostIsLowerBound()).isFalse();
         assertThat(listing.acquisitionCostIncludesShipping()).isTrue();
         assertThat(listing.shippingKind().isEstimate()).isTrue();
@@ -168,51 +168,51 @@ class PriceSemanticsTest {
 
     @Test
     void un_zero_sans_nature_reste_inconnu_et_ne_se_dit_jamais_estime() {
-        // Le cas des analyses anterieures a cette nature : le port valait zero
-        // par defaut, sans que personne n'ait rien constate. « 0,00 EUR
-        // estimes » affirmerait une livraison gratuite que nul n'a dite ; une
-        // livraison reellement offerte arrive avec FREE.
+        // The case of analyses earlier than this nature: the shipping was zero
+        // by default, without anybody having observed anything. "0.00 EUR
+        // estimated" would claim a free delivery that nobody said; a
+        // really free delivery comes with FREE.
         Listing relu = sansNature(BigDecimal.ZERO);
 
         assertThat(relu.shippingKind()).isEqualTo(ShippingEstimateKind.UNKNOWN);
         assertThat(relu.acquisitionCostIncludesShipping()).isFalse();
-        // FREE, lui, reste un vrai zero constate.
+        // FREE, for its part, stays a real observed zero.
         assertThat(annonce(new BigDecimal("10"), BigDecimal.ZERO, ShippingEstimateKind.FREE,
                 new BigDecimal("1.20")).acquisitionCostIncludesShipping()).isTrue();
     }
 
     @Test
     void un_montant_recu_sans_nature_est_estime_pas_ferme() {
-        // Personne n'a affirmé que ce tarif était celui qui serait facturé :
-        // le nommer EXACT donnerait à un nombre reçu l'autorité d'un tarif lu.
+        // Nobody claimed that this rate was the one that would be charged:
+        // naming it EXACT would give a received number the authority of a rate read.
         assertThat(sansNature(new BigDecimal("5.90")).shippingKind())
                 .isEqualTo(ShippingEstimateKind.ESTIMATED);
     }
 
     @Test
     void un_inconnu_ne_porte_jamais_un_montant_qui_entre_dans_le_calcul() {
-        // LA contradiction à rendre impossible : le total inclurait 5,90 pendant
-        // que l'écran annoncerait « livraison non communiquée ».
+        // THE contradiction to make impossible: the total would include 5.90 while
+        // the screen announced "delivery not communicated".
         Listing contradictoire = annonce(new BigDecimal("10"), new BigDecimal("5.90"),
                 ShippingEstimateKind.UNKNOWN, new BigDecimal("1.20"));
 
         assertThat(contradictoire.shippingKind()).isEqualTo(ShippingEstimateKind.ESTIMATED);
         assertThat(contradictoire.totalRealCost()).isEqualByComparingTo("17.10");
-        // Autrement dit : aucune combinaison ne laisse UNKNOWN facturer quoi que
-        // ce soit. Cette normalisation répare aussi, à la relecture, les
-        // analyses enregistrées avant que ce cas ait un nom.
+        // In other words: no combination lets UNKNOWN charge anything
+        // at all. This normalisation also repairs, on read-back, the
+        // analyses saved before this case had a name.
         assertThat(contradictoire.shippingKind().hasAmount()).isTrue();
     }
 
-    // ------------------------------------------- Coût partiellement connu
+    // ------------------------------------------- Partially known cost
 
     @Test
     void une_livraison_inconnue_ne_produit_pas_un_cout_d_acquisition_complet() {
         Listing listing = annonce(new BigDecimal("10"), null,
                 ShippingEstimateKind.UNKNOWN, new BigDecimal("1.20"));
 
-        // Le total reste calculable - c'est un sous-total connu, pas un coût
-        // d'acquisition : l'écran doit le nommer ainsi et dire ce qui manque.
+        // The total can still be computed - it is a known subtotal, not an
+        // acquisition cost: the screen must name it that way and say what is missing.
         assertThat(listing.totalRealCost()).isEqualByComparingTo("11.20");
         assertThat(listing.acquisitionCostIncludesShipping()).isFalse();
         assertThat(listing.acquisitionCostIsLowerBound()).isFalse();
@@ -225,15 +225,15 @@ class PriceSemanticsTest {
             assertThat(nature.hasAmount()).as(nature.name()).isTrue();
         }
         assertThat(ShippingEstimateKind.UNKNOWN.hasAmount()).isFalse();
-        // Seul FROM rend le total minimal : une estimation n'est pas un plancher.
+        // Only FROM makes the total a minimum: an estimate is not a floor.
         assertThat(ShippingEstimateKind.ESTIMATED.isLowerBound()).isFalse();
         assertThat(ShippingEstimateKind.FROM.isLowerBound()).isTrue();
     }
 
     @Test
     void la_semantique_du_port_est_figee_avec_l_analyse() {
-        // Un « à partir de » enregistré aujourd'hui doit se relire « à partir de »
-        // demain : c'est un composant du Listing, pas un calcul refait à la lecture.
+        // A "from" saved today must be read back as "from"
+        // tomorrow: it is a component of the Listing, not a calculation redone on read.
         Listing listing = annonce(new BigDecimal("10"), new BigDecimal("2.83"),
                 ShippingEstimateKind.FROM, new BigDecimal("1.20"));
 
@@ -244,29 +244,29 @@ class PriceSemanticsTest {
         assertThat(ShippingEstimateKind.FREE.hasAmount()).isTrue();
     }
 
-    // ============ Le moteur entier, pas seulement la regle isolee ============
+    // ============ The whole engine, not only the isolated rule ============
 
     /**
-     * Les tests ci-dessus verrouillent la <i>regle</i>. Celui-ci verrouille le
-     * <i>cablage</i> : que le moteur passe bien le prix de l'annonce au
-     * positionnement marche, et bien le cout d'acquisition a l'apport
-     * collection. Une regle juste mal branchee produit exactement le meme
-     * chiffre faux.
+     * The tests above lock the <i>rule</i>. This one locks the
+     * <i>wiring</i>: that the engine does pass the listing price to the
+     * market positioning, and the acquisition cost to the collection
+     * contribution. A correct rule badly wired produces exactly the same
+     * wrong figure.
      */
     @Test
     void le_moteur_positionne_sur_le_prix_de_l_annonce_et_chiffre_l_apport_sur_le_cout_d_acquisition() {
         MangaEdition edition = MangaEdition.create("Berserk", "Standard", EditionTier.STANDARD, "Glenat",
                 20, new BigDecimal("8.50"), false, false, null);
-        // Trois lots comparables a 5,00 EUR le tome : reference solide de 50 EUR
-        // pour les 10 tomes evalues.
+        // Three comparable batches at 5.00 EUR a volume: solid reference of 50 EUR
+        // for the 10 volumes assessed.
         List<MarketPriceObservation> comparables = List.of(
                 observation(edition, 8, "40.00"), observation(edition, 10, "50.00"),
                 observation(edition, 12, "60.00"));
 
         ListingItem item = new ListingItem(new MangaSeries("Berserk", null), "Standard",
                 Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), null);
-        // 44 EUR d'annonce, 12 EUR de frais : le total depasse la reference, le
-        // prix de l'annonce non. Tout l'enjeu tient dans cet ecart.
+        // 44 EUR of listing, 12 EUR of fees: the total exceeds the reference, the
+        // listing price does not. The whole point lies in this gap.
         Listing listing = new Listing(UUID.randomUUID(), ListingPlatform.VINTED, null, "Lot Berserk", null,
                 new BigDecimal("44"), new BigDecimal("10"), ShippingEstimateKind.EXACT, new BigDecimal("2"),
                 Condition.VERY_GOOD, false, List.of(item), List.of(), Instant.now());
@@ -281,14 +281,14 @@ class PriceSemanticsTest {
         assertThat(assessment.referenceSampleSize()).isEqualTo(3);
         assertThat(assessment.referenceSource()).isEqualTo(MarketReferenceSource.OBSERVED_COMPARABLES);
 
-        // 44 / 50 = 0,88 -> prix correct. Sur 56 / 50 = 1,12, ce serait
-        // "plutot cher" : deux verdicts opposes sur la meme annonce.
+        // 44 / 50 = 0.88 -> fair price. On 56 / 50 = 1.12, it would be
+        // "rather expensive": two opposite verdicts on the same listing.
         assertThat(assessment.pricePosition()).isEqualTo(PricePosition.FAIR_PRICE);
         assertThat(DealAssessmentPolicy.positionOf(listing.totalRealCost(), new BigDecimal("50"),
                 MarketReferenceConfidence.HIGH)).isEqualTo(PricePosition.RATHER_EXPENSIVE);
         assertThat(assessment.deviationPercent()).isEqualTo(-12);
 
-        // L'apport, lui, se chiffre bien sur les 56 EUR reellement engages.
+        // The contribution, for its part, is computed on the 56 EUR really committed.
         assertThat(assessment.collectionFit().pricePerItem()).isEqualByComparingTo("5.60");
         assertThat(assessment.collectionFit().pricePerItem()).isNotEqualByComparingTo("4.40");
     }
@@ -297,7 +297,7 @@ class PriceSemanticsTest {
     void une_reference_inexploitable_ne_sort_ni_en_prix_ni_en_ecart() {
         MangaEdition edition = MangaEdition.create("Platinum End", "Standard", EditionTier.STANDARD, "Kaze",
                 14, new BigDecimal("6.99"), false, false, null);
-        // Le cas Platinum End : un T.1 et deux lots de 4 face a une integrale.
+        // The Platinum End case: a T.1 and two batches of 4 against a complete set.
         List<MarketPriceObservation> incomparables = List.of(
                 observation(edition, 1, "8.00"), observation(edition, 4, "20.00"),
                 observation(edition, 4, "18.00"));
@@ -312,35 +312,35 @@ class PriceSemanticsTest {
                 List.of(new PurchaseAnalysisEngine.ItemContext(item, edition, List.of(), incomparables, Set.of())),
                 CollectorPreferences.defaults()).assessment();
 
-        // Aucun chiffre affiche : un prix a l'ecran est un prix auquel on croit.
+        // No figure shown: a price on screen is a price one believes.
         assertThat(assessment.referencePrice()).isNull();
         assertThat(assessment.deviationPercent()).isNull();
         assertThat(assessment.pricePosition()).isEqualTo(PricePosition.REFERENCE_UNAVAILABLE);
         assertThat(assessment.referenceConfidence()).isEqualTo(MarketReferenceConfidence.UNAVAILABLE);
         assertThat(assessment.referenceGap()).isEqualTo(ReferenceGap.NO_COMPARABLE_SHAPE);
-        // Et pas de "prix nettement en dessous" tire d'une reference inexistante.
+        // And no "price clearly below" drawn from a non-existent reference.
         assertThat(assessment.trust().signals()).doesNotContain(TrustSignal.PRICE_FAR_BELOW_REFERENCE);
-        // « Aucune donnee » et « des relevés, mais aucun comparable » ne se disent
-        // pas pareil : les trois relevés existent, c'est leur FORME qui ne
-        // correspond pas. L'écran a besoin du compte pour le dire.
+        // "No data" and "records, but no comparable" do not mean the
+        // same thing: the three records exist, it is their SHAPE that does not
+        // match. The screen needs the count to say so.
         assertThat(assessment.referenceExaminedCount()).isEqualTo(3);
         assertThat(assessment.referenceSampleSize()).isZero();
     }
 
     /**
-     * Un prix de référence ne se relit pas seul : ce qui permet de le
-     * <i>discuter</i> - combien de comparables, à quel point ils s'accordent, de
-     * quand date le plus récent - doit être figé DANS l'analyse. Ces trois
-     * réserves existaient déjà dans {@link MarketReference}, mais s'arrêtaient au
-     * calcul : l'écran affichait « confiance bonne » à croire sur parole.
+     * A reference price is not read alone: what lets us
+     * <i>discuss</i> it - how many comparables, how well they agree, how
+     * old the most recent one is - must be frozen IN the analysis. These three
+     * caveats already existed in {@link MarketReference}, but stopped at the
+     * calculation: the screen showed "good confidence" to be taken on faith.
      */
     @Test
     void les_reserves_de_la_reference_sont_figees_avec_le_prix() {
         MangaEdition edition = MangaEdition.create("Vagabond", "Standard", EditionTier.STANDARD, "Tonkam",
                 37, new BigDecimal("7.60"), false, false, null);
         LocalDate plusRecent = LocalDate.now().minusDays(9);
-        // Trois lots de 10 tomes a 4,50 / 5,00 / 5,50 EUR le tome : mediane 5,00,
-        // dispersion (5,50 - 4,50) / 5,00 = 20 %.
+        // Three batches of 10 volumes at 4.50 / 5.00 / 5.50 EUR a volume: median 5.00,
+        // dispersion (5.50 - 4.50) / 5.00 = 20 %.
         List<MarketPriceObservation> comparables = List.of(
                 observation(edition, 10, "45.00"), observation(edition, 10, "55.00"),
                 MarketPriceObservation.record_(edition.id(), new VolumeRange(1, 10), new BigDecimal("50.00"),
@@ -363,7 +363,7 @@ class PriceSemanticsTest {
         assertThat(assessment.referenceMostRecentObservation()).isEqualTo(plusRecent);
     }
 
-    /** Un lot de {@code tomes} tomes a partir du tome 1, releve il y a deux mois. */
+    /** A batch of {@code tomes} volumes starting from volume 1, recorded two months ago. */
     private static MarketPriceObservation observation(MangaEdition edition, int tomes, String prix) {
         return MarketPriceObservation.record_(edition.id(), new VolumeRange(1, tomes), new BigDecimal(prix),
                 ListingPlatform.VINTED, Condition.VERY_GOOD, LocalDate.now().minusMonths(2), null);

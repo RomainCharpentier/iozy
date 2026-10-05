@@ -10,21 +10,21 @@ public final class ExperienceDtos {
     private ExperienceDtos() {
     }
 
-    /** variantId (facultatif) précise quel tome l'expérience concerne - voir Experience côté domaine. */
+    /** variantId (optional) says which volume the experience is about - see Experience on the domain side. */
     public record RecordExperienceRequest(UUID entityId, UUID variantId, String experienceType, LocalDate occurredAt,
                                            Integer rating, String comment) {
     }
 
     /**
-     * Corrige une expérience déjà enregistrée. Seuls la note et le commentaire
-     * sont modifiables : le type d'expérience, la date et le tome concerné
-     * sont immuables côté domaine (voir Experience) - se tromper de type ou de
-     * tome, c'est avoir enregistré une AUTRE expérience, qu'on supprime.
+     * Fixes an already recorded experience. Only the rating and the comment
+     * can be changed: the experience type, the date and the volume concerned
+     * are immutable on the domain side (see Experience) - getting the type or the
+     * volume wrong means having recorded ANOTHER experience, which is deleted.
      * <p>
-     * Les deux champs sont remplacés tels quels, {@code null} compris : c'est
-     * ce qui permet d'effacer une note ou un commentaire, impossible avec une
-     * sémantique « null = inchangé ». Le formulaire les envoie toujours tous
-     * les deux.
+     * Both fields are replaced as they are, {@code null} included: this is
+     * what allows erasing a rating or a comment, impossible with a
+     * "null = unchanged" semantics. The form always sends both
+     * of them.
      */
     public record UpdateExperienceRequest(Integer rating, String comment) {
     }

@@ -27,35 +27,35 @@ export function getAnalysisById(id: string): Promise<PurchaseAnalysisDto> {
   return get<PurchaseAnalysisDto>(`/purchase-analysis/history/${id}`)
 }
 
-/** 404 si l'édition n'est pas encore connue - déclenche le formulaire de
- * saisie inline côté client (voir EditionReferenceLookup), ce n'est pas une
- * vraie erreur.
+/** 404 if the edition is not known yet - triggers the inline entry form on the
+ * client side (see EditionReferenceLookup), this is not a
+ * real error.
  * <p>
- * `entityId` (voir migration "Série -> Édition par ID") : à fournir dès que
- * l'appelant connaît la Série avec certitude (ex: fiche Série) - la
- * recherche passe alors par l'ID en priorité côté backend, immunisée contre
- * un renommage de la Série survenu depuis. Omis (ex: Évaluer un achat sur
- * une série pas nécessairement en collection), le repli par titre historique
- * reste inchangé. */
+ * `entityId` (see migration "Series -> Edition by ID"): to provide as soon as
+ * the caller knows the Series for sure (e.g. Series detail page) - the
+ * search then goes through the ID first on the backend side, immune to
+ * a rename of the Series that happened since. Omitted (e.g. Evaluate a purchase on
+ * a series not necessarily in the collection), the historical fallback by title
+ * stays unchanged. */
 export function findEdition(seriesTitle: string, editionName: string, entityId?: string): Promise<MangaEditionDto> {
   return get<MangaEditionDto>(`/purchase-analysis/editions${buildQuery({ entityId, seriesTitle, editionName })}`)
 }
 
-/** Phase 2 (assistance IA) - undefined (204) si aucun fournisseur IA n'est
- * configuré ou n'a rien pu proposer, jamais une erreur. Purement une
- * suggestion à faire relire : n'enregistre rien, voir EditionReferenceLookup. */
+/** Phase 2 (AI assistance) - undefined (204) if no AI provider is
+ * configured or could propose nothing, never an error. Purely a
+ * suggestion to have reviewed: records nothing, see EditionReferenceLookup. */
 export function suggestEditionReferenceData(seriesTitle: string, editionName: string): Promise<EditionSuggestionDto | undefined> {
   return get<EditionSuggestionDto | undefined>(`/purchase-analysis/editions/ai-suggestion${buildQuery({ seriesTitle, editionName })}`)
 }
 
-/** "Coût pour compléter une série" (Ma collection/fiche d'une série) - même
- * moteur que l'Analyse d'achat, appliqué aux tomes déjà possédés plutôt
- * qu'à une annonce. `volumes` : numéros de tome réellement possédés (Ownership
- * active), jamais juste catalogués (modèle Tome != Ownership). `cataloguedVolumes`
- * (étape 8) : numéros de tome ayant un Variant catalogué, quelle que soit leur
- * Ownership - optionnel, permet à la réponse de distinguer "manquant mais déjà
- * catalogué" de "manquant et purement virtuel" (voir cataloguedMissingVolumeNumbers). */
-/** `entityId` (voir findEdition) : préféré dès qu'il est connu de l'appelant. */
+/** "Cost to complete a series" (Ma collection/detail page of a series) - same
+ * engine as the Purchase analysis, applied to the volumes already owned rather
+ * than to a listing. `volumes`: volume numbers really owned (active
+ * Ownership), never just cataloged (Volume model != Ownership). `cataloguedVolumes`
+ * (step 8): volume numbers having a cataloged Variant, whatever their
+ * Ownership - optional, lets the answer tell "missing but already
+ * cataloged" from "missing and purely virtual" (see cataloguedMissingVolumeNumbers). */
+/** `entityId` (see findEdition): preferred as soon as the caller knows it. */
 export function getCompleteness(
   seriesTitle: string,
   editionName: string,
@@ -74,21 +74,21 @@ export function getCompleteness(
   )
 }
 
-/** Toutes les éditions connues, toutes séries confondues - une seule requête pour
- * afficher la progression PAR ÉDITION de plusieurs séries d'un coup (voir Ma
- * collection, editionTotals). Le référentiel est petit par nature : une ligne par
- * édition réellement renseignée. */
+/** All known editions, all series together - a single request to
+ * display the progress PER EDITION of several series at once (see Ma
+ * collection, editionTotals). The reference data is small by nature: one row per
+ * edition really filled in. */
 export function listAllEditions(): Promise<MangaEditionDto[]> {
   return get<MangaEditionDto[]>('/purchase-analysis/editions/all')
 }
 
-/** "Suggestions d'achats" (Mon profil) - triées côté backend par nombre de tomes manquants croissant. */
+/** "Purchase suggestions" (Mon profil) - sorted on the backend side by increasing number of missing volumes. */
 export function getNearCompleteSuggestions(): Promise<NearCompleteSuggestionDto[]> {
   return get<NearCompleteSuggestionDto[]>('/purchase-analysis/near-complete-suggestions')
 }
 
-/** Supprime une édition de référence - 409 si des tomes y sont encore
- * rattachés (jamais un déliage silencieux, voir PurchaseAnalysisService.deleteEdition). */
+/** Deletes a reference edition - 409 if volumes are still
+ * attached to it (never a silent unlinking, see PurchaseAnalysisService.deleteEdition). */
 export function deleteEdition(id: string): Promise<void> {
   return del<void>(`/purchase-analysis/editions/${id}`)
 }
@@ -106,54 +106,54 @@ export function recordMarketObservation(body: RecordMarketObservationRequest): P
 }
 
 /**
- * Retire une analyse de l'historique. Aucune modification n'est offerte en
- * regard : une analyse est le RÉSULTAT figé d'un calcul sur une annonce à un
- * instant donné - en corriger un chiffre produirait un verdict qui n'a jamais
- * été calculé. On la supprime, et on relance une analyse si besoin.
+ * Removes an analysis from the history. No edit is offered
+ * alongside: an analysis is the FROZEN RESULT of a calculation on a listing at a
+ * given moment - correcting a number would produce a verdict that was never
+ * calculated. We delete it, and run a new analysis if needed.
  *
- * Ne supprime ni les prix relevés ni les éditions renseignés au fil de cette
- * analyse : ce sont des données de référence qui servent toutes les analyses
- * suivantes. Idempotent.
+ * Does not delete the prices recorded or the editions filled in during this
+ * analysis: they are reference data that serve all the following
+ * analyses. Idempotent.
  */
 export function deleteAnalysis(id: string): Promise<void> {
   return del<void>(`/purchase-analysis/history/${id}`)
 }
 
-/** Les prix relevés d'une édition, du plus récent au plus ancien. */
+/** The recorded prices of an edition, from newest to oldest. */
 export function listMarketObservations(mangaEditionId: string): Promise<MarketPriceObservationDto[]> {
   return get<MarketPriceObservationDto[]>(`/purchase-analysis/market-observations${buildQuery({ mangaEditionId })}`)
 }
 
 /**
- * Retire un prix relevé par erreur. Aucune modification n'est offerte : un
- * relevé est un fait constaté à une date, pas un champ qu'on ajuste - on
- * retire le faux et on enregistre le juste. Les analyses déjà enregistrées ne
- * bougent pas (chacune fige ses chiffres au moment du calcul) ; ce sont les
- * suivantes qui cesseront de compter ce relevé. Idempotent.
+ * Removes a price recorded by mistake. No edit is offered: a
+ * record is a fact observed on a date, not a field to adjust - we
+ * remove the wrong one and record the right one. The analyses already saved do not
+ * move (each one freezes its numbers at the time of the calculation); it is the
+ * following ones that will stop counting this record. Idempotent.
  */
 export function deleteMarketObservation(id: string): Promise<void> {
   return del<void>(`/purchase-analysis/market-observations/${id}`)
 }
 
 /**
- * Lit une annonce depuis son lien pour pré-remplir le brouillon d'analyse.
+ * Reads a listing from its link to prefill the analysis draft.
  *
- * Répond toujours 200 : une annonce supprimée, une plateforme non prise en
- * charge ou un résultat partiel sont des issues normales du parcours, pas des
- * erreurs - c'est `status` qui les distingue, jamais une exception. Le
- * formulaire manuel reste utilisable dans tous les cas.
+ * Always answers 200: a deleted listing, an unsupported platform
+ * or a partial result are normal outcomes of the flow, not
+ * errors - it is `status` that tells them apart, never an exception. The manual
+ * form stays usable in every case.
  */
 export function resolveListing(url: string): Promise<ListingPreviewDto> {
   return post<ListingPreviewDto>('/listing-metadata/resolve', { url })
 }
 
 /**
- * Les éditions que le catalogue connaît pour cette série.
+ * The editions that the catalog knows for this series.
  *
- * Sert à ne plus faire deviner l'édition : plutôt qu'un champ libre où l'on
- * tape « Standard » au hasard — étiquette qui peut correspondre par accident à
- * une autre édition et fausser la référence marché — on propose ce qui existe
- * réellement.
+ * Used so that the edition is no longer guessed: rather than a free field where one
+ * types "Standard" at random - a label that can match by accident
+ * another edition and distort the market reference - we offer what really
+ * exists.
  */
 export function searchEditionsForSeries(seriesTitle: string): Promise<MangaEditionDto[]> {
   return get<MangaEditionDto[]>(`/purchase-analysis/editions/search${buildQuery({ seriesTitle })}`)

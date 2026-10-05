@@ -6,31 +6,31 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 /**
- * Supprime une Ownership - la couture d'application où vivent les règles de
- * suppression d'un exemplaire, pendant symétrique de
+ * Deletes an Ownership - the application seam where the rules for
+ * deleting a copy live, symmetric counterpart of
  * {@link EntityDeletionService}.
  * <p>
- * Contrairement à la suppression d'une Entity (bloquée tant qu'il existe la
- * moindre Ownership/Experience, jamais assouplie), supprimer UNE Ownership
- * précise est une action demandée explicitement par l'utilisateur (voir
- * "Supprimer cet exemplaire", OwnershipsSection côté web) - un exemplaire
- * ajouté par erreur, en double, ou qu'on ne souhaite plus tracer doit
- * pouvoir disparaître, contrairement à la fiche catalogue elle-même.
+ * Unlike the deletion of an Entity (blocked as long as the slightest
+ * Ownership/Experience exists, never relaxed), deleting ONE specific
+ * Ownership is an action explicitly asked for by the user (see
+ * "Delete this copy", OwnershipsSection on the web side) - a copy
+ * added by mistake, twice, or that we no longer want to track must
+ * be able to disappear, unlike the catalog page itself.
  * <p>
- * <b>Plus aucune garde depuis le retrait des prêts.</b> Ce service refusait
- * la suppression d'une possession référencée par un {@code Loan}, pour
- * qu'un historique de prêt ne pointe jamais vers une possession disparue.
- * La fonctionnalité de prêt ayant été retirée du produit (voir
- * {@code V19__drop_loan.sql}), cette règle n'avait plus d'objet : elle
- * protégeait un concept qui n'existe plus, pas une donnée encore présente.
+ * <b>No guard anymore since the removal of loans.</b> This service refused
+ * the deletion of an ownership referenced by a {@code Loan}, so
+ * that a loan history never points to a vanished ownership.
+ * The loan feature having been removed from the product (see
+ * {@code V19__drop_loan.sql}), this rule had no purpose left: it
+ * protected a concept that no longer exists, not data that is still there.
  * <p>
- * <b>Supprimer une Ownership ne supprime jamais le Tome catalogué</b> qu'elle
- * référence : le Variant et l'Entity survivent, seule la possession
- * disparaît. C'est l'invariant « Classer ≠ Posséder », affirmé par
+ * <b>Deleting an Ownership never deletes the cataloged Volume</b> that it
+ * references: the Variant and the Entity survive, only the ownership
+ * disappears. This is the invariant "Ranking is not Owning", asserted by
  * {@code OwnershipHttpContractTest.deletes_an_ownership_without_touching_its_variant}.
  * <p>
- * La suppression reste <b>idempotente</b> : un identifiant inconnu ou déjà
- * supprimé ne lève rien, la route rend 204 dans tous les cas.
+ * The deletion stays <b>idempotent</b>: an unknown or already deleted
+ * id raises nothing, the route returns 204 in all cases.
  */
 @Service
 public class OwnershipDeletionService {

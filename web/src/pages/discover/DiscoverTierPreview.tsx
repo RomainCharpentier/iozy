@@ -14,10 +14,10 @@ const MAX_UNIVERSE_PREVIEWS = 2
 const MAX_CUSTOM_PREVIEWS = 3
 
 /**
- * Panneau "Tier Lists" de Découvrir (voir DS v1.1 §44) - APERÇU compact,
- * pas l'écran complet (voir TierListsScreen sur /tier-lists) : au plus 2
- * univers, au plus 3 Tier Lists perso, chaque carte ouvre directement un
- * board. Une "porte d'entrée" vers Découvrir, pas une redite du hub.
+ * "Tier Lists" panel of Découvrir (see DS v1.1 section 44) - compact PREVIEW,
+ * not the full screen (see TierListsScreen on /tier-lists): at most 2
+ * universes, at most 3 custom Tier Lists, each card opens a
+ * board directly. A "front door" to Découvrir, not a repeat of the hub.
  */
 export function DiscoverTierPreview() {
   const navigate = useNavigate()
@@ -30,17 +30,17 @@ export function DiscoverTierPreview() {
 
   const previewedUniverses = universes.slice(0, MAX_UNIVERSE_PREVIEWS)
 
-  // Les listes transverses "toutes catégories" (Lot 14) comptent comme les
-  // autres dans cet aperçu : elles n'appartiennent à aucun univers, mais
-  // elles restent des Tier Lists perso de l'utilisateur.
+  // The cross-category lists "toutes catégories" (batch 14) count like the
+  // others in this preview: they belong to no universe, but
+  // they are still custom Tier Lists of the user.
   const allCustomLists = donnees.toutesLesListes
   const previewedCustom = allCustomLists.slice(0, MAX_CUSTOM_PREVIEWS)
 
   const totalUnranked = universes.reduce((sum, u) => sum + (u.counts.total - u.counts.ranked), 0)
-  // "Classer mes éléments" ouvre le board général qui a le plus d'attente,
-  // et y démarre le classement rapide (Lot 14, voir useQuickRank). Toujours
-  // UN seul univers, jamais un enchaînement multi-univers : le classement
-  // général est par nature rattaché à un univers (voir DS v1.1 §45).
+  // "Classer mes éléments" opens the general board that has the most waiting items,
+  // and starts the quick ranking there (batch 14, see useQuickRank). Always
+  // ONE single universe, never a multi-universe sequence: the general
+  // ranking is by nature attached to a universe (see DS v1.1 section 45).
   const busiestUniverse = [...universes].sort((a, b) => b.counts.total - b.counts.ranked - (a.counts.total - a.counts.ranked))[0]
 
   if (universes.length === 0 && allCustomLists.length === 0) {
@@ -54,13 +54,13 @@ export function DiscoverTierPreview() {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* grid-cols-1 n'est pas décoratif. Sans lui, la grille n'a aucune
-          colonne déclarée sous 640px : la piste implicite se dimensionne alors
-          sur le CONTENU, et le titre en `truncate` (donc nowrap) lui impose sa
-          largeur entière au lieu d'être coupé. Un type nommé un peu longuement
-          poussait la carte à 706px dans une fenêtre de 375 et faisait défiler
-          toute la page horizontalement. `grid-cols-1` vaut
-          repeat(1, minmax(0, 1fr)) : la piste ne peut plus dépasser. */}
+      {/* grid-cols-1 is not decorative. Without it, the grid has no
+          declared column under 640px: the implicit track is then sized
+          on the CONTENT, and the title in `truncate` (therefore nowrap) imposes its
+          whole width on it instead of being cut. A type with a slightly long name
+          pushed the card to 706px in a 375 window and made
+          the whole page scroll horizontally. `grid-cols-1` equals
+          repeat(1, minmax(0, 1fr)): the track can no longer overflow. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {previewedUniverses.map(({ entityType, board, counts }) => {
           const visual = getEntityTypeVisual(entityType)
@@ -129,10 +129,10 @@ export function DiscoverTierPreview() {
       {totalUnranked > 0 && busiestUniverse && (
         <button
           type="button"
-          // Demande explicitement le classement RAPIDE, pas juste l'ouverture
-          // du board (voir GeneralTierBoardPage, state.quickRank) : "Classer
-          // mes éléments" promet d'enchaîner, pas de rouvrir le sélecteur
-          // œuvre par œuvre à la main.
+          // Explicitly asks for the QUICK ranking, not just the opening
+          // of the board (see GeneralTierBoardPage, state.quickRank): "Classer
+          // mes éléments" promises to chain, not to reopen the selector
+          // work by work by hand.
           onClick={() => navigate(`/tier-lists/general/${busiestUniverse.entityType.id}`, { state: { quickRank: true, ...({ retour: { to: '/discover', libelle: 'Découvrir' } }) } })}
           className="flex w-full items-center gap-3 rounded-2xl bg-accentTint p-3.5 text-left transition-transform hover:-translate-y-0.5"
         >

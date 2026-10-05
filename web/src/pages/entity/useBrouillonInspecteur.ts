@@ -8,38 +8,38 @@ import { COVER_IMAGE_ATTRIBUTE_KEY } from '@/common/lib/coverImage'
 import type { MangaEditionDto } from '@/common/types/purchaseAnalysis'
 
 /**
- * Le brouillon de l'inspecteur en mode édition : les champs qu'on LIT
- * deviennent les champs qu'on SAISIT, à la même place (demande utilisateur du
- * 2026-09-05 : « rendre les champs éditables… transformer les champs lecture
- * seule et éditable », après une première version qui dupliquait le tout
- * dans une carte « Série » à côté).
+ * The inspector draft in edit mode: the fields one READS
+ * become the fields one ENTERS, in the same place (user request of
+ * 2026-09-05: "rendre les champs éditables… transformer les champs lecture
+ * seule et éditable", after a first version that duplicated everything
+ * in a "Série" card next to it).
  *
- * <h2>Un brouillon, un « Enregistrer »</h2>
- * Trois colonnes, deux tables en base (les attributs de l'œuvre, la fiche
- * d'édition), une seule saisie : l'utilisateur ne voit pas de frontière entre
- * « Mangaka » et « Éditeur », il n'a pas à en voir une entre deux boutons.
- * L'enregistrement écrit ce qui a changé et rien d'autre - un attribut vidé
- * est retiré (jamais une chaîne vide, voir Entity.mergeAttributes côté
- * backend), l'édition est créée ou mise à jour selon qu'elle existait.
+ * <h2>One draft, one "Enregistrer"</h2>
+ * Three columns, two tables in the database (the attributes of the work, the edition
+ * sheet), a single input: the user sees no boundary between
+ * "Mangaka" and "Éditeur", and does not need to see one between two buttons.
+ * Saving writes what changed and nothing else - an emptied attribute
+ * is removed (never an empty string, see Entity.mergeAttributes on the
+ * backend side), the edition is created or updated depending on whether it existed.
  *
- * <h2>Ce que la source ne touchera plus</h2>
- * Chaque attribut écrit ici part avec `origine=manuelle` (défaut) : le
- * serveur le marque, et « Recharger depuis la source » ne l'écrase plus
- * (Lot 130). `saisi(cle)` rend cette marque visible à côté du champ.
+ * <h2>What the source will no longer touch</h2>
+ * Each attribute written here leaves with `origine=manuelle` (default): the
+ * server marks it, and "Recharger depuis la source" no longer overwrites it
+ * (Batch 130). `saisi(cle)` makes this mark visible next to the field.
  *
- * <h2>Les remarques aussi</h2>
- * « Mes remarques » est un attribut comme un autre (`note`) : il rejoint le
- * même brouillon, et perd ses propres boutons.
+ * <h2>The remarks too</h2>
+ * "Mes remarques" is an attribute like any other (`note`): it joins the
+ * same draft, and loses its own buttons.
  */
 export interface BrouillonAttributs {
-  /** Ce qu'il y a dans le champ en ce moment. */
+  /** What is in the field right now. */
   valeur: (cle: string) => string
   saisir: (cle: string, valeur: string) => void
-  /** Marqué « saisi à la main » en base : la source ne l'écrase plus. */
+  /** Marked "saisi à la main" in the database: the source no longer overwrites it. */
   saisi: (cle: string) => boolean
-  /** Les clés à montrer dans la colonne ŒUVRE (tout ce qui n'est ni un rouage
-   *  ni une remarque), et dans la colonne SOURCE (les rouages, dans l'ordre
-   *  de la maquette puis les autres). */
+  /** The keys to show in the WORK column (everything that is neither an internal
+   *  nor a remark), and in the SOURCE column (the internals, in the order
+   *  of the mockup then the others). */
   clesOeuvre: string[]
   clesSource: string[]
 }
@@ -54,9 +54,9 @@ export interface BrouillonEdition {
   modifier: (changement: Partial<Omit<BrouillonEdition, 'nom' | 'modifier'>>) => void
 }
 
-/** Les rouages recopiés d'un fournisseur - colonne SOURCE de la maquette.
- *  Liste fermée et ORDONNÉE : c'est l'ordre de la maquette, pas celui,
- *  imprévisible, des clés du sac d'attributs. */
+/** The internals copied from a provider - SOURCE column of the mockup.
+ *  Closed and ORDERED list: it is the order of the mockup, not the unpredictable
+ *  one of the keys of the attribute bag. */
 export const CLES_SOURCE: { cle: string; libelle: string }[] = [
   { cle: 'malId', libelle: 'malId' },
   { cle: 'titleRomaji', libelle: 'Titre romaji' },
@@ -66,40 +66,40 @@ export const CLES_SOURCE: { cle: string; libelle: string }[] = [
   { cle: 'endYear', libelle: 'Année de fin' },
 ]
 
-/** Jaquette exclue : elle a son propre contrôle sur la fiche (voir
- * EntityDetailPage), et une URL d'image n'a rien à faire à côté du mangaka.
- * Les remarques ont leur relevé dans la colonne PERSONNEL. */
+/** Cover excluded: it has its own control on the detail page (see
+ * EntityDetailPage), and an image URL has no business next to the mangaka.
+ * The remarks have their own readout in the PERSONAL column. */
 const CLES_HORS_COLONNES = [COVER_IMAGE_ATTRIBUTE_KEY, 'note']
 
-/** Rouages plutôt qu'informations : identifiants externes et titres
- * alternatifs - la colonne SOURCE, avec CLES_SOURCE. */
+/** Internals rather than information: external ids and alternative
+ * titles - the SOURCE column, with CLES_SOURCE. */
 const CLES_TECHNIQUES = ['malId', 'igdbId', 'bggId', 'mediaType', 'titleRomaji', 'titleEnglish', 'titleJapanese', 'seriesStatus']
 
-/** Clés dont la valeur DOIT rester numérique quand elle est renseignée pour
- * la première fois - `totalVolumes` en tête : lue avec un `typeof === 'number'`
- * strict (voir lib/seriesInfo.totalVolumesFrom), une chaîne "48" y serait
- * silencieusement ignorée, et la progression X/Y disparaîtrait. */
-// PAS les années : la fiche et l'aperçu les lisent en `typeof === 'string'`
-// (« Depuis 2004 » dans le bandeau) - un nombre y disparaîtrait sans bruit.
+/** Keys whose value MUST stay numeric when it is filled in for
+ * the first time - `totalVolumes` first: read with a strict `typeof === 'number'`
+ * (see lib/seriesInfo.totalVolumesFrom), a string "48" would be
+ * silently ignored there, and the X/Y progress would disappear. */
+// NOT the years: the detail page and the preview read them with `typeof === 'string'`
+// ("Depuis 2004" in the banner) - a number would disappear there without a sound.
 const CLES_NUMERIQUES = ['totalVolumes', 'volumeNumber', 'averageDurationHours']
 
 /**
- * Conserve le TYPE de la valeur existante plutôt que de tout réécrire en
- * texte : les attributs sont un sac non typé, et plusieurs lecteurs testent
- * le type avant la valeur. Tout aplatir en chaîne casserait ces lectures
- * sans le moindre message d'erreur.
+ * Keeps the TYPE of the existing value rather than rewriting everything as
+ * text: the attributes are an untyped bag, and several readers test
+ * the type before the value. Flattening everything into a string would break these readings
+ * without any error message.
  */
 function valeurTypee(cle: string, texte: string, precedente: unknown): string | number {
   const veutUnNombre = typeof precedente === 'number' || (precedente === undefined && CLES_NUMERIQUES.includes(cle))
   if (!veutUnNombre) return texte
   const nombre = Number(texte)
-  // Saisie non numérique sur un champ numérique : gardée telle quelle plutôt
-  // que transformée en NaN - l'utilisateur voit ce qu'il a écrit.
+  // Non-numeric input on a numeric field: kept as is rather than
+  // turned into NaN - the user sees what they wrote.
   return Number.isFinite(nombre) ? nombre : texte
 }
 
-/** Les attributs sont un sac non typé : un même champ peut arriver en nombre
- * d'un fournisseur et en chaîne d'un autre. Tout est ramené à du texte. */
+/** The attributes are an untyped bag: the same field can arrive as a number
+ * from one provider and as a string from another. Everything is brought back to text. */
 export function texteDe(valeur: unknown): string {
   if (valeur === null || valeur === undefined) return ''
   if (typeof valeur === 'string') return valeur.trim()
@@ -107,9 +107,9 @@ export function texteDe(valeur: unknown): string {
   return ''
 }
 
-/** Libellés des clés réellement produites par les fournisseurs et par les
- * types livrés. Une clé inconnue (champ personnalisé créé par l'utilisateur)
- * est affichée telle quelle, juste rendue lisible. */
+/** Labels of the keys really produced by the providers and by the
+ * shipped types. An unknown key (custom field created by the user)
+ * is shown as is, just made readable. */
 const LIBELLES: Record<string, string> = {
   releaseDate: 'Date de sortie',
   mangaka: 'Mangaka',
@@ -141,9 +141,9 @@ export function libelleDe(cle: string): string {
 
 const AUCUNE: string[] = []
 
-/** Ce que toute œuvre peut compléter, quel que soit son type : sa date de
- *  sortie, qui met les catégories sans source au calendrier des sorties
- *  (lot 146). Proposée même absente, comme les rouages d'un manga. */
+/** What any work can fill in, whatever its type: its release
+ *  date, which puts the categories without a source on the release calendar
+ *  (batch 146). Offered even when absent, like the internals of a manga. */
 const CLES_OEUVRE_PROPOSEES = [RELEASE_DATE_ATTRIBUTE_KEY]
 
 export function useBrouillonInspecteur({
@@ -160,12 +160,12 @@ export function useBrouillonInspecteur({
   attributes: Record<string, unknown>
   champsSaisis: string[]
   customFieldKeys: string[]
-  /** Les rouages qu'on peut compléter même absents - les clés de la colonne
-   *  SOURCE pour un manga, rien pour un jeu de société : un malId n'a pas de
-   *  sens ailleurs que chez une œuvre suivie par une base de mangas. */
+  /** The internals that can be filled in even when absent - the keys of the
+   *  SOURCE column for a manga, nothing for a board game: a malId makes no
+   *  sense anywhere but on a work followed by a manga database. */
   clesSourceProposees?: string[]
-  /** L'édition active et sa fiche de référence (null tant qu'aucune n'a été
-   *  renseignée), ou null pour une œuvre sans édition nommée. */
+  /** The active edition and its reference sheet (null as long as none has been
+   *  filled in), or null for a work without a named edition. */
   edition: { nom: string; info: MangaEditionDto | null } | null
 }) {
   const queryClient = useQueryClient()
@@ -178,10 +178,10 @@ export function useBrouillonInspecteur({
     betterEditionNote: '',
   })
 
-  // Les champs proposés sont l'union des champs personnalisés DÉCLARÉS par
-  // le type (le vocabulaire voulu, même quand la valeur est encore vide) et
-  // des attributs réellement présents (ce que l'API a rempli). Aucune clé
-  // libre n'est créée ici : inventer un champ, c'est modifier le TYPE.
+  // The offered fields are the union of the custom fields DECLARED by
+  // the type (the intended vocabulary, even when the value is still empty) and
+  // of the attributes really present (what the API filled in). No free
+  // key is created here: inventing a field means changing the TYPE.
   const { cles, clesOeuvre, clesSource } = useMemo(() => {
     const toutes = [...new Set([...customFieldKeys, ...CLES_OEUVRE_PROPOSEES, ...clesSourceProposees, ...Object.keys(attributes)])].filter(
       (cle) => !CLES_HORS_COLONNES.includes(cle),
@@ -197,8 +197,8 @@ export function useBrouillonInspecteur({
 
   const info = edition?.info ?? null
 
-  // Le brouillon repart de ce qui est en base à chaque fois que la base
-  // change : ouverture, enregistrement, rechargement depuis la source.
+  // The draft restarts from what is in the database each time the database
+  // changes: opening, saving, reloading from the source.
   function reinitialiser() {
     const initial: Record<string, string> = {}
     for (const cle of cles) initial[cle] = texteDe(attributes[cle])
@@ -235,9 +235,9 @@ export function useBrouillonInspecteur({
 
   const enregistrement = useMutation({
     mutationFn: async () => {
-      // Deux opérations distinctes : compléter/corriger d'un côté, retirer de
-      // l'autre. Un champ vidé doit disparaître, pas devenir une chaîne vide
-      // qui ressemblerait ensuite à une donnée renseignée.
+      // Two separate operations: complete/fix on one side, remove on
+      // the other. An emptied field must disappear, not become an empty string
+      // that would then look like a filled-in value.
       const ecritures: Record<string, string | number> = {}
       const retraits: string[] = []
       for (const cle of cles) {
@@ -273,11 +273,11 @@ export function useBrouillonInspecteur({
               ...commun,
             })
         queryClient.setQueryData(queryKeys.purchaseAnalysis.edition(entityTitle, edition.nom), enregistree)
-        // Préfixe SANS `volumes` (dernier élément de la clé, variable selon
-        // ce qui est possédé), voir queryKeys.purchaseAnalysis.completeness.
+        // Prefix WITHOUT `volumes` (last element of the key, varying with
+        // what is owned), see queryKeys.purchaseAnalysis.completeness.
         queryClient.invalidateQueries({ queryKey: ['purchaseAnalysis', 'completeness', entityTitle, edition.nom] })
-        // Et la PROGRESSION : le nombre de tomes d'une édition est ce qui
-        // rend « X/Y » possible, et il vient du serveur (insights/progress).
+        // And PROGRESS: the number of volumes of an edition is what
+        // makes "X/Y" possible, and it comes from the server (insights/progress).
         queryClient.invalidateQueries({ queryKey: queryKeys.insights.progress })
       }
     },
@@ -309,8 +309,8 @@ export function useBrouillonInspecteur({
     modifie: attributsModifies || editionModifiee,
     enCours: enregistrement.isPending,
     erreur: enregistrement.isError ? enregistrement.error.message : null,
-    /** Une promesse : « Enregistrer et terminer » attend qu'elle tienne
-     *  avant de fermer le mode (voir EntityDetailPage). */
+    /** A promise: "Enregistrer et terminer" waits for it to hold
+     *  before closing the mode (see EntityDetailPage). */
     enregistrer: () => enregistrement.mutateAsync(),
     annuler: reinitialiser,
   }

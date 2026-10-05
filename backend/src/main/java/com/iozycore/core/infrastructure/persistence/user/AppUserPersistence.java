@@ -14,7 +14,7 @@ import java.util.UUID;
 interface AppUserJpaRepository extends JpaRepository<AppUserJpaEntity, UUID> {
     Optional<AppUserJpaEntity> findByEmail(String email);
 
-    /** `IgnoreCase` et non une égalité : l'unicité en base est posée sur `lower(pseudo)`. */
+    /** `IgnoreCase` and not an equality: the uniqueness in the database is set on `lower(pseudo)`. */
     Optional<AppUserJpaEntity> findByPseudoIgnoreCase(String pseudo);
 }
 
@@ -64,8 +64,8 @@ class JpaAppUserRepositoryAdapter implements AppUserRepository {
 
     @Override
     public boolean isEmpty() {
-        // `count() == 0` plutôt qu'un `findAll().isEmpty()` : la question posée
-        // est « y a-t-il déjà quelqu'un », pas « qui ».
+        // `count() == 0` rather than `findAll().isEmpty()`: the question asked
+        // is "is there already someone", not "who".
         return jpaRepository.count() == 0;
     }
 

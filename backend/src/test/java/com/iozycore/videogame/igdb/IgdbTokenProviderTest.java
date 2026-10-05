@@ -7,9 +7,9 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Teste uniquement la logique pure d'expiration (getAccessToken() lui-même
- * fait un appel réseau à Twitch, jamais exercé en test - même principe que
- * les autres providers de métadonnées : voir JikanMetadataProviderTest).
+ * Tests only the pure expiry logic (getAccessToken() itself
+ * makes a network call to Twitch, never exercised in tests - same principle as
+ * the other metadata providers: see JikanMetadataProviderTest).
  */
 class IgdbTokenProviderTest {
 
@@ -29,7 +29,7 @@ class IgdbTokenProviderTest {
     @Test
     void a_token_within_the_safety_margin_is_considered_expired() {
         Instant now = Instant.now();
-        Instant expiresAt = now.plusSeconds(30); // < marge de sécurité de 60s
+        Instant expiresAt = now.plusSeconds(30); // < 60s safety margin
 
         assertThat(IgdbTokenProvider.isExpired(expiresAt, now)).isTrue();
     }

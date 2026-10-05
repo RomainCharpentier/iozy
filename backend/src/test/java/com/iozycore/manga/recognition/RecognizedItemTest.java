@@ -48,8 +48,8 @@ class RecognizedItemTest {
 
     @Test
     void an_absurd_volume_number_is_dropped_rather_than_propagated() {
-        // Un « tome 4000 » mal lu diviserait le prix par tome par 4000 s'il
-        // arrivait jusqu'au calcul. On préfère « numéro non lu ».
+        // A badly read "tome 4000" would divide the price per volume by 4000 if it
+        // got as far as the calculation. We prefer "number not read".
         assertThat(item("Platinum End", 4000, null, null, RecognitionConfidence.HIGH).volumeNumber()).isNull();
         assertThat(item("Platinum End", 0, null, null, RecognitionConfidence.HIGH).volumeNumber()).isNull();
         assertThat(item("Platinum End", -3, null, null, RecognitionConfidence.HIGH).volumeNumber()).isNull();
@@ -86,8 +86,8 @@ class RecognizedItemTest {
 
     @Test
     void the_bytes_of_an_image_never_appear_in_its_string_form() {
-        // Un record afficherait le tableau par défaut, et cette ligne finirait
-        // dans une trace d'exception ou un journal.
+        // A record would print the default array, and this line would end up
+        // in an exception trace or a log.
         RecognitionImage image = new RecognitionImage(0, "https://exemple.invalid/1.jpg",
                 new byte[] {1, 2, 3, 4}, "image/jpeg");
 

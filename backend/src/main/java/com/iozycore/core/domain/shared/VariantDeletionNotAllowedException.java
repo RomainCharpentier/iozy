@@ -3,17 +3,17 @@ package com.iozycore.core.domain.shared;
 import java.util.UUID;
 
 /**
- * Levée lorsqu'on tente de supprimer un Tome (Variant) alors que des
- * Ownership ou des Experience le référencent encore - les contraintes FK
- * {@code ownership.variant_id} / {@code experience.variant_id} rejetteraient
- * sinon la suppression avec une erreur SQL brute plutôt qu'un message clair.
- * Même invariant que {@link EntityDeletionNotAllowedException} : une donnée
- * ne disparaît jamais silencieusement.
+ * Thrown when someone tries to delete a Volume (Variant) while
+ * Ownerships or Experiences still reference it - the FK constraints
+ * {@code ownership.variant_id} / {@code experience.variant_id} would
+ * otherwise reject the deletion with a raw SQL error rather than a clear message.
+ * Same invariant as {@link EntityDeletionNotAllowedException}: data
+ * never disappears silently.
  * <p>
- * Modèle catalogue cible Série -> Édition -> Tome : un Tome existe
- * indépendamment de sa possession (voir Entity.removeVariant / VariantDeletionService)
- * - cette garde protège une suppression EXPLICITE, elle ne s'applique jamais
- * automatiquement quand une Ownership est simplement vendue/perdue/supprimée.
+ * Target catalog model Series -> Edition -> Volume: a Volume exists
+ * independently of its ownership (see Entity.removeVariant / VariantDeletionService)
+ * - this guard protects an EXPLICIT deletion, it never applies
+ * automatically when an Ownership is simply sold/lost/deleted.
  */
 public class VariantDeletionNotAllowedException extends RuntimeException {
 

@@ -14,7 +14,7 @@ import java.util.TreeSet;
  * HTTP dependency, so it can be instantiated directly in tests. Reused both
  * by {@link PurchaseAnalysisEngine} (for a listing being evaluated) and by
  * {@code PurchaseAnalysisService#computeCompleteness} (for a series already
- * in the user's own collection - see "coût pour compléter une série").
+ * in the user's own collection - see "cost to complete a series").
  */
 public class CompletenessCalculator {
 
@@ -36,7 +36,7 @@ public class CompletenessCalculator {
     }
 
     /**
-     * @param cataloguedVolumes étape 6/8 (modèle Tome != Ownership) - volume numbers that have a real
+     * @param cataloguedVolumes step 6/8 (Volume != Ownership model) - volume numbers that have a real
      *                          catalogued Variant (regardless of Ownership), used only to classify each
      *                          missing volume as catalogued-but-unowned vs purely virtual - never to
      *                          change {@code missingCount}/{@code missingVolumeNumbers} themselves

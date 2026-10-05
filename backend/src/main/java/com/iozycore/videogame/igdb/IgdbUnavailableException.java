@@ -1,13 +1,13 @@
 package com.iozycore.videogame.igdb;
 
 /**
- * Levée quand IGDB ne peut pas répondre (identifiants absents/invalides,
- * échec de l'échange de token Twitch, panne réseau). Contrairement à BGG,
- * IGDB n'a pas de mode dégradé/anonyme - sans un access token Twitch
- * valide, aucun appel IGDB ne peut aboutir. Toujours attrapée par les
- * appelants ({@link IgdbMetadataProvider}, {@link IgdbSimilarGamesFetcher}),
- * jamais propagée au client HTTP (contrat {@code MetadataProvider} : ne
- * jamais lever, retourner une liste vide en cas de panne).
+ * Thrown when IGDB cannot answer (missing/invalid credentials,
+ * failed Twitch token exchange, network outage). Unlike BGG,
+ * IGDB has no degraded/anonymous mode - without a valid Twitch access token,
+ * no IGDB call can succeed. Always caught by the
+ * callers ({@link IgdbMetadataProvider}, {@link IgdbSimilarGamesFetcher}),
+ * never propagated to the HTTP client ({@code MetadataProvider} contract: never
+ * throw, return an empty list on failure).
  */
 class IgdbUnavailableException extends Exception {
 

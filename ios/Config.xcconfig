@@ -1,10 +1,10 @@
-// Config.xcconfig — point de configuration UNIQUE pour renommer l'app.
-// Modifie les 2 valeurs ci-dessous, relance `xcodegen generate`, c'est tout :
-// aucun fichier Swift, aucun autre endroit de project.yml à toucher.
+// Config.xcconfig — the ONE place to configure when you rename the app.
+// Change the 2 values below, run `xcodegen generate`, and that is all:
+// no Swift file and no other place in project.yml needs to change.
 
-// Nom affiché (icône iPhone, titre dans l'app, réglages système).
+// Display name (iPhone icon, title in the app, system settings).
 APP_NAME = IozyCore
 
-// Identifiant technique de l'app (reverse-DNS, doit rester unique).
-// Format conseillé : com.tondomaine.nomapp
+// Technical identifier of the app (reverse-DNS, must stay unique).
+// Recommended format: com.yourdomain.appname
 APP_BUNDLE_ID = com.iozycore.app

@@ -7,21 +7,21 @@ import { TexteCoupe } from './TexteCoupe'
 import { Jaquette } from './Jaquette'
 
 /**
- * Popover desktop / bottom sheet mobile - même pattern responsive déjà
- * établi (CollectionFilters). Réutilisé par le
- * board (clic sur une tuile) ET par "Classer cette œuvre" depuis la fiche
- * - un seul composant pour les deux entrées (voir §50 "Classer rapidement" :
- * même sélecteur, juste enchaîné élément par élément côté appelant).
+ * Desktop popover / mobile bottom sheet - same responsive pattern already
+ * established (CollectionFilters). Reused by the
+ * board (click on a tile) AND by "Classer cette œuvre" from the detail page
+ * - a single component for both entries (see §50 "Classer rapidement":
+ * same picker, just chained item by item on the caller side).
  * <p>
- * Clavier (voir DS v1.1 §48) : une fois ouvert, les lettres S-F
- * choisissent directement le rang correspondant SI actif pour cette liste,
- * Échap ferme sans changement - en plus de la navigation Tab/Entrée
- * standard sur les boutons eux-mêmes.
+ * Keyboard (see DS v1.1 §48): once open, the letters S-F
+ * directly choose the matching rank IF active for this list,
+ * Escape closes without change - in addition to the standard
+ * Tab/Enter navigation on the buttons themselves.
  * <p>
- * En mode "Classer rapidement" (voir useQuickRank), le même composant porte
- * en plus un compteur de progression et un bouton "Passer" - jamais un
- * second sélecteur en parallèle : c'est la promesse du §50 ("même sélecteur,
- * juste enchaîné élément par élément").
+ * In "Classer rapidement" mode (see useQuickRank), the same component also carries
+ * a progress counter and a "Passer" button - never a
+ * second picker in parallel: this is the promise of §50 ("same picker,
+ * just chained item by item").
  */
 export function TierPicker({
   open,
@@ -42,27 +42,27 @@ export function TierPicker({
   activeRanks: Rank[]
   currentRank: Rank | null
   onSelect: (rank: Rank | null) => void
-  /** Mode "Classer rapidement" seulement : position dans la file (1-indexée). */
+  /** "Classer rapidement" mode only: position in the queue (1-indexed). */
   progress?: { current: number; total: number } | null
-  /** Mode "Classer rapidement" seulement : laisser cette œuvre non classée et
-   * passer à la suivante - distinct de Fermer, qui abandonne toute la file. */
+  /** "Classer rapidement" mode only: leave this work unranked and
+   * move on to the next - distinct from Close, which abandons the whole queue. */
   onSkip?: () => void
-  /** Tier List PERSONNALISÉE seulement : retirer l'œuvre de la liste, à ne pas
-   * confondre avec "Retirer le classement" ci-dessous, qui la laisse dans la
-   * liste, simplement non classée. Sans cette action, une œuvre ajoutée par
-   * erreur depuis AddTierListItemsPanel n'avait plus aucune sortie, sinon
-   * supprimer la liste entière. Absent sur le classement général, où
-   * l'appartenance est implicite (toute œuvre possédée est candidate, voir
-   * TierListService) : il n'y a rien dont on puisse la retirer. */
+  /** CUSTOM Tier List only: remove the work from the list, not to be
+   * confused with "Retirer le classement" below, which leaves it in the
+   * list, simply unranked. Without this action, a work added by
+   * mistake from AddTierListItemsPanel had no exit left, other than
+   * deleting the whole list. Absent on the general ranking, where
+   * membership is implicit (every owned work is a candidate, see
+   * TierListService): there is nothing to remove it from. */
   onRemoveFromList?: () => void
 }) {
-  // Escape + piège de focus + focus rendu au déclencheur - voir
-  // useModalA11y (Lot 9, générique, partagé par tous les dialogs de l'app).
+  // Escape + focus trap + focus returned to the trigger - see
+  // useModalA11y (Batch 9, generic, shared by all the dialogs of the app).
   const containerRef = useModalA11y<HTMLDivElement>(open, onClose)
 
-  // Raccourcis S-F : propre à ce composant (pas une préoccupation "a11y
-  // générique de dialog"), reste local. N'intercepte plus Escape lui-même -
-  // déjà géré par le hook ci-dessus.
+  // S-F shortcuts: specific to this component (not a "generic dialog
+  // a11y" concern), stays local. No longer intercepts Escape itself -
+  // already handled by the hook above.
   useEffect(() => {
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
@@ -138,8 +138,8 @@ export function TierPicker({
             Retirer le classement
           </button>
         )}
-        {/* "Passer" n'existe qu'en classement rapide : hors de ce mode, ne
-            rien choisir se fait déjà en fermant le sélecteur. */}
+        {/* "Passer" only exists in quick ranking: outside this mode, choosing
+            nothing is already done by closing the picker. */}
         {onSkip && (
           <button
             type="button"

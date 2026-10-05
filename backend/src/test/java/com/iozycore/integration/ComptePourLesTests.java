@@ -12,24 +12,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.UUID;
 
 /**
- * Hors requête, les tests d'intégration parlent au nom du <b>premier compte</b>.
+ * Outside a request, the integration tests speak in the name of the <b>first account</b>.
  *
- * <h2>Pourquoi les tests ont besoin de ça</h2>
- * En production, ne pas savoir qui écrit vaut {@link DefaultOwner#PERSONNE} :
- * un chemin qui oublie de le dire ne voit rien. C'est la bonne règle, et elle
- * reste testée telle quelle ({@code UtilisateurCourantTest}).
+ * <h2>Why the tests need this</h2>
+ * In production, not knowing who writes is equal to {@link DefaultOwner#PERSONNE}:
+ * a path that forgets to say it sees nothing. This is the right rule, and it
+ * is still tested as it is ({@code UtilisateurCourantTest}).
  *
- * <p>Mais un test d'intégration appelle des services <b>directement</b>, sans
- * requête HTTP, donc sans session - et Spring Security <b>efface</b> le
- * contexte à la fin de chaque appel MockMvc, y compris au milieu d'un test.
- * Une centaine de tests écrivent par un service puis relisent par un dépôt :
- * sans ce repli, ils écriraient au nom de personne et relèveraient une base
- * vide, pour une raison qui n'a rien à voir avec ce qu'ils vérifient.
+ * <p>But an integration test calls services <b>directly</b>, without an
+ * HTTP request, so without a session - and Spring Security <b>clears</b> the
+ * context at the end of each MockMvc call, even in the middle of a test.
+ * A hundred tests write through a service and then read through a repository:
+ * without this fallback, they would write in the name of nobody and would find an empty
+ * database, for a reason that has nothing to do with what they check.
  *
- * <p>Le repli vaut {@link DefaultOwner#ID} - l'identifiant que porte tout ce
- * que les migrations et les tests existants ont créé, et que le premier compte
- * d'une vraie instance adopte. Un test qui veut parler au nom de quelqu'un
- * d'autre pose une vraie session : elle l'emporte toujours sur ce repli (voir
+ * <p>The fallback is {@link DefaultOwner#ID} - the identifier carried by everything
+ * that the migrations and the existing tests created, and that the first account
+ * of a real instance adopts. A test that wants to speak in the name of someone
+ * else sets a real session: it always wins over this fallback (see
  * {@code IsolationParProprietaireTest}).
  *
  */
@@ -42,22 +42,22 @@ public class ComptePourLesTests {
         return new UtilisateurCourant() {
             @Override
             public UUID proprietaire() {
-                // Une VISITE n'est personne, et doit le rester ICI AUSSI.
+                // A VISITOR is nobody, and must stay so HERE TOO.
                 //
-                // Ce repli existe pour les tests qui appellent des services
-                // hors requête, sans session : il les fait parler au nom du
-                // premier compte. Mais une session de visite EST une session -
-                // elle ne nomme simplement aucun propriétaire - et le repli en
-                // aurait fait le premier compte. Un test de visite serait alors
-                // passé en voyant la collection de quelqu'un, c'est-à-dire en
-                // affirmant l'inverse de ce qu'il vérifie. Constaté en direct :
-                // `un_visiteur_voit_le_catalogue_et_aucune_possession` a échoué
-                // sur cette ligne, et c'est bien le stub qui avait tort.
+                // This fallback exists for the tests that call services
+                // outside a request, without a session: it makes them speak in the name of the
+                // first account. But a visitor session IS a session -
+                // it just does not name any owner - and the fallback would
+                // have made it the first account. A visitor test would then have
+                // passed while seeing someone's collection, that is to say while
+                // stating the opposite of what it checks. Seen live:
+                // `un_visiteur_voit_le_catalogue_et_aucune_possession` failed
+                // on this line, and it was the stub that was wrong.
                 //
-                // La question se pose ici et pas dans la production, où le
-                // repli vaut déjà « personne » : c'est donc ici qu'elle se
-                // règle, sans rouvrir dans le code de production une notion de
-                // visiteur dont il n'a pas besoin.
+                // The question is asked here and not in production, where the
+                // fallback is already "nobody": so this is where it is
+                // settled, without reopening in the production code a notion of
+                // visitor that it does not need.
                 if (estUneVisite()) {
                     return DefaultOwner.PERSONNE;
                 }

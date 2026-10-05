@@ -34,67 +34,67 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Recherche les tomes réels d'une série de manga via le catalogue SRU
- * (ouvert, sans clé ni quota) de la BnF (Bibliothèque nationale de France) -
- * le dépôt légal impose à tout éditeur français d'y déposer chaque
- * parution, ce qui en fait une couverture bien plus exhaustive que Google
- * Books sur les sorties françaises récentes ou d'éditeurs plus confidentiels.
+ * Searches the real volumes of a manga series via the SRU catalog
+ * (open, no key or quota) of the BnF (Bibliothèque nationale de France) -
+ * the legal deposit requires every French publisher to file each
+ * release there, which makes it a much more complete coverage than Google
+ * Books for recent French releases or those of smaller publishers.
  * <p>
- * Cas réel qui motive ce fournisseur (signalé et vérifié à la demande de
- * l'utilisateur, voir historique de la conversation) : "Dragon Ball Full
- * Color - L'enfance de Goku" (Glénat, à partir de mai 2024) est
- * INTROUVABLE sur Google Books quelle que soit la formulation essayée
- * (titre exact de l'éditeur y compris), mais ressort immédiatement sur la
- * BnF - avec numéro de tome (champ MARC 200$h), éditeur (214$c) et ISBN
- * (010$a) dans des champs STRUCTURÉS, contrairement à Google Books où le
- * numéro de tome doit être deviné par regex dans un titre libre.
+ * Real case that motivates this provider (reported and checked at the request of
+ * the user, see history of the conversation): "Dragon Ball Full
+ * Color - L'enfance de Goku" (Glénat, from May 2024) is
+ * IMPOSSIBLE TO FIND on Google Books whatever the wording tried
+ * (exact title of the publisher included), but comes out at once on the
+ * BnF - with volume number (MARC field 200$h), publisher (214$c) and ISBN
+ * (010$a) in STRUCTURED fields, unlike Google Books where the
+ * volume number must be guessed by regex in a free title.
  * <p>
- * Les jaquettes viennent du service « couverture » du catalogue (Lot 120) :
- * une image par notice récente (celles du dépôt légal depuis les années
- * 2010, vérifié sur Boruto - 300 Ko chacune), et une erreur 500 pour les
- * autres. Chaque URL est donc VÉRIFIÉE (HEAD) avant d'être rendue, sans quoi
- * une adresse morte serait persistée sur le tome et bloquerait le rattrapage
- * de jaquettes de Ma collection. Toujours cumulé aux résultats Google Books
- * (jamais en repli conditionnel) - TomeSearchService dédoublonne ensuite
- * par (édition, tome) : la notice BnF, rencontrée en premier, fait foi, et
- * une jaquette manquante est reprise de Google Books (Lot 119).
+ * The covers come from the "couverture" service of the catalog (Batch 120):
+ * one image per recent record (those of the legal deposit since the
+ * 2010s, checked on Boruto - 300 KB each), and a 500 error for the
+ * others. Each URL is therefore CHECKED (HEAD) before being returned, otherwise
+ * a dead address would be persisted on the volume and would block the cover
+ * catch-up of Ma collection. Always added to the Google Books results
+ * (never as a conditional fallback) - TomeSearchService then deduplicates
+ * by (edition, volume): the BnF record, met first, is authoritative, and
+ * a missing cover is taken from Google Books (Batch 119).
  * <p>
- * Deux façons de cataloguer un tome, toutes deux lues (Lot 120) : le titre
- * de série en 200$a avec le numéro en 200$h (« Boruto » T9), ou le titre
- * PROPRE du tome en 200$a (« Kawaki ») avec la série et son numéro en
- * 461$t/$v ou 225$a/$v. Boruto : 7 tomes par la première voie, les 20 par
- * les deux. La requête interroge le NOM DE SÉRIE (avant « : » ou « - »),
- * sans quoi les tomes catalogués par leur titre propre ne remontent pas.
+ * Two ways to catalog a volume, both read (Batch 120): the series title
+ * in 200$a with the number in 200$h ("Boruto" T9), or the volume's
+ * OWN title in 200$a ("Kawaki") with the series and its number in
+ * 461$t/$v or 225$a/$v. Boruto: 7 volumes by the first way, all 20 by
+ * both. The query asks for the SERIES NAME (before ":" or "-"),
+ * otherwise the volumes cataloged by their own title do not come up.
  * <p>
- * Pas de notion de recherche "rapide"/"approfondie" ici (voir
- * GoogleBooksVolumeSearchProvider et son partage de quota) : une seule
- * requête libre (CQL) par recherche suffit à tout ramener d'un coup, sans
- * biais de popularité à contourner par mot-clé - searchAdditionalEditions
- * garde son comportement par défaut (vide), la relancer n'apporterait rien
- * de plus.
+ * No notion of "quick"/"deep" search here (see
+ * GoogleBooksVolumeSearchProvider and its quota sharing): a single
+ * free request (CQL) per search is enough to bring everything back at once, without
+ * popularity bias to work around by keyword - searchAdditionalEditions
+ * keeps its default behavior (empty), running it again would bring nothing
+ * more.
  */
 @Component
-// En premier (Lot 119) : sans cle ni quota, et des champs STRUCTURES. Sur un
-// meme tome, c'est sa notice qui fait foi ; Google Books n'apporte que la
-// jaquette (voir TomeSearchService.fusionnerTome).
+// First (Batch 119): no key or quota, and STRUCTURED fields. On the
+// same volume, its record is authoritative; Google Books only brings the
+// cover (see TomeSearchService.fusionnerTome).
 @Order(1)
 public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
     private static final Logger log = LoggerFactory.getLogger(BnfVolumeSearchProvider.class);
     private static final String SEARCH_URL =
             "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&maximumRecords=100&startRecord=%d&query=%s";
-    /** Cinq pages au plus : One Piece (112 tomes, plusieurs editions) tient
-     *  en quatre ; au-dela, c'est une requete trop large, pas une serie. */
+    /** Five pages at most: One Piece (112 volumes, several editions) fits
+     *  in four; beyond that, it is a request that is too wide, not a series. */
     private static final int PAGE = 100;
     private static final int NOTICES_MAX = 500;
     private static final Pattern NOMBRE_DE_NOTICES = Pattern.compile("<srw:numberOfRecords>(\\d+)</srw:numberOfRecords>");
-    /** L'image de la notice, par son identifiant ARK (controlfield 003). 500 quand il n'y en a pas. */
+    /** The image of the record, by its ARK identifier (controlfield 003). 500 when there is none. */
     static final String COVER_URL = "https://catalogue.bnf.fr/couverture?&appName=NE&idArk=%s&couverture=1";
-    /** Un numéro de tome au-delà n'en est pas un (identifiants FRBNF à quinze chiffres en 461$v, entre autres). */
+    /** A volume number above this is not one (FRBNF identifiers with fifteen digits in 461$v, among others). */
     private static final int VOLUME_NUMBER_MAX = 999;
 
-    // "T. 7", "7" - le champ MARC 200$h contient en général juste le
-    // numéro, mais on reste tolérant sur un éventuel préfixe.
+    // "T. 7", "7" - the MARC field 200$h usually contains just the
+    // number, but we stay tolerant of a possible prefix.
     private static final Pattern VOLUME_NUMBER = Pattern.compile("(\\d+)");
     private static final Pattern ANNEE = Pattern.compile("(1[89]\\d{2}|20\\d{2})");
 
@@ -115,9 +115,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         String cql = buildQuery(seriesTitle, author);
         try {
             String encodedQuery = URLEncoder.encode(cql, StandardCharsets.UTF_8);
-            // Page par page (mesure du 2026-09-05 : One Piece rendait 44 tomes
-            // sur 112, les 100 premieres notices seulement). Une requete par
-            // page, et on s'arrete des que la BnF dit qu'il n'y a plus rien.
+            // Page by page (measured on 2026-09-05: One Piece returned 44 volumes
+            // out of 112, the first 100 records only). One request per
+            // page, and we stop as soon as the BnF says there is nothing more.
             List<String> pages = new ArrayList<>();
             int total = Integer.MAX_VALUE;
             for (int debut = 1; debut <= Math.min(total, NOTICES_MAX); debut += PAGE) {
@@ -129,38 +129,38 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() != 200) {
-                    // Une source qui refuse (429 : la BnF limite le debit par
-                    // adresse) ou qui tombe n'a rien DIT - ce n'est pas « aucun
-                    // tome » : signale comme telle, TomeSearchService ne
-                    // mettra pas ce vide en cache (voir searchVolumes).
-                    log.warn("La BnF a répondu {} pour la recherche de tomes '{}'", response.statusCode(), cql);
+                    // A source that refuses (429: the BnF limits the rate per
+                    // address) or that goes down has said nothing - it is not "no
+                    // volume": reported as such, TomeSearchService will not
+                    // cache this empty result (see searchVolumes).
+                    log.warn("The BnF answered {} for the volume search '{}'", response.statusCode(), cql);
                     throw new SourceUnavailableException("La BnF a répondu " + response.statusCode());
                 }
                 Matcher nombre = NOMBRE_DE_NOTICES.matcher(response.body());
                 total = nombre.find() ? Integer.parseInt(nombre.group(1)) : 0;
-                // Les jaquettes ne sont plus verifiees ici (Lot 127) : voir
-                // BnfCouverture - une par tome GARDE, jamais une par tome liste.
+                // The covers are no longer checked here (Batch 127): see
+                // BnfCouverture - one per volume KEPT, never one per volume listed.
                 pages.add(response.body());
             }
             return parse(pages, seriesTitle, excludedTitleFragments);
         } catch (SourceUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            // Best-effort par nature : une panne ne doit jamais bloquer la
-            // recherche de tomes, Google Books reste dans tous les cas
-            // interrogé séparément par TomeSearchService.
-            log.warn("Échec de la recherche de tomes BnF pour '{}' : {}", cql, e.getMessage());
+            // Best-effort by nature: an outage must never block the
+            // volume search, Google Books stays in all cases
+            // queried separately by TomeSearchService.
+            log.warn("BnF volume search failed for '{}': {}", cql, e.getMessage());
             throw new SourceUnavailableException("La BnF n'a pas répondu : " + e.getMessage());
         }
     }
 
-    /** 010$a - l'ISBN du tome, dans un champ MARC dédié. */
+    /** 010$a - the ISBN of the volume, in a dedicated MARC field. */
     private static String isbnDe(Element record) {
         Element field010 = firstDatafield(record, "010");
         return field010 == null ? null : subfield(field010, "a");
     }
 
-    /** L'année de publication : 214$d (« DL 2009 ») ou, sur les notices d'avant 2019, 210$d. */
+    /** The publication year: 214$d ("DL 2009") or, on records from before 2019, 210$d. */
     private static Integer anneeDe(Element record) {
         for (String tag : new String[] {"214", "210"}) {
             Element field = firstDatafield(record, tag);
@@ -183,8 +183,8 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return query;
     }
 
-    /** Miroir de {@link #searchVolumes} pour les tests - parse une seule
-     * réponse XML déjà en mémoire. */
+    /** Mirror of {@link #searchVolumes} for the tests - parses a single
+     * XML answer already in memory. */
     List<VolumeCandidate> parse(String xml, String seriesTitle) throws Exception {
         return parse(xml, seriesTitle, List.of());
     }
@@ -194,27 +194,27 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     /**
-     * Toutes les pages d'une reponse, en DEUX passes.
+     * All the pages of an answer, in TWO passes.
      *
-     * <p>Un tome catalogue sous son propre titre (« Kawaki », 461$t
-     * « Boruto ») n'a rien qui dise s'il appartient a « Boruto: Naruto Next
-     * Generations » ou a une autre serie « Boruto ». Mesure du 2026-09-05 :
-     * cherchant « One Piece: Strong World », les 111 tomes de One Piece
-     * (« A l'aube d'une grande aventure », 461$t « One piece ») s'invitaient
-     * par ce chemin. La regle : quand la serie cherchee porte un sous-titre,
-     * un tel tome n'est retenu que si d'AUTRES notices du meme ensemble 461
-     * portent ce sous-titre en clair (« Boruto » + $e « Naruto next
-     * generations » : oui ; « One piece » + « Strong world » : jamais, ses
-     * deux tomes sont catalogues $a « Strong world » + $e « one piece film »).
+     * <p>A volume cataloged under its own title ("Kawaki", 461$t
+     * "Boruto") has nothing that says whether it belongs to "Boruto: Naruto Next
+     * Generations" or to another "Boruto" series. Measurement of 2026-09-05:
+     * searching "One Piece: Strong World", the 111 volumes of One Piece
+     * ("A l'aube d'une grande aventure", 461$t "One piece") invited themselves
+     * through this path. The rule: when the searched series has a subtitle,
+     * such a volume is only kept if OTHER records of the same 461 set
+     * carry this subtitle in clear ("Boruto" + $e "Naruto next
+     * generations": yes; "One piece" + "Strong world": never, its two
+     * volumes are cataloged $a "Strong world" + $e "one piece film").
      */
     List<VolumeCandidate> parse(List<String> pages, String seriesTitle, List<String> excludedTitleFragments) throws Exception {
         List<VolumeCandidate> candidates = new ArrayList<>();
-        // Les tomes en attente d'une confirmation, avec la serie 461 qui les porte.
+        // The volumes waiting for a confirmation, with the 461 series that carries them.
         List<Map.Entry<String, VolumeCandidate>> differes = new ArrayList<>();
-        // Les series 461 dont une notice a confirme le sous-titre cherche.
+        // The 461 series for which a record confirmed the searched subtitle.
         Set<String> seriesConfirmees = new HashSet<>();
-        // Les tomes qui portent un $e qui ne designe aucune edition, groupes
-        // par ce $e ; et les numeros des tomes sans aucun $e (voir plus bas).
+        // The volumes that carry a $e that designates no edition, grouped
+        // by this $e; and the numbers of the volumes without any $e (see below).
         Map<String, List<VolumeCandidate>> parSousTitre = new LinkedHashMap<>();
         Set<Integer> numerosSansSousTitre = new HashSet<>();
         for (String xml : pages) {
@@ -226,14 +226,14 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 candidates.add(differe.getValue());
             }
         }
-        // Un $e partage par PLUSIEURS tomes dont la serie a deja les numeros
-        // sans $e est une AUTRE oeuvre cataloguee sous le nom de la serie
-        // (lot 144) : « Naruto » + « Konoha shinden / the steam ninja
-        // scrolls » T1 et T2 - un roman -, « les liens, repliques celebres »
-        // T1 et T2, chez Kana comme les 72 tomes. Ils prenaient la place des
-        // tomes 1 et 2, et la separation par ISBN renvoyait les vrais dans une
-        // « Kana (2002) » a part. Un sous-titre porte par UN tome (« Grande
-        // chance », T21) reste un tome : il n'a pas de jumeau sans $e.
+        // A $e shared by SEVERAL volumes whose series already has the numbers
+        // without $e is ANOTHER work cataloged under the name of the series
+        // (batch 144): "Naruto" + "Konoha shinden / the steam ninja
+        // scrolls" T1 and T2 - a novel -, "les liens, repliques celebres"
+        // T1 and T2, at Kana like the 72 volumes. They took the place of
+        // volumes 1 and 2, and the separation by ISBN sent the real ones to a
+        // separate "Kana (2002)". A subtitle carried by ONE volume ("Grande
+        // chance", T21) stays a volume: it has no twin without $e.
         for (List<VolumeCandidate> groupe : parSousTitre.values()) {
             if (groupe.size() >= 2 && groupe.stream().allMatch(c -> numerosSansSousTitre.contains(c.volumeNumber()))) {
                 candidates.removeAll(groupe);
@@ -262,42 +262,42 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             if (rawTitle == null || rawTitle.isBlank()) {
                 continue;
             }
-            // 200$b dit la nature du document. Le dépôt légal reçoit aussi
-            // les DVD (« Images animées » - les coffrets Kana Home Video de
-            // Boruto, numérotés 3, 4, 7, 8 comme des tomes) et les jeux
-            // (« Ressource électronique ») : on ne garde que le papier, et
-            // les notices qui ne disent rien (certains tomes n'ont pas de $b).
+            // 200$b tells the nature of the document. The legal deposit also receives
+            // DVDs ("Images animées" - the Kana Home Video boxes of
+            // Boruto, numbered 3, 4, 7, 8 like volumes) and games
+            // ("Ressource électronique"): we only keep paper,
+            // and the records that say nothing (some volumes have no $b).
             String nature = subfield(titleField, "b");
             if (nature != null && !nature.toLowerCase().contains("texte imprim")) {
                 continue;
             }
-            // Une collection de ROMANS jeunesse n'est jamais une edition du
-            // manga (lot 144) : Hachette range « Naruto » et « One piece » en
-            // Bibliothèque verte - des romans tires de l'anime, que la BnF
-            // rattache a la serie (225$a « One piece », 410$t « Bibliothèque
-            // verte ») et qui sortaient en « Hachette jeunesse » 15 et 11
-            // tomes a cote de Kana et Glénat. Mangacollec ne les compte pas.
+            // A collection of children's NOVELS is never an edition of the
+            // manga (batch 144): Hachette puts "Naruto" and "One piece" in
+            // Bibliothèque verte - novels drawn from the anime, which the BnF
+            // attaches to the series (225$a "One piece", 410$t "Bibliothèque
+            // verte") and which came out as "Hachette jeunesse" 15 and 11
+            // volumes next to Kana and Glénat. Mangacollec does not count them.
             if (estUnRomanJeunesse(record)) {
                 continue;
             }
-            // Comparaison insensible à la casse (vérifié manuellement : la
-            // BnF indexe parfois "Dragon ball" en minuscules selon la
-            // notice) ET aux espaces/tirets internes (vérifié manuellement
-            // sur "Cardcaptor Sakura" - titre MyAnimeList en un seul mot -
-            // face à "Card captor Sakura", le $a réel de la BnF avec un
-            // espace, voir historique) - le champ $a est déjà exactement le
-            // nom de la série (jamais un TITRE PLUS LONG à préfixer comme
-            // côté Google Books, voir matchSeriesPrefix), mais peut différer
-            // légèrement en ponctuation/espacement du titre MyAnimeList
-            // cherché.
-            // Le titre cherché peut porter un SOUS-TITRE que la BnF range à
-            // part : « Boruto: Naruto Next Generations » (MyAnimeList) est
-            // catalogué $a « Boruto » + $e « Naruto next generations ».
-            // Constaté le 2026-09-04, Google Books à quota épuisé : la BnF
-            // rendait 19 notices, toutes écartées ici, et l'écran concluait
-            // qu'aucun fournisseur n'avait répondu. On accepte donc $a seul,
-            // ou $a suivi de l'un de ses $e - et ce $e-là n'est plus une
-            // édition (voir plus bas).
+            // Case-insensitive comparison (checked manually: the
+            // BnF sometimes indexes "Dragon ball" in lowercase depending on the
+            // record) AND ignoring inner spaces/hyphens (checked manually
+            // on "Cardcaptor Sakura" - MyAnimeList title in a single word -
+            // against "Card captor Sakura", the real $a of the BnF with a
+            // space, see history) - the $a field is already exactly the
+            // name of the series (never a LONGER TITLE to prefix as
+            // on the Google Books side, see matchSeriesPrefix), but can differ
+            // slightly in punctuation/spacing from the MyAnimeList title
+            // searched.
+            // The searched title can carry a SUBTITLE that the BnF files
+            // apart: "Boruto: Naruto Next Generations" (MyAnimeList) is
+            // cataloged $a "Boruto" + $e "Naruto next generations".
+            // Seen on 2026-09-04, Google Books with its quota exhausted: the BnF
+            // returned 19 records, all rejected here, and the screen concluded
+            // that no provider had answered. So we accept $a alone,
+            // or $a followed by one of its $e - and that $e is no longer an
+            // edition (see below).
             String cherche = normalizeForComparison(seriesTitle);
             String serieCourte = normalizeForComparison(nomDeSerie(seriesTitle));
             String titreBnf = normalizeForComparison(rawTitle);
@@ -310,9 +310,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     sousTitreConsomme = k;
                 }
             }
-            // Ou l'inverse : le SOUS-TITRE cherche en $a, et la serie mere
-            // dans un $e - « Strong world » + $e « one piece film », la facon
-            // dont la BnF catalogue un film en anime comics.
+            // Or the reverse: the SUBTITLE searched in $a, and the parent series
+            // in a $e - "Strong world" + $e "one piece film", the way
+            // the BnF catalogs an anime comics film.
             String serieCourteCherchee = normalizeForComparison(nomDeSerie(seriesTitle));
             String sousTitreDuCherche = cherche.startsWith(serieCourteCherchee) ? cherche.substring(serieCourteCherchee.length()) : "";
             for (int k = 0; !correspond && k < sousTitres.size(); k++) {
@@ -322,19 +322,19 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     sousTitreConsomme = k;
                 }
             }
-            // Seconde voie : le tome porte son titre PROPRE en 200$a
-            // (« Kawaki »), et la série en 461$t (ou 225$a) avec son numéro
-            // en $v. C'est ainsi que la BnF catalogue treize des vingt tomes
-            // de Boruto, et les premiers Dragon Ball de 1993.
+            // Second way: the volume carries its OWN title in 200$a
+            // ("Kawaki"), and the series in 461$t (or 225$a) with its number
+            // in $v. This is how the BnF catalogs thirteen of the twenty volumes
+            // of Boruto, and the first Dragon Ball of 1993.
             String serie = serieDeRattachement(record);
             boolean parLaSerie = !correspond && serie != null
                     && (normalizeForComparison(serie).equals(cherche)
                         || normalizeForComparison(serie).equals(serieCourte));
-            // Rattaché à la série mais avec un sous-titre qui n'est PAS celui
-            // cherché : c'est une autre série sous le même nom - « Boruto »
-            // + « two blue vortex » n'est pas « Boruto: Naruto Next
-            // Generations ». Sans cette garde, la suite s'invitait dans la
-            // liste comme une « édition Two Blue Vortex » des tomes 1 à 3.
+            // Attached to the series but with a subtitle that is NOT the one
+            // searched: it is another series under the same name - "Boruto"
+            // + "two blue vortex" is not "Boruto: Naruto Next
+            // Generations". Without this guard, the sequel invited itself into the
+            // list as a "Two Blue Vortex edition" of volumes 1 to 3.
             String sousTitreCherche = cherche.startsWith(serieCourte) ? cherche.substring(serieCourte.length()) : "";
             if (parLaSerie && !sousTitres.isEmpty() && !sousTitreCherche.isEmpty()) {
                 parLaSerie = false;
@@ -345,11 +345,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     }
                 }
             }
-            // Sans aucun $e, et une serie CHERCHEE avec sous-titre : le tome
-            // est mis en attente - il ne compte que si une autre notice du
-            // meme ensemble confirme ce sous-titre (voir parse). Un tome
-            // intitule du seul nom de la serie mere (« One piece » T5) est
-            // ecarte tout de suite.
+            // Without any $e, and a series SEARCHED with a subtitle: the volume
+            // is put on hold - it only counts if another record of the
+            // same set confirms this subtitle (see parse). A volume
+            // titled with the name of the parent series alone ("One piece" T5) is
+            // rejected at once.
             boolean differe = false;
             if (parLaSerie && sousTitres.isEmpty() && !sousTitreCherche.isEmpty()) {
                 if (titreBnf.equals(serieCourte)) {
@@ -361,15 +361,15 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
             if (!correspond && !parLaSerie) {
                 continue;
             }
-            // Une notice qui porte le sous-titre en clair confirme sa serie 461
-            // pour les tomes en attente.
+            // A record that carries the subtitle in clear confirms its 461 series
+            // for the volumes on hold.
             if (sousTitreConsomme >= 0 && serie != null && !sousTitreCherche.isEmpty()) {
                 seriesConfirmees.add(normalizeForComparison(serie));
             }
 
-            // 200$h : numéro de tome, dans un champ MARC dédié - jamais une
-            // fiche de "série" entière (sans tome précis), qui n'a rien à
-            // proposer ici. À défaut, le numéro dans la série (461$v/225$v).
+            // 200$h: volume number, in a dedicated MARC field - never a
+            // whole "series" record (without a precise volume), which has nothing to
+            // offer here. Failing that, the number in the series (461$v/225$v).
             OptionalInt volumeNumber = parseVolumeNumber(subfield(titleField, "h"));
             if (volumeNumber.isEmpty()) {
                 volumeNumber = parseVolumeNumber(numeroDansLaSerie(record));
@@ -383,25 +383,25 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                 partsEdition.remove(sousTitreConsomme);
             }
             String edition = editionName(partsEdition);
-            // Un produit DERIVE n'est pas un tome (lot 144) : « Naruto, grand
-            // livre d'Uzumaki » T1 et T2 - un art book - est catalogue comme
-            // un tome, avec un $e qui ne designe aucune edition ; il prenait
-            // la place des tomes 1 et 2 de Kana, que la separation par ISBN
-            // renvoyait alors dans une « Kana (2002) » a part (mesure du
-            // 2026-09-06). Un $e qui nomme un guide, un art book, un roman,
-            // ecarte la notice ; un sous-titre de tome (« Grande chance »)
-            // reste un tome.
+            // A DERIVED product is not a volume (batch 144): "Naruto, grand
+            // livre d'Uzumaki" T1 and T2 - an art book - is cataloged as
+            // a volume, with a $e that designates no edition; it took
+            // the place of volumes 1 and 2 of Kana, which the separation by ISBN
+            // then sent to a separate "Kana (2002)" (measured on
+            // 2026-09-06). A $e that names a guide, an art book, a novel,
+            // rejects the record; a volume subtitle ("Grande chance")
+            // stays a volume.
             if (edition.isBlank() && estUnProduitDerive(partsEdition)) {
                 continue;
             }
-            // Le titre complet, TOUS les $e compris : « Dragon Ball » + « super »
-            // doit rester reconnaissable comme « Dragon Ball Super » meme si
-            // « super » ne fait pas une edition.
+            // The full title, ALL the $e included: "Dragon Ball" + "super"
+            // must stay recognizable as "Dragon Ball Super" even if
+            // "super" does not make an edition.
             String displayTitle = rawTitle + (partsEdition.isEmpty() ? "" : " " + String.join(" ", partsEdition))
                     + " T" + volumeNumber.getAsInt();
 
-            // Spin-off/side-story/suite CONNU(e) (voir RelatedSeriesService) -
-            // même logique que GoogleBooksVolumeSearchProvider.
+            // KNOWN spin-off/side-story/sequel (see RelatedSeriesService) -
+            // same logic as GoogleBooksVolumeSearchProvider.
             if (matchesKnownRelatedSeries(displayTitle, excludedTitleFragments)) {
                 continue;
             }
@@ -411,11 +411,11 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
                     : (publisher == null || publisher.isBlank() ? "Édition inconnue" : publisher);
             finalEdition = normalizeEditionWord(finalEdition);
 
-            // L'URL de jaquette est posée ici mais VÉRIFIÉE par searchVolumes
-            // (voir la javadoc de la classe) : parse() reste sans réseau.
-            // La BnF ne date qu'à l'année (« DL 2024 ») : le calendrier des
-            // sorties n'en fait rien, mais la fusion avec Google Books garde
-            // la date la plus précise des deux (voir VolumeCandidate).
+            // The cover URL is set here but CHECKED by searchVolumes
+            // (see the class javadoc): parse() stays without network.
+            // The BnF only dates to the year ("DL 2024"): the release
+            // calendar does nothing with it, but the merge with Google Books keeps
+            // the most precise date of the two (see VolumeCandidate).
             Integer annee = anneeDe(record);
             VolumeCandidate candidate = new VolumeCandidate(finalEdition, volumeNumber.getAsInt(), coverUrl(record),
                     displayTitle, isbnDe(record), annee, annee == null ? null : String.valueOf(annee));
@@ -434,28 +434,28 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     /**
-     * Ce qui, dans un 200$e, DESIGNE une edition (« Perfect edition »,
-     * « Edition double », « Full color », « Collector »...), par opposition au
-     * sous-titre d'UN tome. Mesure du 2026-09-05 sur Jujutsu Kaisen : la BnF
-     * catalogue « Grande chance », « Recursion », « Mort et vie » en $e des
-     * tomes 21, 24, 29 - et chacun devenait une edition a part, a un tome, a
-     * cote des 29 de Ki-oon, la ou mangacollec n'en connait qu'une.
+     * What, in a 200$e, DESIGNATES an edition ("Perfect edition",
+     * "Edition double", "Full color", "Collector"...), as opposed to the
+     * subtitle of ONE volume. Measurement of 2026-09-05 on Jujutsu Kaisen: the BnF
+     * catalogs "Grande chance", "Recursion", "Mort et vie" in $e of
+     * volumes 21, 24, 29 - and each became a separate edition, with one volume, next
+     * to the 29 of Ki-oon, where mangacollec knows only one.
      */
     private static final Pattern DESIGNATION_D_EDITION = Pattern.compile(
             "(?iu)\\b(?:[ée]ditions?|[ée]d\\.|deluxe|luxe|perfect|double|collector|int[ée]grale|kanzenban|ultimate"
             + "|full ?colou?r|couleur|nouvelle|coffret|r[ée][ée]dition|grand format|poche|kiosque|black|star|prestige"
             + "|anniversaire|jubil[ée]|originale?|first|premium|compl[eè]te|omnibus|variant|jaquette|hokage|log|kai)\\b");
 
-    /** 200$e (répétable - ex: "full color" ET "l'enfance de Goku" sur deux
-     * subfields distincts pour la même notice) : seules les parts qui
-     * DESIGNENT une edition sont gardees, jointes et capitalisees. Un
-     * sous-titre de tome (« Grande chance ») ne fait pas une edition : la
-     * notice retombe alors sur son editeur, comme les autres tomes. */
+    /** 200$e (repeatable - e.g. "full color" AND "l'enfance de Goku" in two
+     * distinct subfields for the same record): only the parts that
+     * DESIGNATE an edition are kept, joined and capitalized. A
+     * volume subtitle ("Grande chance") does not make an edition: the
+     * record then falls back on its publisher, like the other volumes. */
     private static String editionName(List<String> parts) {
-        // Tout ou rien : des qu'une part DESIGNE une edition (« full color »),
-        // les autres la qualifient (« l'enfance de Goku » : l'arc de Dragon
-        // Ball Full Color, dont la numerotation repart a 1) et restent. Sans
-        // aucune designation, ce sont des sous-titres de tomes : aucune.
+        // All or nothing: as soon as one part DESIGNATES an edition ("full color"),
+        // the others qualify it ("l'enfance de Goku": the arc of Dragon
+        // Ball Full Color, whose numbering starts again at 1) and stay. Without
+        // any designation, they are volume subtitles: none.
         boolean designeUneEdition = parts.stream().anyMatch(part -> DESIGNATION_D_EDITION.matcher(part).find());
         if (!designeUneEdition) {
             return "";
@@ -466,9 +466,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
     }
 
     private static String publisherFrom214(Element record) {
-        // 214 depuis 2019 ; les notices plus anciennes portent l'éditeur en
-        // 210$c - sans ce repli, les premiers tomes d'une série sortaient en
-        // « Édition inconnue » et se retrouvaient à part des suivants.
+        // 214 since 2019; older records carry the publisher in
+        // 210$c - without this fallback, the first volumes of a series came out as
+        // "Édition inconnue" and ended up apart from the following ones.
         Element field214 = firstDatafield(record, "214");
         String publisher = field214 == null ? null : subfield(field214, "c");
         if (publisher == null || publisher.isBlank()) {
@@ -494,14 +494,14 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         }
     }
 
-    /** « Boruto: Naruto Next Generations » -> « Boruto » ; « Dragon Ball - Full Color » -> « Dragon Ball » ; sinon le titre entier. */
+    /** "Boruto: Naruto Next Generations" -> "Boruto"; "Dragon Ball - Full Color" -> "Dragon Ball"; otherwise the whole title. */
     static String nomDeSerie(String seriesTitle) {
         String[] parts = seriesTitle.split("\\s*[:\\-\u2013]\\s+", 2);
         String serie = parts[0].trim();
         return serie.isEmpty() ? seriesTitle.trim() : serie;
     }
 
-    /** 461$t (l'ensemble dont le tome fait partie), à défaut 225$a (la collection). */
+    /** 461$t (the set the volume is part of), failing that 225$a (the collection). */
     private static String serieDeRattachement(Element record) {
         Element ensemble = firstDatafield(record, "461");
         String titre = ensemble == null ? null : subfield(ensemble, "t");
@@ -522,7 +522,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return numero;
     }
 
-    /** L'URL de couverture de la notice, ou null sans identifiant ARK. */
+    /** The cover URL of the record, or null without an ARK identifier. */
     private static String coverUrl(Element record) {
         NodeList controlfields = record.getElementsByTagName("mxc:controlfield");
         for (int i = 0; i < controlfields.getLength(); i++) {
@@ -544,7 +544,7 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return parts.stream().anyMatch(part -> PRODUIT_DERIVE.matcher(part).find());
     }
 
-    /** Les collections de romans jeunesse connues, a la casse et aux accents pres. */
+    /** The known children's novel collections, case and accents exact. */
     private static boolean estUnRomanJeunesse(Element record) {
         for (String tag : List.of("225", "410")) {
             for (Element champ : datafields(record, tag)) {
@@ -601,18 +601,18 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return values;
     }
 
-    /** Retire tout espace/tiret et met en minuscules avant comparaison - voir
-     * l'appelant. "Cardcaptor" (un seul mot) et "Card captor" (deux mots)
-     * donnent tous deux "cardcaptor", peu importe où la coupure tombe. */
-    /** Ni casse, ni espaces, ni ponctuation : « Boruto: Naruto » et « Boruto : Naruto » sont le même titre. */
+    /** Removes every space/hyphen and lowercases before comparison - see
+     * the caller. "Cardcaptor" (a single word) and "Card captor" (two words)
+     * both give "cardcaptor", no matter where the cut falls. */
+    /** Neither case, nor spaces, nor punctuation: "Boruto: Naruto" and "Boruto : Naruto" are the same title. */
     private static String normalizeForComparison(String text) {
         return text.trim().toLowerCase().replaceAll("[^\\p{L}\\p{N}]+", "");
     }
 
-    /** Comparaison par mot entier (?U pour reconnaître les lettres accentuées
-     * comme des caractères de mot, même piège que côté Google Books) - un
-     * simple contains() ferait matcher un fragment générique/court à
-     * l'intérieur d'un autre mot sans rapport. */
+    /** Whole word comparison (?U to recognize accented letters
+     * as word characters, same trap as on the Google Books side) - a
+     * simple contains() would make a generic/short fragment match
+     * inside another unrelated word. */
     private static boolean matchesKnownRelatedSeries(String title, List<String> excludedTitleFragments) {
         for (String fragment : excludedTitleFragments) {
             if (Pattern.compile("(?iU)\\b" + Pattern.quote(fragment) + "\\b").matcher(title).find()) {
@@ -622,9 +622,9 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return false;
     }
 
-    /** "full color" -> "Full Color" - la BnF indexe les sous-titres de
-     * collection tout en minuscules, contrairement au nom de l'éditeur
-     * (déjà correctement casé) utilisé en repli. */
+    /** "full color" -> "Full Color" - the BnF indexes collection
+     * subtitles all in lowercase, unlike the publisher name
+     * (already correctly cased) used as a fallback. */
     private static String capitalizeWords(String text) {
         StringBuilder result = new StringBuilder();
         for (String word : text.trim().split("\\s+")) {
@@ -639,15 +639,15 @@ public class BnfVolumeSearchProvider implements VolumeSearchProvider {
         return result.toString();
     }
 
-    // "Pika", "Pika Edition", "Pika édition" (vérifié manuellement sur
-    // "Fairy Tail", voir historique) : la BnF indexe le même éditeur avec ou
-    // sans le mot "édition"/"edition" accentué ou non selon la notice,
-    // formant sinon plusieurs onglets d'édition distincts pour un seul
-    // éditeur réel - même classe de problème que TRAILING_MANGA_SUFFIX côté
-    // GoogleBooksVolumeSearchProvider. "s?" final (vérifié manuellement sur
-    // "Blue Period", voir historique) : "Pika éditions" (pluriel) formait
-    // encore un quatrième onglet distinct malgré ce premier assouplissement,
-    // le \b final ne validant jamais une frontière de mot entre "n" et "s".
+    // "Pika", "Pika Edition", "Pika édition" (checked manually on
+    // "Fairy Tail", see history): the BnF indexes the same publisher with or
+    // without the word "édition"/"edition" accented or not depending on the record,
+    // otherwise forming several distinct edition tabs for a single
+    // real publisher - same class of problem as TRAILING_MANGA_SUFFIX on the
+    // GoogleBooksVolumeSearchProvider side. Final "s?" (checked manually on
+    // "Blue Period", see history): "Pika éditions" (plural) still formed
+    // a fourth distinct tab despite this first relaxation,
+    // the final \b never validating a word boundary between "n" and "s".
     private static final Pattern EDITION_WORD_VARIANT = Pattern.compile("(?U)\\b[EeÉé]ditions?\\b");
 
     private static String normalizeEditionWord(String text) {

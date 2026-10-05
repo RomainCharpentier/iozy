@@ -6,21 +6,21 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : ce qu'un univers exporte et importe en plus du
- * catalogue et de la collection - pour le manga, ses éditions de référence,
- * ses éditions suivies, ses prix relevés et ses préférences d'analyse
- * (Lot 133). L'ordre des passes est celui de l'import : les références
- * d'abord (une édition doit exister avant qu'un tome ne s'y relie), le reste
- * quand tout le catalogue est en place.
+ * Extension point of the core: what a universe exports and imports in addition to the
+ * catalog and the collection - for manga, its reference editions,
+ * its followed editions, its recorded prices and its analysis preferences
+ * (Batch 133). The order of the passes is the one of the import: references
+ * first (an edition must exist before a volume links to it), the rest
+ * when the whole catalog is in place.
  */
 public interface TransferModule {
 
-    /** Ses sections du document, à l'export. */
+    /** Its sections of the document, at export time. */
     ExportDocument.SectionsUnivers exporter(Map<UUID, Entity> entitiesById);
 
-    /** Ses références, une fois les œuvres en place et avant les liens tome → édition. */
+    /** Its references, once the works are in place and before the volume -> edition links. */
     void importerReferences(ImportContexte contexte);
 
-    /** Le reste, quand tout le catalogue et la collection sont importés. */
+    /** The rest, when the whole catalog and the collection are imported. */
     void importerComplements(ImportContexte contexte);
 }

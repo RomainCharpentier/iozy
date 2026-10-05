@@ -11,18 +11,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * La récupération VIA LA BASE IOZYCORE - le quatrième module de metadata
- * (Lot 132), à côté des mangas, des jeux vidéo et des jeux de société.
+ * Retrieval VIA THE IOZYCORE DATABASE - the fourth module of metadata
+ * (Batch 132), next to mangas, video games and board games.
  * <p>
- * Ce que l'instance sait déjà passe par ici : la recherche transversale du
- * catalogue (titre, type, tag - l'écran « Rechercher » l'interroge en même
- * temps que les fournisseurs externes, voir SearchPage côté web) et les
- * titres déjà connus d'un type, dont {@code MetadataSearchService} se sert
- * pour ne pas reproposer à l'ajout ce qu'on possède déjà.
+ * What the instance already knows goes through here: the cross-type search of the
+ * catalog (title, type, tag - the "Search" screen queries it at the
+ * same time as the external providers, see SearchPage on the web side) and the
+ * titles already known for a type, which {@code MetadataSearchService} uses
+ * so as not to propose again for adding what is already owned.
  * <p>
- * Lecture seule. Faire EXISTER une fiche (identifier-ou-créer) reste un cas
- * d'usage de l'application (voir CatalogEntityResolver) : ce module dit ce
- * que la base contient, il n'y écrit rien.
+ * Read only. Making a work EXIST (identify-or-create) remains a use
+ * case of the application (see CatalogEntityResolver): this module says what
+ * the database contains, it writes nothing to it.
  */
 @Service
 public class CatalogSearchService {
@@ -33,15 +33,15 @@ public class CatalogSearchService {
         this.entityRepository = entityRepository;
     }
 
-    /** Recherche transversale sur le catalogue (UC4) : par titre, filtrable par type et/ou tag, tous optionnels. */
+    /** Cross-type search on the catalog (UC4): by title, filterable by type and/or tag, all optional. */
     public List<Entity> rechercher(String titre, UUID entityTypeId, UUID tagId) {
         return entityRepository.search(titre, entityTypeId, tagId);
     }
 
     /**
-     * Les titres déjà au catalogue pour ce type, sous leur clé de
-     * comparaison (accents et ponctuation pliés, voir TexteRecherche) - la
-     * même règle que la déduplication de l'ajout rapide.
+     * The titles already in the catalog for this type, under their
+     * comparison key (accents and punctuation folded, see TexteRecherche) - the
+     * same rule as the deduplication of quick add.
      */
     public Set<String> titresConnus(UUID entityTypeId) {
         return entityRepository.findAllByType(entityTypeId).stream()

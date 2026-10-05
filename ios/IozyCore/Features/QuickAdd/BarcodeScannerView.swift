@@ -1,16 +1,16 @@
 import SwiftUI
 import VisionKit
 
-/// Scanner de code-barres pour l'ajout rapide (parcours 1, étape 5 :
-/// "moins de 5 secondes"). Utilise VisionKit plutôt qu'AVFoundation brut -
-/// moins de code, et l'API supportée par Apple pour ce cas d'usage depuis
+/// Barcode scanner for quick add (journey 1, step 5:
+/// "less than 5 seconds"). Uses VisionKit rather than raw AVFoundation -
+/// less code, and the API supported by Apple for this use case since
 /// iOS 16.
 ///
-/// Limite assumée : le code scanné est affiché tel quel et pré-remplit le
-/// titre avec sa valeur brute - il n'y a pas encore de lookup vers une
-/// base de métadonnées (ISBN → titre réel, etc.). Ce lookup est le rôle du
-/// futur module "Metadata Enrichment" côté backend (Jikan/IGDB/BGG),
-/// volontairement pas construit dans cet incrément.
+/// Accepted limit: the scanned code is shown as is and pre-fills the
+/// title with its raw value - there is no lookup yet to a
+/// metadata base (ISBN → real title, etc.). This lookup is the role of the
+/// future "Metadata Enrichment" module on the backend side (Jikan/IGDB/BGG),
+/// deliberately not built in this increment.
 struct BarcodeScannerView: UIViewControllerRepresentable {
     let onScan: (String) -> Void
 
@@ -50,8 +50,8 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
     }
 }
 
-/// Écran présenté en sheet depuis QuickAddView. Gère le cas simulateur
-/// (pas de caméra disponible) avec un message explicite plutôt qu'un crash.
+/// Screen shown as a sheet from QuickAddView. Handles the simulator case
+/// (no camera available) with an explicit message rather than a crash.
 struct BarcodeScannerSheet: View {
     let onScan: (String) -> Void
     @Environment(\.dismiss) private var dismiss

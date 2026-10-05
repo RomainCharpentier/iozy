@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GeminiEditionAdvisorTest {
 
-    // Enveloppe generateContent - "text" porte le JSON métier tel que demandé au modèle
+    // generateContent envelope - "text" carries the business JSON as requested from the model
     // (generationConfig.responseMimeType=application/json).
     private static final String SAMPLE_RESPONSE = """
             {
@@ -32,8 +32,8 @@ class GeminiEditionAdvisorTest {
 
     @Test
     void no_api_key_configured_means_no_call_and_an_empty_result() {
-        // apiKey (@Value) reste à sa valeur par défaut Java (null) hors conteneur Spring - même convention
-        // que IgdbMetadataProvider/GoogleBooksHttpClient : jamais d'exception, juste absent.
+        // apiKey (@Value) stays at its Java default value (null) outside a Spring container - same convention
+        // as IgdbMetadataProvider/GoogleBooksHttpClient: never an exception, just absent.
         GeminiEditionAdvisor advisor = new GeminiEditionAdvisor();
 
         Optional<EditionSuggestion> suggestion = advisor.suggestReferenceData("Death Note", "Black Édition");
@@ -82,7 +82,7 @@ class GeminiEditionAdvisorTest {
                 """);
 
         assertThat(suggestion).isPresent();
-        // Confiance jamais devinée à la hausse : une valeur non reconnue retombe sur LOW, jamais HIGH/MEDIUM.
+        // Confidence never guessed upwards: an unrecognised value falls back to LOW, never HIGH/MEDIUM.
         assertThat(suggestion.get().confidence()).isEqualTo(ConfidenceLevel.LOW);
         assertThat(suggestion.get().tier()).isNull();
     }

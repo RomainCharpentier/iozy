@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/** Une série encore référencée par une édition de référence ne se supprime pas (contrainte manga_edition.entity_id). */
+/** A series still referenced by a reference edition cannot be deleted (constraint manga_edition.entity_id). */
 @Component
 public class MangaEditionDeletionGuard implements EntityDeletionGuard {
 

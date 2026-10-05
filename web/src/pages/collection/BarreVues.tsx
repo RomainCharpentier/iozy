@@ -9,34 +9,34 @@ const FILTRES: { cle: FiltreCollection; libelle: string }[] = [
 ]
 
 /**
- * Les trois filtres et les deux vues de Ma collection.
+ * The three filters and the two views of My collection.
  *
- * <h2>Une page, trois lectures</h2>
- * « Collection » et « Envies » étaient deux écrans séparés alors qu'ils
- * regardent le même endroit (étude produit du 2026-08-27, §5). Ce sont des
- * FILTRES, et chacun raisonne sur les tomes qu'un groupe contient : « Envies »
- * montre les groupes contenant au moins un tome voulu, pas les séries
- * marquées voulues - une série ne peut pas l'être.
+ * <h2>One page, three readings</h2>
+ * "Collection" and "Envies" were two separate screens although they
+ * look at the same place (product study of 2026-08-27, section 5). They are
+ * FILTERS, and each one reasons about the volumes that a group contains: "Envies"
+ * shows the groups that contain at least one wished volume, not the series
+ * marked as wished - a series cannot be.
  *
- * <p>Les trois filtres s'excluent, d'où un vrai `radiogroup` : `aria-pressed`
- * annoncerait trois interrupteurs indépendants dont deux « inactifs ». Même
- * traitement que la grille de tomes de la fiche, pour la même raison.
+ * <p>The three filters exclude each other, hence a real `radiogroup`: `aria-pressed`
+ * would announce three independent switches of which two are "inactive". Same
+ * treatment as the volume grid of the detail page, for the same reason.
  *
- * <p>La vue est un interrupteur à deux positions : groupée (une carte par
- * GROUPE) ou dégroupée (les éléments eux-mêmes). Le libellé dit ce vers quoi
- * on bascule, jamais l'état courant - un bouton nomme son action. Le tri suit
- * la même règle (lot 148) : « Par titre » quand on est par récence, « Récents
- * d'abord » quand on est par titre - son libellé disait l'état pendant que son
- * nom accessible disait l'action, deux voix pour un seul bouton.
+ * <p>The view is a two-position switch: grouped (one card per
+ * GROUP) or ungrouped (the items themselves). The label says what we
+ * switch to, never the current state - a button names its action. The sort follows
+ * the same rule (batch 148): "Par titre" when sorted by recency, "Récents
+ * d'abord" when sorted by title - its label said the state while its
+ * accessible name said the action, two voices for one button.
  *
- * <p>Sur téléphone, les quatre filtres prennent toute la largeur, chacun sa
- * part : posés à leur largeur naturelle, ils dépassaient 390 px et c'est la
- * page entière qui se mettait à défiler de côté (lot 148).
+ * <p>On a phone, the four filters take the full width, each its
+ * share: placed at their natural width, they went over 390 px and the
+ * whole page started to scroll sideways (batch 148).
  *
- * <p>« Grouper » / « Dégrouper », et non « voir les tomes » : le tome est le
- * vocabulaire du manga, pas celui du concept. Chaque type de collection a ses
- * propres groupes - une série pour un manga, demain une saga ou une gamme
- * ailleurs - et le libellé doit valoir pour tous.
+ * <p>"Grouper" / "Dégrouper", and not "voir les tomes": the volume is the
+ * vocabulary of manga, not that of the concept. Each collection type has its
+ * own groups - a series for a manga, tomorrow a saga or a range
+ * elsewhere - and the label must work for all of them.
  */
 export function BarreVues({
   filtre,
@@ -53,12 +53,12 @@ export function BarreVues({
   onVue: (vue: VueCollection) => void
   tri: TriCollection
   onTri: (tri: TriCollection) => void
-  /** Ce que chaque filtre donnerait - annoncé avant le clic, pour qu'un
-   *  filtre vide se voie au lieu de se découvrir.
+  /** What each filter would give - announced before the click, so that an
+   *  empty filter is seen instead of being discovered.
    *
-   *  `null` tant que les données ne sont pas arrivées : afficher « 0 » en
-   *  attendant, c'est affirmer une collection vide à quelqu'un qui en a une.
-   *  Un chiffre absent se lit comme « pas encore su », un zéro comme un fait. */
+   *  `null` while the data has not arrived: showing "0" while
+   *  waiting means claiming an empty collection to someone who has one.
+   *  A missing number reads as "not known yet", a zero as a fact. */
   comptes: Record<FiltreCollection, number> | null
 }) {
   return (

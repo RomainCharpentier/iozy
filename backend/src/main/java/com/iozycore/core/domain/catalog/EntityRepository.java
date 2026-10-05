@@ -5,9 +5,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Port du domaine pour la persistance des Entity. L'implémentation
- * (JPA/PostgreSQL) vit en infrastructure — le domaine ne connaît que
- * cette interface (Clean Architecture, étape 10-11 de la conception).
+ * Domain port for the persistence of Entity. The implementation
+ * (JPA/PostgreSQL) lives in infrastructure - the domain only knows
+ * this interface (Clean Architecture, steps 10-11 of the design).
  */
 public interface EntityRepository {
 
@@ -16,22 +16,22 @@ public interface EntityRepository {
     Optional<Entity> findById(UUID id);
 
     /**
-     * Utilisé par la déduplication de l'ajout rapide (UC1, étape 6) :
-     * recherche insensible à la casse, pour retrouver une Entity déjà
-     * cataloguée avant d'en recréer une en double.
+     * Used by the deduplication of quick add (UC1, step 6):
+     * case-insensitive search, to find an Entity already
+     * cataloged before creating a duplicate.
      */
     Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title);
 
-    /** Utilisé pour rafraîchir un client après un import en masse (ex: collection BGG). */
+    /** Used to refresh a client after a bulk import (e.g. BGG collection). */
     List<Entity> findAllByType(UUID entityTypeId);
 
-    /** Utilisé par le garde-fou de suppression d'un EntityType (on ne charge pas les Entity juste pour compter). */
+    /** Used by the delete guard of an EntityType (we do not load the Entity just to count). */
     boolean existsByType(UUID entityTypeId);
 
     /**
-     * Recherche transversale sur la collection (UC4, étape 1/6 de la
-     * conception : "recherche instantanée transversale"). entityTypeId et
-     * tagId sont des filtres optionnels (null = pas de filtre sur ce critère).
+     * Cross-cutting search on the collection (UC4, step 1/6 of the
+     * design: "instant cross-cutting search"). entityTypeId and
+     * tagId are optional filters (null = no filter on this criterion).
      */
     List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId);
 

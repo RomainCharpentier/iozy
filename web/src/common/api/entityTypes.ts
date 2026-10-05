@@ -13,7 +13,7 @@ export function updateEntityType(id: string, body: UpdateEntityTypeRequest): Pro
   return patch<EntityTypeDto>(`/entity-types/${id}`, body)
 }
 
-/** Bloqué côté serveur (409) si des Entity de ce type existent encore. */
+/** Blocked on the server side (409) if Entity items of this type still exist. */
 export function deleteEntityType(id: string): Promise<void> {
   return del<void>(`/entity-types/${id}`)
 }

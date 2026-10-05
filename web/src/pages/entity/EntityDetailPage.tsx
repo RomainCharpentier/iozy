@@ -54,35 +54,35 @@ import { invaliderApresPossession } from '@/common/lib/invalidations'
 import { SqueletteFiche } from '@/common/components/Squelette'
 
 /**
- * La fiche d'une œuvre, d'après la maquette « Fiche série - multi-éditions ».
+ * The detail page of a work, after the mockup "Fiche série - multi-éditions".
  *
- * <h2>La page tient en trois bandes</h2>
- * Une bande haute teintée par la jaquette (identité + rangée des éditions),
- * la grille dense des tomes de l'édition affichée, et un inspecteur à trois
- * colonnes (personnel / œuvre / source). Plus d'onglets : tout est là, et
- * c'est la structure de la page qui fait le tri.
+ * <h2>The page has three bands</h2>
+ * A top band tinted by the cover (identity + row of editions),
+ * the dense grid of the volumes of the displayed edition, and an inspector with three
+ * columns (personal / work / source). No more tabs: everything is there, and
+ * it is the structure of the page that does the sorting.
  *
- * <h2>Lire, puis modifier</h2>
- * Le bouton pinceau de la maquette bascule toute la fiche entre deux états.
- * Au repos elle se LIT : des relevés compacts, aucun formulaire, aucun « + »
- * qui traîne. En mode édition apparaissent les points d'ajout (suivre une
- * édition, ajouter un tome) et, sous l'inspecteur, les éditeurs complets déjà
- * construits (classements, expériences, tags, informations, relations,
- * suppression). Aucun de ces éditeurs n'a été réécrit pour cette maquette -
- * ils changent de moment d'apparition, pas de comportement.
+ * <h2>Read, then edit</h2>
+ * The brush button of the mockup switches the whole page between two states.
+ * At rest it is READ: compact readouts, no form, no stray "+".
+ * In edit mode the add points appear (follow an
+ * edition, add a volume) and, under the inspector, the full editors already
+ * built (rankings, experiences, tags, information, relationships,
+ * deletion). None of these editors was rewritten for this mockup -
+ * they change when they appear, not how they behave.
  *
- * <h2>Afficher une édition n'est pas la suivre</h2>
- * Deux choses distinctes, longtemps confondues dans un seul `useState` :
- * l'édition AFFICHÉE est un état d'écran, l'édition SUIVIE est une donnée
- * persistée (voir com.iozycore.domain.followededition). C'est elle qui décide
- * de ce qu'on ouvre à la prochaine visite.
+ * <h2>Displaying an edition is not following it</h2>
+ * Two separate things, long mixed up in a single `useState`:
+ * the DISPLAYED edition is a screen state, the FOLLOWED edition is persisted
+ * data (see com.iozycore.domain.followededition). It is the one that decides
+ * what is opened on the next visit.
  */
-/** Des valeurs par défaut à identité STABLE : passées au brouillon de
- *  l'inspecteur tant que l'œuvre n'est pas chargée, un `{}` ou `[]` neuf à
- *  chaque rendu relancerait son effet de réinitialisation en boucle. */
+/** Default values with a STABLE identity: passed to the inspector draft
+ *  while the work is not loaded, a fresh `{}` or `[]` at
+ *  each render would restart its reset effect in a loop. */
 const VIDE: Record<string, unknown> = {}
 const AUCUN: string[] = []
-/** Les rouages qu'un manga peut compléter même absents (voir useBrouillonInspecteur). */
+/** The internals that a manga can fill in even when absent (see useBrouillonInspecteur). */
 const CLES_SOURCE_MANGA = CLES_SOURCE.map((c) => c.cle)
 
 export function EntityDetailPage() {
@@ -90,27 +90,27 @@ export function EntityDetailPage() {
   const entityId = id!
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  // D'où l'on vient, quand l'écran précédent a pris la peine de le dire (voir
-  // retourFiche). Absent sur une fiche rechargée ou reçue par lien : le
-  // raccourci disparaît alors, la page reste entière.
+  // Where the user comes from, when the previous screen took the trouble to say so (see
+  // retourFiche). Absent on a reloaded detail page or one received by link: the
+  // shortcut then disappears, the page stays whole.
   const retour = retourDepuis(useLocation().state)
   const wishlist = useWishlist()
   const suivis = useOeuvresSuivies()
 
   const [editionAffichee, setEditionAffichee] = useState<string | null>(null)
   const [modeEdition, setModeEdition] = useState(false)
-  /** « Terminer » a été demandé alors que le brouillon de l'inspecteur a
-   *  changé : la sortie attend qu'on enregistre ou qu'on abandonne. */
+  /** "Terminer" was requested while the inspector draft has
+   *  changed: leaving waits for the user to save or discard. */
   const [sortieDemandee, setSortieDemandee] = useState(false)
-  // Une visite ne modifie rien : les points d'entrée d'édition ne sont pas
-  // désactivés, ils n'existent pas. Tous sont facultatifs par construction, et
-  // ne pas les passer suffit à les retirer - « Éditer » emporte au passage
-  // toutes les sections de catalogue, qui vivent derrière `modeEdition`.
+  // A visit changes nothing: the edit entry points are not
+  // disabled, they do not exist. All are optional by construction, and
+  // not passing them is enough to remove them - "Éditer" takes with it
+  // all the catalog sections, which live behind `modeEdition`.
   //
-  // Les gestes plus fins (cocher un tome, suivre une édition) restent en place
-  // et se heurtent au refus du serveur, expliqué en une phrase par
-  // lib/useRefusDeVisite : les masquer un par un dans une quarantaine
-  // d'endroits revenait à parier qu'aucun ne serait oublié.
+  // The finer gestures (checking a volume, following an edition) stay in place
+  // and run into the refusal of the server, explained in one sentence by
+  // lib/useRefusDeVisite: hiding them one by one in about forty
+  // places amounted to betting that none would be forgotten.
   const { estInvite, compte } = useAuth()
   const toast = useToast()
   const [filtre, setFiltre] = useState<FiltreTomes>('tous')
@@ -138,15 +138,15 @@ export function EntityDetailPage() {
   })
 
   /**
-   * « Je l'ai » sur un tome manquant - un clic, rien à remplir.
+   * "Je l'ai" on a missing volume - one click, nothing to fill in.
    *
-   * Le panneau du tome ne s'ouvre plus sur ce chemin : il n'existait là que
-   * pour porter le formulaire d'état et de prix, qui a disparu (voir le lot
-   * précédent). Il reste la surface d'un tome POSSÉDÉ, où il gère un
-   * exemplaire réel - prix payé, note, vendu/perdu, exemplaires passés.
+   * The volume panel no longer opens on this path: it only existed there
+   * to carry the condition and price form, which is gone (see the previous
+   * batch). It remains the surface of an OWNED volume, where it manages a
+   * real copy - price paid, rating, sold/lost, past copies.
    *
-   * `quickAdd` retrouve ou crée le tome par (titre, numéro, édition), comme
-   * partout ailleurs : rien de neuf n'est inventé ici.
+   * `quickAdd` finds or creates the volume by (title, number, edition), as
+   * everywhere else: nothing new is invented here.
    */
   const ajoutTome = useMutation({
     mutationFn: async (tome: {
@@ -154,8 +154,8 @@ export function EntityDetailPage() {
       titre: string
       numero: number
       edition?: string
-      /** Renseignés uniquement quand cet ajout ANNULE un retrait : on rend
-       *  alors l'exemplaire tel qu'il était, pas un neuf daté d'aujourd'hui. */
+      /** Filled in only when this add UNDOES a removal: the copy is then restored
+       *  as it was, not a new one dated today. */
       condition?: string
       acquiredAt?: string
       purchasePrice?: number
@@ -170,22 +170,22 @@ export function EntityDetailPage() {
         purchasePrice: tome.purchasePrice,
       })
 
-      // La possession est écrite : l'écran le montre TOUT DE SUITE. Ce qui
-      // suit (la jaquette) est une recherche chez des fournisseurs, de deux
-      // à trente secondes selon leur humeur - la tuile restait « manquante »
-      // tout ce temps, et le parcours E2E l'a mesuré (2026-09-05).
+      // Ownership is written: the screen shows it RIGHT AWAY. What
+      // follows (the cover) is a search at providers, from two
+      // to thirty seconds depending on their mood - the tile stayed "missing"
+      // all that time, and the E2E flow measured it (2026-09-05).
       invaliderApresPossession(queryClient)
 
-      // La jaquette du tome, cherchée tout de suite - et sans rien demander.
+      // The cover of the volume, searched right away - and without asking anything.
       //
-      // `quickAdd` n'en enregistre une que si l'appelant lui en donne : un tome
-      // ajouté d'un clic depuis la grille naissait donc sans image, alors que
-      // ceux venus d'une proposition en avaient une. Constaté sur Death Note.
+      // `quickAdd` only saves one if the caller gives it one: a volume
+      // added with one click from the grid was therefore born without an image, while
+      // those coming from a proposal had one. Seen on Death Note.
       //
-      // Best-effort par nature : quota dépassé, fournisseur muet ou aucune
-      // correspondance laissent simplement le tome sans jaquette - jamais une
-      // erreur à l'écran pour un ajout qui, lui, a réussi. Le rattrapage
-      // groupé reste disponible depuis Ma collection (voir backfillCovers).
+      // Best-effort by nature: quota exceeded, silent provider or no
+      // match simply leave the volume without a cover - never an
+      // error on screen for an add that did succeed. The grouped
+      // catch-up stays available from Ma collection (see backfillCovers).
       if (resultat.variantId) {
         try {
           const trouves = await searchVolumes(tome.entityTypeId, tome.titre)
@@ -198,7 +198,7 @@ export function EntityDetailPage() {
             })
           }
         } catch {
-          // Voir ci-dessus : l'ajout prime, la jaquette est un bonus.
+          // See above: the add comes first, the cover is a bonus.
         }
       }
       return resultat
@@ -207,20 +207,20 @@ export function EntityDetailPage() {
   })
 
   /**
-   * Cliquer un tome POSSÉDÉ le repasse en manquant.
+   * Clicking an OWNED volume turns it back into missing.
    *
-   * C'est le geste inverse de « Je l'ai », et le seul moyen restant de sortir
-   * du troisième état depuis que le panneau du tome a disparu (décision
-   * utilisateur du 2026-08-27 : ne garder que possédé / envie / manquant, plus
-   * une note au niveau du groupe).
+   * It is the opposite gesture of "Je l'ai", and the only way left to leave
+   * the third state since the volume panel is gone (user
+   * decision of 2026-08-27: keep only owned / wish / missing, no more
+   * rating at group level).
    *
-   * Supprime l'Ownership plutôt que de la marquer vendue : « vendu » et
-   * « perdu » ont été retirés avec le panneau, il ne reste donc qu'un sens à
-   * ce geste - je ne l'ai plus.
+   * Deletes the Ownership rather than marking it sold: "vendu" and
+   * "perdu" were removed with the panel, so only one meaning is left for
+   * this gesture - I no longer have it.
    */
-  /** Le numéro d'un tome depuis l'identifiant de sa variante - l'annulation
-   *  d'un retrait doit rajouter LE MÊME tome, et `quick-add` le désigne par son
-   *  numéro. Passe par `numeroDe`, seule lecture d'un sac d'attributs (Lot 62). */
+  /** The number of a volume from the id of its variant - the undo
+   *  of a removal must add THE SAME volume back, and `quick-add` designates it by its
+   *  number. Goes through `numeroDe`, the only reading of an attribute bag (Batch 62). */
   function numeroDeVariant(variantId: string | null): number | null {
     if (!variantId) return null
     const variante = entity?.variants.find((v) => v.id === variantId)
@@ -228,18 +228,18 @@ export function EntityDetailPage() {
   }
 
   /**
-   * Retirer un tome, avec la possibilité de revenir en arrière.
+   * Remove a volume, with the possibility of going back.
    *
-   * <p>Le retrait SUPPRIME l'Ownership : ni « vendu » ni « perdu » ne subsistent
-   * depuis le Lot 55, donc rien n'en garde trace. Un clic de trop sur une tuile
-   * effaçait ainsi la date d'acquisition réelle, et la seule façon de revenir
-   * en arrière - recliquer - en fabriquait une neuve, datée d'aujourd'hui.
-   * Constaté le 2026-08-28 sur un tome passé du 26/08 au 28/08.
+   * <p>The removal DELETES the Ownership: neither "vendu" nor "perdu" remain
+   * since Batch 55, so nothing keeps a trace of it. One click too many on a tile
+   * thus erased the real acquisition date, and the only way to go
+   * back - clicking again - made a new one, dated today.
+   * Seen on 2026-08-28 on a volume that went from 26/08 to 28/08.
    *
-   * <p>Même convention que les envies (voir useWishlist) : un message bref et
-   * « Annuler ». L'annulation rend l'exemplaire tel qu'il était - sa date, son
-   * état, son prix d'achat. Sa note éventuelle, elle, ne repasse pas : le champ
-   * a perdu son écran au Lot 55 et `quick-add` ne le porte pas.
+   * <p>Same convention as the wishes (see useWishlist): a short message and
+   * "Annuler". The undo gives back the copy as it was - its date, its
+   * condition, its purchase price. Its possible rating does not come back: the field
+   * lost its screen in Batch 55 and `quick-add` does not carry it.
    */
   const retraitTome = useMutation({
     mutationFn: async (retires: OwnershipResponse[]) => {
@@ -278,23 +278,23 @@ export function EntityDetailPage() {
     },
   })
   /**
-   * « Recharger depuis la source » pour CETTE œuvre : ses informations, puis
-   * les jaquettes de ses tomes.
+   * "Recharger depuis la source" for THIS work: its information, then
+   * the covers of its volumes.
    *
-   * <h2>Un seul geste, parce que c'est une seule question</h2>
-   * « Redemande à la source ce qu'elle sait. » Le rattrapage de jaquettes
-   * existait déjà ici, mais les attributs de l'œuvre (mangaka, statut, nombre
-   * de tomes, jaquette de série) n'étaient recopiés qu'À L'AJOUT et plus
-   * jamais - une série en cours gardait éternellement le nombre de tomes du
-   * jour où on l'a ajoutée. Deux boutons côte à côte pour « recharger » et
-   * « recharger aussi » n'auraient aidé personne (demande utilisateur du
-   * 2026-08-27 : « je veux un bouton pour recharger les images ou les infos
-   * api »).
+   * <h2>One gesture, because it is one question</h2>
+   * "Ask the source again what it knows." The cover catch-up
+   * already existed here, but the attributes of the work (mangaka, status, number
+   * of volumes, series cover) were only copied AT THE TIME OF THE ADD and never
+   * again - an ongoing series kept forever the number of volumes of the
+   * day it was added. Two buttons side by side for "reload" and
+   * "reload also" would have helped nobody (user request of
+   * 2026-08-27: "je veux un bouton pour recharger les images ou les infos
+   * api").
    *
-   * <h2>L'ordre compte</h2>
-   * Les informations d'abord : si la source nous apprend le mangaka, la
-   * recherche de tomes qui suit s'en sert pour viser juste. Les jaquettes de
-   * tomes passent par le même rattrapage que Ma collection, à une série près.
+   * <h2>Order matters</h2>
+   * Information first: if the source tells us the mangaka, the
+   * volume search that follows uses it to aim right. The covers of
+   * volumes go through the same catch-up as Ma collection, for one series.
    */
   const rechargerMutation = useMutation({
     mutationFn: async () => {
@@ -308,9 +308,9 @@ export function EntityDetailPage() {
       try {
         candidats = await rechercherOeuvrePossedee(oeuvre.entityTypeId, oeuvre.title)
       } catch {
-        // Une source qui ne répond pas n'est PAS une œuvre inconnue - même
-        // distinction qu'au lot 58, côté serveur. Les jaquettes sont tentées
-        // quand même : elles ne dépendent pas des mêmes fournisseurs.
+        // A source that does not answer is NOT an unknown work - same
+        // distinction as in batch 58, on the server side. The covers are tried
+        // anyway: they do not depend on the same providers.
         fournisseurMuet = true
       }
 
@@ -321,8 +321,8 @@ export function EntityDetailPage() {
         } else {
           const aEcrire = attributsARecharger(candidat, oeuvre)
           if (Object.keys(aEcrire).length > 0) {
-            // origine=source : le serveur retient les clés saisies à la main
-            // et ne les réécrit pas, même si ce filtre-ci était contourné.
+            // origine=source: the server keeps the keys entered by hand
+            // and does not rewrite them, even if this filter were bypassed.
             await mergeEntityAttributes(entityId, aEcrire, 'source')
             infos = Object.keys(aEcrire).length
             attributs = { ...attributs, ...aEcrire }
@@ -330,11 +330,11 @@ export function EntityDetailPage() {
         }
       }
 
-      // La liste des tomes aussi, en forçant la source (Lot 121) : le cache
-      // durable ne se périme jamais, et une liste enregistrée pendant qu'un
-      // fournisseur se taisait resterait à jamais incomplète - « Ajouter un
-      // tome » ne proposerait jamais ceux qui manquent. Une source qui ne
-      // répond pas ne fait pas échouer le reste du rechargement.
+      // The list of volumes too, forcing the source (Batch 121): the durable
+      // cache never expires, and a list saved while a
+      // provider was silent would stay incomplete forever - "Ajouter un
+      // tome" would never offer the missing ones. A source that does not
+      // answer does not make the rest of the reload fail.
       try {
         await searchVolumes(oeuvre.entityTypeId, oeuvre.title, { ...indicesDe(attributs), forceRefresh: true })
         await queryClient.invalidateQueries({ queryKey: queryKeys.tomesProposes(oeuvre.entityTypeId, oeuvre.title) })
@@ -375,8 +375,8 @@ export function EntityDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.followedEdition(entityId) }),
   })
 
-  // Tout ce qui suit vit AVANT les retours anticipés : un Hook ne peut pas
-  // être appelé conditionnellement.
+  // Everything below lives BEFORE the early returns: a Hook cannot
+  // be called conditionally.
   const entity = entityQuery.data ?? null
   const ownerships = ownershipsQuery.data ?? []
   const experiences = experiencesQuery.data ?? []
@@ -386,21 +386,21 @@ export function EntityDetailPage() {
   const teinte = useTeinteJaquette(couvertureUrl)
 
   /**
-   * « X tomes possédés sur Y », demandé au serveur.
+   * "X volumes owned out of Y", asked from the server.
    *
-   * <h2>Le dernier des trois calculs</h2>
-   * Cette page regroupait les tomes par édition, relisait les Ownership pour
-   * savoir lesquels sont possédés, puis renvoyait tout ça à la complétude pour
-   * obtenir un total. Trois dérivations pour une question que
-   * `CollectionProgressService` répond déjà - et dont l'absence d'UNE règle (un
-   * tome catalogué sans édition rejoint l'unique édition nommée de la série) a
-   * produit deux divergences réelles, aux lots 31 et 49. Ma collection a cessé
-   * de recalculer au lot 51 ; c'était la dernière.
+   * <h2>The last of the three computations</h2>
+   * This page grouped the volumes by edition, re-read the Ownership records to
+   * know which are owned, then sent all that back to completeness to
+   * get a total. Three derivations for a question that
+   * `CollectionProgressService` already answers - and the absence of ONE rule (a
+   * cataloged volume without an edition joins the only named edition of the series) has
+   * produced two real divergences, in batches 31 and 49. Ma collection stopped
+   * recomputing in batch 51; this was the last one.
    *
-   * <p>Lancée en parallèle de la fiche (aucun `enabled` sur le type) : elle ne
-   * dépend que de l'identifiant, déjà dans l'URL. L'attendre ne coûte donc rien
-   * de plus que la plus lente des deux requêtes - et ne rien afficher tant
-   * qu'on ne sait pas est la règle du lot 47.
+   * <p>Launched in parallel with the detail page (no `enabled` on the type): it
+   * only depends on the id, already in the URL. Waiting for it therefore costs nothing
+   * more than the slower of the two requests - and showing nothing as long as
+   * we do not know is the rule of batch 47.
    */
   const progressQuery = useQuery({
     queryKey: queryKeys.insights.progressOf(entityId),
@@ -409,27 +409,27 @@ export function EntityDetailPage() {
 
   const groupes = isManga ? (progressQuery.data?.editions ?? []) : []
   const editionSuivie = followedQuery.data?.[0]?.editionName ?? null
-  // L'édition ouverte par défaut est celle qu'on SUIT - c'est tout l'intérêt
-  // de l'avoir persistée. À défaut, la première du catalogue.
+  // The edition opened by default is the one being FOLLOWED - this is the whole point
+  // of having persisted it. Failing that, the first of the catalog.
   const groupeActif =
     groupes.find((g) => g.editionName === editionAffichee) ??
     groupes.find((g) => g.editionName === editionSuivie) ??
     groupes[0]
 
-  // Une fiche peut exister sans le moindre tome - ajoutée en envies, ou
-  // créée par un ajout qui n'a rien trouvé. C'est le même « quels tomes
-  // possèdes-tu ? » que l'aperçu, donc le même hook (voir
-  // usePropositionTomes) : une seule implémentation pour les deux écrans.
+  // A detail page can exist without any volume - added to the wishes, or
+  // created by an add that found nothing. It is the same "quels tomes
+  // possèdes-tu ?" as the preview, so the same hook (see
+  // usePropositionTomes): a single implementation for both screens.
   const proposition = usePropositionTomes({
     entityTypeId: entity?.entityTypeId ?? '',
     titre: entity?.title ?? '',
     attributs: entity?.attributes ?? {},
     entityId,
     modeEdition,
-    // `progressQuery.isSuccess` autant que le décompte : les Hooks tournent
-    // AUSSI pendant que la progression est en vol, où `groupes` est encore
-    // vide - sans cette garde, une série qui a douze tomes déclencherait une
-    // recherche de tomes chez les fournisseurs à chaque ouverture de fiche.
+    // `progressQuery.isSuccess` as much as the count: Hooks also run
+    // while the progress is in flight, where `groupes` is still
+    // empty - without this guard, a series that has twelve volumes would trigger a
+    // volume search at providers on every opening of a detail page.
     actif: !!entity && isManga && progressQuery.isSuccess && groupes.length === 0,
   })
 
@@ -441,11 +441,11 @@ export function EntityDetailPage() {
   })
   const editionInfo = editionInfoQuery.isSuccess ? editionInfoQuery.data : null
 
-  // La progression fait partie de ce qu'on attend : sans elle, la grille dirait
-  // « aucun tome » à une série qui en a douze (voir lot 47).
-  // Avant les gardes ci-dessous, comme tout Hook : la page ne rend rien tant
-  // que l'œuvre n'est pas là, et le brouillon se réinitialise dès qu'elle
-  // arrive (voir useBrouillonInspecteur).
+  // Progress is part of what we wait for: without it, the grid would say
+  // "aucun tome" to a series that has twelve (see batch 47).
+  // Before the guards below, like any Hook: the page renders nothing as long as
+  // the work is not there, and the draft resets as soon as it
+  // arrives (see useBrouillonInspecteur).
   const brouillon = useBrouillonInspecteur({
     entityId,
     entityTitle: entity?.title ?? '',
@@ -475,26 +475,26 @@ export function EntityDetailPage() {
   const generalRank = tierSummaryQuery.data?.generalRank ?? null
   const notes = experiences.map((e) => e.rating).filter((r): r is number => r !== null)
   const meilleureNote = notes.length > 0 ? Math.max(...notes) : null
-  // Le cœur de la bande haute ne vaut que pour une œuvre qui se possède d'une
-  // seule pièce. Pour un manga, la série est un GROUPE : on ne veut pas
-  // « Naruto », on veut le tome 47 - et c'est la grille qui le dit.
+  // The heart of the top band only applies to a work that is owned as a
+  // single piece. For a manga, the series is a GROUP: we do not want
+  // "Naruto", we want volume 47 - and it is the grid that says it.
   const remarques = typeof entity.attributes.note === 'string' ? entity.attributes.note : ''
 
   /**
-   * Un seul « Éditer » pour toute la page (demande utilisateur du
-   * 2026-09-04) : il ouvre les éditeurs personnels - classement, note et
-   * lectures, tags - et transforme les champs de l'inspecteur en champs de
-   * saisie, à la même place (voir useBrouillonInspecteur). Le brouillon
-   * repart de la base à chaque sortie du mode.
+   * A single "Éditer" for the whole page (user request of
+   * 2026-09-04): it opens the personal editors - ranking, rating and
+   * readings, tags - and turns the fields of the inspector into input
+   * fields, in the same place (see useBrouillonInspecteur). The draft
+   * restarts from the database each time the mode is left.
    */
   function basculerModeEdition() {
     if (!modeEdition) {
       setModeEdition(true)
       return
     }
-    // « Terminer » avec un brouillon modifié : on ne jette rien sans le
-    // dire. Un panneau en ligne sous l'inspecteur, même idiome que les
-    // suppressions (voir EntityTypesPage) - pas de window.confirm.
+    // "Terminer" with a modified draft: we throw nothing away without
+    // saying so. An inline panel under the inspector, same idiom as the
+    // deletions (see EntityTypesPage) - no window.confirm.
     if (brouillon.modifie) {
       setSortieDemandee(true)
       return
@@ -510,9 +510,9 @@ export function EntityDetailPage() {
   const dansEnvies = !!wishlist.entryFor(entityId)
   const suivie = suivis.estSuivie(entityId)
   const possedee = ownerships.some((o) => o.status === 'OWNED')
-  // Un seul état à la fois (Possédé / Suivi / Envie). Suivie l'emporte à
-  // l'affichage : on suit ce qu'on collectionne encore, même avec des tomes en
-  // main ; puis possédée ; puis voulue.
+  // Only one state at a time (Owned / Followed / Wish). Followed wins in
+  // the display: one follows what one still collects, even with volumes in
+  // hand; then owned; then wanted.
   const etatCollection = suivie
     ? { libelle: 'Suivie', couleur: 'var(--color-accentText)' }
     : possedee
@@ -522,14 +522,14 @@ export function EntityDetailPage() {
         : null
   const tomesVoulus = wishlist.variantsVoulus
 
-  // `totalVolumes` SEUL, jamais le nombre de tomes catalogués en repli : ce
-  // repli-là annonçait « 2 tomes possédés sur 2 » à quelqu'un dont l'édition
-  // n'a jamais été renseignée - une collection déclarée complète alors que
-  // l'application ne sait rien de sa taille. Il contredisait le commentaire de
-  // CartesEditions juste à côté (« le déduire du nombre de tomes qu'une
-  // recherche a RAMENÉS empoisonnerait le moteur de complétude ») et la
-  // documentation de EditionAffichee.total (« null tant qu'aucune source ne le
-  // connaît »). Trouvé par le parcours de bout en bout du parcours 8.
+  // `totalVolumes` ALONE, never the number of cataloged volumes as a fallback: that
+  // fallback announced "2 tomes possédés sur 2" to someone whose edition
+  // was never filled in - a collection declared complete while
+  // the application knows nothing about its size. It contradicted the comment of
+  // CartesEditions right next to it ("deducing it from the number of volumes a
+  // search BROUGHT BACK would poison the completeness engine") and the
+  // documentation of EditionAffichee.total ("null as long as no source
+  // knows it"). Found by the end-to-end flow of flow 8.
   const editionsAffichees: EditionAffichee[] = groupes.map((groupe) => ({
     nom: groupe.editionName,
     editeur: groupe.editionName === groupeActif?.editionName ? (editionInfo?.publisher ?? null) : null,
@@ -544,12 +544,12 @@ export function EntityDetailPage() {
   }
 
   /**
-   * « Je le veux » / « Retirer » sur UN tome de l'édition affichée.
+   * "Je le veux" / "Retirer" on ONE volume of the displayed edition.
    *
-   * Le tome est désigné par son numéro et non par son identifiant : sur une
-   * fiche, la plupart des tomes manquants sont déduits du total de l'édition
-   * et ne sont catalogués nulle part. C'est le backend qui les fait exister au
-   * passage (voir TomeResolver), sans jamais créer de possession.
+   * The volume is designated by its number and not by its id: on a detail
+   * page, most missing volumes are deduced from the total of the edition
+   * and are cataloged nowhere. It is the backend that makes them exist
+   * along the way (see TomeResolver), without ever creating an ownership.
    */
   function basculerEnvieDuTome(numero: number) {
     const tuile = tuiles.find((t) => t.volumeNumber === numero)
@@ -561,8 +561,8 @@ export function EntityDetailPage() {
 
   return (
     <>
-      {/* Avant le hero, donc la bande ne colle plus au haut : sans ça elle
-          remonterait par-dessus ce lien (voir FicheHero.colleEnHaut). */}
+      {/* Before the hero, so the band no longer sticks to the top: without it, it
+          would go up over this link (see FicheHero.colleEnHaut). */}
       {retour && (
         <Link
           to={retour.to}
@@ -606,8 +606,8 @@ export function EntityDetailPage() {
                   state: {
                     seriesTitle: entity.title,
                     editionName: groupeActif.editionName,
-                    // L'analyse n'est plus une destination de la navigation
-                    // (lot 137) : elle dit d'où l'on vient, et c'est ici.
+                    // The analysis is no longer a destination of the navigation
+                    // (batch 137): it says where the user comes from, and it is here.
                     retour: { to: `/entity/${entityId}`, libelle: entity.title },
                   },
                 })
@@ -639,15 +639,15 @@ export function EntityDetailPage() {
               modeEdition={modeEdition}
             />
           ) : (
-            // Rien au catalogue : ce sont les éditions proposées par le
-            // fournisseur, et la jauge compte ce qu'on coche.
+            // Nothing in the catalog: these are the editions offered by the
+            // provider, and the gauge counts what is checked.
             proposition.cartesEditions
           )
         }
       />
 
-      {/* Renommage et couverture : deux corrections rares, sur la bande, juste
-          sous ce qu'elles modifient. Elles ne méritent pas un champ permanent. */}
+      {/* Renaming and cover: two rare corrections, on the band, right
+          under what they change. They do not deserve a permanent field. */}
       {(editingTitle || editingCover) && (
         <div className={`${CLASSE_BANDE_PLEINE_LARGEUR} relative`}>
           <div className={`${CLASSE_CONTENU_BANDE} flex flex-col gap-2 pt-4`}>
@@ -688,14 +688,14 @@ export function EntityDetailPage() {
             onFiltre={setFiltre}
             tuiles={tuiles}
             onChoisirTome={(numero) =>
-              // Un tome manquant entre dans la collection d'un geste : rien à
-              // remplir, rien à perdre.
+              // A missing volume enters the collection in one gesture: nothing to
+              // fill in, nothing to lose.
               ajoutTome.mutate({ entityTypeId: entity.entityTypeId, titre: entity.title, numero, edition: groupeActif?.editionName || undefined })
             }
             onRetirerTome={(numero) => {
-              // Le retrait ne vient qu'au second geste - la tuile pose la
-              // question (voir GrilleVolumes) : il supprime l'exemplaire, et
-              // « Annuler » n'a que six secondes pour le rendre.
+              // Removal only comes on the second gesture - the tile asks
+              // the question (see GrilleVolumes): it deletes the copy, and
+              // "Annuler" has only six seconds to give it back.
               const tuile = tuiles.find((t) => t.volumeNumber === numero)
               if (tuile?.status === 'owned' && tuile.variant) {
                 retraitTome.mutate(ownerships.filter((o) => o.variantId === tuile.variant!.id))
@@ -725,7 +725,7 @@ export function EntityDetailPage() {
       <div className="pt-6">
         <InspecteurFiche
           teinte={teinte}
-          // Rien de personnel pour un visiteur (voir InspecteurFiche).
+          // Nothing personal for a visitor (see InspecteurFiche).
           personnel={
             estInvite ? undefined : <>
               <ReleveInspecteur
@@ -741,9 +741,9 @@ export function EntityDetailPage() {
                   <span className="text-[13.5px] text-faint">Non classée</span>
                 )}
               </ReleveInspecteur>
-              {/* La note VIT sur une expérience (voir Experience.rating) : c'est
-                  le même éditeur qui la porte, et proposer deux points d'entrée
-                  pour la même donnée reviendrait à en inventer une seconde. */}
+              {/* The rating LIVES on an experience (see Experience.rating): it is
+                  the same editor that carries it, and offering two entry points
+                  for the same data would amount to inventing a second one. */}
               <ReleveInspecteur
                 libelle="Ma note">
                 {meilleureNote !== null ? (
@@ -790,8 +790,8 @@ export function EntityDetailPage() {
                   </span>
                 )}
               </ReleveInspecteur>
-              {/* Les tags flottaient sous les trois relevés, sans intitulé : ils
-                  n'avaient donc pas de quoi porter leur propre point d'entrée. */}
+              {/* The tags floated under the three readouts, without a heading: they
+                  therefore had nothing to carry their own entry point. */}
               <ReleveInspecteur
                 libelle="Tags">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -812,10 +812,10 @@ export function EntityDetailPage() {
           }
           oeuvre={
             modeEdition ? (
-              // Les MÊMES rangées qu'en lecture, en champs de saisie - toutes,
-              // même vides, c'est là qu'on complète ce que la source n'a pas
-              // donné (demande utilisateur du 2026-09-05). Le statut se saisit
-              // dans la colonne SOURCE (« Statut source »), d'où il vient.
+              // The SAME rows as in reading, as input fields - all of them,
+              // even empty, this is where one completes what the source did not
+              // give (user request of 2026-09-05). The status is entered
+              // in the SOURCE column ("Statut source"), where it comes from.
               <div className="flex flex-col">
                 {brouillon.attributs.clesOeuvre.map((cle) => (
                   <RangeeInspecteur key={cle} libelle={libelleDe(cle)} saisie saisi={brouillon.attributs.saisi(cle)}>
@@ -885,7 +885,7 @@ export function EntityDetailPage() {
               </div>
             ) : (
             <div className="flex flex-col">
-              {/* « Auteur » coiffait le studio d'un jeu vidéo : le mot suit l'attribut lu (voir creatorFrom). */}
+              {/* "Auteur" topped the studio of a video game: the word follows the attribute read (see creatorFrom). */}
               {auteur && (
                 <RangeeInspecteur libelle={isManga ? 'Mangaka' : entityType?.code === 'VIDEO_GAME' ? 'Studio' : 'Auteur'}>
                   {auteur}
@@ -970,11 +970,11 @@ export function EntityDetailPage() {
         {brouillon.erreur && <ErrorBanner message={brouillon.erreur} />}
       </div>
 
-      {/* Les éditeurs personnels - classement, note et lectures, tags -
-          s'ouvrent tous avec le mode édition, juste sous l'inspecteur, en
-          pleine largeur parce qu'une colonne de 240 px ne peut pas accueillir
-          un formulaire. Un seul « Éditer » pour toute la page (demande
-          utilisateur du 2026-09-04) : plus de « Modifier » par relevé. */}
+      {/* The personal editors - ranking, rating and readings, tags -
+          all open with edit mode, right under the inspector, at
+          full width because a 240 px column cannot hold
+          a form. A single "Éditer" for the whole page (user
+          request of 2026-09-04): no more "Modifier" per readout. */}
       {modeEdition && !estInvite && (
         <div className="flex flex-col gap-4 pt-4">
           <Carte>
@@ -999,14 +999,14 @@ export function EntityDetailPage() {
         </div>
       )}
 
-      {/* Le CATALOGUE : ce que l'œuvre et son édition SONT, et les gestes qui
-          les font exister ou disparaître. Sous le même « Éditer » que les
-          éditeurs personnels ci-dessus, depuis le 2026-09-04. */}
+      {/* The CATALOG: what the work and its edition ARE, and the gestures that
+          make them exist or disappear. Under the same "Éditer" as the
+          personal editors above, since 2026-09-04. */}
       {modeEdition && (
         <div className="flex flex-col gap-5 pt-6">
-          {/* Les informations de l'œuvre et de son édition ne sont plus ici :
-              elles se saisissent dans l'inspecteur lui-même, à la place où on
-              les lit (demande utilisateur du 2026-09-05). */}
+          {/* The information of the work and its edition is no longer here:
+              it is entered in the inspector itself, in the place where it
+              is read (user request of 2026-09-05). */}
           <Carte>
             <RelationshipsSection
               entityId={entityId}
@@ -1014,16 +1014,16 @@ export function EntityDetailPage() {
               relationshipsTo={relToQuery.data ?? []}
             />
           </Carte>
-          {/* Toujours là, contrairement à l'ancien bouton de jaquettes qui
-              n'apparaissait qu'en cas de manque : une œuvre dont toutes les
-              images sont en place a quand même des informations à redemander
-              (un tome de plus paru, un statut qui passe à « terminée »). Le
-              décompte des jaquettes manquantes reste annoncé quand il y en a,
-              c'est ce qui se voit à l'œil. */}
-          {/* Administrateur seulement (demande du 2026-09-04) : c'est lui qui
-              répond des données uniformes de l'instance et des quotas des
-              fournisseurs. Le serveur ignore le rechargement forcé pour les
-              autres comptes. */}
+          {/* Always there, unlike the old covers button that
+              only appeared when something was missing: a work whose images
+              are all in place still has information to ask again
+              (one more volume released, a status that becomes "terminée"). The
+              count of missing covers is still announced when there are some,
+              this is what is visible to the eye. */}
+          {/* Administrator only (request of 2026-09-04): they are the one who
+              answers for the uniform data of the instance and the quotas of the
+              providers. The server ignores the forced reload for the
+              other accounts. */}
           {compte?.admin && (
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -1048,8 +1048,8 @@ export function EntityDetailPage() {
           )}
           {rechargerMutation.isError && <ErrorBanner message={rechargerMutation.error.message} />}
 
-          {/* Les corrections d'identité restent avec le reste des éditeurs ;
-              ce qui DÉTRUIT vit en dessous, dans un bloc qui le dit. */}
+          {/* Identity corrections stay with the rest of the editors;
+              what DESTROYS lives below, in a block that says so. */}
           <button
             type="button"
             onClick={() => {
@@ -1061,10 +1061,10 @@ export function EntityDetailPage() {
             Renommer l’œuvre
           </button>
 
-          {/* Séparé visuellement et nommé, en bas de l'espace d'édition
-              (étude produit du 2026-08-27, §3) : une action définitive ne
-              doit pas se trouver par accident au milieu de corrections
-              banales. La confirmation, elle, vit dans le bouton lui-même. */}
+          {/* Visually separated and named, at the bottom of the edit space
+              (product study of 2026-08-27, section 3): a final action must
+              not be found by accident in the middle of ordinary
+              corrections. The confirmation lives in the button itself. */}
           <div className="mt-2 flex flex-col gap-2.5 rounded-2xl border border-danger/30 bg-dangerTint p-4">
             <span className="text-[11px] font-semibold tracking-[0.14em] text-dangerText uppercase">
               Zone sensible
@@ -1081,13 +1081,13 @@ export function EntityDetailPage() {
 
       <AideFlottante
         titreSerie={entity.title}
-        /* Les questions dépendent de ce que le type PERMET. « Que me
-           manque-t-il ? » se calcule sur la complétude d'une édition : posée
-           sur un jeu vidéo, elle répondait « Tes tomes n'ont pas d'édition
-           précisée… Renseigne l'édition sur un tome », c'est-à-dire du
-           vocabulaire manga devant une œuvre qui n'a ni tome ni édition.
-           Et « mes lectures » ne vaut que pour ce qui se lit - le type
-           déclare lui-même ses expériences (voir EntityType.allowedExperienceTypes). */
+        /* The questions depend on what the type ALLOWS. "Que me
+           manque-t-il ?" is computed on the completeness of an edition: asked
+           on a video game, it answered "Tes tomes n'ont pas d'édition
+           précisée… Renseigne l'édition sur un tome", that is to say
+           manga vocabulary in front of a work that has neither volume nor edition.
+           And "mes lectures" only applies to what is read - the type
+           declares its own experiences itself (see EntityType.allowedExperienceTypes). */
         questions={[
           ...(groupeActif ? [{ cle: 'missing' as const, libelle: 'Que me manque-t-il ?' }] : []),
           { cle: 'reading' as const, libelle: libelleQuestionExperiences(entityType?.allowedExperienceTypes ?? []) },
@@ -1112,18 +1112,18 @@ export function EntityDetailPage() {
 }
 
 /**
- * L'intitulé de la question d'avancement, dans le vocabulaire du type.
+ * The title of the progress question, in the vocabulary of the type.
  *
- * Un type déclare ses expériences (« Read », « Play », « Watch »…) : c'est la
- * seule source qui sache si l'on LIT, JOUE ou REGARDE cette œuvre. À défaut,
- * une formulation neutre - jamais « mes lectures » posé au hasard devant un
- * jeu vidéo.
+ * A type declares its experiences ("Read", "Play", "Watch"...): it is the
+ * only source that knows whether one READS, PLAYS or WATCHES this work. Failing that,
+ * a neutral wording - never "mes lectures" placed at random in front of a
+ * video game.
  */
 function libelleQuestionExperiences(typesDExperience: string[]): string {
-  // Les codes réellement livrés par ce catalogue : READ (manga), PLAYED (jeu
-  // de société), FINISHED (jeu vidéo), plus ABANDONED/IN_PROGRESS partagés.
-  // Ces derniers décrivent un ÉTAT, pas un geste - ils ne nomment donc rien,
-  // et la formulation neutre prend le relais plutôt qu'un mot inventé.
+  // The codes really shipped by this catalog: READ (manga), PLAYED (board
+  // game), FINISHED (video game), plus ABANDONED/IN_PROGRESS shared.
+  // The latter describe a STATE, not a gesture - so they name nothing,
+  // and the neutral wording takes over rather than an invented word.
   const codes = typesDExperience.map((t) => t.toUpperCase())
   if (codes.includes('READ')) return 'Où en suis-je dans mes lectures ?'
   if (codes.includes('PLAYED')) return 'Où en suis-je dans mes parties ?'
@@ -1132,13 +1132,13 @@ function libelleQuestionExperiences(typesDExperience: string[]): string {
 }
 
 /**
- * Ce que le rechargement a donné, en une phrase.
+ * What the reload gave, in one sentence.
  *
- * Trois cas se ressemblent à l'écran et appellent trois gestes différents :
- * la source n'a pas répondu (réessayer), elle a répondu mais ne connaît pas
- * cette œuvre (rien à attendre d'un second clic), elle a répondu et tout était
- * déjà à jour. Les confondre sous un « rien trouvé » était exactement le
- * défaut du lot 58.
+ * Three cases look alike on screen and call for three different gestures:
+ * the source did not answer (try again), it answered but does not know
+ * this work (nothing to expect from a second click), it answered and everything was
+ * already up to date. Mixing them under a "nothing found" was exactly the
+ * defect of batch 58.
  */
 function resumeRechargement(resultat: {
   infos: number
@@ -1156,8 +1156,8 @@ function resumeRechargement(resultat: {
   ].filter((fait): fait is string => fait !== null)
 
   if (faits.length > 0) {
-    // Ce qui a été fait prime, même si une source est restée muette à côté :
-    // l'utilisateur voit le résultat, et le reste se retentera.
+    // What was done comes first, even if a source stayed silent on the side:
+    // the user sees the result, and the rest will be tried again.
     const reste = resultat.fournisseurMuet ? " Une source n'a pas répondu - réessaie pour le reste." : ''
     return `${faits.join(', ')}.${reste}`
   }

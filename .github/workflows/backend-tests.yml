@@ -1,24 +1,24 @@
 name: Backend tests
 
-# La porte des BRANCHES. Sur `main`, c'est le workflow de déploiement qui
-# rejoue cette même suite, juste avant de publier les images : la laisser ici
-# aussi ferait tourner deux fois 1099 tests par push - une dizaine de minutes
-# de runner facturées pour deux fois la même réponse (dépôt privé).
+# The gate for BRANCHES. On `main`, the deploy workflow runs this same suite
+# again, just before it publishes the images: leaving it here too would run
+# 1099 tests twice per push - about ten minutes of runner time billed for the
+# same answer twice (private repository).
 #
-# Testcontainers a besoin du démon Docker, disponible nativement sur les
-# runners GitHub-hosted - pas besoin du montage « Docker-in-Docker » utilisé
-# en local, voir backend/README.md section 3.
+# Testcontainers needs the Docker daemon, which is available natively on
+# GitHub-hosted runners - no need for the "Docker-in-Docker" mount used
+# locally, see backend/README.md section 3.
 on:
   pull_request:
     paths:
       - "backend/**"
       - ".github/workflows/backend-tests.yml"
-  # Déclenchement manuel avec filtre optionnel (utile pour isoler un test
-  # flaky sans installer Java/Maven en local, ex: -Dtest=Xxx#method).
+  # Manual trigger with an optional filter (useful to isolate a flaky test
+  # without installing Java/Maven locally, e.g. -Dtest=Xxx#method).
   workflow_dispatch:
     inputs:
       maven_args:
-        description: "Arguments mvn (défaut : test)"
+        description: "mvn arguments (default: test)"
         required: false
         default: "test"
 
@@ -32,12 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configurer Java 21 (Temurin)
+      - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
 
-      - name: mvn test (unitaires + intégration Testcontainers)
+      - name: mvn test (unit + Testcontainers integration)
         run: mvn -B ${{ github.event.inputs.maven_args || 'test' }}

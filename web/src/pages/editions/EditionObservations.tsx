@@ -9,8 +9,8 @@ import {
 import { queryKeys } from '@/common/lib/queryKeys'
 import { useToast } from '@/common/lib/toast'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
-// Libellés déjà définis pour l'analyse d'achat - les redéfinir ici ferait
-// diverger deux vocabulaires qui décrivent la même chose.
+// Labels already defined for the purchase analysis - redefining them here would make
+// two vocabularies that describe the same thing drift apart.
 import { CONDITION_LABELS, LISTING_PLATFORM_LABELS } from '@/common/types/purchaseAnalysis'
 import type { Condition, ListingPlatform, MarketPriceObservationDto } from '@/common/types/purchaseAnalysis'
 import { formaterEuros } from '@/common/lib/formats'
@@ -27,12 +27,12 @@ function observationLabel(observation: MarketPriceObservationDto): string {
 }
 
 /**
- * D'où vient ce prix, en un mot.
+ * Where this price comes from, in one word.
  *
- * Un relevé manuel dit « Manuel » ; un relevé issu d'une annonce analysée dit
- * la place de marché, qui est l'information utile - « Vinted » situe le prix,
- * « issu d'une analyse » ne situe rien. La liste reste une liste de prix, pas
- * un historique technique.
+ * A manual record says "Manuel"; a record from an analysed listing says
+ * the marketplace, which is the useful information - "Vinted" places the price,
+ * "from an analysis" places nothing. The list stays a list of prices, not
+ * a technical history.
  */
 function provenance(observation: MarketPriceObservationDto): string {
   return observation.origin === 'MANUAL_ENTRY'
@@ -41,30 +41,30 @@ function provenance(observation: MarketPriceObservationDto): string {
 }
 
 /**
- * Les prix relevés d'une édition, et de quoi en retirer un faux.
+ * The recorded prices of an edition, and a way to remove a wrong one.
  *
- * Un relevé alimente toutes les analyses d'achat suivantes de cette édition -
- * c'est la seule source de prix réellement observés. Il était pourtant
- * jusqu'ici invisible une fois enregistré (aucun écran ne les listait) et
- * définitif : une virgule mal placée faussait durablement les verdicts, sans
- * moyen de la retirer (docs/USER_JOURNEYS.md, §14).
+ * A record feeds all the later purchase analyses of this edition -
+ * it is the only source of prices actually observed. Yet it was
+ * invisible once saved (no screen listed them) and
+ * final: a misplaced comma skewed the verdicts for good, with no
+ * way to remove it (docs/USER_JOURNEYS.md, §14).
  *
- * **Aucune modification n'est offerte**, volontairement : un relevé est un
- * fait constaté à une date, pas un champ qu'on ajuste. Le corriger après coup
- * réécrirait une observation passée ; on retire le faux et on enregistre le
- * juste.
+ * **No edit is offered**, on purpose: a record is a
+ * fact observed on a date, not a field to adjust. Fixing it afterwards
+ * would rewrite a past observation; we remove the wrong one and save the
+ * right one.
  *
- * <h2>En relever un, depuis ici (2026-08-29)</h2>
- * Jusqu'ici, la SEULE façon d'enregistrer un prix observé était d'analyser une
- * annonce, puis d'ouvrir le détail d'une série de son résultat, et seulement
- * si l'édition était reconnue et les tomes contigus (§16 des parcours). Or ces
- * relevés sont la seule source de prix réellement constatés, dont dépend la
- * qualité de toutes les analyses suivantes : la capacité la plus déterminante
- * de l'application était la plus cachée.
+ * <h2>Record one from here (2026-08-29)</h2>
+ * Until now, the ONLY way to save an observed price was to analyse a
+ * listing, then open the detail of a series in its result, and only
+ * if the edition was recognised and the volumes were contiguous (§16 of the journeys). Yet these
+ * records are the only source of prices actually observed, and the
+ * quality of all later analyses depends on them: the most decisive capability
+ * of the app was the most hidden.
  *
- * <p>Cet écran les listait déjà, et permettait d'en retirer un faux. Il
- * manquait le geste inverse - et surtout, quand l'édition n'avait aucun relevé,
- * ce bloc ne s'affichait pas du tout : rien ne disait que ces prix existaient.
+ * <p>This screen already listed them, and allowed removing a wrong one. It
+ * lacked the opposite action - and above all, when the edition had no record,
+ * this block was not shown at all: nothing said that these prices existed.
  */
 export function EditionObservations({ editionId, editionName }: { editionId: string; editionName: string }) {
   const queryClient = useQueryClient()
@@ -77,9 +77,9 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.marketObservations(editionId) })
-    // Une édition ne devient supprimable que lorsque plus aucun relevé n'y est
-    // rattaché (voir PurchaseAnalysisService.deleteEdition) : la liste des
-    // éditions doit donc être relue elle aussi.
+    // An edition can only be deleted when no record is attached to it
+    // anymore (see PurchaseAnalysisService.deleteEdition): the list of
+    // editions must therefore be read again too.
     queryClient.invalidateQueries({ queryKey: queryKeys.purchaseAnalysis.allEditions })
   }
 
@@ -89,8 +89,8 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
       invalidate()
       toast('Prix relevé supprimé', {
         label: 'Annuler',
-        // Restauration réelle : tout ce qui définit un relevé est réenregistré
-        // à l'identique (édition, portée, prix, plateforme, état, date, note).
+        // Real restore: everything that defines a record is saved again
+        // as it was (edition, range, price, platform, condition, date, note).
         onAction: async () => {
           await recordMarketObservation({
             mangaEditionId: observation.mangaEditionId,
@@ -110,10 +110,10 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
 
   const observations = query.data ?? []
 
-  // Une même annonce suivie dans le temps produit plusieurs relevés. Alignés
-  // sans distinction, ils se lisent comme plusieurs vendeurs - et c'est
-  // exactement l'illusion que le regroupement par annonce évite côté calcul.
-  // L'écran doit dire la même chose que le moteur.
+  // The same listing followed over time produces several records. Lined up
+  // without distinction, they read as several sellers - and that is
+  // exactly the illusion that grouping by listing avoids in the calculation.
+  // The screen must say the same thing as the engine.
   const relevesParAnnonce = new Map<string, number>()
   for (const observation of observations) {
     if (observation.listingIdentity) {
@@ -158,9 +158,9 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
       {observations.length === 0 && !formulaireOuvert && (
         <span className="text-[11px] text-textDim">Aucun prix relevé pour cette édition.</span>
       )}
-      {/* Dit d'où la liste se remplit, une fois, plutôt qu'une notification
-          après chaque analyse - le geste est déjà fait, le rappeler à chaque
-          fois serait du bruit. */}
+      {/* Says where the list gets filled, once, rather than a notification
+          after each analysis - the action is already done, reminding it each
+          time would be noise. */}
       {observations.some((observation) => observation.origin === 'LISTING_ANALYSIS') && (
         <span className="text-[11px] text-textDim">
           Les annonces que tu analyses viennent s'ajouter ici, à leur prix affiché hors frais.
@@ -201,22 +201,22 @@ export function EditionObservations({ editionId, editionName }: { editionId: str
 
 
 /**
- * Saisir un prix constaté, à la main.
+ * Enter an observed price, by hand.
  *
- * <h2>Ce que le formulaire demande, et ce qu'il ne demande pas</h2>
- * Le prix et la plateforme, parce qu'un prix sans sa provenance ne situe rien -
- * « 45 € » ne veut pas dire la même chose sur Vinted et chez un libraire. La
- * date est pré-remplie à aujourd'hui : un relevé est un fait DATÉ, et
- * l'immense majorité se saisit le jour où on l'a vu.
+ * <h2>What the form asks, and what it does not ask</h2>
+ * The price and the platform, because a price without its origin places nothing -
+ * "45 €" does not mean the same thing on Vinted and at a bookshop. The
+ * date is pre-filled with today: a record is a DATED fact, and
+ * the vast majority are entered the day they were seen.
  *
- * <p>La <b>portée</b> reste facultative, et c'est un choix : sans elle, le
- * relevé décrit l'édition entière (voir {@code observationLabel}), ce qui est
- * exactement ce qu'on constate en voyant un lot complet. La renseigner permet
- * au moteur d'en déduire un prix au tome (voir MarketPriceCalculator) - donc on
- * la propose sans l'exiger.
+ * <p>The <b>range</b> stays optional, and that is a choice: without it, the
+ * record describes the whole edition (see {@code observationLabel}), which is
+ * exactly what we observe when seeing a complete batch. Filling it in lets
+ * the engine deduce a price per volume (see MarketPriceCalculator) - so we
+ * offer it without requiring it.
  *
- * <p>L'état aussi : beaucoup d'annonces ne le disent pas, et inventer
- * « Bon état » par défaut fausserait les comparaisons dans le sens optimiste.
+ * <p>The condition too: many listings do not state it, and inventing
+ * "Good condition" by default would skew comparisons in the optimistic direction.
  */
 function FormulaireDeRelevé({
   editionId,
@@ -238,8 +238,8 @@ function FormulaireDeRelevé({
     mutationFn: () =>
       recordMarketObservation({
         mangaEditionId: editionId,
-        // Les deux bornes ou aucune : une portée à moitié saisie ne décrit
-        // rien, et le serveur l'ignorerait silencieusement.
+        // Both bounds or none: a half-entered range describes
+        // nothing, and the server would silently ignore it.
         volumeRangeStart: du && au ? Number(du) : undefined,
         volumeRangeEnd: du && au ? Number(au) : undefined,
         observedPrice: Number(prix),
@@ -332,8 +332,8 @@ function FormulaireDeRelevé({
         </label>
       </div>
 
-      {/* Sans portée, le relevé décrit l'édition entière - dit ici plutôt que
-          découvert après coup dans la liste. */}
+      {/* Without a range, the record describes the whole edition - said here rather than
+          discovered afterwards in the list. */}
       <span className="text-[11px] text-textDim">
         {du && au ? `Ce prix décrira les tomes ${du} à ${au}.` : "Sans tomes précisés, ce prix décrira l'édition entière."}
       </span>

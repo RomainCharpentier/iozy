@@ -1,19 +1,19 @@
 import SwiftUI
 import SwiftData
 
-/// Parcours 2 ("le curateur du soir", étape 5) : fiche complète en un
-/// seul écran (infos, Ownership, historique d'Experience), avec ajout
-/// d'une nouvelle Experience (note + commentaire uniquement, comme
-/// simplifié en conception).
+/// Journey 2 ("the evening curator", step 5): full detail page in one
+/// single screen (info, Ownership, Experience history), with adding
+/// of a new Experience (rating + comment only, as
+/// simplified during design).
 ///
-/// Synchronisation : au premier affichage, les Ownership et Experience
-/// sont récupérées depuis l'API et mises à jour dans le cache SwiftData
-/// local (upsert par id) - le cache local n'est donc plus juste rempli
-/// par le parcours d'ajout rapide, il reflète aussi ce qui existe déjà
-/// côté serveur.
+/// Synchronization: at first display, the Ownerships and Experiences
+/// are fetched from the API and updated in the local SwiftData cache
+/// (upsert by id) - so the local cache is no longer just filled
+/// by the quick add journey, it also reflects what already exists
+/// on the server side.
 ///
-/// Direction visuelle validée : hero en dégradé avec le titre en grand,
-/// statuts en pills, tags en chips, cartes sombres pour les expériences.
+/// Validated visual direction: gradient hero with the title in large,
+/// statuses as pills, tags as chips, dark cards for the experiences.
 struct EntityDetailView: View {
     let entityId: UUID
 
@@ -31,21 +31,21 @@ struct EntityDetailView: View {
     @State private var allTags: [TagDTO] = []
     @State private var relationshipsFrom: [RelationshipDTO] = []
     @State private var relationshipsTo: [RelationshipDTO] = []
-    // Tomes précis d'une édition (Manga) - voir Variant côté domaine backend.
-    // Récupérés en direct depuis l'API (entityDetail.variants), même logique
-    // que coverImageURL ci-dessous.
+    // Exact volumes of an edition (Manga) - see Variant on the backend domain side.
+    // Fetched live from the API (entityDetail.variants), same logic
+    // as coverImageURL below.
     @State private var variants: [APIClient.VariantDTO] = []
     @State private var showingAddTag = false
     @State private var showingAddRelationship = false
-    // Complète une édition déjà en collection (voir addVolumeSection) - ex:
-    // les tomes 4 et 5 d'une "Black Edition" jamais retrouvés par la
-    // recherche automatique côté BnF/Google Books (trou de données source,
-    // pas un bug, voir historique de la conversation sur "Death Note").
-    // Jusqu'ici le seul moyen d'ajouter un tome à une série déjà possédée
-    // était de repasser par tout le parcours Ajout rapide et de retaper le
-    // titre en entier. Même mécanique de file d'attente que QuickAddView
-    // (voir queueManualVolume côté Ajout rapide) - permet d'enchaîner
-    // plusieurs tomes avant de valider une seule fois.
+    // Completes an edition already in the collection (see addVolumeSection) - e.g.
+    // volumes 4 and 5 of a "Black Edition" never found by the
+    // automatic search on the BnF/Google Books side (gap in the source data,
+    // not a bug, see the conversation history on "Death Note").
+    // Until now the only way to add a volume to a series already owned
+    // was to go through the whole Quick add journey again and type the
+    // whole title again. Same queue mechanism as QuickAddView
+    // (see queueManualVolume on the Quick add side) - lets us chain
+    // several volumes before confirming only once.
     @State private var showingAddVolume = false
     @State private var addVolumeCondition = "NEW"
     @State private var addVolumeNumberText = ""
@@ -53,11 +53,11 @@ struct EntityDetailView: View {
     @State private var addManualVolumes: [ManualVolumeEntry] = []
     @State private var isAddingVolume = false
     @State private var addVolumeError: String?
-    // Récupérée en direct depuis l'API (entityDetail.attributes) plutôt que
-    // du cache local EntityRecord (dont attributesJSON n'est aujourd'hui
-    // jamais synchronisé avec le serveur - voir EntityRecord) : cette fiche
-    // fait déjà un fetch réseau au premier affichage, donc pas de raison de
-    // se contenter d'un cache qu'on sait périmé pour ce champ précis.
+    // Fetched live from the API (entityDetail.attributes) rather than
+    // from the local EntityRecord cache (whose attributesJSON is today
+    // never synchronized with the server - see EntityRecord): this detail page
+    // already does a network fetch at first display, so no reason to
+    // settle for a cache we know is stale for this exact field.
     @State private var coverImageURL: URL?
 
     private var entity: EntityRecord? { allEntities.first { $0.id == entityId } }
@@ -72,10 +72,10 @@ struct EntityDetailView: View {
         return ids.compactMap { id in allEntities.first { $0.id == id } }
     }
     private var variantsById: [UUID: APIClient.VariantDTO] { Dictionary(uniqueKeysWithValues: variants.map { ($0.id, $0) }) }
-    /// Trie par numéro de tome (Manga) quand l'info est disponible, pour
-    /// afficher "Tome 1, Tome 2, Tome 3..." dans l'ordre plutôt que dans
-    /// l'ordre d'ajout (souvent différent : un tome manquant est fréquemment
-    /// complété plus tard). Miroir de sortByVolumeNumber côté web
+    /// Sorts by volume number (Manga) when the info is available, to
+    /// show "Volume 1, Volume 2, Volume 3..." in order rather than in
+    /// the order of adding (often different: a missing volume is often
+    /// completed later). Mirror of sortByVolumeNumber on the web side
     /// (OwnershipsSection.tsx).
     private var sortedOwnerships: [OwnershipRecord] {
         ownerships.sorted { a, b in
@@ -149,7 +149,7 @@ struct EntityDetailView: View {
         }
     }
 
-    // MARK: - Sections visuelles
+    // MARK: - Visual sections
 
     private var hero: some View {
         ZStack(alignment: .bottomLeading) {
@@ -265,12 +265,12 @@ struct EntityDetailView: View {
 
     private func ownershipCard(_ ownership: OwnershipRecord) -> some View {
         let variant = ownership.variantId.flatMap { variantsById[$0] }
-        // Le libellé du tome (ex: "Tome 3 — Kana") prime sur "Possession" quand
-        // il est connu - c'est l'info qui distingue vraiment cette carte des
-        // autres possessions de la même fiche. La jaquette propre à ce tome
-        // (voir VolumeSelectionGrid côté Ajout rapide) n'est présente que si
-        // elle a été trouvée à l'ajout - absente pour un tome ajouté
-        // manuellement ou avant l'introduction de cette fonctionnalité.
+        // The label of the volume (e.g. "Volume 3 — Kana") takes priority over "Possession" when
+        // it is known - it is the info that really distinguishes this card from the
+        // other ownerships of the same detail page. The cover art specific to this volume
+        // (see VolumeSelectionGrid on the Quick add side) is only present if
+        // it was found at add time - absent for a volume added
+        // manually or before this feature was introduced.
         let variantCoverURL = variant.flatMap { CoverImage.url(from: $0.attributes) }
         return HStack(alignment: .top, spacing: 10) {
             if let variantCoverURL {
@@ -324,8 +324,8 @@ struct EntityDetailView: View {
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    /// Voir la déclaration des @State associés plus haut pour le contexte -
-    /// mécanique de file d'attente identique à QuickAddView.
+    /// See the declaration of the related @State above for context -
+    /// same queue mechanism as QuickAddView.
     private var addVolumeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !showingAddVolume {
@@ -404,8 +404,8 @@ struct EntityDetailView: View {
         }
     }
 
-    /// Reflète exactement ce que submitAddVolume() va soumettre - même
-    /// principe que QuickAddView.totalVolumesToAdd.
+    /// Reflects exactly what submitAddVolume() will submit - same
+    /// principle as QuickAddView.totalVolumesToAdd.
     private var totalVolumesToAdd: Int {
         addManualVolumes.count + (addVolumeNumberText.trimmingCharacters(in: .whitespaces).isEmpty ? 0 : 1)
     }
@@ -427,12 +427,12 @@ struct EntityDetailView: View {
         addManualVolumes.removeAll { $0.id == id }
     }
 
-    /// `quickAdd` matche déjà une Entity existante par (entityTypeId, title)
-    /// côté backend (voir QuickAddService) - il suffit de réutiliser le
-    /// titre exact de la série déjà en collection, aucun nouvel endpoint
-    /// nécessaire. Un re-sync complet (pas d'upsert local optimiste) après
-    /// succès : plus simple et fiable, QuickAddResponse ne renvoie que
-    /// variantId, pas le label/attributes complets du Variant créé.
+    /// `quickAdd` already matches an existing Entity by (entityTypeId, title)
+    /// on the backend side (see QuickAddService) - it is enough to reuse the
+    /// exact title of the series already in the collection, no new endpoint
+    /// needed. A full re-sync (no optimistic local upsert) after
+    /// success: simpler and more reliable, QuickAddResponse only returns
+    /// variantId, not the full label/attributes of the Variant created.
     private func submitAddVolume() async {
         guard let entity else { return }
         var items = addManualVolumes.map { ($0.volumeNumber, $0.edition) }
@@ -445,7 +445,7 @@ struct EntityDetailView: View {
         isAddingVolume = true
         addVolumeError = nil
         do {
-            // Séquentiel : voir QuickAddView.submit() pour la même précaution.
+            // Sequential: see QuickAddView.submit() for the same precaution.
             for (volumeNumber, edition) in items {
                 _ = try await APIClient.shared.quickAdd(
                     entityTypeId: entity.entityTypeId, title: entity.title, condition: addVolumeCondition, attributes: [:],
@@ -493,7 +493,7 @@ struct EntityDetailView: View {
         Text(text).font(Theme.displayMedium(16)).foregroundStyle(Theme.textPrimary)
     }
 
-    // MARK: - Synchronisation avec l'API
+    // MARK: - Synchronization with the API
 
     private func syncFromServer() async {
         isSyncing = true
@@ -519,8 +519,8 @@ struct EntityDetailView: View {
             relationshipsTo = relTo
             await EntityTypeRecord.syncFromServer(modelContext: modelContext, existing: entityTypes)
         } catch {
-            // Échec réseau : on garde le cache local existant (utile hors ligne),
-            // on informe juste que la synchronisation n'a pas pu se faire.
+            // Network failure: we keep the existing local cache (useful offline),
+            // we only report that the synchronization could not be done.
             syncError = "Synchronisation impossible, affichage du cache local"
         }
         isSyncing = false
@@ -536,8 +536,8 @@ struct EntityDetailView: View {
                 await MainActor.run { entityTagIds.remove(tag.id) }
             }
         } catch {
-            // Pas de gestion d'erreur dédiée ici : le sheet reste ouvert,
-            // l'utilisateur peut simplement retenter.
+            // No dedicated error handling here: the sheet stays open,
+            // the user can simply try again.
         }
     }
 
@@ -550,7 +550,7 @@ struct EntityDetailView: View {
                 entityTagIds.insert(tag.id)
             }
         } catch {
-            // idem : échec silencieux pour rester simple, l'utilisateur peut retenter.
+            // same: silent failure to keep it simple, the user can try again.
         }
     }
 
@@ -598,7 +598,7 @@ struct EntityDetailView: View {
 }
 
 enum DateParsing {
-    /// Convertit une date "yyyy-MM-dd" (LocalDate côté backend) en Date Swift.
+    /// Converts a "yyyy-MM-dd" date (LocalDate on the backend side) to a Swift Date.
     static func date(fromLocalDate string: String) -> Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -614,10 +614,10 @@ enum DateParsing {
     }
 }
 
-/// Formulaire d'ajout d'Experience : uniquement type, note et commentaire
-/// (pas de suivi de session détaillé, comme simplifié en conception).
-/// Appelle réellement POST /api/experiences puis remonte le résultat au
-/// parent via onSaved, pour upsert dans le cache local.
+/// Form to add an Experience: only type, rating and comment
+/// (no detailed session tracking, as simplified during design).
+/// Really calls POST /api/experiences then passes the result up to the
+/// parent via onSaved, to upsert into the local cache.
 private struct AddExperienceSheet: View {
     let entityId: UUID
     let allowedTypes: [String]
@@ -698,9 +698,9 @@ private struct AddExperienceSheet: View {
     }
 }
 
-/// Liste tous les tags existants avec un toggle, plus la création d'un
-/// nouveau tag directement associé. Reste ouvert après chaque action pour
-/// permettre de gérer plusieurs tags d'affilée.
+/// Lists all existing tags with a toggle, plus creating a
+/// new tag directly linked. Stays open after each action to
+/// allow managing several tags in a row.
 private struct ManageTagsSheet: View {
     let allTags: [TagDTO]
     let attachedTagIds: Set<UUID>
@@ -754,9 +754,9 @@ private struct ManageTagsSheet: View {
     }
 }
 
-/// Crée une Relationship typée vers une autre Entity du cache local
-/// (pas de recherche serveur ici - reste volontairement simple : choisir
-/// parmi ce qu'on a déjà sous la main sur l'appareil).
+/// Creates a typed Relationship to another Entity of the local cache
+/// (no server search here - deliberately kept simple: choose
+/// among what we already have at hand on the device).
 private struct AddRelationshipSheet: View {
     let sourceEntityId: UUID
     let candidateEntities: [EntityRecord]

@@ -64,10 +64,10 @@ class ExportIntegrationTest extends PostgresIntegrationTest {
     private ExportService exportService;
 
     /**
-     * Le critère du Lot 33, appliqué à ce qui restait dehors : un prix relevé à
-     * la main, l'édition qu'on suit, un type de collection créé soi-même et le
-     * profil qui pondère les verdicts n'existent nulle part ailleurs. Un export
-     * qui les omet promet une porte de sortie qu'il n'ouvre pas.
+     * The criterion of Batch 33, applied to what was still left outside: a price recorded by
+     * hand, the edition that is followed, a collection type created by the user and the
+     * profile that weights the verdicts exist nowhere else. An export
+     * that leaves them out promises an exit door that it does not open.
      */
     @Test
     void l_export_emporte_aussi_ce_qui_ne_se_reconstruit_nulle_part_ailleurs() {
@@ -86,7 +86,7 @@ class ExportIntegrationTest extends PostgresIntegrationTest {
 
         ExportDocument.MarketObservationExport releveExporte = document.marketObservations().stream()
                 .filter(o -> o.id().equals(releve.id())).findFirst().orElseThrow();
-        // Dénormalisé comme le reste de l'export : lisible sans rejoindre une autre table.
+        // Denormalised like the rest of the export: readable without joining another table.
         assertThat(releveExporte.seriesTitle()).isEqualTo(serie.title());
         assertThat(releveExporte.editionName()).isEqualTo("Kurokawa");
         assertThat(releveExporte.observedPrice()).isEqualByComparingTo(new BigDecimal("21.00"));
@@ -98,8 +98,8 @@ class ExportIntegrationTest extends PostgresIntegrationTest {
         assertThat(suivieExportee.entityTitle()).isEqualTo(serie.title());
         assertThat(suivieExportee.editionName()).isEqualTo("Kurokawa");
 
-        // Le code et le libellé voyagent déjà sur chaque œuvre ; ce qui manquait,
-        // c'est ce qu'un type personnalisé porte en propre.
+        // The code and the label already travel with each work; what was missing
+        // is what a custom type carries on its own.
         assertThat(document.entityTypes()).extracting(ExportDocument.EntityTypeExport::code).contains("MANGA");
 
         assertThat(document.collectorPreferences()).isNotNull();

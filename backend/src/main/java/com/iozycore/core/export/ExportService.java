@@ -32,10 +32,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * "Export complet des données (JSON/CSV)" (§19, docs/CONCEPTION.md) -
- * lecture pure cross-context, ne modifie jamais Catalog/Ownership/
- * Experience/Wishlist (même patron que StatsService). Voir ExportDocument
- * pour le principe de dénormalisation qui rend l'export auto-suffisant.
+ * "Full data export (JSON/CSV)" (§19, docs/CONCEPTION.md) -
+ * pure cross-context read, never modifies Catalog/Ownership/
+ * Experience/Wishlist (same pattern as StatsService). See ExportDocument
+ * for the denormalization principle that makes the export self-sufficient.
  */
 @Service
 public class ExportService {
@@ -51,7 +51,7 @@ public class ExportService {
     private final EntityRankRepository entityRankRepository;
     private final TierListRepository tierListRepository;
     private final TierListItemRepository tierListItemRepository;
-    /** Ce que chaque univers ajoute au document - le manga, ses éditions et ses prix (Lot 133). */
+    /** What each universe adds to the document - manga, its editions and its prices (Batch 133). */
     private final List<TransferModule> modules;
 
     public ExportService(EntityRepository entityRepository, EntityTypeRepository entityTypeRepository,
@@ -120,8 +120,8 @@ public class ExportService {
                 .map(tag -> new ExportDocument.TagExport(tag.id(), tag.label()))
                 .toList();
 
-        // findByEntityIds plutôt qu'un findAll inexistant sur ce repository :
-        // toutes les œuvres sont déjà chargées ci-dessus, la question est close.
+        // findByEntityIds rather than a findAll that does not exist on this repository:
+        // all works are already loaded above, the question is closed.
         List<ExportDocument.GeneralRankExport> generalRankExports = entityRankRepository
                 .findByEntityIds(entitiesById.keySet()).stream()
                 .map(rank -> new ExportDocument.GeneralRankExport(rank.entityId(),
@@ -144,15 +144,15 @@ public class ExportService {
                                 .toList()))
                 .toList();
 
-        // findByEntityIdIn plutot qu'un findAll inexistant sur ce repository :
-        // meme geste que pour les classements generaux ci-dessus.
+        // findByEntityIdIn rather than a findAll that does not exist on this repository:
+        // same move as for the general rankings above.
         List<ExportDocument.EntityTypeExport> typeExports = typesById.values().stream()
                 .map(t -> new ExportDocument.EntityTypeExport(t.id(), t.code(), t.label(),
                         List.copyOf(t.allowedExperienceTypes()), List.copyOf(t.customFieldKeys()),
                         t.colorKey(), t.iconKey(), t.aspectKey()))
                 .toList();
 
-        // Les sections des univers - le coeur les assemble sans les lire (Lot 133).
+        // The sections of the universes - the core assembles them without reading them (Batch 133).
         ExportDocument.SectionsUnivers univers = ExportDocument.SectionsUnivers.vides();
         for (TransferModule module : modules) {
             univers = univers.avec(module.exporter(entitiesById));

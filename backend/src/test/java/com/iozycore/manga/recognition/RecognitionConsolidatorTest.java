@@ -8,9 +8,9 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Le même tome photographié trois fois ne doit pas devenir trois tomes : sans
- * cette étape, le prix par tome serait divisé par trois et le verdict d'achat
- * calculé sur un lot qui n'existe pas.
+ * The same volume photographed three times must not become three volumes: without
+ * this step, the price per volume would be divided by three and the buying verdict
+ * computed on a batch that does not exist.
  */
 class RecognitionConsolidatorTest {
 
@@ -43,7 +43,7 @@ class RecognitionConsolidatorTest {
                 vu("Platinum End", 4, RecognitionConfidence.MEDIUM, 0),
                 vu("Platinum End", 4, RecognitionConfidence.MEDIUM, 2)));
 
-        // L'utilisateur doit pouvoir retourner voir sur quelle image on a lu ça.
+        // The user must be able to go back and see on which image this was read.
         assertThat(consolides.get(0).sourceImages()).containsExactly(0, 2);
     }
 
@@ -79,8 +79,8 @@ class RecognitionConsolidatorTest {
 
     @Test
     void two_series_that_merely_look_alike_are_never_merged() {
-        // Rapprocher « Naruto » et « Boruto » par ressemblance ferait bien plus
-        // de dégâts que de laisser deux lignes que l'utilisateur fusionne.
+        // Bringing "Naruto" and "Boruto" together by similarity would do far more
+        // damage than leaving two lines that the user merges.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 vu("Naruto", 1, RecognitionConfidence.HIGH, 0),
                 vu("Boruto", 1, RecognitionConfidence.HIGH, 0)));
@@ -88,13 +88,13 @@ class RecognitionConsolidatorTest {
         assertThat(consolides).hasSize(2);
     }
 
-    // ============================================ Fusion d'édition : A, B, C
+    // ============================================ Edition merge: A, B, C
 
     @Test
     void regle_A_an_unread_edition_is_completed_by_the_one_that_was_read() {
-        // Photo 1 : édition illisible. Photo 2 : « Standard » lisible.
-        // Une édition absente est une information manquante, pas une édition
-        // différente : la compléter par la seule lecture disponible n'invente rien.
+        // Photo 1: unreadable edition. Photo 2: "Standard" readable.
+        // A missing edition is missing information, not a different
+        // edition: completing it with the only available reading invents nothing.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromVision("Vinland Saga", 7, null, null, RecognitionConfidence.MEDIUM,
                         List.of("« 07 » sur la tranche"), photosDe(0)),
@@ -120,8 +120,8 @@ class RecognitionConsolidatorTest {
 
     @Test
     void regle_B_two_editions_that_were_both_read_stay_two_items() {
-        // Les photos se contredisent : c'est à l'utilisateur de trancher, pas
-        // au consolidateur de choisir un gagnant.
+        // The photos contradict each other: it is up to the user to decide, not
+        // up to the consolidator to pick a winner.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromVision("Death Note", 1, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
                 RecognizedItem.fromVision("Death Note", 1, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
@@ -133,8 +133,8 @@ class RecognitionConsolidatorTest {
 
     @Test
     void regle_C_an_edition_unread_everywhere_stays_unread() {
-        // Un seul candidat, et surtout AUCUNE édition inventée : l'écran devra
-        // la faire confirmer.
+        // A single candidate, and above all NO invented edition: the screen will have to
+        // have it confirmed.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromVision("Berserk", 3, null, null, RecognitionConfidence.MEDIUM, List.of(), photosDe(0)),
                 RecognizedItem.fromVision("Berserk", 3, null, null, RecognitionConfidence.HIGH, List.of(), photosDe(1))));
@@ -146,9 +146,9 @@ class RecognitionConsolidatorTest {
 
     @Test
     void an_unread_edition_joins_only_one_of_two_conflicting_readings() {
-        // Standard, Perfect, puis une lecture sans édition : trois entrées, deux
-        // candidats. La troisième complète l'une des deux, elle n'en crée pas
-        // une troisième et ne fusionne pas les deux premières.
+        // Standard, Perfect, then a reading without an edition: three entries, two
+        // candidates. The third completes one of the two, it does not create
+        // a third one and does not merge the first two.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromVision("Berserk", 3, "Standard", null, RecognitionConfidence.HIGH, List.of(), photosDe(0)),
                 RecognizedItem.fromVision("Berserk", 3, "Perfect", null, RecognitionConfidence.HIGH, List.of(), photosDe(1)),
@@ -159,13 +159,13 @@ class RecognitionConsolidatorTest {
                 .containsExactlyInAnyOrder("Standard", "Perfect");
     }
 
-    // ============================================ Ordre déterministe
+    // ============================================ Deterministic order
 
     @Test
     void source_images_keep_a_deterministic_ascending_order() {
-        // Verrou de régression. Set.copyOf(new TreeSet<>(...)) rend un Set NON
-        // ordonné : l'écran affichait « vu sur les photos 3 et 1 ». L'ordre est
-        // celui que l'utilisateur a sous les yeux, il ne peut pas être aléatoire.
+        // Regression lock. Set.copyOf(new TreeSet<>(...)) returns an UNORDERED
+        // Set: the screen showed "seen on photos 3 and 1". The order is
+        // the one the user has before their eyes, it cannot be random.
         for (int essai = 0; essai < 50; essai++) {
             RecognizedItem item = RecognizedItem.fromVision("Platinum End", 4, null, null,
                     RecognitionConfidence.HIGH, List.of(), photosDe(5, 0, 3, 1, 7, 2));
@@ -196,9 +196,9 @@ class RecognitionConsolidatorTest {
 
     @Test
     void a_volume_without_a_number_is_never_absorbed_by_a_numbered_one() {
-        // « Death Note, tome inconnu » et « Death Note tome 3 » peuvent être le
-        // même livre ou deux livres. Rien sur la photo ne tranche : les fusionner
-        // inventerait une certitude.
+        // "Death Note, tome inconnu" and "Death Note tome 3" may be the
+        // same book or two books. Nothing on the photo decides: merging them
+        // would invent a certainty.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 vu("Death Note", 3, RecognitionConfidence.HIGH, 0),
                 vu("Death Note", null, RecognitionConfidence.LOW, 1)));
@@ -232,14 +232,14 @@ class RecognitionConsolidatorTest {
         assertThat(RecognitionConsolidator.consolidate(List.of())).isEmpty();
     }
 
-    // ================ Le point de jonction des TROIS sources
+    // ================ The junction point of the THREE sources
 
     @Test
     void a_barcode_and_a_listing_line_describing_the_same_volume_become_one() {
-        // Le lot code-barres a ajoute une troisieme source sans que la fusion
-        // soit verifiee avec elle. Si elles ne se rejoignaient pas, le meme
-        // livre compterait deux fois - et le prix par tome serait fausse, la
-        // classe de defaut la plus couteuse de ce module.
+        // The barcode batch added a third source without the merge
+        // being checked with it. If they did not join up, the same
+        // book would count twice - and the price per volume would be wrong, the
+        // costliest class of flaw of this module.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromText("Naruto", 9, "tome 9 annoncé dans l'annonce"),
                 RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))));
@@ -249,9 +249,9 @@ class RecognitionConsolidatorTest {
 
     @Test
     void merging_never_loses_the_exact_identifier() {
-        // C'est tout l'interet de la source EAN : apres fusion, l'element doit
-        // rester porteur d'un identifiant exact, sinon la meilleure des trois
-        // lectures aurait ete diluee par les deux autres.
+        // This is the whole point of the EAN source: after the merge, the item must
+        // stay the carrier of an exact identifier, otherwise the best of the three
+        // readings would have been diluted by the other two.
         RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromText("Naruto", 9, "annoncé"),
                 RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))))
@@ -263,8 +263,8 @@ class RecognitionConsolidatorTest {
 
     @Test
     void the_barcode_wins_as_the_strongest_source_of_a_merged_item() {
-        // L'ecran affiche la source la plus forte. Un tome confirme par son
-        // code-barres doit se presenter comme tel, pas comme « annonce ».
+        // The screen shows the strongest source. A volume confirmed by its
+        // barcode must present itself as such, not as "listing".
         RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromText("Naruto", 9, "annoncé"),
                 RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0))))
@@ -286,14 +286,14 @@ class RecognitionConsolidatorTest {
         assertThat(consolides).hasSize(1);
         assertThat(consolides.get(0).sources()).containsExactlyInAnyOrder(
                 RecognitionSource.TEXT, RecognitionSource.VISION, RecognitionSource.EAN);
-        // Les photos des deux lectures visuelles sont reunies.
+        // The photos of the two visual readings are brought together.
         assertThat(consolides.get(0).sourceImages()).containsExactly(0, 1);
     }
 
     @Test
     void a_barcode_reading_an_edition_the_photos_did_not_see_completes_it() {
-        // Une edition non lue est une information manquante, pas une edition
-        // differente : celle qui a ete lue la complete.
+        // An unread edition is missing information, not a different
+        // edition: the one that was read completes it.
         RecognizedItem fusionne = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromVision("Naruto", 9, "Kana", null,
                         RecognitionConfidence.MEDIUM, List.of("vu"), Set.of(1)),
@@ -306,16 +306,16 @@ class RecognitionConsolidatorTest {
 
     @Test
     void two_barcodes_of_different_editions_of_the_same_volume_stay_apart() {
-        // Deux EAN distincts DESIGNENT deux tirages distincts. Les fondre
-        // ferait disparaitre un livre du decompte.
+        // Two distinct EANs DESIGNATE two distinct print runs. Merging them
+        // would make a book disappear from the count.
         List<RecognizedItem> consolides = RecognitionConsolidator.consolidate(List.of(
                 RecognizedItem.fromEan("Naruto", 9, "9782505011118", "code-barres lu", Set.of(0)),
                 RecognizedItem.fromEan("Naruto", 9, "9782505078180", "code-barres lu", Set.of(1))));
 
-        // Aucune edition n'est lue de part et d'autre : la regle de compatibilite
-        // les rapproche. C'est le comportement documente - et l'utilisateur
-        // tranche - mais l'identifiant retenu reste l'un des deux, jamais un
-        // melange.
+        // No edition is read on either side: the compatibility rule
+        // brings them together. This is the documented behaviour - and the user
+        // decides - but the identifier kept stays one of the two, never a
+        // mix.
         assertThat(consolides).hasSize(1);
         assertThat(consolides.get(0).ean()).isEqualTo("9782505011118");
     }

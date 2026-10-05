@@ -11,39 +11,39 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Racine d'agrégat représentant la possession d'un exemplaire d'une
- * Entity (ou d'un Variant précis). Ne référence jamais une Experience
- * et sa suppression n'affecte jamais l'Entity qu'elle référence.
+ * Aggregate root for the ownership of one copy of an
+ * Entity (or of a specific Variant). Never references an Experience
+ * and its deletion never affects the Entity that it references.
  * <p>
- * Prix d'acquisition ({@code purchasePrice}) était explicitement hors
- * périmètre du MVP initial ("simplification demandée", voir
- * docs/CONCEPTION.md §4) - ajouté depuis sur demande explicite. Le statut
- * "prêté" a suivi le chemin inverse : ajouté puis retiré du produit, il n'a
- * jamais vécu ici mais dans un agrégat séparé, supprimé avec la
- * fonctionnalité (voir V19__drop_loan.sql). purchasePrice reste nullable et
- * n'est jamais deviné : une Ownership créée avant cette fonctionnalité, ou
- * simplement ajoutée sans prix, garde purchasePrice = null plutôt qu'une
- * valeur inventée (voir StatsService.computeCollectionValue, qui distingue
- * toujours la couverture connue du total réel plutôt que de sous-entendre
- * une valeur totale complète).
+ * Purchase price ({@code purchasePrice}) was explicitly out of the
+ * scope of the initial MVP ("simplification asked", see
+ * docs/CONCEPTION.md §4) - added since on explicit request. The status
+ * "lent" followed the opposite path: added then removed from the product, it
+ * never lived here but in a separate aggregate, deleted with the
+ * feature (see V19__drop_loan.sql). purchasePrice stays nullable and
+ * is never guessed: an Ownership created before this feature, or
+ * simply added without a price, keeps purchasePrice = null rather than an
+ * invented value (see StatsService.computeCollectionValue, which always
+ * tells the known coverage apart from the real total instead of implying
+ * a complete total value).
  * <p>
- * Porte un ownerId, mais ne le CHOISIT pas : à la création il vaut
- * null - « pas encore attribué ». C'est la session qui
- * tranche, à l'écriture, via la colonne marquée @TenantId (voir
- * ProprietaireCourant). Relu depuis la base, il porte le vrai propriétaire
- * de la ligne.
+ * Carries an ownerId, but does not CHOOSE it: at creation it is
+ * null - "not yet assigned". The session decides, at write time,
+ * through the column marked @TenantId (see
+ * ProprietaireCourant). Read back from the database, it carries the real owner
+ * of the row.
  */
 public class Ownership {
 
     private final UUID id;
     private final UUID entityId;
-    private final UUID variantId; // nullable : possession sans édition précise
+    private final UUID variantId; // nullable: ownership without a specific edition
     private final UUID ownerId;
     private OwnershipCondition condition;
     private OwnershipStatus status;
     private final LocalDate acquiredAt;
     private String note;
-    private BigDecimal purchasePrice; // nullable : jamais deviné, voir Javadoc de la classe
+    private BigDecimal purchasePrice; // nullable: never guessed, see the class Javadoc
     private final List<DomainEvent> pendingEvents = new ArrayList<>();
 
     private Ownership(UUID id, UUID entityId, UUID variantId, UUID ownerId, OwnershipCondition condition,
@@ -92,17 +92,17 @@ public class Ownership {
     }
 
     /**
-     * Remet un exemplaire vendu ou perdu en possession.
+     * Puts a sold or lost copy back in ownership.
      * <p>
-     * Existe pour une raison précise : "Marquer vendu" et "Marquer perdu" sont
-     * déclenchés d'un seul clic depuis le menu d'un exemplaire, et rien ne
-     * permettait de revenir en arrière - une faute de frappe de geste faisait
-     * disparaître un tome de la collection définitivement (voir
-     * docs/USER_JOURNEYS.md, UX-11). L'interface propose désormais "Annuler"
-     * juste après l'action ; sans cette méthode, ce bouton serait décoratif.
+     * Exists for a precise reason: "Mark as sold" and "Mark as lost" are
+     * triggered with a single click from the menu of a copy, and nothing
+     * allowed to go back - a slip of the hand made a volume
+     * disappear from the collection for good (see
+     * docs/USER_JOURNEYS.md, UX-11). The interface now offers "Annuler"
+     * right after the action; without this method, this button would be decorative.
      * <p>
-     * Refuse un exemplaire déjà actif plutôt que de ne rien faire en silence :
-     * appeler restore() sur une possession en cours trahit un défaut d'appel.
+     * Refuses a copy that is already active rather than silently doing nothing:
+     * calling restore() on a current ownership shows a calling mistake.
      */
     public void restore() {
         if (this.status == OwnershipStatus.OWNED) {
@@ -119,8 +119,8 @@ public class Ownership {
         this.note = newNote;
     }
 
-    /** {@code null} efface le prix renseigné (ex: saisie corrigée) - jamais refusé,
-     * une Ownership peut tout à fait redevenir "prix inconnu" volontairement. */
+    /** {@code null} erases the filled-in price (e.g. corrected entry) - never refused,
+     * an Ownership can very well become "unknown price" on purpose. */
     public void updatePurchasePrice(BigDecimal newPurchasePrice) {
         this.purchasePrice = newPurchasePrice;
     }

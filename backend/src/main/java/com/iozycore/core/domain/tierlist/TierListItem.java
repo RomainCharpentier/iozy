@@ -5,11 +5,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Appartenance d'une Entity à une TierList personnalisée, avec un rang
- * optionnel (voir la maquette V1.2 - "voir les non classés" : un élément
- * peut être ajouté à une Tier List avant d'être classé, `rank` reste alors
- * null). Contrairement à EntityRank (classement général), l'appartenance
- * ici est toujours explicite - jamais dérivée de la possession seule.
+ * Membership of an Entity in a custom TierList, with an optional
+ * rank (see mockup V1.2 - "see the unranked": an item
+ * can be added to a Tier List before being ranked, `rank` is then
+ * null). Unlike EntityRank (general ranking), membership
+ * here is always explicit - never derived from ownership alone.
  */
 public class TierListItem {
 
@@ -35,7 +35,7 @@ public class TierListItem {
         return new TierListItem(id, tierListId, entityId, rank, addedAt);
     }
 
-    /** `null` = retire l'élément du classement de cette liste sans le retirer de la liste elle-même (redevient "non classé"). */
+    /** `null` = removes the item from the ranking of this list without removing it from the list itself (becomes "unranked" again). */
     public void setRank(Rank rank) {
         this.rank = rank;
     }

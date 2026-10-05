@@ -10,11 +10,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Lecture cross-contexte (catalog + ownership + tierlist) - même patron que
- * StatsService (voir com.iozycore.core.insights) : le domaine tierlist ne connaît
- * que ses propres ports, ce service assemble ce qui a besoin de croiser
- * plusieurs bounded contexts (ex: "quelles œuvres possédées de cet univers
- * n'ont encore aucun rang général").
+ * Cross-context read (catalog + ownership + tierlist) - same pattern as
+ * StatsService (see com.iozycore.core.insights): the tierlist domain only knows
+ * its own ports, this service assembles what needs to cross
+ * several bounded contexts (e.g. "which owned works of this universe
+ * still have no general rank").
  */
 @Service
 public class TierListService {
@@ -35,9 +35,9 @@ public class TierListService {
         this.tierListItemRepository = tierListItemRepository;
     }
 
-    /** Entités RÉELLEMENT possédées d'un univers - voir isOwned() côté web
-     * (ShelfPage/ownership.ts) pour la même règle : au moins une Ownership
-     * active, directement ou via un Variant. */
+    /** Entities REALLY owned in a universe - see isOwned() on the web side
+     * (ShelfPage/ownership.ts) for the same rule: at least one active
+     * Ownership, directly or through a Variant. */
     public List<Entity> ownedEntitiesOfType(UUID entityTypeId) {
         Set<UUID> ownedEntityIds = ownedEntityIds();
         return entityRepository.findAllByType(entityTypeId).stream()
@@ -45,7 +45,7 @@ public class TierListService {
                 .collect(Collectors.toList());
     }
 
-    /** Les Entity dont au moins une Ownership est active - vendu/perdu ne compte pas. */
+    /** The Entities with at least one active Ownership - sold/lost does not count. */
     private Set<UUID> ownedEntityIds() {
         return ownershipRepository.findAll().stream()
                 .filter(com.iozycore.core.domain.ownership.Ownership::isActive)
@@ -57,24 +57,24 @@ public class TierListService {
     }
 
     /**
-     * Board complet du classement général d'un univers.
+     * Full board of the general ranking of a universe.
      * <p>
-     * Les deux moitiés n'obéissent volontairement pas à la même règle, et c'est
-     * la distinction centrale de cet écran :
+     * The two halves deliberately do not follow the same rule, and this is
+     * the central distinction of this screen:
      * <ul>
-     *   <li><b>{@code ranked}</b> - <b>toutes</b> les œuvres du catalogue de ce
-     *       type qui portent un rang, possédées ou non. Un classement dit ce
-     *       que l'utilisateur pense d'une œuvre ; le revendre ne change pas son
-     *       avis. Ce board ne partait auparavant que des œuvres possédées :
-     *       vendre un manga classé S le faisait disparaître de la ligne S alors
-     *       que son EntityRank existait toujours en base - un avis rendu
-     *       invisible par un mouvement de collection.</li>
-     *   <li><b>{@code unranked}</b> - les œuvres <b>possédées</b> sans rang,
-     *       c'est-à-dire la file « à classer ». Elle reste volontairement
-     *       adossée à la possession : proposer de classer tout ce qui a une
-     *       fiche noierait cette file sous les œuvres seulement mises en envies
-     *       ou croisées au catalogue. <b>Pouvoir être classée</b> et <b>devoir
-     *       apparaître dans « à classer »</b> sont deux questions distinctes.</li>
+     *   <li><b>{@code ranked}</b> - <b>all</b> works of the catalog of this
+     *       type that have a rank, owned or not. A ranking says what the
+     *       user thinks of a work; selling it does not change their
+     *       opinion. This board used to start only from owned works:
+     *       selling a manga ranked S made it disappear from the S row while
+     *       its EntityRank still existed in the database - an opinion made
+     *       invisible by a collection move.</li>
+     *   <li><b>{@code unranked}</b> - the <b>owned</b> works without a rank,
+     *       that is the "to rank" queue. It deliberately stays
+     *       tied to ownership: offering to rank everything that has a
+     *       page would drown this queue under works only put in wishes
+     *       or passed through the catalog. <b>Being able to be ranked</b> and <b>having to
+     *       appear in "to rank"</b> are two separate questions.</li>
      * </ul>
      */
     public GeneralBoard generalBoard(UUID entityTypeId) {
@@ -102,11 +102,11 @@ public class TierListService {
     public record CustomRankEntry(TierList list, Rank rank) {
     }
 
-    /** "Mes classements" côté fiche : rang général (si connu) + toutes les
-     * Tier Lists personnalisées où cette œuvre est RÉELLEMENT classée
-     * (jamais celles où elle est juste ajoutée sans rang - voir la maquette,
-     * "Rang général : visuellement dominant", les listes personnalisées
-     * n'y montrent que ce qui est effectivement classé). */
+    /** "My rankings" on the detail page: general rank (if known) + all the
+     * custom Tier Lists where this work is REALLY ranked
+     * (never those where it is just added without a rank - see the mockup,
+     * "General rank: visually dominant", custom lists
+     * only show there what is actually ranked). */
     public List<CustomRankEntry> customRanksFor(UUID entityId) {
         List<TierListItem> items = tierListItemRepository.findByEntityId(entityId);
         List<CustomRankEntry> entries = new ArrayList<>();
@@ -118,10 +118,10 @@ public class TierListService {
         return entries;
     }
 
-    /** Éléments d'une Tier List personnalisée, enrichis de l'Entity - vide
-     *  silencieusement les items dont l'Entity a disparu : un classement ne doit
-     *  pas faire échouer la lecture d'une liste parce qu'une œuvre a été
-     *  supprimée entre-temps. */
+    /** Items of a custom Tier List, enriched with the Entity - silently
+     *  leaves out the items whose Entity has disappeared: a ranking must not
+     *  make the reading of a list fail because a work was
+     *  deleted in the meantime. */
     public List<Map.Entry<TierListItem, Entity>> enrichedItems(UUID tierListId) {
         List<TierListItem> items = tierListItemRepository.findByTierListId(tierListId);
         List<Map.Entry<TierListItem, Entity>> result = new ArrayList<>();

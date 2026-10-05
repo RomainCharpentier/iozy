@@ -30,7 +30,7 @@ class BggCollectionFetcherTest {
 
         List<BggCollectionItem> items = fetcher.parse(SAMPLE_RESPONSE);
 
-        // Carcassonne est en wishlist (own="0") - filtré, seul Catan (own="1") doit rester.
+        // Carcassonne is on the wishlist (own="0") - filtered out, only Catan (own="1") must stay.
         assertThat(items).hasSize(1);
         assertThat(items.get(0).title()).isEqualTo("Catan");
         assertThat(items.get(0).externalId()).isEqualTo("13");

@@ -35,76 +35,76 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * La porte de l'application.
+ * The door of the application.
  *
- * <h2>Ce qui reste ouvert, et pourquoi</h2>
- * Trois chemins seulement : la <b>création du premier compte</b> et la
- * <b>connexion</b> (sans quoi personne ne pourrait jamais entrer), et
- * <b>{@code /api/public/**}</b> - les liens de partage, dont c'est toute la
- * raison d'être : un visiteur à qui l'on envoie un lien n'a pas de compte.
- * Leur filtrage est fait côté serveur et couvert par un test qui cherche les
- * données privées dans la réponse sérialisée.
+ * <h2>What stays open, and why</h2>
+ * Only three paths: the <b>creation of the first account</b> and
+ * <b>sign-in</b> (otherwise nobody could ever enter), and
+ * <b>{@code /api/public/**}</b> - the share links, whose whole
+ * purpose it is: a visitor who is sent a link has no account.
+ * Their filtering is done on the server side and covered by a test that looks for
+ * private data in the serialized response.
  *
- * <p>Tout le reste demande une session, <b>y compris Swagger</b>. Une
- * documentation d'API qui déclare 92 routes est aussi une carte : elle
- * n'apporte rien à qui n'a pas le droit de les appeler. On se connecte
- * d'abord, la session vaut pour Swagger comme pour l'app.
+ * <p>Everything else asks for a session, <b>Swagger included</b>. An
+ * API documentation that declares 92 routes is also a map: it
+ * brings nothing to whoever has no right to call them. One signs in
+ * first, the session is valid for Swagger as for the app.
  *
- * <h2>Une session, pas un jeton dans le navigateur</h2>
- * Un cookie {@code HttpOnly} n'est pas lisible par du JavaScript ; un jeton
- * rangé dans {@code localStorage} l'est par n'importe quel script injecté.
- * Et l'architecture de ce dépôt sert déjà l'API sous la MÊME origine que
- * l'app (proxy Vite en développement, nginx en production, voir
- * web/README.md) : le cookie voyage donc sans configuration cross-site.
+ * <h2>A session, not a token in the browser</h2>
+ * An {@code HttpOnly} cookie cannot be read by JavaScript; a token
+ * stored in {@code localStorage} can be read by any injected script.
+ * And the architecture of this repository already serves the API under the SAME origin as
+ * the app (Vite proxy in development, nginx in production, see
+ * web/README.md): the cookie therefore travels without cross-site configuration.
  *
- * <p>Conséquence assumée : les sessions vivent en mémoire, un redémarrage du
- * serveur déconnecte tout le monde. Sur une application de collection
- * personnelle, se reconnecter après une mise à jour est un prix acceptable -
- * bien plus que la dépendance qu'un magasin de sessions partagé ajouterait.
+ * <p>Accepted consequence: sessions live in memory, a restart of the
+ * server signs everyone out. On a personal collection
+ * application, signing in again after an update is an acceptable price -
+ * much more than the dependency that a shared session store would add.
  *
- * <h2>Le mode visiteur : la même chaîne, moins le droit d'écrire</h2>
- * Un visiteur ({@code /api/auth/visite}) a une session comme les autres, et
- * c'est ce qui lui permet de lire le <b>catalogue</b> - un anonyme, lui, ne
- * verrait rien du tout. Cette session ne nomme <b>aucun propriétaire</b> :
- * elle donne donc accès aux œuvres, qui n'appartiennent à personne, et à
- * aucune possession, note ou envie, toutes filtrées par propriétaire (voir
+ * <h2>Visitor mode: the same chain, minus the right to write</h2>
+ * A visitor ({@code /api/auth/visite}) has a session like the others, and
+ * this is what lets them read the <b>catalog</b> - an anonymous user would
+ * see nothing at all. This session names <b>no owner</b>:
+ * it therefore gives access to the works, which belong to nobody, and to
+ * no ownership, rating or wish, all filtered by owner (see
  * {@code Invite}).
  *
- * <p>Ce qu'il n'a pas, c'est le droit d'écrire, et ce refus est posé <b>par la
- * méthode HTTP</b>, une fois pour toutes, dans {@link LectureSeuleInvite} :
- * tout ce qui n'est pas un {@code GET} lui est fermé.
+ * <p>What they do not have is the right to write, and this refusal is set <b>by the
+ * HTTP method</b>, once and for all, in {@link LectureSeuleInvite}:
+ * everything that is not a {@code GET} is closed to them.
  *
- * <p>Par la méthode, et non route par route : une liste de routes interdites
- * se périme au premier contrôleur ajouté, et l'oubli ne se voit pas - il
- * s'écrit dans la base de quelqu'un d'autre. Un {@code POST} qui ne ferait que
- * lire (il en existe : analyser une annonce, lire un lien) tombe dans le même
- * refus, et c'est très bien : ce sont justement les appels coûteux, sortants ou
- * facturés, qu'une porte ouverte à tout Internet ne doit pas offrir.
+ * <p>By the method, and not route by route: a list of forbidden routes
+ * goes stale at the first controller added, and the omission cannot be seen - it
+ * writes into someone else's database. A {@code POST} that would only
+ * read (some exist: analyze a listing, read a link) falls under the same
+ * refusal, and that is fine: these are precisely the costly, outgoing or
+ * billed calls that a door open to the whole Internet must not offer.
  *
- * <h2>Une session ne vaut que tant que son compte existe</h2>
- * La session retient le principal écrit à la connexion, et rien ne le relisait
- * ensuite : un compte supprimé par l'administrateur restait « connecté » dans
- * son navigateur. {@link SessionDUnCompteSupprime} relit le compte à chaque
- * requête et ferme la session dès qu'il n'y en a plus.
+ * <h2>A session is only valid as long as its account exists</h2>
+ * The session keeps the principal written at sign-in, and nothing read it again
+ * afterwards: an account deleted by the administrator stayed "signed in" in
+ * its browser. {@link SessionDUnCompteSupprime} reads the account again at each
+ * request and closes the session as soon as it is gone.
  *
- * <h2>CSRF : activé, parce que le cookie voyage tout seul</h2>
- * C'est la contrepartie exacte du choix précédent. Un cookie de session part
- * automatiquement avec la requête, y compris quand c'est une AUTRE page qui la
- * déclenche - c'est la définition d'une CSRF. Le jeton est déposé dans un
- * cookie lisible par le client (voir {@link CookieCsrfTokenRepository}), que
- * {@code web/src/api/client.ts} renvoie en en-tête sur toute écriture. Une page
- * tierce ne peut pas lire ce cookie, donc pas forger l'en-tête.
+ * <h2>CSRF: enabled, because the cookie travels on its own</h2>
+ * This is the exact counterpart of the previous choice. A session cookie goes
+ * automatically with the request, even when ANOTHER page triggers
+ * it - this is the definition of a CSRF. The token is set in a
+ * cookie readable by the client (see {@link CookieCsrfTokenRepository}), which
+ * {@code web/src/api/client.ts} sends back as a header on any write. A third-party
+ * page cannot read this cookie, so it cannot forge the header.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     /**
-     * Le jeton CSRF est <b>différé</b> depuis Spring Security 6 : le cookie
-     * n'est écrit que si quelqu'un lit le jeton pendant la requête. Sans ce
-     * filtre, un client qui n'a fait que des GET n'aurait jamais reçu de
-     * cookie, et sa première écriture serait refusée - y compris la connexion
-     * elle-même, tout premier appel d'une session.
+     * The CSRF token is <b>deferred</b> since Spring Security 6: the cookie
+     * is only written if someone reads the token during the request. Without this
+     * filter, a client that only did GETs would never have received a
+     * cookie, and its first write would be refused - including the sign-in
+     * itself, the very first call of a session.
      */
     static class CsrfCookieFilter extends OncePerRequestFilter {
         @Override
@@ -119,31 +119,31 @@ public class SecurityConfig {
     }
 
     /**
-     * Un visiteur lit, et rien d'autre.
+     * A visitor reads, and nothing else.
      *
-     * <h2>Pourquoi un filtre plutôt qu'une règle d'autorisation</h2>
-     * Les règles de {@code authorizeHttpRequests} se lisent dans l'ordre et la
-     * PREMIÈRE qui correspond gagne. Une règle « tout ce qui n'est pas un GET
-     * est interdit aux invités », posée en tête, aurait donc court-circuité
-     * toutes les suivantes - {@code /api/admin/**}, {@code /api/tags/**}, la
-     * connexion elle-même - pour tous les visiteurs, invités ou non. Posée en
-     * queue, elle n'aurait jamais été atteinte, {@code anyRequest} ayant déjà
-     * tranché. Le refus ne se superpose pas aux règles existantes : il vient
-     * APRÈS elles, sur la requête qu'elles ont laissé passer.
+     * <h2>Why a filter rather than an authorization rule</h2>
+     * The rules of {@code authorizeHttpRequests} are read in order and the
+     * FIRST one that matches wins. A rule "everything that is not a GET
+     * is forbidden to guests", put at the top, would have short-circuited
+     * all the following ones - {@code /api/admin/**}, {@code /api/tags/**}, the
+     * sign-in itself - for all visitors, guests or not. Put at the
+     * bottom, it would never have been reached, {@code anyRequest} having already
+     * decided. The refusal does not stack on the existing rules: it comes
+     * AFTER them, on the request that they let through.
      *
-     * <h2>La déconnexion reste ouverte</h2>
-     * C'est un {@code POST}, et c'est le seul geste d'un invité qui doive
-     * aboutir : lui refuser la sortie l'enfermerait dans la collection d'un
-     * autre jusqu'à expiration de sa session.
+     * <h2>Sign-out stays open</h2>
+     * It is a {@code POST}, and it is the only action of a guest that must
+     * succeed: refusing them the exit would lock them in the collection of
+     * someone else until their session expires.
      *
-     * <h2>Le corps est écrit ici, en toutes lettres</h2>
-     * {@code sendError} aurait renvoyé la page d'erreur de Spring, dont le
-     * message détaillé est tu tant que {@code server.error.include-message}
-     * n'est pas positionné - ce qu'il n'est pas ici. Le visiteur aurait lu
-     * « Accès refusé », le repli générique du client, au lieu de la seule
-     * chose utile : c'est la visite qui est en lecture seule, pas lui qui
-     * s'est trompé. La forme {@code {"error": ...}} est celle que le client
-     * lit en priorité (voir {@code web/src/api/client.ts}).
+     * <h2>The body is written here, in full</h2>
+     * {@code sendError} would have returned the Spring error page, whose
+     * detailed message is silenced as long as {@code server.error.include-message}
+     * is not set - which it is not here. The visitor would have read
+     * "Accès refusé", the generic fallback of the client, instead of the only
+     * useful thing: it is the visit that is read-only, they did not
+     * make a mistake. The shape {@code {"error": ...}} is the one the client
+     * reads first (see {@code web/src/api/client.ts}).
      */
     static class LectureSeuleInvite extends OncePerRequestFilter {
 
@@ -152,8 +152,8 @@ public class SecurityConfig {
         @Override
         protected void doFilterInternal(HttpServletRequest requete, HttpServletResponse reponse, FilterChain chaine)
                 throws ServletException, IOException {
-            // Sortir reste possible : c'est le seul geste d'un visiteur qui
-            // doive aboutir, sans quoi il garderait un cookie devenu inutile.
+            // Signing out stays possible: it is the only action of a visitor that
+            // must succeed, otherwise they would keep a cookie that became useless.
             if (!estUnVisiteur() || SORTIE.equals(requete.getRequestURI())) {
                 chaine.doFilter(requete, reponse);
                 return;
@@ -176,30 +176,30 @@ public class SecurityConfig {
     }
 
     /**
-     * Un compte supprimé ne garde pas sa session.
+     * A deleted account does not keep its session.
      *
-     * <h2>Le trou que ce filtre ferme</h2>
-     * La session retient le principal écrit à la connexion - identifiant,
-     * adresse, rôle - et plus rien ne le relisait ensuite. Supprimer un compte
-     * (voir {@code GestionDesComptes}) effaçait ses données et sa ligne, mais
-     * son navigateur restait « connecté » : une collection vide, et des
-     * écritures qui seraient reparties sous un identifiant que plus personne
-     * ne porte. Trouvé par le parcours Playwright d'import (lot 135), qui
-     * supprime un compte et attend la porte.
+     * <h2>The hole this filter closes</h2>
+     * The session keeps the principal written at sign-in - id,
+     * address, role - and nothing read it again afterwards. Deleting an account
+     * (see {@code GestionDesComptes}) erased its data and its row, but
+     * its browser stayed "signed in": an empty collection, and
+     * writes that would have gone out again under an id that nobody
+     * carries anymore. Found by the Playwright import path (batch 135), which
+     * deletes an account and waits at the door.
      *
-     * <h2>Une clé primaire par requête, plutôt qu'un registre de sessions</h2>
-     * Spring Security sait expirer les sessions d'un principal, à condition de
-     * les enregistrer à l'entrée et de tenir un registre en mémoire - qui ne
-     * survit pas à un redémarrage, et qu'un magasin de sessions ajouté un jour
-     * ne verrait pas. Ici, une lecture par clé primaire de la table des
-     * comptes, à chaque requête qui en porte un : le prix d'une règle sans
-     * état, et elle reste vraie quelle que soit la forme de la session. Une
-     * visite n'est pas concernée, elle ne nomme aucun compte.
+     * <h2>One primary key per request, rather than a session registry</h2>
+     * Spring Security knows how to expire the sessions of a principal, provided
+     * they are registered on entry and an in-memory registry is kept - which does not
+     * survive a restart, and which a session store added one day
+     * would not see. Here, one read by primary key of the accounts
+     * table, on each request that carries one: the price of a stateless
+     * rule, and it stays true whatever the shape of the session. A
+     * visit is not concerned, it names no account.
      *
-     * <p>Avant l'autorisation, parce que c'en est une question : une session
-     * qui ne désigne plus personne n'est pas authentifiée. Elle répond 401
-     * comme si elle n'existait pas - ce que le client traduit en porte - et
-     * elle est invalidée, pour ne pas être rejouée.
+     * <p>Before authorization, because it is a question of it: a session
+     * that designates nobody anymore is not authenticated. It answers 401
+     * as if it did not exist - which the client translates into a door - and
+     * it is invalidated, so it cannot be replayed.
      */
     static class SessionDUnCompteSupprime extends OncePerRequestFilter {
 
@@ -232,16 +232,16 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // BCrypt, force par défaut (10) : lent à dessein, et le seul coût est
-        // celui d'une connexion - une poignée par jour sur cette application.
+        // BCrypt, default strength (10): slow on purpose, and the only cost is
+        // that of a sign-in - a handful per day on this application.
         return new BCryptPasswordEncoder();
     }
 
     @Bean
     public SecurityContextRepository securityContextRepository() {
-        // Explicite parce que le contrôleur de connexion l'utilise directement :
-        // depuis Spring Security 6, authentifier ne suffit plus à retenir, il
-        // faut écrire le contexte dans la session soi-même.
+        // Explicit because the sign-in controller uses it directly:
+        // since Spring Security 6, authenticating is no longer enough to remember, the
+        // context must be written into the session by hand.
         return new HttpSessionSecurityContextRepository();
     }
 
@@ -250,9 +250,9 @@ public class SecurityConfig {
         DaoAuthenticationProvider fournisseur = new DaoAuthenticationProvider();
         fournisseur.setUserDetailsService(comptes);
         fournisseur.setPasswordEncoder(encodeur);
-        // Sans ça, une adresse inconnue échoue plus vite qu'un mot de passe
-        // faux : le temps de réponse dirait à un attaquant quelles adresses
-        // existent. Le fournisseur compare alors contre un hachage factice.
+        // Without it, an unknown address fails faster than a wrong
+        // password: the response time would tell an attacker which addresses
+        // exist. The provider then compares against a dummy hash.
         fournisseur.setHideUserNotFoundExceptions(true);
         return new org.springframework.security.authentication.ProviderManager(fournisseur);
     }
@@ -263,66 +263,66 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        // Le gestionnaire PAR DÉFAUT masque le jeton (protection
-                        // BREACH) : il attend en retour la valeur masquée qu'il a
-                        // exposée dans la page, pas celle du cookie. Un client qui
-                        // lit le cookie renvoie donc une valeur que le démasquage
-                        // rejette - 403 sur toute écriture, y compris la première
-                        // connexion (constaté en direct). Le masquage n'a de toute
-                        // façon rien à protéger ici : le jeton est déjà dans un
-                        // cookie lisible, c'est le principe même du montage.
+                        // The DEFAULT handler masks the token (BREACH
+                        // protection): it expects back the masked value that it
+                        // exposed in the page, not the one of the cookie. A client that
+                        // reads the cookie therefore sends back a value that unmasking
+                        // rejects - 403 on every write, including the first
+                        // sign-in (seen live). Masking has nothing to protect here
+                        // anyway: the token is already in a readable
+                        // cookie, this is the very principle of the setup.
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), UsernamePasswordAuthenticationFilter.class)
-                // AVANT l'autorisation : une session dont le compte a disparu
-                // n'est plus une session, et se traite comme une absence de
-                // session (voir la javadoc du filtre).
+                // BEFORE authorization: a session whose account is gone
+                // is no longer a session, and is handled as an absence of
+                // session (see the javadoc of the filter).
                 .addFilterBefore(new SessionDUnCompteSupprime(comptes), AuthorizationFilter.class)
-                // APRÈS l'autorisation : le refus ne s'applique qu'aux requêtes
-                // que les règles ci-dessous ont déjà acceptées (voir la javadoc
-                // du filtre).
+                // AFTER authorization: the refusal only applies to the requests
+                // that the rules below already accepted (see the javadoc
+                // of the filter).
                 .addFilterAfter(new LectureSeuleInvite(), AuthorizationFilter.class)
-                // La configuration CORS existante (voir CorsConfig) ne s'applique
-                // que si la chaîne de sécurité la consulte.
+                // The existing CORS configuration (see CorsConfig) only applies
+                // if the security chain consults it.
                 .cors(org.springframework.security.config.Customizer.withDefaults())
                 .securityContext(contexte -> contexte.securityContextRepository(contextes))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(routes -> routes
-                        // La page d'erreur n'est pas une route : c'est le
-                        // RENDU d'une requête déjà tranchée par les règles
-                        // ci-dessous. Depuis Spring Security 6, la chaîne
-                        // s'applique aussi à cette redirection interne : sans
-                        // cette ligne, un 404 destiné à un visiteur anonyme
-                        // repartait en 401 - constaté en direct sur un lien de
-                        // partage, alors que les tests MockMvc, qui ne
-                        // rejouent pas cette redirection, disaient 404.
+                        // The error page is not a route: it is the
+                        // RENDERING of a request already decided by the rules
+                        // below. Since Spring Security 6, the chain
+                        // also applies to this internal redirect: without
+                        // this line, a 404 meant for an anonymous visitor
+                        // went back to 401 - seen live on a share
+                        // link, while the MockMvc tests, which do not
+                        // replay this redirect, said 404.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/etat").permitAll()
-                        // Entrer sans compte, quand quelqu'un a ouvert sa
-                        // collection aux visiteurs. Fermée par défaut, et le
-                        // contrôleur refuse quand personne n'a rien ouvert -
-                        // « permitAll » ouvre la route, pas la porte.
+                        // Entering without an account, when someone opened their
+                        // collection to visitors. Closed by default, and the
+                        // controller refuses when nobody opened anything -
+                        // "permitAll" opens the route, not the door.
                         .requestMatchers("/api/auth/visite").permitAll()
-                        // Les liens de partage : leur destinataire n'a pas de compte.
+                        // The share links: their recipient has no account.
                         .requestMatchers("/api/public/**").permitAll()
-                        // L'administration de l'INSTANCE - qui a un compte, et
-                        // en supprimer un. Déclarée AVANT `anyRequest`, sans
-                        // quoi « authentifié » suffirait : la première règle
-                        // qui correspond gagne. Rien ici n'ouvre les données
-                        // d'autrui, qui restent filtrées par propriétaire.
+                        // The administration of the INSTANCE - who has an account, and
+                        // deleting one. Declared BEFORE `anyRequest`, otherwise
+                        // "authenticated" would be enough: the first rule
+                        // that matches wins. Nothing here opens the data
+                        // of others, which stays filtered by owner.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // Les tags décrivent une ŒUVRE, pas une collection :
-                        // ils vivent dans le catalogue PARTAGÉ, comme les
-                        // catégories et les éditions de référence. Tout le
-                        // monde les LIT - c'est ce qui rend le filtre de Ma
-                        // collection utilisable - et seul un administrateur
-                        // les pose, les renomme ou les retire. Sans cette
-                        // règle, n'importe quel compte étiquetterait les
-                        // œuvres de tous les autres.
+                        // Tags describe a WORK, not a collection:
+                        // they live in the SHARED catalog, like the
+                        // categories and the reference editions. Everyone
+                        // READS them - this is what makes the filter of My
+                        // collection usable - and only an administrator
+                        // sets, renames or removes them. Without this
+                        // rule, any account would tag the works
+                        // of all the others.
                         .requestMatchers(HttpMethod.GET, "/api/tags/**").authenticated()
                         .requestMatchers("/api/tags/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
-                // Une API répond 401, elle ne redirige pas vers une page de
-                // connexion : c'est le client qui décide quoi montrer.
+                // An API answers 401, it does not redirect to a
+                // sign-in page: the client decides what to show.
                 .exceptionHandling(erreurs -> erreurs.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .httpBasic(basic -> basic.disable())

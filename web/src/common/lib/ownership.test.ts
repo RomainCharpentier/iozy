@@ -1,18 +1,17 @@
 /**
- * <b>Ce que « possédé » veut dire — et ce que ça ne veut pas dire.</b>
+ * <b>What "owned" means — and what it does not mean.</b>
  *
- * Tome ≠ Possession : un tome revendu reste catalogué, sa possession non. Ma
- * collection montre ce qu'on possède RÉELLEMENT ; c'est la fiche de la série
- * qui montre ce qui manque. Deux écrans, deux questions, et la confusion entre
- * les deux ferait réapparaître dans la collection une série entièrement
- * revendue.
+ * Volume ≠ Ownership: a resold volume stays cataloged, its ownership does
+ * not. Ma collection shows what one REALLY owns; it is the series detail
+ * page that shows what is missing. Two screens, two questions, and confusing
+ * the two would make a fully resold series reappear in the collection.
  */
 import { describe, expect, it } from 'vitest'
 import { isOwned, ownedVariantIds } from './ownership'
 import { oeuvre, possession, tome } from '@/test/fixtures'
 
 describe('ownedVariantIds', () => {
-  it('ne retient que les possessions actives', () => {
+  it('only keeps the active ownerships', () => {
     const ids = ownedVariantIds([
       possession({ entityId: 'berserk', variantId: 'tome-1' }),
       possession({ entityId: 'berserk', variantId: 'tome-2', statut: 'SOLD' }),
@@ -22,30 +21,30 @@ describe('ownedVariantIds', () => {
     expect([...ids]).toEqual(['tome-1'])
   })
 
-  it("ignore une possession sans tome : elle porte l'œuvre, pas un tome", () => {
-    // Le cas d'un jeu vidéo : l'Ownership est rattachée à l'Entity elle-même.
+  it("ignores an ownership without a volume: it carries the work, not a volume", () => {
+    // The case of a video game: the Ownership is attached to the Entity itself.
     expect(ownedVariantIds([possession({ entityId: 'hades' })]).size).toBe(0)
   })
 })
 
 describe('isOwned', () => {
-  it('suffit d’un seul tome possédé pour qu’une série le soit', () => {
+  it('one single owned volume is enough for a series to be owned', () => {
     const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1), tome(2)] })
     const owned = ownedVariantIds([possession({ entityId: serie.id, variantId: 'tome-2' })])
 
     expect(isOwned(serie, [], owned)).toBe(true)
   })
 
-  it('une série entièrement revendue n’est plus possédée', () => {
+  it('a fully resold series is no longer owned', () => {
     const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1)] })
     const ventes = [possession({ entityId: serie.id, variantId: 'tome-1', statut: 'SOLD' })]
 
     expect(isOwned(serie, ventes, ownedVariantIds(ventes))).toBe(false)
   })
 
-  it('une œuvre sans tome se juge sur sa propre possession', () => {
-    // Jeu vidéo / jeu de société : rien à parcourir côté tomes, tout se joue
-    // sur l'Ownership rattachée à l'Entity.
+  it('a work without volumes is judged on its own ownership', () => {
+    // Video game / board game: nothing to go through on the volume side,
+    // everything depends on the Ownership attached to the Entity.
     const jeu = oeuvre({ titre: 'Hades', typeId: 'type-video-game' })
 
     expect(isOwned(jeu, [possession({ entityId: jeu.id })], new Set())).toBe(true)

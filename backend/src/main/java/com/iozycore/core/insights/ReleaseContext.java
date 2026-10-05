@@ -15,14 +15,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Ce que le cœur a lu pour une catégorie avant de demander ses sorties à un
- * univers : les œuvres qui intéressent l'utilisateur (possédées ou en envie),
- * leurs possessions actives et leurs envies.
+ * What the core has read for a category before asking a
+ * universe for its releases: the works the user is interested in (owned or wished),
+ * their active possessions and their wishes.
  *
- * <p>Lu une fois par catégorie, et passé tel quel à chaque source : sur 300
- * séries, un univers qui relirait les possessions œuvre par œuvre coûterait
- * 300 requêtes (mesure du lot 141 sur Découvrir). Ici tout est déjà en
- * mémoire, indexé par œuvre.
+ * <p>Read once per category, and passed as is to each source: on 300
+ * series, a universe that would reread the possessions work by work would cost
+ * 300 queries (measure of batch 141 on Discover). Here everything is already in
+ * memory, indexed by work.
  */
 public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to, List<Entity> entities,
                               List<Ownership> activeOwnerships, List<WishlistEntry> wishlist) {
@@ -33,7 +33,7 @@ public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to
         wishlist = List.copyOf(wishlist);
     }
 
-    /** Les identifiants de tome (Variant) possédés, par œuvre - vide pour une possession de l'œuvre entière. */
+    /** The ids of the volumes (Variant) owned, per work - empty for a possession of the whole work. */
     public Map<UUID, Set<UUID>> ownedVariantIdsByEntity() {
         Map<UUID, Set<UUID>> result = new HashMap<>();
         for (Ownership ownership : activeOwnerships) {
@@ -47,12 +47,12 @@ public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to
         return activeOwnerships.stream().anyMatch(ownership -> ownership.entityId().equals(entityId));
     }
 
-    /** L'œuvre entière est voulue (une envie sans tome précis). */
+    /** The whole work is wanted (a wish with no specific volume). */
     public boolean isWanted(UUID entityId) {
         return wishlist.stream().anyMatch(entry -> entry.entityId().equals(entityId) && entry.variantId().isEmpty());
     }
 
-    /** Les tomes précis voulus, par œuvre. */
+    /** The specific volumes wanted, per work. */
     public Map<UUID, Set<UUID>> wantedVariantIdsByEntity() {
         Map<UUID, Set<UUID>> result = new HashMap<>();
         for (WishlistEntry entry : wishlist) {
@@ -62,11 +62,11 @@ public record ReleaseContext(EntityType entityType, LocalDate from, LocalDate to
         return result;
     }
 
-    /** La relation d'une œuvre entière à la collection - possédée d'abord, voulue sinon. */
+    /** The relation of a whole work to the collection - owned first, wanted otherwise. */
     public Optional<ReleaseEntry.Relation> relationOf(UUID entityId) {
-        // Une œuvre du contexte est suivie par construction : sa sortie est
-        // possédée, ou à acheter. L'envie n'existe plus à son niveau (un état à
-        // la fois), seulement au tome - voir les univers.
+        // A work of the context is followed by construction: its release is
+        // owned, or to buy. The wish no longer exists at its level (one state at
+        // a time), only at the volume - see the universes.
         return Optional.of(isOwned(entityId) ? ReleaseEntry.Relation.OWNED : ReleaseEntry.Relation.MISSING);
     }
 }

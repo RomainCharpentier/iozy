@@ -1,6 +1,6 @@
 package com.iozycore.manga.deals;
 
-/** Poids d'un point de vigilance - sert à ordonner l'affichage, pas à calculer un score. */
+/** Weight of a vigilance point - used to order the display, not to compute a score. */
 public enum TrustSignalSeverity {
     LOW,
     MEDIUM,

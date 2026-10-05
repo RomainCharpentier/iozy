@@ -1,22 +1,22 @@
 import type { ReactNode } from 'react'
 
 /**
- * L'en-tête d'un écran ou d'une grande section : un titre, la phrase qui dit
- * ce qu'on regarde, et l'action principale à droite.
+ * The header of a screen or of a large section: a title, the sentence that says
+ * what we are looking at, and the main action on the right.
  *
- * <h2>Pourquoi un composant plutôt que trois lignes de JSX répétées</h2>
- * Les vingt-huit écrans de l'application écrivaient tous leur propre en-tête à
- * la main, et la maquette v4 (fiche d'une œuvre) en fixe enfin la forme :
- * titre en Space Grotesk resserré, sous-titre juste dessous, action alignée
- * sur la LIGNE DE BASE du bas du bloc de titre - pas centrée verticalement,
- * pas collée en haut. Recopier ça vingt-huit fois, c'est garantir que la
- * vingt-neuvième dérive.
+ * <h2>Why a component rather than three repeated lines of JSX</h2>
+ * The twenty-eight screens of the application all wrote their own header by
+ * hand, and mockup v4 (detail page of a work) finally fixes its shape:
+ * tight Space Grotesk title, subtitle right below, action aligned
+ * on the BASELINE of the bottom of the title block - not vertically centered,
+ * not stuck at the top. Copying that twenty-eight times guarantees that the
+ * twenty-ninth drifts.
  *
- * <h2>Le sous-titre n'est pas décoratif</h2>
- * Dans la maquette, chaque section en porte un et il dit toujours quelque
- * chose de vrai et de calculé ("Black Édition · 1 tome possédé, 5 manquants"),
- * jamais un slogan. C'est pour ça qu'il accepte un ReactNode : une phrase peut
- * contenir un compte, une pastille, un lien.
+ * <h2>The subtitle is not decorative</h2>
+ * In the mockup, each section has one and it always says something true
+ * and computed ("Black Édition · 1 tome possédé, 5 manquants"),
+ * never a slogan. This is why it accepts a ReactNode: a sentence can
+ * contain a count, a pill, a link.
  */
 export function EnTeteSection({
   titre,
@@ -28,8 +28,8 @@ export function EnTeteSection({
   titre: ReactNode
   sousTitre?: ReactNode
   action?: ReactNode
-  /** 1 pour le titre d'écran (un seul par page, voir le Lot 9 - un `<h1>` par
-   *  écran, vérifié par grep), 2 pour une section à l'intérieur. */
+  /** 1 for the screen title (only one per page, see Batch 9 - one `<h1>` per
+   *  screen, checked by grep), 2 for a section inside. */
   niveau?: 1 | 2
   className?: string
 }) {
@@ -40,9 +40,9 @@ export function EnTeteSection({
         <Titre className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">{titre}</Titre>
         {sousTitre && <p className="mt-1 text-sm text-textDim">{sousTitre}</p>}
       </div>
-      {/* `shrink-0` sans `ml-auto` : `justify-between` place déjà l'action à
-          droite, et un `ml-auto` la pousserait encore à droite APRÈS un retour
-          à la ligne, la détachant du titre au lieu de la ranger dessous. */}
+      {/* `shrink-0` without `ml-auto`: `justify-between` already places the action on
+          the right, and an `ml-auto` would push it to the right AGAIN after a line
+          wrap, detaching it from the title instead of putting it below. */}
       {action && <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>}
     </div>
   )

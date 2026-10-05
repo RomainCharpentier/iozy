@@ -1,15 +1,15 @@
 import SwiftUI
 import SwiftData
 
-/// UC6 - Consulter les Statistiques (vision produit, étape 1 et user
-/// stories, étape 4). Lecture seule, toujours interrogée en direct au
-/// premier affichage : les stats n'ont de sens qu'à jour, pas de cache
-/// local pour cet écran (contrairement à Ownership/Experience qui doivent
-/// rester consultables hors ligne).
+/// UC6 - View the Statistics (product vision, step 1 and user
+/// stories, step 4). Read only, always queried live at the
+/// first display: stats only make sense up to date, no local cache
+/// for this screen (unlike Ownership/Experience which must
+/// stay available offline).
 ///
-/// Complétée par une section Découvertes (heuristique, pas d'IA) : chargée
-/// à la demande plutôt qu'automatiquement, car les appels BGG (/hot puis
-/// /thing par jeu) peuvent prendre plusieurs secondes.
+/// Completed by a Discoveries section (heuristic, no AI): loaded
+/// on demand rather than automatically, because the BGG calls (/hot then
+/// /thing per game) can take several seconds.
 struct StatsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
@@ -131,7 +131,7 @@ struct StatsView: View {
         Text(text).font(Theme.displayMedium(17)).foregroundStyle(Theme.textPrimary)
     }
 
-    // MARK: - Découvertes (heuristique, pas d'IA)
+    // MARK: - Discoveries (heuristic, no AI)
 
     @ViewBuilder
     private var discoverySection: some View {

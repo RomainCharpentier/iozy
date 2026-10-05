@@ -13,10 +13,10 @@ interface ExperiencesSectionProps {
   entityId: string
   experiences: ExperienceResponse[]
   allowedExperienceTypes: string[]
-  // Facultatif (absent pour un type sans notion de tome) - permet de préciser
-  // QUEL tome une expérience concerne (audit "on mélange tome et série" :
-  // jusqu'ici une Experience ne référençait que la série entière, impossible
-  // de distinguer "j'ai lu le tome 3" de "j'ai lu le tome 4" dans l'historique).
+  // Optional (absent for a type without the notion of volume) - lets the user say
+  // WHICH volume an experience is about (audit "volume and series are mixed up":
+  // until now an Experience only referenced the whole series, impossible
+  // to tell "I read volume 3" from "I read volume 4" in the history).
   variants?: VariantDto[]
 }
 
@@ -65,8 +65,8 @@ export function ExperiencesSection({ entityId, experiences, allowedExperienceTyp
               entityId,
               variantId: variantId || undefined,
               experienceType,
-              // Format YYYY-MM-DD attendu par le backend, en UTC explicite
-              // (même choix que côté iOS, pas le fuseau local).
+              // YYYY-MM-DD format expected by the backend, in explicit UTC
+              // (same choice as on the iOS side, not the local time zone).
               occurredAt: new Date().toISOString().slice(0, 10),
               rating,
               comment: comment.trim() || undefined,

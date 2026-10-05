@@ -10,36 +10,36 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Racine d'agrégat représentant une expérience vécue (lu, joué, terminé...)
- * en lien avec une Entity. Ne référence jamais un Ownership : une
- * Expérience est indépendante du fait de posséder ou non l'élément.
+ * Aggregate root for a lived experience (read, played, finished...)
+ * linked to an Entity. Never references an Ownership: an
+ * Experience is independent of owning the item or not.
  * <p>
- * {@code variantId} (nullable) précise QUEL tome/variante l'expérience
- * concerne (ex: "j'ai lu le tome 3") - absent pour un type sans notion de
- * tome (jeu vidéo, jeu de société) ou quand l'expérience concerne la série
- * dans son ensemble. Ajouté après coup (audit "on mélange tome et série") :
- * jusque-là une Experience ne référençait que la série entière, sans moyen
- * de distinguer "j'ai lu le tome 3" de "j'ai lu le tome 4" dans l'historique
- * - jamais validé contre les Variant réels de l'Entity au niveau du domaine
- * (aucune référence à Catalog ici), cette cohérence est de la responsabilité
- * de la couche application/contrôleur, comme experienceType vs EntityType.
+ * {@code variantId} (nullable) says WHICH volume/variant the experience
+ * is about (e.g. "I read volume 3") - absent for a type with no notion of
+ * volume (video game, board game) or when the experience is about the series
+ * as a whole. Added later (audit "we mix volume and series"):
+ * until then an Experience only referenced the whole series, with no way
+ * to tell "I read volume 3" from "I read volume 4" in the history
+ * - never checked against the real Variants of the Entity at the domain level
+ * (no reference to Catalog here), this consistency is the responsibility
+ * of the application/controller layer, like experienceType vs EntityType.
  * <p>
- * Volontairement simplifié : une seule note + un commentaire libre par
- * entrée, pas de suivi détaillé de sessions/parties.
+ * On purpose kept simple: one rating + one free comment per
+ * entry, no detailed tracking of sessions/games.
  * <p>
- * Porte un ownerId, mais ne le CHOISIT pas : à la création il vaut
- * null - « pas encore attribué ». C'est la session qui
- * tranche, à l'écriture, via la colonne marquée @TenantId (voir
- * ProprietaireCourant). Relu depuis la base, il porte le vrai propriétaire
- * de la ligne.
+ * Carries an ownerId, but does not CHOOSE it: at creation it is
+ * null - "not yet assigned". The session decides, at write time,
+ * through the column marked @TenantId (see
+ * ProprietaireCourant). Read back from the database, it carries the real owner
+ * of the row.
  */
 public class Experience {
 
     private final UUID id;
     private final UUID entityId;
-    private final UUID variantId; // nullable : voir Javadoc de la classe
+    private final UUID variantId; // nullable: see the class Javadoc
     private final UUID ownerId;
-    private final String experienceType; // valeur validée contre EntityType.allows(...) en couche application
+    private final String experienceType; // value checked against EntityType.allows(...) in the application layer
     private final LocalDate occurredAt;
     private Integer rating; // nullable
     private String comment;
@@ -53,17 +53,17 @@ public class Experience {
         if (rating != null && (rating < 0 || rating > 10)) {
             throw new IllegalArgumentException("La note doit être comprise entre 0 et 10");
         }
-        // Une expérience est un fait DATÉ : « j'ai lu ce tome » sans quand ne
-        // veut rien dire, et la colonne est NOT NULL. Sans cette garde, un corps
-        // sans date descendait jusqu'à Hibernate, dont la PropertyValueException
-        // ressortait en 409 « Cette donnée entre en conflit avec une donnée
-        // existante » - phrase absurde ici : rien n'entre en conflit, il manque
-        // un champ, et l'utilisateur ne pouvait pas savoir lequel.
+        // An experience is a DATED fact: "I read this volume" without when means
+        // nothing, and the column is NOT NULL. Without this guard, a body
+        // without a date went down to Hibernate, whose PropertyValueException
+        // came out as a 409 "Cette donnée entre en conflit avec une donnée
+        // existante" - an absurd sentence here: nothing conflicts, a field is
+        // missing, and the user could not know which one.
         //
-        // La date n'est surtout pas déduite d'aujourd'hui : on relit souvent une
-        // œuvre lue il y a des années, et inventer la date fausserait
-        // silencieusement les statistiques annuelles. Même règle que pour un
-        // prix relevé (voir MarketPriceObservation).
+        // The date is above all not taken from today: people often log a
+        // work read years ago, and inventing the date would silently
+        // distort the yearly statistics. Same rule as for a recorded
+        // price (see MarketPriceObservation).
         if (occurredAt == null) {
             throw new IllegalArgumentException("Une expérience doit porter une date");
         }

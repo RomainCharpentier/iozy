@@ -20,11 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Utilise un vrai {@link HttpServer} (JDK, aucune dépendance de test
- * supplémentaire) plutôt qu'un mock, pour vérifier le VRAI comportement
- * réseau (rotation de clé sur 429, court-circuit sur une autre erreur) - les
- * autres tests Google Books de ce module (parse() sur un corps déjà en
- * mémoire) ne passent jamais par cette classe.
+ * Uses a real {@link HttpServer} (JDK, no additional test
+ * dependency) rather than a mock, to check the REAL network
+ * behaviour (key rotation on 429, short-circuit on another error) - the
+ * other Google Books tests of this module (parse() on a body already in
+ * memory) never go through this class.
  */
 class GoogleBooksHttpClientTest {
 
@@ -39,9 +39,9 @@ class GoogleBooksHttpClientTest {
 
     @Test
     void falls_back_to_the_backup_key_when_the_primary_one_is_quota_exceeded() throws Exception {
-        // Cas réel qui motive cette classe (voir historique) : la clé
-        // principale a épuisé son quota journalier pendant une session de
-        // tests intensifs - une clé de secours doit prendre le relais.
+        // Real case that motivates this class (see history): the main
+        // key used up its daily quota during an intensive test
+        // session - a backup key must take over.
         List<String> keysSeen = new CopyOnWriteArrayList<>();
         start(exchange -> {
             String key = keyFrom(exchange);
@@ -72,8 +72,8 @@ class GoogleBooksHttpClientTest {
 
     @Test
     void does_not_try_another_key_on_a_non_quota_error() throws Exception {
-        // Une 500 n'est pas un problème de quota - retenter avec une autre
-        // clé ne changerait rien, inutile de gaspiller cet appel dessus.
+        // A 500 is not a quota problem - retrying with another
+        // key would change nothing, no point wasting this call on it.
         AtomicInteger callCount = new AtomicInteger();
         start(exchange -> {
             callCount.incrementAndGet();
@@ -88,9 +88,9 @@ class GoogleBooksHttpClientTest {
 
     @Test
     void a_source_that_did_not_answer_is_never_confused_with_an_empty_result() throws Exception {
-        // Défaut constaté le 2026-08-27 (voir Lot 58) : un 503 rendait null,
-        // que l'appelant traduisait en liste vide - donc en « aucun tome »,
-        // mis en cache durablement. Une panne doit LEVER.
+        // Flaw seen on 2026-08-27 (see Batch 58): a 503 returned null,
+        // which the caller turned into an empty list - so into "no volume",
+        // cached durably. An outage must THROW.
         start(exchange -> response(503, "{\"error\":\"backendError\"}"));
 
         GoogleBooksHttpClient client = new GoogleBooksHttpClient("primary", "");
@@ -98,13 +98,13 @@ class GoogleBooksHttpClientTest {
         assertThatThrownBy(() -> client.get(baseUrl()))
                 .isInstanceOf(SourceUnavailableException.class)
                 .hasMessageContaining("503");
-        // Et surtout : ce n'est PAS un quota, le cooldown ne doit pas s'armer.
+        // And above all: this is NOT a quota, the cooldown must not arm.
         assertThat(client.isQuotaLikelyExhausted()).isFalse();
     }
 
     @Test
     void an_unreachable_host_is_reported_as_an_unavailable_source() throws Exception {
-        // Coupure réseau / délai dépassé : même conclusion qu'un 503.
+        // Network cut / timeout: same conclusion as a 503.
         start(exchange -> response(200, "{}"));
         String deadUrl = baseUrl();
         server.stop(0);
@@ -127,7 +127,7 @@ class GoogleBooksHttpClientTest {
         String body = client.get(baseUrl());
 
         assertThat(body).isEqualTo("{\"ok\":true}");
-        assertThat(keysSeen).containsExactly("none"); // pas de "&key=" ajouté du tout
+        assertThat(keysSeen).containsExactly("none"); // no "&key=" added at all
     }
 
     @Test
@@ -157,7 +157,7 @@ class GoogleBooksHttpClientTest {
         return "http://127.0.0.1:" + server.getAddress().getPort() + "/volumes?q=test";
     }
 
-    /** "none" si aucun paramètre "key" n'est présent dans l'URL appelée. */
+    /** "none" if no "key" parameter is present in the called URL. */
     private static String keyFrom(HttpExchange exchange) {
         String query = exchange.getRequestURI().getQuery();
         if (query == null) {

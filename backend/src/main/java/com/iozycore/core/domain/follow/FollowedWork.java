@@ -4,22 +4,22 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Une œuvre SUIVIE : celle dont on attend les sorties.
+ * A FOLLOWED work: one whose new releases we are waiting for.
  *
- * <p>Le troisième état d'une œuvre pour un collectionneur, à côté de Possédé
- * (voir Ownership) et Envie (voir WishlistEntry) - une trinité où chaque
- * état est unique (retour utilisateur du 2026-09-11). Posséder dit ce qu'on
- * a, vouloir ce qu'on aimerait, suivre ce qu'on collectionne au fil des
- * parutions : c'est l'œuvre suivie, et elle seule, qui entre au calendrier
- * des sorties. Un tome d'une série suivie peut rester possédé ou à acheter :
- * l'état vaut pour l'œuvre, la sortie dit le reste.
+ * <p>The third state of a work for a collector, next to Owned
+ * (see Ownership) and Wish (see WishlistEntry) - a trinity where each
+ * state is unique (user feedback of 2026-09-11). Owning says what we
+ * have, wishing what we would like, following what we collect as the
+ * releases come: it is the followed work, and only it, that enters the
+ * release calendar. A volume of a followed series can stay owned or to buy:
+ * the state is for the work, the release says the rest.
  *
- * <p>Un concept du CŒUR, pour tout type : le manga y ajoute son édition
- * suivie, qui dit LAQUELLE de ses éditions on collectionne.
+ * <p>A CORE concept, for every type: manga adds its followed
+ * edition to it, which says WHICH of its editions we collect.
  *
- * <p>Le propriétaire n'est pas connu du domaine : Hibernate le pose à
- * l'insertion depuis la session (voir {@code @TenantId} côté persistance),
- * comme pour une envie ou une possession.
+ * <p>The owner is not known to the domain: Hibernate sets it at
+ * insert time from the session (see {@code @TenantId} on the persistence side),
+ * like for a wish or an ownership.
  */
 public class FollowedWork {
 

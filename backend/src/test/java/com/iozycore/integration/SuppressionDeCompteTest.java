@@ -32,25 +32,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.deals.Volume;
 
 /**
- * <b>Supprimer un compte efface tout ce qui lui appartient — et RIEN d'autre.</b>
+ * <b>Deleting an account erases everything that belongs to it - and NOTHING else.</b>
  *
- * <p>C'est le geste le plus destructeur de l'application, et le seul qu'aucune
- * annulation ne rattrape. Deux façons de le rater, opposées et toutes deux
- * silencieuses :
+ * <p>This is the most destructive action of the application, and the only one that no
+ * undo can recover. Two ways to get it wrong, opposite and both
+ * silent:
  * <ul>
- *   <li><b>trop peu</b> : une table oubliée dans la liste, et des possessions
- *       survivent à leur propriétaire — appartenant à un identifiant que plus
- *       personne ne porte, donc invisibles pour toujours, et comptées dans les
- *       statistiques de personne ;</li>
- *   <li><b>trop</b> : le catalogue est PARTAGÉ. Supprimer les œuvres d'un
- *       compte les retirerait de la collection des autres — une série
- *       disparaissant de chez quelqu'un qui n'a rien demandé.</li>
+ *   <li><b>too little</b>: a table forgotten in the list, and ownerships
+ *       survive their owner - belonging to an identifier that nobody
+ *       carries anymore, so invisible forever, and counted in
+ *       the statistics of nobody;</li>
+ *   <li><b>too much</b>: the catalogue is SHARED. Deleting the works of an
+ *       account would remove them from the collection of the others - a series
+ *       disappearing from the home of someone who asked for nothing.</li>
  * </ul>
  *
- * <p>Hors transaction, comme {@code IsolationParProprietaireTest} : Hibernate
- * lit le propriétaire à l'OUVERTURE d'une session, donc écrire au nom de
- * quelqu'un d'autre exige une session à soi. Rien ne sera annulé pour ce test,
- * qui nettoie donc lui-même.
+ * <p>Outside a transaction, like {@code IsolationParProprietaireTest}: Hibernate
+ * reads the owner when a session is OPENED, so writing in the name of
+ * someone else requires a session of its own. Nothing will be rolled back for this test,
+ * which therefore cleans up by itself.
  */
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class SuppressionDeCompteTest extends PostgresIntegrationTest {
@@ -82,7 +82,7 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
-    /** Ouvre une session, comme le filtre de sécurité sur une vraie requête. */
+    /** Opens a session, as the security filter does on a real request. */
     private void connecte(UUID compte) {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 new AppUserDetailsService.Principal(compte, compte + "@example.com", "{noop}x", "Compte", false),
@@ -112,8 +112,8 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         possessions.save(Ownership.acquire(serie.id(), null, OwnershipCondition.NEW, LocalDate.now(), null));
         envies.save(WishlistEntry.add(serie.id(), LocalDate.now()));
 
-        // Ce que l'administration annonce AVANT de supprimer : c'est sur ce
-        // nombre-là que quelqu'un décide.
+        // What the administration announces BEFORE deleting: it is on this
+        // number that someone decides.
         DonneesParProprietaire.Volume avant = donnees.compter().get(bob.id());
         assertThat(avant.possessions()).isEqualTo(1);
         assertThat(avant.envies()).isEqualTo(1);
@@ -121,13 +121,13 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         connecte(DefaultOwner.ID);
         gestion.supprimer(bob.id(), DefaultOwner.ID);
 
-        // --- Trop peu : rien ne doit survivre à son propriétaire
+        // --- Too little: nothing must survive its owner
         assertThat(lignesDe("ownership", bob.id())).isZero();
         assertThat(lignesDe("wishlist_entry", bob.id())).isZero();
         assertThat(comptes.findById(bob.id())).isEmpty();
         assertThat(donnees.compter()).doesNotContainKey(bob.id());
 
-        // --- Trop : l'œuvre est PARTAGÉE, elle n'appartenait pas à Bob
+        // --- Too much: the work is SHARED, it did not belong to Bob
         assertThat(catalogue.findById(serie.id())).isPresent();
     }
 
@@ -147,8 +147,8 @@ class SuppressionDeCompteTest extends PostgresIntegrationTest {
         gestion.supprimer(bob.id(), DefaultOwner.ID);
 
         assertThat(lignesDe("ownership", bob.id())).isZero();
-        // La même œuvre, la même table, un voisin de ligne : c'est exactement là
-        // qu'un DELETE trop large se voit - et nulle part ailleurs.
+        // The same work, the same table, a neighbour row: this is exactly where
+        // a DELETE that is too wide can be seen - and nowhere else.
         assertThat(lignesDe("ownership", claire.id())).isEqualTo(1);
         assertThat(comptes.findById(claire.id())).isPresent();
     }

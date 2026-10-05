@@ -1,19 +1,19 @@
 /**
- * <b>Deux échelles, et une porte qu'on ne propose qu'à qui peut l'ouvrir.</b>
+ * <b>Two scales, and a door that is only offered to whoever can open it.</b>
  *
- * <p>Cet écran a longtemps été un fourre-tout : les catégories de collection,
- * l'import, l'export des données et — depuis peu — les comptes, tous dans la
- * même liste plate. Il porte maintenant deux sections nommées, et la
- * distinction n'est pas cosmétique : <b>Ma collection</b> décrit son contenu,
- * <b>Cette instance</b> décrit la machine. Une entrée rangée du mauvais côté
- * ne casse rien — elle rend juste l'écran illisible à nouveau.
+ * <p>This screen was long a catch-all: the collection categories,
+ * the import, the data export and - recently - the accounts, all in the
+ * same flat list. It now carries two named sections, and the
+ * distinction is not cosmetic: <b>Ma collection</b> describes its content,
+ * <b>Cette instance</b> describes the machine. An entry put on the wrong side
+ * breaks nothing - it just makes the screen unreadable again.
  *
- * <p>Masquer « Comptes » ne <b>protège</b> rien : le serveur répond 403 sur
- * tout `/api/admin/**`, quel que soit l'écran. Ce qui se joue ici est autre
- * chose — proposer à quelqu'un un lien qui ne mènera qu'à une erreur, c'est lui
- * faire croire à un droit qu'il n'a pas, puis le laisser se demander ce qui a
- * cassé. Et l'erreur inverse — le lien absent pour un administrateur — rend
- * l'écran introuvable autrement qu'en tapant l'URL.
+ * <p>Hiding "Comptes" does not <b>protect</b> anything: the server answers 403 on
+ * all `/api/admin/**`, whatever the screen. What is at stake here is something else
+ * - offering someone a link that will only lead to an error makes them
+ * believe in a right they do not have, then leaves them wondering what
+ * broke. And the opposite error - the link missing for an administrator - makes
+ * the screen unfindable except by typing the URL.
  */
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -37,13 +37,13 @@ function ecranPour(admin: boolean | null) {
   render(<AdministrationPage />, { wrapper: enrobage })
 }
 
-/** Une section nommée, pour vérifier ce qu'elle contient - et rien d'autre. */
+/** A named section, to check what it contains - and nothing else. */
 function section(titre: string) {
   return screen.getByRole('region', { name: titre })
 }
 
-describe('« Ma collection »', () => {
-  it('ne regroupe que ce qui DÉCRIT la collection', () => {
+describe('"Ma collection"', () => {
+  it('only groups what DESCRIBES the collection', () => {
     ecranPour(false)
 
     const maCollection = section('Ma collection')
@@ -52,27 +52,27 @@ describe('« Ma collection »', () => {
     expect(within(maCollection).getAllByRole('link')).toHaveLength(2)
   })
 
-  it('ne contient plus l’export, qui appartient au compte', () => {
-    // Il vivait ici, à côté des catégories, comme si emporter sa collection
-    // était de la configuration technique. Il est dans Paramètres ▸ Mon compte.
+  it('no longer contains the export, which belongs to the account', () => {
+    // It lived here, next to the categories, as if taking one's collection away
+    // were technical configuration. It is in Paramètres ▸ Mon compte.
     ecranPour(true)
 
     expect(screen.queryByText(/Télécharger en JSON/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Télécharger en CSV/)).not.toBeInTheDocument()
   })
 
-  it('ne contient plus l’import BGG, qui AJOUTE à la collection', () => {
-    // Récupérer ses jeux depuis BoardGameGeek est la même intention que taper
-    // un titre ou scanner un code-barres, avec une troisième source. C'est
-    // Rechercher, pas de l'administration.
+  it('no longer contains the BGG import, which ADDS to the collection', () => {
+    // Getting one's games from BoardGameGeek is the same intention as typing
+    // a title or scanning a barcode, with a third source. It is
+    // Rechercher, not administration.
     ecranPour(true)
 
     expect(screen.queryByRole('link', { name: /Importer depuis BGG/ })).not.toBeInTheDocument()
   })
 })
 
-describe('« Cette instance »', () => {
-  it('existe pour un administrateur, et ne porte que les comptes', () => {
+describe('"Cette instance"', () => {
+  it('exists for an administrator, and only carries the accounts', () => {
     ecranPour(true)
 
     const instance = section('Cette instance')
@@ -80,22 +80,22 @@ describe('« Cette instance »', () => {
       'href',
       '/administration/comptes',
     )
-    // Le contenu de la collection n'a rien à faire à cette échelle-là.
+    // The content of the collection has nothing to do on that scale.
     expect(within(instance).queryByRole('link', { name: /Catégories/ })).not.toBeInTheDocument()
   })
 
-  it('n’existe pas du tout pour un compte ordinaire', () => {
+  it('does not exist at all for an ordinary account', () => {
     ecranPour(false)
 
     expect(screen.queryByRole('region', { name: 'Cette instance' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Comptes/ })).not.toBeInTheDocument()
-    // Le reste de l'écran, lui, s'adresse à tout le monde.
+    // The rest of the screen, for its part, is for everybody.
     expect(section('Ma collection')).toBeInTheDocument()
   })
 
-  it('n’existe pas tant qu’on ne sait pas encore qui est là', () => {
-    // Le compte arrive par une requête : avant sa réponse, ne rien proposer
-    // vaut mieux qu'un lien qui apparaît puis disparaît.
+  it('does not exist as long as we do not know yet who is here', () => {
+    // The account arrives through a query: before its answer, offering nothing
+    // is better than a link that appears and then disappears.
     ecranPour(null)
 
     expect(screen.queryByRole('region', { name: 'Cette instance' })).not.toBeInTheDocument()

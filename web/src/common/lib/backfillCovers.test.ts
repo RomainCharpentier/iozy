@@ -1,21 +1,21 @@
 /**
- * <b>« Retrouver les jaquettes manquantes » : deux appels au plus, et aucune
- * correspondance inventée.</b>
+ * <b>"Retrouver les jaquettes manquantes": at most two calls, and no
+ * invented match.</b>
  *
- * Ce rattrapage tape chez un fournisseur externe soumis à quota (Google
- * Books). Trois règles en découlent, et chacune se casse sans que rien ne le
- * dise - au pire, le quota du jour part en fumée :
+ * This backfill hits an external provider that is subject to a quota (Google
+ * Books). Three rules follow from it, and each one breaks without anything
+ * saying so - at worst, the quota of the day goes up in smoke:
  * <ul>
- *   <li>rien à chercher ⇒ <b>aucun appel</b> ;</li>
- *   <li>la seconde recherche, celle qui force le rafraîchissement du cache et
- *       coûte un vrai appel, n'a lieu que si la première <b>ne suffit pas</b> ;</li>
- *   <li>un fournisseur <b>muet</b> (quota dépassé) n'est pas un fournisseur qui
- *       répond « je n'ai pas cette jaquette » : seul le premier change ce que
- *       l'utilisateur doit faire - réessayer plus tard.</li>
+ *   <li>nothing to search ⇒ <b>no call</b>;</li>
+ *   <li>the second search, the one that forces the cache to refresh and costs
+ *       a real call, only happens if the first one <b>is not enough</b>;</li>
+ *   <li>a <b>silent</b> provider (quota exceeded) is not a provider that
+ *       answers "I do not have this cover": only the first one changes what
+ *       the user has to do - try again later.</li>
  * </ul>
  *
- * <p>Et jamais de jaquette posée au hasard : un tome absent du résultat reste
- * sans jaquette, une jaquette fausse serait pire que pas de jaquette.
+ * <p>And never a cover set at random: a volume that is absent from the result
+ * stays without a cover, a wrong cover would be worse than no cover.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { findBestCoverMatch, rattraperJaquettes, variantsMissingCover } from './backfillCovers'
@@ -26,7 +26,7 @@ function candidat(volumeNumber: number, edition: string, imageUrl: string | null
   return { edition, volumeNumber, imageUrl, title: `Tome ${volumeNumber}`, alreadyOwned: false }
 }
 
-/** Le fournisseur, simulé : une réponse par appel, dans l'ordre. */
+/** The provider, simulated: one answer per call, in order. */
 function fournisseur(...reponses: { volumes: VolumeCandidateDto[]; quotaExceeded: boolean }[]) {
   const chercher = vi.fn()
   for (const reponse of reponses) chercher.mockResolvedValueOnce(reponse)
@@ -34,7 +34,7 @@ function fournisseur(...reponses: { volumes: VolumeCandidateDto[]; quotaExceeded
 }
 
 describe('variantsMissingCover', () => {
-  it('ne retient que les tomes numérotés et sans jaquette', () => {
+  it('only keeps the numbered volumes without a cover', () => {
     const serie = oeuvre({
       titre: 'Berserk',
       tomes: [
@@ -51,25 +51,25 @@ describe('variantsMissingCover', () => {
 describe('findBestCoverMatch', () => {
   const candidats = [candidat(3, 'KANA'), candidat(3, 'Glénat'), candidat(4, 'Glénat')]
 
-  it('préfère la même édition, sans se soucier de la casse', () => {
-    // La casse n'est abaissée qu'ICI : chez un fournisseur externe, « Kana » et
-    // « KANA » sont la même édition.
+  it('prefers the same edition, regardless of the case', () => {
+    // The case is only lowered HERE: at an external provider, "Kana" and
+    // "KANA" are the same edition.
     expect(findBestCoverMatch(candidats, { attributes: { volumeNumber: 3, edition: 'kana' } })?.edition).toBe('KANA')
   })
 
-  it('à défaut d’édition renseignée, prend la première correspondance du bon tome', () => {
+  it('without a given edition, takes the first match of the right volume', () => {
     expect(findBestCoverMatch(candidats, { attributes: { volumeNumber: 3 } })?.edition).toBe('KANA')
   })
 
-  it('ne fabrique rien pour un tome absent du résultat', () => {
+  it('builds nothing for a volume that is absent from the result', () => {
     expect(findBestCoverMatch(candidats, { attributes: { volumeNumber: 9 } })).toBeUndefined()
   })
 
-  it('ignore une correspondance sans image : elle n’apporterait rien', () => {
+  it('ignores a match without an image: it would bring nothing', () => {
     expect(findBestCoverMatch([candidat(3, 'Glénat', null)], { attributes: { volumeNumber: 3 } })).toBeUndefined()
   })
 
-  it('ne cherche rien pour un tome sans numéro exploitable', () => {
+  it('searches nothing for a volume without a usable number', () => {
     expect(findBestCoverMatch(candidats, { attributes: { volumeNumber: '3' } })).toBeUndefined()
   })
 })
@@ -77,7 +77,7 @@ describe('findBestCoverMatch', () => {
 describe('rattraperJaquettes', () => {
   const serie = oeuvre({ titre: 'Berserk', tomes: [tome(1, { edition: 'Glénat' }), tome(2, { edition: 'Glénat' })] })
 
-  it('n’appelle pas le fournisseur quand rien ne manque', async () => {
+  it('does not call the provider when nothing is missing', async () => {
     const complete = oeuvre({ titre: 'Pluto', tomes: [tome(1, { jaquette: 'https://img/1.jpg' })] })
     const chercher = fournisseur()
     const enregistrer = vi.fn()
@@ -88,7 +88,7 @@ describe('rattraperJaquettes', () => {
     expect(resultat).toEqual({ trouvees: 0, fournisseurMuet: false })
   })
 
-  it('s’arrête à une seule recherche quand elle suffit', async () => {
+  it('stops at a single search when it is enough', async () => {
     const chercher = fournisseur({
       volumes: [candidat(1, 'Glénat'), candidat(2, 'Glénat')],
       quotaExceeded: false,
@@ -102,7 +102,7 @@ describe('rattraperJaquettes', () => {
     expect(enregistrer).toHaveBeenCalledWith('berserk', 'tome-1', 'https://img/x.jpg')
   })
 
-  it('force le cache une seconde fois seulement s’il reste un tome sans jaquette', async () => {
+  it('forces the cache a second time only if a volume is still without a cover', async () => {
     const chercher = fournisseur(
       { volumes: [candidat(1, 'Glénat')], quotaExceeded: false },
       { volumes: [candidat(1, 'Glénat'), candidat(2, 'Glénat')], quotaExceeded: false },
@@ -117,7 +117,7 @@ describe('rattraperJaquettes', () => {
     expect(resultat.trouvees).toBe(2)
   })
 
-  it('remonte un fournisseur muet, et n’écrit rien', async () => {
+  it('reports a silent provider, and writes nothing', async () => {
     const chercher = fournisseur({ volumes: [], quotaExceeded: true })
     const enregistrer = vi.fn()
 
@@ -127,7 +127,7 @@ describe('rattraperJaquettes', () => {
     expect(enregistrer).not.toHaveBeenCalled()
   })
 
-  it('distingue « muet » de « il n’a pas cette jaquette »', async () => {
+  it('tells "silent" apart from "it does not have this cover"', async () => {
     const chercher = fournisseur(
       { volumes: [], quotaExceeded: false },
       { volumes: [], quotaExceeded: false },
@@ -138,7 +138,7 @@ describe('rattraperJaquettes', () => {
     expect(resultat).toEqual({ trouvees: 0, fournisseurMuet: false })
   })
 
-  it('une série en échec ne fait pas échouer le rattrapage entier', async () => {
+  it('a failing series does not make the whole backfill fail', async () => {
     const chercher = vi.fn().mockRejectedValue(new Error('503'))
 
     await expect(rattraperJaquettes(serie, 'type-manga', chercher, vi.fn())).resolves.toEqual({

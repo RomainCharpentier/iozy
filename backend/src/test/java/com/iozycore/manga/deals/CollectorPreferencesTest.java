@@ -13,8 +13,8 @@ class CollectorPreferencesTest {
     void defaults_match_the_specification_verbatim() {
         CollectorPreferences defaults = CollectorPreferences.defaults();
 
-        // Cinq preferences ont ete retirees au Lot 84 : elles n'etaient lues par
-        // aucune ligne du moteur. Ce qui reste ici est exactement ce qu'il lit.
+        // Five preferences were removed in Batch 84: they were read by
+        // no line of the engine. What remains here is exactly what it reads.
         assertThat(defaults.editionTierRanking().get(0)).isEqualTo(EditionTier.PERFECT);
         assertThat(defaults.avoidOutdatedEditionWhenBetterExistsOrAnnounced()).isTrue();
         assertThat(defaults.conditionImportance()).isEqualTo(WeightLevel.HIGH);

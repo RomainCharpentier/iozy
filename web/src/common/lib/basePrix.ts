@@ -1,31 +1,30 @@
 import type { PriceBasis } from '@/common/types/purchaseAnalysis'
 
 /**
- * D'où vient un prix : comment on le DIT à l'utilisateur.
+ * Where a price comes from: how we TELL the user.
  *
- * <h2>Pourquoi cette question mérite un module</h2>
- * `PriceBasis` distingue trois origines qui n'engagent pas du tout la même
- * confiance : un prix relevé sur de vraies annonces (`OBSERVED_MARKET`), une
- * estimation produite par l'IA et jamais vérifiée (`AI_ESTIMATED`), et un
- * prix de référence théorique calculé à partir du prix neuf
+ * <h2>Why this question deserves a module</h2>
+ * `PriceBasis` distinguishes three origins that do not deserve the same
+ * trust at all: a price taken from real listings (`OBSERVED_MARKET`), an
+ * estimate produced by the AI and never verified (`AI_ESTIMATED`), and a
+ * theoretical reference price computed from the new price
  * (`THEORETICAL_ONLY`).
  *
- * <p>Quatre écrans traduisaient cet enum chacun dans son coin, et l'un d'eux
- * n'en connaissait que deux valeurs : `SuggestionsPage` a été écrite avant que
- * l'IA existe et posait un « (marché) » sur tout ce qui n'était pas théorique
- * - donc sur une estimation IA. C'est exactement ce que le garde-fou de la
- * fonctionnalité interdit : une donnée produite par l'IA ne doit jamais être
- * présentée comme une donnée réelle. Une troisième valeur ajoutée à l'enum ne
- * peut plus passer inaperçue si un seul endroit la nomme.
+ * <p>Four screens translated this enum each in their own corner, and one of
+ * them only knew two values: `SuggestionsPage` was written before the AI
+ * existed and put a "(marché)" on everything that was not theoretical - so on
+ * an AI estimate. This is exactly what the guardrail of the feature forbids:
+ * data produced by the AI must never be presented as real data. A third value
+ * added to the enum can no longer go unnoticed if only one place names it.
  *
- * <p>Deux registres, parce que les surfaces n'ont pas la même place : une
- * incise entre parenthèses derrière un montant, ou une phrase de l'assistant.
- * C'est la seule chose qui les sépare - le sens, lui, est écrit une fois.
+ * <p>Two registers, because the surfaces do not have the same room: an aside
+ * in parentheses after an amount, or a sentence of the assistant. This is the
+ * only thing that separates them - the meaning is written once.
  *
- * <p>`null` (le backend le rend quand le coût est nul ou inconnu, voir
- * `CollectionStatus`) ne se traduit PAS par un repli sur « théorique » :
- * l'appelant reçoit `null` à son tour et n'écrit rien, plutôt que d'affirmer
- * une origine qu'on ne connaît pas.
+ * <p>`null` (the backend returns it when the cost is zero or unknown, see
+ * `CollectionStatus`) is NOT translated by falling back to "theoretical":
+ * the caller gets `null` in turn and writes nothing, rather than claiming
+ * an origin we do not know.
  */
 export function libelleBaseCourt(base: PriceBasis | null): string | null {
   if (base === 'OBSERVED_MARKET') return 'marché'
@@ -34,7 +33,7 @@ export function libelleBaseCourt(base: PriceBasis | null): string | null {
   return null
 }
 
-/** Le même sens, en toutes lettres, pour une phrase (voir `libelleBaseCourt`). */
+/** The same meaning, in full words, for a sentence (see `libelleBaseCourt`). */
 export function libelleBaseLong(base: PriceBasis | null): string | null {
   if (base === 'OBSERVED_MARKET') return 'prix de marché observés'
   if (base === 'AI_ESTIMATED') return 'estimation IA, non vérifiée'

@@ -23,13 +23,13 @@ import type { Rank, TierListEntryDto } from '@/common/types/tierList'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { Squelette } from '@/common/components/Squelette'
 
-/** Board d'une Tier List PERSONNALISÉE - même rendu que le classement
- * général (voir TierBoard), rangs actifs propres à cette liste (voir
- * TierList.activeRanks côté backend, configurables à la création). */
+/** Board of a CUSTOM Tier List - same rendering as the general
+ * ranking (see TierBoard), active ranks specific to this list (see
+ * TierList.activeRanks on the backend side, configurable at creation). */
 export function CustomTierBoardPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  // Nommé par l'écran d'origine quand il le passe, sinon le parent naturel.
+  // Named by the screen of origin when it passes it, otherwise the natural parent.
   const retour = retourDepuis(useLocation().state) ?? { to: '/tier-lists', libelle: 'Tier Lists' }
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -40,9 +40,9 @@ export function CustomTierBoardPage() {
   const [nameInput, setNameInput] = useState('')
   const [addingItems, setAddingItems] = useState(false)
   const quickRank = useQuickRank()
-  // Le "..." menu est un `role="dialog"` au même titre que les autres
-  // surfaces temporaires de l'app (voir la maquette, dlg-tiermenu) - Escape +
-  // piège de focus + focus rendu au bouton "..." (voir useModalA11y, Lot 9).
+  // The "..." menu is a `role="dialog"` just like the other temporary
+  // surfaces of the app (see the mockup, dlg-tiermenu) - Escape +
+  // focus trap + focus returned to the "..." button (see useModalA11y, batch 9).
   const menuRef = useModalA11y<HTMLDivElement>(menuOpen, () => setMenuOpen(false))
 
   const detailQuery = useQuery({ queryKey: queryKeys.tierLists.detail(id!), queryFn: () => getTierListDetail(id!) })
@@ -52,28 +52,28 @@ export function CustomTierBoardPage() {
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(variables.entityId) })
-      // Classement rapide : enchaîner sur l'œuvre suivante remplace la
-      // fermeture du sélecteur (voir useQuickRank).
+      // Quick ranking: chaining to the next work replaces the
+      // closing of the picker (see useQuickRank).
       if (quickRank.isActive) quickRank.next()
       else setActiveEntry(null)
     },
   })
 
-  // Retirer une œuvre de la liste - distinct de setTierListItemRank(null), qui
-  // ne fait que la déclasser. Sans ça, un ajout par erreur depuis
-  // AddTierListItemsPanel n'avait aucune sortie (DELETE /tier-lists/{id}/items/
-  // {entityId} existait pourtant depuis le Lot 7).
+  // Removing a work from the list - distinct from setTierListItemRank(null), which
+  // only unranks it. Without it, an add by mistake from
+  // AddTierListItemsPanel had no way out (DELETE /tier-lists/{id}/items/
+  // {entityId} existed though since batch 7).
   const removeItemMutation = useMutation({
-    // L'entrée entière, pas seulement son identifiant : son RANG est ce qu'on
-    // doit pouvoir rendre, et il n'existe plus une fois l'œuvre retirée.
+    // The whole entry, not only its identifier: its RANK is what must
+    // be possible to restore, and it no longer exists once the work is removed.
     mutationFn: (entree: TierListEntryDto) => removeTierListItem(id!, entree.entityId),
     onSuccess: (_result, entree) => {
       invaliderApresItem(entree.entityId)
       quickRank.stop()
       setActiveEntry(null)
-      // Même convention que les envies, les prix relevés et les expériences.
-      // Restauration réelle : l'appartenance ET le rang, en deux appels - le
-      // second n'a lieu que si l'œuvre était classée.
+      // Same convention as the wishes, the recorded prices and the experiences.
+      // Real restoration: the membership AND the rank, in two calls - the
+      // second only takes place if the work was ranked.
       toast('Œuvre retirée de la liste', {
         label: 'Annuler',
         onAction: async () => {
@@ -85,22 +85,22 @@ export function CustomTierBoardPage() {
     },
   })
 
-  /** La fiche de l'œuvre affiche ses appartenances (voir TomesGridSection) :
-   *  sans cette invalidation, elle continuerait d'annoncer cette liste. */
+  /** The detail page of the work shows its memberships (see TomesGridSection):
+   *  without this invalidation, it would keep announcing this list. */
   function invaliderApresItem(entityId: string) {
     queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
     queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.entitySummary(entityId) })
   }
 
-  // PATCH /tier-lists/{id} existait sans appelant : une faute de frappe dans le
-  // nom d'une liste était définitive, la seule sortie étant de la supprimer et
-  // de tout réajouter.
+  // PATCH /tier-lists/{id} existed without a caller: a typo in the
+  // name of a list was final, the only way out being to delete it and
+  // add everything again.
   const renameMutation = useMutation({
     mutationFn: (name: string) => updateTierList(id!, { name }),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.detail(id!) })
-      // Le nom se lit aussi depuis la liste des Tier Lists de cet univers et
-      // depuis la fiche d'une œuvre (entitySummary porte tierListName).
+      // The name is also read from the list of Tier Lists of this universe and
+      // from the detail page of a work (entitySummary carries tierListName).
       queryClient.invalidateQueries({ queryKey: queryKeys.tierLists.custom(updated.entityTypeId) })
       queryClient.invalidateQueries({ queryKey: ['tierLists', 'entitySummary'] })
       setRenaming(false)
@@ -108,11 +108,11 @@ export function CustomTierBoardPage() {
     },
   })
 
-  // Pas d'« Annuler » ici, délibérément : supprimer une Tier List passe déjà par
-  // une confirmation en deux temps qui annonce « Irréversible ». Ajouter une
-  // annulation ferait mentir cette phrase, et protégerait une deuxième fois un
-  // geste que personne ne déclenche par mégarde. Le filet va aux gestes NUS -
-  // retirer une œuvre de la liste, ci-dessus, part au premier clic.
+  // No "Annuler" here, deliberately: deleting a Tier List already goes through
+  // a two-step confirmation that announces "Irréversible". Adding a
+  // cancel would make this sentence lie, and would protect a second time a
+  // gesture that nobody triggers by mistake. The safety net goes to the BARE gestures -
+  // removing a work from the list, above, goes through at the first click.
   const deleteMutation = useMutation({
     mutationFn: () => deleteTierList(id!),
     onSuccess: () => {
@@ -131,11 +131,11 @@ export function CustomTierBoardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* La destination vient de CELUI QUI A OUVERT cet écran, quand il la
-          nomme (voir lib/retour) : un board ouvert depuis Découvrir y
-          revenait autrefois par Tier Lists, et le bouton Précédent du
-          navigateur disait alors autre chose que celui de la page (UX-8).
-          Le défaut ci-dessous reste le parent naturel - lien reçu, F5. */}
+      {/* The destination comes from WHOEVER OPENED this screen, when they
+          name it (see lib/retour): a board opened from Découvrir used to
+          go back to it through Tier Lists, and the Previous button of the
+          browser then said something different from the one of the page (UX-8).
+          The default below stays the natural parent - received link, F5. */}
       <button
         type="button"
         onClick={() => navigate(retour.to)}

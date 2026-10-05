@@ -10,13 +10,13 @@ export function recordExperience(body: RecordExperienceRequest): Promise<Experie
 }
 
 /**
- * Corrige une expérience déjà enregistrée. Seuls la note et le commentaire
- * sont modifiables : le type, la date et le tome concerné sont immuables côté
- * domaine - s'être trompé de type ou de tome, c'est avoir enregistré une AUTRE
- * expérience, qu'on supprime.
+ * Corrects an experience already recorded. Only the rating and the comment
+ * can be changed: the type, the date and the volume concerned are immutable in the
+ * domain - having picked the wrong type or volume means having recorded ANOTHER
+ * experience, which you delete.
  *
- * Les deux champs sont remplacés tels quels, `null` compris : c'est ce qui
- * permet d'effacer une note ou un commentaire.
+ * Both fields are replaced as they are, `null` included: this is what
+ * allows clearing a rating or a comment.
  */
 export function updateExperience(
   id: string,
@@ -25,8 +25,8 @@ export function updateExperience(
   return patch<ExperienceResponse>(`/experiences/${id}`, body)
 }
 
-/** Idempotent, comme les autres suppressions de petites données du projet :
- * un id déjà retiré ne renvoie pas d'erreur. */
+/** Idempotent, like the other deletions of small data in the project:
+ * an id already removed does not return an error. */
 export function deleteExperience(id: string): Promise<void> {
   return del<void>(`/experiences/${id}`)
 }

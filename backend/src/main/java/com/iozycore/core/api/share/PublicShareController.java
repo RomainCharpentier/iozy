@@ -32,42 +32,42 @@ import java.util.stream.Collectors;
 import com.iozycore.core.insights.SeriesProgressGateway;
 
 /**
- * Le SEUL contrôleur de l'application conçu pour être ouvert par quelqu'un
- * d'autre que le propriétaire. Il y en avait deux - un par section - et c'est
- * précisément ce que cette unification a supprimé.
+ * The ONLY controller of the application designed to be opened by someone
+ * other than the owner. There used to be two - one per section - and this is
+ * precisely what this unification removed.
  *
- * <h2>Le jeton fait office de mot de passe</h2>
- * Le posséder suffit, il n'y a rien d'autre à présenter : ce contrôleur ne
- * demande aucune authentification, et c'est voulu - la personne qui reçoit le
- * lien n'a pas de compte. Un jeton inconnu, révoqué, vide ou absent donne un
- * <b>404 nu</b>, jamais un détail qui laisserait deviner qu'il a existé un jour.
+ * <h2>The token acts as a password</h2>
+ * Having it is enough, there is nothing else to present: this controller
+ * asks for no authentication, and this is wanted - the person who receives the
+ * link has no account. An unknown, revoked, empty or absent token gives a
+ * <b>bare 404</b>, never a detail that would let someone guess it once existed.
  *
- * <h2>Le filtrage est ici, pas dans le client</h2>
- * Les sections non partagées ne sont pas masquées à l'affichage : elles ne
- * sont <b>pas calculées</b>, et la réponse porte {@code null} à leur place. Un
- * visiteur qui inspecte le réseau ne trouve pas de collection cachée dans un
- * partage d'envies.
+ * <h2>The filtering is here, not in the client</h2>
+ * The sections that are not shared are not hidden at display time: they
+ * are <b>not computed</b>, and the response carries {@code null} in their place. A
+ * visitor who inspects the network does not find a hidden collection in a
+ * wishes share.
  *
- * <p>{@code null} et non une liste vide, et la nuance porte de l'information :
- * {@code []} dirait « partagée, mais il n'a rien dedans », ce qui est un fait
- * sur la personne ; {@code null} dit seulement « tu n'y as pas accès ». Cette
- * phrase affirmait auparavant que la clé ne figurait pas du tout dans la
- * réponse - c'était faux, le fil porte bien {@code "tierLists":null}, et le
- * test qui semblait le vérifier utilisait {@code doesNotExist()}, vrai pour
- * les deux formes à la fois. Et rien ne sort jamais des œuvres au-delà du titre, de la jaquette,
- * des éditions possédées et de la progression - voir {@code ShareDtos} pour la
- * liste de ce qui est délibérément absent.
+ * <p>{@code null} and not an empty list, and the nuance carries information:
+ * {@code []} would say "shared, but there is nothing in it", which is a fact
+ * about the person; {@code null} only says "you do not have access to it". This
+ * sentence used to claim that the key did not appear at all in the
+ * response - that was false, the wire does carry {@code "tierLists":null}, and the
+ * test that seemed to check it used {@code doesNotExist()}, true for
+ * both forms at once. And nothing ever comes out of the works beyond the title, the cover,
+ * the owned editions and the progress - see {@code ShareDtos} for the
+ * list of what is deliberately absent.
  *
- * <h2>Vue vivante, pas photographie</h2>
- * Chaque appel relit la collection et les envies telles qu'elles sont
- * maintenant : ajouter un tome le fait apparaître dans le lien déjà distribué,
- * sans rien à régénérer. La collection ne montre que ce qui est RÉELLEMENT
- * possédé (Ownership active) ; les envies montrent les œuvres souhaitées, <b>y
- * compris celles qu'on ne possède pas</b> - c'est même le cas normal.
+ * <h2>Live view, not a photograph</h2>
+ * Each call reads the collection and the wishes again as they are
+ * now: adding a volume makes it appear in the link already handed out,
+ * with nothing to regenerate. The collection only shows what is REALLY
+ * owned (active Ownership); the wishes show the wished works, <b>including
+ * those that are not owned</b> - this is even the normal case.
  */
 @RestController
 @RequestMapping("/api/public/share")
-@Tag(name = "Espace partagé", description = "Lecture seule, non authentifiée, réservée au porteur du lien")
+@Tag(name = "Shared space", description = "Read only, unauthenticated, reserved for the holder of the link")
 public class PublicShareController {
 
     private static final String COVER_IMAGE_URL = "coverImageUrl";
@@ -99,25 +99,25 @@ public class PublicShareController {
         this.progressService = progressService;
     }
 
-    @Operation(summary = "Espace partagé en lecture seule via un jeton. 404 si le lien n'existe pas ou a été "
-            + "supprimé. Une section non partagée vaut null dans la réponse, jamais une liste vide : "
-            + "[] dirait « partagée mais rien dedans », null dit « pas d'accès ».")
+    @Operation(summary = "Read-only shared space through a token. 404 if the link does not exist or was "
+            + "deleted. A section that is not shared is null in the response, never an empty list: "
+            + "[] would say \"shared but nothing in it\", null says \"no access\".")
     @GetMapping("/{token}")
     public SharedSpaceResponse shared(@PathVariable String token) {
         ShareSettings settings = shareSettingsRepository.findByToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lien introuvable"));
 
-        // Le destinataire d'un lien n'a pas de compte : le cloisonnement ne
-        // peut pas venir de la session. Il vient du JETON, qui nomme son
-        // propriétaire - et c'est écrit ici, à l'endroit où la lecture au nom
-        // d'autrui se produit, plutôt que déduit de l'endroit d'où l'on vient.
+        // The recipient of a link has no account: the partitioning cannot
+        // come from the session. It comes from the TOKEN, which names its
+        // owner - and this is written here, where the reading on behalf of
+        // someone else happens, rather than deduced from where one comes from.
         return AuNomDe.executer(settings.ownerId(), () -> new SharedSpaceResponse(
                 settings.sharesCollection() ? sharedCollection() : null,
                 settings.sharesWishlist() ? sharedWishlist() : null,
                 settings.sharesTierLists() ? sharedTierLists() : null));
     }
 
-    /** Ce qui est réellement possédé, groupé par univers - jamais le simple catalogue. */
+    /** What is really owned, grouped by universe - never the plain catalog. */
     private List<SharedUniverse> sharedCollection() {
         Map<UUID, CollectionProgress> progressByEntity = progressService.computeAll().stream()
                 .collect(Collectors.toMap(CollectionProgress::entityId, p -> p));
@@ -133,8 +133,8 @@ public class PublicShareController {
                     .map(entity -> toItem(entity, progressByEntity.get(entity.id())))
                     .sorted(Comparator.comparing(SharedCollectionItem::title, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
-            // Univers sans rien de possédé : absent, jamais une section vide
-            // (même règle que Ma collection côté propriétaire).
+            // Universe with nothing owned: absent, never an empty section
+            // (same rule as My collection on the owner side).
             if (!items.isEmpty()) {
                 universes.add(new SharedUniverse(type.label(), items));
             }
@@ -143,23 +143,23 @@ public class PublicShareController {
     }
 
     /**
-     * Les envies. Aucune possession n'est requise ni consultée : une œuvre
-     * souhaitée n'a le plus souvent aucun exemplaire, c'est tout l'intérêt de
-     * la partager. Une œuvre à la fois possédée et souhaitée apparaît dans les
-     * deux sections - ce sont deux intentions différentes, pas un doublon.
+     * The wishes. No ownership is required or consulted: a wished
+     * work most often has no copy, this is the whole point of
+     * sharing it. A work that is both owned and wished appears in both
+     * sections - these are two different intentions, not a duplicate.
      */
     private List<SharedWishlistItem> sharedWishlist() {
-        // Les œuvres chargées EN UNE FOIS, pas une requête par envie.
+        // The works loaded IN ONE GO, not one query per wish.
         //
-        // Chaque entrée déclenchait son propre findById : une wishlist de
-        // cinquante lignes coûtait cinquante requêtes, sur la seule surface
-        // ouverte à l'extérieur - et sur un chemin que n'importe qui possédant
-        // le lien peut rappeler autant de fois qu'il veut. Même raisonnement
-        // qu'au Lot 35 pour la recherche de tomes, avec en plus le fait que
-        // celui-ci n'est pas authentifié.
+        // Each entry triggered its own findById: a wishlist of
+        // fifty rows cost fifty queries, on the only surface
+        // open to the outside - and on a path that anyone holding
+        // the link can call again as many times as they want. Same reasoning
+        // as in Batch 35 for the volume search, with the added fact that
+        // this one is not authenticated.
         //
-        // Trois requêtes suffisent (une par univers), et sharedCollection
-        // parcourt déjà les types de la même façon.
+        // Three queries are enough (one per universe), and sharedCollection
+        // already goes through the types the same way.
         Map<UUID, Entity> oeuvresParId = toutesLesOeuvres();
         return wishlistEntryRepository.findAll().stream()
                 .map(entry -> toWishlistItem(entry, oeuvresParId.get(entry.entityId())))
@@ -179,7 +179,7 @@ public class PublicShareController {
         return parId;
     }
 
-    /** Vide si l'œuvre référencée a disparu : une entrée orpheline ne doit pas casser la vue publique. */
+    /** Empty if the referenced work has disappeared: an orphan entry must not break the public view. */
     private Optional<SharedWishlistItem> toWishlistItem(WishlistEntry entry, Entity entity) {
         return Optional.ofNullable(entity).map(oeuvre -> {
             Object cover = oeuvre.attributes().get(COVER_IMAGE_URL);
@@ -194,9 +194,9 @@ public class PublicShareController {
                 .sorted()
                 .collect(Collectors.toList());
 
-        // Le total n'a de sens que rattaché à UNE édition : quand plusieurs sont
-        // réellement collectionnées, la progression reste sans total plutôt que
-        // d'en choisir une au hasard (voir dominantEdition).
+        // The total only makes sense attached to ONE edition: when several are
+        // really collected, the progress stays without a total rather than
+        // picking one at random (see dominantEdition).
         Integer totalVolumes = progress.dominantEdition() == null ? null : progress.dominantEdition().totalVolumes();
 
         Object cover = entity.attributes().get(COVER_IMAGE_URL);
@@ -215,8 +215,8 @@ public class PublicShareController {
                             .map(PublicShareController::toRankedItem)
                             .collect(Collectors.toList())))
                     .collect(Collectors.toList());
-            // Un univers sans AUCUNE œuvre classée n'apparaît pas : "rien de
-            // classé" n'est pas un classement à montrer.
+            // A universe with NO ranked work does not appear: "nothing
+            // ranked" is not a ranking to show.
             if (!rows.isEmpty()) {
                 general.add(new SharedTierBoard(type.label(), rows));
             }
@@ -230,8 +230,8 @@ public class PublicShareController {
         for (TierList list : lists) {
             Map<Rank, List<SharedRankedItem>> byRank = new EnumMap<>(Rank.class);
             for (Map.Entry<TierListItem, Entity> entry : tierListService.enrichedItems(list.id())) {
-                // Seulement ce qui est réellement CLASSÉ : une œuvre ajoutée à
-                // la liste mais pas encore classée n'est pas un avis.
+                // Only what is really RANKED: a work added to
+                // the list but not yet ranked is not an opinion.
                 entry.getKey().rank().ifPresent(rank -> byRank
                         .computeIfAbsent(rank, r -> new ArrayList<>())
                         .add(toRankedItem(entry.getValue())));

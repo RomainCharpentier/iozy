@@ -26,23 +26,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Les deux routes d'export sont de simples GET sans mutation, et
- * {@code ExportCsvWriter} est déjà couvert par ses propres tests. Ce qui ne
- * l'était pas, et qui vit <b>uniquement dans le contrôleur</b> :
+ * The two export routes are simple GETs without mutation, and
+ * {@code ExportCsvWriter} is already covered by its own tests. What was not
+ * covered, and lives <b>only in the controller</b>:
  *
  * <ul>
- *   <li>l'en-tête {@code Content-Disposition} qui donne son nom au fichier
- *       téléchargé - sans lui, le navigateur enregistre « csv » ou « json » ;</li>
- *   <li>l'assemblage du ZIP, écrit à la main dans la méthode plutôt que dans
- *       {@code ExportCsvWriter} - un ZIP mal formé ne se voit qu'à
- *       l'ouverture ;</li>
- *   <li>le {@code Content-Type} {@code application/zip}.</li>
+ *   <li>the {@code Content-Disposition} header that gives its name to the downloaded
+ *       file - without it, the browser saves "csv" or "json";</li>
+ *   <li>the assembly of the ZIP, written by hand in the method rather than in
+ *       {@code ExportCsvWriter} - a badly formed ZIP is only seen
+ *       when opened;</li>
+ *   <li>the {@code Content-Type} {@code application/zip}.</li>
  * </ul>
  *
- * C'est la raison d'être de cette classe : elle n'ajoute pas deux
- * « GET → 200 » décoratifs, elle ouvre réellement l'archive produite. L'export
- * est la garantie anti-enfermement du produit (docs/CONCEPTION.md §19) - un
- * export corrompu est un défaut grave et silencieux.
+ * This is the reason for this class: it does not add two decorative
+ * "GET -> 200", it really opens the archive produced. The export
+ * is the anti-lock-in guarantee of the product (docs/CONCEPTION.md §19) - a
+ * corrupted export is a serious and silent defect.
  */
 class ExportHttpContractTest extends HttpContractTestBase {
 
@@ -62,7 +62,7 @@ class ExportHttpContractTest extends HttpContractTestBase {
 
         String disposition = resultat.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION);
         assertThat(disposition)
-                .as("sans cet en-tête, le fichier téléchargé s'appelle « json »")
+                .as("without this header, the downloaded file is called \"json\"")
                 .isNotNull()
                 .contains("attachment")
                 .contains("iozycore-export-" + LocalDate.now() + ".json");
@@ -70,8 +70,8 @@ class ExportHttpContractTest extends HttpContractTestBase {
 
     @Test
     void the_json_export_contains_every_announced_section() throws Exception {
-        // Le résumé de la route énumère ces sections : une clé disparue rendrait
-        // l'export silencieusement incomplet, sans erreur ni status différent.
+        // The summary of the route lists these sections: a missing key would make
+        // the export silently incomplete, with no error or different status.
         mockMvc.perform(get("/api/export/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entities").exists())
@@ -112,8 +112,8 @@ class ExportHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray();
 
-        // Le ZIP est assemblé à la main dans le contrôleur : le seul moyen de
-        // prouver qu'il est valide est de l'ouvrir, pas de mesurer sa taille.
+        // The ZIP is assembled by hand in the controller: the only way to
+        // prove it is valid is to open it, not to measure its size.
         List<String> fichiers = new ArrayList<>();
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive))) {
             ZipEntry entree;
@@ -138,10 +138,10 @@ class ExportHttpContractTest extends HttpContractTestBase {
         String entities = lireDansArchive(archive, "entities.csv");
 
         assertThat(entities).isNotBlank();
-        assertThat(entities.lines().findFirst()).as("ligne d'en-tête").isPresent();
-        // Les accents et caractères japonais doivent survivre au passage en
-        // octets : le contrôleur encode explicitement en UTF-8, un défaut ici
-        // ne casserait rien mais rendrait l'export illisible.
+        assertThat(entities.lines().findFirst()).as("header line").isPresent();
+        // The accents and Japanese characters must survive the conversion into
+        // bytes: the controller encodes explicitly in UTF-8, a defect here
+        // would break nothing but would make the export unreadable.
         assertThat(entities).contains(oeuvre.title());
     }
 

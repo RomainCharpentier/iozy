@@ -7,12 +7,12 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Ce qu'un lot apporte à une collection précise.
+ * What a batch brings to a specific collection.
  * <p>
- * Le test qui compte le plus est {@link #le_prix_par_element_utile_est_plus_eleve_que_le_prix_par_element()} :
- * c'est la seule métrique qu'aucun comparateur de prix ne peut produire, et
- * celle qui change la décision. Un lot à 70 € pour 14 tomes affiche 5 € le tome
- * — mais si 4 sont des doublons, il coûte réellement 7 € le tome qui sert.
+ * The most important test is {@link #le_prix_par_element_utile_est_plus_eleve_que_le_prix_par_element()}:
+ * it is the only metric that no price comparator can produce, and
+ * the one that changes the decision. A batch at 70 EUR for 14 volumes shows 5 EUR a volume
+ * — but if 4 are duplicates, it really costs 7 EUR per useful volume.
  */
 class CollectionFitTest {
 
@@ -24,18 +24,18 @@ class CollectionFitTest {
         assertThat(fit.missingItemCount()).isEqualTo(10);
         assertThat(fit.usefulItemCount()).isEqualTo(10);
         assertThat(fit.interest()).isEqualTo(CollectionFit.CollectionInterest.HIGHLY_USEFUL);
-        // Sans doublon, les deux prix coïncident.
+        // Without duplicates, the two prices are the same.
         assertThat(fit.pricePerItem()).isEqualByComparingTo("5.00");
         assertThat(fit.pricePerUsefulItem()).isEqualByComparingTo("5.00");
     }
 
     @Test
     void le_prix_par_element_utile_est_plus_eleve_que_le_prix_par_element() {
-        // 10 tomes à 50 €, dont 2 déjà possédés.
+        // 10 volumes at 50 EUR, 2 of them already owned.
         CollectionFit fit = CollectionFit.of(10, 2, 0, new BigDecimal("50.00"));
 
         assertThat(fit.pricePerItem()).isEqualByComparingTo("5.00");
-        // 50 / 8 : c'est ce chiffre-là qui décide, pas le premier.
+        // 50 / 8: this is the figure that decides, not the first one.
         assertThat(fit.pricePerUsefulItem()).isEqualByComparingTo("6.25");
         assertThat(fit.interest()).isEqualTo(CollectionFit.CollectionInterest.HIGHLY_USEFUL);
     }
@@ -46,7 +46,7 @@ class CollectionFitTest {
 
         assertThat(fit.usefulItemCount()).isEqualTo(3);
         assertThat(fit.interest()).isEqualTo(CollectionFit.CollectionInterest.MOSTLY_DUPLICATES);
-        // Le prix par tome utile explose : 50 / 3.
+        // The price per useful volume explodes: 50 / 3.
         assertThat(fit.pricePerUsefulItem()).isEqualByComparingTo("16.67");
     }
 
@@ -57,8 +57,8 @@ class CollectionFitTest {
         assertThat(fit.usefulItemCount()).isZero();
         assertThat(fit.interest()).isEqualTo(CollectionFit.CollectionInterest.NOTHING_NEW);
         assertThat(fit.bringsNothing()).isTrue();
-        // Pas de division par zéro, et surtout pas de « 0 € le tome utile »
-        // qui ferait passer un lot inutile pour une aubaine.
+        // No division by zero, and above all no "0 EUR per useful volume"
+        // that would make a useless batch look like a bargain.
         assertThat(fit.pricePerUsefulItem()).isNull();
         assertThat(fit.pricePerItem()).isEqualByComparingTo("5.00");
     }
@@ -67,8 +67,8 @@ class CollectionFitTest {
     void les_envies_sont_comptees_sans_changer_le_nombre_de_manquants() {
         CollectionFit fit = CollectionFit.of(10, 2, 5, new BigDecimal("50.00"));
 
-        // Vouloir n'est pas posséder : les envies qualifient l'intérêt des
-        // manquants, elles n'en retirent ni n'en ajoutent aucun.
+        // Wanting is not owning: wishes qualify the interest in the
+        // missing ones, they neither remove nor add any.
         assertThat(fit.missingItemCount()).isEqualTo(8);
         assertThat(fit.usefulItemCount()).isEqualTo(8);
         assertThat(fit.wishlistedItemCount()).isEqualTo(5);
@@ -76,8 +76,8 @@ class CollectionFitTest {
 
     @Test
     void les_envies_ne_peuvent_pas_depasser_les_manquants() {
-        // Garde-fou : un compte d'envies incohérent ne doit pas produire
-        // « 9 souhaités sur 3 manquants » à l'écran.
+        // Safeguard: an inconsistent wish count must not produce
+        // "9 wished out of 3 missing" on screen.
         CollectionFit fit = CollectionFit.of(10, 7, 9, new BigDecimal("50.00"));
 
         assertThat(fit.wishlistedItemCount()).isEqualTo(3);
@@ -89,7 +89,7 @@ class CollectionFitTest {
 
         assertThat(fit.interest()).isEqualTo(CollectionFit.CollectionInterest.UNKNOWN);
         assertThat(fit.isKnown()).isFalse();
-        // Rien n'est inventé : ni prix par élément, ni intérêt.
+        // Nothing is invented: no price per item, no interest.
         assertThat(fit.pricePerItem()).isNull();
         assertThat(fit.pricePerUsefulItem()).isNull();
     }

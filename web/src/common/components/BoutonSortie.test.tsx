@@ -1,10 +1,10 @@
 /**
- * <b>Un seul bouton pour sortir, et une seule règle pour le nommer.</b>
+ * <b>A single button to leave, and a single rule to name it.</b>
  *
- * Il y avait deux boutons — « Se déconnecter » enterré dans les Paramètres,
- * « Quitter » dans le bandeau de visite — pour un seul geste, avec deux mots
- * et deux places. Il n'y en a plus qu'un, dans l'en-tête, et c'est lui qui
- * sait quel mot employer selon qui est là.
+ * There were two buttons - "Se déconnecter" buried in the Settings,
+ * "Quitter" in the visit banner - for a single action, with two words
+ * and two places. There is now only one, in the header, and it is the one that
+ * knows which word to use depending on who is there.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -44,24 +44,24 @@ async function rendre(compte: Record<string, unknown>) {
   await waitFor(() => expect(api.lireCompte).toHaveBeenCalled())
 }
 
-describe('le mot employé', () => {
-  it('parle de déconnexion pour un compte', async () => {
+describe('the word used', () => {
+  it('talks about signing out for an account', async () => {
     await rendre(COMPTE)
 
     expect(await screen.findByRole('button', { name: 'Se déconnecter' })).toBeInTheDocument()
   })
 
-  it('parle de quitter pour un visiteur, qui n’a pas de compte', async () => {
+  it('talks about leaving for a visitor, who has no account', async () => {
     await rendre(VISITEUR)
 
     expect(await screen.findByRole('button', { name: 'Quitter' })).toBeInTheDocument()
   })
 
-  it('n’écrit rien à l’écran, mais s’annonce quand même', async () => {
-    // Le bouton est une ICÔNE seule, comme sa voisine Administration : un mot
-    // aurait pesé plus lourd que les deux boutons réunis. Tout repose donc sur
-    // le nom accessible et l'infobulle - sans eux, ce serait une sortie
-    // réservée à qui devine.
+  it('writes nothing on screen, but still announces itself', async () => {
+    // The button is an icon ONLY, like its neighbor Administration: a word
+    // would have weighed more than the two buttons together. Everything rests on
+    // the accessible name and the tooltip - without them, it would be an exit
+    // reserved for those who guess.
     await rendre(COMPTE)
 
     const bouton = await screen.findByRole('button', { name: 'Se déconnecter' })
@@ -70,8 +70,8 @@ describe('le mot employé', () => {
   })
 })
 
-describe('le geste', () => {
-  it('ferme la session', async () => {
+describe('the action', () => {
+  it('closes the session', async () => {
     await rendre(COMPTE)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Se déconnecter' }))

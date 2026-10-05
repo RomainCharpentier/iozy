@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Voir V3__volume_search_cache.sql - series_title/author sont stockés déjà
- * normalisés (trim + minuscules), jamais affichés tels quels. */
+/** See V3__volume_search_cache.sql - series_title/author are stored already
+ * normalised (trim + lowercase), never displayed as is. */
 @Entity
 @Table(name = "volume_search_cache")
 public class VolumeSearchCacheJpaEntity {
@@ -35,7 +35,7 @@ public class VolumeSearchCacheJpaEntity {
     private Instant fetchedAt;
 
     protected VolumeSearchCacheJpaEntity() {
-        // requis par JPA
+        // required by JPA
     }
 
     public VolumeSearchCacheJpaEntity(UUID id, UUID entityTypeId, String seriesTitle, String author,

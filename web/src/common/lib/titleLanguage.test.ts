@@ -1,16 +1,15 @@
 /**
- * <b>Quel titre est écrit, et quel titre n'est qu'affiché.</b>
+ * <b>Which title is written, and which title is only displayed.</b>
  *
- * La composition décide de deux choses différentes, et les confondre écrirait
- * en base une chaîne à parenthèses : `resolvePrimaryTitle` donne le titre
- * réellement SAISI, `candidateDisplayTitle` la forme lue à l'écran. La règle
- * commune : la première langue <b>active</b> dont la valeur est disponible pour
- * ce candidat l'emporte - l'ordre choisi compte, mais une langue activée sans
- * valeur ne bloque pas la suivante.
+ * The composition decides two different things, and confusing them would
+ * write a string with parentheses to the database: `resolvePrimaryTitle`
+ * gives the title actually ENTERED, `candidateDisplayTitle` the form read on
+ * the screen. The common rule: the first <b>active</b> language whose value
+ * is available for this candidate wins - the chosen order matters, but an
+ * enabled language without a value does not block the next one.
  *
- * <p>La composition vient du `localStorage` : une valeur écrite par une
- * version précédente, ou éditée à la main, ne doit pas faire afficher des
- * titres vides.
+ * <p>The composition comes from `localStorage`: a value written by a
+ * previous version, or edited by hand, must not make empty titles appear.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -25,7 +24,7 @@ import type { MetadataCandidateDto } from '@/common/types/api'
 
 const CLE = 'iozycore.titleComposition'
 
-/** Le cas normal d'un candidat Jikan : romaji toujours là, anglais parfois. */
+/** The normal case of a Jikan candidate: romaji always there, English sometimes. */
 function candidat(attributes: Record<string, unknown> = {}): MetadataCandidateDto {
   return {
     source: 'JIKAN',
@@ -45,29 +44,29 @@ const FRANCAIS_PUIS_ROMAJI = composition(['FRENCH', true], ['ROMAJI', true], ['E
 beforeEach(() => localStorage.clear())
 
 describe('resolvePrimaryTitle', () => {
-  it('retient la première langue active dont la valeur existe', () => {
+  it('keeps the first active language whose value exists', () => {
     expect(resolvePrimaryTitle(candidat(), FRANCAIS_PUIS_ROMAJI, "L'Attaque des Titans"))
       .toBe("L'Attaque des Titans")
   })
 
-  it('passe à la suivante quand la langue en tête n’a rien à offrir', () => {
-    // Le français est best-effort : la recherche peut n'avoir rien trouvé.
+  it('moves to the next one when the language at the top has nothing to offer', () => {
+    // French is best-effort: the search may have found nothing.
     expect(resolvePrimaryTitle(candidat(), FRANCAIS_PUIS_ROMAJI, undefined)).toBe('Shingeki no Kyojin')
   })
 
-  it('respecte l’ordre choisi, pas un ordre par défaut', () => {
+  it('respects the chosen order, not a default order', () => {
     const romajiDAbord = composition(['ROMAJI', true], ['FRENCH', true], ['ENGLISH', false])
 
     expect(resolvePrimaryTitle(candidat(), romajiDAbord, "L'Attaque des Titans")).toBe('Shingeki no Kyojin')
   })
 
-  it('ignore une langue désactivée, même en tête et disponible', () => {
+  it('ignores a disabled language, even at the top and available', () => {
     const francaisEteint = composition(['FRENCH', false], ['ENGLISH', true], ['ROMAJI', true])
 
     expect(resolvePrimaryTitle(candidat(), francaisEteint, "L'Attaque des Titans")).toBe('Attack on Titan')
   })
 
-  it('retombe sur le titre de la source si tout est éteint', () => {
+  it('falls back on the title of the source if everything is off', () => {
     const toutEteint = composition(['FRENCH', false], ['ENGLISH', false], ['ROMAJI', false])
 
     expect(resolvePrimaryTitle(candidat(), toutEteint, "L'Attaque des Titans")).toBe('Shingeki no Kyojin')
@@ -75,29 +74,29 @@ describe('resolvePrimaryTitle', () => {
 })
 
 describe('candidateDisplayTitle', () => {
-  it('met les langues actives suivantes entre parenthèses, dans l’ordre', () => {
+  it('puts the following active languages in parentheses, in order', () => {
     const lesTrois = composition(['FRENCH', true], ['ROMAJI', true], ['ENGLISH', true])
 
     expect(candidateDisplayTitle(candidat(), lesTrois, "L'Attaque des Titans"))
       .toBe("L'Attaque des Titans (Shingeki no Kyojin, Attack on Titan)")
   })
 
-  it('ne répète pas entre parenthèses un titre identique au principal', () => {
-    // Romaji et anglais valent parfois la même chaîne : « X (X) » ne dit rien.
+  it('does not repeat in parentheses a title identical to the main one', () => {
+    // Romaji and English are sometimes the same string: "X (X)" says nothing.
     const romajiEtAnglais = composition(['ROMAJI', true], ['ENGLISH', true], ['FRENCH', false])
     const memeTitre = candidat({ titleEnglish: 'Shingeki no Kyojin' })
 
     expect(candidateDisplayTitle(memeTitre, romajiEtAnglais, undefined)).toBe('Shingeki no Kyojin')
   })
 
-  it('sans seconde langue disponible, n’ouvre pas de parenthèse vide', () => {
+  it('without a second language available, does not open an empty parenthesis', () => {
     expect(candidateDisplayTitle(candidat({ titleEnglish: undefined }), FRANCAIS_PUIS_ROMAJI, undefined))
       .toBe('Shingeki no Kyojin')
   })
 })
 
-describe('la composition mémorisée', () => {
-  it('se relit telle qu’elle a été enregistrée', () => {
+describe('the remembered composition', () => {
+  it('is read back as it was saved', () => {
     const choisie = composition(['ENGLISH', true], ['FRENCH', true], ['ROMAJI', false])
 
     setTitleComposition(choisie)
@@ -105,7 +104,7 @@ describe('la composition mémorisée', () => {
     expect(getTitleComposition()).toEqual(choisie)
   })
 
-  it('retombe sur le défaut devant une composition incomplète ou inconnue', () => {
+  it('falls back on the default when faced with an incomplete or unknown composition', () => {
     localStorage.setItem(CLE, JSON.stringify([{ language: 'FRENCH', enabled: true }]))
     expect(getTitleComposition()).toEqual(FRANCAIS_PUIS_ROMAJI)
 
@@ -116,7 +115,7 @@ describe('la composition mémorisée', () => {
     expect(getTitleComposition()).toEqual(FRANCAIS_PUIS_ROMAJI)
   })
 
-  it('dit si le français est actif - ce qui déclenche la recherche best-effort', () => {
+  it('says whether French is active - which triggers the best-effort search', () => {
     expect(isFrenchEnabled(FRANCAIS_PUIS_ROMAJI)).toBe(true)
     expect(isFrenchEnabled(composition(['FRENCH', false], ['ROMAJI', true], ['ENGLISH', true]))).toBe(false)
   })

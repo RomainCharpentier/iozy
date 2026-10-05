@@ -14,16 +14,16 @@ public class EntityRankJpaEntity {
     @Column(name = "entity_id")
     private UUID entityId;
 
-    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
+    // Isolation by owner: Hibernate adds this column to the
 
 
-    // clause WHERE de toute requête sur cette entité, et la remplit à
+    // WHERE clause of every query on this entity, and fills it on
 
 
-    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
+    // insert from ProprietaireCourant. A filter you cannot
 
 
-    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+    // forget, instead of a condition to rewrite in every query.
 
 
     @TenantId

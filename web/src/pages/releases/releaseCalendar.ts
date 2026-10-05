@@ -2,20 +2,20 @@ import type { ReleaseEntryDto } from '@/common/types/api'
 import { parseReleaseDate, yearMonthLocal } from '@/common/lib/releaseDate'
 
 /**
- * Les règles du calendrier des sorties qui se cassent en silence : quel mois
- * on regarde, ses bornes, la grille qui le dessine, et comment ses sorties se
- * rangent (lot 146).
+ * The rules of the release calendar that break silently: which month
+ * is being looked at, its bounds, the grid that draws it, and how its releases are
+ * sorted (batch 146).
  */
 
 const MOIS = /^\d{4}-\d{2}$/
 
-/** Le mois demandé par l'URL (`?mois=2026-10`), ou celui de l'appareil quand l'URL se tait ou déraille. */
+/** The month asked by the URL (`?mois=2026-10`), or the one of the device when the URL is silent or derails. */
 export function moisDepuisParametre(parametre: string | null, aujourdHui: Date): string {
   if (parametre && MOIS.test(parametre) && parseReleaseDate(parametre)) return parametre
   return yearMonthLocal(aujourdHui)
 }
 
-/** Du premier au dernier jour du mois, inclus - ce que le serveur attend. */
+/** From the first to the last day of the month, included - what the server expects. */
 export function bornesDuMois(yearMonth: string): { from: string; to: string } {
   const [annee, mois] = yearMonth.split('-').map(Number)
   const dernierJour = new Date(Date.UTC(annee, mois, 0)).getUTCDate()
@@ -37,23 +37,23 @@ function decaler(yearMonth: string, mois: number): string {
 }
 
 export interface CaseDuMois {
-  /** « 2026-10-14 » */
+  /** "2026-10-14" */
   iso: string
-  /** Le numéro du jour, ce que la case écrit. */
+  /** The number of the day, what the cell writes. */
   jour: number
-  /** Un jour d'un mois voisin, là pour compléter la semaine - grisé, jamais cliquable. */
+  /** A day of a neighbouring month, there to complete the week - greyed out, never clickable. */
   horsMois: boolean
 }
 
 /**
- * Les semaines qui couvrent le mois, lundi en tête : quatre à six lignes de
- * sept cases, les premières et dernières complétées par les mois voisins.
- * Tout en UTC : le fuseau de l'appareil n'a rien à dire sur le jour où tombe
- * le 1er.
+ * The weeks that cover the month, Monday first: four to six rows of
+ * seven cells, the first and last ones completed by the neighbouring months.
+ * All in UTC: the time zone of the device has nothing to say about the day on which
+ * the 1st falls.
  */
 export function grilleDuMois(yearMonth: string): CaseDuMois[][] {
   const [annee, mois] = yearMonth.split('-').map(Number)
-  // `getUTCDay` compte à partir du dimanche : ramené au lundi.
+  // `getUTCDay` counts from Sunday: brought back to Monday.
   const decalage = (new Date(Date.UTC(annee, mois - 1, 1)).getUTCDay() + 6) % 7
   const nbJours = new Date(Date.UTC(annee, mois, 0)).getUTCDate()
   const semaines: CaseDuMois[][] = []
@@ -69,19 +69,19 @@ export function grilleDuMois(yearMonth: string): CaseDuMois[][] {
 }
 
 export interface JourDeSorties {
-  /** « 2026-10-14 » */
+  /** "2026-10-14" */
   iso: string
   entries: ReleaseEntryDto[]
 }
 
 export interface MoisRange {
-  /** Les sorties datées au mois seulement : la source ne connaît pas le jour. */
+  /** The releases dated to the month only: the source does not know the day. */
   aPreciser: ReleaseEntryDto[]
-  /** Les jours qui ont au moins une sortie, dans l'ordre - jamais un jour vide. */
+  /** The days that have at least one release, in order - never an empty day. */
   jours: JourDeSorties[]
 }
 
-/** Range les sorties d'un mois par jour, celles sans jour connu à part. L'ordre du serveur est conservé. */
+/** Sorts the releases of a month by day, the ones without a known day apart. The server order is kept. */
 export function rangerParJour(entries: ReleaseEntryDto[]): MoisRange {
   const aPreciser: ReleaseEntryDto[] = []
   const parJour = new Map<string, ReleaseEntryDto[]>()
@@ -97,29 +97,29 @@ export function rangerParJour(entries: ReleaseEntryDto[]): MoisRange {
   return { aPreciser, jours: [...parJour.entries()].map(([iso, e]) => ({ iso, entries: e })) }
 }
 
-/** Le décompte par catégorie, dans l'ordre d'apparition - ce que les puces de filtre affichent. */
+/** The count by category, in order of appearance - what the filter chips display. */
 export function compterParCategorie(entries: ReleaseEntryDto[]): Map<string, number> {
   const comptes = new Map<string, number>()
   for (const entry of entries) comptes.set(entry.entityTypeId, (comptes.get(entry.entityTypeId) ?? 0) + 1)
   return comptes
 }
 
-/** Une œuvre peut sortir plusieurs fois dans le mois (deux tomes) : la clé porte ce qui sort, pas seulement qui. */
+/** A work can come out several times in the month (two volumes): the key carries what comes out, not only who. */
 export function cleDeSortie(entry: Pick<ReleaseEntryDto, 'entityId' | 'label' | 'date'>): string {
   return `${entry.entityId}|${entry.label}|${entry.date}`
 }
 
 export interface MoisDeSorties {
-  /** « 2026-10 » */
+  /** "2026-10" */
   mois: string
   entries: ReleaseEntryDto[]
 }
 
 /**
- * Les sorties dans l'ordre du calendrier, groupées par mois - la liste de
- * tout ce qui vient. Dans un mois, celles datées au jour d'abord, dans
- * l'ordre des jours ; celles connues au mois près ferment la marche : on ne
- * peut pas les placer, on ne les fait pas passer devant.
+ * The releases in calendar order, grouped by month - the list of
+ * everything that is coming. Within a month, those dated to the day first, in
+ * the order of the days; those known to the month only close the march: they cannot
+ * be placed, so they are not put in front.
  */
 export function grouperParMois(entries: ReleaseEntryDto[]): MoisDeSorties[] {
   const triees = [...entries].sort((a, b) => {
@@ -136,7 +136,7 @@ export function grouperParMois(entries: ReleaseEntryDto[]): MoisDeSorties[] {
   return [...parMois.entries()].map(([mois, e]) => ({ mois, entries: e }))
 }
 
-/** « 2026-10-14 » tel quel ; « 2026-10 » devient « 2026-10-99 », après tous les jours du mois. */
+/** "2026-10-14" as it is; "2026-10" becomes "2026-10-99", after all the days of the month. */
 function cleDeTri(entry: ReleaseEntryDto): string {
   return entry.precision === 'MONTH' ? `${entry.date}-99` : entry.date
 }

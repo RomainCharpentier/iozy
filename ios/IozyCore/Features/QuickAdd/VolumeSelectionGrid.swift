@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Sélection visuelle des tomes possédés par jaquette (façon Mangacollec) :
-/// on choisit d'abord l'édition (une série peut en avoir plusieurs - ex:
-/// "Édition Originale" et "Perfect Edition" pour Dragon Ball, chacune avec
-/// ses propres tomes/jaquettes), puis on coche les tomes possédés dans la
-/// grille de cette édition. La sélection est conservée en changeant
-/// d'édition (voir selectedIds, géré par le parent) - possible de cocher
-/// des tomes dans plusieurs éditions avant de valider. Miroir de
-/// VolumeSelectionGrid.tsx côté web.
+/// Visual selection of owned volumes by cover art (like Mangacollec):
+/// first we pick the edition (a series can have several - e.g.
+/// "Édition Originale" and "Perfect Edition" for Dragon Ball, each with
+/// its own volumes/cover arts), then we tick the owned volumes in the
+/// grid of this edition. The selection is kept when changing
+/// edition (see selectedIds, managed by the parent) - it is possible to tick
+/// volumes in several editions before confirming. Mirror of
+/// VolumeSelectionGrid.tsx on the web side.
 struct VolumeSelectionGrid: View {
     let volumes: [VolumeCandidateDTO]
     let selectedIds: Set<String>
@@ -28,10 +28,10 @@ struct VolumeSelectionGrid: View {
     }
 
     private var resolvedActiveEdition: String? {
-        // L'édition active peut disparaître si une nouvelle recherche
-        // remplace `volumes` (nouveau candidat choisi) sans que cette vue
-        // soit recréée - on retombe alors sur la première édition
-        // disponible plutôt qu'un onglet qui n'existe plus.
+        // The active edition can disappear if a new search
+        // replaces `volumes` (new candidate chosen) without this view
+        // being recreated - we then fall back to the first available
+        // edition rather than a tab that no longer exists.
         if let activeEdition, editionsInOrder.contains(activeEdition) {
             return activeEdition
         }
@@ -96,9 +96,9 @@ struct VolumeSelectionGrid: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(isSelected ? Theme.accent : .clear, lineWidth: 2)
             )
-            // Déjà possédé (vert, coin gauche) et sélectionné (accent, coin
-            // droit) sont deux informations distinctes qui peuvent coexister
-            // (re-sélectionner un tome déjà possédé signale un 2e exemplaire).
+            // Already owned (green, left corner) and selected (accent, right
+            // corner) are two distinct pieces of information that can coexist
+            // (selecting again a volume already owned signals a 2nd copy).
             .overlay(alignment: .topLeading) {
                 if volume.alreadyOwned {
                     Image(systemName: "checkmark.circle.fill")

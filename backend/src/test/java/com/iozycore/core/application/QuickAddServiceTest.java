@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.MangaEditionLinker;
 
 /**
- * Vérifie la déduplication de l'ajout rapide (UC1, étape 6) avec de faux
- * repositories en mémoire - pas besoin de Spring ni de PostgreSQL pour
- * tester cette règle applicative.
+ * Checks the deduplication of quick add (UC1, step 6) with fake in-memory
+ * repositories - no need for Spring or PostgreSQL to
+ * test this application rule.
  */
 class QuickAddServiceTest {
 
@@ -54,14 +54,14 @@ class QuickAddServiceTest {
 
         QuickAddService.QuickAddResult first = service.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1", OwnershipCondition.NEW);
-        // Casse différente volontairement, pour vérifier le match insensible à la casse.
+        // Different case on purpose, to check the case-insensitive match.
         QuickAddService.QuickAddResult second = service.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), "death note - tome 1", OwnershipCondition.USED);
 
         assertThat(second.matchedExistingEntity()).isTrue();
         assertThat(second.entityId()).isEqualTo(first.entityId());
-        assertThat(entityRepository.count()).isEqualTo(1); // aucun doublon dans le Catalog
-        assertThat(ownershipRepository.findByEntityId(first.entityId())).hasSize(2); // 2 exemplaires distincts
+        assertThat(entityRepository.count()).isEqualTo(1); // no duplicate in the Catalog
+        assertThat(ownershipRepository.findByEntityId(first.entityId())).hasSize(2); // 2 distinct copies
     }
 
     @Test
@@ -91,8 +91,8 @@ class QuickAddServiceTest {
                 Map.of("mangaka", "Ohba, Tsugumi", "publisher", "Kana"));
 
         Entity entity = repo.findByTypeAndTitle(EntityTypeFixtures.MANGA.id(), "Death Note - Tome 1").orElseThrow();
-        assertThat(entity.attributes()).containsEntry("mangaka", "Saisie manuelle"); // pas écrasé
-        assertThat(entity.attributes()).containsEntry("publisher", "Kana"); // complété
+        assertThat(entity.attributes()).containsEntry("mangaka", "Saisie manuelle"); // not overwritten
+        assertThat(entity.attributes()).containsEntry("publisher", "Kana"); // completed
     }
 
     @Test
@@ -109,8 +109,8 @@ class QuickAddServiceTest {
         QuickAddService.QuickAddResult tome2 = service.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 2, null);
 
-        assertThat(tome1.entityId()).isEqualTo(tome2.entityId()); // même série, une seule fiche
-        assertThat(tome1.variantId()).isNotEqualTo(tome2.variantId()); // deux tomes distincts
+        assertThat(tome1.entityId()).isEqualTo(tome2.entityId()); // same series, a single detail page
+        assertThat(tome1.variantId()).isNotEqualTo(tome2.variantId()); // two distinct volumes
         assertThat(tome1.matchedExistingVariant()).isFalse();
         assertThat(tome2.matchedExistingVariant()).isFalse();
 
@@ -133,11 +133,11 @@ class QuickAddServiceTest {
         QuickAddService.QuickAddResult second = service.addNewEntityWithOwnership(
                 EntityTypeFixtures.MANGA.id(), "Death Note", OwnershipCondition.NEW, Map.of(), 3, null);
 
-        assertThat(second.variantId()).isEqualTo(first.variantId()); // même tome, pas de doublon de Variant
+        assertThat(second.variantId()).isEqualTo(first.variantId()); // same volume, no duplicate Variant
         assertThat(second.matchedExistingVariant()).isTrue();
 
         Entity entity = entityRepository.findById(first.entityId()).orElseThrow();
-        assertThat(entity.variants()).hasSize(1); // un seul "Tome 3", pas deux
+        assertThat(entity.variants()).hasSize(1); // a single "Tome 3", not two
     }
 
     @Test
@@ -158,8 +158,8 @@ class QuickAddServiceTest {
         Entity entity = entityRepository.findById(pika.entityId()).orElseThrow();
         assertThat(entity.variants()).hasSize(2);
 
-        // Chaque édition distincte est aussi reliée à sa propre Édition catalogue -
-        // pas de doublon, mais pas non plus un seul et même mangaEditionId pour les deux.
+        // Each distinct edition is also linked to its own catalog Edition -
+        // no duplicate, but not a single shared mangaEditionId for both either.
         UUID pikaEditionId = variantById(entity, pika.variantId()).mangaEditionId();
         UUID perfectEditionId = variantById(entity, perfectEdition.variantId()).mangaEditionId();
         assertThat(pikaEditionId).isNotNull();
@@ -185,7 +185,7 @@ class QuickAddServiceTest {
         Entity entity = entityRepository.findById(tome1.entityId()).orElseThrow();
         UUID edition1 = variantById(entity, tome1.variantId()).mangaEditionId();
         UUID edition2 = variantById(entity, tome2.variantId()).mangaEditionId();
-        assertThat(edition1).isEqualTo(edition2); // même édition, pas un doublon par tome
+        assertThat(edition1).isEqualTo(edition2); // same edition, not a duplicate per volume
         assertThat(mangaEditionRepository.count()).isEqualTo(1);
     }
 
@@ -210,8 +210,8 @@ class QuickAddServiceTest {
     void an_existing_manga_edition_not_yet_linked_to_this_series_gets_linked_opportunistically() {
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryMangaEditionRepository mangaEditionRepository = new InMemoryMangaEditionRepository();
-        // Simule une Édition déjà connue via l'Analyse d'achat, avant que "Death Note"
-        // soit dans la collection (entityId encore null à ce stade).
+        // Simulates an Edition already known through the Purchase Analysis, before "Death Note"
+        // is in the collection (entityId still null at this point).
         MangaEdition preExisting = mangaEditionRepository.save(MangaEdition.create(
                 "Death Note", "Perfect Edition", EditionTier.DELUXE, "Kana", 6, null, false, false, null));
         QuickAddService service = new QuickAddService(entityRepository, new InMemoryOwnershipRepository(),
@@ -224,9 +224,9 @@ class QuickAddServiceTest {
 
         Entity entity = entityRepository.findById(result.entityId()).orElseThrow();
         assertThat(variantById(entity, result.variantId()).mangaEditionId()).isEqualTo(preExisting.id());
-        assertThat(mangaEditionRepository.count()).isEqualTo(1); // réutilisée, pas dupliquée
+        assertThat(mangaEditionRepository.count()).isEqualTo(1); // reused, not duplicated
         assertThat(mangaEditionRepository.findById(preExisting.id()).orElseThrow().entityId())
-                .isEqualTo(result.entityId()); // reliée après coup, jamais devinée avant
+                .isEqualTo(result.entityId()); // linked afterwards, never guessed before
     }
 
     private static Variant variantById(Entity entity, UUID variantId) {
@@ -246,11 +246,11 @@ class QuickAddServiceTest {
 
     @Test
     void une_date_d_acquisition_fournie_est_respectee_plutot_que_remplacee_par_aujourd_hui() {
-        // Le seul usage : annuler un retrait de tome. Sans ce champ, l'annulation
-        // rajoutait l'exemplaire AVEC LA DATE DU JOUR, effacant la vraie date
-        // d'acquisition - constate le 2026-08-28 sur un tome passe du 26/08 au
-        // 28/08 apres un aller-retour. Une annulation qui abime ce qu'elle
-        // restaure ne restaure rien.
+        // The only use: undoing a volume removal. Without this field, the undo
+        // added the copy back WITH TODAY'S DATE, erasing the real acquisition
+        // date - seen on 2026-08-28 on a volume moved from 26/08 to
+        // 28/08 after a round trip. An undo that damages what it
+        // restores restores nothing.
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryOwnershipRepository ownershipRepository = new InMemoryOwnershipRepository();
         QuickAddService service = new QuickAddService(entityRepository, ownershipRepository,
@@ -295,7 +295,7 @@ class QuickAddServiceTest {
         });
     }
 
-    /** Faux repository en mémoire, suffisant pour tester la logique applicative sans Spring/PostgreSQL. */
+    /** Fake in-memory repository, enough to test the application logic without Spring/PostgreSQL. */
     private static class InMemoryEntityRepository implements EntityRepository {
         private final Map<UUID, Entity> store = new HashMap<>();
 
@@ -353,7 +353,7 @@ class QuickAddServiceTest {
         }
     }
 
-    /** Faux repository en mémoire pour MangaEdition, même patron que InMemoryEntityRepository ci-dessus. */
+    /** Fake in-memory repository for MangaEdition, same pattern as InMemoryEntityRepository above. */
     private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
         private final Map<UUID, MangaEdition> store = new HashMap<>();
 
@@ -452,9 +452,9 @@ class QuickAddServiceTest {
         }
     }
 
-    /** Double local, comme les autres dépôts de ce fichier : QuickAddService
-     *  referme l'envie d'une œuvre qu'on vient d'acquérir (voir
-     *  retirerDesEnvies), il lui faut donc un dépôt d'envies. */
+    /** Local double, like the other repositories in this file: QuickAddService
+     *  closes the wish of a work that was just acquired (see
+     *  retirerDesEnvies), so it needs a wish repository. */
     private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
         private final Map<UUID, WishlistEntry> parId = new LinkedHashMap<>();
 

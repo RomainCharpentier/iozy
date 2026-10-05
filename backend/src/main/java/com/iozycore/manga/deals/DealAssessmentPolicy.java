@@ -4,37 +4,37 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * Les seuils métier de l'évaluation, réunis en un seul endroit.
+ * The business thresholds of the assessment, gathered in one place.
  *
- * Ils vivent ici plutôt que dispersés dans les calculs pour qu'on puisse les
- * relire, les discuter et les tester sans lire le moteur. Les valeurs sont
- * propres à IozyCore et au marché du manga d'occasion : elles n'ont pas été
- * reprises d'ailleurs, où elles décriraient un autre marché.
+ * They live here rather than spread in the calculations so that they can be
+ * read, discussed and tested without reading the engine. The values are
+ * specific to IozyCore and to the second-hand manga market: they were not
+ * taken from elsewhere, where they would describe another market.
  *
- * Une référence marché n'est utilisée que si sa confiance est suffisante -
- * comparer à une médiane tirée de deux annonces douteuses produit un chiffre
- * précis et faux, ce qui est pire qu'un « référence insuffisante ».
+ * A market reference is only used if its confidence is high enough -
+ * comparing with a median taken from two doubtful listings produces a
+ * precise and wrong number, which is worse than "reference not sufficient".
  */
 public final class DealAssessmentPolicy {
 
     private DealAssessmentPolicy() {
     }
 
-    /** Fractions de la référence délimitant les catégories de prix. */
+    /** Fractions of the reference that set the limits of the price categories. */
     private static final BigDecimal TRES_BON = new BigDecimal("0.70");
     private static final BigDecimal BON = new BigDecimal("0.85");
     private static final BigDecimal CORRECT = new BigDecimal("1.10");
     private static final BigDecimal PLUTOT_CHER = new BigDecimal("1.35");
 
     /**
-     * Situe le <b>prix de l'annonce</b> - hors frais, comme les annonces
-     * auxquelles on le compare. Ne jamais lui passer le coût d'acquisition :
-     * les comparables sont hors frais, et mélanger les deux bases renverse le
-     * verdict (voir {@code PriceSemanticsTest}).
+     * Places the <b>listing price</b> - without fees, like the listings
+     * it is compared to. Never pass it the acquisition cost:
+     * the comparables are without fees, and mixing the two bases reverses the
+     * verdict (see {@code PriceSemanticsTest}).
      * <p>
-     * Rend {@link PricePosition#REFERENCE_UNAVAILABLE} dès que la référence
-     * n'est pas exploitable - une seule question à poser, portée par la
-     * référence elle-même.
+     * Returns {@link PricePosition#REFERENCE_UNAVAILABLE} as soon as the reference
+     * cannot be used - a single question to ask, carried by the
+     * reference itself.
      */
     public static PricePosition positionOf(BigDecimal askingPrice, MarketReference reference) {
         if (reference == null || !reference.isUsable()) {
@@ -44,9 +44,9 @@ public final class DealAssessmentPolicy {
     }
 
     /**
-     * Situe un prix. Rend {@link PricePosition#REFERENCE_UNAVAILABLE} dès que
-     * la référence manque ou n'est pas assez sûre - jamais une catégorie tirée
-     * d'une donnée qu'on sait fragile.
+     * Places a price. Returns {@link PricePosition#REFERENCE_UNAVAILABLE} as soon as
+     * the reference is missing or not reliable enough - never a category taken
+     * from data that we know is fragile.
      */
     public static PricePosition positionOf(BigDecimal askingPrice, BigDecimal reference,
                                             MarketReferenceConfidence confidence) {
@@ -62,7 +62,7 @@ public final class DealAssessmentPolicy {
         return PricePosition.TOO_EXPENSIVE;
     }
 
-    /** L'écart à la référence, en pourcentage signé - la moitié de l'explication tient dans ce chiffre. */
+    /** The gap to the reference, as a signed percentage - half of the explanation is in this number. */
     public static Integer deviationPercent(BigDecimal askingPrice, BigDecimal reference) {
         if (askingPrice == null || reference == null || reference.signum() <= 0) {
             return null;

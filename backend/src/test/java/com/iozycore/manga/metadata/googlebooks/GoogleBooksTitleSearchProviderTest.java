@@ -36,8 +36,8 @@ class GoogleBooksTitleSearchProviderTest {
 
     @Test
     void strips_both_the_spelled_out_and_abbreviated_volume_suffix_and_deduplicates_the_series() throws Exception {
-        // Cas réel observé (voir historique) : Google Books mélange "Tome N"
-        // et l'abrégé "TNN" (sans point) pour la même série.
+        // Real case observed (see history): Google Books mixes "Tome N"
+        // and the abbreviation "TNN" (without a dot) for the same series.
         GoogleBooksTitleSearchProvider provider = new GoogleBooksTitleSearchProvider();
         String body = """
                 {
@@ -50,16 +50,16 @@ class GoogleBooksTitleSearchProviderTest {
 
         List<MetadataCandidate> result = provider.parse(body);
 
-        assertThat(result).hasSize(1); // une seule série, pas un candidat par tome
+        assertThat(result).hasSize(1); // a single series, not one candidate per volume
         assertThat(result.get(0).title()).isEqualTo("Fragments d'elles");
     }
 
     @Test
     void excludes_matches_without_a_known_manga_publisher() throws Exception {
-        // Cas réel observé (voir historique) : chercher un mot courant en
-        // français ("fragment") remonte des centaines de vieux ouvrages
-        // académiques du domaine public - aucun n'a d'éditeur manga, contrairement
-        // au vrai résultat cherché.
+        // Real case observed (see history): searching a common word in
+        // French ("fragment") returns hundreds of old academic
+        // public-domain works - none has a manga publisher, unlike
+        // the real result searched for.
         GoogleBooksTitleSearchProvider provider = new GoogleBooksTitleSearchProvider();
         String body = """
                 {

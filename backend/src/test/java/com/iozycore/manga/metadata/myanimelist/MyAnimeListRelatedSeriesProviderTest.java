@@ -10,9 +10,9 @@ class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
     void keeps_only_spin_off_side_story_and_sequel_relations() throws Exception {
-        // Fixture basée sur la vraie réponse observée pour "Blue Lock"
-        // (malId 114745, vérifié manuellement, voir historique) - inclut une
-        // "adaptation" (roman) qui ne doit PAS ressortir.
+        // Fixture based on the real response observed for "Blue Lock"
+        // (malId 114745, checked manually, see history) - includes an
+        // "adaptation" (novel) that must NOT come out.
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
@@ -30,11 +30,11 @@ class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
     void keeps_a_sequel_relation() throws Exception {
-        // Cas réel observé (voir historique) : "Dragon Ball" (malId 42) a
-        // "Dragon Ball Super" comme "sequel" - une suite avec sa propre
-        // histoire, jamais une édition de la série d'origine, contrairement
-        // à ce que laissait penser son apparition dans les résultats de
-        // recherche de tomes ("Super" ressortait comme un nom d'édition).
+        // Real case observed (see history): "Dragon Ball" (malId 42) has
+        // "Dragon Ball Super" as "sequel" - a sequel with its own
+        // story, never an edition of the original series, contrary
+        // to what its appearance in the volume search results
+        // suggested ("Super" came out as an edition name).
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
@@ -51,11 +51,11 @@ class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
     void keeps_a_prequel_relation() throws Exception {
-        // Cas réel trouvé en continuant les tests sur "Shaman King" (voir
-        // historique) : "Shaman King Zero" (préquelle à l'histoire propre)
-        // est taguée "prequel" sur MyAnimeList - jusqu'ici absente de
-        // DISTINCT_SERIES_RELATIONS alors que "sequel" y était déjà, sans
-        // raison de traiter différemment une préquelle d'une suite.
+        // Real case found while continuing the tests on "Shaman King" (see
+        // history): "Shaman King Zero" (prequel with its own story)
+        // is tagged "prequel" on MyAnimeList - until now missing from
+        // DISTINCT_SERIES_RELATIONS while "sequel" was already there, with no
+        // reason to treat a prequel differently from a sequel.
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
@@ -72,14 +72,14 @@ class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
     void keeps_an_alternative_version_relation() throws Exception {
-        // Cas réel observé (voir historique, signalé directement par
-        // l'utilisateur en testant "Dragon Ball") : "Dragon Ball SD"
-        // (parodie chibi à l'histoire distincte) est tagué
-        // "alternative_version" sur MyAnimeList, pas "spin_off" - risque
-        // assumé de retenir cette catégorie (voir javadoc de la classe) :
-        // aucun cas observé où elle désigne une vraie réédition à tort
-        // écartée, malgré des tests étendus sur de nombreuses franchises à
-        // éditions multiples cette session.
+        // Real case observed (see history, reported directly by
+        // the user while testing "Dragon Ball"): "Dragon Ball SD"
+        // (chibi parody with a distinct story) is tagged
+        // "alternative_version" on MyAnimeList, not "spin_off" - accepted risk
+        // in keeping this category (see the class javadoc):
+        // no observed case where it wrongly designates a real reissue
+        // that was discarded, despite extensive tests on many franchises with
+        // multiple editions this session.
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {
@@ -96,13 +96,13 @@ class MyAnimeListRelatedSeriesProviderTest {
 
     @Test
     void keeps_an_alternative_setting_relation() throws Exception {
-        // Cas réel trouvé en continuant les tests sur "Gantz" (voir
-        // historique) : "Gantz:E" (spin-off à l'univers alternatif, mêmes
-        // personnages, contexte différent) est tagué "alternative_setting"
-        // sur MyAnimeList - jusqu'ici volontairement exclue faute de cas
-        // concret, PREMIER cas rencontré malgré des tests étendus sur de
-        // nombreuses franchises cette session, justifiant de l'ajouter à
-        // son tour (même risque assumé que "alternative_version" ci-dessus).
+        // Real case found while continuing the tests on "Gantz" (see
+        // history): "Gantz:E" (spin-off in the alternative universe, same
+        // characters, different context) is tagged "alternative_setting"
+        // on MyAnimeList - until now deliberately excluded for lack of a
+        // concrete case, FIRST case met despite extensive tests on
+        // many franchises this session, justifying adding it
+        // in turn (same accepted risk as "alternative_version" above).
         MyAnimeListRelatedSeriesProvider provider = new MyAnimeListRelatedSeriesProvider();
         String body = """
                 {

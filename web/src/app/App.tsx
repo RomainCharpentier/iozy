@@ -11,13 +11,13 @@ import { useScrollToTopOnNavigation } from '@/common/hooks/useScrollToTop'
 import { definirPreferencesCollection } from '@/common/lib/preferencesCollection'
 
 /**
- * `/wishlist` menait à un écran qui n'existe plus : les envies sont une
- * LECTURE de Ma collection (étude produit du 2026-08-27, §5). Le filtre est
- * posé au passage, sinon la redirection déposerait sur « Tout » quelqu'un qui
- * demandait justement ses envies.
+ * `/wishlist` led to a screen that no longer exists: wishes are now a
+ * VIEW of My collection (product study of 2026-08-27, section 5). The filter is
+ * set on the way, otherwise the redirect would land on "All" someone who
+ * was asking for their wishes.
  *
- * <p>`replace` : revenir en arrière doit ramener d'où l'on vient, pas à une
- * URL qui redirigerait aussitôt (même règle qu'à l'aperçu, Lot 36).
+ * <p>`replace`: going back must return to where the user came from, not to a
+ * URL that would redirect at once (same rule as the preview, Batch 36).
  */
 function RedirectionEnvies() {
   definirPreferencesCollection({ filtre: 'envies' })
@@ -25,12 +25,12 @@ function RedirectionEnvies() {
 }
 
 /**
- * Charge une page à la demande, à partir d'un export NOMMÉ.
+ * Loads a page on demand, from a NAMED export.
  *
- * `React.lazy` attend un module dont l'export est `default` ; toutes les pages
- * de ce dépôt exportent leur composant par son nom, ce qui se lit bien mieux à
- * l'import. Ce petit adaptateur évite d'avoir à changer vingt-six fichiers
- * pour satisfaire une contrainte d'API.
+ * `React.lazy` expects a module whose export is `default`; all the pages
+ * of this repository export their component by name, which reads much better at
+ * the import. This small adapter avoids changing twenty-six files
+ * to satisfy an API constraint.
  */
 function page<M extends Record<string, unknown>, K extends keyof M>(
   charger: () => Promise<M>,
@@ -39,9 +39,9 @@ function page<M extends Record<string, unknown>, K extends keyof M>(
   return lazy(() => charger().then((m) => ({ default: m[nom] as ComponentType })))
 }
 
-// Chargées à la demande. Seul ShelfPage reste dans le lot initial : c'est la
-// page d'accueil, et la charger en différé ne ferait qu'ajouter une attente
-// là où il n'y a rien à économiser.
+// Loaded on demand. Only ShelfPage stays in the initial bundle: it is the
+// home page, and loading it later would only add a wait
+// where there is nothing to save.
 const SearchPage = page(() => import('@/pages/add/SearchPage'), 'SearchPage')
 const EntityDetailPage = page(() => import('@/pages/entity/EntityDetailPage'), 'EntityDetailPage')
 const ApercuOeuvrePage = page(() => import('@/pages/entity/apercu/ApercuOeuvrePage'), 'ApercuOeuvrePage')
@@ -71,40 +71,40 @@ const ImportPage = page(() => import('@/pages/profile/import/ImportPage'), 'Impo
 const SharedSpacePage = page(() => import('@/pages/share/SharedSpacePage'), 'SharedSpacePage')
 
 /**
- * EntityTypeFormPage prend une prop : `lazy` rend un composant, pas un
- * élément, donc la prop se passe normalement à l'usage.
+ * EntityTypeFormPage takes a prop: `lazy` returns a component, not an
+ * element, so the prop is passed normally at the point of use.
  */
 const EntityTypeFormPage = lazy(() =>
   import('@/pages/entity-types/form/EntityTypeFormPage').then((m) => ({ default: m.EntityTypeFormPage })),
 )
 
 /**
- * Ce qui s'affiche pendant qu'une page arrive.
+ * What is shown while a page is arriving.
  *
- * Volontairement muet - pas de « Chargement… », pas d'animation. Sur une
- * connexion normale un lot de route arrive en quelques dizaines de
- * millisecondes : un mot qui apparaît puis disparaît aussitôt se lit comme un
- * clignotement, pas comme une information. La hauteur réservée évite que le
- * pied de page ne remonte puis redescende.
+ * Silent on purpose - no "Chargement...", no animation. On a normal
+ * connection a route bundle arrives in a few tens of
+ * milliseconds: a word that appears and then disappears at once reads as a
+ * flicker, not as information. The reserved height stops the
+ * footer from going up and then down again.
  */
 function EnAttente() {
   return <div className="min-h-[50vh]" aria-hidden="true" />
 }
 
 /**
- * Rien de l'application privée ne s'affiche sans compte.
+ * Nothing of the private application is shown without an account.
  *
- * <h2>Pourquoi ici, et pas dans chaque écran</h2>
- * Le serveur refuse déjà chaque appel en 401 - c'est lui qui protège les
- * données, et lui seul. Mais sans cette porte, l'app monterait quand même sa
- * navigation, ses en-têtes et ses écrans vides par-dessus une pile de refus :
- * quelqu'un de déconnecté verrait une collection qui a l'air cassée plutôt
- * qu'une raison. Un seul endroit décide, et il décide avant le routage.
+ * <h2>Why here, and not in each screen</h2>
+ * The server already refuses every call with a 401 - it is the one that protects
+ * the data, and only it. But without this gate, the app would still mount its
+ * navigation, its headers and its empty screens on top of a pile of refusals:
+ * someone who is signed out would see a collection that looks broken instead of
+ * a reason. One single place decides, and it decides before the routing.
  *
- * <p>Tant que la question n'a pas de réponse, on ne montre <b>ni</b> l'app
- * <b>ni</b> l'écran de connexion : afficher « Se connecter » à quelqu'un qui a
- * une session valide, le temps d'un aller-retour, le ferait douter à chaque
- * ouverture.
+ * <p>While the question has no answer, we show <b>neither</b> the app
+ * <b>nor</b> the sign-in screen: showing "Se connecter" to someone who has
+ * a valid session, for the time of one round trip, would make them doubt at every
+ * opening.
  */
 function PorteFermee({ children }: { children: ReactNode }) {
   const { compte, enCoursDeVerification } = useAuth()
@@ -114,25 +114,25 @@ function PorteFermee({ children }: { children: ReactNode }) {
 }
 
 /**
- * Une visite sans compte ne s'aventure pas dans les écrans d'écriture.
+ * A visit without an account does not go into the writing screens.
  *
- * <h2>Pourquoi une redirection et pas un écran « interdit »</h2>
- * Aucun de ces chemins n'est ATTEIGNABLE pendant une visite : les barres de
- * navigation ne les proposent pas (voir lib/accesInvite, la même liste). On n'y
- * arrive que par un signet, un lien reçu, ou un rechargement là où l'on était
- * avant de quitter son compte - trois situations où l'on veut voir la
- * collection, pas une explication. Elles mènent donc à l'accueil.
+ * <h2>Why a redirect and not a "forbidden" screen</h2>
+ * None of these paths is REACHABLE during a visit: the navigation bars
+ * do not offer them (see lib/accesInvite, the same list). The user only
+ * gets there from a bookmark, a received link, or a reload where they were
+ * before leaving their account - three situations where the user wants to see the
+ * collection, not an explanation. They therefore lead to the home page.
  *
- * <p>`replace` : revenir en arrière doit ramener d'où l'on vient, pas à une URL
- * qui redirigerait aussitôt (même règle que la redirection des Envies).
+ * <p>`replace`: going back must return to where the user came from, not to a URL
+ * that would redirect at once (same rule as the Wishes redirect).
  *
- * <p>La destination de repli est le CATALOGUE, et surtout pas `/` : « Ma
- * collection » fait partie des écrans fermés à un visiteur - elle ne montre
- * que ce qu'on possède ou souhaite - et l'y renvoyer aurait bouclé la
- * redirection sur elle-même.
+ * <p>The fallback destination is the CATALOG, and above all not `/`: "Ma
+ * collection" is one of the screens closed to a visitor - it shows only
+ * what one owns or wishes for - and sending the visitor there would have looped the
+ * redirect on itself.
  *
- * <p>Ce n'est PAS ce qui protège : le serveur refuse toute écriture à une
- * session de visite, quelle que soit la route (voir SecurityConfig).
+ * <p>This is NOT what protects: the server refuses every write from a
+ * visit session, whatever the route (see SecurityConfig).
  */
 function PorteDeVisite({ children }: { children: ReactNode }) {
   const { estInvite } = useAuth()
@@ -141,30 +141,30 @@ function PorteDeVisite({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-/** La route /public/share/:token vit hors AppShell (voir SharedSpacePage) :
- * quelqu'un qui ouvre un lien de partage n'a pas de
- * compte et ne doit jamais voir la barre d'onglets privée ni pouvoir y
- * naviguer. Tout le reste de l'app reste dans AppShell, inchangé.
+/** The route /public/share/:token lives outside AppShell (see SharedSpacePage):
+ * someone who opens a share link has no
+ * account and must never see the private tab bar nor be able to
+ * navigate in it. All the rest of the app stays in AppShell, unchanged.
  *
- * <p><b>Les pages sont chargées à la demande</b> depuis ce fichier. Tout
- * partait auparavant dans un lot unique de 580 Ko : quelqu'un qui ouvre « Ma
- * collection » téléchargeait la fiche d'une œuvre, l'analyse d'achat, les Tier
- * Lists et l'administration avant de voir sa première jaquette. Les deux plus
- * gros écrans - fiche d'œuvre et analyse d'achat - pèsent à eux seuls plus de
- * la moitié du code de routes, et ni l'un ni l'autre n'est la page d'accueil.
+ * <p><b>Pages are loaded on demand</b> from this file. Everything
+ * used to go in a single 580 KB bundle: someone who opened "Ma
+ * collection" downloaded the work detail page, the purchase analysis, the Tier
+ * Lists and the administration before seeing their first cover. The two biggest
+ * screens - work detail page and purchase analysis - alone weigh more than
+ * half of the route code, and neither of them is the home page.
  */
 export default function App() {
-  // Posé ICI et non dans AppShell : la page de partage public vit hors du
-  // shell, et gardait donc le titre de la page précédente - « Manga ·
-  // IozyCore » sur un espace partagé. App couvre les deux branches.
+  // Placed HERE and not in AppShell: the public share page lives outside the
+  // shell, and so kept the title of the previous page - "Manga ·
+  // IozyCore" on a shared space. App covers both branches.
   const { pathname } = useLocation()
-  // La porte d'authentification remplace tout l'écran SANS changer d'URL : le
-  // titre doit donc suivre les deux, sinon l'onglet garde « IozyCore » une
-  // fois la collection affichée.
+  // The authentication gate replaces the whole screen WITHOUT changing the URL: the
+  // title must therefore follow both, otherwise the tab keeps "IozyCore" once
+  // the collection is shown.
   const { compte } = useAuth()
   useDocumentTitleFromHeading(`${pathname}|${compte ? 'connecte' : 'anonyme'}`)
-  // Posé ici pour la même raison : App couvre les deux branches de routage, y
-  // compris la page de partage public qui vit hors du shell.
+  // Placed here for the same reason: App covers both routing branches,
+  // including the public share page that lives outside the shell.
   useScrollToTopOnNavigation(pathname)
 
   return (
@@ -182,8 +182,8 @@ export default function App() {
                   <Route path="/" element={<ShelfPage />} />
                   <Route path="/add" element={<SearchPage />} />
                   <Route path="/entity/:id" element={<EntityDetailPage />} />
-                  {/* L'aperçu d'une œuvre qu'on ne possède pas : la même page,
-                      lue chez le fournisseur, sans rien écrire en base. */}
+                  {/* The preview of a work that is not owned: the same page,
+                      read from the provider, without writing anything to the database. */}
                   <Route path="/apercu" element={<ApercuOeuvrePage />} />
                   <Route path="/discover" element={<DiscoverPage />} />
                   <Route path="/tier-lists" element={<TierListsScreen />} />
@@ -203,25 +203,25 @@ export default function App() {
                   <Route path="/recap" element={<CollectionRecapPage />} />
                   <Route path="/scan" element={<ScanPage />} />
                   <Route path="/import-photo" element={<ImportPhotoPage />} />
-                  {/* L'écran Envies a disparu dans Ma collection (lot C) - mais
-                      un lien partagé ou un signet peut encore pointer ici :
-                      il emmène au bon endroit plutôt qu'à une page introuvable. */}
+                  {/* The Wishes screen disappeared into My collection (batch C) - but
+                      a shared link or a bookmark can still point here:
+                      it takes the user to the right place instead of a not found page. */}
                   <Route path="/wishlist" element={<RedirectionEnvies />} />
                   <Route path="/stats" element={<StatsPage />} />
                   <Route path="/editions" element={<EditionsPage />} />
                   <Route path="/types" element={<EntityTypesPage />} />
                   <Route path="/types/new" element={<EntityTypeFormPage mode="create" />} />
                   <Route path="/types/:id/edit" element={<EntityTypeFormPage mode="edit" />} />
-                  {/* Les réglages sont SUR Profil depuis le lot 140 ; les
-                      anciennes adresses y mènent - un signet ne doit pas
-                      tomber sur « page introuvable » parce qu'un écran a
-                      fusionné avec son voisin. */}
+                  {/* Settings are ON Profile since batch 140; the
+                      old addresses lead there - a bookmark must not
+                      land on "page introuvable" because one screen
+                      merged with its neighbour. */}
                   <Route path="/settings" element={<Navigate to="/profile" replace />} />
                   <Route path="/settings/import" element={<Navigate to="/profile/import" replace />} />
                   <Route path="/profile/import" element={<ImportPage />} />
-                  {/* Le repli, en dernier : sans lui une URL inconnue rendait
-                      un `<main>` vide avec la navigation autour - un écran qui
-                      a l'air cassé plutôt que d'expliquer. */}
+                  {/* The fallback, last: without it an unknown URL rendered
+                      an empty `<main>` with the navigation around it - a screen that
+                      looks broken instead of explaining. */}
                   <Route path="*" element={<PageIntrouvable />} />
                 </Routes>
                 </PorteDeVisite>

@@ -10,28 +10,28 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Identifier-ou-créer la fiche catalogue d'une œuvre, SANS aucune possession.
+ * Identify-or-create the catalog page of a work, WITHOUT any ownership.
  * <p>
- * <b>Catalogue ≠ Collection.</b> Une œuvre peut être connue d'IozyCore sans
- * appartenir à la collection : c'est le cas d'une série mise en envies sans
- * être possédée. Jusqu'ici cette règle n'avait pourtant aucun chemin
- * d'exécution - le seul moyen de faire entrer une œuvre externe dans le
- * catalogue était {@link QuickAddService#addNewEntityWithOwnership}, qui
- * termine toujours par un {@code Ownership.acquire}. Ajouter aux envies une
- * œuvre non possédée était donc impossible sans fabriquer une possession
- * fictive, ce qui aurait violé le modèle.
+ * <b>Catalog is not Collection.</b> A work can be known to IozyCore without
+ * belonging to the collection: this is the case of a series put in wishes without
+ * being owned. Until now this rule had no execution path
+ * though - the only way to bring an external work into the
+ * catalog was {@link QuickAddService#addNewEntityWithOwnership}, which
+ * always ends with an {@code Ownership.acquire}. Adding an unowned work
+ * to the wishes was therefore impossible without making up a fake
+ * ownership, which would have broken the model.
  * <p>
- * Cette classe extrait la partie « faire exister la fiche » de ce parcours,
- * telle quelle : {@link QuickAddService} l'appelle puis crée sa possession, le
- * parcours Envies l'appelle et s'arrête là. La règle de canonicalisation reste
- * donc écrite <b>une seule fois</b>, et les deux chemins produisent
- * nécessairement la même Entity pour la même œuvre - pas de second catalogue
- * parallèle réservé aux envies.
+ * This class extracts the "make the page exist" part of this path,
+ * as it was: {@link QuickAddService} calls it then creates its ownership, the
+ * Wishes path calls it and stops there. The canonicalization rule stays
+ * written <b>only once</b>, and both paths necessarily produce
+ * the same Entity for the same work - no second parallel catalog
+ * reserved for wishes.
  * <p>
- * Déduplication : par (type, titre découpé, insensible à la casse), exactement
- * comme avant. Les attributs fournis complètent ceux qui manquent et
- * n'écrasent jamais ceux déjà renseignés - une saisie manuelle antérieure
- * survit à une recherche de métadonnées ultérieure.
+ * Deduplication: by (type, trimmed title, case insensitive), exactly
+ * as before. The given attributes complete the missing ones and
+ * never overwrite those already filled in - an earlier manual entry
+ * survives a later metadata search.
  */
 @Service
 public class CatalogEntityResolver {
@@ -42,14 +42,14 @@ public class CatalogEntityResolver {
         this.entityRepository = entityRepository;
     }
 
-    /** L'Entity canonique, et si elle existait déjà - jamais un doublon. */
+    /** The canonical Entity, and whether it already existed - never a duplicate. */
     public record Resolution(Entity entity, boolean matchedExisting) {
     }
 
     /**
-     * Rend la fiche catalogue de cette œuvre, en la créant si elle n'existe pas
-     * encore. <b>Ne crée jamais d'Ownership</b> : c'est à l'appelant d'en créer
-     * une s'il en veut une.
+     * Returns the catalog page of this work, creating it if it does not exist
+     * yet. <b>Never creates an Ownership</b>: the caller must create
+     * one if it wants one.
      */
     @Transactional
     public Resolution resolveOrCreate(UUID entityTypeId, String title, Map<String, Object> prefilledAttributes) {

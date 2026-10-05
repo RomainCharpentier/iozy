@@ -5,16 +5,16 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : ce que vaut, au prix du neuf, ce qu'on possède
- * d'une œuvre - pour un manga, le prix neuf de l'édition multiplié par les
- * tomes possédés (Lot 133). Le cœur additionne par univers, sans connaître
- * la règle.
+ * Extension point of the core: what is worth, at the new price, what is owned
+ * of a work - for a manga, the new price of the edition multiplied by the
+ * owned volumes (Batch 133). The core adds up per universe, without knowing
+ * the rule.
  */
 public interface OwnedValueSource {
 
     List<OwnedValue> valeurs();
 
-    /** Une œuvre, la valeur neuve de ce qu'on en possède, et le nombre d'unités valorisées. */
+    /** A work, the new value of what is owned of it, and the number of valued units. */
     record OwnedValue(UUID entityId, BigDecimal valeur, long unites) {
     }
 }

@@ -61,10 +61,10 @@ class GeminiMarketPriceAdvisorTest {
                 }
                 """);
 
-        // L'intention du test ne change pas - aucun chiffre n'est invente - mais un « je ne sais
-        // pas » est une REPONSE, que l'invite demande explicitement au modele de donner. La rendre
-        // vide la confondait avec une panne (quota, reseau, cle absente), donc l'empechait d'etre
-        // memorisee : la meme question repartait chez le fournisseur a chaque analyse.
+        // The intent of the test does not change - no figure is invented - but an "I do not
+        // know" is an ANSWER, which the prompt explicitly asks the model to give. Returning it
+        // empty confused it with a failure (quota, network, missing key), so it could not be
+        // memorised: the same question went to the provider again on every analysis.
         assertThat(estimate).hasValueSatisfying(reponse -> {
             assertThat(reponse.pricePerVolume()).isNull();
             assertThat(reponse.confidence()).isEqualTo(ConfidenceLevel.LOW);

@@ -10,14 +10,14 @@ public interface TierListItemRepository {
 
     Optional<TierListItem> findByTierListIdAndEntityId(UUID tierListId, UUID entityId);
 
-    /** Tous les éléments d'une Tier List (board complet, classés et non classés). */
+    /** All items of a Tier List (full board, ranked and unranked). */
     List<TierListItem> findByTierListId(UUID tierListId);
 
-    /** Toutes les Tier Lists personnalisées dont fait partie une Entity - voir "Mes classements" côté fiche. */
+    /** All custom Tier Lists that an Entity belongs to - see "My rankings" on the detail page. */
     List<TierListItem> findByEntityId(UUID entityId);
 
     void deleteByTierListIdAndEntityId(UUID tierListId, UUID entityId);
 
-    /** Purge complète au moment de supprimer la Tier List elle-même. */
+    /** Full purge when deleting the Tier List itself. */
     void deleteByTierListId(UUID tierListId);
 }

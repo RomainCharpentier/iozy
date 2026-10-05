@@ -22,28 +22,28 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Les TOMES d'un manga et leurs éditions françaises - le cœur du module
- * manga (extrait de MetadataSearchService au Lot 132).
+ * The VOLUMES of a manga and their French editions - the heart of the manga
+ * module (extracted from MetadataSearchService in Batch 132).
  * <p>
- * Interroge en parallèle les {@link VolumeSearchProvider} compétents (BnF en
- * tête, Google Books, Open Library - voir leurs {@code @Order}), comble les
- * trous tome par tome, puis « finalise » la liste : éditeurs renommés
- * unifiés, « Édition inconnue » rattachée par préfixe ISBN ou élaguée,
- * orthographes uniformisées, éditions homonymes séparées par l'ISBN, doublons
- * fusionnés en gardant la jaquette. Chaque règle porte la mesure qui l'a fait
- * naître (Doubt, Boruto, One Piece, Jujutsu Kaisen... voir
- * DESIGN_MIGRATION_V1.2.md, lots 119 à 131).
+ * Queries in parallel the competent {@link VolumeSearchProvider}s (BnF
+ * first, Google Books, Open Library - see their {@code @Order}), fills the
+ * gaps volume by volume, then "finalizes" the list: renamed publishers
+ * unified, "Édition inconnue" attached by ISBN prefix or pruned,
+ * spellings made uniform, homonym editions separated by ISBN, duplicates
+ * merged while keeping the cover. Each rule carries the measurement that made it
+ * appear (Doubt, Boruto, One Piece, Jujutsu Kaisen... see
+ * DESIGN_MIGRATION_V1.2.md, batches 119 to 131).
  * <p>
- * volumeSearchCache/volumeSearchCacheRepository suivent la logique du cache
- * de recherche par titre, PAS celle des codes-barres : une liste vide
- * « aucune édition française » (série non reprise en France, licence
- * abandonnée...) est mise en cache comme un vrai résultat trouvé - sans ça,
- * une série sans édition française relançait les requêtes à CHAQUE
- * recherche, indéfiniment. Seul un résultat vide causé par un fournisseur
- * muet ou à quota dépassé reste exclu du cache durable (échec transitoire,
- * pas une vraie absence de résultat) - « Actualiser » reste le seul moyen de
- * revérifier une série déjà en cache, vide ou non. Et le cache durable ne se
- * périme jamais : à chaque changement de chaîne, une migration le vide (V33).
+ * volumeSearchCache/volumeSearchCacheRepository follow the logic of the cache
+ * of the search by title, NOT the one of the barcodes: an empty list
+ * "no French edition" (series not taken up in France, license
+ * dropped...) is cached like a real result found - without this,
+ * a series without a French edition ran the requests again on EVERY
+ * search, forever. Only an empty result caused by a silent
+ * provider or an exceeded quota stays out of the durable cache (temporary failure,
+ * not a real absence of result) - "Actualiser" stays the only way to
+ * check again a series already in cache, empty or not. And the durable cache never
+ * expires: at each change of chain, a migration empties it (V33).
  */
 @Service
 public class TomeSearchService {
@@ -53,11 +53,11 @@ public class TomeSearchService {
     private final List<VolumeSearchProvider> volumeSearchProviders;
     private final VolumeSearchCacheRepository volumeSearchCacheRepository;
 
-    // Cache mémoire "chaud" (évite un aller-retour base pour des recherches
-    // rapprochées dans la même fenêtre) - le stockage durable, lui, est
-    // volumeSearchCacheRepository (survit aux redémarrages, voir plus bas).
+    // "Hot" memory cache (avoids a database round trip for searches
+    // close together in the same window) - the durable storage is
+    // volumeSearchCacheRepository (survives restarts, see below).
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchCache = new TtlCache<>(Duration.ofHours(24), 300);
-    /** Les résultats obtenus pendant qu'un fournisseur se taisait - voir searchVolumes. */
+    /** The results obtained while a provider was silent - see searchVolumes. */
     private final TtlCache<String, List<VolumeCandidate>> volumeSearchPartialCache = new TtlCache<>(Duration.ofHours(1), 300);
 
     public TomeSearchService(List<VolumeSearchProvider> volumeSearchProviders,
@@ -66,67 +66,67 @@ public class TomeSearchService {
         this.volumeSearchCacheRepository = volumeSearchCacheRepository;
     }
 
-    /** La cle de comparaison des titres - accents et ponctuation plies, comme la recherche locale (voir TexteRecherche). */
+    /** The comparison key of titles - accents and punctuation folded, like the local search (see TexteRecherche). */
     private static String normalize(String value) {
         return TexteRecherche.normaliser(value);
     }
 
     /**
-     * Recherche best-effort des tomes réels (avec jaquette) des éditions
-     * françaises d'une série (voir GoogleBooksVolumeSearchProvider, 8
-     * requêtes en parallèle par appel - coûteux) - déclenchée après
-     * sélection d'une suggestion, pour proposer une sélection visuelle des
-     * tomes possédés plutôt qu'une saisie manuelle du numéro de tome.
-     * {@code volumes} vide si le type n'est pas couvert ou si rien n'a été
-     * trouvé (l'appelant garde alors le parcours de saisie manuelle) -
-     * {@code quotaExceeded} (voir VolumeSearchResult) distingue ce cas d'un
-     * quota externe dépassé, pour que le client puisse le signaler plutôt
-     * que de laisser croire à tort "aucune édition trouvée".
+     * Best-effort search of the real volumes (with cover) of the French
+     * editions of a series (see GoogleBooksVolumeSearchProvider, 8
+     * requests in parallel per call - expensive) - triggered after
+     * selecting a suggestion, to offer a visual selection of owned
+     * volumes instead of a manual entry of the volume number.
+     * {@code volumes} empty if the type is not covered or if nothing was
+     * found (the caller then keeps the manual entry path) -
+     * {@code quotaExceeded} (see VolumeSearchResult) tells this case apart from an
+     * exceeded external quota, so that the client can report it instead
+     * of wrongly letting believe "no edition found".
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author) {
         return searchVolumes(entityType, seriesTitle, author, false, List.of());
     }
 
     /**
-     * @param forceRefresh ignore le cache mémoire ET le stockage durable,
-     *                      relance systématiquement les requêtes Google
-     *                      Books et écrase le résultat stocké - c'est le
-     *                      point d'entrée du bouton "Actualiser" côté
-     *                      client. Sans lui, un résultat une fois stocké
-     *                      n'est plus jamais rappelé automatiquement : les
-     *                      éditions/tomes d'une série changent rarement, pas
-     *                      la peine de re-payer des appels externes à chaque
-     *                      sélection du même candidat.
+     * @param forceRefresh ignores the memory cache AND the durable storage,
+     *                      always runs the Google
+     *                      Books requests again and overwrites the stored result - this is the
+     *                      entry point of the "Actualiser" button on the
+     *                      client side. Without it, a result once stored
+     *                      is never called again automatically: the
+     *                      editions/volumes of a series rarely change, no
+     *                      need to pay again for external calls at each
+     *                      selection of the same candidate.
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh) {
         return searchVolumes(entityType, seriesTitle, author, forceRefresh, List.of());
     }
 
     /**
-     * @param excludedTitleFragments fragments de titre (voir RelatedSeriesService)
-     *                               identifiant un spin-off/side-story connu de
-     *                               la série cherchée - jamais pris en compte
-     *                               pour la clé de cache (dépend seulement du
-     *                               titre/auteur cherchés, comme le reste de ce
-     *                               cache) : un résultat déjà en cache SANS ce
-     *                               filtre n'est pas nettoyé rétroactivement,
-     *                               "Actualiser"/une recherche approfondie
-     *                               restent les seuls moyens de le relancer.
+     * @param excludedTitleFragments title fragments (see RelatedSeriesService)
+     *                               identifying a known spin-off/side-story of
+     *                               the searched series - never taken into account
+     *                               for the cache key (it only depends on the
+     *                               title/author searched, like the rest of this
+     *                               cache): a result already in cache WITHOUT this
+     *                               filter is not cleaned retroactively,
+     *                               "Actualiser"/a deep search
+     *                               stay the only ways to run it again.
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh, List<String> excludedTitleFragments) {
         return searchVolumes(entityType, seriesTitle, author, forceRefresh, excludedTitleFragments, null);
     }
 
-    /** Au plus autant de sondes par recherche : la sonde coute une requete Google Books par tome manquant. */
+    /** At most this many probes per search: a probe costs one Google Books request per missing volume. */
     static final int SONDES_MAX = 12;
 
-    /** Trois numeros de suite sans reponse : le total connu est probablement faux (ou l'edition francaise s'arrete la). */
+    /** Three numbers in a row without an answer: the known total is probably wrong (or the French edition stops there). */
     static final int ECHECS_CONSECUTIFS_MAX = 3;
 
     /**
-     * @param totalVolumes le nombre de tomes de la serie d'apres le catalogue
-     *                     (AniList/MyAnimeList), ou null - c'est jusqu'a lui
-     *                     que les trous sont sondes (voir comblerLesTrous)
+     * @param totalVolumes the number of volumes of the series according to the catalog
+     *                     (AniList/MyAnimeList), or null - the gaps are probed
+     *                     up to this number (see comblerLesTrous)
      */
     public VolumeSearchResult searchVolumes(EntityType entityType, String seriesTitle, String author, boolean forceRefresh,
                                             List<String> excludedTitleFragments, Integer totalVolumes) {
@@ -135,12 +135,12 @@ public class TomeSearchService {
         String cacheKey = entityType.id() + "|" + normalizedTitle + "|" + normalizedAuthor;
 
         if (!forceRefresh) {
-            // Ce qui sort d'un cache repasse par les regles de nommage (voir
-            // finaliser) : elles evoluent (Lots 123-125), et une ligne ecrite
-            // avant elles ressortait sinon telle quelle - « Ki-oon » et
-            // « Ki-Oon » en deux editions sur une ligne de 15 h, alors que le
-            // meme titre rafraichi a 16 h n'en montrait qu'une. C'est ce
-            // va-et-vient que l'utilisateur a vu sur « Doubt » (Lot 126).
+            // What comes out of a cache goes through the naming rules again (see
+            // finaliser): they evolve (Batches 123-125), and a row written
+            // before them otherwise came out as it was - "Ki-oon" and
+            // "Ki-Oon" as two editions on a row of 3 pm, while the
+            // same title refreshed at 4 pm showed only one. This is the
+            // back and forth that the user saw on "Doubt" (Batch 126).
             Optional<List<VolumeCandidate>> inMemory = volumeSearchCache.get(cacheKey);
             if (inMemory.isPresent()) {
                 return VolumeSearchResult.of(finaliser(inMemory.get()));
@@ -148,15 +148,15 @@ public class TomeSearchService {
 
             Optional<List<VolumeCandidate>> stored = volumeSearchCacheRepository.find(entityType.id(), normalizedTitle, normalizedAuthor);
             if (stored.isPresent()) {
-                volumeSearchCache.put(cacheKey, stored.get()); // réchauffe le cache mémoire pour les appels suivants
+                volumeSearchCache.put(cacheKey, stored.get()); // warms the memory cache for the next calls
                 return VolumeSearchResult.of(finaliser(stored.get()));
             }
 
-            // Un résultat PARTIEL (un fournisseur muet) n'est jamais persisté,
-            // mais il est gardé une heure en mémoire : sans ça, chaque
-            // ouverture de l'aperçu pendant une panne de Google Books
-            // relançait la BnF et ses vérifications de jaquettes, jusqu'à ce
-            // qu'elle limite le débit à son tour (429 constaté le 2026-09-04).
+            // A PARTIAL result (a silent provider) is never persisted,
+            // but it is kept one hour in memory: without this, each
+            // opening of the preview during a Google Books outage
+            // ran the BnF and its cover checks again, until
+            // it limited the rate in turn (429 seen on 2026-09-04).
             Optional<List<VolumeCandidate>> partiel = volumeSearchPartialCache.get(cacheKey);
             if (partiel.isPresent()) {
                 return new VolumeSearchResult(partiel.get(), true);
@@ -166,17 +166,17 @@ public class TomeSearchService {
         QueryOutcome outcome = queryProviders(entityType, seriesTitle, author, excludedTitleFragments, totalVolumes);
         List<VolumeCandidate> result = finaliser(outcome.volumes());
         boolean providerUnavailable = outcome.providerUnavailable();
-        // Une liste vide EST mise en cache (contrairement à barcodeCache/
-        // frenchTitleCache, voir le commentaire sur volumeSearchCache
-        // ci-dessus) - seul un résultat vide causé par un échec transitoire du
-        // fournisseur ne l'est jamais, pour ne pas condamner une recherche
-        // pendant des jours à cause d'une panne de quelques minutes.
+        // An empty list IS cached (unlike barcodeCache/
+        // frenchTitleCache, see the comment on volumeSearchCache
+        // above) - only an empty result caused by a temporary failure of the
+        // provider never is, so as not to condemn a search
+        // for days because of an outage of a few minutes.
         //
-        // Sans auteur, jamais de cache durable (Lot 126) : « Doubt » seul
-        // designe aussi un homonyme chez un autre editeur, et une ligne
-        // ecrite sur ce titre nu resservait l'homonyme a chaque ouverture
-        // dont la recherche de metadonnees avait echoue. En memoire, une
-        // journee au plus.
+        // Without an author, never a durable cache (Batch 126): "Doubt" alone
+        // also designates a homonym at another publisher, and a row
+        // written on this bare title served the homonym again at each opening
+        // whose metadata search had failed. In memory, one
+        // day at most.
         boolean cacheDurable = !normalizedAuthor.isBlank();
         if (!providerUnavailable) {
             volumeSearchCache.put(cacheKey, result);
@@ -186,12 +186,12 @@ public class TomeSearchService {
         } else if (!result.isEmpty()) {
             volumeSearchPartialCache.put(cacheKey, result);
             if (forceRefresh) {
-                // « Actualiser » a parle : une ligne plus ancienne ne doit pas
-                // lui survivre. Pendant une panne, le resultat partiel ne
-                // peut pas etre fige comme complet, mais l'ancien ne peut
-                // pas non plus etre resservi a la prochaine ouverture - c'est
-                // exactement ce qui faisait revenir « 3 et 1 » apres « 4 et 2 »
-                // a chaque redemarrage (Lot 126).
+                // "Actualiser" has spoken: an older row must not
+                // outlive it. During an outage, the partial result cannot
+                // be frozen as complete, but the old one cannot
+                // be served again at the next opening either - this is
+                // exactly what made "3 and 1" come back after "4 and 2"
+                // at each restart (Batch 126).
                 volumeSearchCache.invalidate(cacheKey);
                 if (cacheDurable) {
                     volumeSearchCacheRepository.delete(entityType.id(), normalizedTitle, normalizedAuthor);
@@ -201,17 +201,17 @@ public class TomeSearchService {
         return new VolumeSearchResult(result, providerUnavailable);
     }
 
-    /** Ce que les fournisseurs ont répondu, et si l'un d'eux s'est tu. */
+    /** What the providers answered, and whether one of them was silent. */
     private record QueryOutcome(List<VolumeCandidate> volumes, boolean providerUnavailable) {
     }
 
-    /** Interroge tous les fournisseurs compétents, complète les éditions secondaires et comble les trous - sans toucher aux caches. */
+    /** Queries all the competent providers, completes the secondary editions and fills the gaps - without touching the caches. */
     private QueryOutcome queryProviders(EntityType entityType, String seriesTitle, String author,
                                         List<String> excludedTitleFragments, Integer totalVolumes) {
-        // Boucle explicite (plutôt qu'un stream) : un fournisseur en échec ne
-        // doit pas faire perdre les résultats déjà obtenus des AUTRES
-        // fournisseurs compétents pour ce type (contrairement à un
-        // flatMap+collect, qui abandonnerait tout dès la première exception).
+        // Explicit loop (rather than a stream): a failing provider must
+        // not make us lose the results already obtained from the OTHER
+        // providers competent for this type (unlike a
+        // flatMap+collect, which would give up everything at the first exception).
         List<VolumeCandidate> result = new ArrayList<>();
         boolean providerUnavailable = false;
         for (VolumeSearchProvider provider : volumeSearchProviders) {
@@ -221,30 +221,30 @@ public class TomeSearchService {
             try {
                 result.addAll(provider.searchVolumes(seriesTitle, author, excludedTitleFragments));
             } catch (QuotaExceededException | SourceUnavailableException e) {
-                // Quota dépassé OU source muette : dans les deux cas le
-                // fournisseur n'a rien DIT, ce n'est pas une absence de tomes.
+                // Quota exceeded OR silent source: in both cases the
+                // provider SAID nothing, it is not an absence of volumes.
                 providerUnavailable = true;
             }
         }
-        // Les editions SECONDAIRES, completees chez qui sait chercher une
-        // edition par son nom (lot 144) - avant les sondes, qui ne comblent
-        // que les numeros absents de TOUTES les editions.
+        // The SECONDARY editions, completed at the provider that can search an
+        // edition by its name (batch 144) - before the probes, which only fill
+        // the numbers missing from ALL the editions.
         try {
             result.addAll(completerLesEditionsSecondaires(entityType, seriesTitle, author, excludedTitleFragments, result));
         } catch (QuotaExceededException | SourceUnavailableException e) {
             providerUnavailable = true;
         }
-        // Deux fournisseurs (BnF puis Google Books, voir leurs @Order)
-        // peuvent retrouver le même tome : la notice du PREMIER fait foi
-        // (Lot 119 - la BnF a des champs structurés, Google Books devine
-        // l'édition dans un titre libre), et la jaquette vient de celui qui
-        // en a une.
+        // Two providers (BnF then Google Books, see their @Order)
+        // can find the same volume: the record of the FIRST one is authoritative
+        // (Batch 119 - the BnF has structured fields, Google Books guesses
+        // the edition in a free title), and the cover comes from the one that
+        // has one.
         if (totalVolumes != null && totalVolumes > 0) {
             try {
                 result.addAll(comblerLesTrous(entityType, seriesTitle, author, excludedTitleFragments, result, totalVolumes));
             } catch (QuotaExceededException | SourceUnavailableException e) {
-                // Une sonde qui echoue ne perd rien de ce qui est deja la ;
-                // elle interdit seulement de figer ce resultat comme complet.
+                // A probe that fails loses nothing of what is already there;
+                // it only forbids freezing this result as complete.
                 providerUnavailable = true;
             }
         }
@@ -252,18 +252,18 @@ public class TomeSearchService {
     }
 
     /**
-     * Relit les fournisseurs pour cette série et remplace le résultat stocké -
-     * SAUF si l'un d'eux s'est tu : le résultat déjà stocké reste alors en
-     * place, intact. C'est le rafraîchissement nocturne du calendrier des
-     * sorties (lot 146, voir MangaReleaseRefresh), et il diffère du bouton
-     * « Actualiser » sur un point : {@link #searchVolumes} avec
-     * {@code forceRefresh} EFFACE la ligne stockée quand un fournisseur
-     * manque, pour que l'utilisateur qui vient d'appuyer voie ce qui reste
-     * plutôt qu'un vieux résultat. La nuit, personne n'appuie sur rien, et
-     * une panne de Google Books ne doit pas vider une à une les séries
-     * relues jusqu'à ce qu'elle passe.
+     * Reads the providers again for this series and replaces the stored result -
+     * EXCEPT if one of them was silent: the result already stored then stays
+     * in place, untouched. This is the nightly refresh of the release
+     * calendar (batch 146, see MangaReleaseRefresh), and it differs from the
+     * "Actualiser" button on one point: {@link #searchVolumes} with
+     * {@code forceRefresh} ERASES the stored row when a provider
+     * is missing, so that the user who just pressed sees what is left
+     * rather than an old result. At night, nobody presses anything, and
+     * a Google Books outage must not empty one by one the series
+     * read again until it passes.
      *
-     * @return vrai quand la relecture a abouti et remplacé le résultat stocké
+     * @return true when the re-read succeeded and replaced the stored result
      */
     public boolean refreshUnlessUnavailable(EntityType entityType, String seriesTitle, String author,
                                             List<String> excludedTitleFragments, Integer totalVolumes) {
@@ -283,23 +283,23 @@ public class TomeSearchService {
     }
 
     /**
-     * Recherche approfondie optionnelle (voir GoogleBooksVolumeSearchProvider.
-     * DEEP_EDITION_KEYWORDS) - déclenchée uniquement par une action explicite
-     * de l'utilisateur ("Chercher plus d'éditions" côté client), jamais
-     * automatiquement : {@link #searchVolumes} ne couvre par défaut que les
-     * mots-clés les plus courants pour limiter le coût, la majorité des
-     * mangas n'ayant aucune édition spéciale. FUSIONNE avec le résultat déjà
-     * connu (mémoire ou stockage durable) plutôt que de le remplacer - une
-     * recherche approfondie une fois faite reste acquise dans le cache,
-     * comme le reste de {@link #searchVolumes} (jamais rappelée
-     * automatiquement, "Actualiser" ou un nouvel appel à cette méthode sont
-     * les seuls moyens de la relancer).
+     * Optional deep search (see GoogleBooksVolumeSearchProvider.
+     * DEEP_EDITION_KEYWORDS) - triggered only by an explicit action
+     * of the user ("Chercher plus d'éditions" on the client side), never
+     * automatically: {@link #searchVolumes} only covers by default the
+     * most common keywords to limit the cost, most
+     * mangas having no special edition. MERGES with the result already
+     * known (memory or durable storage) instead of replacing it - a
+     * deep search once done stays kept in the cache,
+     * like the rest of {@link #searchVolumes} (never called again
+     * automatically, "Actualiser" or a new call to this method are
+     * the only ways to run it again).
      */
     public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author) {
         return searchAdditionalEditions(entityType, seriesTitle, author, List.of());
     }
 
-    /** Variante avec exclusion de spin-offs connus (voir
+    /** Variant with exclusion of known spin-offs (see
      * {@link #searchVolumes(EntityType, String, String, boolean, List)}). */
     public VolumeSearchResult searchAdditionalEditions(EntityType entityType, String seriesTitle, String author, List<String> excludedTitleFragments) {
         String normalizedTitle = normalize(seriesTitle);
@@ -332,13 +332,13 @@ public class TomeSearchService {
         return new VolumeSearchResult(merged, providerUnavailable);
     }
 
-    /** Fusionne sans dupliquer par (édition, tome) - garde la version déjà
-     * connue en cas de collision, SAUF si elle n'a pas de jaquette et que la
-     * nouvelle en a une (voir {@link #dedupeVolumesPreferringImage}) : rien
-     * n'empêche une recherche approfondie de retrouver via un autre
-     * fournisseur/mot-clé un tome déjà connu sans jaquette (ex: BnF lors de
-     * {@link #searchVolumes}, Google Books lors de cette recherche
-     * approfondie). */
+    /** Merges without duplicating by (edition, volume) - keeps the version already
+     * known in case of collision, EXCEPT if it has no cover and the
+     * new one has one (see {@link #dedupeVolumesPreferringImage}): nothing
+     * prevents a deep search from finding again through another
+     * provider/keyword a volume already known without cover (e.g. BnF during
+     * {@link #searchVolumes}, Google Books during this deep
+     * search). */
     private static List<VolumeCandidate> mergeVolumes(List<VolumeCandidate> existing, List<VolumeCandidate> additional) {
         Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
         for (VolumeCandidate candidate : existing) {
@@ -350,12 +350,12 @@ public class TomeSearchService {
         return new ArrayList<>(byKey.values());
     }
 
-    /** Dédoublonne par (édition, tome) au sein d'une même liste (voir
-     * {@link #mergeVolumes}) - utile quand PLUSIEURS fournisseurs
-     * compétents pour le même EntityType (Google Books et BnF, voir
-     * BnfVolumeSearchProvider) retrouvent indépendamment le même tome :
-     * la BnF ne fournissant jamais de jaquette, la version Google Books
-     * (avec jaquette) est préférée en cas de collision. */
+    /** Removes duplicates by (edition, volume) within the same list (see
+     * {@link #mergeVolumes}) - useful when SEVERAL providers
+     * competent for the same EntityType (Google Books and BnF, see
+     * BnfVolumeSearchProvider) find the same volume independently:
+     * the BnF never providing a cover, the Google Books version
+     * (with cover) is preferred in case of collision. */
     private static List<VolumeCandidate> dedupeVolumesPreferringImage(List<VolumeCandidate> candidates) {
         Map<String, VolumeCandidate> byKey = new LinkedHashMap<>();
         for (VolumeCandidate candidate : candidates) {
@@ -364,9 +364,9 @@ public class TomeSearchService {
         return new ArrayList<>(byKey.values());
     }
 
-    /** Le premier rencontré garde ses champs ; seule une jaquette manquante est prise chez le second -
-     *  et la date de parution la plus précise des deux, d'où qu'elle vienne (lot 146) : la BnF passe en
-     *  premier et ne date qu'à l'année, Google Books connaît le jour. */
+    /** The first one met keeps its fields; only a missing cover is taken from the second -
+     *  and the most precise release date of the two, wherever it comes from (batch 146): the BnF comes
+     *  first and only dates to the year, Google Books knows the day. */
     private static VolumeCandidate fusionnerTome(VolumeCandidate existing, VolumeCandidate replacement) {
         String releaseDate = VolumeCandidate.mostPreciseReleaseDate(existing.releaseDate(), replacement.releaseDate());
         if (existing.imageUrl() != null || replacement.imageUrl() == null) {
@@ -379,19 +379,19 @@ public class TomeSearchService {
     }
 
     /**
-     * « Sait-on DÉJÀ qu'aucun tome n'existe pour cette série ? », sans jamais
-     * interroger un fournisseur.
+     * "Do we ALREADY know that no volume exists for this series?", without ever
+     * querying a provider.
      * <p>
-     * Consulte uniquement le stockage durable ({@link VolumeSearchCacheRepository},
-     * voir V3__volume_search_cache.sql), où une liste vide EST mémorisée -
-     * c'est ce qui rend la question gratuite. Une série jamais recherchée
-     * renvoie donc {@code false} : « on ne sait pas » et « on sait qu'il n'y
-     * en a pas » ne se confondent pas, sous peine de signaler à tort toute
-     * œuvre encore inconnue.
+     * Reads only the durable storage ({@link VolumeSearchCacheRepository},
+     * see V3__volume_search_cache.sql), where an empty list IS remembered -
+     * this is what makes the question free. A series never searched
+     * therefore returns {@code false}: "we do not know" and "we know there are
+     * none" must not be mixed up, otherwise every work still
+     * unknown would be wrongly reported.
      * <p>
-     * Ne réchauffe volontairement PAS le cache mémoire : cette lecture sert un
-     * affichage secondaire (une mention dans une liste de résultats), elle ne
-     * doit pas influencer ce que le prochain vrai appel trouvera.
+     * Deliberately does NOT warm the memory cache: this read serves a
+     * secondary display (a mention in a list of results), it must not
+     * influence what the next real call will find.
      */
     public boolean isVolumeSearchKnownEmpty(EntityType entityType, String seriesTitle, String author) {
         return volumeSearchCacheRepository
@@ -405,20 +405,20 @@ public class TomeSearchService {
     }
 
     /**
-     * Une seule orthographe par edition (Lot 123).
+     * One spelling per edition (Batch 123).
      *
-     * <p>Le nom de l'edition est la CLE DE REGROUPEMENT a l'ecran : deux
-     * orthographes font deux editions. Or les sources ne sont pas
-     * constantes - la BnF catalogue « Doubt » T1 a T3 chez « Ki-oon » et le
-     * T4 chez « Ki-Oon » (releve le 2026-09-04), et l'apercu affichait donc
-     * une edition de trois tomes et une autre d'un seul. Le
-     * dedoublonnage, lui, ne voyait rien : sa cle est deja insensible a la
-     * casse (voir {@link VolumeCandidate#key()}), mais elle ne corrige pas
-     * le libelle affiche.
+     * <p>The edition name is the GROUPING KEY on the screen: two
+     * spellings make two editions. Yet the sources are not
+     * constant - the BnF catalogs "Doubt" V1 to V3 at "Ki-oon" and
+     * V4 at "Ki-Oon" (noted on 2026-09-04), and the preview therefore showed
+     * one edition of three volumes and another of a single one. The
+     * deduplication saw nothing: its key is already case-insensitive
+     * (see {@link VolumeCandidate#key()}), but it does not correct
+     * the displayed label.
      *
-     * <p>L'orthographe retenue est la PLUS FREQUENTE - celle du plus grand
-     * nombre de tomes -, et le premier arrive departage. Rien n'est
-     * fusionne ni supprime ici : seuls des libelles sont reecrits.
+     * <p>The spelling kept is the MOST FREQUENT one - the one of the largest
+     * number of volumes -, and the first one to arrive breaks ties. Nothing is
+     * merged or removed here: only labels are rewritten.
      */
     static List<VolumeCandidate> uniformiserLesEditions(List<VolumeCandidate> candidates) {
         Map<String, Map<String, Integer>> orthographesParEdition = new LinkedHashMap<>();
@@ -444,23 +444,23 @@ public class TomeSearchService {
     }
 
     /**
-     * Combler les trous (Lot 125) : les numeros absents entre 1 et le total
-     * connu, sondes un par un chez le fournisseur qui sait le faire.
+     * Fill the gaps (Batch 125): the numbers missing between 1 and the known
+     * total, probed one by one at the provider that can do it.
      *
-     * <p>Pourquoi apres les recherches et non a leur place : une sonde coute
-     * une requete PAR tome. Sur une serie que la BnF connait entierement
-     * (Boruto, 20/20), elle ne coute rien ; sur une serie qu'elle ne connait
-     * qu'a moitie, elle coute la moitie. Plafond a {@link #SONDES_MAX} par
-     * recherche, et arret apres {@link #ECHECS_CONSECUTIFS_MAX} numeros de
-     * suite sans reponse - un total catalogue peut etre faux, ou l'edition
-     * francaise s'arreter avant le Japon.
+     * <p>Why after the searches and not in their place: a probe costs
+     * one request PER volume. On a series that the BnF knows entirely
+     * (Boruto, 20/20), it costs nothing; on a series that it only knows
+     * by half, it costs half. Capped at {@link #SONDES_MAX} per
+     * search, and stops after {@link #ECHECS_CONSECUTIFS_MAX} numbers in
+     * a row without an answer - a cataloged total can be wrong, or the
+     * French edition can stop before Japan.
      *
-     * <p>Le tome sonde est rattache a une edition deja la par son
-     * <b>prefixe ISBN</b> quand Google Books ne donne pas d'editeur (frequent
-     * sur ses fiches francaises) : le tome 3 de Doubt, ISBN 978-2-35592…,
-     * rejoint l'edition dont les tomes 1 et 2 portent ce meme bloc. Sans
-     * ISBN ni editeur, il n'est pas retenu : une « Edition inconnue » de plus
-     * n'aiderait personne.
+     * <p>The probed volume is attached to an edition already there by its
+     * <b>ISBN prefix</b> when Google Books gives no publisher (frequent
+     * on its French records): volume 3 of Doubt, ISBN 978-2-35592…,
+     * joins the edition whose volumes 1 and 2 carry this same block. Without
+     * ISBN or publisher, it is not kept: one more "Edition inconnue"
+     * would help nobody.
      */
     private List<VolumeCandidate> comblerLesTrous(EntityType entityType, String seriesTitle, String author,
                                                   List<String> excludedTitleFragments,
@@ -501,32 +501,32 @@ public class TomeSearchService {
         return combles;
     }
 
-    /** Au plus autant d'editions secondaires completees par recherche - trois pages Google Books chacune. */
+    /** At most this many secondary editions completed per search - three Google Books pages each. */
     private static final int EDITIONS_SECONDAIRES_MAX = 3;
 
     /**
-     * Completer les editions SECONDAIRES (lot 144).
+     * Complete the SECONDARY editions (batch 144).
      *
-     * <p>Mesure du 2026-09-05 contre mangacollec : l'edition simple etait
-     * exacte sur neuf series, mais Hokage restait a 19 sur 36, l'Édition
-     * originale de One Piece a 30 sur 66, Black Édition a 4 sur 6 - la BnF
-     * ne tient ces editions qu'en partie, et la sonde tome par tome ({@link
-     * #comblerLesTrous}) ne comble que les numeros absents de TOUTES les
-     * editions : un tome 25 present chez Kana n'est jamais sonde pour Hokage.
+     * <p>Measurement of 2026-09-05 against mangacollec: the plain edition was
+     * exact on nine series, but Hokage stayed at 19 out of 36, the Édition
+     * originale of One Piece at 30 out of 66, Black Édition at 4 out of 6 - the BnF
+     * only holds these editions in part, and the volume by volume probe ({@link
+     * #comblerLesTrous}) only fills the numbers missing from ALL the
+     * editions: a volume 25 present at Kana is never probed for Hokage.
      *
-     * <p>Google Books, lui, rend les tomes d'une edition quand on la cherche
-     * PAR SON NOM (« Naruto Hokage » : 300 fiches, les tomes Hokage de Kana
-     * parmi elles) - trois pages au plus par edition, trois editions au plus
-     * par recherche, les plus fournies d'abord. Une fiche n'est retenue que
-     * si elle parle bien de cette edition, dans le nom qu'on lui a lu ou
-     * dans son titre : la meme requete rend aussi les tomes de l'edition
-     * simple, qui n'ont rien a faire la. Elle prend alors le nom de
-     * l'edition qu'on completait - « Edition Hokage » lu chez Google Books
-     * rejoint « Hokage » lu a la BnF, au lieu d'en faire une seconde.
+     * <p>Google Books, for its part, returns the volumes of an edition when we search it
+     * BY ITS NAME ("Naruto Hokage": 300 records, the Hokage volumes of Kana
+     * among them) - three pages at most per edition, three editions at most
+     * per search, the most complete first. A record is kept only
+     * if it really speaks of this edition, in the name we read on it or
+     * in its title: the same request also returns the volumes of the plain
+     * edition, which have no business there. It then takes the name of the
+     * edition being completed - "Edition Hokage" read at Google Books
+     * joins "Hokage" read at the BnF, instead of making a second one.
      *
-     * <p>L'edition PRINCIPALE - la plus fournie - n'est jamais completee
-     * ainsi : c'est la sonde qui s'en charge, et chercher « Naruto Kana »
-     * rendrait tout et n'importe quoi.
+     * <p>The MAIN edition - the most complete - is never completed
+     * this way: the probe takes care of it, and searching "Naruto Kana"
+     * would return everything and anything.
      */
     private List<VolumeCandidate> completerLesEditionsSecondaires(EntityType entityType, String seriesTitle, String author,
                                                                   List<String> excludedTitleFragments,
@@ -577,12 +577,12 @@ public class TomeSearchService {
         return ajouts;
     }
 
-    /** « L'intégrale (Hachette) » -> « L'intégrale » : ce qu'on cherche chez un fournisseur, sans l'editeur que nommerBloc ajoute entre parentheses. */
+    /** "L'intégrale (Hachette)" -> "L'intégrale": what we search at a provider, without the publisher that nommerBloc adds between parentheses. */
     private static String motCleDEdition(String edition) {
         return edition == null ? "" : edition.replaceAll("\\s*\\([^)]*\\)", "").trim();
     }
 
-    /** La fiche parle-t-elle de CETTE edition - dans le nom d'edition qu'on lui a lu, ou dans son titre ? */
+    /** Does the record speak of THIS edition - in the edition name read on it, or in its title? */
     private static boolean designeCetteEdition(VolumeCandidate candidate, String motCle) {
         String cle = TexteRecherche.normaliser(motCle);
         return TexteRecherche.normaliser(candidate.edition() == null ? "" : candidate.edition()).contains(cle)
@@ -592,23 +592,23 @@ public class TomeSearchService {
     static final String EDITION_INCONNUE = "Édition inconnue";
 
     /**
-     * Un editeur qui a change de nom reste le meme editeur (Lot 127). Kazé
-     * est devenu Crunchyroll en 2022 : la BnF dit « Kazé » sur les tomes 1 a
-     * 11 de « Chainsaw Man » et Google Books « Crunchyroll » sur les
-     * suivants, et l'ecran en faisait deux editions. Mangacollec - la
-     * reference de l'utilisateur - les ecrit « Kazé / Crunchyroll », en une
-     * seule ; on adopte son libelle. Cle normalisee (voir TexteRecherche)
-     * vers libelle affiche.
+     * A publisher that changed its name stays the same publisher (Batch 127). Kazé
+     * became Crunchyroll in 2022: the BnF says "Kazé" on volumes 1 to
+     * 11 of "Chainsaw Man" and Google Books "Crunchyroll" on the
+     * following ones, and the screen made two editions of them. Mangacollec - the
+     * user's reference - writes them "Kazé / Crunchyroll", as a single
+     * one; we adopt its label. Normalized key (see TexteRecherche)
+     * to displayed label.
      */
     private static final Map<String, String> EDITEURS_RENOMMES = Map.of(
             "kaze", "Kazé / Crunchyroll",
             "kaze manga", "Kazé / Crunchyroll",
             "crunchyroll", "Kazé / Crunchyroll",
-            // Les premiers Naruto (1999-2004) sont deposes au nom de la maison
-            // mere de l'epoque ; mangacollec ne connait que Kana (mesure du
-            // 2026-09-05 : dix tomes a part, 11 a 22).
+            // The first Naruto (1999-2004) are filed under the name of the parent
+            // company of the time; mangacollec only knows Kana (measured on
+            // 2026-09-05: ten volumes apart, 11 to 22).
             "dargaud benelux kana", "Kana",
-            // Une coquille du catalogue, sur un tome de One Piece.
+            // A typo of the catalog, on a volume of One Piece.
             "edition orinale", "Édition Originale");
 
     static List<VolumeCandidate> unifierLesEditeursRenommes(List<VolumeCandidate> candidates) {
@@ -621,11 +621,11 @@ public class TomeSearchService {
     }
 
     /**
-     * Les regles de nommage et de regroupement, dans l'ordre ou elles se
-     * completent - appliquees a tout ce qui sort, frais ou cache :
-     * rattacher les « Édition inconnue » a leur bloc ISBN, unifier les
-     * orthographes, separer les editions homonymes (AVANT le dedoublonnage,
-     * qui fusionnerait leurs deux tomes 1), dedoublonner.
+     * The naming and grouping rules, in the order in which they
+     * complete each other - applied to everything that comes out, fresh or cached:
+     * attach the "Édition inconnue" to their ISBN block, unify the
+     * spellings, separate homonym editions (BEFORE the
+     * deduplication, which would merge their two volumes 1), deduplicate.
      */
     static List<VolumeCandidate> finaliser(List<VolumeCandidate> candidates) {
         List<VolumeCandidate> result = unifierLesEditeursRenommes(candidates);
@@ -636,7 +636,7 @@ public class TomeSearchService {
         return dedupeVolumesPreferringImage(result);
     }
 
-    /** Les blocs ISBN dont on connait l'edition : prefixe -> nom, sans jamais retenir « Édition inconnue ». */
+    /** The ISBN blocks whose edition we know: prefix -> name, without ever keeping "Édition inconnue". */
     private static Map<String, String> editionsNommeesParPrefixe(List<VolumeCandidate> candidates) {
         Map<String, String> parPrefixe = new LinkedHashMap<>();
         for (VolumeCandidate candidate : candidates) {
@@ -653,21 +653,21 @@ public class TomeSearchService {
     }
 
     /**
-     * « Édition inconnue » n'est pas une edition : c'est un tome dont la
-     * source n'a pas dit l'editeur (Lot 125). Google Books le fait souvent
-     * sur ses fiches francaises - « Spy x Family » y sortait avec une
-     * « Édition inconnue » de sept tomes A COTE de Kurokawa, les memes
-     * livres. Quand un tel tome porte un ISBN du meme bloc qu'une edition
-     * nommee, il la rejoint ; sinon il garde son etiquette, faute de mieux.
+     * "Édition inconnue" is not an edition: it is a volume whose
+     * source did not say the publisher (Batch 125). Google Books often does this
+     * on its French records - "Spy x Family" came out there with an
+     * "Édition inconnue" of seven volumes NEXT TO Kurokawa, the same
+     * books. When such a volume carries an ISBN of the same block as a named
+     * edition, it joins it; otherwise it keeps its label, for lack of better.
      */
     /**
-     * Un tome « Édition inconnue » dont le NUMERO existe deja dans une
-     * edition nommee n'apporte rien : c'est le meme tome, vu par une source
-     * qui ne connaissait pas son editeur (Google Books sans champ publisher),
-     * et que le rattachement par ISBN n'a pas su placer. Mesure du
-     * 2026-09-05 : One-Punch Man, Kurokawa 34/34 exacts - et seize
-     * « inconnus » de 2 a 23 a cote, la ou mangacollec n'a qu'une edition.
-     * Ne reste inconnu que ce qu'aucune edition nommee ne couvre.
+     * An "Édition inconnue" volume whose NUMBER already exists in a
+     * named edition adds nothing: it is the same volume, seen by a source
+     * that did not know its publisher (Google Books without a publisher field),
+     * and that the attachment by ISBN could not place. Measurement of
+     * 2026-09-05: One-Punch Man, Kurokawa 34/34 exact - and sixteen
+     * "unknown" from 2 to 23 next to it, where mangacollec has only one edition.
+     * Only what no named edition covers stays unknown.
      */
     static List<VolumeCandidate> elaguerLesInconnues(List<VolumeCandidate> candidates) {
         Set<Integer> couverts = new HashSet<>();
@@ -703,39 +703,39 @@ public class TomeSearchService {
         return rattaches;
     }
 
-    /** Meme regle que la cle de dedoublonnage d'un tome : casse et espaces de bord ignores. */
+    /** Same rule as the deduplication key of a volume: case and edge spaces ignored. */
     private static String cleEdition(String edition) {
         return edition == null ? "" : TexteRecherche.normaliser(edition);
     }
 
-    /** Les huit premiers chiffres d'un ISBN-13 : préfixe de langue + bloc de l'éditeur, ce qui change d'une édition à l'autre. */
+    /** The first eight digits of an ISBN-13: language prefix + publisher block, which changes from one edition to another. */
     private static final int LONGUEUR_PREFIXE_ISBN = 8;
 
     /**
-     * Un même éditeur, deux éditions : les séparer (Lot 124).
+     * One publisher, two editions: separate them (Batch 124).
      *
-     * <p>Le nom de l'éditeur ne suffit pas à nommer une édition. « Doubt »
-     * (Yoshiki Tonogai) existe chez Ki-oon en 4 tomes (2009-2010) ET en
-     * 2 tomes doubles (2022) - même éditeur, mêmes numéros 1 et 2. Le
-     * dédoublonnage par (édition, numéro) les fusionnait donc en silence,
-     * et l'écran n'en montrait qu'une.
+     * <p>The publisher name is not enough to name an edition. "Doubt"
+     * (Yoshiki Tonogai) exists at Ki-oon in 4 volumes (2009-2010) AND in
+     * 2 double volumes (2022) - same publisher, same numbers 1 and 2. The
+     * deduplication by (edition, number) therefore merged them silently,
+     * and the screen showed only one.
      *
-     * <p>Ce qui les distingue objectivement, c'est l'<b>ISBN</b> : chaque
-     * édition a le sien, et les huit premiers chiffres (préfixe de langue
-     * + bloc de l'éditeur) diffèrent d'une édition à l'autre -
-     * 978-2-35592… contre 979-10-327… dans ce cas. Choix de l'utilisateur
-     * le 2026-09-04, préféré à l'année, plus lisible mais moins sûre.
+     * <p>What objectively tells them apart is the <b>ISBN</b>: each
+     * edition has its own, and the first eight digits (language prefix
+     * + publisher block) differ from one edition to another -
+     * 978-2-35592… against 979-10-327… in this case. User's choice
+     * on 2026-09-04, preferred to the year, more readable but less sure.
      *
-     * <p><b>La séparation n'a lieu qu'en cas de preuve</b> : il faut qu'un
-     * même numéro de tome arrive avec deux préfixes différents. Une édition
-     * dont les tomes s'étalent sur deux blocs ISBN sans jamais se
-     * chevaucher reste une seule édition - c'est ce garde-fou qui évite de
-     * scinder à tort les séries longues. Le nom retenu ajoute l'année du
-     * plus ancien tome du bloc, seule mention lisible dont on dispose ;
-     * à défaut, les quatre chiffres du bloc éditeur.
+     * <p><b>The separation only takes place in case of proof</b>: the
+     * same volume number must arrive with two different prefixes. An edition
+     * whose volumes spread over two ISBN blocks without ever
+     * overlapping stays a single edition - this is the safeguard that avoids
+     * wrongly splitting long series. The name kept adds the year of the
+     * oldest volume of the block, the only readable mention we have;
+     * failing that, the four digits of the publisher block.
      *
-     * <p>Les tomes sans ISBN ne peuvent être attribués à aucun bloc : ils
-     * restent dans le plus fourni, celui qui garde le nom d'origine.
+     * <p>Volumes without ISBN cannot be assigned to any block: they
+     * stay in the largest one, the one that keeps the original name.
      */
     static List<VolumeCandidate> separerLesEditionsHomonymes(List<VolumeCandidate> candidates) {
         Map<String, List<VolumeCandidate>> parEdition = new LinkedHashMap<>();
@@ -765,7 +765,7 @@ public class TomeSearchService {
             return groupe;
         }
 
-        // Le bloc le plus fourni est l'edition principale : elle garde son nom.
+        // The largest block is the main edition: it keeps its name.
         String prefixePrincipal = parPrefixe.entrySet().stream()
                 .max(Comparator.comparingInt(entree -> entree.getValue().size()))
                 .map(Map.Entry::getKey)
@@ -789,35 +789,35 @@ public class TomeSearchService {
     }
 
     /**
-     * Un bloc ISBN est-il une AUTRE edition, ou la suite de la meme ?
+     * Is an ISBN block ANOTHER edition, or the continuation of the same one?
      *
-     * <p>Un editeur change de bloc ISBN au fil des annees : les tomes 1 a 12
-     * de « Vinland Saga » chez Kurokawa n'ont pas le meme prefixe que les
-     * tomes 13 a 24, et ce sont pourtant les memes livres, la meme edition.
-     * Un premier essai qui separait des que deux blocs coexistaient a donc
-     * eclate cette serie en quatre (constate le 2026-09-04) - il ne faut
-     * separer que sur une preuve bien plus etroite :
+     * <p>A publisher changes ISBN block over the years: volumes 1 to 12
+     * of "Vinland Saga" at Kurokawa do not have the same prefix as volumes
+     * 13 to 24, and yet they are the same books, the same edition.
+     * A first attempt that separated as soon as two blocks coexisted
+     * therefore split this series into four (noted on 2026-09-04) - we must only
+     * separate on a much narrower proof:
      *
      * <ul>
-     *   <li><b>tous</b> les numeros du bloc existent deja dans l'edition
-     *       principale - un bloc qui apporte des tomes inedits en est la
-     *       suite, pas un doublon ;</li>
-     *   <li>et ces numeros forment une serie <b>continue depuis 1</b> -
-     *       c'est la forme d'une reedition (double, integrale, perfect),
-     *       qui recommence toujours au tome 1.</li>
+     *   <li><b>all</b> the numbers of the block already exist in the main
+     *       edition - a block that brings new volumes is its
+     *       continuation, not a duplicate;</li>
+     *   <li>and these numbers form a series <b>continuous from 1</b> -
+     *       this is the shape of a reissue (double, omnibus, perfect),
+     *       which always starts again at volume 1.</li>
      * </ul>
      *
-     * <p>« Doubt » : le bloc de 2022 porte {1, 2}, tous deux presents dans
-     * l'edition de 2009 (1 a 4), et continus depuis 1 - c'est bien
-     * l'edition double. Le bloc Kurokawa de 2024 porte {1, 28, 29} : 28 et
-     * 29 sont inedits, donc ce n'est pas une autre edition.
+     * <p>"Doubt": the 2022 block carries {1, 2}, both present in the
+     * 2009 edition (1 to 4), and continuous from 1 - it is indeed the
+     * double edition. The Kurokawa block of 2024 carries {1, 28, 29}: 28 and
+     * 29 are new, so it is not another edition.
      */
     private static boolean estUneAutreEdition(List<VolumeCandidate> tomes, Set<Integer> numerosPrincipaux) {
         Set<Integer> numeros = tomes.stream().map(VolumeCandidate::volumeNumber).collect(Collectors.toSet());
-        // Un seul tome n'est pas une edition : c'est un retirage du tome 1
-        // sous un autre prefixe ISBN (mesure du 2026-09-05 : One Piece
-        // rendait « Glenat (2000) » et « Glenat (2006) », un tome chacun).
-        // Une reedition en compte au moins deux - l'edition double de Doubt.
+        // A single volume is not an edition: it is a reprint of volume 1
+        // under another ISBN prefix (measured on 2026-09-05: One Piece
+        // returned "Glenat (2000)" and "Glenat (2006)", one volume each).
+        // A reissue has at least two - the double edition of Doubt.
         if (numeros.size() < 2 || !numerosPrincipaux.containsAll(numeros)) {
             return false;
         }
@@ -848,11 +848,11 @@ public class TomeSearchService {
         if (isbn == null) {
             return null;
         }
-        // Un ISBN-10 (notices d'avant 2007 a la BnF : « 2-87129-414-3 » pour
-        // le tome 1 de Naruto) designe le meme bloc d'editeur que l'ISBN-13
-        // que Google Books donne du meme livre (978-2-87129-414-1) : le
-        // prefixe se lit apres le 978, sinon les deux ne se rencontrent
-        // jamais et un vieux tome fait bloc a part (lot 144).
+        // An ISBN-10 (records from before 2007 at the BnF: "2-87129-414-3" for
+        // volume 1 of Naruto) designates the same publisher block as the ISBN-13
+        // that Google Books gives for the same book (978-2-87129-414-1): the
+        // prefix is read after the 978, otherwise the two never meet
+        // and an old volume makes a block apart (batch 144).
         if (isbn.length() == 10) {
             isbn = "978" + isbn;
         }

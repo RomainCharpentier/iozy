@@ -12,12 +12,12 @@ public interface OwnershipRepository {
 
     List<Ownership> findByEntityId(UUID entityId);
 
-    /** Utilisé par la règle de suppression d'une Entity (étape 7 : invariant DDD). */
-    /** Utilisé par le Bounded Context Insights (étape 8) pour calculer les statistiques. */
+    /** Used by the delete rule of an Entity (step 7: DDD invariant). */
+    /** Used by the Insights Bounded Context (step 8) to compute the statistics. */
     List<Ownership> findAll();
 
     boolean existsByEntityId(UUID entityId);
 
-    /** Utilisé par la règle de suppression d'une Ownership (voir OwnershipDeletionService). */
+    /** Used by the delete rule of an Ownership (see OwnershipDeletionService). */
     void deleteById(UUID id);
 }

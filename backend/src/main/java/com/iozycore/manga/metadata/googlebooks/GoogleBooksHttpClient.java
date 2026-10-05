@@ -18,27 +18,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Point d'appel HTTP unique partagé par les 4 fournisseurs Google Books
- * (recherche de tomes, titre français par résolution, titre français direct,
- * lookup par code-barres) - centralise la rotation de clé API et la
- * détection du quota dépassé (429), auparavant dupliquées à l'identique dans
- * chacun des 4 fichiers.
+ * Single HTTP call point shared by the 4 Google Books providers
+ * (volume search, French title by resolution, direct French title,
+ * barcode lookup) - centralizes the API key rotation and the
+ * detection of the exceeded quota (429), previously duplicated identically in
+ * each of the 4 files.
  * <p>
- * Clé de secours (voir {@code google-books.backup-api-keys}, vérifié
- * manuellement : le quota par défaut de la clé principale s'est épuisé en
- * une session de tests intensifs) : quand une clé répond 429, on retente
- * immédiatement avec la suivante avant d'abandonner - chaque clé a son
- * propre quota journalier (projets Google Cloud distincts), donc une
- * deuxième clé double la capacité réelle sans changer le code appelant.
- * {@link QuotaExceededException} n'est levée que si TOUTES les clés
- * configurées (et l'appel anonyme si aucune clé) ont répondu 429.
+ * Backup key (see {@code google-books.backup-api-keys}, checked
+ * manually: the default quota of the main key ran out in
+ * one session of intensive tests): when a key answers 429, we retry
+ * immediately with the next one before giving up - each key has its
+ * own daily quota (distinct Google Cloud projects), so a
+ * second key doubles the real capacity without changing the calling code.
+ * {@link QuotaExceededException} is only thrown if ALL the configured
+ * keys (and the anonymous call if no key) answered 429.
  * <p>
- * Repli sur cooldown ({@link #isQuotaLikelyExhausted()}) : une fois le quota
- * de toutes les clés confirmé épuisé, on suppose qu'il le reste pendant
- * {@link #COOLDOWN} plutôt que de re-tenter (et re-consommer inutilement le
- * quota qui recommence à peine à se reconstituer) à chaque appel suivant -
- * {@link GoogleBooksVolumeSearchProvider} l'utilise pour réduire son
- * éventail de 8 requêtes à 1 seule tant que la fenêtre est active.
+ * Fallback on cooldown ({@link #isQuotaLikelyExhausted()}): once the quota
+ * of all keys is confirmed exhausted, we assume it stays so for
+ * {@link #COOLDOWN} instead of retrying (and needlessly consuming again the
+ * quota that is just starting to build up again) at each following call -
+ * {@link GoogleBooksVolumeSearchProvider} uses it to reduce its
+ * fan-out from 8 requests to a single one while the window is active.
  */
 @Component
 public class GoogleBooksHttpClient {
@@ -70,28 +70,28 @@ public class GoogleBooksHttpClient {
         this.apiKeys = keys;
     }
 
-    /** Vrai si un appel récent a confirmé le quota épuisé sur TOUTES les clés
-     * (voir {@link #COOLDOWN}) - permet à un appelant de réduire son nombre
-     * de requêtes plutôt que de toutes les gaspiller en échecs quasi certains. */
+    /** True if a recent call confirmed the quota exhausted on ALL keys
+     * (see {@link #COOLDOWN}) - allows a caller to reduce its number
+     * of requests instead of wasting all of them on almost certain failures. */
     public boolean isQuotaLikelyExhausted() {
         return Instant.now().isBefore(quotaExceededUntil);
     }
 
     /**
-     * Envoie {@code urlWithoutKey} en essayant chaque clé API configurée dans
-     * l'ordre (principale puis secours) jusqu'à une réponse 200 - passe à la
-     * clé suivante uniquement sur 429 (quota dépassé), jamais sur une autre
-     * erreur (400, 500...), qui ne serait pas résolue par une autre clé. Sans
-     * clé configurée du tout, une seule requête anonyme est tentée (quota
-     * mondial partagé Google).
+     * Sends {@code urlWithoutKey} by trying each configured API key in
+     * order (main then backup) until a 200 answer - moves to the
+     * next key only on 429 (quota exceeded), never on another
+     * error (400, 500...), which another key would not solve. Without any
+     * key configured, a single anonymous request is tried (shared
+     * Google worldwide quota).
      *
-     * @return le corps de la réponse 200 - jamais {@code null} : un appel qui
-     * n'aboutit pas LÈVE, pour que l'appelant ne puisse pas confondre « la
-     * source n'a pas répondu » avec « la source a répondu, il n'y a rien »
-     * (voir {@link SourceUnavailableException}).
-     * @throws QuotaExceededException si toutes les clés essayées ont répondu 429.
-     * @throws SourceUnavailableException sur tout autre échec : statut HTTP
-     * inattendu, délai dépassé, coupure réseau.
+     * @return the body of the 200 answer - never {@code null}: a call that
+     * does not succeed THROWS, so that the caller cannot confuse "the
+     * source did not answer" with "the source answered, there is nothing"
+     * (see {@link SourceUnavailableException}).
+     * @throws QuotaExceededException if all the keys tried answered 429.
+     * @throws SourceUnavailableException on any other failure: unexpected HTTP
+     * status, timeout, network cut.
      */
     public String get(String urlWithoutKey) {
         List<String> keysToTry = apiKeys.isEmpty() ? List.of("") : apiKeys;
@@ -108,29 +108,29 @@ public class GoogleBooksHttpClient {
             try {
                 response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             } catch (IOException e) {
-                // Coupure réseau ou délai dépassé : la source n'a rien dit, ce
-                // n'est PAS une absence de résultat (voir la javadoc).
+                // Network cut or timeout: the source said nothing, it
+                // is NOT an absence of result (see the javadoc).
                 throw new SourceUnavailableException("Google Books injoignable pour '" + urlWithoutKey + "'", e);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // ne jamais avaler l'interruption
+                Thread.currentThread().interrupt(); // never swallow the interruption
                 throw new SourceUnavailableException("Appel Google Books interrompu pour '" + urlWithoutKey + "'", e);
             }
             if (response.statusCode() == 200) {
                 return response.body();
             }
             if (response.statusCode() == 429) {
-                log.warn("Google Books a répondu 429 (quota) - tentative de la clé suivante s'il y en a une");
+                log.warn("Google Books answered 429 (quota) - trying the next key if there is one");
                 continue;
             }
-            // Autre statut (503, 500, 400...) : changer de clé n'y changerait
-            // rien, et surtout ce n'est pas une réponse - le distinguer d'une
-            // liste vide évite de mettre en cache une panne (voir Lot 58).
-            log.warn("Google Books a répondu {} pour '{}'", response.statusCode(), urlWithoutKey);
+            // Other status (503, 500, 400...): changing key would change
+            // nothing, and above all it is not an answer - telling it apart from an
+            // empty list avoids caching an outage (see Batch 58).
+            log.warn("Google Books answered {} for '{}'", response.statusCode(), urlWithoutKey);
             throw new SourceUnavailableException(
                     "Google Books a répondu " + response.statusCode() + " pour '" + urlWithoutKey + "'");
         }
 
-        // Seul chemin restant : chaque clé essayée a répondu 429.
+        // Only remaining path: each key tried answered 429.
         quotaExceededUntil = Instant.now().plus(COOLDOWN);
         throw new QuotaExceededException(
                 "Quota Google Books dépassé sur les " + keysToTry.size() + " clé(s) essayée(s)");

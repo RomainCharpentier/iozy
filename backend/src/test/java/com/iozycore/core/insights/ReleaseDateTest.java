@@ -11,9 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * La date de sortie : ce qu'une source sait dire, et rien de plus. Une année
- * seule n'entre jamais dans le calendrier - c'est la règle du journal de
- * design (§44 : « jamais une date approximative »), et c'est ici qu'elle vit.
+ * The release date: what a source can say, and nothing more. A year
+ * alone never enters the calendar - this is the rule of the design
+ * journal (§44: "never an approximate date"), and this is where it lives.
  */
 class ReleaseDateTest {
 
@@ -27,8 +27,8 @@ class ReleaseDateTest {
 
     @Test
     void refuses_anything_that_is_not_a_calendar_date() {
-        // Une année (BnF « DL 2009 », BoardGameGeek), une saisie bancale, un
-        // nombre, l'absence : aucune ne devient une date, aucune ne lève.
+        // A year (BnF "DL 2009", BoardGameGeek), a clumsy entry, a
+        // number, nothing: none becomes a date, none throws.
         for (Object value : List.of("2026", "DL 2009", "octobre 2026", "2026-13", "2026-02-30", 2026, "")) {
             assertThat(ReleaseDate.parse(value)).as("%s", value).isEmpty();
         }

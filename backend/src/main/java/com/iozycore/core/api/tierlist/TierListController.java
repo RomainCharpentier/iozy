@@ -16,15 +16,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Tier Lists : classement général (une œuvre = un rang sur l'échelle
- * complète, voir /general) et Tier Lists personnalisées (nommées,
- * appartenance explicite, voir le reste des routes) - voir la maquette
- * V1.2 §44-52 et com.iozycore.core.domain.tierlist. Nouveau domaine, aucune
- * donnée héritée à migrer (voir docs/DESIGN_MIGRATION_V1.2.md Lot 7).
+ * Tier Lists: general ranking (one work = one rank on the
+ * full scale, see /general) and custom Tier Lists (named,
+ * explicit membership, see the rest of the routes) - see the mockup
+ * V1.2 §44-52 and com.iozycore.core.domain.tierlist. New domain, no
+ * inherited data to migrate (see docs/DESIGN_MIGRATION_V1.2.md Batch 7).
  */
 @RestController
 @RequestMapping("/api/tier-lists")
-@Tag(name = "Tier Lists", description = "Classement général et Tier Lists personnalisées")
+@Tag(name = "Tier Lists", description = "General ranking and custom Tier Lists")
 public class TierListController {
 
     private final TierListRepository tierListRepository;
@@ -46,9 +46,9 @@ public class TierListController {
         this.tierListService = tierListService;
     }
 
-    // ═══ Classement général ═══
+    // ═══ General ranking ═══
 
-    @Operation(summary = "Board du classement général d'un univers (voir TierBoard côté maquette)")
+    @Operation(summary = "Board of the general ranking of a universe (see TierBoard on the mockup side)")
     @GetMapping("/general")
     public GeneralBoardResponse generalBoard(@RequestParam UUID entityTypeId) {
         TierListService.GeneralBoard board = tierListService.generalBoard(entityTypeId);
@@ -61,7 +61,7 @@ public class TierListController {
         return new GeneralBoardResponse(ranked, unranked);
     }
 
-    @Operation(summary = "Classer (ou déclasser si rank=null) une œuvre sur le classement général")
+    @Operation(summary = "Rank (or unrank if rank=null) a work on the general ranking")
     @PutMapping("/general/entities/{entityId}")
     public TierListEntryResponse setGeneralRank(@PathVariable UUID entityId, @RequestBody SetRankRequest request) {
         Entity entity = entityRepository.findById(entityId)
@@ -80,7 +80,7 @@ public class TierListController {
         return TierListEntryResponse.from(entity, request.rank());
     }
 
-    @Operation(summary = "\"Mes classements\" d'une œuvre (rang général + Tier Lists personnalisées où elle est classée)")
+    @Operation(summary = "\"My rankings\" of a work (general rank + custom Tier Lists where it is ranked)")
     @GetMapping("/entities/{entityId}/summary")
     public EntityTierSummaryResponse entitySummary(@PathVariable UUID entityId) {
         Rank generalRank = entityRankRepository.findByEntityId(entityId).map(EntityRank::rank).orElse(null);
@@ -90,11 +90,11 @@ public class TierListController {
         return new EntityTierSummaryResponse(generalRank, customRanks);
     }
 
-    // ═══ Tier Lists personnalisées ═══
+    // ═══ Custom Tier Lists ═══
 
-    @Operation(summary = "Tier Lists personnalisées d'un univers (Hub Découvrir). entityTypeId omis = les Tier "
-            + "Lists TRANSVERSES \"toutes catégories\" (voir TierList.isAllUniverses), jamais toutes les listes "
-            + "confondues : elles forment une famille à part côté client, pas un univers de plus.")
+    @Operation(summary = "Custom Tier Lists of a universe (Discover Hub). entityTypeId omitted = the CROSS-CUTTING Tier "
+            + "Lists \"all categories\" (see TierList.isAllUniverses), never all the lists "
+            + "mixed together: they form a separate family on the client side, not one more universe.")
     @GetMapping
     public List<TierListResponse> byEntityType(@RequestParam(required = false) UUID entityTypeId) {
         List<TierList> lists = entityTypeId == null
@@ -103,22 +103,22 @@ public class TierListController {
         return lists.stream().map(this::toSummary).collect(Collectors.toList());
     }
 
-    @Operation(summary = "Créer une Tier List personnalisée")
+    @Operation(summary = "Create a custom Tier List")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TierListResponse create(@RequestBody CreateTierListRequest request) {
         if (request.name() == null || request.name().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la Tier List ne peut pas être vide");
         }
-        // entityTypeId null = liste transverse "toutes catégories" (voir TierList) -
-        // rien à valider dans ce cas, il n'y a justement pas d'univers.
+        // entityTypeId null = cross-cutting "all categories" list (see TierList) -
+        // nothing to validate in this case, there is precisely no universe.
         //
-        // Quand un univers EST demandé, il doit exister. L'appel précédent
-        // (findAllByType) prétendait le vérifier mais rend une liste vide pour
-        // un type inconnu : la contrainte de clé étrangère tranchait donc à sa
-        // place, et le client recevait « Cette donnée entre en conflit avec une
-        // donnée existante » - phrase fausse, puisque la donnée est absente et
-        // non conflictuelle. Même contrôle explicite que POST /entities/quick-add.
+        // When a universe IS requested, it must exist. The previous call
+        // (findAllByType) claimed to check it but returns an empty list for
+        // an unknown type: the foreign key constraint therefore decided in its
+        // place, and the client got "Cette donnée entre en conflit avec une
+        // donnée existante" - a false sentence, since the data is absent and
+        // not conflicting. Same explicit check as POST /entities/quick-add.
         if (request.entityTypeId() != null) {
             entityTypeRepository.findById(request.entityTypeId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -128,7 +128,7 @@ public class TierListController {
         return toSummary(tierListRepository.save(list));
     }
 
-    @Operation(summary = "Détail d'une Tier List (board complet, classés et non classés)")
+    @Operation(summary = "Detail of a Tier List (full board, ranked and unranked)")
     @GetMapping("/{id}")
     public TierListDetailResponse detail(@PathVariable UUID id) {
         TierList list = requireTierList(id);
@@ -145,7 +145,7 @@ public class TierListController {
         return new TierListDetailResponse(toSummary(list), ranked, unranked);
     }
 
-    @Operation(summary = "Renommer / modifier les rangs actifs / la description d'une Tier List")
+    @Operation(summary = "Rename / change the active ranks / the description of a Tier List")
     @PatchMapping("/{id}")
     public TierListResponse update(@PathVariable UUID id, @RequestBody UpdateTierListRequest request) {
         TierList list = requireTierList(id);
@@ -155,7 +155,7 @@ public class TierListController {
         return toSummary(tierListRepository.save(list));
     }
 
-    @Operation(summary = "Supprimer une Tier List personnalisée (et son contenu)")
+    @Operation(summary = "Delete a custom Tier List (and its content)")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
@@ -163,31 +163,31 @@ public class TierListController {
         tierListRepository.deleteById(id);
     }
 
-    @Operation(summary = "Ajouter des œuvres à une Tier List (non classées au départ)")
+    @Operation(summary = "Add works to a Tier List (unranked at first)")
     @PostMapping("/{id}/items")
     @ResponseStatus(HttpStatus.CREATED)
     public TierListDetailResponse addItems(@PathVariable UUID id, @RequestBody AddTierListItemsRequest request) {
         requireTierList(id);
-        // Sans cette garde, un corps sans entityIds remontait une
-        // NullPointerException en 500 sur le for ci-dessous ("Cannot invoke
-        // java.util.List.iterator()") - voir Lot 28.
+        // Without this guard, a body without entityIds raised a
+        // NullPointerException as a 500 on the for loop below ("Cannot invoke
+        // java.util.List.iterator()") - see Batch 28.
         if (request.entityIds() == null || request.entityIds().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucune œuvre à ajouter");
         }
-        // Les œuvres déjà présentes, lues EN UNE FOIS : la boucle interrogeait la
-        // base pour chacune, alors que « Ajouter » en envoie autant qu'on en a
-        // cochées d'un coup. findByTierListId est déjà le chemin utilisé par
-        // l'écran juste après (voir detail).
+        // The works already present, read IN ONE GO: the loop queried the
+        // database for each one, while "Add" sends as many as were
+        // checked at once. findByTierListId is already the path used by
+        // the screen right after (see detail).
         Set<UUID> dejaPresentes = tierListItemRepository.findByTierListId(id).stream()
                 .map(TierListItem::entityId)
                 .collect(Collectors.toSet());
         for (UUID entityId : request.entityIds()) {
-            // Déjà présente : passée sous silence, c'est une idempotence voulue
-            // (rajouter une œuvre déjà là n'est pas une erreur de l'appelant).
+            // Already present: passed over in silence, this is a wanted idempotence
+            // (adding a work that is already there is not a mistake of the caller).
             if (!dejaPresentes.add(entityId)) continue;
-            // Inconnue : refusée, jamais ignorée. Un ifPresent() renvoyait un 201
-            // avec une liste inchangée - l'appelant croyait avoir ajouté une œuvre
-            // qui n'existe pas (Lot 28).
+            // Unknown: refused, never ignored. An ifPresent() returned a 201
+            // with an unchanged list - the caller believed they had added a work
+            // that does not exist (Batch 28).
             entityRepository.findById(entityId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Entité introuvable : " + entityId));
@@ -196,7 +196,7 @@ public class TierListController {
         return detail(id);
     }
 
-    @Operation(summary = "Classer (ou déclasser si rank=null) une œuvre déjà ajoutée à cette Tier List")
+    @Operation(summary = "Rank (or unrank if rank=null) a work already added to this Tier List")
     @PutMapping("/{id}/items/{entityId}")
     public TierListEntryResponse setItemRank(@PathVariable UUID id, @PathVariable UUID entityId, @RequestBody SetRankRequest request) {
         TierListItem item = tierListItemRepository.findByTierListIdAndEntityId(id, entityId)
@@ -208,7 +208,7 @@ public class TierListController {
         return TierListEntryResponse.from(entity, request.rank());
     }
 
-    @Operation(summary = "Retirer une œuvre d'une Tier List personnalisée")
+    @Operation(summary = "Remove a work from a custom Tier List")
     @DeleteMapping("/{id}/items/{entityId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeItem(@PathVariable UUID id, @PathVariable UUID entityId) {

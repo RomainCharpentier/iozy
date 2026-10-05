@@ -1,14 +1,14 @@
 # iOS (SwiftUI + SwiftData)
 
-**Out of service since 2026-08-29.** The API needs a session and this client never opens one, so all its calls get 401. Do not "fix" it while doing other work. There are three possible outcomes (catch it up, freeze it, remove it). They are weighed in `../docs/AUDIT_TECHNIQUE.md` (finding C4). The choice is a product decision and it has not been made. Ask before you invest in it.
+**Hors service depuis le 2026-08-29.** L'API exige une session et ce client n'en ouvre aucune : tous ses appels reçoivent 401. Ne le « répare » pas au passage d'un autre travail. Trois issues sont possibles (le rattraper, le geler, le retirer), pesées dans `../docs/AUDIT_TECHNIQUE.md` (constat C4). Le choix est une décision de produit qui n'a pas été prise. Demande avant d'y investir.
 
-What it would take to bring it back: the four `/auth/*` routes, the `XSRF-TOKEN` cookie sent back as `X-XSRF-TOKEN` on writes (the helpers `post`/`patch`/`postEmpty`/`delete` in `APIClient.swift`), a login screen and a gate in `IozyCoreApp.swift`. Details are in `README.md`.
+Ce qu'il faudrait pour le remettre en marche : les quatre routes `/auth/*`, le cookie `XSRF-TOKEN` renvoyé en `X-XSRF-TOKEN` sur les écritures (les helpers `post`/`patch`/`postEmpty`/`delete` de `APIClient.swift`), un écran de connexion et une porte dans `IozyCoreApp.swift`. Détails dans `README.md`.
 
-## If you must touch it
+## Si tu dois y toucher
 
-- You need a Mac with Xcode 15+ and XcodeGen: `xcodegen generate`, then open `IozyCore.xcodeproj` (ignored by git, generated from `project.yml`). On this Windows machine you cannot build or test this folder.
-- Organised by feature: `DesignSystem/`, `Models/`, `Networking/` (`APIClient` + one extension per domain), `Features/` (one folder per screen).
-- An API call goes in `APIClient+<Domain>.swift`, never in a view. DTOs are Codable `struct`s that mirror the Java DTOs 1:1.
-- No hard-coded colours or fonts: use `Theme.xxx` and the components in `DesignSystem/`.
-- A trap met twice: `private`/`fileprivate` are invisible from another file, so anything shared (DTOs, network helpers) must be `internal`. Never make a Foundation type (`UUID`, …) conform to a protocol it already implements.
-- To rename the app: only `Config.xcconfig` (`APP_NAME`, `APP_BUNDLE_ID`), then `xcodegen generate`.
+- Il faut un Mac avec Xcode 15+ et XcodeGen : `xcodegen generate`, puis ouvrir `IozyCore.xcodeproj` (ignoré par git, généré depuis `project.yml`). Sur cette machine Windows, tu ne peux ni compiler ni tester ce dossier.
+- Organisation par fonctionnalité : `DesignSystem/`, `Models/`, `Networking/` (`APIClient` + une extension par domaine), `Features/` (un dossier par écran).
+- Un appel API va dans `APIClient+<Domaine>.swift`, jamais dans une vue. Les DTO sont des `struct` Codable en miroir 1:1 des DTO Java.
+- Pas de couleurs ni de polices en dur : `Theme.xxx` et les composants de `DesignSystem/`.
+- Piège rencontré deux fois : `private`/`fileprivate` sont invisibles depuis un autre fichier, donc ce qui est partagé (DTO, helpers réseau) doit être `internal`. Ne fais jamais conformer un type Foundation (`UUID`…) à un protocole qu'il implémente déjà.
+- Renommer l'app : seulement `Config.xcconfig` (`APP_NAME`, `APP_BUNDLE_ID`), puis `xcodegen generate`.

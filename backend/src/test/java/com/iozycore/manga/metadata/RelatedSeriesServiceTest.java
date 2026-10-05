@@ -25,10 +25,10 @@ class RelatedSeriesServiceTest {
 
     @Test
     void ignores_a_related_title_that_does_not_share_the_original_titles_prefix() {
-        // Cas réel observé (voir historique) : MyAnimeList indexe le spin-off
-        // de "Demon Slayer" sous son titre romaji d'origine ("Kimetsu
-        // Gakuen!"), sans aucun mot commun avec "Demon Slayer" - rien
-        // d'exploitable, limite acceptée.
+        // Real case seen (see history): MyAnimeList indexes the spin-off
+        // of "Demon Slayer" under its original romaji title ("Kimetsu
+        // Gakuen!"), with no word in common with "Demon Slayer" - nothing
+        // usable, accepted limit.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Kimetsu Gakuen!"))));
 
@@ -39,9 +39,9 @@ class RelatedSeriesServiceTest {
 
     @Test
     void ignores_a_suffix_too_short_to_be_compared_safely() {
-        // "Naruto Ex" + "Naruto" -> "Ex", trop court ET ni entièrement en
-        // majuscules ni collé à un ":" (voir les deux cas assouplis
-        // ci-dessous) - reste filtré, limite acceptée.
+        // "Naruto Ex" + "Naruto" -> "Ex", too short AND neither fully in
+        // capitals nor stuck to a ":" (see the two relaxed cases
+        // below) - stays filtered, accepted limit.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Naruto Ex"))));
 
@@ -52,13 +52,13 @@ class RelatedSeriesServiceTest {
 
     @Test
     void keeps_a_short_suffix_glued_to_a_colon_without_a_space() {
-        // Cas réel trouvé en continuant les tests sur "Tokyo Ghoul" (voir
-        // historique) : "Tokyo Ghoul:re" (tagué "sequel" sur MyAnimeList, une
-        // suite avec sa propre histoire) donne le suffixe "re" - seulement 2
-        // caractères ET minuscule, mais collé à un ":" SANS espace, une
-        // stylisation de titre bien plus distinctive qu'un mot générique
-        // isolé - sans cet assouplissement, il ressortait comme une fausse
-        // édition nommée "Re" avec ses 10 tomes dans la recherche de tomes.
+        // Real case found while continuing the tests on "Tokyo Ghoul" (see
+        // history): "Tokyo Ghoul:re" (tagged "sequel" on MyAnimeList, a
+        // sequel with its own story) gives the suffix "re" - only 2
+        // characters AND lowercase, but stuck to a ":" WITHOUT a space, a
+        // title styling much more distinctive than an isolated generic
+        // word - without this relaxation, it came out as a false
+        // edition named "Re" with its 10 volumes in the volume search.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Tokyo Ghoul:re"))));
 
@@ -69,9 +69,9 @@ class RelatedSeriesServiceTest {
 
     @Test
     void ignores_a_short_suffix_after_a_colon_followed_by_a_space() {
-        // Contrairement au cas ci-dessus, un ":" SUIVI d'un espace annonce
-        // d'ordinaire un sous-titre descriptif classique, pas une
-        // continuation stylisée - reste soumis au seuil de 4 caractères.
+        // Unlike the case above, a ":" FOLLOWED by a space usually announces
+        // a classic descriptive subtitle, not a
+        // styled continuation - stays subject to the threshold of 4 characters.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Tokyo Ghoul: Ex"))));
 
@@ -82,11 +82,11 @@ class RelatedSeriesServiceTest {
 
     @Test
     void keeps_a_short_all_uppercase_suffix_like_an_edition_acronym() {
-        // Cas réel signalé par l'utilisateur en testant "Dragon Ball" (voir
-        // historique) : "Dragon Ball SD" -> suffixe "SD", seulement 2
-        // caractères mais entièrement en majuscules - contrairement au "re"
-        // générique ci-dessus, un sigle de ce type est bien assez distinctif
-        // pour être comparé sans risque de faux positif.
+        // Real case reported by the user while testing "Dragon Ball" (see
+        // history): "Dragon Ball SD" -> suffix "SD", only 2
+        // characters but fully in capitals - unlike the generic "re"
+        // above, an acronym of this type is distinctive enough
+        // to be compared with no risk of a false positive.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Dragon Ball SD"))));
 
@@ -97,14 +97,14 @@ class RelatedSeriesServiceTest {
 
     @Test
     void keeps_a_single_letter_suffix_when_both_relaxations_apply_at_once() {
-        // Cas réel trouvé en continuant les tests sur "Gantz" (voir
-        // historique) : "Gantz:E" (tagué "alternative_setting", un spin-off
-        // à l'univers alternatif) donne le suffixe "E" - une SEULE lettre,
-        // ni le seuil "sigle majuscule" ni le seuil "collé à un :" pris
-        // isolément (2 caractères chacun) ne suffit, mais leur combinaison
-        // (majuscule ET collée) est un signal encore plus distinctif -
-        // sans cet assouplissement, "Gantz:E" ressortait comme une fausse
-        // édition nommée "E".
+        // Real case found while continuing the tests on "Gantz" (see
+        // history): "Gantz:E" (tagged "alternative_setting", a spin-off
+        // in the alternative universe) gives the suffix "E" - a SINGLE letter,
+        // neither the "capital acronym" threshold nor the "stuck to a :" threshold taken
+        // alone (2 characters each) is enough, but their combination
+        // (capital AND stuck) is an even more distinctive signal -
+        // without this relaxation, "Gantz:E" came out as a false
+        // edition named "E".
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Gantz:E"))));
 
@@ -115,11 +115,11 @@ class RelatedSeriesServiceTest {
 
     @Test
     void falls_back_to_the_romaji_title_when_the_related_title_does_not_share_the_english_titles_prefix() {
-        // Cas réel signalé en testant "Attack on Titan" (voir historique) :
-        // le titre retenu côté client est le titre anglais ("Attack on
-        // Titan"), mais MyAnimeList indexe son spin-off "Before the Fall"
-        // sous le titre romaji de la série ("Shingeki no Kyojin") - aucun
-        // lien avec le titre anglais, mais un préfixe exact avec le romaji.
+        // Real case reported while testing "Attack on Titan" (see history):
+        // the title kept on the client side is the English title ("Attack on
+        // Titan"), but MyAnimeList indexes its spin-off "Before the Fall"
+        // under the romaji title of the series ("Shingeki no Kyojin") - no
+        // link with the English title, but an exact prefix with the romaji.
         RelatedSeriesService service = new RelatedSeriesService(
                 List.of(new FakeRelatedSeriesProvider(List.of("Shingeki no Kyojin: Before the Fall"))));
 

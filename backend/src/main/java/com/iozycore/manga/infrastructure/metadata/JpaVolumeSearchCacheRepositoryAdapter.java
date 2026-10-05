@@ -31,9 +31,9 @@ public class JpaVolumeSearchCacheRepositoryAdapter implements VolumeSearchCacheR
 
     @Override
     public void save(UUID entityTypeId, String seriesTitle, String author, List<VolumeCandidate> volumes) {
-        // Upsert : réutilise l'id existant pour cette clé (rafraîchissement),
-        // sinon en crée une nouvelle - jamais deux lignes pour la même clé
-        // (contrainte UNIQUE côté base, voir V3__volume_search_cache.sql).
+        // Upsert: reuses the existing id for this key (refresh),
+        // otherwise creates a new one - never two rows for the same key
+        // (UNIQUE constraint on the database side, see V3__volume_search_cache.sql).
         UUID id = jpaRepository.findByEntityTypeIdAndSeriesTitleAndAuthor(entityTypeId, seriesTitle, author)
                 .map(VolumeSearchCacheJpaEntity::getId)
                 .orElseGet(UUID::randomUUID);

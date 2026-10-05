@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Les œuvres suivies du compte courant - cloisonnées par propriétaire, comme les envies. */
+/** The followed works of the current account - separated by owner, like the wishes. */
 public interface FollowedWorkRepository {
 
     FollowedWork save(FollowedWork work);
@@ -13,6 +13,6 @@ public interface FollowedWorkRepository {
 
     List<FollowedWork> findAll();
 
-    /** Idempotent : ne pas suivre est aussi le cas normal, rien à signaler. */
+    /** Idempotent: not following is also the normal case, nothing to report. */
     void deleteByEntityId(UUID entityId);
 }

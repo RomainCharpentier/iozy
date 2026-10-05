@@ -5,26 +5,25 @@ import java.math.RoundingMode;
 import java.util.List;
 
 /**
- * Ce que cette annonce apporte <b>à cette collection-ci</b>.
+ * What this listing brings <b>to this collection</b>.
  *
- * <h2>La question que personne d'autre ne peut poser</h2>
- * N'importe quel comparateur sait dire « ce lot est 18 % sous la médiane ».
- * Aucun ne sait dire « tu en possèdes déjà quatre ». C'est pourtant ce
- * deuxième chiffre qui décide : un lot de 14 tomes à 70 € dont 4 sont des
- * doublons ne coûte pas 5 € le tome, il coûte <b>7 € le tome qui te sert</b>.
- * Le premier chiffre flatte l'affaire, le second la juge.
+ * <h2>The question nobody else can ask</h2>
+ * Any comparison tool can say "this lot is 18 % under the median". None can
+ * say "you already own four of them". Yet this second number is the one that
+ * decides: a lot of 14 volumes at 70 EUR with 4 duplicates does not cost
+ * 5 EUR a volume, it costs <b>7 EUR per volume that is useful to you</b>.
+ * The first number flatters the deal, the second one judges it.
  *
- * <h2>Trois états, pas deux</h2>
- * Un élément est possédé, manquant, ou souhaité. « Souhaité » n'est pas une
- * nuance de « manquant » : c'est une intention déjà formulée
- * (<i>Wishlist ≠ Ownership</i>, invariant du modèle), et un lot qui recoupe les
- * envies vaut plus qu'un lot qui recoupe simplement des trous.
+ * <h2>Three states, not two</h2>
+ * An item is owned, missing, or wished. "Wished" is not a shade of "missing":
+ * it is an intention already stated
+ * (<i>Wishlist ≠ Ownership</i>, an invariant of the model), and a lot that
+ * overlaps the wishes is worth more than a lot that simply overlaps gaps.
  *
- * <h2>Domaine pur</h2>
- * Construit à partir de nombres déjà calculés par l'analyse par série. Aucun
- * accès base, réseau ou Spring : la règle « qu'est-ce qui m'est utile » est
- * testable telle quelle, et vaut aussi bien pour une annonce Vinted que pour
- * une annonce saisie à la main.
+ * <h2>Pure domain</h2>
+ * Built from numbers already computed by the per-series analysis. No database,
+ * network or Spring access: the rule "what is useful to me" can be tested as it
+ * is, and it works as well for a Vinted listing as for a listing typed by hand.
  */
 public record CollectionFit(int detectedItemCount, int ownedItemCount, int missingItemCount,
                              int wishlistedItemCount, int usefulItemCount,
@@ -32,44 +31,44 @@ public record CollectionFit(int detectedItemCount, int ownedItemCount, int missi
                              CollectionInterest interest) {
 
     /**
-     * Ce que le lot représente pour cette collection. Nommé plutôt que noté :
-     * « 62/100 » ne se discute pas, « la moitié du lot est en doublon » si.
+     * What the lot means for this collection. Named rather than scored:
+     * "62/100" cannot be discussed, "half of the lot is duplicates" can.
      */
     public enum CollectionInterest {
-        /** Tout est déjà possédé - le lot n'apporte rien, quel que soit son prix. */
+        /** Everything is already owned - the lot brings nothing, whatever its price. */
         NOTHING_NEW,
-        /** Majoritairement des doublons. */
+        /** Mostly duplicates. */
         MOSTLY_DUPLICATES,
-        /** Un apport réel, mêlé de doublons. */
+        /** A real contribution, mixed with duplicates. */
         PARTIALLY_USEFUL,
-        /** Presque tout manque. */
+        /** Almost everything is missing. */
         HIGHLY_USEFUL,
-        /** Aucun élément n'a pu être identifié : rien à dire, et surtout rien à inventer. */
+        /** No item could be identified: nothing to say, and above all nothing to make up. */
         UNKNOWN
     }
 
-    /** Au-delà de cette part d'éléments utiles, le lot est un vrai apport. */
+    /** Above this share of useful items, the lot is a real contribution. */
     private static final double SEUIL_TRES_UTILE = 0.8;
-    /** En dessous, le lot sert surtout à racheter ce qu'on a déjà. */
+    /** Below it, the lot mostly serves to buy again what we already have. */
     private static final double SEUIL_SURTOUT_DOUBLONS = 0.4;
 
-    /** Rien n'a été identifié : le reste de l'analyse continue, cette dimension se tait. */
+    /** Nothing was identified: the rest of the analysis goes on, this dimension stays silent. */
     public static CollectionFit unknown() {
         return new CollectionFit(0, 0, 0, 0, 0, null, null, CollectionInterest.UNKNOWN);
     }
 
     /**
-     * @param totalCost coût réel total du lot (prix + frais), ou {@code null} s'il n'est pas calculable
-     * @param wishlisted éléments du lot déjà présents dans les envies - sous-ensemble des manquants
+     * @param totalCost real total cost of the lot (price + fees), or {@code null} if it cannot be computed
+     * @param wishlisted items of the lot already in the wishes - a subset of the missing ones
      */
     public static CollectionFit of(int detected, int owned, int wishlisted, BigDecimal totalCost) {
         if (detected <= 0) {
             return unknown();
         }
         int manquants = Math.max(0, detected - owned);
-        // Un élément déjà possédé n'est pas utile : on ne suppose jamais qu'un
-        // second exemplaire fait plaisir. Si le modèle vient un jour à exprimer
-        // un souhait de doublon, c'est ICI que la règle changera, à un endroit.
+        // An item already owned is not useful: we never assume that a
+        // second copy is welcome. If the model one day expresses a wish
+        // for a duplicate, the rule will change HERE, in one place.
         int utiles = manquants;
 
         BigDecimal parElement = diviser(totalCost, detected);
@@ -99,7 +98,7 @@ public record CollectionFit(int detectedItemCount, int ownedItemCount, int missi
                 : CollectionInterest.PARTIALLY_USEFUL;
     }
 
-    /** Somme les analyses par série déjà produites - une seule source de vérité pour les doublons. */
+    /** Adds up the per-series analyses already produced - a single source of truth for duplicates. */
     public static CollectionFit fromItemBreakdown(List<ItemAnalysis> items, int wishlisted, BigDecimal totalCost) {
         if (items == null || items.isEmpty()) {
             return unknown();
@@ -113,16 +112,16 @@ public record CollectionFit(int detectedItemCount, int ownedItemCount, int missi
         return of(detected, owned, wishlisted, totalCost);
     }
 
-    // @JsonIgnore : aides dérivées, pas des champs. Sans ça, l'auto-détection
-    // des getters les sérialise en propriétés supplémentaires qui ne
-    // correspondent à aucun composant, et la relecture du payload JSONB casse
-    // (même piège que CollectionStatus).
+    // @JsonIgnore: derived helpers, not fields. Without it, the getter
+    // auto-detection serializes them as extra properties that match no
+    // component, and reading the JSONB payload back breaks
+    // (same trap as CollectionStatus).
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isKnown() {
         return interest != CollectionInterest.UNKNOWN;
     }
 
-    /** Vrai quand le lot n'apporte rien : le prix par élément utile n'existe alors pas, et ne doit pas être affiché. */
+    /** True when the lot brings nothing: the price per useful item then does not exist, and must not be shown. */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean bringsNothing() {
         return interest == CollectionInterest.NOTHING_NEW;

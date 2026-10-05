@@ -10,11 +10,11 @@ interface BarcodeLookupFieldProps {
 }
 
 /**
- * Pas de scan caméra en v1 (usage desktop) - saisie manuelle du code-barres/
- * ISBN à la place, qui appelle quand même le lookup backend (mangas
- * uniquement, comme côté iOS : Open Library ne couvre que l'ISBN livre).
- * Un 404 (pas de correspondance) n'est pas une erreur, juste "rien trouvé".
- */
+  * No camera scan in v1 (desktop use) - manual entry of the barcode/
+  * ISBN instead, which still calls the backend lookup (manga
+  * only, as on iOS: Open Library only covers the book ISBN).
+  * A 404 (no match) is not an error, just "nothing found".
+  */
 export function BarcodeLookupField({ entityTypeId, onFound }: BarcodeLookupFieldProps) {
   const [barcode, setBarcode] = useState('')
   const [notFound, setNotFound] = useState(false)

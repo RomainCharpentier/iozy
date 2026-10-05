@@ -2,21 +2,21 @@ import { Link } from 'react-router-dom'
 import { GlobalShortcuts } from './GlobalShortcuts'
 
 /**
- * En-tête mobile (< 768px, voir AppShell.NAV_BREAKPOINT_PX) - volontairement
- * réduit à ce que la barre du pouce ne peut pas porter : le nom de l'app, les
- * Envies et le Profil.
+ * Mobile header (< 768px, see AppShell.NAV_BREAKPOINT_PX) - deliberately
+ * reduced to what the thumb bar cannot carry: the name of the app, the
+ * Wishes and the Profile.
  * <p>
- * La navigation globale est celle de NAV_ITEMS (voir navItems) : Envies et
- * Profil n'en font pas partie - les Envies sont une lecture de Ma collection,
- * le Profil n'est pas une intention - et n'ont donc rien à faire dans la
- * barre basse.
- * Mais faute de tout en-tête en mobile, ils n'étaient accessibles nulle part -
- * et avec eux disparaissaient Paramètres, Administration, l'export, le bilan
- * annuel et les deux liens de partage (voir docs/USER_JOURNEYS.md §12.1).
+ * The global navigation is that of NAV_ITEMS (see navItems): Wishes and
+ * Profile are not part of it - the Wishes are a reading of Ma collection,
+ * the Profile is not an intention - and so have no place in the
+ * bottom bar.
+ * But without any header on mobile, they were reachable nowhere -
+ * and with them disappeared Settings, Administration, the export, the yearly
+ * recap and the two sharing links (see docs/USER_JOURNEYS.md §12.1).
  * <p>
- * Pas de menu global ici : cet en-tête ne doit jamais devenir le tiroir
- * fourre-tout de toutes les fonctionnalités. Chaque outil reste dans l'espace
- * auquel il appartient.
+ * No global menu here: this header must never become the catch-all
+ * drawer of all the features. Each tool stays in the space
+ * it belongs to.
  */
 export function MobileHeader() {
   return (

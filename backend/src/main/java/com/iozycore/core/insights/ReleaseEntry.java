@@ -4,36 +4,36 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Une ligne du calendrier des sorties : ce qui sort, quand, et ce que ça
- * représente pour la collection de l'utilisateur.
+ * A line of the release calendar: what comes out, when, and what it
+ * represents for the collection of the user.
  *
- * <p>La relation est ce qui distingue un calendrier d'une page de nouveautés :
- * un tome qui sort et qu'on n'a pas est une action, un tome qu'on a déjà est
- * une confirmation, une œuvre qu'on veut est une attente. Elle est toujours
- * écrite - la même règle que les opportunités de Découvrir (« la raison,
- * toujours écrite »).
+ * <p>The relation is what tells a calendar apart from a page of new releases:
+ * a volume that comes out and that we do not have is an action, a volume we already have is
+ * a confirmation, a work we want is an expectation. It is always
+ * written - the same rule as the opportunities of Discover ("the reason,
+ * always written").
  *
- * @param date         quand, à la précision que la source connaît
- * @param entityId     l'œuvre du catalogue - la ligne y mène
- * @param entityTitle  son titre, tel que la fiche l'affiche
- * @param entityTypeId sa catégorie - le client filtre et étiquette par elle
- * @param label        ce qui sort au sein de l'œuvre (« Tome 42 · Kana »), vide quand c'est l'œuvre elle-même
- * @param volumeNumber le numéro de tome, ou {@code null} hors manga
- * @param editionName  l'édition du tome, ou {@code null}
- * @param coverImageUrl la jaquette de ce qui sort, ou {@code null}
- * @param relation     ce que cette sortie représente pour la collection
- * @param source       d'où vient la date - nommée, jamais devinée
+ * @param date         when, at the precision the source knows
+ * @param entityId     the work of the catalog - the line leads to it
+ * @param entityTitle  its title, as the detail page displays it
+ * @param entityTypeId its category - the client filters and labels by it
+ * @param label        what comes out within the work ("Volume 42 · Kana"), empty when it is the work itself
+ * @param volumeNumber the volume number, or {@code null} outside manga
+ * @param editionName  the edition of the volume, or {@code null}
+ * @param coverImageUrl the cover of what comes out, or {@code null}
+ * @param relation     what this release represents for the collection
+ * @param source       where the date comes from - named, never guessed
  */
 public record ReleaseEntry(ReleaseDate date, UUID entityId, String entityTitle, UUID entityTypeId,
                             String label, Integer volumeNumber, String editionName, String coverImageUrl,
                             Relation relation, String source) {
 
     public enum Relation {
-        /** Déjà dans la collection. */
+        /** Already in the collection. */
         OWNED,
-        /** L'œuvre est dans la collection, ce tome-là n'y est pas. */
+        /** The work is in the collection, this volume is not. */
         MISSING,
-        /** Dans les envies. */
+        /** In the wishes. */
         WANTED
     }
 

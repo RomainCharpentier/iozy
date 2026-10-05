@@ -15,13 +15,13 @@ import { Squelette } from '@/common/components/Squelette'
 const MAX_PREVIEW = 3
 
 /**
- * Panneau "Opportunités" de Découvrir (voir DS v1.1 §44) - adapté du moteur
- * "Suggestions d'achats" déjà existant (PurchaseAnalysisService.
- * findNearCompleteSuggestions) : séries possédées presque complètes,
- * triées par nombre de tomes manquants. "La raison, toujours écrite" (voir
- * commentaire source du mock) - jamais une carte prix nu sans expliquer
- * pourquoi elle est là. "Voir tout" renvoie vers l'écran Suggestions
- * existant plutôt que dupliquer la liste complète ici.
+ * "Opportunités" panel of Découvrir (see DS v1.1 section 44) - adapted from the existing
+ * "Suggestions d'achats" engine (PurchaseAnalysisService.
+ * findNearCompleteSuggestions): owned series that are almost complete,
+ * sorted by number of missing volumes. "The reason, always written" (see
+ * the source comment of the mock) - never a bare price card without explaining
+ * why it is there. "Voir tout" links to the existing Suggestions
+ * screen rather than duplicating the full list here.
  */
 export function DiscoverOpportunitiesPreview() {
   const navigate = useNavigate()
@@ -29,9 +29,9 @@ export function DiscoverOpportunitiesPreview() {
     queryKey: queryKeys.purchaseAnalysis.nearCompleteSuggestions,
     queryFn: getNearCompleteSuggestions,
   })
-  // Jaquettes : la suggestion ne porte pas coverImageUrl (donnée calculée,
-  // pas un DTO d'entité) - réutilise le cache déjà chaud de Ma collection
-  // le cas échéant plutôt qu'un nouvel endpoint dédié pour 3 miniatures.
+  // Covers: the suggestion does not carry coverImageUrl (computed data,
+  // not an entity DTO) - reuses the already warm cache of My collection
+  // when available rather than a new dedicated endpoint for 3 thumbnails.
   const entitiesQuery = useQuery({ queryKey: queryKeys.entities.search({}), queryFn: () => searchEntities({}) })
 
   const suggestions = (suggestionsQuery.data ?? []).slice(0, MAX_PREVIEW)
@@ -73,7 +73,7 @@ export function DiscoverOpportunitiesPreview() {
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <TexteCoupe texte={s.seriesTitle} className="truncate text-sm font-semibold text-textPrimary" />
               <TexteCoupe texte={s.editionName} className="truncate text-xs text-textDim" />
-              {/* La raison, toujours écrite : sinon c'est une page de promos. */}
+              {/* The reason, always written: otherwise it is a page of promotions. */}
               <span className="text-xs font-semibold text-accentText">
                 {s.missingCount} tome{s.missingCount > 1 ? 's' : ''} manquant{s.missingCount > 1 ? 's' : ''} pour compléter
                 {s.estimatedCostToComplete !== null &&
@@ -88,9 +88,9 @@ export function DiscoverOpportunitiesPreview() {
         })}
       </div>
 
-      {/* Plus de lien « Évaluer une annonce » ici : depuis le lot 137, la porte
-          de l'analyse est en tête de Découvrir, sur tous les onglets - un
-          second lien dans ce panneau n'aurait fait que la doubler. */}
+      {/* No more "Évaluer une annonce" link here: since batch 137, the entry
+          of the analysis is at the top of Découvrir, on all the tabs - a
+          second link in this panel would only have doubled it. */}
     </div>
   )
 }

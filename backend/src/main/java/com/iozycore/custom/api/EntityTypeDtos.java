@@ -10,31 +10,31 @@ public final class EntityTypeDtos {
     private EntityTypeDtos() {
     }
 
-    /** code est normalisé côté domaine (UPPER_SNAKE_CASE) - peu importe ce que le client envoie. */
+    /** code is normalised on the domain side (UPPER_SNAKE_CASE) - no matter what the client sends. */
     public record CreateEntityTypeRequest(String code, String label, Set<String> allowedExperienceTypes,
                                            Set<String> customFieldKeys, String colorKey, String iconKey,
                                            String aspectKey) {
     }
 
-    /** Le code n'est jamais modifiable après création (voir EntityType.withUpdatedFields). */
+    /** The code can never be changed after creation (see EntityType.withUpdatedFields). */
     public record UpdateEntityTypeRequest(String label, Set<String> allowedExperienceTypes,
                                            Set<String> customFieldKeys, String colorKey, String iconKey,
                                            String aspectKey) {
     }
 
-    /** hasMetadataProvider : au moins un MetadataProvider (Jikan/BGG/IGDB) supporte ce type - permet
-     * aux clients de savoir s'il est légitime d'exiger une correspondance avant de valider un ajout
-     * rapide (jamais le cas pour un type personnalisé, qui n'a par construction aucun fournisseur). */
-    /** colorKey/iconKey : identité visuelle choisie par l'utilisateur, null = visuel
-     * par défaut côté client (voir EntityType). Ce sont des CLÉS, pas des couleurs :
-     * c'est le client qui les traduit, et lui seul sait s'adapter au thème. */
-    /** hasDiscoverySource : un univers sait proposer des decouvertes a partir de ce qu'on possede
-     * (DiscoverySource - meme auteur pour le manga, jeux proches pour le jeu video, jeux en vue aux
-     * memes mecaniques pour le jeu de societe). C'est le type qui le dit au client, jamais une liste
-     * de codes ecrite dans l'ecran (lot 142) : un type personnalise n'en a aucune. */
-    /** hasReleaseSource : un univers sait dater les sorties de ce type sans qu'on les saisisse (ReleaseSource -
-     * Google Books pour les tomes d'un manga, IGDB pour un jeu video, lot 146). Un type que personne ne couvre
-     * n'a au calendrier que les dates saisies sur ses fiches, et c'est le type qui le dit au client. */
+    /** hasMetadataProvider: at least one MetadataProvider (Jikan/BGG/IGDB) supports this type - lets
+     * clients know whether it is legitimate to require a match before confirming a quick
+     * add (never the case for a custom type, which by construction has no provider). */
+    /** colorKey/iconKey: visual identity chosen by the user, null = default visual
+     * on the client side (see EntityType). These are KEYS, not colours:
+     * the client translates them, and only it knows how to adapt to the theme. */
+    /** hasDiscoverySource: a universe can suggest discoveries from what is owned
+     * (DiscoverySource - same author for manga, similar games for video games, trending games with the
+     * same mechanics for board games). The type tells the client this, never a list
+     * of codes written in the screen (batch 142): a custom type has none. */
+    /** hasReleaseSource: a universe can date the releases of this type without them being entered (ReleaseSource -
+     * Google Books for the volumes of a manga, IGDB for a video game, batch 146). A type that nobody covers
+     * has on the calendar only the dates entered on its work pages, and the type tells the client this. */
     public record EntityTypeResponse(UUID id, String code, String label, Set<String> allowedExperienceTypes,
                                       Set<String> customFieldKeys, boolean hasMetadataProvider,
                                       boolean hasDiscoverySource, boolean hasReleaseSource,

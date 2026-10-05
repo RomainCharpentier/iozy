@@ -24,14 +24,14 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * "Export complet des données (JSON/CSV)" (§19, docs/CONCEPTION.md) -
- * anti-enfermement, même auto-hébergé : toute la collection téléchargeable
- * en un clic, dans un format ouvert et lisible sans l'app (voir
- * ExportDocument/ExportCsvWriter). Lecture seule, aucun état modifié.
+ * "Full data export (JSON/CSV)" (§19, docs/CONCEPTION.md) -
+ * anti lock-in, even self-hosted: the whole collection downloadable
+ * in one click, in an open format readable without the app (see
+ * ExportDocument/ExportCsvWriter). Read only, no state modified.
  */
 @RestController
 @RequestMapping("/api/export")
-@Tag(name = "Export", description = "Export complet de la collection (anti-enfermement) - JSON ou CSV/ZIP")
+@Tag(name = "Export", description = "Full export of the collection (anti lock-in) - JSON or CSV/ZIP")
 public class ExportController {
 
     private final ExportService exportService;
@@ -42,8 +42,8 @@ public class ExportController {
         this.csvWriter = csvWriter;
     }
 
-    @Operation(summary = "Export JSON complet de la collection (entités, tomes/variants, possessions, "
-            + "expériences, wishlist, relations, tags) - un seul fichier auto-suffisant")
+    @Operation(summary = "Full JSON export of the collection (entities, volumes/variants, ownerships, "
+            + "experiences, wishlist, relationships, tags) - a single self-sufficient file")
     @GetMapping("/json")
     public ResponseEntity<ExportDocument> json() {
         ExportDocument document = exportService.buildExportDocument();
@@ -53,8 +53,8 @@ public class ExportController {
                 .body(document);
     }
 
-    @Operation(summary = "Export CSV complet de la collection - un fichier .zip contenant un .csv par type "
-            + "de ressource (entities, variants, ownerships, experiences, wishlist, relationships, tags)")
+    @Operation(summary = "Full CSV export of the collection - a .zip file containing one .csv per "
+            + "resource type (entities, variants, ownerships, experiences, wishlist, relationships, tags)")
     @GetMapping("/csv")
     public ResponseEntity<byte[]> csv() {
         ExportDocument document = exportService.buildExportDocument();

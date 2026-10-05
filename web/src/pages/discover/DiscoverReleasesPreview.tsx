@@ -12,11 +12,11 @@ import { Squelette } from '@/common/components/Squelette'
 const MAX_PREVIEW = 3
 
 /**
- * Panneau « Prochaines sorties » de Découvrir - de retour au lot 146, avec des
- * données cette fois : les trois premières sorties des trois mois à venir,
- * pour ce qu'on possède ou veut. « Tout voir » mène au calendrier complet,
- * même endpoint, plutôt que de dupliquer la liste ici (même montage que les
- * opportunités).
+ * "Prochaines sorties" panel of Découvrir - back in batch 146, with
+ * data this time: the first three releases of the next three months,
+ * for what one owns or wants. "Tout voir" leads to the full calendar,
+ * same endpoint, rather than duplicating the list here (same setup as the
+ * opportunities).
  */
 export function DiscoverReleasesPreview() {
   const { from, to } = periodeAVenir(new Date())

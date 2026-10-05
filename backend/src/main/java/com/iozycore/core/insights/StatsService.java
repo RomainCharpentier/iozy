@@ -30,10 +30,10 @@ import java.util.stream.Collectors;
 import com.iozycore.core.insights.CollectionProgress;
 
 /**
- * Point d'entrée du Bounded Context Insights (étape 8) côté statistiques -
- * lecture pure, ne modifie jamais Catalog/Ownership/Experience/Wishlist.
- * Consomme leurs repositories directement plutôt que des domain events :
- * voir StatsSummary pour la justification de ce choix pragmatique.
+ * Entry point of the Insights Bounded Context (step 8) on the statistics side -
+ * pure read, never modifies Catalog/Ownership/Experience/Wishlist.
+ * Consumes their repositories directly rather than domain events:
+ * see StatsSummary for the justification of this pragmatic choice.
  */
 @Service
 public class StatsService {
@@ -44,7 +44,7 @@ public class StatsService {
     private final WishlistEntryRepository wishlistEntryRepository;
     private final TagRepository tagRepository;
     private final EntityTypeRepository entityTypeRepository;
-    /** Les univers qui savent valoriser ce qu'on possède (Lot 133). */
+    /** The universes that know how to value what is owned (Batch 133). */
     private final List<OwnedValueSource> valueSources;
 
     public StatsService(List<OwnedValueSource> valueSources,
@@ -109,12 +109,12 @@ public class StatsService {
     }
 
     /**
-     * "Évolution de ma collection" (Statistiques) - nombre de tomes/exemplaires
-     * ajoutés par mois, du plus ancien au plus récent. Compte tout Ownership
-     * ayant existé ce mois-là (y compris depuis revendu) : c'est la croissance
-     * de la collection au fil du temps qui est montrée, pas son état actuel
-     * (déjà couvert par activeOwnershipCount). Comptages uniquement - aucun
-     * champ de prix d'achat n'existe sur Ownership, voir StatsSummary.MonthlyPoint.
+     * "Evolution of my collection" (Statistics) - number of volumes/copies
+     * added per month, from the oldest to the most recent. Counts every Ownership
+     * that existed that month (including those since resold): it is the growth
+     * of the collection over time that is shown, not its current state
+     * (already covered by activeOwnershipCount). Counts only - no
+     * purchase price field exists on Ownership, see StatsSummary.MonthlyPoint.
      */
     public List<StatsSummary.MonthlyPoint> computeTimeline() {
         Map<YearMonth, Long> byMonth = ownershipRepository.findAll().stream()
@@ -125,12 +125,12 @@ public class StatsService {
     }
 
     /**
-     * "Bilan annuel" (Mon profil) - une année choisie, comptages et un
-     * "auteur le plus présent" heuristique uniquement (attribut "mangaka" ou
-     * "studio" des entités acquises cette année-là) - jamais inventé,
-     * simplement absent (null) si aucune entité acquise cette année ne porte
-     * l'un de ces attributs. Voir YearlyRecap pour la décision de ne jamais
-     * exposer ça via un lien public non authentifié.
+     * "Yearly recap" (My profile) - a chosen year, counts and a heuristic
+     * "most present author" only (attribute "mangaka" or
+     * "studio" of the entities acquired that year) - never invented,
+     * simply absent (null) if no entity acquired that year carries
+     * one of these attributes. See YearlyRecap for the decision to never
+     * expose this through an unauthenticated public link.
      */
     public YearlyRecap computeYearlyRecap(int year) {
         List<Ownership> allOwnerships = ownershipRepository.findAll();
@@ -145,13 +145,13 @@ public class StatsService {
                 .toList();
 
         Set<UUID> entityIdsThisYear = ownershipsThisYear.stream().map(Ownership::entityId).collect(Collectors.toSet());
-        // Le catalogue en UNE requête, puis restreint à l'année demandée.
+        // The catalog in ONE query, then restricted to the requested year.
         //
-        // Une lecture par série acquise dans l'année, c'était le même N+1 que
-        // la valeur de la collection - mesuré à 13 requêtes pour 5 séries et 25
-        // pour 11. Troisième occurrence de la figure du constat C1, et la
-        // dernière de ce fichier : `computeSummary` boucle sur les TYPES, dont
-        // le nombre ne suit pas la collection (vérifié, voir StatsSansN1Test).
+        // One read per series acquired in the year was the same N+1 as
+        // the collection value - measured at 13 queries for 5 series and 25
+        // for 11. Third occurrence of the finding C1 pattern, and the
+        // last of this file: `computeSummary` loops over the TYPES, whose
+        // number does not grow with the collection (checked, see StatsSansN1Test).
         Map<UUID, Entity> entitiesById = entityRepository.search(null, null, null).stream()
                 .filter(entity -> entityIdsThisYear.contains(entity.id()))
                 .collect(Collectors.toMap(Entity::id, entity -> entity));
@@ -169,8 +169,8 @@ public class StatsService {
                 .sorted(Comparator.comparingLong(YearlyRecap.TypeCount::count).reversed())
                 .toList();
 
-        // Une série est "commencée" cette année-là si sa toute première
-        // possession (tous temps confondus) tombe dans cette année.
+        // A series is "started" that year if its very first
+        // possession (all time) falls in that year.
         Map<UUID, LocalDate> earliestAcquiredByEntity = allOwnerships.stream()
                 .collect(Collectors.groupingBy(Ownership::entityId,
                         Collectors.minBy(Comparator.comparing(Ownership::acquiredAt))))
@@ -212,11 +212,11 @@ public class StatsService {
     }
 
     /**
-     * "Calcul automatique de la valeur de la collection" (§15 V2 du document
-     * de conception) - somme des prix d'achat renseignés sur les possessions
-     * actuellement possédées (OWNED), par type. Voir CollectionValue pour le
-     * principe de ne jamais présenter cette somme comme la valeur réelle
-     * complète tant que toutes les possessions n'ont pas un prix renseigné.
+     * "Automatic computation of the collection value" (§15 V2 of the design
+     * document) - sum of the purchase prices filled in on the possessions
+     * currently owned (OWNED), per type. See CollectionValue for the
+     * principle of never presenting this sum as the complete real value
+     * as long as all possessions do not have a price filled in.
      */
     public CollectionValue computeCollectionValue() {
         List<Ownership> activeOwnerships = ownershipRepository.findAll().stream()
@@ -225,23 +225,23 @@ public class StatsService {
 
         Map<UUID, EntityType> typesById = entityTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(EntityType::id, t -> t));
-        // Le catalogue en UNE requête, puis restreint à ce qui est possédé.
+        // The catalog in ONE query, then restricted to what is owned.
         //
-        // Une lecture par possession, c'était une requête par série possédée -
-        // mesuré à 28 requêtes pour 5 séries et 58 pour 11, sur le calcul qui
-        // alimente le hero du Profil. Même figure que le constat C1, corrigé
-        // au Lot 101 sur les suggestions d'achat : la version groupée existait
-        // déjà, elle n'était pas employée ici.
+        // One read per possession was one query per owned series -
+        // measured at 28 queries for 5 series and 58 for 11, on the computation that
+        // feeds the Profile hero. Same pattern as finding C1, fixed
+        // in Batch 101 on the purchase suggestions: the grouped version already
+        // existed, it was not used here.
         Set<UUID> possedees = activeOwnerships.stream().map(Ownership::entityId).collect(Collectors.toSet());
         Map<UUID, Entity> entitiesById = entityRepository.search(null, null, null).stream()
                 .filter(entity -> possedees.contains(entity.id()))
                 .collect(Collectors.toMap(Entity::id, entity -> entity));
 
-        // Prix NEUF de l'édition, jamais le prix payé (décision utilisateur du
-        // 2026-08-27). Ce que vaut une collection ne dépend pas de ce qu'elle a
-        // coûté : un tome trouvé d'occasion à 2 € vaut ce que vaut ce tome.
-        // Et plus aucune surface ne saisit de prix d'achat depuis que l'ajout
-        // tient en un clic - ce calcul-là n'avait plus de source du tout.
+        // NEW price of the edition, never the price paid (user decision of
+        // 2026-08-27). What a collection is worth does not depend on what it
+        // cost: a volume found second-hand at 2 EUR is worth what that volume is worth.
+        // And no surface enters a purchase price anymore since adding
+        // takes one click - this computation had no source at all left.
         BigDecimal totalKnownValue = BigDecimal.ZERO;
         long pricedCount = 0;
         Map<String, BigDecimal> valueByTypeLabel = new HashMap<>();
@@ -255,17 +255,17 @@ public class StatsService {
             totalCountByTypeLabel.merge(typeLabel, 1L, Long::sum);
         }
 
-        // Par ÉDITION et non par possession : c'est l'édition qui porte un prix
-        // neuf, et c'est CollectionProgressService qui sait quels tomes lui
-        // appartiennent - y compris ceux catalogués sans édition précisée (voir
-        // Lot 49, où refaire ce calcul de son côté avait déjà mal tourné).
+        // Per EDITION and not per possession: the edition carries a new
+        // price, and CollectionProgressService knows which volumes belong
+        // to it - including those catalogued with no specified edition (see
+        // Batch 49, where redoing this computation on its own side had already gone wrong).
         //
-        // La progression de TOUTE la collection en une passe : `compute(id)`
-        // par série rouvrait les mêmes tables à chaque tour, et c'est la moitié
-        // du N+1 mesuré ci-dessus.
-        // Ce que vaut le neuf de ce qu'on possede, univers par univers : le
-        // manga sait le prix neuf d'une edition et les tomes possedes, le
-        // coeur ne fait qu'additionner par type (voir OwnedValueSource).
+        // The progress of the WHOLE collection in one pass: `compute(id)`
+        // per series reopened the same tables at each turn, and this is half
+        // of the N+1 measured above.
+        // What the new price of what we own is worth, universe by universe: the
+        // manga knows the new price of an edition and the owned volumes, the
+        // core only adds up per type (see OwnedValueSource).
         for (OwnedValueSource source : valueSources) {
             for (OwnedValueSource.OwnedValue valeur : source.valeurs()) {
                 Entity entity = entitiesById.get(valeur.entityId());

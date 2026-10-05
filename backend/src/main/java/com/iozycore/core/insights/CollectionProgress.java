@@ -4,23 +4,23 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Réponse unique à la question "combien de tomes possédés sur combien",
- * pour une œuvre donnée. Voir {@link CollectionProgressService} pour les
- * règles - ce record ne fait que les transporter.
+ * Single answer to the question "how many volumes owned out of how many",
+ * for a given work. See {@link CollectionProgressService} for the
+ * rules - this record only carries them.
  */
 public record CollectionProgress(UUID entityId, String title, List<EditionProgress> editions,
                                   EditionProgress dominantEdition, int ownedVolumeCount) {
 
     /**
-     * Progression pour UNE édition affichable.
+     * Progress for ONE displayable edition.
      *
-     * @param editionName         nom affiché ("" = tomes sans édition précisée, quand ils forment un groupe à part)
-     * @param sourceEditions      valeurs brutes de l'attribut "edition" couvertes par ce groupe - contient "" en plus
-     *                            du nom quand une fusion a eu lieu (voir CollectionProgressService)
-     * @param ownedVolumeNumbers  numéros de tome RÉELLEMENT possédés (ownership active), triés, sans doublon
-     * @param cataloguedVolumeNumbers numéros de tome connus du catalogue, possédés ou non
-     * @param totalVolumes        total de l'édition de référence, {@code null} si elle n'est pas renseignée -
-     *                            jamais deviné à partir d'un attribut de la série (voir Lot 16)
+     * @param editionName         displayed name ("" = volumes with no specified edition, when they form a separate group)
+     * @param sourceEditions      raw values of the "edition" attribute covered by this group - contains "" in addition
+     *                            to the name when a merge happened (see CollectionProgressService)
+     * @param ownedVolumeNumbers  volume numbers REALLY owned (active ownership), sorted, without duplicates
+     * @param cataloguedVolumeNumbers volume numbers known to the catalog, owned or not
+     * @param totalVolumes        total of the reference edition, {@code null} if it is not filled in -
+     *                            never guessed from an attribute of the series (see Batch 16)
      */
     public record EditionProgress(String editionName, List<String> sourceEditions,
                                    List<Integer> ownedVolumeNumbers, List<Integer> cataloguedVolumeNumbers,
@@ -30,21 +30,21 @@ public record CollectionProgress(UUID entityId, String title, List<EditionProgre
             return ownedVolumeNumbers.size();
         }
 
-        /** {@code null} tant que le total de l'édition est inconnu : "3 tomes" est alors la seule vérité disponible. */
+        /** {@code null} while the total of the edition is unknown: "3 volumes" is then the only truth available. */
         public Integer missingCount() {
             return totalVolumes == null ? null : Math.max(0, totalVolumes - ownedVolumeNumbers.size());
         }
     }
 
-    /** La clé (œuvre, édition) sous laquelle un prix neuf, une progression ou une édition suivie se retrouvent. */
+    /** The (work, edition) key under which a new price, a progress or a followed edition are found. */
     /**
-     * L'identité d'une édition : (œuvre, nom), à la casse et aux espaces près.
+     * The identity of an edition: (work, name), ignoring case and spaces.
      *
-     * <p>Publique parce qu'elle était RECOPIÉE - {@code StatsService} en avait
-     * sa propre version pour valoriser la collection au prix neuf (Lot 56).
-     * Deux copies d'une clé sont deux occasions de diverger, et c'est
-     * exactement ce qui a produit les écarts de progression des Lots 31 et 49 :
-     * la règle vit ici, avec le calcul qu'elle sert.
+     * <p>Public because it was COPIED - {@code StatsService} had
+     * its own version to value the collection at the new price (Batch 56).
+     * Two copies of a key are two chances to diverge, and this is
+     * exactly what produced the progress gaps of Batches 31 and 49:
+     * the rule lives here, with the computation it serves.
      */
     public static String editionKey(UUID entityId, String editionName) {
         return entityId + "|" + editionName.trim().toLowerCase();

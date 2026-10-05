@@ -28,8 +28,8 @@ function sortie(date: string, precision: 'DAY' | 'MONTH' = 'DAY', entityTypeId =
   }
 }
 
-describe('le mois regardé', () => {
-  it('vient de l’URL quand elle est lisible, de l’appareil sinon', () => {
+describe('the watched month', () => {
+  it('comes from the URL when it is readable, from the device otherwise', () => {
     const aujourdHui = new Date(2026, 8, 9)
     expect(moisDepuisParametre('2026-10', aujourdHui)).toBe('2026-10')
     expect(moisDepuisParametre(null, aujourdHui)).toBe('2026-09')
@@ -37,7 +37,7 @@ describe('le mois regardé', () => {
     expect(moisDepuisParametre('2026-13', aujourdHui)).toBe('2026-09')
   })
 
-  it('a ses bornes incluses, février compris, et se tourne dans les deux sens', () => {
+  it('has its bounds included, February included, and turns in both directions', () => {
     expect(bornesDuMois('2026-10')).toEqual({ from: '2026-10-01', to: '2026-10-31' })
     expect(bornesDuMois('2028-02')).toEqual({ from: '2028-02-01', to: '2028-02-29' })
     expect(moisSuivant('2026-12')).toBe('2027-01')
@@ -46,8 +46,8 @@ describe('le mois regardé', () => {
 })
 
 describe('grilleDuMois', () => {
-  it('commence le lundi, complète les semaines avec les mois voisins, et s’arrête à la dernière', () => {
-    // Septembre 2026 commence un mardi et finit un mercredi.
+  it('starts on Monday, completes the weeks with the neighbouring months, and stops at the last one', () => {
+    // September 2026 starts on a Tuesday and ends on a Wednesday.
     const semaines = grilleDuMois('2026-09')
 
     expect(semaines).toHaveLength(5)
@@ -66,14 +66,14 @@ describe('grilleDuMois', () => {
     expect(semaines.flat().filter((c) => !c.horsMois)).toHaveLength(30)
   })
 
-  it('tient en quatre semaines pleines quand le mois s’y prête, six quand il déborde', () => {
-    // Février 2027 : 28 jours, du lundi 1er au dimanche 28.
+  it('fits in four full weeks when the month allows it, six when it overflows', () => {
+    // February 2027: 28 days, from Monday the 1st to Sunday the 28th.
     const court = grilleDuMois('2027-02')
     expect(court).toHaveLength(4)
     expect(court[0][0].iso).toBe('2027-02-01')
     expect(court.flat().some((c) => c.horsMois)).toBe(false)
 
-    // Janvier 2000 commence un samedi : cinq jours de décembre devant, six lignes.
+    // January 2000 starts on a Saturday: five days of December in front, six rows.
     const long = grilleDuMois('2000-01')
     expect(long).toHaveLength(6)
     expect(long[0][0].iso).toBe('1999-12-27')
@@ -82,7 +82,7 @@ describe('grilleDuMois', () => {
 })
 
 describe('rangerParJour', () => {
-  it('groupe par jour dans l’ordre reçu, et met à part ce qui n’a pas de jour', () => {
+  it('groups by day in the received order, and sets apart what has no day', () => {
     const range = rangerParJour([
       sortie('2026-10', 'MONTH'),
       sortie('2026-10-02'),
@@ -97,7 +97,7 @@ describe('rangerParJour', () => {
     ])
   })
 
-  it('compte les sorties par catégorie', () => {
+  it('counts the releases by category', () => {
     const comptes = compterParCategorie([sortie('2026-10-02'), sortie('2026-10-03'), sortie('2026-10-03', 'DAY', 'type-jeu')])
 
     expect([...comptes.entries()]).toEqual([
@@ -106,7 +106,7 @@ describe('rangerParJour', () => {
     ])
   })
 
-  it('distingue deux tomes d’une même œuvre par leur clé', () => {
+  it('tells two volumes of the same work apart by their key', () => {
     const base = sortie('2026-10-02')
     expect(cleDeSortie(base)).not.toBe(cleDeSortie({ ...base, label: 'Tome 73 · Kana' }))
     expect(cleDeSortie(base)).toBe(cleDeSortie({ ...base }))
@@ -114,7 +114,7 @@ describe('rangerParJour', () => {
 })
 
 describe('grouperParMois', () => {
-  it('range dans l’ordre du calendrier, mois par mois, les dates à préciser en fin de mois', () => {
+  it('lays out in calendar order, month by month, the dates to be specified at the end of the month', () => {
     const mars = sortie('2026-03-19')
     const fevrierAPreciser = sortie('2026-02', 'MONTH')
     const fevrier = sortie('2026-02-03')

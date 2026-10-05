@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Un moteur de reconnaissance <b>faux et déterministe</b>, seul moteur que les
- * tests connaissent.
+ * A <b>fake and deterministic</b> recognition engine, the only engine the
+ * tests know.
  *
- * <p>Aucun test de ce dépôt n'appelle Gemini, OpenAI ni aucun modèle distant :
- * une suite qui dépend d'un service payant devient lente, instable et coûteuse,
- * et elle mesurerait la disponibilité d'un tiers plutôt que le code d'IozyCore.
- * Le vrai moteur est vérifié à la main, sur quelques photos, une fois.
+ * <p>No test of this repository calls Gemini, OpenAI or any remote model:
+ * a suite that depends on a paid service becomes slow, unstable and costly,
+ * and it would measure the availability of a third party rather than the IozyCore code.
+ * The real engine is checked by hand, on a few photos, once.
  */
 public class FakeImageRecognitionProvider implements ImageRecognitionProvider {
 
@@ -28,7 +28,7 @@ public class FakeImageRecognitionProvider implements ImageRecognitionProvider {
         return new FakeImageRecognitionProvider(() -> resultat);
     }
 
-    /** Un moteur qui lève - le service ne doit jamais laisser passer ça vers l'utilisateur. */
+    /** An engine that throws - the service must never let that through to the user. */
     public static FakeImageRecognitionProvider quiExplose() {
         return new FakeImageRecognitionProvider(() -> {
             throw new IllegalStateException("moteur de test en panne");

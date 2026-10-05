@@ -1,27 +1,27 @@
 import { get } from './client'
 
 /**
- * Quelle livraison tourne — côté serveur, et côté interface.
+ * Which release is running - on the server side, and on the interface side.
  *
- * <h2>Deux versions, parce qu'il y a deux images</h2>
- * L'API et l'app web sont construites et publiées séparément, puis récupérées
- * séparément par le NAS. Elles viennent du même commit dans l'immense majorité
- * des cas — mais pas toujours : un service worker qui garde l'ancienne coquille,
- * une image sur deux qui n'a pas été tirée, et l'écran ment sans le savoir.
- * N'afficher que celle du serveur reviendrait à la présenter comme celle de
- * l'app, ce qui est faux exactement quand ça compte.
+ * <h2>Two versions, because there are two images</h2>
+ * The API and the web app are built and published separately, then pulled
+ * separately by the NAS. They come from the same commit in the vast majority
+ * of cases - but not always: a service worker that keeps the old shell,
+ * one image out of two that was not pulled, and the screen lies without knowing it.
+ * Showing only the server one would present it as the app one,
+ * which is wrong exactly when it matters.
  */
 
 /**
- * Le numéro de la livraison, figé à la compilation du bundle (voir
- * web/Dockerfile). Hors conteneur, vite.config.ts le dérive des commits et le
- * suffixe de `-dev` (« 1.1.0-dev ») : on sait de quel commit on part, et qu'on
- * ne regarde pas une livraison.
+ * The release number, frozen when the bundle is compiled (see
+ * web/Dockerfile). Outside a container, vite.config.ts derives it from the commits and
+ * adds the suffix `-dev` ("1.1.0-dev"): we know which commit we start from, and that we
+ * are not looking at a release.
  */
 export const VERSION_INTERFACE: string = import.meta.env.VITE_VERSION ?? 'dev'
 
 export interface Version {
-  /** Le numéro de la livraison servie par l'API, ou `dev` hors conteneur. */
+  /** The number of the release served by the API, or `dev` outside a container. */
   version: string
 }
 
@@ -30,29 +30,29 @@ export function lireVersionServeur(): Promise<Version> {
 }
 
 /**
- * Ce qui se lit d'un coup d'œil.
+ * What can be read at a glance.
  *
- * Un Majeure.Mineure.Patch est déjà court, et il se compare — 1.3.1 vient
- * après 1.2.0 — donc il sort tel quel. Restent les formes qui ne se comparent
- * pas et auxquelles on n'invente pas d'ordre : `dev` hors conteneur, et le SHA
- * de 40 caractères des images construites AVANT tout numérotage. Celui-là est
- * tronqué à 7, la forme courte qu'emploient git et GitHub — c'est le seul cas
- * où l'app affiche encore un SHA, et il disparaît dès que les deux images ont
- * été retirées une fois.
+ * A Major.Minor.Patch is already short, and it can be compared - 1.3.1 comes
+ * after 1.2.0 - so it comes out as it is. What remains are the forms that cannot be
+ * compared and to which we do not invent an order: `dev` outside a container, and the SHA
+ * of 40 characters of images built BEFORE any numbering. That one is
+ * cut to 7, the short form used by git and GitHub - this is the only case
+ * where the app still shows a SHA, and it disappears as soon as the two images have
+ * been withdrawn once.
  */
 export function versionCourte(version: string): string {
   return /^[0-9a-f]{40}$/.test(version) ? version.slice(0, 7) : version
 }
 
 /**
- * Une construction locale n'est pas une livraison, et ne se compare donc à
- * rien.
+ * A local build is not a release, and so is not compared to
+ * anything.
  *
- * `dev` et `1.1.0-dev` sortent d'un poste de travail : le premier d'une image
- * construite à la main, le second du serveur de développement. Les confronter
- * à ce que rend l'API - « interface 1.1.0-dev, serveur dev, rechargez » -
- * signalerait un écart à chaque écran alors qu'il n'y a rien à réparer : ce
- * sont deux brouillons, et ils n'ont aucune raison de coïncider.
+ * `dev` and `1.1.0-dev` come from a workstation: the first from an image
+ * built by hand, the second from the development server. Comparing them
+ * to what the API returns - "interface 1.1.0-dev, server dev, reload" -
+ * would flag a mismatch on every screen while there is nothing to fix: they
+ * are two drafts, and they have no reason to match.
  */
 export function estUneLivraison(version: string): boolean {
   return !version.endsWith('dev')

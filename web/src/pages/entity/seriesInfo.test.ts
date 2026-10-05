@@ -1,24 +1,24 @@
 /**
- * <b>Ce qu'on sait d'une série, et ce qu'on refuse d'affirmer.</b>
+ * <b>What we know about a series, and what we refuse to claim.</b>
  *
- * Ces deux attributs viennent d'une source externe et n'existent pas toujours :
- * une série ajoutée à la main n'en a aucun, et le nombre total de tomes n'est
- * stocké que pour les séries dont le fournisseur a arrêté le décompte.
+ * These two attributes come from an external source and do not always exist:
+ * a series added by hand has none, and the total number of volumes is
+ * only stored for series for which the provider has closed the count.
  *
- * <p>La règle est donc partout la même dans ce dépôt, et c'est elle qui se
- * casse en silence : <b>ne jamais affirmer un statut qu'on ne connaît pas</b>.
- * `null` n'est pas « en cours » par défaut - c'est ce qui empêche un « X/Y »
- * de s'afficher avec un dénominateur deviné.
+ * <p>The rule is therefore the same everywhere in this repository, and it is the one that
+ * breaks silently: <b>never claim a status that is not known</b>.
+ * `null` is not "ongoing" by default - this is what prevents an "X/Y"
+ * from being shown with a guessed denominator.
  */
 import { describe, expect, it } from 'vitest'
 import { isSeriesOngoing, totalVolumesFrom } from './seriesInfo'
 
 describe('totalVolumesFrom', () => {
-  it('rend le total quand la source l’a arrêté', () => {
+  it('returns the total when the source has closed it', () => {
     expect(totalVolumesFrom({ totalVolumes: 72 })).toBe(72)
   })
 
-  it('refuse 0, un négatif, un texte, ou l’absence', () => {
+  it('refuses 0, a negative, a text, or absence', () => {
     expect(totalVolumesFrom({ totalVolumes: 0 })).toBeNull()
     expect(totalVolumesFrom({ totalVolumes: -3 })).toBeNull()
     expect(totalVolumesFrom({ totalVolumes: '72' })).toBeNull()
@@ -28,16 +28,16 @@ describe('totalVolumesFrom', () => {
 })
 
 describe('isSeriesOngoing', () => {
-  it('comprend les deux vocabulaires de sources, jamais unifiés côté serveur', () => {
+  it('understands the two source vocabularies, never unified on the server side', () => {
     expect(isSeriesOngoing({ seriesStatus: 'Publishing' })).toBe(true)
     expect(isSeriesOngoing({ seriesStatus: 'currently_publishing' })).toBe(true)
     expect(isSeriesOngoing({ seriesStatus: 'Finished' })).toBe(false)
     expect(isSeriesOngoing({ seriesStatus: 'finished' })).toBe(false)
   })
 
-  it('rend null - et pas false - sur un statut qu’il ne sait pas lire', () => {
-    // « on_hiatus », « discontinued » : ni en cours, ni terminée. Trancher
-    // reviendrait à inventer.
+  it('returns null - and not false - on a status it cannot read', () => {
+    // "on_hiatus", "discontinued": neither ongoing nor finished. Deciding
+    // would amount to inventing.
     expect(isSeriesOngoing({ seriesStatus: 'on_hiatus' })).toBeNull()
     expect(isSeriesOngoing({ seriesStatus: 'discontinued' })).toBeNull()
     expect(isSeriesOngoing({})).toBeNull()

@@ -22,41 +22,41 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Des fournisseurs de métadonnées et d'annonces <b>faux, déterministes et
- * minuscules</b>, pour tester la frontière HTTP sans jamais toucher au réseau.
+ * <b>Fake, deterministic and tiny</b> metadata and listing providers,
+ * to test the HTTP boundary without ever touching the network.
  *
- * <h2>Comment ils cohabitent avec les vrais</h2>
- * Les services injectent des <b>listes</b> de fournisseurs, et chacun décide
- * s'il traite une demande via {@code supports(...)}. Ces faux-là ne répondent
- * qu'à un univers dédié aux tests ({@value #UNIVERS_DE_TEST}) et à un hôte
- * dédié ({@value #HOTE_DE_TEST}). Les vrais fournisseurs, qui ne reconnaissent
- * que Manga, Jeu de société, Jeu vidéo et vinted.fr, déclinent donc sans
- * jamais ouvrir de connexion : c'est leur propre prédicat qui les écarte, pas
- * une désactivation qu'il faudrait maintenir.
+ * <h2>How they live together with the real ones</h2>
+ * The services inject <b>lists</b> of providers, and each one decides
+ * whether it handles a request through {@code supports(...)}. These fakes only answer
+ * to a universe dedicated to the tests ({@value #UNIVERS_DE_TEST}) and to a dedicated
+ * host ({@value #HOTE_DE_TEST}). The real providers, which only recognise
+ * Manga, Board game, Video game and vinted.fr, therefore decline without
+ * ever opening a connection: it is their own predicate that rules them out, not
+ * a deactivation that would have to be maintained.
  *
- * <h2>Pourquoi pas WireMock</h2>
- * Le point à protéger est le passage HTTP entrant, pas le dialogue HTTP
- * sortant. Un serveur simulé ajouterait une dépendance et un port à gérer pour
- * tester ce que quatre classes de vingt lignes disent mieux.
+ * <h2>Why not WireMock</h2>
+ * The point to protect is the incoming HTTP passage, not the outgoing
+ * HTTP dialogue. A simulated server would add a dependency and a port to manage in order to
+ * test what four classes of twenty lines say better.
  *
  * <h2>Isolation</h2>
- * {@code @TestConfiguration} : ces beans ne sont chargés que par les classes de
- * test qui les importent explicitement. Aucun scan de composants ne peut les
- * ramasser, aucun profil applicatif ne peut les activer.
+ * {@code @TestConfiguration}: these beans are only loaded by the test classes
+ * that import them explicitly. No component scan can pick them
+ * up, no application profile can activate them.
  */
 @TestConfiguration
 public class FakeMetadataProviders {
 
-    /** Le code d'univers auquel ces faux répondent - et qu'aucun vrai fournisseur ne connaît. */
+    /** The universe code to which these fakes answer - and that no real provider knows. */
     public static final String UNIVERS_DE_TEST = "ZZFAKE";
 
-    /** L'hôte d'annonce auquel le faux ListingProvider répond. */
+    /** The listing host to which the fake ListingProvider answers. */
     public static final String HOTE_DE_TEST = "source-de-test.invalid";
 
     /**
-     * Les mots-clés qui déclenchent un comportement particulier. Le test décide
-     * de la branche par ce qu'il demande, sans avoir à reconfigurer un bean :
-     * la même instance sert tous les cas, ce qui évite un état partagé entre
+     * The keywords that trigger a particular behaviour. The test decides
+     * the branch by what it asks, without having to reconfigure a bean:
+     * the same instance serves all the cases, which avoids a state shared between
      * tests.
      */
     public static final String DECLENCHE_VIDE = "aucun-resultat";
@@ -67,7 +67,7 @@ public class FakeMetadataProviders {
         return type != null && UNIVERS_DE_TEST.equals(type.code());
     }
 
-    // ═══════════════════════════════════════════════ Recherche par titre
+    // ═══════════════════════════════════════════════ Search by title
 
     @Bean
     MetadataProvider fauxFournisseurDeRecherche() {
@@ -92,7 +92,7 @@ public class FakeMetadataProviders {
         };
     }
 
-    // ═══════════════════════════════════════════════ Code-barres
+    // ═══════════════════════════════════════════════ Barcode
 
     @Bean
     BarcodeMetadataProvider fauxFournisseurDeCodeBarres() {
@@ -111,11 +111,11 @@ public class FakeMetadataProviders {
             }
 
             /**
-             * Les deux vrais fournisseurs de code-barres (Google Books, Open Library)
-             * distinguent « j'ai répondu, je ne connais pas ce code » de « je n'ai pas
-             * pu répondre ». Ce double doit savoir en dire autant, sans quoi il
-             * retombe sur le défaut prudent de l'interface - qui ne conclut RIEN d'un
-             * vide - et fait passer une absence constatée pour une panne.
+             * The two real barcode providers (Google Books, Open Library)
+             * distinguish "I answered, I do not know this code" from "I could not
+             * answer". This double must be able to say as much, otherwise it
+             * falls back on the cautious default of the interface - which concludes NOTHING from an
+             * empty result - and makes an observed absence pass for a failure.
              */
             @Override
             public com.iozycore.core.metadata.BarcodeLookup lookupDetailed(String barcode) {
@@ -131,7 +131,7 @@ public class FakeMetadataProviders {
         };
     }
 
-    // ═══════════════════════════════════════════════ Titre français
+    // ═══════════════════════════════════════════════ French title
 
     @Bean
     FrenchTitleProvider fauxFournisseurDeTitreFrancais() {
@@ -155,7 +155,7 @@ public class FakeMetadataProviders {
         };
     }
 
-    // ═══════════════════════════════════════════════ Tomes
+    // ═══════════════════════════════════════════════ Volumes
 
     @Bean
     VolumeSearchProvider fauxFournisseurDeTomes() {
@@ -181,7 +181,7 @@ public class FakeMetadataProviders {
         };
     }
 
-    // ═══════════════════════════════════════════════ Annonces
+    // ═══════════════════════════════════════════════ Listings
 
     @Bean
     ListingProvider fauxFournisseurDAnnonce() {
@@ -210,8 +210,8 @@ public class FakeMetadataProviders {
                     return ListingResolution.failed(ListingResolution.Status.LISTING_NOT_FOUND, ListingPlatform.OTHER, url);
                 }
                 if (url.contains(DECLENCHE_PARTIEL)) {
-                    // Titre et prix seulement : le reste est à saisir. Une donnée
-                    // manquante est un résultat PARTIAL utilisable, pas une erreur.
+                    // Title and price only: the rest is to be entered. A missing
+                    // piece of data is a usable PARTIAL result, not an error.
                     return ListingResolution.partial(new ListingSnapshot(ListingPlatform.OTHER, url, "42",
                             "Lot partiel de test", null, new BigDecimal("30"), "EUR",
                             null, ShippingEstimateKind.UNKNOWN, null, List.of(), Instant.now(),

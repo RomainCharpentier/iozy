@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/experiences")
-@Tag(name = "Experiences", description = "UC3 - expériences vécues, indépendantes des Ownership")
+@Tag(name = "Experiences", description = "UC3 - lived experiences, independent of Ownerships")
 public class ExperienceController {
 
     private final ExperienceRepository experienceRepository;
@@ -35,15 +35,15 @@ public class ExperienceController {
         this.entityTypeRepository = entityTypeRepository;
     }
 
-    @Operation(summary = "Enregistrer une Experience (lu/joué/terminé...), sans exiger de possession")
+    @Operation(summary = "Record an Experience (read/played/finished...), without requiring ownership")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ExperienceResponse record(@RequestBody RecordExperienceRequest request) {
-        // 400 et non 404 : l'endpoint existe, c'est le CORPS envoyé qui référence
-        // une œuvre inconnue - même refus que /wishlist et
-        // /tier-lists/general (Lot 28, mise en cohérence). Le 404 avait en outre un effet de bord côté client, qui
-        // remplace tout message de 404 par un repli traduit (voir Lot 26) : la
-        // raison réelle n'arrivait jamais à l'écran.
+        // 400 and not 404: the endpoint exists, it is the BODY sent that references
+        // an unknown work - same refusal as /wishlist and
+        // /tier-lists/general (Batch 28, consistency fix). The 404 also had a side effect on the client, which
+        // replaces any 404 message with a translated fallback (see Batch 26): the
+        // real reason never reached the screen.
         Entity entity = entityRepository.findById(request.entityId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Entité introuvable : " + request.entityId()));
@@ -70,17 +70,17 @@ public class ExperienceController {
         return ExperienceResponse.from(experienceRepository.save(experience));
     }
 
-    @Operation(summary = "Corriger la note et/ou le commentaire d'une expérience (les deux champs sont "
-            + "remplacés tels quels, null compris - voir UpdateExperienceRequest)")
+    @Operation(summary = "Fix the rating and/or comment of an experience (both fields are "
+            + "replaced as they are, null included - see UpdateExperienceRequest)")
     @PatchMapping("/{id}")
     public ExperienceResponse update(@PathVariable UUID id, @RequestBody UpdateExperienceRequest request) {
         Experience experience = experienceRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Expérience introuvable : " + id));
         try {
-            // La borne 0-10 vit dans le domaine (Experience.updateRating) : la
-            // rejouer ici la dupliquerait. On traduit juste son refus en 400,
-            // sans quoi une note hors bornes remonterait en 500.
+            // The 0-10 bound lives in the domain (Experience.updateRating):
+            // replaying it here would duplicate it. We only translate its refusal into a 400,
+            // without which an out-of-range rating would come up as a 500.
             experience.updateRating(request.rating());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -89,14 +89,14 @@ public class ExperienceController {
         return ExperienceResponse.from(experienceRepository.save(experience));
     }
 
-    @Operation(summary = "Supprimer une expérience enregistrée par erreur - idempotent")
+    @Operation(summary = "Delete an experience recorded by mistake - idempotent")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
         experienceRepository.deleteById(id);
     }
 
-    @Operation(summary = "Lister les Experience d'une Entity")
+    @Operation(summary = "List the Experiences of an Entity")
     @GetMapping
     public List<ExperienceResponse> byEntity(@RequestParam UUID entityId) {
         return experienceRepository.findByEntityId(entityId).stream()

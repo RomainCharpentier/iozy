@@ -1,32 +1,32 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Les tests de bout en bout : du clic à la base, sans rien simuler.
+ * The end-to-end tests: from the click to the database, with nothing mocked.
  *
- * <h2>Ce qu'ils ajoutent aux 215 tests unitaires</h2>
- * Ceux-là vérifient une règle à la fois, dans un module. Ceux-ci vérifient
- * qu'un **parcours entier tient** : que le bouton est là, qu'il appelle la
- * bonne route, que le serveur écrit, et que l'écran suivant le montre. Aucun
- * test unitaire ne peut attraper un formulaire branché sur le mauvais champ ou
- * une invalidation de cache manquante — l'écran reste juste sur l'état d'avant.
+ * <h2>What they add to the 215 unit tests</h2>
+ * Those check one rule at a time, in one module. These check that a **whole
+ * journey holds**: that the button is there, that it calls the right route,
+ * that the server writes, and that the next screen shows it. No unit test can
+ * catch a form wired to the wrong field or a missing cache invalidation — the
+ * screen just stays on the previous state.
  *
- * <h2>Une pile jetable, jamais les vraies données</h2>
- * `globalSetup` démarre `backend/docker-compose.e2e.yml` : sa propre base, son
- * propre port. Le cloisonnement par propriétaire ne suffirait pas — le
- * catalogue, lui, est partagé, et les séries inventées ici apparaîtraient dans
- * la recherche de la vraie collection.
+ * <h2>A throwaway stack, never the real data</h2>
+ * `globalSetup` starts `backend/docker-compose.e2e.yml`: its own database, its
+ * own port. Separation by owner would not be enough — the catalog is shared,
+ * and the series invented here would appear in the search of the real
+ * collection.
  *
- * <h2>Un seul worker, à dessein</h2>
- * Ces tests partagent une base. Les paralléliser demanderait soit un compte par
- * worker (le catalogue resterait commun), soit une base par worker (trois piles
- * Docker). Le gain ne vaut pas cette complexité : la suite tient en moins d'une
- * minute.
+ * <h2>A single worker, on purpose</h2>
+ * These tests share one database. Running them in parallel would need either
+ * one account per worker (the catalog would stay common), or one database per
+ * worker (three Docker stacks). The gain is not worth this complexity: the
+ * suite runs in less than a minute.
  */
 export default defineConfig({
   testDir: './e2e',
-  // Le démarrage de la pile Docker est compté à part (voir globalSetup) ; un
-  // parcours, lui, ne doit pas traîner : au-delà, c'est un test qui attend
-  // quelque chose qui n'arrivera pas.
+  // The startup of the Docker stack is counted separately (see globalSetup); a
+  // journey must not drag on: beyond this, a test is waiting for something
+  // that will not happen.
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -38,15 +38,15 @@ export default defineConfig({
   globalTeardown: './e2e/pile.teardown.ts',
   use: {
     baseURL: 'http://localhost:5174',
-    // La trace du premier échec suffit à comprendre : les captures et vidéos
-    // systématiques remplissent le disque sans rien apprendre de plus.
+    // The trace of the first failure is enough to understand: systematic
+    // screenshots and videos fill the disk without teaching anything more.
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   projects: [
-    // La session est ouverte UNE fois, puis rejouée par chaque parcours :
-    // faire passer chaque test par l'écran de connexion ajouterait dix fois
-    // le même début, et dix façons de le rater.
+    // The session is opened ONCE, then replayed by each journey: sending
+    // every test through the login screen would add the same start ten
+    // times, and ten ways to fail it.
     { name: 'compte', testMatch: /compte.setup.ts/, use: { ...devices['Desktop Chrome'] } },
     {
       name: 'parcours',
@@ -56,9 +56,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // Le serveur de DEV, et non `preview` : c'est lui qui porte le proxy `/api`,
-    // donc le montage « une seule origine » que l'application suppose partout
-    // (voir vite.config.ts, nginx.conf, vercel.json).
+    // The DEV server, and not `preview`: it carries the `/api` proxy, so the
+    // "single origin" setup that the application assumes everywhere (see
+    // vite.config.ts, nginx.conf, vercel.json).
     command: 'npm run dev -- --port 5174 --strictPort',
     url: 'http://localhost:5174',
     reuseExistingServer: false,

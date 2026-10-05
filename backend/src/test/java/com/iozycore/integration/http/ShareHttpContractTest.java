@@ -25,23 +25,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP du partage : {@code /api/share} (réglages) et
- * {@code /api/public/share/{token}} (l'espace lu par le destinataire).
+ * The HTTP contract of sharing: {@code /api/share} (settings) and
+ * {@code /api/public/share/{token}} (the space read by the recipient).
  *
- * <h2>Pourquoi cette surface passe avant les autres</h2>
- * C'est la seule de l'application dont une régression est <b>irréversible et
- * silencieuse</b>. Ailleurs, un défaut affiche un mauvais chiffre ou refuse une
- * action ; ici, il expose à un tiers des données que l'utilisateur avait choisi
- * de garder. Un lien distribué ne se rappelle pas.
+ * <h2>Why this surface comes before the others</h2>
+ * It is the only one in the application where a regression is <b>irreversible and
+ * silent</b>. Elsewhere, a defect shows a wrong number or refuses an
+ * action; here, it exposes to a third party data that the user had chosen
+ * to keep. A link that was handed out cannot be called back.
  * <p>
- * Et le filtrage vit <b>dans le contrôleur public</b>, pas dans un service :
- * 219 lignes qu'aucun test ne traversait. C'est exactement le cas où « le
- * service est déjà testé » ne protège rien, parce qu'il n'y a pas de service.
+ * And the filtering lives <b>in the public controller</b>, not in a service:
+ * 219 lines that no test went through. This is exactly the case where "the
+ * service is already tested" protects nothing, because there is no service.
  *
- * <h2>Ce que ces tests affirment</h2>
- * Non pas « la réponse arrive », mais « <b>ce qui n'est pas partagé est
- * absent</b> ». Un test qui se contenterait d'un 200 passerait aussi avec une
- * fuite complète.
+ * <h2>What these tests state</h2>
+ * Not "the response arrives", but "<b>what is not shared is
+ * absent</b>". A test that settled for a 200 would also pass with a
+ * complete leak.
  */
 class ShareHttpContractTest extends HttpContractTestBase {
 
@@ -57,13 +57,13 @@ class ShareHttpContractTest extends HttpContractTestBase {
     @Autowired
     private WishlistEntryRepository wishlistEntryRepository;
 
-    /** Une œuvre réellement possédée - donc éligible à la section Collection. */
+    /** A work that is really owned - so eligible for the Collection section. */
     private void unePossession() {
         quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(),
                 "Akira " + UUID.randomUUID(), OwnershipCondition.USED, Map.of(), 1, "Standard");
     }
 
-    /** Une œuvre souhaitée, jamais possédée - donc éligible à la seule section Envies. */
+    /** A wished work, never owned - so eligible for the Wishes section only. */
     private void uneEnvie() {
         Entity oeuvre = catalogEntityResolver.resolveOrCreate(EntityTypeFixtures.MANGA.id(),
                 "Gunnm " + UUID.randomUUID(), Map.of()).entity();
@@ -77,7 +77,7 @@ class ShareHttpContractTest extends HttpContractTestBase {
         return shareSettingsRepository.save(settings).token();
     }
 
-    // ================================================ /api/share (réglages)
+    // ================================================ /api/share (settings)
 
     @Test
     void reports_no_active_link_before_anything_is_generated() throws Exception {
@@ -85,8 +85,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(get("/api/share"))
                 .andExpect(status().isOk())
-                // token null est le contrat : c'est ainsi que l'écran sait
-                // afficher « Générer un lien » plutôt qu'un lien vide.
+                // token null is the contract: this is how the screen knows to
+                // show "Générer un lien" rather than an empty link.
                 .andExpect(jsonPath("$.token").doesNotExist());
     }
 
@@ -97,8 +97,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.shareCollection").value(true))
                 .andExpect(jsonPath("$.shareWishlist").value(true))
-                // Les Tier Lists sont un choix, jamais un défaut : régénérer un
-                // lien ne doit pas rouvrir une section fermée exprès.
+                // The Tier Lists are a choice, never a default: regenerating a
+                // link must not reopen a section closed on purpose.
                 .andExpect(jsonPath("$.includeTierLists").value(false));
     }
 
@@ -108,8 +108,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(post("/api/share")).andExpect(status().isCreated());
 
-        // L'ancien lien cesse de fonctionner - c'est la seule façon de reprendre
-        // ce qu'on a distribué.
+        // The old link stops working - this is the only way to take back
+        // what was handed out.
         mockMvc.perform(get("/api/public/share/{token}", premier))
                 .andExpect(status().isNotFound());
     }
@@ -122,8 +122,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
                         .content("{\"shareWishlist\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value(jeton))
-                // Champ absent = inchangé : un PATCH partiel ne referme pas
-                // silencieusement ce qu'il ne mentionne pas.
+                // Missing field = unchanged: a partial PATCH does not silently close
+                // what it does not mention.
                 .andExpect(jsonPath("$.shareCollection").value(true))
                 .andExpect(jsonPath("$.shareWishlist").value(false));
     }
@@ -132,8 +132,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
     void refuses_to_leave_a_live_link_exposing_nothing_at_all() throws Exception {
         jetonAvecSections(true, true, false);
 
-        // L'invariant du domaine : un lien qui n'expose rien doit être supprimé,
-        // pas vidé. Traduit en 400, jamais laissé remonter en 500.
+        // The domain invariant: a link that exposes nothing must be deleted,
+        // not emptied. Translated into 400, never let through as a 500.
         mockMvc.perform(patch("/api/share").contentType("application/json")
                         .content("{\"shareCollection\":false,\"shareWishlist\":false}"))
                 .andExpect(status().isBadRequest());
@@ -161,8 +161,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
     @Test
     void returns_a_bare_404_for_an_unknown_token_without_hinting_it_ever_existed() throws Exception {
-        // Un message qui distinguerait « jamais existé » de « révoqué »
-        // renseignerait déjà celui qui essaie des jetons.
+        // A message that would tell "never existed" from "revoked"
+        // would already inform the one who tries tokens.
         mockMvc.perform(get("/api/public/share/{token}", "jeton-qui-n-existe-pas"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/public/share/{token}", "x".repeat(300)))
@@ -178,15 +178,15 @@ class ShareHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(get("/api/public/share/{token}", jeton))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.collection").exists())
-                // NULLE, et surtout pas une liste vide : « [] » dirait « il n'a
-                // rien dans ses envies », ce qui est une information en soi,
-                // alors que null dit « tu n'y as pas accès ».
+                // NULL, and above all not an empty list: "[]" would say "it has
+                // nothing in its wishes", which is information in itself,
+                // whereas null says "you have no access to it".
                 //
-                // `doesNotExist()` ne suffisait pas à le dire : il est vrai
-                // aussi bien pour une clé absente que pour une clé à null, et
-                // le fil porte bel et bien « "tierLists":null ». L'assertion
-                // avait donc l'air de vérifier la forme sans le faire. Celle-ci
-                // échoue si la valeur devient une liste, vide comprise.
+                // `doesNotExist()` was not enough to say it: it is true
+                // for a missing key as well as for a key set to null, and
+                // the wire really carries "tierLists":null. The assertion
+                // therefore looked like it checked the shape without doing so. This one
+                // fails if the value becomes a list, an empty one included.
                 .andExpect(jsonPath("$.wishlist").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$.tierLists").value(org.hamcrest.Matchers.nullValue()));
     }
@@ -218,8 +218,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
 
     @Test
     void shares_only_what_is_owned_never_the_bare_catalog() throws Exception {
-        // Une œuvre présente au catalogue sans possession - entrée par les
-        // envies ou un scan - ne fait pas partie de « ma collection ».
+        // A work present in the catalogue without ownership - entered through the
+        // wishes or a scan - is not part of "my collection".
         Entity jamaisPossedee = catalogEntityResolver.resolveOrCreate(EntityTypeFixtures.MANGA.id(),
                 "Blame " + UUID.randomUUID(), Map.of()).entity();
         unePossession();
@@ -239,8 +239,8 @@ class ShareHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        // Le jeton EST le mot de passe : le retrouver dans le corps servi au
-        // destinataire n'apporterait rien et le ferait fuiter par capture d'écran.
+        // The token IS the password: finding it again in the body served to the
+        // recipient would bring nothing and would make it leak through a screenshot.
         assertThat(corps).doesNotContain(jeton);
     }
 }

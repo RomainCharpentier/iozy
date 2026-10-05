@@ -1,9 +1,10 @@
 import type { RecognitionConfidence, RecognitionStatus, RecognizedItemDto } from '@/common/types/listingRecognition'
 
 /**
- * Ce que deux écrans disent d'une lecture de photos - l'analyse d'annonce et
- * l'import d'étagère - et qui doit rester identique entre eux : les mots de la
- * confiance, la phrase de chaque issue de lecture, et l'identité d'un candidat.
+ * What two screens say about a reading of photos - the listing analysis and
+ * the shelf import - and which must stay identical between them: the words
+ * of confidence, the sentence of each reading outcome, and the identity of a
+ * candidate.
  */
 
 export const LIBELLES_CONFIANCE: Record<RecognitionConfidence, string> = {
@@ -21,9 +22,9 @@ export const COULEURS_CONFIANCE: Record<RecognitionConfidence, string> = {
 export const RANG_CONFIANCE: Record<RecognitionConfidence, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
 
 /**
- * Chaque issue a sa phrase. Un bandeau unique confondrait « ces photos ne
- * montrent rien de lisible » avec « le service est cassé », alors que la
- * première ne se réessaie pas et la seconde si.
+ * Each outcome has its sentence. A single banner would confuse "these photos
+ * show nothing readable" with "the service is broken", while the first one
+ * is not retried and the second one is.
  */
 export const MESSAGES_VISION: Record<RecognitionStatus, string> = {
   OK: '',
@@ -31,8 +32,8 @@ export const MESSAGES_VISION: Record<RecognitionStatus, string> = {
   NOTHING_RECOGNIZED: "Les photos n'ont rien ajouté de lisible.",
   NO_USABLE_IMAGE: 'Aucune photo exploitable.',
   NO_ENGINE: "L'analyse des photos n'est pas configurée sur cette instance.",
-  // Un quota n'est pas une panne : réessayer dans la minute ne donnera rien,
-  // et le dire évite trois essais pour rien.
+  // A quota is not a failure: trying again within the minute will give
+  // nothing, and saying so avoids three useless tries.
   QUOTA_EXCEEDED:
     "Le service d'analyse d'images a atteint son quota du jour. Réessaie demain, ou ajoute les tomes depuis le Catalogue.",
   UNAVAILABLE:
@@ -40,10 +41,10 @@ export const MESSAGES_VISION: Record<RecognitionStatus, string> = {
 }
 
 /**
- * L'identité d'un candidat, stable d'une analyse à l'autre.
+ * The identity of a candidate, stable from one analysis to the next.
  *
- * C'est la clé des corrections : ni l'index dans la liste (qui bouge dès qu'une
- * source ajoute un élément), ni le contenu corrigé.
+ * This is the key of the corrections: neither the index in the list (which
+ * moves as soon as a source adds an item), nor the corrected content.
  */
 export function identite(item: RecognizedItemDto): string {
   return `${cleSerie(item)}|${item.volumeNumber ?? '?'}|${(item.editionHint ?? '').toLowerCase()}`

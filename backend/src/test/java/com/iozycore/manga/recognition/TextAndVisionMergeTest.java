@@ -17,13 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.deals.SeriesTitleNormalizer;
 
 /**
- * Le cœur de cette passe : le texte et les photos alimentent <b>une</b> liste,
- * pas deux.
+ * The heart of this pass: the text and the photos feed <b>one</b> list,
+ * not two.
  *
- * <p>La règle qui gouverne tout le reste : la consolidation est une
- * <b>union</b>, jamais une intersection. Une photo qui ne montre pas un livre
- * ne prouve pas son absence, et un titre qui n'annonce pas une édition
- * n'interdit pas de la lire sur une couverture.
+ * <p>The rule that governs everything else: consolidation is a
+ * <b>union</b>, never an intersection. A photo that does not show a book
+ * does not prove its absence, and a title that does not announce an edition
+ * does not forbid reading it on a cover.
  */
 class TextAndVisionMergeTest {
 
@@ -34,10 +34,10 @@ class TextAndVisionMergeTest {
     private final EditionsDeTest editions = new EditionsDeTest();
 
     /**
-     * Ces tests portent sur la fusion TEXTE + VISION. Un lecteur de codes-barres
-     * qui trouverait quelque chose sur les images de test ajouterait une
-     * troisième source et brouillerait précisément ce qu'ils mesurent - d'où ce
-     * lecteur qui ne lit rien. La chaîne code-barres a ses propres tests.
+     * These tests cover the TEXT + VISION merge. A barcode reader
+     * that found something on the test images would add a
+     * third source and blur precisely what they measure - hence this
+     * reader that reads nothing. The barcode chain has its own tests.
      */
     private static final BarcodeRecognizer SANS_CODE_BARRES =
             new BarcodeRecognizer((ean, entityTypeCode) -> java.util.Optional.empty());
@@ -64,7 +64,7 @@ class TextAndVisionMergeTest {
         return analyse.items().stream().map(ResolvedItem::recognized).toList();
     }
 
-    // =================================================== §49 — sources complémentaires
+    // =================================================== §49 — complementary sources
 
     @Test
     void vision_completes_the_edition_of_one_volume_without_inventing_the_others() {
@@ -84,8 +84,8 @@ class TextAndVisionMergeTest {
                     assertThat(i.editionHint()).isEqualTo("Standard");
                     assertThat(i.sources()).contains(RecognitionSource.TEXT, RecognitionSource.VISION);
                 });
-        // Les tomes 2 et 3 gardent leur édition inconnue : la photo n'a rien dit
-        // d'eux, et supposer « Standard aussi » serait inventer.
+        // Volumes 2 and 3 keep their unknown edition: the photo said nothing
+        // about them, and assuming "Standard too" would be inventing.
         assertThat(items).filteredOn(i -> i.volumeNumber() != 1)
                 .allSatisfy(i -> {
                     assertThat(i.editionIsUnknown()).isTrue();
@@ -93,7 +93,7 @@ class TextAndVisionMergeTest {
                 });
     }
 
-    // =================================================== §50 — doublons entre sources
+    // =================================================== §50 — duplicates between sources
 
     @Test
     void one_volume_announced_and_seen_twice_is_a_single_item() {
@@ -112,7 +112,7 @@ class TextAndVisionMergeTest {
         assertThat(item.sourceImages()).containsExactly(0, 1);
     }
 
-    // =================================================== §51 / §52 — éditions
+    // =================================================== §51 / §52 — editions
 
     @Test
     void a_read_edition_completes_a_volume_whose_text_said_nothing() {
@@ -133,8 +133,8 @@ class TextAndVisionMergeTest {
         editions.ajouter(DEATH_NOTE, "Death Note", "Standard", 12);
         editions.ajouter(DEATH_NOTE, "Death Note", "Perfect", 6);
 
-        // Le texte annonce Standard, la photo lit Perfect : personne ne tranche
-        // à la place de l'utilisateur.
+        // The text announces Standard, the photo reads Perfect: nobody decides
+        // in place of the user.
         RecognizedItem depuisTexte = new RecognizedItem("Death Note", 4, "Standard", null,
                 RecognitionConfidence.HIGH, Set.of(RecognitionSource.TEXT), List.of(), Set.of());
 
@@ -171,15 +171,15 @@ class TextAndVisionMergeTest {
         assertThat(item.strongestSource()).isEqualTo(RecognitionSource.EAN);
     }
 
-    // =================================================== §11 / §73 — vision n'écrase pas le texte
+    // =================================================== §11 / §73 — vision does not overwrite the text
 
     @Test
     void volumes_announced_but_not_photographed_are_never_dropped() {
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 
-        // Le titre annonce 1 à 14 ; les photos n'en montrent que 12. Une photo
-        // qui ne montre pas un livre ne prouve pas son absence.
+        // The title announces 1 to 14; the photos only show 12. A photo
+        // that does not show a book does not prove its absence.
         List<RecognizedItem> vus = new ArrayList<>();
         for (int tome = 1; tome <= 12; tome++) {
             vus.add(vu("Platinum End", tome, "Standard", 0));
@@ -195,7 +195,7 @@ class TextAndVisionMergeTest {
                 .allSatisfy(i -> assertThat(i.sources()).containsExactly(RecognitionSource.TEXT));
     }
 
-    // =================================================== §54 — contradiction de volume
+    // =================================================== §54 — volume contradiction
 
     @Test
     void a_volume_disagreement_yields_two_correctable_items_never_a_blend() {
@@ -206,13 +206,13 @@ class TextAndVisionMergeTest {
                 RecognitionResult.recognized(List.of(vu("Platinum End", 5, null, 0)), 0)))
                 .analyze("Platinum End tome 4", null, unePhoto(), RecognitionContext.forManga());
 
-        // Ni fusion arbitraire en 4, ni en 5 : les deux sont proposés, et
-        // l'utilisateur retire celui qui n'a pas lieu d'être.
+        // Neither an arbitrary merge into 4, nor into 5: both are proposed, and
+        // the user removes the one that should not be there.
         assertThat(lus(analyse)).extracting(RecognizedItem::volumeNumber)
                 .containsExactlyInAnyOrder(4, 5);
     }
 
-    // =================================================== §34 — vision sans texte utile
+    // =================================================== §34 — vision without useful text
 
     @Test
     void an_unusable_title_still_lets_vision_work_exactly_as_before() {
@@ -228,7 +228,7 @@ class TextAndVisionMergeTest {
         assertThat(lus(analyse).get(0).sources()).containsExactly(RecognitionSource.VISION);
     }
 
-    // =================================================== §57 — aucun appel cloud implicite
+    // =================================================== §57 — no implicit cloud call
 
     @Test
     void analysing_the_text_alone_never_calls_the_vision_engine() {
@@ -240,13 +240,13 @@ class TextAndVisionMergeTest {
         ListingRecognitionService.Analysis analyse = service(moteur)
                 .analyze("Platinum End intégrale tomes 1 à 14", null, null, RecognitionContext.forManga());
 
-        // Le point entier de cette passe : une annonce bien rédigée est comprise
-        // sans le moindre appel payant.
+        // The whole point of this pass: a well-written listing is understood
+        // without any paid call.
         assertThat(moteur.appels()).isZero();
         assertThat(analyse.items()).hasSize(14);
         assertThat(analyse.textItemCount()).isEqualTo(14);
-        // Aucune photo demandée : ce n'est pas un échec de lecture, c'est
-        // l'absence de question.
+        // No photo requested: it is not a reading failure, it is
+        // the absence of a question.
         assertThat(analyse.visionStatus()).isNull();
     }
 
@@ -260,7 +260,7 @@ class TextAndVisionMergeTest {
         assertThat(moteur.appels()).isZero();
     }
 
-    // =================================================== §62 — dégradations
+    // =================================================== §62 — degradations
 
     @Test
     void a_failing_vision_engine_leaves_the_text_proposals_standing() {
@@ -271,7 +271,7 @@ class TextAndVisionMergeTest {
                 .analyze("Platinum End tomes 1 à 3", null, unePhoto(), RecognitionContext.forManga());
 
         assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.UNAVAILABLE);
-        // Ce que le texte disait reste vrai même si le moteur tombe.
+        // What the text said stays true even if the engine goes down.
         assertThat(analyse.items()).hasSize(3);
     }
 
@@ -304,7 +304,7 @@ class TextAndVisionMergeTest {
         assertThat(analyse.items()).hasSize(3);
     }
 
-    // =================================================== Décoration d'annonce
+    // =================================================== Listing decoration
 
     @Test
     void a_decorated_listing_title_reaches_the_catalog_without_its_decoration() {
@@ -323,20 +323,20 @@ class TextAndVisionMergeTest {
 
     @Test
     void the_decoration_never_becomes_the_name_of_a_work() {
-        // Même hors catalogue : « 🔥 Série inconnue » ne doit pas entrer tel
-        // quel dans le lot puis dans l'analyse enregistrée.
+        // Even outside the catalogue: "🔥 Série inconnue" must not go in as
+        // is into the batch and then into the saved analysis.
         ListingRecognitionService.Analysis analyse = service()
                 .analyze("🔥 Serie hors catalogue tomes 1 à 2", null, null, RecognitionContext.forManga());
 
         assertThat(analyse.items()).isNotEmpty();
         assertThat(analyse.items()).allSatisfy(item -> {
             assertThat(item.displayTitle()).doesNotContain("🔥");
-            // La provenance reste lisible : on n'efface pas ce que l'annonce disait.
+            // The provenance stays readable: we do not erase what the listing said.
             assertThat(item.recognized().seriesTitleRaw()).contains("🔥");
         });
     }
 
-    // =================================================== §22 — aucune création
+    // =================================================== §22 — no creation
 
     @Test
     void neither_source_ever_creates_a_catalog_entry() {
@@ -351,7 +351,7 @@ class TextAndVisionMergeTest {
         assertThat(editions.creations()).isZero();
     }
 
-    // =================================================== Doublures
+    // =================================================== Doubles
 
     private static class FetcherDeTest extends RecognitionImageFetcher {
         FetcherDeTest() {
@@ -400,9 +400,9 @@ class TextAndVisionMergeTest {
             if (rawTitle == null || rawTitle.isBlank()) {
                 throw new IllegalArgumentException("Le titre de la série est requis");
             }
-            // La doublure applique la MÊME normalisation que le vrai matcher :
-            // s'en dispenser la ferait diverger du comportement réel, et les
-            // tests vérifieraient alors une chose qui n'existe pas.
+            // The double applies the SAME normalisation as the real matcher:
+            // skipping it would make it diverge from the real behaviour, and the
+            // tests would then check something that does not exist.
             String titre = com.iozycore.manga.deals.SeriesTitleNormalizer.normalize(rawTitle);
             return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
         }

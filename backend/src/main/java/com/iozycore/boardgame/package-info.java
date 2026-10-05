@@ -1,10 +1,10 @@
 /**
- * Les jeux de société : BoardGameGeek pour la recherche, l'import d'une
- * collection, la hot list pour Découvrir. La racine porte les façades vers
- * le cœur, {@code bgg} la source, {@code api} l'import.
+ * Board games: BoardGameGeek for search, collection import, and the
+ * hot list for Discover. The root holds the facades to
+ * the core, {@code bgg} the source, {@code api} the import.
  *
- * <p>Un univers dépend du cœur, jamais l'inverse, jamais d'un autre univers
- * (Lot 133) - vérifié par le test des modules.
+ * <p>A universe depends on the core, never the other way round, never on another universe
+ * (Batch 133) - checked by the modules test.
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Jeux de société")
 package com.iozycore.boardgame;

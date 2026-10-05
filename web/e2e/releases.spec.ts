@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * <b>Dater une œuvre sur sa fiche, et la retrouver au calendrier des
- * sorties.</b>
+ * <b>Date a work on its detail page, and find it again in the release
+ * calendar.</b>
  *
- * <p>Le calendrier a deux entrées de données : les sources des univers
- * (Google Books, IGDB - qu'une pile jetable sans clé ne peut pas exercer) et
- * la date saisie sur une fiche, pour n'importe quelle catégorie. C'est ce
- * second chemin que ce parcours traverse de bout en bout : la fiche écrit,
- * le calendrier lit, Découvrir l'annonce - trois écrans, une seule donnée.
- * Un champ branché sur la mauvaise clé ou un cache qu'on oublie d'invalider
- * ne casse aucune règle : la date resterait simplement invisible.
+ * <p>The calendar has two data inputs: the sources of the universes (Google
+ * Books, IGDB - which a throwaway stack without a key cannot exercise) and the
+ * date entered on a detail page, for any category. This second path is the one
+ * that this journey crosses from end to end: the detail page writes, the
+ * calendar reads, Découvrir announces it - three screens, a single piece of
+ * data. A field wired to the wrong key or a cache that we forget to invalidate
+ * breaks no rule: the date would simply stay invisible.
  */
 
 const AUJOURDHUI = new Date()
-/** Dans vingt jours : assez loin pour être « à venir », assez près pour tenir dans l'aperçu de Découvrir. */
+/** In twenty days: far enough to be "upcoming", close enough to fit in the Découvrir preview. */
 const SORTIE = new Date(AUJOURDHUI.getFullYear(), AUJOURDHUI.getMonth(), AUJOURDHUI.getDate() + 20)
 
 function iso(date: Date): string {
@@ -27,11 +27,11 @@ function libelle(options: Intl.DateTimeFormatOptions): string {
   )
 }
 
-test('dater une œuvre sur sa fiche, puis la retrouver au calendrier et sur Découvrir', async ({ page }) => {
+test('date a work on its detail page, then find it again in the calendar and on Découvrir', async ({ page }) => {
   const univers = `Vinyle ${Date.now()}`
   const oeuvre = `Random Access Memories ${Date.now()}`
 
-  // --- 1. Un univers sans source de dates : seule la fiche peut dater
+  // --- 1. A universe with no date source: only the detail page can date
   await page.goto('/types/new')
   await page.getByLabel('Label').fill(univers)
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
@@ -44,25 +44,25 @@ test('dater une œuvre sur sa fiche, puis la retrouver au calendrier et sur Déc
   await page.getByRole('button', { name: 'Ajouter à ma collection' }).click()
   await expect(page).toHaveURL(/\/entity\/[0-9a-f-]{36}$/)
 
-  //     Suivre l'œuvre : c'est CET état qui la met au calendrier - posséder ne suffit pas.
+  //     Follow the work: it is THIS state that puts it in the calendar - owning is not enough.
   await page.getByRole('button', { name: 'Suivre cette œuvre' }).click()
   await expect(page.getByText('Suivie', { exact: true })).toBeVisible()
 
-  // --- 2. La date se saisit avec le reste de la fiche, en un seul « Éditer »
+  // --- 2. The date is entered with the rest of the detail page, in a single "Éditer"
   await page.getByRole('button', { name: 'Éditer', exact: true }).click()
   await page.getByLabel('Date de sortie').fill(iso(SORTIE))
   await page.getByRole('button', { name: 'Enregistrer la fiche' }).click()
-  //     Enregistrer ne referme pas le mode Éditer : le champ montre l'ISO tant
-  //     qu'on y est. Une fois l'enregistrement passé, « Terminer » rend la
-  //     lecture - c'est là que la date se relit.
+  //     Saving does not close the Éditer mode: the field shows the ISO format
+  //     as long as we are in it. Once the save has gone through, "Terminer"
+  //     gives back the reading view - this is where the date is read again.
   await expect(page.getByRole('button', { name: 'Enregistrer la fiche' })).toBeDisabled()
   await page.getByRole('button', { name: 'Terminer', exact: true }).click()
 
-  //     Et se relit en français, à la même place, sans rechargement.
+  //     And is read again in French, in the same place, without a reload.
   const dateLisible = libelle({ day: 'numeric', month: 'long', year: 'numeric' })
   await expect(page.getByText(dateLisible)).toBeVisible()
 
-  // --- 3. Le calendrier la met dans sa case, et l'agenda sous son jour, avec ce qu'elle est pour la collection
+  // --- 3. The calendar puts it in its cell, and the agenda under its day, with what it is for the collection
   const mois = iso(SORTIE).slice(0, 7)
   await page.goto(`/releases?mois=${mois}`)
   const titreDuMois = libelle({ month: 'long', year: 'numeric' })
@@ -73,24 +73,24 @@ test('dater une œuvre sur sa fiche, puis la retrouver au calendrier et sur Déc
   await expect(ligne).toContainText(univers)
   await expect(ligne).toContainText('Possédé')
 
-  //     Sa case dans la grille dit combien ; la choisir ne garde que ce jour, « Tout le mois » rouvre l'agenda.
+  //     Its cell in the grid says how many; choosing it keeps only that day, "Tout le mois" reopens the agenda.
   await page.getByRole('button', { name: `${jour}, 1 sortie` }).click()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()
   await page.getByRole('button', { name: 'Tout le mois' }).click()
 
-  //     La liste de tout ce qui vient, à côté de la grille, la connaît aussi : la choisir ramène la grille sur son jour.
+  //     The list of everything upcoming, next to the grid, knows it too: choosing it brings the grid back to its day.
   await page.getByRole('complementary', { name: 'À venir' }).getByRole('button', { name: new RegExp(oeuvre) }).click()
   await expect(page.getByRole('heading', { level: 3, name: jour })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Tout le mois' })).toBeVisible()
 
-  //     Le mois d'avant ne la montre pas, et le dit.
+  //     The previous month does not show it, and says so.
   await page.getByRole('button', { name: 'Mois précédent' }).click()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toHaveCount(0)
 
-  // --- 4. Découvrir l'annonce parmi les prochaines sorties, et « Tout voir » ramène ici
+  // --- 4. Découvrir announces it among the next releases, and "Tout voir" brings back here
   await page.goto('/discover')
-  //     En mobile le panneau est un sous-onglet ; en desktop (le navigateur de
-  //     test) il est déjà déplié, et l'onglet n'existe pas à l'écran.
+  //     On mobile the panel is a sub-tab; on desktop (the test browser) it is
+  //     already expanded, and the tab does not exist on the screen.
   const onglet = page.getByRole('tab', { name: 'Sorties' })
   if (await onglet.isVisible()) await onglet.click()
   await expect(page.getByRole('link', { name: new RegExp(oeuvre) })).toBeVisible()

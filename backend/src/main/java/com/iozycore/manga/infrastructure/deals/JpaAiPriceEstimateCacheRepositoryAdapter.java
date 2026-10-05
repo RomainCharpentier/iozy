@@ -31,10 +31,10 @@ public class JpaAiPriceEstimateCacheRepositoryAdapter implements AiPriceEstimate
 
     @Override
     public void save(String seriesTitle, String editionName, Condition condition, AiPriceEstimate estimate) {
-        // Upsert : réutilise l'id existant pour cette clé, sinon en crée une
-        // nouvelle - jamais deux lignes pour la même clé (contrainte UNIQUE,
-        // voir V23__ai_price_estimate_cache.sql). Même geste qu'au cache des
-        // recherches de tomes.
+        // Upsert: reuses the existing id for this key, otherwise creates a
+        // new one - never two rows for the same key (UNIQUE constraint,
+        // see V23__ai_price_estimate_cache.sql). Same action as in the cache of
+        // volume searches.
         UUID id = jpaRepository
                 .findBySeriesTitleAndEditionNameAndItemCondition(seriesTitle, editionName, condition.name())
                 .map(AiPriceEstimateCacheJpaEntity::getId)

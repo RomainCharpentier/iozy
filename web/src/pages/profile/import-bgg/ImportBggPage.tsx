@@ -6,9 +6,9 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import { EnTeteSection } from '@/common/components/EnTeteSection'
 import { LienRetour } from '@/common/components/LienRetour'
 
-/** Déplacé depuis Ma collection (audit UX : un import ponctuel n'a rien à
- * faire sur l'écran consulté à chaque session, voir "fonctionnalités à
- * dépriorioriser" - Import BGG). Logique identique, juste relocalisée. */
+/** Moved from Ma collection (UX audit: a one-off import has no business
+ * on the screen consulted at every session, see "fonctionnalités à
+ * dépriorioriser" - Import BGG). Same logic, just relocated. */
 export function ImportBggPage() {
   const queryClient = useQueryClient()
   const [username, setUsername] = useState('')
@@ -37,11 +37,11 @@ export function ImportBggPage() {
         }}
         className="flex flex-col gap-1.5"
       >
-        {/* Libellé visible plutôt qu'un simple placeholder, qui n'en fait pas
-            office et disparaît dès la première frappe - même correctif qu'au
-            Lot 24 sur les deux champs de /types/new, cet écran-ci n'ayant pas
-            été balayé à l'époque (voir Lot 29). Patron repris de SearchPage :
-            label au-dessus, champ et bouton sur la ligne suivante. */}
+        {/* Visible label rather than a simple placeholder, which does not act
+            as one and disappears at the first keystroke - same fix as in
+            batch 24 on the two fields of /types/new, this screen not having
+            been swept at the time (see batch 29). Pattern taken from SearchPage:
+            label above, field and button on the next line. */}
         <label className="text-sm text-textDim" htmlFor="bgg-username">
           Pseudo BoardGameGeek
         </label>

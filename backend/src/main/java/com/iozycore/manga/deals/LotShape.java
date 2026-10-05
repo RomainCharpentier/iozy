@@ -1,44 +1,44 @@
 package com.iozycore.manga.deals;
 
 /**
- * La <b>forme</b> d'un lot : ce qu'il est structurellement, avant tout prix.
+ * The <b>shape</b> of a lot: what it is structurally, before any price.
  *
- * <h2>Pourquoi cette notion existe</h2>
- * Un tome seul, un lot partiel et une intégrale ne sont pas le même produit,
- * même série et même édition. Le marché de l'occasion les valorise
- * différemment <b>au tome</b> : un tome dépareillé se vend proche du neuf,
- * une intégrale se brade parce qu'elle demande un acheteur unique et un gros
- * colis. Ramener les trois à un « prix au tome » puis en prendre la médiane
- * produit un chiffre précis et faux.
+ * <h2>Why this notion exists</h2>
+ * A single volume, a partial lot and a complete set are not the same product,
+ * even with the same series and the same edition. The second-hand market values them
+ * differently <b>per volume</b>: an odd volume sells close to new,
+ * a complete set sells cheap because it needs a single buyer and a big
+ * parcel. Reducing the three to a "price per volume" and then taking the median
+ * produces a precise and wrong number.
  *
- * <h2>Ce qu'elle ne prétend pas être</h2>
- * Ce n'est pas une taxonomie du manga, c'est le minimum qui empêche de
- * comparer deux produits différents : combien de tomes, et est-ce que ça
- * couvre l'édition entière.
+ * <h2>What it does not claim to be</h2>
+ * It is not a taxonomy of manga, it is the minimum that prevents
+ * comparing two different products: how many volumes, and does it
+ * cover the whole edition.
  */
 public enum LotShape {
 
-    /** Un seul tome. Le prix au tome y est le plus élevé du marché. */
+    /** A single volume. The price per volume is the highest of the market there. */
     SINGLE_VOLUME,
 
-    /** Plusieurs tomes sans couvrir l'édition. La taille compte encore, d'où la bande de tolérance du sélecteur. */
+    /** Several volumes without covering the edition. Size still counts, hence the tolerance band of the selector. */
     PARTIAL_LOT,
 
-    /** Tous les tomes de l'édition. Un produit à part, avec sa propre décote. */
+    /** All the volumes of the edition. A product on its own, with its own discount. */
     COMPLETE_SET,
 
     /**
-     * Impossible à situer - typiquement un relevé « sur l'édition entière »
-     * alors que le nombre de tomes de cette édition n'est pas renseigné. On ne
-     * devine pas : un tel relevé est écarté des comparables.
+     * Impossible to place - typically an observation "on the whole edition"
+     * while the number of volumes of this edition is not filled in. We do not
+     * guess: such an observation is dropped from the comparables.
      */
     INDETERMINATE;
 
     /**
-     * @param volumeCount          nombre de tomes concernés, {@code 0} ou moins si on l'ignore
-     * @param editionTotalVolumes  nombre total de tomes de l'édition, {@code null} si non renseigné -
-     *                             sans lui, on ne peut pas distinguer une intégrale d'un lot partiel,
-     *                             et le lot est traité comme partiel plutôt que promu intégrale
+     * @param volumeCount          number of volumes concerned, {@code 0} or less if unknown
+     * @param editionTotalVolumes  total number of volumes of the edition, {@code null} if not filled in -
+     *                             without it, we cannot tell a complete set from a partial lot,
+     *                             and the lot is treated as partial rather than promoted to complete set
      */
     public static LotShape of(int volumeCount, Integer editionTotalVolumes) {
         if (volumeCount <= 0) {
@@ -53,7 +53,7 @@ public enum LotShape {
         return PARTIAL_LOT;
     }
 
-    /** Vrai quand la forme permet de chercher des comparables. */
+    /** True when the shape allows looking for comparables. */
     public boolean isComparable() {
         return this != INDETERMINATE;
     }

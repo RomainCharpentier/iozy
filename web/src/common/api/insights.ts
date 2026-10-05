@@ -5,40 +5,40 @@ export function getStats(): Promise<StatsSummaryDto> {
   return get<StatsSummaryDto>('/insights/stats')
 }
 
-/** "Calcul automatique de la valeur de la collection" (§15 V2). */
+/** "Automatic calculation of the collection value" (§15 V2). */
 export function getCollectionValue(): Promise<CollectionValueDto> {
   return get<CollectionValueDto>('/insights/value')
 }
 
-/** "Évolution de ma collection" - du plus ancien au plus récent, comptages uniquement. */
+/** "Evolution of my collection" - from oldest to newest, counts only. */
 export function getTimeline(): Promise<MonthlyPointDto[]> {
   return get<MonthlyPointDto[]>('/insights/timeline')
 }
 
-/** "Bilan annuel" - year omis = année en cours. */
+/** "Yearly recap" - year omitted = current year. */
 export function getYearlyRecap(year?: number): Promise<YearlyRecapDto> {
   return get<YearlyRecapDto>(`/insights/yearly-recap${buildQuery({ year: year?.toString() })}`)
 }
 
-/** La progression de TOUTES les œuvres, en un appel - à consommer plutôt qu'à
- *  recalculer (voir CollectionProgressService côté serveur). */
+/** The progress of ALL works, in one call - to be used rather than
+ *  recomputed (see CollectionProgressService on the server side). */
 export function getCollectionProgress(): Promise<CollectionProgressDto[]> {
   return get<CollectionProgressDto[]>('/insights/progress')
 }
 
-/** La même progression, pour UNE œuvre : ce dont a besoin sa fiche, sans
- *  télécharger celle de toute la collection. */
+/** The same progress, for ONE work: what its detail page needs, without
+ *  downloading the one of the whole collection. */
 export function getEntityProgress(entityId: string): Promise<CollectionProgressDto> {
   return get<CollectionProgressDto>(`/insights/progress/${entityId}`)
 }
 
-/** entityTypeCode doit être "MANGA", "BOARD_GAME" ou "VIDEO_GAME", renvoie 400 sinon. */
-/** Les découvertes d'un univers - à n'appeler que pour un type dont `hasDiscoverySource` est vrai (400 sinon). */
+/** entityTypeCode must be "MANGA", "BOARD_GAME" or "VIDEO_GAME", returns 400 otherwise. */
+/** The discoveries of a universe - to call only for a type whose `hasDiscoverySource` is true (400 otherwise). */
 export function discover(entityTypeCode: string): Promise<DiscoveryCandidateDto[]> {
   return get<DiscoveryCandidateDto[]>(`/insights/discover${buildQuery({ entityTypeCode })}`)
 }
 
-/** Les sorties entre deux jours inclus (un an au plus), toutes catégories confondues (lot 146). */
+/** The releases between two days inclusive (one year at most), all categories together (batch 146). */
 export function getReleaseCalendar(from: string, to: string): Promise<ReleaseCalendarDto> {
   return get<ReleaseCalendarDto>(`/insights/releases${buildQuery({ from, to })}`)
 }

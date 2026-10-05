@@ -16,9 +16,9 @@ final class MarketPriceObservationMapper {
                 ? new VolumeRange(jpa.getVolumeRangeStart(), jpa.getVolumeRangeEnd())
                 : null;
         Condition condition = jpa.getObservedCondition() != null ? Condition.valueOf(jpa.getObservedCondition()) : null;
-        // Origine illisible (valeur d'une version anterieure) : on retombe sur
-        // la saisie manuelle, qui etait alors le seul chemin de creation - plutot
-        // que de faire echouer la lecture d'un releve par ailleurs valide.
+        // Unreadable origin (value from an earlier version): we fall back on
+        // manual entry, which was then the only creation path - rather
+        // than make the read of an otherwise valid record fail.
         MarketObservationOrigin origin;
         try {
             origin = MarketObservationOrigin.valueOf(jpa.getOrigin());

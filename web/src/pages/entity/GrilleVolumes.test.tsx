@@ -1,14 +1,14 @@
 /**
- * <b>Un tome possédé ne sort de la collection qu'au second geste.</b>
+ * <b>An owned volume only leaves the collection on the second gesture.</b>
  *
- * <p>La grille est un interrupteur : un tap sur un tome manquant l'ajoute, un
- * tap sur un tome possédé le retirait aussitôt - retrait réel de l'exemplaire,
- * date d'acquisition comprise, rattrapable seulement par le « Annuler » du
- * message, six secondes durant. Au doigt, sur une grille de soixante-quatorze
- * cases, c'est le geste le plus facile à faire sans le vouloir. Depuis le lot
- * 148, le premier tap ARME la tuile (elle demande « Retirer ? »), le second
- * retire ; « Garder » ou n'importe quel autre tome désarme. L'ajout, lui,
- * reste un seul geste : il ne détruit rien.
+ * <p>The grid is a switch: a tap on a missing volume adds it, a
+ * tap on an owned volume removed it at once - a real removal of the copy,
+ * acquisition date included, which could only be recovered with the "Annuler" of the
+ * message, for six seconds. With a finger, on a grid of seventy-four
+ * cells, this is the easiest gesture to do without meaning to. Since batch
+ * 148, the first tap ARMS the tile (it asks "Retirer ?"), the second
+ * removes; "Garder" or any other volume disarms. Adding
+ * stays a single gesture: it destroys nothing.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -32,8 +32,8 @@ function rendre(onRetirer = vi.fn(), onActiver = vi.fn()) {
   return { onRetirer, onActiver }
 }
 
-describe('retirer un tome possédé', () => {
-  it('demande un second geste : le premier tap arme, le second retire', () => {
+describe('remove an owned volume', () => {
+  it('asks for a second gesture: the first tap arms, the second removes', () => {
     const { onRetirer, onActiver } = rendre()
 
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
@@ -47,7 +47,7 @@ describe('retirer un tome possédé', () => {
     expect(onRetirer).toHaveBeenCalledWith('1')
   })
 
-  it('« Garder » désarme sans rien retirer', () => {
+  it('"Garder" disarms without removing anything', () => {
     const { onRetirer } = rendre()
 
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
@@ -57,7 +57,7 @@ describe('retirer un tome possédé', () => {
     expect(screen.queryByRole('button', { name: 'Retirer le tome 1 de ma collection' })).not.toBeInTheDocument()
   })
 
-  it('armer un autre tome désarme le premier : une seule question à la fois', () => {
+  it('arming another volume disarms the first: only one question at a time', () => {
     rendre()
 
     fireEvent.click(screen.getByRole('button', { name: 'Tome 1, possédé' }))
@@ -68,8 +68,8 @@ describe('retirer un tome possédé', () => {
   })
 })
 
-describe('ajouter un tome manquant', () => {
-  it('reste un seul geste - il ne détruit rien', () => {
+describe('add a missing volume', () => {
+  it('stays a single gesture - it destroys nothing', () => {
     const { onActiver, onRetirer } = rendre()
 
     fireEvent.click(screen.getByRole('button', { name: 'Tome 3, manquant' }))
@@ -78,7 +78,7 @@ describe('ajouter un tome manquant', () => {
     expect(onRetirer).not.toHaveBeenCalled()
   })
 
-  it('sans « onRetirer », la tuile possédée garde son geste d’avant (mode sélection ou écran sans retrait)', () => {
+  it('without "onRetirer", the owned tile keeps its previous gesture (selection mode or screen without removal)', () => {
     const onActiver = vi.fn()
     render(
       <GrilleVolumes

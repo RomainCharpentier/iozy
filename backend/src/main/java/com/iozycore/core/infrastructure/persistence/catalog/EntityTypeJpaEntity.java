@@ -9,9 +9,9 @@ import org.hibernate.type.SqlTypes;
 import java.util.List;
 import java.util.UUID;
 
-// Note : annotation @jakarta.persistence.Entity utilisée en forme qualifiée
-// pour ne pas entrer en collision avec com.iozycore.core.domain.catalog.Entity
-// (même convention que EntityJpaEntity dans ce package).
+// Note: annotation @jakarta.persistence.Entity used in qualified form
+// to avoid a collision with com.iozycore.core.domain.catalog.Entity
+// (same convention as EntityJpaEntity in this package).
 @jakarta.persistence.Entity
 @Table(name = "entity_type")
 public class EntityTypeJpaEntity {
@@ -25,8 +25,8 @@ public class EntityTypeJpaEntity {
     @Column(nullable = false)
     private String label;
 
-    // Colonne "schema" JSONB déjà créée par V1__init_schema.sql, déjà
-    // seedée pour les 3 types MVP avec exactement cette forme
+    // "schema" JSONB column already created by V1__init_schema.sql, already
+    // seeded for the 3 MVP types with exactly this shape
     // {"customFieldKeys": [...], "allowedExperienceTypes": [...]}.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
@@ -35,8 +35,8 @@ public class EntityTypeJpaEntity {
     public record SchemaJson(List<String> customFieldKeys, List<String> allowedExperienceTypes) {
     }
 
-    /** Identité visuelle choisie (V15) - nullable : NULL = visuel par défaut
-     * côté client. Des clés, jamais des couleurs (voir EntityType). */
+    /** Chosen visual identity (V15) - nullable: NULL = default visual
+     * on the client side. Keys, never colors (see EntityType). */
     @Column(name = "color_key")
     private String colorKey;
 
@@ -47,7 +47,7 @@ public class EntityTypeJpaEntity {
     private String aspectKey;
 
     protected EntityTypeJpaEntity() {
-        // requis par JPA
+        // required by JPA
     }
 
     public EntityTypeJpaEntity(UUID id, String code, String label, SchemaJson schema) {

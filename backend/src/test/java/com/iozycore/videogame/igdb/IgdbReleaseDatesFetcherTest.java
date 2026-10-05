@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Les dates de sortie IGDB : la précision lue dans « human », l'Europe d'abord, rien d'approximatif. */
+/** IGDB release dates: the precision read from "human", Europe first, nothing approximate. */
 class IgdbReleaseDatesFetcherTest {
 
     private final IgdbReleaseDatesFetcher fetcher = new IgdbReleaseDatesFetcher(null);
 
     @Test
     void prefers_the_european_day_over_the_worldwide_one_and_over_japan() throws Exception {
-        // 1 = Europe, 5 = Japon, 8 = monde entier. 1794476800 = 2026-11-12, 1794649600 = 2026-11-14.
+        // 1 = Europe, 5 = Japan, 8 = worldwide. 1794476800 = 2026-11-12, 1794649600 = 2026-11-14.
         String body = """
                 [ { "id": 1942, "name": "Un jeu",
                     "release_dates": [
@@ -34,7 +34,7 @@ class IgdbReleaseDatesFetcherTest {
 
     @Test
     void keeps_a_month_when_that_is_all_the_source_knows_and_a_day_over_a_month_in_the_same_region() throws Exception {
-        // IGDB pose une date au mois près sur le dernier jour du mois : 1795996800 = 2026-11-30.
+        // IGDB sets a month-precision date on the last day of the month: 1795996800 = 2026-11-30.
         String body = """
                 [ { "id": 1, "name": "Au mois",
                     "release_dates": [ { "date": 1795996800, "human": "Nov 2026", "region": 1 } ] },

@@ -1,16 +1,16 @@
 /**
- * Ce qu'un écran montre en attendant ses données : la forme de ce qui vient.
+ * What a screen shows while waiting for its data: the shape of what is coming.
  *
- * <h2>Le défaut</h2>
- * Vingt-neuf écrans écrivaient « Chargement... » en gris, seul au milieu de
- * la page. Le mot est honnête, mais il fait attendre devant du vide, et
- * chaque arrivée de données faisait sauter la mise en page d'un coup. Un
- * squelette occupe la place exacte de ce qui va s'afficher : l'œil sait où
- * regarder, et rien ne saute.
+ * <h2>The flaw</h2>
+ * Twenty-nine screens wrote "Chargement..." in gray, alone in the middle of
+ * the page. The word is honest, but it makes you wait in front of emptiness, and
+ * each arrival of data made the layout jump all at once. A
+ * skeleton takes the exact place of what is going to be displayed: the eye knows where to
+ * look, and nothing jumps.
  *
- * <h2>Annoncé une fois</h2>
- * Le bloc porte `role="status"` et un « Chargement… » pour lecteur d'écran ;
- * les formes elles-mêmes sont décoratives (`aria-hidden`).
+ * <h2>Announced once</h2>
+ * The block carries `role="status"` and a "Chargement…" for screen readers;
+ * the shapes themselves are decorative (`aria-hidden`).
  */
 export function Squelette({ lignes = 3, className = '' }: { lignes?: number; className?: string }) {
   const largeurs = ['w-3/4', 'w-full', 'w-5/6', 'w-2/3', 'w-11/12']
@@ -24,7 +24,7 @@ export function Squelette({ lignes = 3, className = '' }: { lignes?: number; cla
   )
 }
 
-/** Un rail d'accueil en attente : son en-tête, puis des tuiles au format jaquette. */
+/** A home rail while waiting: its header, then tiles in cover format. */
 export function SqueletteRail({ tuiles = 4 }: { tuiles?: number }) {
   return (
     <div role="status" className="flex flex-col gap-3 py-2">
@@ -43,7 +43,7 @@ export function SqueletteRail({ tuiles = 4 }: { tuiles?: number }) {
   )
 }
 
-/** Une grille de tuiles en attente (rayon, tomes). */
+/** A grid of tiles while waiting (shelf, volumes). */
 export function SqueletteGrille({ tuiles = 6, aspect = 'aspect-[2/3]' }: { tuiles?: number; aspect?: string }) {
   return (
     <div role="status" className="grid grid-cols-3 gap-3 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
@@ -58,7 +58,7 @@ export function SqueletteGrille({ tuiles = 6, aspect = 'aspect-[2/3]' }: { tuile
   )
 }
 
-/** Une liste de lignes en attente (catalogue, historique, comptes). */
+/** A list of rows while waiting (catalog, history, accounts). */
 export function SqueletteListe({ lignes = 5 }: { lignes?: number }) {
   return (
     <div role="status" className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ export function SqueletteListe({ lignes = 5 }: { lignes?: number }) {
   )
 }
 
-/** La fiche d'une œuvre en attente : jaquette, titre, puis une grille. */
+/** The detail page of a work while waiting: cover, title, then a grid. */
 export function SqueletteFiche() {
   return (
     <div role="status" className="flex flex-col gap-6">

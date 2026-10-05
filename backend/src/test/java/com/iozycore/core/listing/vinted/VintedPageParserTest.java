@@ -7,20 +7,20 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Le parseur est une fonction pure : ces tests lui donnent du HTML et vérifient
- * ce qu'il en tire, <b>sans jamais appeler Vinted</b>. La suite ne dépend donc
- * ni du réseau, ni d'une annonce qui existera encore demain.
+ * The parser is a pure function: these tests give it HTML and check
+ * what it extracts, <b>never calling Vinted</b>. The suite therefore depends
+ * neither on the network, nor on a listing that will still exist tomorrow.
  * <p>
- * Le HTML utilisé ici est <b>fabriqué</b> et reproduit uniquement la FORME
- * constatée sur une page publique (balises OpenGraph, forme des données
- * embarquées). Aucun contenu d'annonce réelle n'est copié dans le dépôt.
+ * The HTML used here is <b>fabricated</b> and only reproduces the SHAPE
+ * seen on a public page (OpenGraph tags, shape of the embedded
+ * data). No real listing content is copied into the repository.
  * <p>
- * Ce que ces tests protègent avant tout : l'absence d'une donnée doit produire
- * un champ vide, jamais une valeur de remplacement.
+ * What these tests protect above all: the absence of a datum must produce
+ * an empty field, never a replacement value.
  */
 class VintedPageParserTest {
 
-    /** Une page complète : OpenGraph + prix et photos dans les données embarquées. */
+    /** A full page: OpenGraph + price and photos in the embedded data. */
     private static final String PAGE_COMPLETE = """
             <html><head>
             <meta property="og:title" content="Lot integrale tomes 1-14 | Vinted"/>
@@ -54,9 +54,9 @@ class VintedPageParserTest {
     void ne_confond_pas_le_prix_de_l_article_avec_les_frais_de_port() {
         VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 12);
 
-        // Les frais de port (4.99) apparaissent AVANT dans la page sur certaines
-        // annonces : prendre « le premier prix trouvé » donnerait un coût faux.
-        // Le discriminant est la clé de devise, currency_code vs currencyCode.
+        // The shipping costs (4.99) appear BEFORE in the page on some
+        // listings: taking "the first price found" would give a wrong cost.
+        // The discriminator is the currency key, currency_code vs currencyCode.
         assertThat(page.price()).isEqualByComparingTo(new BigDecimal("70.0"));
     }
 
@@ -79,8 +79,8 @@ class VintedPageParserTest {
         VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 12);
 
         assertThat(page.shippingFee()).isEqualByComparingTo("4.99");
-        // finalPrice (1.20), jamais originalPrice (2.40) : une remise peut
-        // s'appliquer, et c'est le montant réellement facturé qui compte.
+        // finalPrice (1.20), never originalPrice (2.40): a discount may
+        // apply, and the amount actually charged is what counts.
         assertThat(page.buyerProtectionFee()).isEqualByComparingTo("1.20");
     }
 
@@ -90,8 +90,8 @@ class VintedPageParserTest {
                 <meta property="og:title" content="Lot port offert | Vinted"/>
                 <script>x:{\\"shippingDetails\\":{\\"isFreeShipping\\":true,\\"price\\":{\\"amount\\":\\"0.0\\",\\"currencyCode\\":\\"EUR\\"}}}</script>""";
 
-        // Un vrai zéro : le distinguer d'un frais illisible évite de faire
-        // saisir à la main un montant que l'annonce donne déjà.
+        // A real zero: telling it apart from an unreadable cost avoids making
+        // the user enter by hand an amount the listing already gives.
         assertThat(VintedPageParser.parse(gratuit, "https://www.vinted.fr/items/1", 12).shippingFee())
                 .isEqualByComparingTo("0");
     }
@@ -100,8 +100,8 @@ class VintedPageParserTest {
     void les_frais_ne_sont_pas_confondus_avec_le_prix_de_l_article() {
         VintedPageParser.ParsedPage page = VintedPageParser.parse(PAGE_COMPLETE, "https://www.vinted.fr/items/424242", 12);
 
-        // Trois montants distincts dans la même page - les mélanger donnerait
-        // un coût réel faux, donc un verdict faux.
+        // Three distinct amounts in the same page - mixing them would give
+        // a wrong real cost, so a wrong verdict.
         assertThat(page.price()).isEqualByComparingTo("70.0");
         assertThat(page.shippingFee()).isEqualByComparingTo("4.99");
         assertThat(page.buyerProtectionFee()).isEqualByComparingTo("1.20");
@@ -113,7 +113,7 @@ class VintedPageParserTest {
 
         VintedPageParser.ParsedPage page = VintedPageParser.parse(sansFrais, "https://www.vinted.fr/items/1", 12);
 
-        // Ni zéro, ni valeur par défaut : l'utilisateur saisira.
+        // Neither zero, nor default value: the user will enter it.
         assertThat(page.shippingFee()).isNull();
         assertThat(page.buyerProtectionFee()).isNull();
     }
@@ -129,8 +129,8 @@ class VintedPageParserTest {
         VintedPageParser.ParsedPage page = VintedPageParser.parse(sansPrix, "https://www.vinted.fr/items/99", 12);
 
         assertThat(page.title()).isEqualTo("Lot sans prix lisible");
-        // Le coeur du module : pas de valeur de démonstration, pas de zéro par
-        // défaut, pas d'estimation. Le champ reste vide et l'utilisateur saisit.
+        // The heart of the module: no demo value, no zero by
+        // default, no estimate. The field stays empty and the user enters it.
         assertThat(page.price()).isNull();
         assertThat(page.currency()).isNull();
         assertThat(page.imageUrls()).isEmpty();
@@ -145,7 +145,7 @@ class VintedPageParserTest {
         assertThat(page.title()).isNull();
         assertThat(page.price()).isNull();
         assertThat(page.imageUrls()).isEmpty();
-        // L'identifiant se retrouve tout de même dans l'URL demandée.
+        // The identifier can still be found in the requested URL.
         assertThat(page.externalId()).isEqualTo("7");
     }
 

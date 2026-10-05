@@ -13,13 +13,13 @@ import com.iozycore.core.listing.ListingPlatform;
  * there is no automated URL scraping, see {@link PriceBasis} and the
  * data-source limitations documented on {@link PurchaseAnalysisEngine}).
  *
- * @param description                 texte de l'annonce, tel qu'affiché au moment de l'analyse - lu par
- *                                    {@link ListingTrustAssessment} pour repérer les points à vérifier,
- *                                    et par {@link ListingTextParser} pour deviner le contenu du lot.
- *                                    Nullable : une annonce peut n'en avoir aucune.
- * @param photoUrls                   références EXTERNES vers les photos de la source, figées à l'instant
- *                                    de l'analyse. Ce ne sont pas des copies : la plateforme peut les faire
- *                                    expirer, et IozyCore n'en conserve aucune archive.
+ * @param description                 text of the listing, as shown at the time of the analysis - read by
+ *                                    {@link ListingTrustAssessment} to find the points to check,
+ *                                    and by {@link ListingTextParser} to guess the content of the lot.
+ *                                    Nullable: a listing may have none.
+ * @param photoUrls                   EXTERNAL references to the photos of the source, frozen at the time
+ *                                    of the analysis. They are not copies: the platform can let them
+ *                                    expire, and IozyCore keeps no archive of them.
  * @param conditionAppliesToContainer true when {@link #condition()} describes a box/slipcase
  *                                    (e.g. a collector coffret) rather than a single standard
  *                                    volume - weighted more heavily by {@link VerdictScorer}
@@ -36,37 +36,37 @@ public record Listing(UUID id, ListingPlatform platform, String url, String rawT
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Une annonce doit contenir au moins un lot");
         }
-        // La NATURE n'est jamais supposee, et c'est ici qu'elle se normalise -
-        // un seul endroit pour tous les appelants : API, moteur, et relecture
-        // JSONB d'une analyse ancienne.
+        // The KIND is never assumed, and this is where it is normalised -
+        // one place for all callers: API, engine, and JSONB re-reading of an
+        // old analysis.
         //
-        // Nature absente mais montant present : personne n'a affirme que ce
-        // tarif etait ferme, donc ESTIMATED. Attribuer EXACT donnerait a un
-        // nombre recu la valeur d'un tarif constate.
+        // Kind missing but amount present: nobody said this price was
+        // firm, so ESTIMATED. Giving EXACT would give a received number
+        // the value of a confirmed price.
         //
-        // Un ZERO sans nature ne dit rien, en revanche : il ne se distingue pas
-        // d'un champ laisse vide. Le lire "0,00 EUR estimes" affirmerait qu'une
-        // livraison gratuite a ete constatee alors que personne ne l'a dite -
-        // une livraison reellement offerte arrive avec FREE. Ce cas concerne
-        // surtout la relecture des analyses anterieures a cette nature, dont le
-        // port valait zero par defaut.
+        // A ZERO without a kind says nothing, however: it cannot be told apart
+        // from an empty field. Reading it as "0,00 EUR estimated" would claim that a
+        // free shipping was confirmed when nobody said so -
+        // a really free shipping comes with FREE. This case mostly concerns
+        // re-reading analyses older than this kind, where
+        // shipping was zero by default.
         if (shippingKind == null) {
             shippingKind = (shippingFee == null || shippingFee.signum() == 0)
                     ? ShippingEstimateKind.UNKNOWN
                     : ShippingEstimateKind.ESTIMATED;
         }
-        // UNKNOWN portant un montant est une contradiction : le total
-        // l'inclurait pendant que l'ecran annoncerait « non communiquee ».
-        // Le montant existe, il n'est simplement pas garanti - c'est
-        // exactement ESTIMATED. Cette regle repare aussi, a la relecture, les
-        // analyses enregistrees avant que ce cas ait un nom.
+        // UNKNOWN carrying an amount is a contradiction: the total
+        // would include it while the screen says "not given".
+        // The amount exists, it is just not guaranteed - this is
+        // exactly ESTIMATED. This rule also repairs, on re-reading, the
+        // analyses saved before this case had a name.
         if (shippingKind == ShippingEstimateKind.UNKNOWN && shippingFee != null
                 && shippingFee.signum() != 0) {
             shippingKind = ShippingEstimateKind.ESTIMATED;
         }
-        // Le zero par defaut reste, sinon le total serait incalculable ; mais
-        // sous UNKNOWN c'est un zero de calcul, pas un port offert, et
-        // acquisitionCostIncludesShipping() empeche de le lire autrement.
+        // The default zero stays, otherwise the total could not be computed; but
+        // under UNKNOWN it is a calculation zero, not a free shipping, and
+        // acquisitionCostIncludesShipping() prevents reading it any other way.
         shippingFee = shippingFee == null ? BigDecimal.ZERO : shippingFee;
         buyerProtectionFee = buyerProtectionFee == null ? BigDecimal.ZERO : buyerProtectionFee;
         items = List.copyOf(items);
@@ -74,41 +74,41 @@ public record Listing(UUID id, ListingPlatform platform, String url, String rawT
     }
 
     /**
-     * Ce que l'achat coûtera : article + protection + livraison.
+     * What the purchase will cost: item + protection + shipping.
      * <p>
-     * <b>C'est un coût d'acquisition ESTIMÉ, pas un montant facturé.</b> Deux
-     * réserves peuvent l'affecter, et l'interface doit les reprendre :
+     * <b>This is an ESTIMATED acquisition cost, not an invoiced amount.</b> Two
+     * reservations can affect it, and the interface must show them:
      * <ul>
-     *   <li>livraison en « à partir de » : le total est un <b>minimum</b>
-     *       ({@link #acquisitionCostIsLowerBound()}) ;</li>
-     *   <li>livraison inconnue : le total est <b>incomplet</b>, il ne contient
-     *       aucune livraison ({@link #acquisitionCostIncludesShipping()}) et ne
-     *       doit pas être annoncé comme un coût d'acquisition.</li>
+     *   <li>shipping "from" a price: the total is a <b>minimum</b>
+     *       ({@link #acquisitionCostIsLowerBound()});</li>
+     *   <li>unknown shipping: the total is <b>incomplete</b>, it contains
+     *       no shipping ({@link #acquisitionCostIncludesShipping()}) and must not
+     *       be announced as an acquisition cost.</li>
      * </ul>
-     * Le nom historique de ce champ dans les analyses déjà enregistrées est
-     * {@code totalRealCost} ; sa signification est celle-ci.
+     * The historical name of this field in the analyses already saved is
+     * {@code totalRealCost}; its meaning is the one above.
      * <p>
-     * Ne jamais confondre avec {@link #askingPrice()} : c'est le prix de
-     * l'article seul qui se compare aux prix d'autres annonces, lesquels sont
-     * eux aussi hors frais. Comparer un total frais compris à des prix hors
-     * frais reviendrait à comparer deux grandeurs différentes.
+     * Never confuse it with {@link #askingPrice()}: it is the price of the
+     * item alone that is compared to the prices of other listings, which are
+     * also without fees. Comparing a total with fees to prices without
+     * fees would compare two different quantities.
      */
     public BigDecimal totalRealCost() {
         return askingPrice.add(buyerProtectionFee).add(shippingFee);
     }
 
-    /** Vrai quand le coût d'acquisition n'est qu'un minimum, la livraison étant un « à partir de ». */
+    /** True when the acquisition cost is only a minimum, the shipping being a "from" price. */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean acquisitionCostIsLowerBound() {
         return shippingKind.isLowerBound();
     }
 
     /**
-     * Vrai quand une livraison a pu être prise en compte - offerte, ferme,
-     * plancher ou estimée. Faux sous {@link ShippingEstimateKind#UNKNOWN} : le
-     * total n'est alors qu'un <b>sous-total connu</b>, et l'annoncer comme un
-     * coût d'acquisition laisserait croire à un achat à 11,20 € qui coûtera
-     * plus.
+     * True when a shipping could be taken into account - free, firm,
+     * minimum or estimated. False under {@link ShippingEstimateKind#UNKNOWN}: the
+     * total is then only a <b>known subtotal</b>, and announcing it as an
+     * acquisition cost would suggest a purchase at 11,20 EUR that will cost
+     * more.
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean acquisitionCostIncludesShipping() {

@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.deals.SeriesTitleNormalizer;
 
 /**
- * Le pipeline complet, avec un faux moteur : photos -> lecture -> consolidation
- * -> catalogue -> propositions.
+ * The complete pipeline, with a fake engine: photos -> reading -> consolidation
+ * -> catalogue -> proposals.
  *
- * <p>Deux invariants dominent cette classe, et ils tiennent tout le chantier :
- * <b>rien n'est jamais créé</b>, et <b>une panne de moteur ne bloque rien</b>.
+ * <p>Two invariants dominate this class, and they hold the whole project together:
+ * <b>nothing is ever created</b>, and <b>an engine outage blocks nothing</b>.
  */
 class ListingRecognitionServiceTest {
 
@@ -31,10 +31,10 @@ class ListingRecognitionServiceTest {
     private final EditionsDeTest editions = new EditionsDeTest();
 
     /**
-     * Ces tests portent sur l'orchestration texte/vision. Un lecteur de
-     * codes-barres qui trouverait quelque chose sur les images de test
-     * ajouterait une source et brouillerait ce qu'ils mesurent - la chaîne
-     * code-barres a ses propres tests.
+     * These tests cover the text/vision orchestration. A barcode
+     * reader that found something on the test images
+     * would add a source and blur what they measure - the barcode
+     * chain has its own tests.
      */
     private static final BarcodeRecognizer SANS_CODE_BARRES =
             new BarcodeRecognizer((ean, entityTypeCode) -> java.util.Optional.empty());
@@ -59,13 +59,13 @@ class ListingRecognitionServiceTest {
                 RecognitionResult.quotaExceeded()))
                 .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        // Pas UNAVAILABLE : l'écran ne doit pas inviter à réessayer tout de suite.
+        // Not UNAVAILABLE: the screen must not invite to retry right away.
         assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.QUOTA_EXCEEDED);
         assertThat(analyse.items()).isEmpty();
         assertThat(analyse.analyzedImageCount()).isEqualTo(1);
     }
 
-    // ====================================================== Le cas nominal
+    // ====================================================== The nominal case
 
     @Test
     void a_recognized_volume_of_a_known_series_is_matched_to_the_catalog() {
@@ -104,7 +104,7 @@ class ListingRecognitionServiceTest {
                 .containsExactlyInAnyOrder(1, 2, 3);
     }
 
-    // ====================================================== Doublons entre photos
+    // ====================================================== Duplicates between photos
 
     @Test
     void one_volume_seen_on_three_photos_is_counted_once() {
@@ -122,7 +122,7 @@ class ListingRecognitionServiceTest {
         assertThat(analyse.items().get(0).recognized().sourceImages()).containsExactly(0, 1, 2);
     }
 
-    // ====================================================== Ambiguïté d'édition
+    // ====================================================== Edition ambiguity
 
     @Test
     void an_unread_edition_is_asked_never_chosen() {
@@ -137,16 +137,16 @@ class ListingRecognitionServiceTest {
 
         ResolvedItem item = analyse.items().get(0);
         assertThat(item.catalogStatus()).isEqualTo(CatalogStatus.EDITION_TO_CONFIRM);
-        assertThat(item.recognized().editionHint()).as("aucune édition inventée").isNull();
+        assertThat(item.recognized().editionHint()).as("no invented edition").isNull();
         assertThat(item.editionOptions()).extracting(ResolvedItem.EditionOption::editionName)
                 .containsExactly("Standard", "Black Edition");
-        assertThat(item.preselected()).as("un doute ne se pré-coche pas").isFalse();
+        assertThat(item.preselected()).as("a doubt is not pre-ticked").isFalse();
         assertThat(item.readyForAnalysis()).isFalse();
     }
 
     @Test
     void a_single_known_edition_is_still_not_chosen_automatically() {
-        // Le catalogue peut ignorer une seconde édition que le lot contient.
+        // The catalogue may not know a second edition that the batch contains.
         catalogue.ajouterSerie("Death Note", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
 
@@ -171,7 +171,7 @@ class ListingRecognitionServiceTest {
         assertThat(analyse.items().get(0).catalogStatus()).isEqualTo(CatalogStatus.MATCHED);
     }
 
-    // ====================================================== Hors catalogue
+    // ====================================================== Outside the catalogue
 
     @Test
     void something_recognized_but_absent_from_the_catalog_is_reported_never_created() {
@@ -185,9 +185,9 @@ class ListingRecognitionServiceTest {
         assertThat(item.entityId()).isNull();
         assertThat(item.displayTitle()).isEqualTo("Série inconnue au bataillon");
 
-        // L'invariant central du chantier.
-        assertThat(catalogue.creations()).as("aucune fiche créée par une reconnaissance").isZero();
-        assertThat(editions.creations()).as("aucune édition créée par une reconnaissance").isZero();
+        // The central invariant of the project.
+        assertThat(catalogue.creations()).as("no work page created by a recognition").isZero();
+        assertThat(editions.creations()).as("no edition created by a recognition").isZero();
     }
 
     @Test
@@ -199,7 +199,7 @@ class ListingRecognitionServiceTest {
         assertThat(catalogue.creations()).isZero();
     }
 
-    // ====================================================== Non identifiés
+    // ====================================================== Not identified
 
     @Test
     void unidentified_books_are_reported_so_the_lot_is_not_understated() {
@@ -222,7 +222,7 @@ class ListingRecognitionServiceTest {
         assertThat(analyse.visionStatus().worthRetrying()).isFalse();
     }
 
-    // ====================================================== Pannes
+    // ====================================================== Outages
 
     @Test
     void no_engine_configured_is_a_normal_answer_not_a_failure() {
@@ -268,25 +268,25 @@ class ListingRecognitionServiceTest {
 
         ListingRecognitionService.Analysis analyse = service(moteur).analyze(null, null, List.of(), RecognitionContext.forManga());
 
-        // V2 : aucune photo demandee n'est PAS un echec de lecture, c'est
-        // l'absence de question. visionStatus reste null, et le moteur dort.
+        // V2: no photo requested is NOT a reading failure, it is
+        // the absence of a question. visionStatus stays null, and the engine sleeps.
         assertThat(analyse.visionStatus()).isNull();
         assertThat(moteur.appels()).isZero();
     }
 
     @Test
     void without_a_vision_engine_the_photos_are_STILL_read_for_barcodes() {
-        // Cet invariant a été INVERSÉ, et volontairement.
+        // This invariant was REVERSED, and deliberately.
         //
-        // Il disait « inutile de solliciter un CDN pour un résultat qu'on ne
-        // peut pas produire ». C'était vrai tant que seule la vision savait
-        // lire une photo. Depuis, les codes-barres se lisent en local et
-        // gratuitement : un lot photographié de dos peut être entièrement
-        // identifié sans le moindre moteur, et avec des identifiants EXACTS
-        // là où un modèle n'aurait produit que des suppositions.
+        // It used to say "no point asking a CDN for a result that cannot
+        // be produced". That was true as long as only vision could
+        // read a photo. Since then, barcodes are read locally and
+        // for free: a batch photographed from behind can be entirely
+        // identified without any engine, and with EXACT identifiers
+        // where a model would only have produced guesses.
         //
-        // Ne pas télécharger reviendrait à refuser la meilleure des trois
-        // sources parce que la moins fiable est absente.
+        // Not downloading would mean refusing the best of the three
+        // sources because the least reliable one is absent.
         FetcherEspion espion = new FetcherEspion();
         ListingRecognitionService service = new ListingRecognitionService(
                 espion, new RecognitionCatalogResolver(catalogue, editions), List.of(), SANS_CODE_BARRES);
@@ -298,9 +298,9 @@ class ListingRecognitionServiceTest {
 
     @Test
     void without_a_vision_engine_the_status_still_says_the_vision_did_not_run() {
-        // NO_ENGINE décrit la VISION, pas l'analyse entière : l'écran doit
-        // continuer à dire qu'elle n'a pas tourné, même si les codes-barres
-        // ont donné quelque chose.
+        // NO_ENGINE describes VISION, not the whole analysis: the screen must
+        // keep saying that it did not run, even if the barcodes
+        // gave something.
         ListingRecognitionService service = new ListingRecognitionService(
                 new FetcherDeTest(), new RecognitionCatalogResolver(catalogue, editions),
                 List.of(), SANS_CODE_BARRES);
@@ -310,11 +310,11 @@ class ListingRecognitionServiceTest {
                 List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
         assertThat(analyse.visionStatus()).isEqualTo(RecognitionStatus.NO_ENGINE);
-        // Et les propositions du texte tiennent toujours.
+        // And the proposals from the text still hold.
         assertThat(analyse.items()).hasSize(3);
     }
 
-    // ====================================================== Priorité EAN
+    // ====================================================== EAN priority
 
     @Test
     void an_exact_identifier_outranks_a_visual_guess() {
@@ -326,15 +326,15 @@ class ListingRecognitionServiceTest {
                 RecognitionResult.recognized(List.of(visuel, avecEan), 0)))
                 .analyze(null, null, List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        // Un code-barres correspond ou ne correspond pas ; un titre « ressemble ».
+        // A barcode matches or does not match; a title "looks like".
         assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
     }
 
     @Test
     void an_exact_identifier_survives_consolidation_and_reaches_the_catalog_phase() {
-        // La priorité déterministe ne doit pas se perdre en route : l'EAN lu sur
-        // une photo doit être encore là après fusion, pour que la résolution
-        // catalogue/metadata puisse s'en servir plutôt que du titre lu.
+        // The deterministic priority must not get lost on the way: the EAN read on
+        // a photo must still be there after the merge, so that the catalogue/metadata
+        // resolution can use it rather than the title read.
         catalogue.ajouterSerie("Death Note", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Death Note", "Standard", 12);
 
@@ -354,9 +354,9 @@ class ListingRecognitionServiceTest {
 
     @Test
     void a_weaker_visual_guess_never_outranks_an_exact_identifier() {
-        // Confiance HIGH sur une lecture visuelle contre LOW sur un EAN :
-        // l'identifiant exact passe quand même devant. Un code-barres
-        // correspond ou ne correspond pas ; un titre « ressemble ».
+        // HIGH confidence on a visual reading against LOW on an EAN:
+        // the exact identifier still comes first. A barcode
+        // matches or does not match; a title "looks like".
         RecognizedItem visuelTresSur = RecognizedItem.fromVision("Platinum End", 1, null, null,
                 RecognitionConfidence.HIGH, List.of(), Set.of(0));
         RecognizedItem eanPeuSur = RecognizedItem.fromVision("Death Note", 1, null, "9782505000000",
@@ -370,7 +370,7 @@ class ListingRecognitionServiceTest {
         assertThat(analyse.items().get(0).recognized().hasExactIdentifier()).isTrue();
     }
 
-    // ====================================================== Contexte
+    // ====================================================== Context
 
     @Test
     void the_listing_title_reaches_the_engine_as_a_hint() {
@@ -380,9 +380,9 @@ class ListingRecognitionServiceTest {
         service(moteur).analyze("Lot Platinum End tomes 1 à 14", null,
                 List.of("https://exemple.invalid/1.jpg"), RecognitionContext.forManga());
 
-        // Le titre de l'annonce n'est PLUS transmis au moteur : il est lu
-        // localement, et un texte écrit par un tiers n'a rien à faire dans un
-        // prompt. Seul l'univers attendu voyage.
+        // The listing title is NO LONGER sent to the engine: it is read
+        // locally, and a text written by a third party has no place in a
+        // prompt. Only the expected universe travels.
         assertThat(moteur.dernierContexte().isManga()).isTrue();
     }
 
@@ -397,9 +397,9 @@ class ListingRecognitionServiceTest {
         assertThat(moteur.dernieresImages().get(0).bytes()).isNotEmpty();
     }
 
-    // ====================================================== Doublures
+    // ====================================================== Doubles
 
-    /** Rend une image factice pour chaque URL - la liste blanche est testée à part. */
+    /** Returns a dummy image for each URL - the whitelist is tested separately. */
     private static class FetcherDeTest extends RecognitionImageFetcher {
         FetcherDeTest() {
             super(List.of());
@@ -434,8 +434,8 @@ class ListingRecognitionServiceTest {
     }
 
     /**
-     * Un SeriesMatcher de test qui compte les créations - il ne devrait jamais
-     * en compter une seule.
+     * A test SeriesMatcher that counts creations - it should never
+     * count a single one.
      */
     private static class CatalogueDeTest extends SeriesMatcher {
         private final java.util.Map<String, UUID> series = new java.util.HashMap<>();
@@ -458,9 +458,9 @@ class ListingRecognitionServiceTest {
             if (rawTitle == null || rawTitle.isBlank()) {
                 throw new IllegalArgumentException("Le titre de la série est requis");
             }
-            // La doublure applique la MÊME normalisation que le vrai matcher :
-            // s'en dispenser la ferait diverger du comportement réel, et les
-            // tests vérifieraient alors une chose qui n'existe pas.
+            // The double applies the SAME normalisation as the real matcher:
+            // skipping it would make it diverge from the real behaviour, and the
+            // tests would then check something that does not exist.
             String titre = com.iozycore.manga.deals.SeriesTitleNormalizer.normalize(rawTitle);
             return new MangaSeries(titre, series.get(titre.toLowerCase(java.util.Locale.ROOT)));
         }
@@ -527,14 +527,14 @@ class ListingRecognitionServiceTest {
         }
     }
 
-    // ================== L'edition lue dans le texte, face au catalogue
+    // ================== The edition read in the text, against the catalogue
 
     @Test
     void an_edition_named_in_the_title_matches_the_catalog_even_worded_differently() {
-        // Le catalogue nomme cette edition « Kana » ; l'annonce ecrit « edition
-        // Kana ». Comparer les libelles bruts faisait echouer le rapprochement,
-        // et un element parfaitement identifie repassait en « edition a
-        // confirmer » - avec la case a cocher en moins.
+        // The catalogue names this edition "Kana"; the listing writes "edition
+        // Kana". Comparing the raw labels made the match fail,
+        // and a perfectly identified item went back to "edition to
+        // confirm" - with the tick box missing.
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 
@@ -549,10 +549,10 @@ class ListingRecognitionServiceTest {
 
     @Test
     void the_catalog_label_wins_over_what_the_listing_wrote() {
-        // L'annonce ecrit « edition Kana », le catalogue dit « Kana ». Garder ce
-        // qui a ete lu ferait entrer « Kana Edition » dans le lot, puis dans
-        // l'analyse enregistree, puis dans les prix releves - un nom que le
-        // catalogue ne porte pas et qui ne se rapprocherait plus de rien.
+        // The listing writes "edition Kana", the catalogue says "Kana". Keeping what
+        // was read would bring "Kana Edition" into the batch, then into
+        // the saved analysis, then into the recorded prices - a name that the
+        // catalogue does not carry and that would no longer match anything.
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Kana", 14);
 
@@ -567,8 +567,8 @@ class ListingRecognitionServiceTest {
 
     @Test
     void the_loose_match_works_the_other_way_round_too() {
-        // L'inverse : le catalogue porte « Perfect Edition », l'annonce ecrit
-        // seulement « Perfect ».
+        // The reverse: the catalogue carries "Perfect Edition", the listing writes
+        // only "Perfect".
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Perfect Edition", 14);
 
@@ -581,12 +581,12 @@ class ListingRecognitionServiceTest {
 
     @Test
     void an_ambiguous_loose_match_is_no_match_at_all() {
-        // Le catalogue porte deux orthographes du meme rang. L'annonce ecrit
-        // « Deluxe » seul : aucune des deux ne correspond EXACTEMENT, et le
-        // repli en trouve deux. Choisir pour l'utilisateur serait deviner.
+        // The catalogue carries two spellings of the same rank. The listing writes
+        // "Deluxe" alone: neither matches EXACTLY, and the
+        // fallback finds two. Choosing for the user would be guessing.
         //
-        // Le repli n'est atteint que la : partout ailleurs le match exact
-        // tranche d'abord, ce qui est precisement ce qu'on veut.
+        // The fallback is only reached there: everywhere else the exact match
+        // decides first, which is precisely what we want.
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Deluxe Edition", 14);
         editions.ajouter(PLATINUM_END, "Platinum End", "Édition Deluxe", 14);
@@ -600,9 +600,9 @@ class ListingRecognitionServiceTest {
 
     @Test
     void naming_the_edition_no_longer_loses_the_series() {
-        // Le degat d'origine : « Platinum End Perfect Edition » ressortait comme
-        // une SERIE de ce nom, donc hors catalogue, alors que « Platinum End »
-        // seul retrouvait sa fiche.
+        // The original damage: "Platinum End Perfect Edition" came out as
+        // a SERIES of that name, so outside the catalogue, while "Platinum End"
+        // alone found its work page.
         catalogue.ajouterSerie("Platinum End", PLATINUM_END);
         editions.ajouter(PLATINUM_END, "Platinum End", "Standard", 14);
 

@@ -1,9 +1,9 @@
 /**
- * Les jeux vidéo : IGDB pour la recherche, les jeux similaires pour
- * Découvrir. La racine porte la façade vers le cœur, {@code igdb} la source.
+ * Video games: IGDB for search, similar games for
+ * Discover. The root holds the facade to the core, {@code igdb} the source.
  *
- * <p>Un univers dépend du cœur, jamais l'inverse, jamais d'un autre univers
- * (Lot 133) - vérifié par le test des modules.
+ * <p>A universe depends on the core, never the other way round, never on another universe
+ * (Batch 133) - checked by the modules test.
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Jeux vidéo")
 package com.iozycore.videogame;

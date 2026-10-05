@@ -57,8 +57,8 @@ public class NegotiationEngine {
     }
 
     /**
-     * Un montant tel qu'on le lit : « 20,80 € ». La phrase concaténait le BigDecimal
-     * brut, et l'écran affichait « (20.8000) » - l'échelle interne du calcul, pas un prix.
+     * An amount as one reads it: "20,80 €". The sentence used to concatenate the raw BigDecimal,
+     * and the screen showed "(20.8000)" - the internal scale of the calculation, not a price.
      */
     private static String euros(BigDecimal value) {
         return String.format(Locale.FRANCE, "%,.2f €", value);

@@ -13,23 +13,23 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Les tags : des étiquettes libres posées sur une ŒUVRE, jamais sur un tome ni
- * sur un exemplaire.
+ * Tags: free labels put on a WORK, never on a volume nor
+ * on a copy.
  *
- * <h2>Partagés, et administrés (2026-08-30)</h2>
- * Un tag décrit l'œuvre elle-même - « seinen », « one-shot », « adapté en
- * animé » - au même titre que sa catégorie ou son édition de référence. Il vit
- * donc dans le catalogue <b>partagé</b> : une œuvre est la même pour tout le
- * monde, et son étiquette aussi.
+ * <h2>Shared, and administered (2026-08-30)</h2>
+ * A tag describes the work itself - "seinen", "one-shot", "adapted into an
+ * anime" - just like its category or its reference edition. It lives
+ * therefore in the <b>shared</b> catalog: a work is the same for
+ * everyone, and so is its label.
  * <p>
- * C'est précisément pour ça que les poser est <b>administratif</b> (voir
- * SecurityConfig) : sans cette règle, n'importe quel compte étiquetterait les
- * œuvres de tous les autres. Tout le monde les <b>lit</b> - c'est ce qui rend
- * le filtre de Ma collection utilisable.
+ * This is precisely why setting them is <b>administrative</b> (see
+ * SecurityConfig): without this rule, any account would tag the
+ * works of all the others. Everyone <b>reads</b> them - this is what makes
+ * the filter of My collection usable.
  * <p>
- * Ce qui suit de ce choix : un tag n'est pas l'endroit où noter « prêté à
- * Marc » ou « à revendre ». Ces choses-là sont personnelles, elles n'ont rien
- * à faire dans un catalogue commun, et rien ici ne les accueille.
+ * What follows from this choice: a tag is not the place to note "lent to
+ * Marc" or "for resale". Such things are personal, they have nothing
+ * to do in a common catalog, and nothing here welcomes them.
  */
 @RestController
 @RequestMapping("/api/tags")
@@ -49,7 +49,7 @@ public class TagController {
         this.entityRepository = entityRepository;
     }
 
-    @Operation(summary = "Créer un Tag (réutilisable sur plusieurs Entity)")
+    @Operation(summary = "Create a Tag (reusable on several Entities)")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Tag create(@RequestBody CreateTagRequest request) {
@@ -57,22 +57,22 @@ public class TagController {
                 .orElseGet(() -> tagRepository.save(new Tag(UUID.randomUUID(), request.label())));
     }
 
-    @Operation(summary = "Lister tous les Tags existants")
+    @Operation(summary = "List all existing Tags")
     @GetMapping
     public List<Tag> listAll() {
         return tagRepository.findAll();
     }
 
-    @Operation(summary = "Associer un Tag existant à une Entity")
+    @Operation(summary = "Attach an existing Tag to an Entity")
     @PostMapping("/entities/{entityId}/{tagId}")
     public void attachToEntity(@PathVariable UUID entityId, @PathVariable UUID tagId) {
         Entity entity = entityRepository.findById(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity introuvable : " + entityId));
-        // Le Tag aussi doit exister. Sans ce contrôle, seule la clé étrangère
-        // protégeait la table : le client recevait un 409 « Cette donnée entre
-        // en conflit avec une donnée existante » alors que le tag est ABSENT,
-        // pas conflictuel - et la ligne au-dessus rendait déjà, pour l'entité,
-        // le 404 que ce cas mérite tout autant.
+        // The Tag must exist too. Without this check, only the foreign key
+        // protected the table: the client got a 409 "Cette donnée entre
+        // en conflit avec une donnée existante" while the tag is ABSENT,
+        // not conflicting - and the line above already returned, for the entity,
+        // the 404 that this case deserves just as much.
         if (tagRepository.findById(tagId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId);
         }
@@ -80,7 +80,7 @@ public class TagController {
         entityRepository.save(entity);
     }
 
-    @Operation(summary = "Renommer un Tag - réservé aux administrateurs")
+    @Operation(summary = "Rename a Tag - reserved for administrators")
     @PatchMapping("/{tagId}")
     public Tag renommer(@PathVariable UUID tagId, @RequestBody RenommerTagRequest request) {
         Tag existant = tagRepository.findById(tagId)
@@ -89,29 +89,29 @@ public class TagController {
         if (libelle.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le libellé d'un tag ne peut pas être vide.");
         }
-        // Un libellé est unique en base : le dire ici plutôt que de laisser
-        // remonter une violation de contrainte, que personne ne peut lire.
-        // Se renommer soi-même à l'identique reste permis - c'est un
-        // non-changement, pas un conflit.
+        // A label is unique in the database: say it here rather than letting
+        // a constraint violation come up, which nobody can read.
+        // Renaming oneself to the identical name stays allowed - it is a
+        // non-change, not a conflict.
         if (tagRepository.findByLabel(libelle).filter(autre -> !autre.id().equals(tagId)).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Un tag porte déjà ce nom.");
         }
         return tagRepository.save(new Tag(existant.id(), libelle));
     }
 
-    @Operation(summary = "Supprimer un Tag et le retirer de toutes les œuvres - réservé aux administrateurs")
+    @Operation(summary = "Delete a Tag and remove it from all works - reserved for administrators")
     @DeleteMapping("/{tagId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable UUID tagId) {
         if (tagRepository.findById(tagId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tag introuvable : " + tagId);
         }
-        // Les rattachements partent avec, par la clé étrangère : une œuvre ne
-        // perd que l'étiquette, jamais autre chose.
+        // The links go with it, through the foreign key: a work only
+        // loses the label, never anything else.
         tagRepository.supprimer(tagId);
     }
 
-    @Operation(summary = "Retirer un Tag d'une Entity")
+    @Operation(summary = "Remove a Tag from an Entity")
     @DeleteMapping("/entities/{entityId}/{tagId}")
     public void detachFromEntity(@PathVariable UUID entityId, @PathVariable UUID tagId) {
         Entity entity = entityRepository.findById(entityId)

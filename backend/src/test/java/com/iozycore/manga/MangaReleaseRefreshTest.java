@@ -30,8 +30,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La relecture nocturne des séries en cours : lesquelles, dans quel ordre,
- * combien, et ce qu'une panne laisse derrière elle.
+ * The nightly re-read of ongoing series: which ones, in what order,
+ * how many, and what an outage leaves behind.
  */
 class MangaReleaseRefreshTest {
 
@@ -85,14 +85,14 @@ class MangaReleaseRefreshTest {
         cache.store("ancienne", "auteur a", TONIGHT.minus(Duration.ofDays(20)),
                 new VolumeCandidate("Kana", 1, null, "Ancienne 1"));
         serie("Jamais lue", "Auteur B", "RELEASING");
-        // La première relecture (« Jamais lue », jamais lue donc en tête) aboutit ; la seconde tombe sur un quota épuisé.
+        // The first re-read ("Jamais lue", never read so first in line) succeeds; the second hits an exhausted quota.
         provider.failAfter = 1;
 
         MangaReleaseRefresh.Summary summary = refresh(10).refresh();
 
         assertThat(summary).isEqualTo(new MangaReleaseRefresh.Summary(2, 1, true));
         assertThat(provider.titles).containsExactly("Jamais lue", "Ancienne");
-        // « Ancienne » garde son résultat d'il y a vingt jours : une panne n'efface rien.
+        // "Ancienne" keeps its result from twenty days ago: an outage erases nothing.
         assertThat(cache.find(EntityTypeFixtures.MANGA.id(), "ancienne", "auteur a")).isPresent()
                 .get().satisfies(volumes -> assertThat(volumes).extracting(VolumeCandidate::title).containsExactly("Ancienne 1"));
         assertThat(cache.find(EntityTypeFixtures.MANGA.id(), "jamais lue", "auteur b")).isPresent();
@@ -107,7 +107,7 @@ class MangaReleaseRefreshTest {
         assertThat(refresh.refresh()).isEqualTo(new MangaReleaseRefresh.Summary(0, 0, false));
     }
 
-    // ------------------------------------------------------------ Fabrique
+    // ------------------------------------------------------------ Factory
 
     private void serie(String title, String mangaka, String status) {
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), title);
@@ -118,7 +118,7 @@ class MangaReleaseRefreshTest {
         entities.save(entity);
     }
 
-    /** Rend un tome par série, et note les titres demandés dans l'ordre ; peut se taire à partir d'un appel donné. */
+    /** Returns one volume per series, and records the requested titles in order; can go silent from a given call. */
     private static class CountingProvider implements VolumeSearchProvider {
         final List<String> titles = new ArrayList<>();
         Integer failAfter;
@@ -227,7 +227,7 @@ class MangaReleaseRefreshTest {
             store.put(StoredVolumeSearch.key(title, author), new StoredVolumeSearch(title, author, List.of(volumes), fetchedAt));
         }
 
-        /** Les centaines de secondes de l'instant stocké - assez pour dire « maintenant » sans figer l'horloge de save(). */
+        /** The hundreds of seconds of the stored instant - enough to say "now" without freezing the clock of save(). */
         Optional<Long> fetchedAt(String title, String author) {
             return Optional.ofNullable(store.get(StoredVolumeSearch.key(title, author)))
                     .map(stored -> stored.fetchedAt().getEpochSecond() / 100);

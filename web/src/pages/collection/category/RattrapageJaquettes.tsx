@@ -8,26 +8,26 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import type { EntityResponse } from '@/common/types/api'
 
 /**
- * « Retrouver les jaquettes manquantes » : l'outil du rayon Manga.
+ * "Retrouver les jaquettes manquantes": the tool of the Manga shelf.
  *
- * <h2>Pourquoi ici, et plus dans « Plus d'outils » de Ma collection</h2>
- * Il n'a jamais traité que les mangas - il interroge le fournisseur de tomes,
- * qui n'existe que pour eux - et il vivait dans le menu d'outils de la page
- * d'accueil, c'est-à-dire de TOUTE la collection. Ma collection appartient au
- * cœur : ce qui est propre à un univers se branche sur son rayon (lot 136).
+ * <h2>Why here, and no longer in "Plus d'outils" of My collection</h2>
+ * It never handled anything but mangas - it queries the volume provider,
+ * which exists only for them - and it lived in the tools menu of the
+ * home page, that is of the WHOLE collection. My collection belongs to the
+ * core: what is specific to a universe plugs into its shelf (batch 136).
  *
- * <p>Sur toute la collection possédée de ce type, jamais sur la liste
- * affichée : c'est un outil de maintenance, pas une action sur ce qui est
- * filtré. Séquentiel, jamais en parallèle - chaque série coûte potentiellement
- * un vrai appel Google Books, et un lot simultané viderait le quota d'un coup
- * au lieu de s'arrêter proprement dessus. Le travail d'UNE série vit dans
- * `rattraperJaquettes`, partagé avec la fiche.
+ * <p>On the whole owned collection of this type, never on the displayed
+ * list: it is a maintenance tool, not an action on what is
+ * filtered. Sequential, never parallel - each series potentially costs
+ * a real Google Books call, and a simultaneous batch would use up the quota at once
+ * instead of stopping cleanly on it. The work of ONE series lives in
+ * `rattraperJaquettes`, shared with the detail page.
  */
 export function RattrapageJaquettes({
   oeuvresPossedees,
   mangaTypeId,
 }: {
-  /** Les mangas possédés de ce compte - possédés, parce qu'on ne complète pas la jaquette d'une envie. */
+  /** The owned mangas of this account - owned, because one does not complete the cover of a wish. */
   oeuvresPossedees: EntityResponse[]
   mangaTypeId: string
 }) {

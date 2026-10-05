@@ -1,17 +1,17 @@
 import Foundation
 
-/// Miroir de EntityTypeDtos.EntityTypeResponse côté backend - les types ne
-/// sont plus codés en dur (voir l'éditeur de types dynamique, écran
-/// EntityTypeListView) mais récupérés depuis l'API et mis en cache local
-/// (EntityTypeRecord) pour rester disponibles hors ligne dans les pickers.
+/// Mirror of EntityTypeDtos.EntityTypeResponse on the backend side - types
+/// are no longer hard-coded (see the dynamic type editor, screen
+/// EntityTypeListView) but fetched from the API and cached locally
+/// (EntityTypeRecord) to stay available offline in the pickers.
 struct EntityTypeDTO: Codable, Identifiable, Hashable {
     let id: UUID
     let code: String
     let label: String
     let allowedExperienceTypes: [String]
     let customFieldKeys: [String]
-    /// Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
-    /// type - jamais le cas pour un type personnalisé créé via cet éditeur.
+    /// At least one metadata provider (Jikan/BGG/IGDB) supports this
+    /// type - never the case for a custom type created with this editor.
     let hasMetadataProvider: Bool
 }
 
@@ -22,7 +22,7 @@ struct CreateEntityTypeRequest: Encodable {
     let customFieldKeys: [String]
 }
 
-/// Le code n'est jamais modifiable après création (voir EntityTypeService côté backend).
+/// The code can never be changed after creation (see EntityTypeService on the backend side).
 struct UpdateEntityTypeRequest: Encodable {
     let label: String
     let allowedExperienceTypes: [String]
@@ -42,7 +42,7 @@ extension APIClient {
         try await patch("/entity-types/\(id.uuidString)", body: request)
     }
 
-    /// Bloqué côté serveur (409) si des Entity de ce type existent encore.
+    /// Blocked on the server side (409) if Entities of this type still exist.
     func deleteEntityType(id: UUID) async throws {
         try await delete("/entity-types/\(id.uuidString)")
     }

@@ -10,12 +10,12 @@ public interface TierListRepository {
 
     Optional<TierList> findById(UUID id);
 
-    /** Tier Lists personnalisées d'un univers (voir le Hub Découvrir, groupées par EntityType).
-     * N'inclut JAMAIS les listes transverses (entityTypeId null) : elles n'appartiennent à aucun
-     * univers, et les faire apparaître sous chacun les afficherait autant de fois qu'il y a de types. */
+    /** Custom Tier Lists of a universe (see the Discover Hub, grouped by EntityType).
+     * NEVER includes cross-cutting lists (entityTypeId null): they belong to no
+     * universe, and showing them under each one would display them as many times as there are types. */
     List<TierList> findByEntityTypeId(UUID entityTypeId);
 
-    /** Tier Lists transverses "toutes catégories" (voir TierList.isAllUniverses). */
+    /** Cross-cutting "all categories" Tier Lists (see TierList.isAllUniverses). */
     List<TierList> findAllUniversesLists();
 
     void deleteById(UUID id);

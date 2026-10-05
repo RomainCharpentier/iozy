@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
- * Ce service refusait autrefois de supprimer une possession référencée par un
- * prêt. Les prêts ayant été retirés du produit (voir {@code V19__drop_loan.sql}),
- * il ne reste plus aucune garde - ce que ces tests affirment explicitement,
- * pour qu'un retrait de règle reste un fait vérifié et non un oubli constaté
- * plus tard.
+ * This service used to refuse deleting an ownership referenced by a
+ * loan. Loans were removed from the product (see {@code V19__drop_loan.sql}),
+ * so no guard remains - which these tests state explicitly,
+ * so that removing a rule stays a verified fact and not an oversight noticed
+ * later.
  */
 class OwnershipDeletionServiceTest {
 
@@ -40,8 +40,8 @@ class OwnershipDeletionServiceTest {
 
     @Test
     void deleting_an_unknown_ownership_is_silent_because_the_route_is_idempotent() {
-        // DELETE /api/ownerships/{id} annonce 204 pour un identifiant inconnu ou
-        // déjà supprimé. Ce service ne doit donc jamais lever pour cette raison.
+        // DELETE /api/ownerships/{id} returns 204 for an unknown or
+        // already deleted id. So this service must never throw for that reason.
         assertThatCode(() -> service.delete(UUID.randomUUID())).doesNotThrowAnyException();
     }
 

@@ -9,9 +9,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Voir V23__ai_price_estimate_cache.sql - series_title/edition_name sont stockés
- * déjà normalisés (trim + minuscules), jamais affichés tels quels. Un
- * price_per_volume nul est une réponse (« je ne sais pas »), pas une absence. */
+/** See V23__ai_price_estimate_cache.sql - series_title/edition_name are stored
+ * already normalised (trim + lowercase), never displayed as is. A null
+ * price_per_volume is an answer ("I do not know"), not an absence. */
 @Entity
 @Table(name = "ai_price_estimate_cache")
 public class AiPriceEstimateCacheJpaEntity {
@@ -41,7 +41,7 @@ public class AiPriceEstimateCacheJpaEntity {
     private Instant fetchedAt;
 
     protected AiPriceEstimateCacheJpaEntity() {
-        // requis par JPA
+        // required by JPA
     }
 
     public AiPriceEstimateCacheJpaEntity(UUID id, String seriesTitle, String editionName, String itemCondition,

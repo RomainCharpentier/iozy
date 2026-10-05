@@ -11,11 +11,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * L'édition de référence d'un tome : retrouvée par (œuvre, nom), sinon par
- * (titre, nom) - une édition déclarée avant que la série n'existe est alors
- * rattachée -, sinon créée, sans rien de plus que son nom. C'est ce qui
- * rend « X/Y » possible dès le premier tome ajouté (logique extraite de
- * TomeResolver au Lot 133).
+ * The reference edition of a volume: found by (work, name), otherwise by
+ * (title, name) - an edition declared before the series exists is then
+ * attached -, otherwise created, with nothing more than its name. This is what
+ * makes "X/Y" possible from the first volume added (logic extracted from
+ * TomeResolver in Batch 133).
  */
 @Component
 public class MangaEditionLinker implements EditionLinker {

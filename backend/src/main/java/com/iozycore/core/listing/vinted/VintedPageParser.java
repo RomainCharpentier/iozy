@@ -13,39 +13,39 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Lit une page d'annonce Vinted déjà téléchargée. <b>Fonction pure, sans
- * réseau</b> : c'est ce qui permet de la tester sur des extraits de page
- * enregistrés, sans dépendre de Vinted en direct ni d'une annonce qui existera
- * encore demain.
+ * Reads an already downloaded Vinted listing page. <b>Pure function, without
+ * network</b>: this is what makes it possible to test it on saved page
+ * excerpts, without depending on live Vinted or on a listing that will still exist
+ * tomorrow.
  *
- * <h2>Ce que Vinted publie réellement (constaté le 2026-08-21)</h2>
- * Deux couches de fiabilité très différentes, et le code les traite comme
- * telles :
+ * <h2>What Vinted really publishes (observed on 2026-08-21)</h2>
+ * Two layers of very different reliability, and the code treats them as
+ * such:
  * <ol>
  *   <li><b>OpenGraph</b> ({@code og:title}, {@code og:description},
- *       {@code og:url}, {@code og:image}) - des métadonnées que Vinted publie
- *       <i>pour être lues par d'autres</i> (aperçus de partage). C'est un
- *       contrat stable, et c'est la source principale ici.</li>
- *   <li><b>Données embarquées par le rendu Next.js</b> - le prix et la liste
- *       complète des photos n'existent nulle part ailleurs dans la page. Ce
- *       n'est pas un contrat public : c'est un détail d'implémentation qui peut
- *       changer au prochain déploiement de Vinted. On les lit donc <i>au mieux</i>,
- *       chaque extraction isolée, et leur absence est un résultat normal - pas
- *       une erreur.</li>
+ *       {@code og:url}, {@code og:image}) - metadata that Vinted publishes
+ *       <i>to be read by others</i> (sharing previews). It is a stable
+ *       contract, and it is the main source here.</li>
+ *   <li><b>Data embedded by the Next.js rendering</b> - the price and the full
+ *       list of photos exist nowhere else in the page. This
+ *       is not a public contract: it is an implementation detail that can
+ *       change at the next Vinted deployment. So they are read <i>as well as possible</i>,
+ *       each extraction isolated, and their absence is a normal result - not
+ *       an error.</li>
  * </ol>
- * Il n'existe <b>pas</b> de JSON-LD ni de microdonnées sur ces pages (vérifié),
- * ce qui aurait été la source idéale.
+ * There is <b>no</b> JSON-LD or microdata on these pages (checked),
+ * which would have been the ideal source.
  *
- * <h2>Ce qui n'est pas fait</h2>
- * Aucun appel à l'API interne de Vinted : elle exige une session et des jetons
- * qu'il faudrait contourner. Aucune connexion, aucun cookie, aucune
- * usurpation de navigateur - on ne lit que ce qu'un visiteur anonyme reçoit.
+ * <h2>What is not done</h2>
+ * No call to the internal Vinted API: it requires a session and tokens
+ * that would have to be worked around. No login, no cookie, no
+ * browser impersonation - we only read what an anonymous visitor receives.
  */
 final class VintedPageParser {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** {@code <meta property="og:title" content="..."/>}, quel que soit l'ordre des attributs. */
+    /** {@code <meta property="og:title" content="..."/>}, whatever the order of the attributes. */
     private static final Pattern OG_TAG = Pattern.compile(
             "<meta[^>]*property=\"og:(title|description|url|image)\"[^>]*content=\"([^\"]*)\"[^>]*>",
             Pattern.CASE_INSENSITIVE);
@@ -54,59 +54,59 @@ final class VintedPageParser {
             Pattern.CASE_INSENSITIVE);
 
     /**
-     * Le prix de l'article, distingué des autres montants de la page (frais de
-     * port, protection acheteur) par la casse de sa clé de devise :
-     * l'article porte {@code currency_code} (forme API), les frais portent
-     * {@code currencyCode} (forme camelCase du rendu). Discriminant étroit et
-     * vérifiable, plutôt que « le premier prix trouvé ».
+     * The price of the item, told apart from the other amounts of the page (shipping
+     * fee, buyer protection) by the case of its currency key:
+     * the item carries {@code currency_code} (API form), the fees carry
+     * {@code currencyCode} (camelCase form of the rendering). A narrow and
+     * verifiable discriminant, rather than "the first price found".
      */
     private static final Pattern ITEM_PRICE = Pattern.compile(
             "\\\\\"price\\\\\":\\{\\\\\"amount\\\\\":\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\","
                     + "\\\\\"currency_code\\\\\":\\\\\"([A-Z]{3})\\\\\"");
 
     /**
-     * Frais de port. Discriminé par {@code shippingDetails}, son propre bloc :
-     * le montant seul serait indiscernable du prix de l'article ou de la
-     * protection acheteur. La source annonce ici le mode de livraison le MOINS
-     * cher quand plusieurs existent - c'est donc un « à partir de ».
+     * Shipping fee. Discriminated by {@code shippingDetails}, its own block:
+     * the amount alone would be indistinguishable from the price of the item or from
+     * the buyer protection. The source announces here the CHEAPEST shipping mode
+     * when several exist - so it is a "from".
      */
     private static final Pattern FRAIS_DE_PORT = Pattern.compile(
             "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"price\\\\\":\\{\\\\\"amount\\\\\":"
                     + "\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\"");
 
     /**
-     * Plusieurs modes de livraison exposés : le montant affiché est alors le
-     * moins cher, donc un plancher et non un tarif.
+     * Several shipping modes exposed: the displayed amount is then the
+     * cheapest, so a floor and not a rate.
      */
     private static final Pattern PLUSIEURS_MODES = Pattern.compile(
             "\\\\\"areMultipleShippingOptionsAvailable\\\\\":true");
 
-    /** Livraison annoncée gratuite : un vrai zéro, pas une absence de donnée. */
+    /** Shipping announced as free: a real zero, not a missing piece of data. */
     private static final Pattern PORT_GRATUIT = Pattern.compile(
             "\\\\\"shippingDetails\\\\\":\\{[^}]{0,200}?\\\\\"isFreeShipping\\\\\":true");
 
     /**
-     * Protection acheteur : {@code finalPrice}, jamais {@code originalPrice} -
-     * une remise peut s'appliquer, et c'est le montant réellement facturé qui
-     * entre dans le coût réel.
+     * Buyer protection: {@code finalPrice}, never {@code originalPrice} -
+     * a discount may apply, and it is the amount really charged that
+     * enters the real cost.
      */
     private static final Pattern PROTECTION_ACHETEUR = Pattern.compile(
             "\\\\\"buyerProtection\\\\\":\\{.{0,220}?\\\\\"finalPrice\\\\\":\\{\\\\\"amount\\\\\":"
                     + "\\\\\"([0-9]+(?:\\.[0-9]+)?)\\\\\"");
 
-    /** {@code "id":123456789} au début du bloc de l'article. */
+    /** {@code "id":123456789} at the start of the item block. */
     private static final Pattern ITEM_ID = Pattern.compile("\\\\\"item\\\\\":\\{\\\\\"id\\\\\":([0-9]+)");
 
-    /** L'identifiant numérique dans une URL {@code /items/123456-un-slug}. */
+    /** The numeric identifier in a URL {@code /items/123456-a-slug}. */
     private static final Pattern URL_ITEM_ID = Pattern.compile("/items/([0-9]+)");
 
-    /** Vinted suffixe ses titres de partage - « Un titre | Vinted » n'est pas le titre de l'annonce. */
+    /** Vinted adds a suffix to its sharing titles - "A title | Vinted" is not the title of the listing. */
     private static final Pattern OG_TITLE_SUFFIX = Pattern.compile("\\s*\\|\\s*Vinted\\s*$", Pattern.CASE_INSENSITIVE);
 
     private VintedPageParser() {
     }
 
-    /** Ce que la page a livré - chaque champ indépendamment absent ou présent. */
+    /** What the page delivered - each field independently absent or present. */
     record ParsedPage(String title, String description, BigDecimal price, String currency,
                        BigDecimal shippingFee, ShippingEstimateKind shippingKind, BigDecimal buyerProtectionFee,
                        String canonicalUrl, String externalId, List<String> imageUrls) {
@@ -131,7 +131,7 @@ final class VintedPageParser {
                 externalId(html, canonicalUrl, requestedUrl), images(html, maxImages));
     }
 
-    /** Gratuit d'abord : sans ce test, une livraison offerte passerait pour un frais inconnu. */
+    /** Free first: without this test, a free shipping would pass for an unknown fee. */
     private static BigDecimal fraisDePort(String html) {
         if (PORT_GRATUIT.matcher(html).find()) {
             return BigDecimal.ZERO;
@@ -140,13 +140,13 @@ final class VintedPageParser {
     }
 
     /**
-     * Ce que le montant de livraison vaut réellement.
+     * What the shipping amount is really worth.
      * <p>
-     * L'ordre est délibéré : une livraison offerte est offerte, quels que soient
-     * les modes disponibles. Ensuite seulement on regarde s'il y a plusieurs
-     * options - auquel cas la page affiche le moins cher, et le montant n'est
-     * qu'un plancher. Un montant sans indication d'options multiples est traité
-     * comme ferme ; aucun montant du tout reste UNKNOWN, jamais zéro.
+     * The order is deliberate: a free shipping is free, whatever
+     * the available modes. Only then do we look at whether there are several
+     * options - in which case the page displays the cheapest, and the amount is
+     * only a floor. An amount with no indication of multiple options is treated
+     * as firm; no amount at all stays UNKNOWN, never zero.
      */
     private static ShippingEstimateKind natureDuPort(String html, BigDecimal montant) {
         if (PORT_GRATUIT.matcher(html).find()) {
@@ -158,16 +158,16 @@ final class VintedPageParser {
         return PLUSIEURS_MODES.matcher(html).find() ? ShippingEstimateKind.FROM : ShippingEstimateKind.EXACT;
     }
 
-    /** Le premier montant capturé par ce motif, ou null - jamais une valeur par défaut. */
+    /** The first amount captured by this pattern, or null - never a default value. */
     private static BigDecimal montant(Pattern motif, String html) {
         Matcher m = motif.matcher(html);
         return m.find() ? new BigDecimal(m.group(1)) : null;
     }
 
     /**
-     * L'identifiant de l'annonce, lu dans les données embarquées si possible,
-     * sinon dans l'URL - deux liens vers la même annonce (avec ou sans slug)
-     * donnent alors le même identifiant.
+     * The identifier of the listing, read in the embedded data if possible,
+     * otherwise in the URL - two links to the same listing (with or without slug)
+     * then give the same identifier.
      */
     private static String externalId(String html, String canonicalUrl, String requestedUrl) {
         Matcher fromPayload = ITEM_ID.matcher(html);
@@ -185,15 +185,15 @@ final class VintedPageParser {
     }
 
     /**
-     * Les photos de l'annonce elle-même. La page contient bien d'autres images
-     * (avatar du vendeur, vignettes d'articles similaires, icônes) : on ne
-     * ramasse donc pas toutes les URL d'images, on isole le tableau
-     * {@code photos} de l'article - reconnaissable à ses entrées portant
-     * {@code is_main} - puis on le parse en JSON plutôt qu'à l'expression
-     * régulière.
+     * The photos of the listing itself. The page contains many other images
+     * (seller avatar, thumbnails of similar items, icons): so we do not
+     * pick up all the image URLs, we isolate the {@code photos} array
+     * of the item - recognizable by its entries carrying
+     * {@code is_main} - then we parse it as JSON rather than with a regular
+     * expression.
      * <p>
-     * Plafonné à {@code maxImages} : une annonce n'a aucune raison d'en fournir
-     * cinquante, et on ne veut pas d'une liste sans fin.
+     * Capped at {@code maxImages}: a listing has no reason to provide
+     * fifty, and we do not want an endless list.
      */
     private static List<String> images(String html, int maxImages) {
         for (int from = html.indexOf("\\\"photos\\\":["); from >= 0;
@@ -212,10 +212,10 @@ final class VintedPageParser {
     }
 
     /**
-     * Isole un tableau JSON échappé dans le HTML en comptant les crochets, puis
-     * le déséchappe. Compter les crochets plutôt que d'attendre le premier
-     * {@code ]} est ce qui permet de traiter des objets imbriqués (chaque photo
-     * porte ses propres vignettes).
+     * Isolates a JSON array escaped in the HTML by counting the brackets, then
+     * unescapes it. Counting the brackets rather than waiting for the first
+     * {@code ]} is what allows handling nested objects (each photo
+     * carries its own thumbnails).
      */
     private static String extractJsonArray(String html, int start) {
         if (start < 0) {
@@ -236,7 +236,7 @@ final class VintedPageParser {
         return null;
     }
 
-    /** Vide si ce tableau n'est pas celui des photos de l'article (pas de {@code is_main}, ou JSON illisible). */
+    /** Empty if this array is not the one of the item photos (no {@code is_main}, or unreadable JSON). */
     private static Optional<List<String>> readPhotoUrls(String jsonArray, int maxImages) {
         try {
             JsonNode root = MAPPER.readTree(jsonArray);
@@ -280,7 +280,7 @@ final class VintedPageParser {
         return null;
     }
 
-    /** Les seules entités qu'un attribut {@code content} peut porter ici. */
+    /** The only entities that a {@code content} attribute can carry here. */
     private static String unescapeHtml(String value) {
         return value == null ? null : value
                 .replace("&quot;", "\"")

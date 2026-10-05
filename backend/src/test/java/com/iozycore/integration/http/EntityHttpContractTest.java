@@ -23,22 +23,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Le contrat HTTP de {@code /api/entities} - onze routes, aucune couverte au
- * niveau de la requête jusqu'ici.
+ * The HTTP contract of {@code /api/entities} - eleven routes, none covered at the
+ * request level until now.
  *
- * <h2>Le risque propre à ce contrôleur</h2>
- * Il porte les mutations du <b>catalogue</b>, et son mapping d'erreurs n'est pas
- * uniforme : trois routes attrapent elles-mêmes {@code IllegalArgumentException}
- * pour la traduire (en 400 pour un renommage vide, en 404 pour un Variant
- * introuvable), tandis que les autres laissent {@code ApiExceptionHandler}
- * décider. Ces choix sont délibérés et forment le contrat ; ces tests les
- * figent, pour qu'un déplacement de {@code try/catch} ne change pas
- * silencieusement un 404 en 400.
+ * <h2>The risk specific to this controller</h2>
+ * It carries the mutations of the <b>catalogue</b>, and its error mapping is not
+ * uniform: three routes catch {@code IllegalArgumentException} themselves
+ * to translate it (to 400 for an empty rename, to 404 for a Variant
+ * not found), while the others let {@code ApiExceptionHandler}
+ * decide. These choices are deliberate and form the contract; these tests
+ * freeze them, so that moving a {@code try/catch} does not
+ * silently change a 404 into a 400.
  *
- * <h2>L'invariant produit qui compte le plus ici</h2>
- * <b>Catalogue ≠ Collection.</b> Une œuvre peut exister sans aucune possession -
- * une envie, un scan, une série repérée. Deux tests le protègent explicitement :
- * la fiche se lit, et rien ne fabrique de possession au passage.
+ * <h2>The product invariant that matters most here</h2>
+ * <b>Catalogue != Collection.</b> A work can exist without any ownership -
+ * a wish, a scan, a series spotted. Two tests protect it explicitly:
+ * the detail page can be read, and nothing makes up an ownership on the way.
  */
 class EntityHttpContractTest extends HttpContractTestBase {
 
@@ -78,8 +78,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.entityId").isNotEmpty())
                 .andExpect(jsonPath("$.variantId").isNotEmpty())
-                // Le contrat porte aussi ces deux drapeaux : le client s'en sert
-                // pour dire « ajouté » ou « déjà dans ta collection ».
+                // The contract also carries these two flags: the client uses them
+                // to say "added" or "already in your collection".
                 .andExpect(jsonPath("$.matchedExistingEntity").value(false))
                 .andExpect(jsonPath("$.matchedExistingVariant").value(false));
     }
@@ -96,8 +96,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(post("/api/entities/quick-add").contentType("application/json").content(json(corps)))
                 .andExpect(status().isCreated());
 
-        // La déduplication est une règle métier testée ailleurs ; ce qui se joue
-        // ici, c'est qu'elle remonte bien jusqu'au JSON.
+        // The deduplication is a business rule tested elsewhere; what is at stake
+        // here is that it does come up to the JSON.
         mockMvc.perform(post("/api/entities/quick-add").contentType("application/json").content(json(corps)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.matchedExistingEntity").value(true))
@@ -106,8 +106,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_quick_add_without_entity_type_with_400_and_never_500() throws Exception {
-        // Le cas historique : entityTypeId absent descendait jusqu'à Spring Data,
-        // qui refuse findById(null), et le client recevait un 500 avec la trace.
+        // The historical case: a missing entityTypeId went down to Spring Data,
+        // which refuses findById(null), and the client received a 500 with the trace.
         mockMvc.perform(post("/api/entities/quick-add").contentType("application/json")
                         .content("{\"title\":\"x\",\"condition\":\"USED\"}"))
                 .andExpect(status().isBadRequest())
@@ -140,9 +140,9 @@ class EntityHttpContractTest extends HttpContractTestBase {
 
     @Test
     void reads_a_catalog_entity_that_has_no_ownership_at_all() throws Exception {
-        // Une œuvre entrée par les envies ou un scan : elle existe, sans qu'on
-        // la possède. Sa fiche doit se lire normalement - un 404 ou une erreur
-        // ici casserait tout le parcours Envies.
+        // A work entered through the wishes or a scan: it exists, without being
+        // owned. Its detail page must be read normally - a 404 or an error
+        // here would break the whole Wishes journey.
         Entity sansPossession = catalogEntityResolver.resolveOrCreate(
                 EntityTypeFixtures.MANGA.id(), "Monster " + UUID.randomUUID(), Map.of()).entity();
 
@@ -151,8 +151,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$.id").value(sansPossession.id().toString()))
                 .andExpect(jsonPath("$.title").isNotEmpty());
 
-        // L'assertion qui compte vraiment : rien n'a fabriqué de possession au
-        // passage. Sans elle, le test passerait aussi avec une Ownership fictive.
+        // The assertion that really matters: nothing made up an ownership on the
+        // way. Without it, the test would also pass with a fake Ownership.
         assertThat(ownershipRepository.findByEntityId(sansPossession.id())).isEmpty();
     }
 
@@ -166,7 +166,7 @@ class EntityHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$[?(@.id=='" + sansPossession.id() + "')]").exists());
     }
 
-    // ===================================================== Lectures et erreurs
+    // ===================================================== Reads and errors
 
     @Test
     void returns_404_when_the_entity_does_not_exist() throws Exception {
@@ -175,8 +175,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
 
     @Test
     void rejects_a_malformed_entity_id_with_400_and_never_500() throws Exception {
-        // Un seul cas suffit à protéger la conversion de path param : elle est
-        // globale à Spring, la multiplier sur onze routes n'apprendrait rien.
+        // One single case is enough to protect the path param conversion: it is
+        // global to Spring, multiplying it over eleven routes would teach nothing.
         mockMvc.perform(get("/api/entities/{id}", MALFORME))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isNotEmpty());
@@ -191,8 +191,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
     void search_accepts_no_parameter_and_returns_an_empty_list_when_nothing_matches() throws Exception {
         mockMvc.perform(get("/api/entities/search")).andExpect(status().isOk());
 
-        // Aucun résultat n'est pas une erreur : l'écran de recherche affiche
-        // « rien trouvé », il ne gère pas un 404.
+        // No result is not an error: the search screen shows
+        // "nothing found", it does not handle a 404.
         mockMvc.perform(get("/api/entities/search").param("q", "zzz-aucune-oeuvre-" + UUID.randomUUID()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -213,7 +213,7 @@ class EntityHttpContractTest extends HttpContractTestBase {
                 .andExpect(status().isBadRequest());
     }
 
-    // ======================================================= PATCH attributs
+    // ======================================================= PATCH attributes
 
     @Test
     void merges_series_attributes_without_erasing_existing_ones() throws Exception {
@@ -224,8 +224,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(patch("/api/entities/{id}", serie.id()).contentType("application/json")
                         .content(json(Map.of("publisher", "Kana"))))
                 .andExpect(status().isOk())
-                // « Compléter/corriger », pas « remplacer » : le premier attribut
-                // survit au second appel.
+                // "Complete/correct", not "replace": the first attribute
+                // survives the second call.
                 .andExpect(jsonPath("$.attributes.mangaka").value("Kishimoto"))
                 .andExpect(jsonPath("$.attributes.publisher").value("Kana"));
     }
@@ -238,7 +238,7 @@ class EntityHttpContractTest extends HttpContractTestBase {
 
         mockMvc.perform(delete("/api/entities/{id}/attributes/{key}", serie.id(), "cover"))
                 .andExpect(status().isNoContent());
-        // Contrat documenté : 204 même si la clé n'existait pas.
+        // Documented contract: 204 even if the key did not exist.
         mockMvc.perform(delete("/api/entities/{id}/attributes/{key}", serie.id(), "cover"))
                 .andExpect(status().isNoContent());
 
@@ -275,8 +275,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
                         .content(json(Map.of("title", nouveauTitre))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value(nouveauTitre))
-                // Le lien Série -> Tome passe par des identifiants, pas par le
-                // titre : un renommage ne doit rien détacher.
+                // The Series -> Volume link goes through identifiers, not through the
+                // title: a rename must detach nothing.
                 .andExpect(jsonPath("$.variants.length()").value(serie.variants().size()));
     }
 
@@ -284,8 +284,8 @@ class EntityHttpContractTest extends HttpContractTestBase {
     void rejects_an_empty_or_missing_title_on_rename_with_400() throws Exception {
         Entity serie = uneSerieAvecPossession();
 
-        // Deux corps différents, une seule règle : un titre vide est refusé.
-        // 400 et non 409 - c'est une saisie invalide, pas un conflit d'état.
+        // Two different bodies, one single rule: an empty title is refused.
+        // 400 and not 409 - it is an invalid input, not a state conflict.
         mockMvc.perform(patch("/api/entities/{id}/rename", serie.id())
                         .contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest());
@@ -306,10 +306,10 @@ class EntityHttpContractTest extends HttpContractTestBase {
     void returns_404_when_the_variant_does_not_belong_to_the_entity() throws Exception {
         Entity serie = uneSerieAvecPossession();
 
-        // Le contrôleur traduit ici IllegalArgumentException en 404 - un Variant
-        // inconnu est une ressource absente, pas une requête invalide. Choix
-        // délibéré, figé par ce test : les autres routes de ce contrôleur
-        // rendent 400 sur la même exception.
+        // The controller translates IllegalArgumentException into 404 here - an unknown
+        // Variant is a missing resource, not an invalid request. Deliberate
+        // choice, frozen by this test: the other routes of this controller
+        // return 400 on the same exception.
         mockMvc.perform(patch("/api/entities/{e}/variants/{v}", serie.id(), ABSENT)
                         .contentType("application/json").content(json(Map.of("cover", "x"))))
                 .andExpect(status().isNotFound());
@@ -322,7 +322,7 @@ class EntityHttpContractTest extends HttpContractTestBase {
         Entity serie = uneSerieAvecPossession();
         UUID variantId = serie.variants().get(0).id();
 
-        // Supprimer un tome possédé effacerait la possession sans le dire :
+        // Deleting an owned volume would erase the ownership without saying so:
         // VariantDeletionNotAllowedException -> 409.
         mockMvc.perform(delete("/api/entities/{e}/variants/{v}", serie.id(), variantId))
                 .andExpect(status().isConflict())

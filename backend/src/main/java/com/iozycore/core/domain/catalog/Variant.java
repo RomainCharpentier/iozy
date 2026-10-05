@@ -4,16 +4,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Variante optionnelle d'une Entity (ex: "Perfect Edition", "Tome 3").
- * N'a de sens qu'à l'intérieur de son Entity — jamais manipulée seule.
+ * Optional variant of an Entity (e.g. "Perfect Edition", "Tome 3").
+ * Only makes sense inside its Entity - never handled alone.
  * <p>
- * {@code mangaEditionId} relie ce Tome à son Édition catalogue
- * ({@link MangaEdition}) quand elle est connue - nullable et additif (modèle
- * cible Série -> Édition -> Tome). L'attribut libre {@code "edition"} dans
- * {@code attributes} reste le mécanisme de résolution texte existant (voir
- * {@code SeriesMatcher} côté purchase-analysis / {@code groupVariantsByEdition}
- * côté web) ; {@code mangaEditionId} est la relation structurée cible, peuplée
- * seulement une fois réellement résolue, jamais devinée - voir
+ * {@code mangaEditionId} links this Volume to its catalog Edition
+ * ({@link MangaEdition}) when it is known - nullable and additive (target
+ * model Series -> Edition -> Volume). The free attribute {@code "edition"} in
+ * {@code attributes} stays the existing text resolution mechanism (see
+ * {@code SeriesMatcher} on the purchase-analysis side / {@code groupVariantsByEdition}
+ * on the web side); {@code mangaEditionId} is the target structured relation, filled
+ * only once really resolved, never guessed - see
  * {@link Entity#linkVariantToEdition(UUID, UUID)}.
  */
 public record Variant(

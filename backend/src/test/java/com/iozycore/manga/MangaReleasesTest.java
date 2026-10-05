@@ -31,8 +31,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Les sorties d'un manga : les tomes datés du résultat de recherche stocké,
- * pour l'édition qui concerne la collection, avec la relation écrite.
+ * The releases of a manga: the dated volumes of the stored search result,
+ * for the edition that concerns the collection, with the written relation.
  */
 class MangaReleasesTest {
 
@@ -70,7 +70,7 @@ class MangaReleasesTest {
         assertThat(missing.relation()).isEqualTo(ReleaseEntry.Relation.MISSING);
         assertThat(missing.entityId()).isEqualTo(naruto.id());
         assertThat(missing.entityTypeId()).isEqualTo(EntityTypeFixtures.MANGA.id());
-        // Le tome 72 n'a pas de jaquette chez la source : celle de la série sert de repli.
+        // Volume 72 has no cover at the source: the series cover is used as a fallback.
         assertThat(missing.coverImageUrl()).isNull();
         assertThat(tome72.id()).isNotNull();
     }
@@ -133,7 +133,7 @@ class MangaReleasesTest {
         List<ReleaseEntry> entries = releases.releasesBetween(context(List.of(unknown, noAuthor),
                 List.of(owned(unknown, null), owned(noAuthor, null)), List.of()));
 
-        // « Sans auteur » a bien une ligne stockée sous auteur vide : elle est lue telle quelle.
+        // "Sans auteur" does have a row stored under an empty author: it is read as it is.
         assertThat(entries).extracting(ReleaseEntry::entityTitle).containsExactly("Sans auteur");
     }
 
@@ -161,7 +161,7 @@ class MangaReleasesTest {
         assertThat(releases.supports(EntityTypeFixtures.VIDEO_GAME)).isFalse();
     }
 
-    // ------------------------------------------------------------ Fabrique
+    // ------------------------------------------------------------ Factory
 
     private static ReleaseContext context(List<Entity> series, List<Ownership> ownerships, List<WishlistEntry> wishlist) {
         return new ReleaseContext(EntityTypeFixtures.MANGA, OCTOBER_1, OCTOBER_31, series, ownerships, wishlist);

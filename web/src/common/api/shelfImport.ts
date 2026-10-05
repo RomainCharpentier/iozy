@@ -2,12 +2,12 @@ import { post, postForm } from './client'
 import type { RapportImportEtagereDto, ShelfAnalysisDto, TomeAImporter } from '@/common/types/shelfImport'
 
 /**
- * Lit des photos de l'étagère. N'écrit rien : c'est la moitié « analyse » de
- * l'import, l'écriture vient de `importerDepuisLEtagere`, sur ce que
- * l'utilisateur a confirmé.
+ * Reads photos of the shelf. Writes nothing: this is the "analysis" half of
+ * the import, the writing comes from `importerDepuisLEtagere`, on what the
+ * user confirmed.
  *
- * Les photos quittent la machine (moteur de vision externe) - l'écran le dit
- * avant le geste, et rien ne part sans un choix explicite de fichiers.
+ * The photos leave the machine (external vision engine) - the screen says so
+ * before the action, and nothing is sent without an explicit choice of files.
  */
 export function analyserLEtagere(photos: File[]): Promise<ShelfAnalysisDto> {
   const form = new FormData()
@@ -15,7 +15,7 @@ export function analyserLEtagere(photos: File[]): Promise<ShelfAnalysisDto> {
   return postForm<ShelfAnalysisDto>('/shelf-import/analyze-photos', form)
 }
 
-/** Ajoute les tomes confirmés, en une transaction côté serveur. */
+/** Adds the confirmed volumes, in one transaction on the server side. */
 export function importerDepuisLEtagere(items: TomeAImporter[]): Promise<RapportImportEtagereDto> {
   return post<RapportImportEtagereDto>('/shelf-import/apply', { items })
 }

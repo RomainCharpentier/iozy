@@ -23,15 +23,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interroge l'API publique Jikan (https://jikan.moe), qui expose les
- * données de MyAnimeList sans nécessiter de clé d'API. Couvre le type
- * MANGA uniquement.
+ * Queries the public Jikan API (https://jikan.moe), which exposes the
+ * data of MyAnimeList without needing an API key. Covers the
+ * MANGA type only.
  * <p>
- * @Order(2) : derrière AniList (Lot 119), avant GoogleBooksTitleSearchProvider dans
- * MetadataSearchService.search - en cas de titre identique remonté par les
- * deux (ex: "Naruto", inchangé en français), le résultat Jikan/MAL gagne le
- * dédoublonnage (attributs plus riches : titleEnglish/titleRomaji/mediaType/
- * startYear, utiles à la résolution du titre et à la recherche de tomes).
+ * @Order(2): behind AniList (Batch 119), before GoogleBooksTitleSearchProvider in
+ * MetadataSearchService.search - in case of an identical title returned by both
+ * (e.g. "Naruto", unchanged in French), the Jikan/MAL result wins the
+ * deduplication (richer attributes: titleEnglish/titleRomaji/mediaType/
+ * startYear, useful for the title resolution and the volume search).
  */
 @Component
 @Order(2)
@@ -62,15 +62,15 @@ public class JikanMetadataProvider implements MetadataProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("Jikan a répondu {} pour la requête '{}'", response.statusCode(), query);
+                log.warn("Jikan answered {} for the query '{}'", response.statusCode(), query);
                 return List.of();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            // Une panne de l'API tierce ne doit jamais faire échouer l'ajout rapide :
-            // l'utilisateur pourra toujours saisir le titre manuellement.
-            log.warn("Échec de l'appel à Jikan pour '{}' : {}", query, e.getMessage());
+            // An outage of the third-party API must never make the quick add fail:
+            // the user can always type the title manually.
+            log.warn("Jikan call failed for '{}': {}", query, e.getMessage());
             return List.of();
         }
     }
@@ -96,47 +96,47 @@ public class JikanMetadataProvider implements MetadataProvider {
                 attributes.put("publisher", serializations.get(0).path("name").asText(null));
             }
             attributes.put("seriesStatus", item.path("status").asText(null));
-            // Absent (null)/0 pour une série encore en cours ou dont le décompte
-            // final n'est pas encore connu de MAL - jamais stocké dans ce cas
-            // (voir Ma collection côté web : "total inconnu" plutôt qu'un faux 0).
+            // Absent (null)/0 for a series still ongoing or whose final
+            // count is not yet known to MAL - never stored in this case
+            // (see Ma collection on the web side: "total inconnu" rather than a false 0).
             JsonNode volumesNode = item.path("volumes");
             if (volumesNode.isInt() && volumesNode.asInt() > 0) {
                 attributes.put("totalVolumes", volumesNode.asInt());
             }
-            // Un même titre peut désigner plusieurs œuvres distinctes chez MAL/Jikan
-            // (ex: le manga "Naruto" et un one-shot pilote également titré "Naruto") -
-            // type + année de première publication permettent à l'utilisateur de les
-            // distinguer dans la liste de suggestions (voir QuickAddPage/QuickAddView).
+            // The same title can designate several distinct works at MAL/Jikan
+            // (e.g. the manga "Naruto" and a pilot one-shot also titled "Naruto") -
+            // type + year of first publication allow the user to
+            // tell them apart in the list of suggestions (see QuickAddPage/QuickAddView).
             attributes.put("mediaType", item.path("type").asText(null));
             attributes.put("startYear", extractYear(item.path("published").path("from").asText(null)));
 
-            // Le "titre" MAL/Jikan (defaultTitle) est souvent le romaji/japonais
-            // (ex: "Shingeki no Kyojin"), pas très lisible pour reconnaître
-            // l'œuvre. Aucune de nos sources ne connaît de vrai titre français
-            // (ex: "L'Attaque des Titans") - à défaut, le titre anglais (quand
-            // fourni et différent) est utilisé comme titre affiché/retenu, les
-            // éditeurs français le reprenant parfois tel quel. Le romaji
-            // d'origine est conservé en attribut ("originalTitle") pour ne pas
-            // perdre l'info, sans polluer l'affichage principal.
+            // The MAL/Jikan "title" (defaultTitle) is often the romaji/Japanese
+            // (e.g. "Shingeki no Kyojin"), not very readable to recognize
+            // the work. None of our sources knows a real French title
+            // (e.g. "L'Attaque des Titans") - failing that, the English title (when
+            // provided and different) is used as the displayed/kept title, the
+            // French publishers sometimes taking it as is. The original
+            // romaji is kept as an attribute ("originalTitle") so as not to
+            // lose the info, without polluting the main display.
             String titleEnglish = item.path("title_english").asText(null);
             String title = defaultTitle;
             if (titleEnglish != null && !titleEnglish.isBlank() && !titleEnglish.equalsIgnoreCase(defaultTitle)) {
                 title = titleEnglish;
                 attributes.put("originalTitle", defaultTitle);
             }
-            // "titleRomaji"/"titleEnglish" (inconditionnels, contrairement à
-            // "originalTitle" ci-dessus qui ne sert que le repli anglais) -
-            // permettent au client de composer librement l'affichage du titre
-            // entre français (best-effort, voir /metadata/french-title),
-            // anglais et romaji selon la préférence utilisateur (voir Réglages
-            // > Titre des mangas), sans dépendre du choix déjà fait ci-dessus.
+            // "titleRomaji"/"titleEnglish" (unconditional, unlike
+            // "originalTitle" above which only serves the English fallback) -
+            // allow the client to freely compose the display of the title
+            // between French (best-effort, see /metadata/french-title),
+            // English and romaji according to the user preference (see Réglages
+            // > Titre des mangas), without depending on the choice already made above.
             attributes.put("titleRomaji", defaultTitle);
             if (titleEnglish != null && !titleEnglish.isBlank()) {
                 attributes.put("titleEnglish", titleEnglish);
             }
-            // Titre japonais natif (ex: "進撃の巨人") - toujours utile en repère
-            // visuel à côté du titre retenu (voir candidateDisplayTitle côté
-            // web/iOS), qu'il ait ou non déjà servi ci-dessus.
+            // Native Japanese title (e.g. "進撃の巨人") - always useful as a
+            // visual landmark next to the kept title (see candidateDisplayTitle on the
+            // web/iOS side), whether or not it already served above.
             String titleJapanese = item.path("title_japanese").asText(null);
             if (titleJapanese != null && !titleJapanese.isBlank()) {
                 attributes.put("titleJapanese", titleJapanese);
@@ -147,7 +147,7 @@ public class JikanMetadataProvider implements MetadataProvider {
         return candidates;
     }
 
-    /** Extrait "1999" de "1999-09-21T00:00:00+00:00" (format published.from de Jikan). */
+    /** Extracts "1999" from "1999-09-21T00:00:00+00:00" (the published.from format of Jikan). */
     private static String extractYear(String isoDateTime) {
         return isoDateTime != null && isoDateTime.length() >= 4 ? isoDateTime.substring(0, 4) : null;
     }

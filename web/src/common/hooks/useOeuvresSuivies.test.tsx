@@ -1,10 +1,10 @@
 /**
- * <b>La source unique de « ce que je suis ».</b> Ce qui se casse en silence :
- * un suivi qui ne dit plus s'il est en place, un « Annuler » qui ne refait
- * pas le geste inverse, une bascule qui appelle la mauvaise route.
+ * <b>The single source of "what I follow".</b> What breaks silently:
+ * a follow that no longer says whether it is in place, an "Annuler" that does
+ * not redo the opposite action, a toggle that calls the wrong route.
  *
- * <p>Le réseau est simulé, le reste ne l'est pas : vrai `QueryClient`, vrai
- * contexte de messages.
+ * <p>The network is simulated, the rest is not: real `QueryClient`, real
+ * message context.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
@@ -43,7 +43,7 @@ beforeEach(() => {
 })
 
 describe('useOeuvresSuivies', () => {
-  it('sait ce qui est suivi, et bascule dans le bon sens', async () => {
+  it('knows what is followed, and toggles in the right direction', async () => {
     const hook = await suivies([{ entityId: 'one-piece', followedAt: '2026-09-01' }])
     expect(hook.current.estSuivie('one-piece')).toBe(true)
     expect(hook.current.estSuivie('naruto')).toBe(false)
@@ -57,7 +57,7 @@ describe('useOeuvresSuivies', () => {
     expect(messages.at(-1)?.texte).toBe('Œuvre plus suivie')
   })
 
-  it('« Annuler » refait exactement le geste inverse, sans reproposer d’annuler', async () => {
+  it('"Annuler" redoes exactly the opposite action, without offering to cancel again', async () => {
     const hook = await suivies()
 
     await act(async () => hook.current.suivre('naruto'))
@@ -65,7 +65,7 @@ describe('useOeuvresSuivies', () => {
     expect(annuler?.label).toBe('Annuler')
     await act(async () => annuler?.onAction())
     expect(api.unfollowWork).toHaveBeenCalledWith('naruto')
-    // Le retrait qui annule un suivi ne propose pas d'annuler l'annulation.
+    // The removal that cancels a follow does not offer to cancel the cancellation.
     expect(messages.filter((m) => m.texte === 'Œuvre plus suivie')).toHaveLength(0)
   })
 })

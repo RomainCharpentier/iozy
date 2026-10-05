@@ -25,44 +25,44 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Propose ce qu'une annonce contient probablement, à partir de son texte et,
- * si on le demande, de ses photos.
+ * Proposes what a listing probably contains, from its text and,
+ * if asked, from its photos.
  *
- * <h2>Une route, deux usages, un seul coût quand il le faut</h2>
- * {@code imageUrls} est <b>facultatif</b>, et c'est tout le mécanisme :
+ * <h2>One route, two uses, a single cost when needed</h2>
+ * {@code imageUrls} is <b>optional</b>, and that is the whole mechanism:
  * <ul>
- *   <li><b>sans</b> photos : seul le texte est lu, localement. <b>Aucun moteur
- *       n'est appelé</b>, aucune image n'est téléchargée. C'est l'appel fait
- *       automatiquement quand une annonce vient d'être récupérée ;</li>
- *   <li><b>avec</b> photos : le texte est relu et les photos sont analysées,
- *       puis tout est consolidé ensemble. C'est l'appel fait sur le clic
- *       « Analyser les photos ».</li>
+ *   <li><b>without</b> photos: only the text is read, locally. <b>No engine
+ *       is called</b>, no image is downloaded. This is the call made
+ *       automatically when a listing has just been fetched;</li>
+ *   <li><b>with</b> photos: the text is read again and the photos are analysed,
+ *       then everything is consolidated together. This is the call made on the click
+ *       "Analyser les photos".</li>
  * </ul>
- * La présence des photos dans le corps <b>est</b> le consentement. Il n'existe
- * aucun chemin par lequel charger une annonce déclenche un appel payant.
+ * The presence of photos in the body <b>is</b> the consent. There is
+ * no path by which loading a listing triggers a paid call.
  *
- * <h2>Une seule consolidation, côté domaine</h2>
- * Le client n'assemble jamais deux listes : il envoie ce qu'il a et reçoit
- * <b>une</b> liste. Les règles de fusion (même série + même tome, éditions
- * compatibles, photos multiples) vivent dans
- * {@code RecognitionConsolidator} et nulle part ailleurs - surtout pas
- * réécrites en TypeScript.
+ * <h2>One single consolidation, on the domain side</h2>
+ * The client never assembles two lists: it sends what it has and receives
+ * <b>one</b> list. The merge rules (same series + same volume, compatible
+ * editions, multiple photos) live in
+ * {@code RecognitionConsolidator} and nowhere else - above all not
+ * rewritten in TypeScript.
  *
- * <h2>Ce que cette route ne fait pas</h2>
- * Elle n'écrit <b>rien</b>. Pas d'Ownership, pas de Wishlist, pas d'Entity,
- * pas d'Édition, pas de Tome. Elle rend des propositions à confirmer. C'est
- * aussi pourquoi elle est en POST malgré son absence d'effet : elle porte un
- * corps et déclenche un traitement, ce qu'un GET ne doit pas faire.
+ * <h2>What this route does not do</h2>
+ * It writes <b>nothing</b>. No Ownership, no Wishlist, no Entity,
+ * no Edition, no Volume. It returns proposals to confirm. This is
+ * also why it is a POST despite having no effect: it carries a
+ * body and triggers a processing, which a GET must not do.
  *
- * <h2>Toujours 200, sauf requête invalide</h2>
- * Rien reconnu, moteur en panne, photos illisibles, aucun moteur configuré :
- * issues normales du parcours, distinguées par {@code visionStatus}. Un
- * bandeau rouge confondrait « ces photos ne montrent rien de lisible » avec
- * « le service est cassé ».
+ * <h2>Always 200, except for an invalid request</h2>
+ * Nothing recognised, engine down, unreadable photos, no engine configured:
+ * normal outcomes of the flow, told apart by {@code visionStatus}. A
+ * red banner would confuse "these photos show nothing readable" with
+ * "the service is broken".
  */
 @RestController
 @RequestMapping("/api/recognition")
-@Tag(name = "Recognition", description = "Détecter les éléments d'une annonce depuis son texte et ses photos")
+@Tag(name = "Recognition", description = "Detect the items of a listing from its text and its photos")
 public class RecognitionController {
 
     private final ListingRecognitionService service;
@@ -74,17 +74,17 @@ public class RecognitionController {
     }
 
     /**
-     * @param title       titre de l'annonce - lu localement, jamais transmis à un moteur externe
-     * @param description description de l'annonce - idem
-     * @param imageUrls   photos à analyser. <b>Absent ou vide = analyse du texte seul</b>,
-     *                    donc aucun appel de moteur
-     * @param entityTypeCode univers attendu (« MANGA ») - la V1 n'est validée que sur celui-là
+     * @param title       title of the listing - read locally, never sent to an external engine
+     * @param description description of the listing - same
+     * @param imageUrls   photos to analyse. <b>Missing or empty = text-only analysis</b>,
+     *                    so no engine call
+     * @param entityTypeCode expected universe ("MANGA") - V1 is only validated on that one
      */
     public record AnalyzeListingRequest(String title, String description, List<String> imageUrls,
                                          String entityTypeCode) {
     }
 
-    /** Où le livre a été vu : la photo (index d'envoi) et un rectangle en fractions de 0 à 1. */
+    /** Where the book was seen: the photo (sending index) and a rectangle in fractions from 0 to 1. */
     public record BoxResponse(int image, double top, double left, double bottom, double right) {
     }
 
@@ -103,16 +103,16 @@ public class RecognitionController {
                     .toList();
             return new RecognizedItemResponse(
                     item.displayTitle(),
-                    // Ce qui a été lu, conservé à part : l'utilisateur doit pouvoir
-                    // constater l'écart entre l'annonce et le catalogue.
+                    // What was read, kept apart: the user must be able to
+                    // see the gap between the listing and the catalog.
                     item.recognized().seriesTitleRaw(),
                     item.recognized().volumeNumber(),
                     item.recognized().editionHint(),
                     item.recognized().hasExactIdentifier(),
                     item.recognized().confidence().name(),
                     sources.stream().map(Enum::name).toList(),
-                    // Le libellé parle de la donnée (« annonce », « photos »),
-                    // jamais du fournisseur d'IA.
+                    // The label talks about the data ("annonce", "photos"),
+                    // never about the AI provider.
                     sources.stream().map(RecognitionSource::label).toList(),
                     item.recognized().evidence(),
                     List.copyOf(item.recognized().sourceImages()),
@@ -134,12 +134,12 @@ public class RecognitionController {
     }
 
     /**
-     * @param visionStatus  {@code null} quand aucune photo n'a été demandée - à ne pas
-     *                      confondre avec un échec de lecture
-     * @param textItemCount ce que le seul texte a produit : permet de dire « l'annonce
-     *                      en décrit déjà N » avant toute analyse d'image
-     * @param unidentifiedCount éléments vus mais non identifiés - à afficher, sinon
-     *                      l'utilisateur croit le lot plus petit qu'il n'est
+     * @param visionStatus  {@code null} when no photo was requested - not to be
+     *                      confused with a reading failure
+     * @param textItemCount what the text alone produced: lets us say "the listing
+     *                      already describes N" before any image analysis
+     * @param unidentifiedCount items seen but not identified - to show, otherwise
+     *                      the user believes the batch is smaller than it is
      */
     public record AnalyzeListingResponse(String visionStatus, List<RecognizedItemResponse> items,
                                           int unidentifiedCount, int notInCatalogCount, int textItemCount,
@@ -147,12 +147,12 @@ public class RecognitionController {
                                           Integer announcedVolumeCount, String announcedSeriesTitle) {
     }
 
-    @Operation(summary = "Détecter les éléments d'une annonce. Le titre et la description sont TOUJOURS lus, "
-            + "localement et sans coût. Les photos ne sont analysées que si imageUrls est fourni - c'est le "
-            + "seul déclencheur d'un appel de moteur. Répond toujours 200 : visionStatus distingue succès, "
-            + "résultat partiel, rien reconnu, aucune photo exploitable, moteur non configuré et moteur "
-            + "indisponible ; il vaut null quand aucune photo n'a été demandée. N'écrit RIEN - ni possession, "
-            + "ni envie, ni fiche catalogue.")
+    @Operation(summary = "Detect the items of a listing. The title and the description are ALWAYS read, "
+            + "locally and at no cost. The photos are analysed only if imageUrls is given - this is the "
+            + "only trigger of an engine call. Always answers 200: visionStatus tells apart success, "
+            + "partial result, nothing recognised, no usable photo, engine not configured and engine "
+            + "unavailable; it is null when no photo was requested. Writes NOTHING - no ownership, "
+            + "no wish, no catalog page.")
     @PostMapping("/analyze")
     public AnalyzeListingResponse analyze(@RequestBody AnalyzeListingRequest request) {
         if (request == null) {
@@ -162,13 +162,13 @@ public class RecognitionController {
                 && (request.description() == null || request.description().isBlank());
         boolean sansPhoto = request.imageUrls() == null || request.imageUrls().isEmpty();
         if (texteVide && sansPhoto) {
-            // Ni texte ni photo : il n'y a littéralement rien à analyser.
+            // Neither text nor photo: there is literally nothing to analyse.
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Un titre, une description ou au moins une photo est requis");
         }
         if (!sansPhoto && request.imageUrls().size() > RecognitionImageLimits.MAX_IMAGES) {
-            // Borne dite explicitement plutôt que silencieusement tronquée :
-            // l'appelant doit savoir que sa demande n'a pas été traitée en entier.
+            // Limit stated explicitly rather than silently truncated:
+            // the caller must know that their request was not fully processed.
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Trop de photos : %d au maximum".formatted(RecognitionImageLimits.MAX_IMAGES));
         }
@@ -181,44 +181,44 @@ public class RecognitionController {
     }
 
     /**
-     * Analyse des photos <b>envoyées par l'utilisateur</b>, plutôt que
-     * récupérées d'une annonce.
+     * Analysis of photos <b>sent by the user</b>, rather than
+     * fetched from a listing.
      *
-     * <h2>Ce que cette route débloque</h2>
-     * Le moteur de vision n'avait qu'une porte : des URLs sur des hôtes en
-     * liste blanche. IozyCore était donc aveugle dès que les photos n'étaient
-     * pas joignables - une plateforme qui refuse les robots, une annonce dont
-     * le texte ne nomme aucune série, une étagère photographiée chez soi.
-     * Dans tous ces cas l'utilisateur a les images ; il lui manquait le moyen
-     * de les donner.
+     * <h2>What this route unlocks</h2>
+     * The vision engine had only one door: URLs on hosts in a
+     * whitelist. IozyCore was therefore blind as soon as the photos were
+     * not reachable - a platform that refuses robots, a listing whose
+     * text names no series, a shelf photographed at home.
+     * In all these cases the user has the images; what was missing was the way
+     * to give them.
      *
-     * <h2>Multipart, pas du base64 dans le JSON</h2>
-     * Encoder trois photos en base64 les gonflerait d'un tiers et ferait
-     * transiter 16 Mo de chaîne de caractères dans un corps JSON, à parser
-     * d'un bloc en mémoire. Le multipart se lit en flux et se borne en cours
-     * de lecture.
+     * <h2>Multipart, not base64 in the JSON</h2>
+     * Encoding three photos in base64 would inflate them by a third and make
+     * 16 MB of character string travel in a JSON body, to be parsed
+     * in one block in memory. Multipart is read as a stream and is limited while
+     * being read.
      *
-     * <h2>Envoyer, c'est consentir</h2>
-     * Comme pour {@code imageUrls}, la présence de photos <b>est</b> le
-     * déclencheur : aucun chemin ne fait partir d'image sans un geste explicite.
+     * <h2>Sending is consenting</h2>
+     * As for {@code imageUrls}, the presence of photos <b>is</b> the
+     * trigger: no path sends an image without an explicit action.
      *
-     * @param photos      les images ; huit au maximum, 3 Mo chacune. Le type est
-     *                    constaté sur les octets, pas sur l'en-tête déclaré
-     * @param title       titre saisi - lu localement, jamais transmis à un moteur
-     * @param description description saisie - idem
+     * @param photos      the images; eight at most, 3 MB each. The type is
+     *                    determined from the bytes, not from the declared header
+     * @param title       title entered - read locally, never sent to an engine
+     * @param description description entered - same
      */
-    @Operation(summary = "Détecter les éléments d'un lot à partir de photos ENVOYÉES par l'utilisateur. "
-            + "Sert quand les photos ne sont pas récupérables : plateforme qui refuse la lecture "
-            + "automatique, annonce sans texte exploitable, ou simple photo d'étagère. Aucune URL n'est "
-            + "reçue ni jointe. Le titre et la description restent facultatifs et lus localement. "
-            + "Répond toujours 200 sauf requête invalide, avec le même visionStatus que /analyze. "
-            + "N'écrit RIEN.")
+    @Operation(summary = "Detect the items of a batch from photos SENT by the user. "
+            + "Used when the photos cannot be fetched: platform that refuses automatic "
+            + "reading, listing without usable text, or a simple shelf photo. No URL is "
+            + "received or attached. The title and the description stay optional and read locally. "
+            + "Always answers 200 except for an invalid request, with the same visionStatus as /analyze. "
+            + "Writes NOTHING.")
     @PostMapping(value = "/analyze-photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AnalyzeListingResponse analyzeUploadedPhotos(
             @RequestPart("photos") List<MultipartFile> photos,
-            // @RequestParam et non @RequestPart : sur une String, @RequestPart
-            // exige un Content-Type sur la partie, que le FormData d'un
-            // navigateur ne pose pas - la requête échouerait en 415.
+            // @RequestParam and not @RequestPart: on a String, @RequestPart
+            // requires a Content-Type on the part, which the FormData of a
+            // browser does not set - the request would fail with 415.
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "entityTypeCode", required = false) String entityTypeCode) {
@@ -227,8 +227,8 @@ public class RecognitionController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins une photo est requise");
         }
         if (photos.size() > RecognitionImageLimits.MAX_IMAGES) {
-            // Dit plutôt que tronqué en silence : l'appelant doit savoir que sa
-            // demande n'a pas été traitée en entier.
+            // Stated rather than silently truncated: the caller must know that their
+            // request was not fully processed.
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Trop de photos : %d au maximum".formatted(RecognitionImageLimits.MAX_IMAGES));
         }
@@ -236,9 +236,9 @@ public class RecognitionController {
         UploadedImageReader.Intake intake = uploadedImageReader.read(photos);
         List<RecognitionImage> images = intake.images();
 
-        // requestedImageCount reste le nombre ENVOYÉ : c'est l'écart avec
-        // analyzedImageCount qui permet de dire « 2 photos sur 5 étaient
-        // illisibles » plutôt que de faire disparaître les trois autres.
+        // requestedImageCount stays the number SENT: it is the gap with
+        // analyzedImageCount that lets us say "2 photos out of 5 were
+        // unreadable" instead of making the other three disappear.
         ListingRecognitionService.Analysis analyse = service.analyzeUploadedPhotos(
                 title, description, images, new RecognitionContext(entityTypeCode), photos.size());
 
@@ -256,10 +256,10 @@ public class RecognitionController {
                 analyse.textItemCount(),
                 analyse.analyzedImageCount(),
                 analyse.requestedImageCount(),
-                // « 9 tomes de Naruto » : ce que l'annonce affirme, sans dire
-                // lesquels. Rendu à côté des propositions et jamais dedans -
-                // dérouler 1 à 9 fabriquerait un verdict d'achat calculé sur
-                // des tomes que personne n'a vus.
+                // "9 volumes of Naruto": what the listing claims, without saying
+                // which ones. Shown next to the proposals and never inside them -
+                // unrolling 1 to 9 would make up a purchase verdict computed on
+                // volumes that nobody has seen.
                 analyse.announcedVolumeCount(),
                 analyse.announcedSeriesTitle());
     }

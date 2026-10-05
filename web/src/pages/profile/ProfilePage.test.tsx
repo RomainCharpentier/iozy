@@ -1,17 +1,17 @@
 /**
- * <b>Ce que Profil n'est plus.</b>
+ * <b>What Profil is no longer.</b>
  *
- * <p>Cet écran a longtemps servi de liste de raccourcis : il a porté « Analyser
- * une annonce » (déjà l'une des quatre destinations de la barre de navigation),
- * « Bilan annuel » (une lecture, pas un réglage), la section Compte (dont la
- * déconnexion et l'export vivaient ailleurs), puis les liens vers Paramètres et
- * Administration. Chacun rendait l'écran un peu moins lisible, sans jamais rien
- * casser.
+ * <p>This screen long served as a list of shortcuts: it carried "Analyser
+ * une annonce" (already one of the four destinations of the navigation bar),
+ * "Bilan annuel" (a reading, not a setting), the Compte section (of which the
+ * sign-out and the export lived elsewhere), then the links to Paramètres and
+ * Administration. Each one made the screen a little less readable, without ever
+ * breaking anything.
  *
- * <p>Il n'est plus un <b>couloir</b> : l'administration a son propre bouton
- * dans l'en-tête (voir GlobalShortcuts), et les réglages sont SUR cet écran
- * (lot 140) - plus derrière un lien « Paramètres ». Le reste concerne CETTE
- * collection : sa valeur, ses classements, son partage.
+ * <p>It is no longer a <b>corridor</b>: the administration has its own button
+ * in the header (see GlobalShortcuts), and the settings are ON this screen
+ * (batch 140) - no longer behind a "Paramètres" link. The rest concerns THIS
+ * collection: its value, its rankings, its sharing.
  */
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -22,8 +22,8 @@ import { ProfilePage } from './ProfilePage'
 const auth = vi.hoisted(() => ({ useAuth: vi.fn() }))
 vi.mock('@/common/hooks/useAuth', () => auth)
 
-// Trois sections vivantes de cet écran, chacune avec ses propres requêtes :
-// ce test parle de la NAVIGATION, pas de ce qu'elles affichent.
+// Three live sections of this screen, each with its own queries:
+// this test is about the NAVIGATION, not about what they display.
 vi.mock('./ProfileValueHero', () => ({ ProfileValueHero: () => null }))
 vi.mock('./ProfileTierListsSection', () => ({ ProfileTierListsSection: () => null }))
 vi.mock('./ShareSection', () => ({ ShareSection: () => null }))
@@ -38,48 +38,48 @@ beforeEach(() => {
   render(<ProfilePage />, { wrapper: enrobage })
 })
 
-describe('les réglages, sur la page même', () => {
-  it('porte « Mon compte » et « Cet appareil » en clair, sans lien Paramètres', () => {
-    // « Pas de sous-menu, ça doit être lisible direct » (lot 140) : ce qui
-    // parle de la même personne n'ouvre pas un second écran.
+describe('the settings, on the page itself', () => {
+  it('carries "Mon compte" and "Cet appareil" in the open, without a Paramètres link', () => {
+    // "No sub-menu, it must be readable directly" (batch 140): what
+    // speaks of the same person does not open a second screen.
     expect(screen.getByRole('region', { name: 'Mon compte' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Cet appareil' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Paramètres/ })).not.toBeInTheDocument()
   })
 
-  it('ne propose plus « Demander à ma collection »', () => {
-    // Lot 117, retirée au lot 140 : « ne sert à rien ».
+  it('no longer offers "Demander à ma collection"', () => {
+    // Batch 117, removed in batch 140: "ne sert à rien".
     expect(screen.queryByRole('link', { name: /Demander à ma collection/ })).not.toBeInTheDocument()
   })
 })
 
-describe('ce que Profil ne double pas', () => {
+describe('what Profil does not duplicate', () => {
 
-  it('ne remet pas l’administration derrière le profil', () => {
-    // Elle y a déjà été rangée, comme sous Paramètres et dans un menu de
-    // l'avatar. Elle a maintenant son bouton dans l'en-tête, et l'y remettre
-    // ici serait la quatrième fois.
+  it('does not put the administration back behind the profile', () => {
+    // It was already stored there, as under Paramètres and in a menu of
+    // the avatar. It now has its button in the header, and putting it back
+    // here would be the fourth time.
     expect(screen.queryByRole('link', { name: /Administration/ })).not.toBeInTheDocument()
   })
 
-  it('ne mène pas à l’analyse d’une annonce, qui a ses portes ailleurs', () => {
-    // Elle a été l'un des quatre onglets globaux ; depuis le lot 137 elle se
-    // rejoint depuis Découvrir et depuis la fiche d'une série. Le profil
-    // n'a pas plus de raison de la doubler qu'avant.
+  it('does not lead to the analysis of a listing, which has its doors elsewhere', () => {
+    // It was one of the four global tabs; since batch 137 it is reached
+    // from Découvrir and from the detail page of a series. The profile
+    // has no more reason to duplicate it than before.
     expect(screen.queryByRole('link', { name: /Analyser une annonce/ })).not.toBeInTheDocument()
   })
 
-  it('ne porte plus le bilan annuel, qui est une lecture', () => {
+  it('no longer carries the yearly review, which is a reading', () => {
     expect(screen.queryByRole('link', { name: /Bilan annuel/ })).not.toBeInTheDocument()
   })
 })
 
-describe('l’identité', () => {
-  it('dit de qui c’est le profil, et le compte se lit dessous', () => {
-    // Le pseudo en sous-titre : un écran qui s'appelle « Mon profil » doit
-    // nommer la personne. Il le redit dans « Mon compte », avec l'adresse -
-    // sur cette page depuis le lot 140. La déconnexion, elle, reste dans
-    // l'en-tête : le même bouton sur tous les écrans.
+describe('the identity', () => {
+  it('says whose profile it is, and the account reads below', () => {
+    // The username as subtitle: a screen called "Mon profil" must
+    // name the person. It says it again in "Mon compte", with the address -
+    // on this page since batch 140. The sign-out, for its part, stays in
+    // the header: the same button on all the screens.
     expect(screen.getAllByText('romain')).toHaveLength(2)
     expect(screen.getByText('moi@example.com')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Se déconnecter/ })).not.toBeInTheDocument()

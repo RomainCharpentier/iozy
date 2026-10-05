@@ -3,10 +3,10 @@ package com.iozycore.core.domain.shared;
 import java.util.UUID;
 
 /**
- * Levée lorsqu'on tente de supprimer une Entity alors que des Ownership,
- * des Experience, ou une Édition catalogue (voir {@code MangaEdition.entityId},
- * modèle Série -> Édition -> Tome) la référencent encore. Traduit l'invariant
- * validé en conception : une donnée ne disparaît jamais silencieusement.
+ * Thrown when someone tries to delete an Entity while Ownerships,
+ * Experiences, or a catalog Edition (see {@code MangaEdition.entityId},
+ * Series -> Edition -> Volume model) still reference it. Expresses the invariant
+ * validated in design: data never disappears silently.
  */
 public class EntityDeletionNotAllowedException extends RuntimeException {
 

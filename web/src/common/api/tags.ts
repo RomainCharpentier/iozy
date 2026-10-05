@@ -5,7 +5,7 @@ export function listTags(): Promise<TagDto[]> {
   return get<TagDto[]>('/tags')
 }
 
-/** Idempotent côté backend : renvoie le tag existant si le label existe déjà. */
+/** Idempotent on the backend side: returns the existing tag if the label already exists. */
 export function createTag(label: string): Promise<TagDto> {
   return post<TagDto>('/tags', { label })
 }
@@ -15,18 +15,18 @@ export function attachTag(entityId: string, tagId: string): Promise<void> {
 }
 
 /**
- * Renommer un tag. 409 si le nom est déjà pris - un libellé est unique.
+ * Rename a tag. 409 if the name is already taken - a label is unique.
  *
- * <p>Réservé aux administrateurs, comme toutes les écritures sur les tags :
- * un tag décrit une ŒUVRE et vit dans le catalogue partagé (voir
- * TagController). C'est le SERVEUR qui l'impose (403) ; ce que les écrans
- * font de `compte.admin`, c'est éviter de proposer une porte fermée.
+ * <p>Reserved for administrators, like all writes on tags:
+ * a tag describes a WORK and lives in the shared catalog (see
+ * TagController). It is the SERVER that enforces it (403); what the screens
+ * do with `compte.admin` is avoid offering a closed door.
  */
 export function renommerTag(id: string, label: string): Promise<TagDto> {
   return patch<TagDto>(`/tags/${id}`, { label })
 }
 
-/** Supprime le tag et le retire de toutes les œuvres. Définitif. */
+/** Deletes the tag and removes it from all works. Final. */
 export function supprimerTag(id: string): Promise<void> {
   return del<void>(`/tags/${id}`)
 }

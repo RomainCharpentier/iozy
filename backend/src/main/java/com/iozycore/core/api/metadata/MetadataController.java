@@ -15,17 +15,17 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Les deux gestes de métadonnées communs à TOUS les univers : chercher par
- * titre, reconnaître un code-barres. Ce qui n'a de sens que pour un manga
- * (titre français, tomes, éditions) vit dans {@code api.metadata.manga}, et
- * l'import d'une collection BGG dans {@code api.metadata.boardgame} - même
- * découpage que le paquet {@code metadata} (Lot 132). Les routes n'ont pas
- * bougé : toutes restent sous /api/metadata.
+ * The two metadata actions common to ALL universes: search by
+ * title, recognize a barcode. What only makes sense for a manga
+ * (French title, volumes, editions) lives in {@code api.metadata.manga}, and
+ * the import of a BGG collection in {@code api.metadata.boardgame} - same
+ * split as the {@code metadata} package (Batch 132). The routes did not
+ * move: all of them stay under /api/metadata.
  */
 @RestController
 @RequestMapping("/api/metadata")
-@Tag(name = "Metadata", description = "Recherche de métadonnées externes, tous univers : AniList/Jikan/MyAnimeList "
-        + "pour les mangas, BGG pour les jeux de société, IGDB pour les jeux vidéo")
+@Tag(name = "Metadata", description = "Search of external metadata, all universes: AniList/Jikan/MyAnimeList "
+        + "for mangas, BGG for board games, IGDB for video games")
 public class MetadataController {
 
     private final MetadataSearchService metadataSearchService;
@@ -36,10 +36,10 @@ public class MetadataController {
         this.entityTypeRepository = entityTypeRepository;
     }
 
-    @Operation(summary = "Rechercher des candidats de métadonnées pour pré-remplir l'ajout rapide (parcours 1). "
-            + "Les titres déjà présents dans la collection sont écartés - le but est de préparer un AJOUT. "
-            + "includeOwned=true les garde : c'est ce dont a besoin le rechargement des informations d'une fiche "
-            + "existante, qui cherche précisément une œuvre déjà possédée (voir MetadataSearchService.search).")
+    @Operation(summary = "Search metadata candidates to pre-fill the quick add (path 1). "
+            + "Titles already in the collection are left out - the goal is to prepare an ADD. "
+            + "includeOwned=true keeps them: this is what the reload of the information of an existing "
+            + "detail page needs, which looks precisely for an already owned work (see MetadataSearchService.search).")
     @GetMapping("/search")
     public List<MetadataCandidate> search(@RequestParam UUID entityTypeId, @RequestParam String query,
                                            @RequestParam(required = false, defaultValue = "false") boolean includeOwned) {
@@ -53,7 +53,7 @@ public class MetadataController {
         return metadataSearchService.search(entityType, query, includeOwned);
     }
 
-    @Operation(summary = "Retrouver les métadonnées d'un élément à partir d'un code-barres scanné (ISBN pour les mangas)")
+    @Operation(summary = "Find the metadata of an item from a scanned barcode (ISBN for mangas)")
     @GetMapping("/lookup-barcode")
     public MetadataCandidate lookupBarcode(@RequestParam UUID entityTypeId, @RequestParam String barcode) {
         EntityType entityType = entityTypeRepository.findById(entityTypeId)
@@ -63,10 +63,10 @@ public class MetadataController {
         if (lookup.candidate() != null) {
             return lookup.candidate();
         }
-        // 404 = les bases ont répondu et ne connaissent pas ce code : chercher par
-        // titre est la suite logique. 503 = l'une d'elles n'a pas répondu, et le
-        // ré-essai reste légitime - deux situations que l'écran doit dire
-        // différemment, et qu'un seul 404 confondait.
+        // 404 = the databases answered and do not know this code: searching by
+        // title is the logical next step. 503 = one of them did not answer, and
+        // trying again stays legitimate - two situations that the screen must say
+        // differently, and that a single 404 mixed up.
         throw lookup.conclusive()
                 ? new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucune métadonnée trouvée pour le code-barres : " + barcode)

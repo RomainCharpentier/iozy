@@ -5,36 +5,36 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import type { CompletionFilter } from './CollectionFilters'
 import type { EntityResponse, TagDto } from '@/common/types/api'
 
-// Référence stable : `?? []` fabriquerait un tableau neuf à chaque rendu, et
-// les mémoïsations qui en dépendent se recalculeraient pour rien.
+// Stable reference: `?? []` would build a new array at each render, and
+// the memoizations that depend on it would be recomputed for nothing.
 const AUCUN_TAG: TagDto[] = []
 
 /**
- * Les filtres de la collection, en un seul endroit.
+ * The collection filters, in a single place.
  *
- * <h2>Deux écrans, les mêmes filtres</h2>
- * Ma collection et la vue d'une catégorie déclaraient chacun leur `status`,
- * leur panneau, leur pastille de décompte et leur bouton « Réinitialiser » -
- * une dizaine de lignes en double, et deux occasions de diverger dès qu'un
- * filtre s'ajoute. Même raison d'être que {@link useDonneesCollection}, un
- * étage plus haut : les données y sont partagées, les filtres ici.
+ * <h2>Two screens, the same filters</h2>
+ * My collection and the category view each declared their `status`,
+ * their panel, their count badge and their "Réinitialiser" button -
+ * about ten duplicated lines, and two chances to diverge as soon as a
+ * filter is added. Same reason to exist as {@link useDonneesCollection}, one
+ * level higher: the data is shared there, the filters here.
  *
- * <h2>Le filtre par tag, et pourquoi il arrive maintenant</h2>
- * On pouvait créer un tag et l'attacher à une œuvre depuis sa fiche, mais
- * <b>aucun écran ne s'en servait ensuite</b> : le classement se posait et ne
- * se relisait jamais. Le paramètre existait pourtant de bout en bout - jusque
- * dans `searchEntities` et les clés de cache - sans un seul appelant.
+ * <h2>The tag filter, and why it arrives now</h2>
+ * One could create a tag and attach it to a work from its detail page, but
+ * <b>no screen used it afterwards</b>: the sorting was set and never
+ * read back. The parameter existed from end to end though - down
+ * to `searchEntities` and the cache keys - without a single caller.
  *
- * <p>Le tri se fait <b>en mémoire</b> plutôt qu'en repassant `tagId` au
- * serveur : ces écrans tiennent déjà toute la collection, `tagIds` est dans
- * chaque œuvre, et une requête qui redemanderait un sous-ensemble de ce qu'on
- * a sous la main serait strictement plus lente. Même parti pris que le filtre
- * d'état, qui se calcule ici depuis le premier jour.
+ * <p>The filtering is done <b>in memory</b> rather than by passing `tagId` back to the
+ * server: these screens already hold the whole collection, `tagIds` is in
+ * each work, and a query that would ask again for a subset of what we
+ * have at hand would be strictly slower. Same choice as the state
+ * filter, which has been computed here from day one.
  *
- * <p><b>Un seul tag à la fois</b>, comme le paramètre du serveur : une
- * sélection multiple obligerait à trancher entre « au moins un » et « tous »,
- * et à le faire comprendre dans un panneau de quatre lignes. Ça se décide,
- * ça ne se glisse pas dans un lot.
+ * <p><b>One single tag at a time</b>, like the server parameter: a
+ * multiple selection would force us to choose between "at least one" and "all",
+ * and to make it understood in a panel of four lines. This is decided,
+ * it is not slipped into a batch.
  */
 export function useFiltresCollection() {
   const [ouverts, setOuverts] = useState(false)
@@ -44,11 +44,11 @@ export function useFiltresCollection() {
   const tagsQuery = useQuery({ queryKey: queryKeys.tags.all, queryFn: listTags })
   const tags = tagsQuery.data ?? AUCUN_TAG
 
-  /** Combien de filtres portent réellement quelque chose - la pastille du bouton. */
+  /** How many filters really carry something - the badge of the button. */
   const nombreActifs = (status === 'ALL' ? 0 : 1) + (tagId === null ? 0 : 1)
 
-  /** Le seul critère que ce hook sait appliquer seul : l'état de la collection
-   *  dépend de la progression, que chaque écran a déjà sous la main. */
+  /** The only criterion this hook knows how to apply alone: the collection state
+   *  depends on the progress, which each screen already has at hand. */
   const porteLeTag = useCallback(
     (oeuvre: EntityResponse) => tagId === null || oeuvre.tagIds.includes(tagId),
     [tagId],

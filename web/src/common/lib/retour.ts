@@ -1,33 +1,33 @@
 /**
- * D'où l'on vient, quand ça vaut la peine de proposer d'y retourner.
+ * Where we come from, when it is worth offering to go back there.
  *
- * <h2>Un seul mécanisme, pour tous les écrans qui s'ouvrent depuis ailleurs</h2>
- * La fiche le faisait déjà bien ; quatre autres écrans codaient leur
- * destination en dur - un board de Tier List revenait TOUJOURS à
- * `/tier-lists`, même ouvert depuis Découvrir, et un rayon toujours à Ma
- * collection (voir docs/USER_JOURNEYS.md, UX-8). Le bouton de l'écran et le
- * bouton Précédent du navigateur disaient alors deux choses différentes.
+ * <h2>One single mechanism, for all the screens that open from elsewhere</h2>
+ * The detail page already did it well; four other screens hard-coded their
+ * destination - a Tier List board ALWAYS went back to `/tier-lists`, even
+ * when opened from Discover, and a shelf always to Ma collection (see
+ * docs/USER_JOURNEYS.md, UX-8). The button of the screen and the Back
+ * button of the browser then said two different things.
  *
- * <h2>Pourquoi par `location.state`, alors que le reste n'en dépend plus</h2>
- * Le Lot 29 a retiré tout `location.state` de la fiche, et pour une bonne
- * raison : l'ancien écran d'ajout n'existait QUE par lui, donc un F5 le vidait
- * et un lien partagé ne menait nulle part. Ici, c'est l'inverse — cet état ne
- * porte aucune donnée, seulement une commodité. S'il manque (fiche rechargée,
- * lien reçu, arrivée depuis la collection), le lien de retour ne s'affiche
- * tout simplement pas, et la page reste entière. C'est la différence entre un
- * écran qui DÉPEND d'un état volatile et un écran qui SAIT s'en passer.
+ * <h2>Why through `location.state`, when the rest no longer depends on it</h2>
+ * Batch 29 removed all `location.state` from the detail page, and for a good
+ * reason: the old add screen existed ONLY through it, so an F5 emptied it
+ * and a shared link led nowhere. Here, it is the opposite — this state
+ * carries no data, only a convenience. If it is missing (page reloaded,
+ * received link, arrival from the collection), the back link simply does not
+ * show, and the page stays whole. This is the difference between a screen
+ * that DEPENDS on a volatile state and a screen that KNOWS how to do without it.
  *
- * <h2>Pourquoi pas un simple `navigate(-1)`</h2>
- * Parce qu'un « Retour » sans destination ment une fois sur deux : ouvrir une
- * fiche depuis la recherche puis en ouvrir une autre depuis ses relations
- * ramènerait à la fiche précédente, pas à la recherche. Nommer la destination,
- * c'est promettre exactement ce qu'on tient - et le bouton Précédent du
- * navigateur continue de faire son travail à côté.
+ * <h2>Why not a simple `navigate(-1)`</h2>
+ * Because a "Retour" without a destination lies one time out of two: opening
+ * a detail page from the search and then opening another one from its
+ * relations would go back to the previous detail page, not to the search.
+ * Naming the destination means promising exactly what we deliver - and the
+ * Back button of the browser keeps doing its job next to it.
  */
 export interface Retour {
-  /** La route à rouvrir - `/add`, `/scan`… */
+  /** The route to reopen - `/add`, `/scan`... */
   to: string
-  /** Ce que le lien annonce. Le nom de l'écran, jamais « Retour » seul. */
+  /** What the link announces. The name of the screen, never "Retour" alone. */
   libelle: string
 }
 
@@ -35,15 +35,15 @@ export interface EtatRetour {
   retour?: Retour
 }
 
-/** Lit l'origine d'une navigation sans jamais faire confiance à sa forme :
- *  `location.state` est un sac libre, qu'un lien forgé ou une version
- *  antérieure de l'app peut remplir autrement. */
+/** Reads the origin of a navigation without ever trusting its shape:
+ *  `location.state` is a free bag, which a forged link or an earlier
+ *  version of the app can fill differently. */
 export function retourDepuis(state: unknown): Retour | null {
   if (!state || typeof state !== 'object') return null
   const retour = (state as EtatRetour).retour
   if (!retour || typeof retour.to !== 'string' || typeof retour.libelle !== 'string') return null
-  // Une route interne, jamais une URL absolue : ce lien ne doit pas pouvoir
-  // devenir une redirection vers l'extérieur.
+  // An internal route, never an absolute URL: this link must not be able to
+  // become a redirect to the outside.
   if (!retour.to.startsWith('/') || retour.to.startsWith('//')) return null
   return retour
 }

@@ -14,20 +14,20 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Suivre une œuvre, et tenir la règle « un état à la fois ».
+ * Follow a work, and hold the "one state at a time" rule.
  *
- * <p>Possédé, Suivi, Envie : une trinité où chaque état est unique (retour
- * utilisateur du 2026-09-11). Ce service est le seul endroit qui connaît les
- * passages de l'un à l'autre, pour l'ŒUVRE :
+ * <p>Owned, Followed, Wish: a trinity where each state is unique (user
+ * feedback of 2026-09-11). This service is the only place that knows the
+ * moves from one to the other, for the WORK:
  * <ul>
- *   <li>suivre retire l'envie de l'œuvre ;</li>
- *   <li>vouloir l'œuvre entière la retire des suivies (voir WishlistController) ;</li>
- *   <li>posséder l'œuvre d'une pièce la retire des suivies (voir l'événement
+ *   <li>following removes the wish for the work;</li>
+ *   <li>wanting the whole work removes it from the followed ones (see WishlistController);</li>
+ *   <li>owning the work as a single piece removes it from the followed ones (see the event
  *       OwnershipAdded).</li>
  * </ul>
- * Un TOME ne change rien à l'état de sa série : acquérir le tome 12 d'une
- * série suivie est exactement ce que suivre veut dire, et vouloir le tome 13
- * est un état du tome, pas de la série.
+ * A VOLUME changes nothing to the state of its series: acquiring volume 12 of a
+ * followed series is exactly what following means, and wanting volume 13
+ * is a state of the volume, not of the series.
  */
 @Service
 @Transactional
@@ -48,7 +48,7 @@ public class WorkFollowing {
         this.entityRepository = entityRepository;
     }
 
-    /** Idempotent : suivre deux fois, c'est suivre. */
+    /** Idempotent: following twice is following. */
     public FollowedWork follow(UUID entityId) {
         if (entityId == null || entityRepository.findById(entityId).isEmpty()) {
             throw new IllegalArgumentException("Entité introuvable : " + entityId);
@@ -67,14 +67,14 @@ public class WorkFollowing {
         return followedWorkRepository.findByEntityId(entityId).isPresent();
     }
 
-    /** Vouloir l'œuvre ENTIÈRE - pas un tome - c'est ne plus la suivre. */
+    /** Wanting the WHOLE work - not a volume - means no longer following it. */
     public void wantedAsAWhole(UUID entityId) {
         followedWorkRepository.deleteByEntityId(entityId);
     }
 
     /**
-     * Posséder l'œuvre d'une PIÈCE (une possession sans tome) : elle est
-     * possédée, donc plus suivie. Une possession de tome ne passe pas par ici.
+     * Owning the work as a SINGLE PIECE (an ownership without a volume): it is
+     * owned, so no longer followed. An ownership of a volume does not go through here.
      */
     @EventListener
     public void onOwnershipAdded(OwnershipAdded event) {

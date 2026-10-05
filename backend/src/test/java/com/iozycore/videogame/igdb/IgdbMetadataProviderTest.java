@@ -23,7 +23,7 @@ class IgdbMetadataProviderTest {
 
     @Test
     void parses_title_cover_and_attributes_from_an_igdb_response() throws Exception {
-        // parse() n'utilise jamais le tokenProvider - jamais search(), qui seul en aurait besoin.
+        // parse() never uses the tokenProvider - never search(), which alone would need it.
         IgdbMetadataProvider provider = new IgdbMetadataProvider(null);
 
         List<MetadataCandidate> candidates = provider.parse(SAMPLE_RESPONSE);

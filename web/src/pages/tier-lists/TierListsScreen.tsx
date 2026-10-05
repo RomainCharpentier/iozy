@@ -14,35 +14,35 @@ import { useDonneesTierLists } from '@/common/hooks/useDonneesTierLists'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * Écran "Tier Lists" à part entière - "deuxième grande expérience, à côté
- * de la collection" (voir DS v1.1, commentaire source ligne ~1100), atteint
- * depuis Découvrir (aperçu compact, voir DiscoverTierPreview) ou depuis la
- * fiche d'une œuvre ("Toutes mes Tier Lists", voir TomesGridSection). Un
- * classement général par univers réellement possédé + les Tier Lists
- * personnalisées de chaque univers + un point d'entrée de création par
- * univers. Les Tier Lists TRANSVERSES "toutes catégories" (scope 'all' de la
- * maquette, Lot 14) forment leur propre famille en fin d'écran plutôt que
- * d'apparaître sous chaque univers : elles n'appartiennent à aucun, les
- * répéter partout les afficherait autant de fois qu'il y a de types.
- * Univers sans aucune œuvre possédée ET sans aucune Tier List perso masqué
- * (même principe que groupByEntityType côté Ma collection - jamais une
- * section vide) ; la famille transverse suit la même règle, absente tant
- * qu'aucune liste de ce genre n'existe.
+ * "Tier Lists" screen in its own right - "second big experience, next
+ * to the collection" (see DS v1.1, source comment line ~1100), reached
+ * from Découvrir (compact preview, see DiscoverTierPreview) or from the
+ * detail page of a work ("Toutes mes Tier Lists", see TomesGridSection). A
+ * general ranking per universe that is really owned + the custom Tier Lists
+ * of each universe + a creation entry point per
+ * universe. The CROSS-CATEGORY "toutes catégories" Tier Lists (scope 'all' of the
+ * mockup, batch 14) form their own family at the end of the screen rather than
+ * appearing under each universe: they belong to none, repeating
+ * them everywhere would show them as many times as there are types.
+ * A universe without any owned work AND without any custom Tier List is hidden
+ * (same principle as groupByEntityType on the Ma collection side - never an
+ * empty section); the cross-category family follows the same rule, absent as long
+ * as no list of this kind exists.
  */
 export function TierListsScreen() {
   const navigate = useNavigate()
-  // null dans le state = modal fermée ; { id: null } = modal ouverte sur
-  // "Toutes catégories" - deux "null" de sens différents, d'où l'objet.
+  // null in the state = modal closed; { id: null } = modal open on
+  // "Toutes catégories" - two "null" of different meaning, hence the object.
   const [creatingFor, setCreatingFor] = useState<{ id: string | null } | null>(null)
 
   const donnees = useDonneesTierLists()
 
-  // Pas de retour anticipé : l'écran garde son titre pendant qu'il charge.
-  // Le remplacer entièrement par « Chargement... » lui faisait perdre son h1,
-  // donc AUSSI le titre de son onglet (voir useDocumentTitle, qui lit le h1) -
-  // l'onglet retombait sur « IozyCore » - et son seul repère de structure pour
-  // un lecteur d'écran. Statistiques et Envies gardent déjà le leur : c'est
-  // cette forme-là qui est majoritaire dans l'application.
+  // No early return: the screen keeps its title while it loads.
+  // Replacing it entirely with "Chargement..." made it lose its h1,
+  // therefore ALSO the title of its tab (see useDocumentTitle, which reads the h1) -
+  // the tab fell back on "IozyCore" - and its only structure landmark for
+  // a screen reader. Statistiques and Envies already keep theirs: this
+  // form is the majority one in the application.
   const chargement = donnees.chargement
 
   const sections = donnees.univers
@@ -81,9 +81,9 @@ export function TierListsScreen() {
       {donnees.erreur && <ErrorBanner message={donnees.erreur} />}
       {chargement && <Squelette lignes={3} />}
 
-      {/* `!chargement` en garde : sans lui, l'état vide clignoterait à chaque
-          ouverture, le temps que les données arrivent - « Rien à classer »
-          affiché à quelqu'un qui a justement des choses à classer. */}
+      {/* `!chargement` as a guard: without it, the empty state would blink at each
+          opening, while the data arrives - "Rien à classer"
+          shown to someone who precisely has things to rank. */}
       {!chargement && sections.length === 0 && (
         <EtatVide
           icone={ListOrdered}

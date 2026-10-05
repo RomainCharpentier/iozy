@@ -1,10 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// Parcours 3 ("le décideur avant achat", étape 5) : recherche
-/// instantanée transversale (UC4) sur la vraie collection côté serveur,
-/// avec repli automatique sur le cache local si le réseau est indisponible
-/// (le parcours doit fonctionner hors ligne, comme validé en conception).
+/// Journey 3 ("the decider before buying", step 5): instant
+/// cross search (UC4) on the real collection on the server side,
+/// with automatic fallback to the local cache if the network is unavailable
+/// (the journey must work offline, as validated during design).
 struct SearchView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var cachedEntities: [EntityRecord]
@@ -24,9 +24,9 @@ struct SearchView: View {
         let entityTypeId: UUID
     }
 
-    /// Résultats affichés : ceux du serveur s'ils ont pu être récupérés
-    /// (source de vérité complète), sinon un filtre sur le cache local de
-    /// l'appareil (dégradation gracieuse hors ligne).
+    /// Results shown: the server ones if they could be fetched
+    /// (full source of truth), otherwise a filter on the local cache of
+    /// the device (graceful degradation offline).
     private var displayedResults: [SearchResultItem] {
         guard !query.isEmpty else { return [] }
         if let serverResults {
@@ -99,8 +99,8 @@ struct SearchView: View {
         }
     }
 
-    /// Recherche débouncée (300ms) côté serveur - la vraie recherche
-    /// transversale (UC4), pas juste un filtre sur ce qui est déjà en cache.
+    /// Debounced search (300ms) on the server side - the real
+    /// cross search (UC4), not just a filter on what is already cached.
     private func triggerServerSearch(for newQuery: String) {
         searchTask?.cancel()
         onlineStatus = nil
@@ -125,9 +125,9 @@ struct SearchView: View {
                 }
             } catch {
                 await MainActor.run {
-                    // Échec réseau : on bascule sur le cache local (voir displayedResults)
-                    // plutôt que de laisser l'écran vide - c'est le comportement
-                    // hors ligne attendu du parcours 3.
+                    // Network failure: we switch to the local cache (see displayedResults)
+                    // instead of leaving the screen empty - this is the expected
+                    // offline behavior of journey 3.
                     serverResults = nil
                     isOffline = true
                     isSearchingServer = false

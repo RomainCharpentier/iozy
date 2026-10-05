@@ -18,18 +18,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.iozycore.manga.deals.Volume;
 
 /**
- * <b>Ce qu'un administrateur peut faire, et ce qu'il ne peut pas.</b>
+ * <b>What an administrator can do, and what they cannot.</b>
  *
- * <p>Trois règles, dont deux protègent l'instance de son propre
- * administrateur :
+ * <p>Three rules, two of which protect the instance from its own
+ * administrator:
  * <ul>
- *   <li>la liste dit ce que chaque compte <b>pèse</b> - sans ça, supprimer est
- *       un pari ;</li>
- *   <li><b>on ne se supprime pas soi-même</b> : c'est ce qui garantit qu'il
- *       reste toujours quelqu'un pour administrer ;</li>
- *   <li>les <b>données partent avant le compte</b> - dans l'autre sens, un
- *       échec entre les deux laisserait des lignes appartenant à un
- *       identifiant que plus personne ne porte.</li>
+ *   <li>the list says what each account <b>weighs</b> - without that, deleting is
+ *       a gamble;</li>
+ *   <li><b>you do not delete yourself</b>: this guarantees that someone
+ *       is always left to administer;</li>
+ *   <li>the <b>data goes before the account</b> - the other way round, a
+ *       failure between the two would leave rows belonging to an
+ *       identifier that nobody carries anymore.</li>
  * </ul>
  */
 class GestionDesComptesTest {
@@ -37,7 +37,7 @@ class GestionDesComptesTest {
     private static final UUID PATRON = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID INVITE = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-    /** Une table de comptes en mémoire : ces règles n'ont rien à voir avec SQL. */
+    /** An in-memory accounts table: these rules have nothing to do with SQL. */
     static class ComptesEnMemoire implements AppUserRepository {
         final Map<UUID, AppUser> parId = new LinkedHashMap<>();
 
@@ -80,7 +80,7 @@ class GestionDesComptesTest {
         }
     }
 
-    /** Note l'ORDRE des gestes : c'est la moitié de ce que ce service garantit. */
+    /** Records the ORDER of the actions: it is half of what this service guarantees. */
     static class DonneesEnMemoire implements DonneesParProprietaire {
         final Map<UUID, Volume> volumes = new HashMap<>();
         final List<String> gestes = new ArrayList<>();
@@ -116,7 +116,7 @@ class GestionDesComptesTest {
         assertThat(liste).hasSize(2);
         assertThat(liste.get(0).pseudo()).isEqualTo("patron");
         assertThat(liste.get(0).admin()).isTrue();
-        // Un compte sans données n'est pas un compte inconnu : il pèse zéro.
+        // An account without data is not an unknown account: it weighs zero.
         assertThat(liste.get(0).volume()).isEqualTo(DonneesParProprietaire.Volume.AUCUN);
         assertThat(liste.get(1).volume().possessions()).isEqualTo(412);
         assertThat(liste.get(1).volume().total()).isEqualTo(456);
@@ -141,7 +141,7 @@ class GestionDesComptesTest {
         assertThatThrownBy(() -> gestion.supprimer(PATRON, PATRON))
                 .isInstanceOf(GestionDesComptes.SuppressionRefusee.class)
                 .hasMessageContaining("son propre compte");
-        // Et rien n'a été touché : le refus tombe AVANT le premier effacement.
+        // And nothing was touched: the refusal happens BEFORE the first deletion.
         assertThat(donnees.gestes).isEmpty();
         assertThat(comptes.findById(PATRON)).isPresent();
     }

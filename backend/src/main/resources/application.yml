@@ -1,21 +1,21 @@
-# La livraison qui tourne - le SHA du commit, gravé dans l'image au build (voir
-# Dockerfile). `dev` hors conteneur : lancé depuis un IDE, il n'y a pas de
-# livraison à nommer.
+# The release that is running - the commit SHA, written into the image at build time (see
+# Dockerfile). `dev` outside a container: run from an IDE, there is no
+# release to name.
 iozycore:
   version: ${IOZYCORE_VERSION:dev}
   releases:
-    # Le calendrier des sorties (lot 146) relit chaque nuit les séries de
-    # mangas EN COURS pour que les tomes annoncés finissent par y être - le
-    # résultat d'une recherche de tomes n'est sinon jamais rappelé. Quelques
-    # séries par nuit, les plus anciennes d'abord, jamais plus : le quota
-    # journalier de Google Books reste à ceux qui l'utilisent le jour. Une
-    # panne d'un fournisseur arrête la nuit sans rien effacer.
+    # The release calendar (batch 146) re-reads the ONGOING manga series every night
+    # so that announced volumes end up in it - the
+    # result of a volume search is otherwise never recalled. A few
+    # series per night, the oldest first, never more: the daily
+    # Google Books quota stays for those who use it during the day. A
+    # provider outage stops the night without erasing anything.
     refresh:
       enabled: ${RELEASES_REFRESH_ENABLED:true}
-      # À 4 h 30, heure du serveur : personne ne cherche de tomes à cette heure-là.
+      # At 4:30, server time: nobody looks for volumes at that hour.
       cron: "0 30 4 * * *"
       series-per-run: ${RELEASES_REFRESH_SERIES_PER_NIGHT:10}
-      # Une série relue il y a moins d'une semaine ne l'est pas à nouveau.
+      # A series re-read less than a week ago is not re-read again.
       stale-after-days: 7
 
 spring:
@@ -27,135 +27,135 @@ spring:
     password: ${DB_PASSWORD:changeme}
   jpa:
     hibernate:
-      ddl-auto: validate   # le schéma est piloté par Flyway, jamais par Hibernate
+      ddl-auto: validate   # the schema is driven by Flyway, never by Hibernate
     open-in-view: false
   flyway:
     enabled: true
     locations: classpath:db/migration
   servlet:
     multipart:
-      # Alignés sur RecognitionImageLimits (3 Mo par photo, 12 Mo cumulés).
-      # Sans ces deux lignes, Spring refuse à 1 Mo par fichier : la borne du
-      # code ne serait jamais atteinte, et l'utilisateur recevrait une erreur
-      # de framework au lieu du message qui lui dit quoi faire.
+      # Aligned with RecognitionImageLimits (3 MB per photo, 12 MB in total).
+      # Without these two lines, Spring refuses at 1 MB per file: the limit of
+      # the code would never be reached, and the user would get a framework
+      # error instead of the message that tells them what to do.
       max-file-size: 3MB
-      # Un peu au-dessus du cumul : le multipart transporte aussi les champs
-      # texte et ses propres délimiteurs.
+      # A little above the total: multipart also carries the text fields
+      # and its own delimiters.
       max-request-size: 13MB
 
 server:
-  # `PORT` est la convention des hébergeurs gérés (Railway, Render, Fly) :
-  # ils l'imposent et acheminent le trafic vers CE port. Sans la variable,
-  # le contrôle de santé échouerait sur un port qui ne répond pas. 8080
-  # reste le défaut local, celui de docker-compose.
+  # `PORT` is the convention of managed hosts (Railway, Render, Fly):
+  # they impose it and route traffic to THIS port. Without the variable,
+  # the health check would fail on a port that does not answer. 8080
+  # stays the local default, the one of docker-compose.
   port: ${PORT:8080}
-  # Derrière un proxy TLS (Vercel devant, ou le routeur de l'hébergeur), la
-  # requête arrive à l'application en clair : sans lire les en-têtes
-  # `X-Forwarded-*`, elle se croit en HTTP et refuse de poser un cookie de
-  # session `Secure`. Personne ne resterait connecté, sans erreur nulle part.
+  # Behind a TLS proxy (Vercel in front, or the host's router), the
+  # request reaches the application in clear text: without reading the
+  # `X-Forwarded-*` headers, it thinks it is on HTTP and refuses to set a
+  # `Secure` session cookie. Nobody would stay logged in, with no error anywhere.
   forward-headers-strategy: framework
   servlet:
     session:
       cookie:
         http-only: true
-        # `Lax` et non `None` : l'API est servie sous la MÊME origine que l'app
-        # (proxy Vite en dev, nginx en production). Le cookie n'a donc jamais
-        # à voyager cross-site, et `Lax` bloque au passage les écritures
-        # déclenchées par une page tierce.
+        # `Lax` and not `None`: the API is served under the SAME origin as the app
+        # (Vite proxy in dev, nginx in production). The cookie therefore never has
+        # to travel cross-site, and `Lax` also blocks the writes
+        # triggered by a third-party page.
         same-site: lax
-        # À passer à `true` dès qu'il y a du TLS devant (déploiement) : un
-        # cookie `Secure` ne part pas en clair. Faux par défaut, sans quoi le
-        # développement en http://localhost ne retiendrait aucune session.
+        # Set to `true` as soon as there is TLS in front (deployment): a
+        # `Secure` cookie is not sent in clear text. False by default, otherwise
+        # development on http://localhost would keep no session.
         secure: ${SESSION_COOKIE_SECURE:false}
-      # Une session dort huit heures : de quoi traverser une journée sans se
-      # reconnecter, sans laisser un téléphone posé sur une table ouvert
-      # indéfiniment.
+      # A session sleeps for eight hours: enough to get through a day without
+      # logging in again, without leaving a phone lying on a table open
+      # forever.
       timeout: 8h
   error:
-    # Les refus explicites levés par les contrôleurs (ResponseStatusException)
-    # portent un message écrit POUR l'utilisateur - "Impossible de supprimer
-    # cette édition : 3 tome(s) y sont encore rattachés". Sans ce réglage,
-    # Spring ne le transmet pas : le client ne recevait que la phrase de statut
-    # HTTP ("Conflict", "Not Found") et affichait donc de l'anglais générique
-    # à la place de la raison (constaté en vérification, Lot 26).
-    # Application personnelle auto-hébergée : aucune exposition indésirable,
-    # ces messages sont précisément écrits pour être lus.
+    # The explicit refusals thrown by the controllers (ResponseStatusException)
+    # carry a message written FOR the user - "Impossible de supprimer
+    # cette édition : 3 tome(s) y sont encore rattachés". Without this setting,
+    # Spring does not pass it on: the client only received the HTTP status
+    # phrase ("Conflict", "Not Found") and so showed generic English
+    # in place of the reason (seen during verification, Batch 26).
+    # Self-hosted personal application: no unwanted exposure,
+    # these messages are written precisely to be read.
     include-message: always
 
 auth:
-  # Code d'invitation exigé pour créer un compte APRÈS le premier (le premier
-  # est libre : il faut bien que quelqu'un entre, et il reprend la collection
-  # déjà en base). Laissé vide, la création est FERMÉE une fois le premier
-  # compte créé - l'absence de configuration ferme la porte, elle ne l'ouvre
-  # pas. Voir AuthService.
+  # Invite code required to create an account AFTER the first one (the first one
+  # is free: someone has to get in, and it takes over the collection
+  # already in the database). Left empty, creation is CLOSED once the first
+  # account exists - missing configuration closes the door, it does not open
+  # it. See AuthService.
   invite-code: ${IOZYCORE_INVITE_CODE:}
 
 web:
-  # Origines autorisées pour les requêtes POST/PATCH/DELETE du client web
-  # (voir api/config/CorsConfig.java pour le pourquoi - même en usage
-  # nginx-proxied "same-origin", ces méthodes envoient un header Origin
-  # que Spring vérifie). CSV, valeurs par défaut = dev Vite (:5173) +
-  # build Docker local (:8081). En Synology, définir avec le vrai domaine
-  # du service web.
+  # Origins allowed for POST/PATCH/DELETE requests of the web client
+  # (see api/config/CorsConfig.java for the why - even with
+  # nginx-proxied "same-origin" use, these methods send an Origin header
+  # that Spring checks). CSV, default values = Vite dev (:5173) +
+  # local Docker build (:8081). On Synology, set it with the real domain
+  # of the web service.
   allowed-origins: ${WEB_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8081}
 
 bgg:
-  # Requis par BGG depuis juillet 2025 pour la quasi-totalité de son API XML
-  # (voir boardgamegeek.com/using_the_xml_api) - enregistrer une application
-  # sur boardgamegeek.com/applications, puis renseigner le token ici.
-  # Laissé vide, les appels BGG restent fonctionnels pour le développement
-  # local mais ne sont pas conformes aux conditions actuelles de BGG.
+  # Required by BGG since July 2025 for almost all of its XML API
+  # (see boardgamegeek.com/using_the_xml_api) - register an application
+  # on boardgamegeek.com/applications, then put the token here.
+  # Left empty, BGG calls still work for local
+  # development but do not follow the current BGG terms.
   application-token: ${BGG_APPLICATION_TOKEN:}
 
 igdb:
-  # Identifiants Twitch Developer Console (flux OAuth2 client-credentials) -
-  # voir README.md, section "Obtenir et configurer des identifiants
-  # IGDB/Twitch". Contrairement à BGG, IGDB ne fonctionne pas du tout sans
-  # ces identifiants (pas de mode dégradé/anonyme) : recherche et
-  # découverte jeux vidéo renvoient une liste vide tant qu'ils sont absents.
+  # Twitch Developer Console credentials (OAuth2 client-credentials flow) -
+  # see README.md, section "Obtenir et configurer des identifiants
+  # IGDB/Twitch". Unlike BGG, IGDB does not work at all without
+  # these credentials (no degraded/anonymous mode): video game search and
+  # discovery return an empty list while they are missing.
   client-id: ${IGDB_CLIENT_ID:}
   client-secret: ${IGDB_CLIENT_SECRET:}
 
 mal:
-  # Client ID MyAnimeList (API officielle v2, pas de flux OAuth complet
-  # requis pour la recherche publique) - voir README.md, section "Obtenir
-  # et configurer un Client ID MyAnimeList". Complète Jikan pour le type
-  # MANGA (jamais à sa place) : sans Client ID configuré, ce fournisseur
-  # reste simplement absent et Jikan continue de fonctionner seul comme
-  # avant. Utile quand Jikan est indisponible (MyAnimeList bloque/throttle
-  # ce wrapper tiers par intermittence, contrairement à l'API officielle).
+  # MyAnimeList Client ID (official API v2, no full OAuth flow
+  # required for public search) - see README.md, section "Obtenir
+  # et configurer un Client ID MyAnimeList". Completes Jikan for the
+  # MANGA type (never in its place): without a configured Client ID, this provider
+  # is simply absent and Jikan keeps working alone as
+  # before. Useful when Jikan is unavailable (MyAnimeList blocks/throttles
+  # this third-party wrapper from time to time, unlike the official API).
   client-id: ${MAL_CLIENT_ID:}
 
 google-books:
-  # Clé API Google Books (console.cloud.google.com, API "Books API" activée) -
-  # optionnelle : sans clé, les appels restent fonctionnels mais partagent le
-  # quota anonyme mondial (429 "Quota exceeded" fréquents en pratique). Une
-  # clé donne un quota dédié à ce projet. Utilisée par les 4 fournisseurs
-  # Google Books via GoogleBooksHttpClient (scan ISBN, titre français par
-  # résolution/direct, recherche de tomes).
+  # Google Books API key (console.cloud.google.com, "Books API" enabled) -
+  # optional: without a key, calls still work but share the
+  # worldwide anonymous quota (frequent 429 "Quota exceeded" in practice). A
+  # key gives a quota dedicated to this project. Used by the 4 Google Books
+  # providers through GoogleBooksHttpClient (ISBN scan, French title by
+  # resolution/direct, volume search).
   api-key: ${GOOGLE_BOOKS_API_KEY:}
-  # Clé(s) de secours, séparées par des virgules (ex: "cle2,cle3") - un 2e
-  # projet Google Cloud avec sa propre clé "Books API" a son propre quota
-  # journalier indépendant : GoogleBooksHttpClient bascule dessus dès que la
-  # clé principale répond 429, avant d'abandonner. Vérifié manuellement
-  # (voir historique) : une session de tests intensifs épuise le quota par
-  # défaut d'une seule clé en quelques dizaines de recherches de tomes (8
-  # requêtes chacune).
+  # Backup key(s), separated by commas (e.g. "key2,key3") - a 2nd
+  # Google Cloud project with its own "Books API" key has its own independent
+  # daily quota: GoogleBooksHttpClient switches to it as soon as the
+  # main key answers 429, before giving up. Checked by hand
+  # (see history): an intensive test session uses up the default quota of
+  # a single key in a few dozen volume searches (8
+  # requests each).
   backup-api-keys: ${GOOGLE_BOOKS_BACKUP_API_KEYS:}
 
 gemini:
-  # Clé API Google Gemini (aistudio.google.com/apikey) - palier gratuit
-  # réel (pas un essai qui expire), sans carte bancaire requise, voir
-  # README.md. Optionnelle : sans clé, l'assistance IA de l'analyse d'achat
-  # (fiches d'édition auto-remplies, estimation de prix) reste simplement
-  # absente, même adaptateur auto-désactivé que BGG/IGDB.
+  # Google Gemini API key (aistudio.google.com/apikey) - real free
+  # tier (not a trial that expires), no bank card required, see
+  # README.md. Optional: without a key, the AI help of the purchase analysis
+  # (auto-filled edition sheets, price estimate) is simply
+  # absent, same self-disabling adapter as BGG/IGDB.
   api-key: ${GEMINI_API_KEY:}
-  # Le défaut ci-dessous ne se déclenche QUE si GEMINI_MODEL est absent de
-  # l'environnement - docker-compose.yml fixe toujours cette variable (même
-  # vide), donc le vrai défaut ("gemini-3.5-flash") vit côté code (voir
-  # GeminiEditionAdvisor/GeminiMarketPriceAdvisor), pas ici.
+  # The default below only applies if GEMINI_MODEL is missing from
+  # the environment - docker-compose.yml always sets this variable (even
+  # empty), so the real default ("gemini-3.5-flash") lives in the code (see
+  # GeminiEditionAdvisor/GeminiMarketPriceAdvisor), not here.
   model: ${GEMINI_MODEL:}
-  # Le modèle qui prend le relais quand le principal sature ou ne répond pas à
-  # temps. Même règle : le vrai défaut ("gemini-3.5-flash-lite") vit côté code
-  # (GeminiRequests). Mettre le même nom que le principal désactive le repli.
+  # The model that takes over when the main one is saturated or does not answer in
+  # time. Same rule: the real default ("gemini-3.5-flash-lite") lives in the code
+  # (GeminiRequests). Setting the same name as the main one turns off the fallback.
   fallback-model: ${GEMINI_FALLBACK_MODEL:}

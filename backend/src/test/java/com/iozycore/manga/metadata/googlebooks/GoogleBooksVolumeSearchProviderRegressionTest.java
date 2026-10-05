@@ -10,28 +10,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 /**
- * Contrairement à {@link GoogleBooksVolumeSearchProviderTest} (une réponse =
- * un mot-clé = un test), cette classe rejoue le pipeline COMPLET de
- * {@code searchVolumes} : plusieurs réponses simulées (une par mot-clé,
- * comme {@code QUICK_EDITION_KEYWORDS}) fusionnées via
- * {@link GoogleBooksVolumeSearchProvider#mergeAndFinalize} - dédoublonnage
- * PUIS résolution one-shot PUIS filtre anti-bruit, dans cet ordre exact.
+ * Unlike {@link GoogleBooksVolumeSearchProviderTest} (one response =
+ * one keyword = one test), this class replays the COMPLETE pipeline of
+ * {@code searchVolumes}: several simulated responses (one per keyword,
+ * like {@code QUICK_EDITION_KEYWORDS}) merged through
+ * {@link GoogleBooksVolumeSearchProvider#mergeAndFinalize} - deduplication
+ * THEN one-shot resolution THEN anti-noise filter, in this exact order.
  * <p>
- * Raison d'être (voir historique de la conversation) : chaque bug corrigé
- * cette session avait sa propre preuve unitaire, mais le bug "Sword Art
- * Online" (numérotation sans mot-clé ET filtre anti-bruit trop strict)
- * n'était visible qu'à travers l'INTERACTION des deux, invisible en testant
- * chaque étape isolément - cette classe fige ces interactions déjà
- * constatées en production pour qu'un futur correctif localisé ne les
- * recasse pas silencieusement à distance.
+ * Reason for existing (see the conversation history): each bug fixed
+ * this session had its own unit proof, but the "Sword Art
+ * Online" bug (numbering without keyword AND anti-noise filter too strict)
+ * was only visible through the INTERACTION of the two, invisible when testing
+ * each step in isolation - this class freezes these interactions already
+ * seen in production so that a future local fix does not
+ * silently break them again from a distance.
  */
 class GoogleBooksVolumeSearchProviderRegressionTest {
 
     private final GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
 
-    /** Simule {@code runKeywordSearches} : une réponse par mot-clé, combinées
-     * avant fusion - jamais {@code parse()} (une seule réponse, saute
-     * {@code filterOutNoiseEditions}, voir sa javadoc). */
+    /** Simulates {@code runKeywordSearches}: one response per keyword, combined
+     * before merging - never {@code parse()} (a single response, skips
+     * {@code filterOutNoiseEditions}, see its javadoc). */
     private List<VolumeCandidate> searchAcrossKeywords(String seriesTitle, List<String> excludedTitleFragments, String... bodies) throws Exception {
         List<VolumeCandidate> combined = new ArrayList<>();
         for (String body : bodies) {
@@ -42,12 +42,12 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
 
     @Test
     void sword_art_online_keeps_three_sparsely_covered_arcs_numbered_without_a_tome_keyword() throws Exception {
-        // Reproduit le cas réel intégral (voir historique) : 3 mots-clés
-        // différents remontent chacun UN SEUL tome, réparti sur 3 arcs
-        // distincts ("Aincrad" collé sans mot-clé, "Progressive" et
-        // "Ordinal Scale" avec "Tome N") - sans le repli numérotation nue
-        // NI l'assouplissement du filtre anti-bruit, ce test échouait
-        // (résultat vide).
+        // Reproduces the full real case (see history): 3 different keywords
+        // each return ONE SINGLE volume, spread over 3 distinct arcs
+        // ("Aincrad" stuck on with no keyword, "Progressive" and
+        // "Ordinal Scale" with "Tome N") - without the bare numbering fallback
+        // NOR the relaxing of the anti-noise filter, this test failed
+        // (empty result).
         String blankKeyword = """
                 { "items": [
                     { "volumeInfo": { "title": "Sword Art Online 001 Aincrad", "language": "fr", "publisher": "Ofelbe" } }
@@ -68,12 +68,12 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
 
     @Test
     void one_piece_discards_a_single_hit_spin_off_while_deduping_the_solidly_represented_edition_across_keywords() throws Exception {
-        // "Kana" apparaît dans DEUX mots-clés différents pour le même tome 1
-        // (une fois sans jaquette, une fois avec) - doit fusionner en UNE
-        // entrée AVEC jaquette (voir dedupeAndSort), tandis que "One Piece
-        // Party" (un seul tome, faux positif de la recherche plein texte)
-        // doit être écarté puisque "Kana" est solidement représentée (3+
-        // tomes, voir filterOutNoiseEditions).
+        // "Kana" appears in TWO different keywords for the same volume 1
+        // (once without a cover, once with) - must merge into ONE
+        // entry WITH a cover (see dedupeAndSort), while "One Piece
+        // Party" (a single volume, false positive of the full-text search)
+        // must be discarded since "Kana" is solidly represented (3+
+        // volumes, see filterOutNoiseEditions).
         String blankKeyword = """
                 { "items": [
                     { "volumeInfo": { "title": "One Piece - Tome 1", "language": "fr", "publisher": "Kana" } },
@@ -99,11 +99,11 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
 
     @Test
     void dragon_ball_excludes_sd_and_super_regardless_of_which_keyword_surfaces_them_while_merging_perfect_edition() throws Exception {
-        // "SD" et "Super" (spin-off/suite connus, voir RelatedSeriesService)
-        // ressortent sur des mots-clés DIFFÉRENTS de "Perfect Edition" - la
-        // recherche approfondie ne doit exclure QUE les fragments connus,
-        // jamais toucher aux tomes légitimes trouvés par ailleurs, même
-        // combinés depuis plusieurs mots-clés.
+        // "SD" and "Super" (known spin-off/sequel, see RelatedSeriesService)
+        // come out on DIFFERENT keywords from "Perfect Edition" - the
+        // deep search must exclude ONLY the known fragments,
+        // never touch the legitimate volumes found elsewhere, even
+        // when combined from several keywords.
         List<String> excludedTitleFragments = List.of("Dragon Ball SD", "Dragon Ball Super");
         String blankKeyword = """
                 { "items": [
@@ -128,9 +128,9 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
 
     @Test
     void fairy_tail_excludes_100_years_quest_sequel_across_keywords() throws Exception {
-        // "100 Years Quest" (tagué "sequel" sur MyAnimeList, voir historique)
-        // ressort sur PLUSIEURS mots-clés à la fois - doit rester exclu quel
-        // que soit celui qui le trouve, sans affecter "L'intégrale".
+        // "100 Years Quest" (tagged "sequel" on MyAnimeList, see history)
+        // comes out on SEVERAL keywords at once - must stay excluded whichever
+        // one finds it, without affecting "L'intégrale".
         List<String> excludedTitleFragments = List.of("100 Years Quest");
         String blankKeyword = """
                 { "items": [
@@ -152,10 +152,10 @@ class GoogleBooksVolumeSearchProviderRegressionTest {
 
     @Test
     void city_hunter_excludes_the_historical_alias_while_keeping_the_real_integrale_across_keywords() throws Exception {
-        // "(Nicky Larson)" est un alias historique collé au titre de série
-        // (voir skipLeadingAliasNotResemblingAnEdition), jamais un nom
-        // d'édition - doit rester invisible même mélangé à une vraie
-        // édition trouvée sur un AUTRE mot-clé.
+        // "(Nicky Larson)" is a historical alias stuck to the series title
+        // (see skipLeadingAliasNotResemblingAnEdition), never an edition
+        // name - must stay invisible even mixed with a real
+        // edition found on ANOTHER keyword.
         String blankKeyword = """
                 { "items": [
                     { "volumeInfo": { "title": "City Hunter (Nicky Larson) - Tome 1", "language": "fr", "publisher": "Panini Manga" } },

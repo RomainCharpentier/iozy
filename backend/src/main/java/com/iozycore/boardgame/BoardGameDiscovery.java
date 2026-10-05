@@ -20,13 +20,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Découvrir, pour les jeux de société : les jeux « tendance » de BGG (/hot)
- * qui partagent des catégories ou des mécaniques avec ceux qu'on possède -
- * la façade du module {@code boardgame} vers le cœur (Lot 133).
+ * Discover, for board games: the "trending" BGG games (/hot)
+ * that share categories or mechanics with the ones the user owns -
+ * the facade of the {@code boardgame} module towards the core (Batch 133).
  *
- * <p>Limite assumée : seuls les jeux dont le bggId a été capturé (recherche,
- * ou import de collection BGG) sont examinés - un jeu ajouté à la main sans
- * passer par ces flux n'est pas pris en compte.
+ * <p>Accepted limit: only games whose bggId was captured (search,
+ * or BGG collection import) are examined - a game added by hand without
+ * going through these flows is not taken into account.
  */
 @Component
 public class BoardGameDiscovery implements DiscoverySource {

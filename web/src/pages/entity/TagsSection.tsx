@@ -13,20 +13,20 @@ interface TagsSectionProps {
 }
 
 /**
- * Les tags d'une œuvre : lus par tous, posés par un administrateur.
+ * The tags of a work: read by everyone, set by an administrator.
  *
- * <h2>Pourquoi cette asymétrie</h2>
- * Un tag décrit l'ŒUVRE - « seinen », « one-shot » - pas la collection de
- * celui qui le pose : il vit donc dans le catalogue partagé, où une œuvre est
- * la même pour tout le monde. Sans cette règle, n'importe quel compte
- * étiquetterait les œuvres de tous les autres, et rien à l'écran ne le
- * montrerait (décision du 2026-08-30).
+ * <h2>Why this asymmetry</h2>
+ * A tag describes the WORK - "seinen", "one-shot" - not the collection of
+ * the one who sets it: it therefore lives in the shared catalog, where a work is
+ * the same for everyone. Without this rule, any account
+ * could label the works of everyone else, and nothing on screen would
+ * show it (decision of 2026-08-30).
  *
- * <p>Ce n'est pas ce composant qui protège : le serveur répond 403 sur toute
- * écriture (voir SecurityConfig). Ici, on évite seulement de proposer des
- * gestes qui ne mèneraient qu'à un refus - un compte ordinaire VOIT les tags
- * de l'œuvre, en lecture, parce qu'ils la décrivent et qu'ils lui servent à
- * filtrer sa collection.
+ * <p>This component is not what protects: the server answers 403 on any
+ * write (see SecurityConfig). Here, we only avoid offering
+ * gestures that would lead to a refusal - an ordinary account SEES the tags
+ * of the work, read-only, because they describe it and because they help it
+ * filter its collection.
  */
 export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionProps) {
   const queryClient = useQueryClient()
@@ -64,9 +64,9 @@ export function TagsSection({ entityId, attachedTagIds, allTags }: TagsSectionPr
         {attached.length === 0 && <span className="text-[13px] text-faint">Aucun tag pour l'instant</span>}
       </div>
 
-      {/* Les tags posés, toujours visibles : ils décrivent l'œuvre, et ils
-          servent à filtrer sa collection. Cliquables seulement pour qui peut
-          les retirer. */}
+      {/* The tags that are set, always visible: they describe the work, and they
+          are used to filter its collection. Clickable only for those who can
+          remove them. */}
       <div className="flex flex-wrap gap-2 empty:hidden">
         {attached.map((tag) =>
           peutEtiqueter ? (

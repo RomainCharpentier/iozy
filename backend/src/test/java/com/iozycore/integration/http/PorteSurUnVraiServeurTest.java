@@ -13,33 +13,33 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>La porte, sur un vrai serveur — parce que MockMvc ment sur un point
- * précis.</b>
+ * <b>The door, on a real server - because MockMvc lies on one precise
+ * point.</b>
  *
- * <h2>Le défaut qu'aucun autre test ne pouvait voir</h2>
- * Un 404 ne s'écrit pas directement : le conteneur le <b>redirige en
- * interne</b> vers la page d'erreur, et depuis Spring Security 6 cette
- * redirection retraverse la chaîne de sécurité. Une règle qui ne l'autorise
- * pas transforme donc le 404 destiné à un visiteur anonyme en <b>401</b>.
+ * <h2>The defect that no other test could see</h2>
+ * A 404 is not written directly: the container <b>redirects it
+ * internally</b> to the error page, and since Spring Security 6 this
+ * redirection goes through the security chain again. A rule that does not allow it
+ * therefore turns the 404 meant for an anonymous visitor into a <b>401</b>.
  * <p>
- * MockMvc ne rejoue pas cette redirection : il rendait 404, et les tests
- * passaient. C'est en ouvrant un lien de partage dans un vrai navigateur que
- * le 401 est apparu - sur la seule surface de l'application dont le
- * destinataire n'a, par définition, pas de compte.
+ * MockMvc does not replay this redirection: it returned 404, and the tests
+ * passed. It was by opening a share link in a real browser that
+ * the 401 appeared - on the only surface of the application whose
+ * recipient has, by definition, no account.
  *
- * <h2>Pourquoi si peu de cas ici</h2>
- * Ce test démarre un vrai serveur, donc un second contexte Spring : il coûte.
- * Il ne reprend donc pas ce que {@link AuthHttpContractTest} couvre déjà - il
- * vérifie les trois seules réponses dont la redirection d'erreur change le
- * sens : ce qui doit rester ouvert, ce qui doit rester fermé, et le 404 d'un
- * lien de partage inconnu.
+ * <h2>Why so few cases here</h2>
+ * This test starts a real server, so a second Spring context: it is costly.
+ * It therefore does not repeat what {@link AuthHttpContractTest} already covers - it
+ * checks the only three responses whose meaning the error redirection changes:
+ * what must stay open, what must stay closed, and the 404 of an unknown
+ * share link.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class PorteSurUnVraiServeurTest {
 
-    // Le conteneur de PostgresIntegrationTest n'est pas réutilisable ici : cette
-    // classe ne peut pas en hériter (elle a besoin de son propre webEnvironment,
-    // et surtout PAS de @Transactional - le serveur répond dans un autre thread).
+    // The container of PostgresIntegrationTest cannot be reused here: this
+    // class cannot inherit from it (it needs its own webEnvironment,
+    // and above all NO @Transactional - the server answers in another thread).
     @SuppressWarnings("resource")
     private static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:16-alpine").withReuse(true);
@@ -62,9 +62,9 @@ class PorteSurUnVraiServeurTest {
     void un_lien_de_partage_inconnu_rend_404_a_un_visiteur_anonyme_et_non_401() {
         ResponseEntity<String> reponse = http.getForEntity("/api/public/share/jeton-qui-n-existe-pas", String.class);
 
-        // 401 ici voudrait dire « crée-toi un compte pour voir ce lien » - ce
-        // qui vide de son sens la seule fonctionnalité prévue pour des gens
-        // qui n'en auront jamais.
+        // A 401 here would mean "create an account to see this link" - which
+        // empties of its meaning the only feature planned for people
+        // who will never have one.
         assertThat(reponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 

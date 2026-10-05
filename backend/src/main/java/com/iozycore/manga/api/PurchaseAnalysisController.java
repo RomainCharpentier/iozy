@@ -54,13 +54,13 @@ public class PurchaseAnalysisController {
     }
 
     /**
-     * @param description       texte de l'annonce - facultatif, mais c'est lui qui alimente
-     *                          les points de vigilance (mention de paiement hors plateforme,
-     *                          description trop courte). Absent, ces signaux se taisent.
-     * @param externalListingId identifiant rendu par la lecture du lien ({@code externalId} de
-     *                          l'aperçu). Facultatif : il ne change rien au calcul, il permet de
-     *                          reconnaître deux analyses de la même annonce et d'éviter qu'une
-     *                          offre se compare à elle-même ou compte pour plusieurs vendeurs.
+     * @param description       text of the listing - optional, but it is what feeds
+     *                          the warning points (mention of payment outside the platform,
+     *                          description too short). When absent, these signals stay silent.
+     * @param externalListingId identifier returned by reading the link ({@code externalId} of
+     *                          the preview). Optional: it changes nothing in the computation, it lets us
+     *                          recognise two analyses of the same listing and avoid an
+     *                          offer being compared with itself or counting for several sellers.
      */
     public record AnalyzeListingRequest(String platform, String url, String rawTitle, String description,
                                          BigDecimal askingPrice,
@@ -87,17 +87,17 @@ public class PurchaseAnalysisController {
         AnalyzeListingCommand command = new AnalyzeListingCommand(
                 parseEnum(ListingPlatform.class, request.platform(), "platform"), request.url(), request.rawTitle(),
                 request.description(), request.askingPrice(), request.shippingFee(),
-                // Nature absente = le client n'en sait rien : on ne tranche pas
-                // ici. Listing normalise (pas de montant -> UNKNOWN, un montant
-                // -> ESTIMATED), pour que la regle vive a un seul endroit.
+                // Missing nature = the client does not know: we do not decide
+                // here. Listing normalised (no amount -> UNKNOWN, an amount
+                // -> ESTIMATED), so that the rule lives in one place only.
                 request.shippingKind() == null || request.shippingKind().isBlank()
                         ? null
                         : parseEnum(com.iozycore.core.listing.ShippingEstimateKind.class, request.shippingKind(), "shippingKind"),
                 request.buyerProtectionFee(),
                 parseEnum(Condition.class, request.condition(), "condition"), request.conditionAppliesToContainer(),
                 items, request.photoUrls(),
-                // Rendu par la lecture du lien ; sert uniquement a reconnaitre
-                // deux analyses de la meme annonce.
+                // Returned by reading the link; used only to recognise
+                // two analyses of the same listing.
                 request.externalListingId());
         return service.analyze(command);
     }
@@ -127,15 +127,15 @@ public class PurchaseAnalysisController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Analyse introuvable : " + id));
     }
 
-    @Operation(summary = "Supprimer une analyse de l'historique - idempotent. Ne supprime ni les prix relevés "
-            + "ni les éditions renseignés au fil de cette analyse : ce sont des données de référence.")
+    @Operation(summary = "Delete an analysis from the history - idempotent. Deletes neither the recorded prices "
+            + "nor the editions filled in during this analysis: these are reference data.")
     @DeleteMapping("/history/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAnalysis(@PathVariable UUID id) {
         service.deleteAnalysis(id);
     }
 
-    @Operation(summary = "Les prix relevés d'une édition, du plus récent au plus ancien")
+    @Operation(summary = "The recorded prices of an edition, from the most recent to the oldest")
     @GetMapping("/market-observations")
     public List<MarketPriceObservation> marketObservations(@RequestParam UUID mangaEditionId) {
         return service.observationsOfEdition(mangaEditionId).stream()
@@ -143,8 +143,8 @@ public class PurchaseAnalysisController {
                 .toList();
     }
 
-    @Operation(summary = "Supprimer un prix relevé par erreur - idempotent. Aucune modification n'est offerte : "
-            + "un relevé est un fait constaté à une date, on retire le faux et on enregistre le juste.")
+    @Operation(summary = "Delete a price recorded by mistake - idempotent. No change is offered: "
+            + "a record is a fact observed at a date, we remove the wrong one and record the right one.")
     @DeleteMapping("/market-observations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMarketObservation(@PathVariable UUID id) {
@@ -153,7 +153,7 @@ public class PurchaseAnalysisController {
 
     @Operation(summary = "Look up a known manga edition by series + edition name - 404 triggers the client's "
             + "inline \"fill in reference data\" prompt. entityId (optional) is the preferred lookup once the "
-            + "Série is a known catalog Entity - looked up by ID first, immune to the Série having been renamed "
+            + "Series is a known catalog Entity - looked up by ID first, immune to the Series having been renamed "
             + "since this edition was linked; seriesTitle remains required as the best-effort fallback for a "
             + "listing not yet matched to a catalog Entity, or an edition not yet linked by ID (linked here, "
             + "opportunistically, the first time it's found this way).")
@@ -198,7 +198,7 @@ public class PurchaseAnalysisController {
 
     @Operation(summary = "All known editions of a series - powers \"a Perfect edition exists for this work\" "
             + "warnings. entityId (optional), when given, is used exclusively (no text-matching fallback): only "
-            + "editions actually linked to this Série.")
+            + "editions actually linked to this Series.")
     @GetMapping("/editions/search")
     public List<MangaEdition> searchEditions(@RequestParam(required = false) UUID entityId, @RequestParam String seriesTitle) {
         return service.findEditionsForSeries(entityId, seriesTitle);
@@ -207,9 +207,9 @@ public class PurchaseAnalysisController {
     @Operation(summary = "\"Coût pour compléter une série\" (Ma collection) - completeness and estimated cost to "
             + "complete for volumes already owned, using the same engine as a listing being evaluated. The edition "
             + "being unknown to the system is not an error: the response simply reports completeness as unknown, "
-            + "never guessed. volumes is optional and empty means genuinely zero owned (modèle Tome != Ownership, "
-            + "étape 4/8: a named edition can perfectly well have zero currently-owned copies, e.g. every tome of "
-            + "it was resold). cataloguedVolumes is optional too (étape 6/8) - volume numbers that already have a "
+            + "never guessed. volumes is optional and empty means genuinely zero owned (Volume model != Ownership, "
+            + "step 4/8: a named edition can perfectly well have zero currently-owned copies, e.g. every volume of "
+            + "it was resold). cataloguedVolumes is optional too (step 6/8) - volume numbers that already have a "
             + "real catalogued Variant regardless of Ownership, letting the response distinguish missing-but-"
             + "catalogued from purely virtual gaps; omitted entirely, the distinction is simply absent.")
     @GetMapping("/completeness")
@@ -233,8 +233,8 @@ public class PurchaseAnalysisController {
                 .collect(java.util.stream.Collectors.toSet());
     }
 
-    @Operation(summary = "\"Suggestions d'achats\" (Mon profil) - séries déjà en collection dont une édition "
-            + "nommée est connue mais incomplète, triées par nombre de tomes manquants croissant")
+    @Operation(summary = "\"Suggestions d'achats\" (Mon profil) - series already in the collection with a named "
+            + "edition that is known but incomplete, sorted by increasing number of missing volumes")
     @GetMapping("/near-complete-suggestions")
     public List<NearCompleteSuggestion> nearCompleteSuggestions() {
         return service.findNearCompleteSuggestions();
@@ -257,17 +257,17 @@ public class PurchaseAnalysisController {
     }
 
     @Operation(summary = "Record reference data for a manga edition unknown to the system yet (progressive manual "
-            + "entry). entityId (optional) links it directly when the caller already knows the Série with "
-            + "certainty (e.g. fiche Série); omitted, falls back to best-effort text matching (e.g. Analyse "
-            + "d'achat on a series not necessarily owned yet).")
+            + "entry). entityId (optional) links it directly when the caller already knows the series with "
+            + "certainty (e.g. series page); omitted, falls back to best-effort text matching (e.g. the "
+            + "purchase analysis on a series not necessarily owned yet).")
     @PostMapping("/editions")
     @ResponseStatus(HttpStatus.CREATED)
     public MangaEdition createEdition(@RequestBody CreateMangaEditionRequest request) {
-        // Une contrainte d'unicité (series_title, edition_name) protège cette
-        // table ; laissée seule, elle remontait en 500 avec la requête SQL et le
-        // nom de la contrainte - il suffisait d'un double clic sur "Enregistrer"
-        // (voir Lot 36). Même correctif qu'aux Lots 26 et 28 : refuser avant
-        // d'écrire, avec une phrase qui se lit.
+        // A uniqueness constraint (series_title, edition_name) protects this
+        // table; left alone, it came back as a 500 with the SQL query and the
+        // name of the constraint - a double click on "Enregistrer" was enough
+        // (see Batch 36). Same fix as in Batches 26 and 28: refuse before
+        // writing, with a sentence that reads well.
         service.findEditionBySeriesAndName(request.seriesTitle(), request.editionName())
                 .ifPresent(existing -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -325,10 +325,10 @@ public class PurchaseAnalysisController {
         return service.preferences();
     }
 
-    /** Cinq champs retirés au Lot 84 : aucune ligne du moteur ne les lisait
-     *  (voir CollectorPreferences). Un corps qui les porte encore n'échoue pas -
-     *  Jackson ignore les propriétés inconnues - il n'en sort simplement plus
-     *  rien, ce qui est exactement ce qu'elles faisaient déjà. */
+    /** Five fields removed in Batch 84: no line of the engine read them
+     *  (see CollectorPreferences). A body that still carries them does not fail -
+     *  Jackson ignores unknown properties - it simply no longer produces
+     *  anything from them, which is exactly what they already did. */
     public record UpdateCollectorPreferencesRequest(List<String> editionTierRanking,
                                                      boolean avoidOutdatedEditionWhenBetterExistsOrAnnounced,
                                                      String conditionImportance, int minimumDiscountVsRetailPercent,
@@ -338,13 +338,13 @@ public class PurchaseAnalysisController {
     @Operation(summary = "Replace the collector preferences profile driving the scoring engine")
     @PatchMapping("/preferences")
     public CollectorPreferences updatePreferences(@RequestBody UpdateCollectorPreferencesRequest request) {
-        // Ces deux collections sont obligatoires : cet endpoint REMPLACE le
-        // profil entier (voir son résumé), il ne fusionne pas. Sans ces gardes,
-        // un corps incomplet les laissait à null et le .stream() ci-dessous
-        // remontait un 500 exposant le nom interne de la classe et sa méthode -
-        // exactement ce que la mise en cohérence des corps invalides avait
-        // corrigé partout ailleurs (Lot 28), et le seul endroit qui l'avait
-        // échappé. conditionImportance, lui, était déjà couvert par parseEnum.
+        // These two collections are required: this endpoint REPLACES the
+        // whole profile (see its summary), it does not merge. Without these guards,
+        // an incomplete body left them null and the .stream() below
+        // raised a 500 exposing the internal class name and its method -
+        // exactly what the alignment of invalid bodies had
+        // fixed everywhere else (Batch 28), and the only place that had
+        // escaped it. conditionImportance, for its part, was already covered by parseEnum.
         requireField(request.editionTierRanking(), "editionTierRanking");
         requireField(request.factorWeights(), "factorWeights");
 
@@ -360,8 +360,8 @@ public class PurchaseAnalysisController {
         return service.updatePreferences(preferences);
     }
 
-    /** Même contrat que {@link #parseEnum} pour un champ absent : un 400 qui nomme
-     * le champ manquant, jamais un 500 qui expose la mécanique interne. */
+    /** Same contract as {@link #parseEnum} for a missing field: a 400 that names
+     * the missing field, never a 500 that exposes the internal mechanics. */
     private static void requireField(Object value, String fieldName) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le champ '" + fieldName + "' est obligatoire");

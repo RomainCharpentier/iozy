@@ -1,14 +1,14 @@
 /**
- * <b>Ce qu'un visiteur doit lire en permanence.</b>
+ * <b>What a visitor must read permanently.</b>
  *
- * Les écrans d'une visite sont exactement ceux d'une collection personnelle :
- * rien ne distingue à l'œil « le catalogue » d'« une collection vide ».
- * Quelqu'un qui arrive trois écrans plus loin, ou qui revient sur un onglet
- * laissé ouvert, n'aurait aucun moyen de savoir ce qu'il regarde - ni pourquoi
- * une fiche refuse de se modifier.
+ * The screens of a visit are exactly those of a personal collection:
+ * nothing tells "the catalog" apart by eye from "an empty collection".
+ * Someone who arrives three screens later, or who comes back to a tab
+ * left open, would have no way of knowing what they are looking at - nor why
+ * a detail page refuses to be edited.
  *
- * <p>La sortie, elle, n'est plus ici : il n'y a plus qu'un seul bouton pour
- * sortir, dans l'en-tête, identique pour un compte et pour un visiteur.
+ * <p>The exit is no longer here: there is now only a single button to
+ * leave, in the header, identical for an account and for a visitor.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -47,20 +47,20 @@ async function rendre(compte: Record<string, unknown>) {
 const VISITEUR = { id: null, email: null, pseudo: 'Visiteur', admin: false, invite: true }
 const COMPTE = { id: 'u1', email: 'moi@example.com', pseudo: 'romain', admin: false, invite: false }
 
-describe('pendant une visite', () => {
-  it('dit ce qu’on regarde, et que rien ne se modifie', async () => {
+describe('during a visit', () => {
+  it('says what we are looking at, and that nothing can be edited', async () => {
     await rendre(VISITEUR)
 
-    // Rien ne distingue à l'œil « le catalogue » d'« une collection vide » :
-    // sans cette phrase, un visiteur croirait tomber sur une app en panne.
+    // Nothing tells "the catalog" apart by eye from "an empty collection":
+    // without this sentence, a visitor would think they landed on a broken app.
     expect(await screen.findByText('Mode visiteur')).toBeInTheDocument()
     expect(screen.getByText(/catalogue.*lecture seule/)).toBeInTheDocument()
   })
 
-  it('informe, mais n’agit pas : la sortie est dans l’en-tête', async () => {
-    // Elle a vécu ici, puis elle est remontée : il n'y a plus qu'UN bouton
-    // pour sortir, au même endroit pour un compte et pour un visiteur (voir
-    // BoutonSortie). Ce bandeau dit ce qu'on regarde, rien de plus.
+  it('informs, but does not act: the exit is in the header', async () => {
+    // It lived here, then it moved up: there is now only ONE button
+    // to leave, in the same place for an account and for a visitor (see
+    // BoutonSortie). This banner says what we are looking at, nothing more.
     await rendre(VISITEUR)
 
     await screen.findByText('Mode visiteur')
@@ -68,8 +68,8 @@ describe('pendant une visite', () => {
   })
 })
 
-describe('avec un compte', () => {
-  it('ne rend rien du tout', async () => {
+describe('with an account', () => {
+  it('renders nothing at all', async () => {
     await rendre(COMPTE)
 
     expect(screen.queryByText(/lecture seule/)).not.toBeInTheDocument()

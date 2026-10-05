@@ -6,21 +6,21 @@ export interface ToastAction {
 }
 
 /**
- * Le contexte et son hook vivent hors du fichier du composant.
+ * The context and its hook live outside the component file.
  *
- * Un module qui exporte à la fois un composant et autre chose fait perdre le
- * rafraîchissement à chaud à tout le fichier : éditer `ToastProvider`
- * rechargeait la page entière au lieu de remplacer le composant. Séparer le
- * hook seul n'aurait rien réglé - il lui aurait fallu le contexte, qui est
- * lui aussi un export non-composant. C'est donc le couple contexte + hook qui
- * déménage, et `Toast.tsx` n'exporte plus qu'un composant.
+ * A module that exports both a component and something else makes the whole
+ * file lose hot refresh: editing `ToastProvider` reloaded the entire page
+ * instead of replacing the component. Moving only the hook would have fixed
+ * nothing - it would have needed the context, which is also a non-component
+ * export. So it is the context + hook pair that moves out, and `Toast.tsx`
+ * only exports a component now.
  */
 export const ToastContext = createContext<((message: string, action?: ToastAction) => void) | null>(null)
 
 /**
- * Affiche un message bref. Hors d'un `ToastProvider`, ne fait rien plutôt que
- * de lever - un retour visuel manquant ne doit jamais casser une écriture qui,
- * elle, a réussi.
+ * Shows a brief message. Outside a `ToastProvider`, does nothing rather than
+ * throwing - a missing visual feedback must never break a write that, for
+ * its part, succeeded.
  */
 export function useToast() {
   return useContext(ToastContext) ?? (() => {})

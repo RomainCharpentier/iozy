@@ -13,15 +13,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.listing.ListingPlatform;
 
 /**
- * Déclarer qu'on ne connaît pas l'édition doit être un choix <b>utilisable</b>,
- * pas un aveu qui casse l'analyse.
+ * Declaring that the edition is unknown must be a <b>usable</b> choice,
+ * not a confession that breaks the analysis.
  *
- * <p>Le contexte : l'édition est obligatoire sur un {@link ListingItem} parce
- * qu'elle relie le lot à une fiche. Mais l'obliger à être <i>devinée</i> était
- * un défaut : taper « Standard » au hasard peut correspondre par accident à
- * une autre édition et fausser la référence marché. {@link
- * ListingItem#EDITION_INCONNUE} rend l'ignorance déclarable, et ces tests
- * vérifient que le moteur en tire des conséquences honnêtes.
+ * <p>The context: the edition is required on a {@link ListingItem} because
+ * it links the batch to a work page. But forcing it to be <i>guessed</i> was
+ * a flaw: typing "Standard" at random can match another edition by accident
+ * and distort the market reference. {@link
+ * ListingItem#EDITION_INCONNUE} makes ignorance declarable, and these tests
+ * check that the engine draws honest consequences from it.
  */
 class UnknownEditionTest {
 
@@ -39,7 +39,7 @@ class UnknownEditionTest {
     }
 
     private PurchaseAnalysis analyser(ListingItem item) {
-        // matchedEdition == null : aucune fiche ne porte ce nom, et c'est voulu.
+        // matchedEdition == null: no work page carries this name, and that is intended.
         return engine.analyze(annonce(item),
                 List.of(new PurchaseAnalysisEngine.ItemContext(item, null, List.of(), List.of(), Set.of())),
                 defaults);
@@ -64,16 +64,16 @@ class UnknownEditionTest {
 
     @Test
     void an_unknown_edition_is_recognised_whatever_its_casing() {
-        // Le libellé transite par un champ texte : une casse différente reste
-        // la même déclaration.
+        // The label goes through a text field: a different case stays
+        // the same declaration.
         assertThat(new ListingItem(new MangaSeries("X", null), "édition inconnue", Set.of(1), null)
                 .editionIsUnknown()).isTrue();
     }
 
     @Test
     void the_warning_does_not_advise_completing_a_sheet_that_cannot_exist() {
-        // « Complète sa fiche » est un conseil inapplicable quand personne ne
-        // sait de quelle édition il s'agit. Le message doit dire autre chose.
+        // "Complète sa fiche" is advice that cannot be applied when nobody
+        // knows which edition it is. The message must say something else.
         PurchaseAnalysis analysis = analyser(sansEdition("Platinum End", Set.of(1, 2, 3)));
 
         List<String> messages = analysis.itemBreakdown().get(0).editionWarnings().stream()
@@ -87,8 +87,8 @@ class UnknownEditionTest {
 
     @Test
     void the_sentinel_label_never_leaks_into_a_warning_as_if_it_were_a_real_edition() {
-        // « L'édition "Édition inconnue" n'est pas encore renseignée » serait
-        // absurde à lire.
+        // "L'édition "Édition inconnue" n'est pas encore renseignée" would be
+        // absurd to read.
         PurchaseAnalysis analysis = analyser(sansEdition("Platinum End", Set.of(1, 2, 3)));
 
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
@@ -100,14 +100,14 @@ class UnknownEditionTest {
     void completeness_is_reported_unknown_rather_than_guessed() {
         PurchaseAnalysis analysis = analyser(sansEdition("Platinum End", Set.of(1, 2, 3)));
 
-        // Sans édition, on ignore combien de tomes la série compte : on le dit,
-        // on ne l'invente pas.
+        // Without an edition, we do not know how many volumes the series has: we say so,
+        // we do not invent it.
         assertThat(analysis.itemBreakdown().get(0).completeness().isKnown()).isFalse();
     }
 
     @Test
     void a_named_but_uncatalogued_edition_still_advises_completing_its_sheet() {
-        // L'autre branche reste intacte : là, il y a bien une fiche à créer.
+        // The other branch stays intact: there, there really is a work page to create.
         ListingItem item = new ListingItem(new MangaSeries("Platinum End", null), "Perfect", Set.of(1), null);
 
         PurchaseAnalysis analysis = engine.analyze(annonce(item),

@@ -15,15 +15,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Un corps de requête incomplet doit produire un 400 qui nomme le champ
- * manquant, jamais un 500.
+ * An incomplete request body must produce a 400 that names the missing
+ * field, never a 500.
  * <p>
- * Cet endpoint était le dernier à avoir échappé à la mise en cohérence des
- * corps invalides : {@code editionTierRanking} ou {@code factorWeights}
- * absents laissaient une collection nulle atteindre un {@code .stream()}, et
- * la réponse d'erreur exposait alors le nom interne de la classe et de sa
- * méthode - une trace technique offerte à l'appelant, sans rien lui dire
- * d'utile.
+ * This endpoint was the last one that missed the work to make invalid
+ * bodies consistent: a missing {@code editionTierRanking} or {@code factorWeights}
+ * let a null collection reach a {@code .stream()}, and
+ * the error response then exposed the internal name of the class and of its
+ * method - a technical trace given to the caller, without telling it
+ * anything useful.
  */
 class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest {
 
@@ -68,15 +68,15 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
 
     @Test
     void un_corps_entierement_vide_est_refuse_sans_trace_technique() {
-        // Le cas trouvé à l'audit : PATCH avec {} - toutes les collections
-        // nulles d'un coup.
+        // The case found during the audit: PATCH with {} - all the collections
+        // null at once.
         UpdateCollectorPreferencesRequest vide = new UpdateCollectorPreferencesRequest(
                 null, false, null, 0, null);
 
         assertThatThrownBy(() -> controller.updatePreferences(vide))
                 .isInstanceOf(ResponseStatusException.class)
-                // Le message nomme un champ du contrat public, jamais une classe
-                // interne ni une signature de méthode.
+                // The message names a field of the public contract, never an internal class
+                // or a method signature.
                 .hasMessageContaining("editionTierRanking")
                 .hasMessageNotContaining("PurchaseAnalysisController")
                 .hasMessageNotContaining("Cannot invoke");
@@ -101,8 +101,8 @@ class CollectorPreferencesRequestIntegrationTest extends PostgresIntegrationTest
                 null, false, "HIGH", 99, Map.of())))
                 .isInstanceOf(ResponseStatusException.class);
 
-        // Le refus intervient AVANT toute écriture : un corps invalide ne doit
-        // pas laisser le profil à moitié modifié.
+        // The refusal happens BEFORE any write: an invalid body must not
+        // leave the profile half modified.
         assertThat(controller.preferences().minimumDiscountVsRetailPercent()).isEqualTo(avant);
     }
 }

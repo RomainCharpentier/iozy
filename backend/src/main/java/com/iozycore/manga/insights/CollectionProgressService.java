@@ -22,38 +22,38 @@ import com.iozycore.core.insights.CollectionProgress;
 import com.iozycore.core.insights.SeriesProgressSource;
 
 /**
- * SOURCE DE VÉRITÉ UNIQUE de la progression "X tomes possédés sur Y".
+ * SINGLE SOURCE OF TRUTH for the progression "X volumes owned out of Y".
  * <p>
- * Cette question était auparavant recalculée par quatre implémentations
- * indépendantes - la tuile de Ma collection, la fiche d'une œuvre, le moteur
- * de suggestions et la page publique - qui ne s'accordaient pas (audit du
- * 2026-08-21, voir docs/DESIGN_MIGRATION_V1.2.md, Lot 31) : une même série
- * s'affichait 3/72 à un endroit et 2/72 à un autre, une autre perdait
- * complètement son total. Toute nouvelle surface qui affiche une progression
- * doit passer par ici, jamais recalculer.
+ * This question used to be recomputed by four independent
+ * implementations - the tile of Ma collection, the work page, the suggestions
+ * engine and the public page - which did not agree (audit of
+ * 2026-08-21, see docs/DESIGN_MIGRATION_V1.2.md, Batch 31): the same series
+ * showed 3/72 in one place and 2/72 in another, another lost
+ * its total completely. Any new surface that shows a progression
+ * must go through here, never recompute.
  * <p>
- * Lecture pure, cross-contexte (Catalog + Ownership), même convention que
- * {@link StatsService} : consomme les repositories directement, n'écrit rien.
+ * Pure read, cross-context (Catalog + Ownership), same convention as
+ * {@link StatsService}: uses the repositories directly, writes nothing.
  *
- * <h2>Les règles, en un seul endroit</h2>
+ * <h2>The rules, in one place</h2>
  * <ol>
- *   <li>Les groupes viennent des Variant CATALOGUÉS, regroupés par leur
- *       attribut {@code edition} découpé (un tome sans édition rejoint le
- *       groupe {@code ""}).</li>
- *   <li><b>Fusion</b> : s'il existe exactement UNE édition nommée et un groupe
- *       de tomes sans édition précisée, les seconds rejoignent la première -
- *       c'est presque toujours un tome ajouté à la main sans retaper un nom
- *       déjà connu, pas une seconde édition. Dès qu'il existe 2+ éditions
- *       nommées, l'ambiguïté est réelle : rien n'est fusionné.</li>
- *   <li>Le possédé se mesure sur les Ownership ACTIVES uniquement (un tome
- *       revendu ou perdu n'est plus possédé), par numéro de tome DISTINCT :
- *       deux exemplaires du même tome ne font pas "2 tomes possédés".</li>
- *   <li>Le total vient de la fiche MangaEdition de cette édition précise,
- *       jamais d'un attribut de la série (voir Lot 16).</li>
- *   <li>L'édition <b>dominante</b> - celle qu'une vue à une seule ligne doit
- *       nommer - est l'unique groupe qui contient des tomes possédés. Zéro ou
- *       plusieurs groupes possédés : pas de dominante, la progression est
- *       genuinement ambiguë et ne doit pas être tranchée arbitrairement.</li>
+ *   <li>The groups come from the CATALOGUED Variant objects, grouped by their
+ *       {@code edition} attribute, split (a volume without edition joins the
+ *       {@code ""} group).</li>
+ *   <li><b>Merge</b>: if there is exactly ONE named edition and a group
+ *       of volumes without a specified edition, the latter join the former -
+ *       it is almost always a volume added by hand without retyping a name
+ *       already known, not a second edition. As soon as there are 2+ named
+ *       editions, the ambiguity is real: nothing is merged.</li>
+ *   <li>Owned is measured on ACTIVE Ownership objects only (a volume
+ *       resold or lost is no longer owned), by DISTINCT volume number:
+ *       two copies of the same volume do not make "2 volumes owned".</li>
+ *   <li>The total comes from the MangaEdition page of this precise edition,
+ *       never from an attribute of the series (see Batch 16).</li>
+ *   <li>The <b>dominant</b> edition - the one that a single-line view must
+ *       name - is the only group that contains owned volumes. Zero or
+ *       several owned groups: no dominant one, the progression is
+ *       genuinely ambiguous and must not be decided arbitrarily.</li>
  * </ol>
  */
 @Service
@@ -74,16 +74,16 @@ public class CollectionProgressService implements SeriesProgressSource {
         this.mangaEditionRepository = mangaEditionRepository;
     }
 
-    /** Progression de toutes les œuvres - une seule passe sur les Ownership, pour que
-     * Ma collection n'ait pas à faire une requête par série. */
+    /** Progression of all the works - a single pass over the Ownership objects, so that
+     * Ma collection does not have to make one query per series. */
     @Override
     public List<CollectionProgress> computeAll() {
         Map<UUID, List<Ownership>> activeByEntity = ownershipRepository.findAll().stream()
                 .filter(Ownership::isActive)
                 .collect(Collectors.groupingBy(Ownership::entityId));
-        // Toutes les éditions en UNE requête plutôt qu'une par groupe d'édition
-        // et par œuvre : sur une collection de 500 séries, c'était ~1000 allers
-        // à la base pour un seul affichage de Ma collection.
+        // All the editions in ONE query rather than one per edition group
+        // and per work: on a collection of 500 series, this was ~1000 round trips
+        // to the database for a single display of Ma collection.
         Map<String, Integer> totalsByEntityAndEdition = indexEditionTotals();
         return entityRepository.search(null, null, null).stream()
                 .map(entity -> compute(entity, activeByEntity.getOrDefault(entity.id(), List.of()),
@@ -101,7 +101,7 @@ public class CollectionProgressService implements SeriesProgressSource {
         return totals;
     }
 
-    /** Progression d'une œuvre précise - {@link Optional#empty()} si elle n'existe pas. */
+    /** Progression of a specific work - {@link Optional#empty()} if it does not exist. */
     @Override
     public Optional<CollectionProgress> compute(UUID entityId) {
         return entityRepository.findById(entityId)
@@ -150,8 +150,8 @@ public class CollectionProgressService implements SeriesProgressSource {
                     editionName.isEmpty() ? null : totalsByEntityAndEdition.get(CollectionProgress.editionKey(entity.id(), editionName))));
         }
 
-        // Ordre stable et utile : l'édition la plus fournie d'abord (même règle
-        // que l'ancien groupVariantsByEdition côté web).
+        // Stable and useful order: the fullest edition first (same rule
+        // as the old groupVariantsByEdition on the web side).
         editions.sort(Comparator.comparingInt((CollectionProgress.EditionProgress e) -> e.cataloguedVolumeNumbers().size())
                 .reversed());
 
@@ -164,8 +164,8 @@ public class CollectionProgressService implements SeriesProgressSource {
     }
 
     /**
-     * Groupes affichables : nom d'édition -> valeurs brutes qu'il recouvre.
-     * Applique la règle de fusion décrite en tête de classe.
+     * Displayable groups: edition name -> raw values it covers.
+     * Applies the merge rule described at the top of the class.
      */
     private static Map<String, List<String>> displayGroups(Entity entity) {
         Map<String, Boolean> present = new LinkedHashMap<>();
@@ -195,8 +195,8 @@ public class CollectionProgressService implements SeriesProgressSource {
         return value instanceof String s ? s.trim() : "";
     }
 
-    /** Les attributs sont un sac non typé : un même champ peut arriver en Integer d'un
-     * fournisseur et en String d'un autre (voir PublicShareController). */
+    /** The attributes are an untyped bag: the same field can arrive as an Integer from one
+     * provider and as a String from another (see PublicShareController). */
     private static Integer volumeNumberOf(Variant variant) {
         Object value = variant.attributes().get(VOLUME_NUMBER);
         if (value instanceof Number number) {

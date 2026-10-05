@@ -5,26 +5,26 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Travailler au nom d'un autre propriétaire, le temps d'un bloc, en le disant.
+ * Work on behalf of another owner, for the length of one block, and say so.
  *
- * <h2>Le seul cas légitime</h2>
- * Un lien de partage : son destinataire n'a pas de compte, et ce qu'il doit
- * voir appartient à quelqu'un d'autre. Le cloisonnement ne peut donc pas venir
- * de la session - il vient du <b>jeton</b>, qui nomme son propriétaire.
+ * <h2>The only legitimate case</h2>
+ * A share link: its recipient has no account, and what they must
+ * see belongs to someone else. The isolation cannot come from
+ * the session - it comes from the <b>token</b>, which names its owner.
  *
- * <h2>Pourquoi ça se lit à l'endroit où ça se produit</h2>
- * La lecture au nom d'autrui est exactement ce qu'un cloisonnement est censé
- * empêcher. Elle ne doit donc jamais être une conséquence indirecte de
- * l'endroit d'où l'on vient : elle s'écrit, en toutes lettres, autour des
- * lignes concernées.
+ * <h2>Why it is read at the place where it happens</h2>
+ * Reading on behalf of someone else is exactly what an isolation is meant to
+ * prevent. So it must never be an indirect result of
+ * where the call comes from: it is written, in plain words, around the
+ * lines concerned.
  *
  * <pre>{@code
  * return AuNomDe.executer(settings.ownerId(), () -> collectionPartagee());
  * }</pre>
  *
- * <p>Le rétablissement est garanti (bloc {@code finally}), y compris si le
- * corps lève : une exception ne doit pas laisser un thread du serveur en train
- * de lire au nom de quelqu'un pour toutes les requêtes suivantes.
+ * <p>The restore is guaranteed ({@code finally} block), even if the
+ * body throws: an exception must not leave a server thread reading
+ * on behalf of someone for all the following requests.
  */
 public final class AuNomDe {
 
@@ -33,7 +33,7 @@ public final class AuNomDe {
     private AuNomDe() {
     }
 
-    /** Le propriétaire imposé pour ce fil d'exécution, s'il y en a un. */
+    /** The owner imposed for this thread, if there is one. */
     static Optional<UUID> actuel() {
         return Optional.ofNullable(COURANT.get());
     }
@@ -44,9 +44,9 @@ public final class AuNomDe {
         try {
             return travail.get();
         } finally {
-            // `set(precedent)` plutôt que `remove()` : les blocs peuvent
-            // s'imbriquer, et sortir du plus interne ne doit pas annuler le
-            // plus externe.
+            // `set(precedent)` rather than `remove()`: blocks can
+            // be nested, and leaving the innermost one must not cancel the
+            // outermost one.
             if (precedent == null) {
                 COURANT.remove();
             } else {

@@ -1,60 +1,60 @@
 package com.iozycore.manga.recognition;
 
 /**
- * D'où vient une proposition. Un même élément peut être soutenu par plusieurs
- * sources à la fois - c'est même le cas le plus utile.
+ * Where a proposal comes from. The same item can be supported by several
+ * sources at once - this is even the most useful case.
  *
- * <h2>Pourquoi une dimension séparée de la confiance</h2>
- * Il serait tentant d'ajouter un niveau {@code DETERMINISTIC} à
- * {@link RecognitionConfidence}. Ce serait empiler deux questions différentes
- * dans une seule échelle :
+ * <h2>Why a dimension separate from confidence</h2>
+ * It would be tempting to add a {@code DETERMINISTIC} level to
+ * {@link RecognitionConfidence}. That would stack two different questions
+ * in a single scale:
  * <ul>
- *   <li>{@link RecognitionConfidence} répond à « à quel point suis-je sûr de ce
- *       que j'ai lu ? » ;</li>
- *   <li>{@code RecognitionSource} répond à « <b>comment</b> l'ai-je lu ? ».</li>
+ *   <li>{@link RecognitionConfidence} answers "how sure am I of what
+ *       I read?";</li>
+ *   <li>{@code RecognitionSource} answers "<b>how</b> did I read it?".</li>
  * </ul>
- * Les garder distinctes permet de dire « le titre annonce les tomes 1 à 14 »
- * (lecture certaine, source déclarative) sans laisser croire que le vendeur a
- * <b>forcément</b> ces quatorze tomes en main. Le texte dit ce qu'il dit ;
- * l'extraction est sûre, le contenu réel ne l'est pas.
+ * Keeping them distinct lets us say "the title announces volumes 1 to 14"
+ * (certain reading, declarative source) without making people believe that the seller has
+ * <b>necessarily</b> these fourteen volumes in hand. The text says what it says;
+ * the extraction is sure, the real content is not.
  *
- * <h2>L'ordre compte</h2>
- * Voir {@link #priority()} : il départage deux sources qui décrivent la même
- * chose, sans jamais servir à en effacer une qui décrit <b>autre chose</b>.
- * Un texte qui donne le numéro et une photo qui donne l'édition ne
- * s'affrontent pas, ils se complètent.
+ * <h2>Order matters</h2>
+ * See {@link #priority()}: it decides between two sources that describe the same
+ * thing, without ever being used to erase one that describes <b>something else</b>.
+ * A text that gives the number and a photo that gives the edition do not
+ * compete, they complete each other.
  */
 public enum RecognitionSource {
 
     /**
-     * Lu dans le titre ou la description, par des règles écrites - local,
-     * gratuit, immédiat, reproductible. Voir
-     * {@code ListingTextParser} : « tomes 1 à 14 » donne 1..14 parce que la
-     * phrase le dit, pas parce qu'un score l'estime.
+     * Read in the title or the description, by written rules - local,
+     * free, immediate, reproducible. See
+     * {@code ListingTextParser}: "tomes 1 à 14" gives 1..14 because the
+     * sentence says so, not because a score estimates it.
      */
     TEXT,
 
-    /** Lu sur une photo par un moteur de reconnaissance. */
+    /** Read on a photo by a recognition engine. */
     VISION,
 
     /**
-     * Confirmé par un identifiant exact (EAN/ISBN). Un code-barres correspond
-     * ou ne correspond pas ; il ne « ressemble » pas.
+     * Confirmed by an exact identifier (EAN/ISBN). A barcode matches
+     * or does not match; it does not "look like".
      * <p>
-     * <b>Limite actuelle</b> : aucun décodeur ne lit encore un code-barres
-     * depuis les pixels. Cette source n'apparaît donc que lorsqu'un moteur
-     * vision a su lire les chiffres imprimés. Le jour où un décodeur local
-     * existe, il alimente le même champ.
+     * <b>Current limit</b>: no decoder reads a barcode yet
+     * from the pixels. This source therefore appears only when a vision
+     * engine managed to read the printed digits. The day a local decoder
+     * exists, it feeds the same field.
      */
     EAN;
 
     /**
-     * Qui l'emporte quand deux sources décrivent <b>la même dimension</b> de
-     * façon incompatible. Plus haut = prioritaire.
+     * Which one wins when two sources describe <b>the same dimension</b> in an
+     * incompatible way. Higher = takes priority.
      * <p>
-     * La correction de l'utilisateur n'est pas dans cette échelle : elle vit
-     * au-dessus de tout, et l'écran s'en charge - une valeur saisie à la main
-     * n'est jamais recalculée.
+     * The correction by the user is not in this scale: it lives
+     * above everything, and the screen takes care of it - a value typed by hand
+     * is never recomputed.
      */
     public int priority() {
         return switch (this) {
@@ -64,7 +64,7 @@ public enum RecognitionSource {
         };
     }
 
-    /** Le libellé montré à l'utilisateur - jamais le nom du fournisseur d'IA. */
+    /** The label shown to the user - never the name of the AI provider. */
     public String label() {
         return switch (this) {
             case TEXT -> "annonce";

@@ -69,13 +69,13 @@ public class GeminiEditionAdvisor implements AiEditionAdvisor {
             HttpResponse<String> response = GeminiRequests.send(httpClient, objectMapper, apiKey, model,
                     PROMPT_TEMPLATE.formatted(seriesTitle, editionName));
             if (response.statusCode() != 200) {
-                log.warn("Gemini ({}) a répondu {} pour l'édition '{}' / '{}' : {}", GeminiRequests.effectiveModel(model),
+                log.warn("Gemini ({}) answered {} for edition '{}' / '{}': {}", GeminiRequests.effectiveModel(model),
                         response.statusCode(), seriesTitle, editionName, GeminiRequests.snippet(response.body()));
                 return Optional.empty();
             }
             return parseSuggestion(response.body());
         } catch (Exception e) {
-            log.warn("Échec de l'appel à Gemini pour '{}' / '{}' : {}", seriesTitle, editionName, e.getMessage());
+            log.warn("Call to Gemini failed for '{}' / '{}': {}", seriesTitle, editionName, e.getMessage());
             return Optional.empty();
         }
     }

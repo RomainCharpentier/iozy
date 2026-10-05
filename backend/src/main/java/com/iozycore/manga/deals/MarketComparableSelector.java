@@ -10,76 +10,76 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Décide si deux offres sont <b>le même produit</b>, avant de comparer leurs
- * prix.
+ * Decides whether two offers are <b>the same product</b>, before comparing their
+ * prices.
  *
- * <h2>Le défaut que cette classe supprime</h2>
- * Jusqu'ici, tout relevé rattaché à l'édition entrait dans la médiane, ramené
- * à un prix au tome. Sur <i>Platinum End</i>, un T.1 à 8 €, un lot 1-4 à 20 €
- * et un lot 7-10 à 18 € donnaient 8,00 / 5,00 / 4,50 € le tome, médiane 5,00 €,
- * et trois relevés suffisaient à décrocher la confiance HIGH. Une annonce 1-14
- * héritait donc d'une référence de 70 € présentée comme solide, alors qu'aucun
- * des trois relevés ne décrit ce qu'est un lot de 14 tomes.
+ * <h2>The flaw that this class removes</h2>
+ * Until now, every observation linked to the edition entered the median, reduced
+ * to a price per volume. On <i>Platinum End</i>, a single volume at 8 EUR, a lot 1-4 at 20 EUR
+ * and a lot 7-10 at 18 EUR gave 8,00 / 5,00 / 4,50 EUR per volume, median 5,00 EUR,
+ * and three observations were enough to get HIGH confidence. A listing 1-14
+ * therefore inherited a reference of 70 EUR presented as solid, while none
+ * of the three observations describes what a lot of 14 volumes is.
  *
- * <h2>Les règles, dans l'ordre</h2>
+ * <h2>The rules, in order</h2>
  * <ol>
- *   <li><b>Même édition.</b> Déjà garanti en amont : un relevé se rattache à
- *       une {@link MangaEdition}, laquelle porte la série ET l'édition. Une
- *       Perfect Edition ne compare pas avec une Standard.</li>
- *   <li><b>Même forme</b> ({@link LotShape}) : tome seul avec tome seul, lot
- *       partiel avec lot partiel, intégrale avec intégrale.</li>
- *   <li><b>Taille comparable</b> pour les lots partiels : le nombre de tomes ne
- *       varie pas de plus du simple au double. Un lot de 10 éclaire un lot de
- *       14 ; un lot de 4, non.</li>
- *   <li><b>Fraîcheur</b> : au-delà de {@value #ANCIENNETE_MAX_MOIS} mois, un
- *       relevé décrit un autre marché et sort.</li>
- *   <li><b>Une annonce, un comparable</b> : les relevés issus d'une même
- *       annonce sont regroupés, et seul le plus récent est retenu. Trois
- *       analyses de la même URL, ce n'est pas trois vendeurs.</li>
- *   <li><b>L'annonce en cours d'évaluation est exclue</b> : une offre ne se
- *       compare pas à elle-même.</li>
+ *   <li><b>Same edition.</b> Already guaranteed upstream: an observation is linked to
+ *       a {@link MangaEdition}, which carries the series AND the edition. A
+ *       Perfect Edition is not compared with a Standard one.</li>
+ *   <li><b>Same shape</b> ({@link LotShape}): single volume with single volume, partial
+ *       lot with partial lot, complete set with complete set.</li>
+ *   <li><b>Comparable size</b> for partial lots: the number of volumes does not
+ *       vary by more than double. A lot of 10 informs a lot of
+ *       14; a lot of 4 does not.</li>
+ *   <li><b>Freshness</b>: beyond {@value #ANCIENNETE_MAX_MOIS} months, an
+ *       observation describes another market and is dropped.</li>
+ *   <li><b>One listing, one comparable</b>: the observations coming from the same
+ *       listing are grouped, and only the most recent is kept. Three
+ *       analyses of the same URL are not three sellers.</li>
+ *   <li><b>The listing being assessed is excluded</b>: an offer is not
+ *       compared with itself.</li>
  * </ol>
  *
- * <h2>Ce qui n'est délibérément pas une règle</h2>
- * L'<b>état</b> ({@link Condition}) n'écarte aucun comparable. C'est un
- * modificateur de prix, pas une différence de produit, et filtrer dessus
- * viderait des échantillons déjà petits. La dispersion qui en résulte est
- * mesurée et fait baisser la confiance - la réserve est dite plutôt que le
- * relevé jeté. La <b>plateforme</b> non plus : les écarts entre Vinted et
- * Leboncoin sont réels mais mal documentés ici, et les inventer serait pire.
+ * <h2>What is deliberately not a rule</h2>
+ * The <b>condition</b> ({@link Condition}) drops no comparable. It is a
+ * price modifier, not a difference of product, and filtering on it
+ * would empty samples that are already small. The resulting spread is
+ * measured and lowers the confidence - the reservation is stated rather than the
+ * observation thrown away. Neither is the <b>platform</b>: the gaps between Vinted and
+ * Leboncoin are real but poorly documented here, and making them up would be worse.
  *
- * <h2>Domaine pur</h2>
- * Aucun accès base, réseau ou Spring. La date du jour est un paramètre, pas un
- * appel caché : c'est ce qui rend la règle de fraîcheur testable.
+ * <h2>Pure domain</h2>
+ * No database, network or Spring access. Today's date is a parameter, not a
+ * hidden call: this is what makes the freshness rule testable.
  */
 public final class MarketComparableSelector {
 
     private MarketComparableSelector() {
     }
 
-    /** Au-delà, le relevé décrit un marché révolu. */
+    /** Beyond this, the observation describes a market that is gone. */
     static final int ANCIENNETE_MAX_MOIS = 24;
 
-    /** En deçà, le relevé est considéré comme actuel ; au-delà, la confiance baisse d'un cran. */
+    /** Below this, the observation is considered current; beyond, the confidence drops by one level. */
     static final int FRAICHEUR_MOIS = 12;
 
     /**
-     * Rapport de taille maximal entre deux lots partiels comparables. 2 signifie
-     * « du simple au double » : au-delà, ce n'est plus le même produit.
+     * Maximum size ratio between two comparable partial lots. 2 means
+     * "up to double": beyond, it is no longer the same product.
      */
     static final int RAPPORT_TAILLE_MAX = 2;
 
     /**
-     * Les relevés retenus, et - s'il n'y en a aucun - la raison exacte.
+     * The observations kept, and - if there are none - the exact reason.
      *
-     * @param examined nombre de relevés examinés : dire « 3 relevés existent, aucun comparable »
-     *                 vaut mieux que « pas de données », qui serait faux
+     * @param examined number of observations examined: saying "3 observations exist, none comparable"
+     *                 is better than "no data", which would be false
      */
     /**
-     * @param retained      un relevé par annonce - ce sont les comparables INDEPENDANTS
-     * @param examined      relevés examinés avant filtrage
-     * @param temporalCount relevés comparables avant regroupement par annonce : cinq relevés
-     *                      d'une même offre suivie dans le temps font toujours un comparable
+     * @param retained      one observation per listing - these are the INDEPENDENT comparables
+     * @param examined      observations examined before filtering
+     * @param temporalCount comparable observations before grouping by listing: five observations
+     *                      of the same offer followed over time still make one comparable
      */
     public record Selection(List<MarketPriceObservation> retained, int examined, int temporalCount,
                             ReferenceGap gap) {
@@ -93,10 +93,10 @@ public final class MarketComparableSelector {
     }
 
     /**
-     * @param edition           l'édition visée, {@code null} si elle n'est pas au catalogue
-     * @param targetVolumeCount nombre de tomes de l'annonce évaluée
-     * @param candidates        tous les relevés connus pour cette édition
-     * @param today             la date de référence pour la fraîcheur - paramètre, jamais {@code LocalDate.now()} ici
+     * @param edition           the target edition, {@code null} if it is not in the catalogue
+     * @param targetVolumeCount number of volumes of the listing being assessed
+     * @param candidates        all the observations known for this edition
+     * @param today             the reference date for freshness - a parameter, never {@code LocalDate.now()} here
      */
     public static Selection selectFor(MangaEdition edition, int targetVolumeCount,
                                        List<MarketPriceObservation> candidates, LocalDate today) {
@@ -104,8 +104,8 @@ public final class MarketComparableSelector {
     }
 
     /**
-     * @param currentListing identité de l'annonce en cours d'évaluation, exclue de ses propres
-     *                       comparables ; {@code null} quand aucune annonce précise n'est évaluée
+     * @param currentListing identity of the listing being assessed, excluded from its own
+     *                       comparables; {@code null} when no precise listing is assessed
      */
     public static Selection selectFor(MangaEdition edition, int targetVolumeCount,
                                        List<MarketPriceObservation> candidates, LocalDate today,
@@ -127,10 +127,10 @@ public final class MarketComparableSelector {
         boolean seuleLAnnonceCourante = false;
 
         for (MarketPriceObservation observation : candidates) {
-            // Une annonce ne se compare pas a elle-meme. Le cas se produit des
-            // qu'on reanalyse une URL deja analysee : sans cette exclusion, la
-            // reference vaudrait le prix demande, et n'importe quelle annonce se
-            // dirait alors "au prix du marche" - le sien.
+            // A listing is not compared with itself. The case happens as soon as
+            // a URL that was already analysed is analysed again: without this exclusion, the
+            // reference would equal the asking price, and any listing would then
+            // say it is "at market price" - its own.
             if (currentListing != null && currentListing.equals(observation.listingIdentity())) {
                 seuleLAnnonceCourante = true;
                 continue;
@@ -140,8 +140,8 @@ public final class MarketComparableSelector {
             if (forme != formeCible || !tailleCompatible(formeCible, tomes, targetVolumeCount)) {
                 continue;
             }
-            // La forme correspond : si seul l'âge le disqualifie, on saura le
-            // dire précisément plutôt que de conclure « aucun comparable ».
+            // The shape matches: if only the age disqualifies it, we will be able to
+            // say so precisely rather than conclude "no comparable".
             if (tropAncien(observation, today)) {
                 ecarteUniquementParAge = true;
                 continue;
@@ -150,18 +150,18 @@ public final class MarketComparableSelector {
         }
 
         if (memeProduit.isEmpty()) {
-            // Nommer la BONNE absence. « Aucun lot comparable » enverrait relever
-            // un prix de plus sur une annonce qu'on a déjà relevée ; ce qui
-            // manque ici, c'est une AUTRE offre.
+            // Name the RIGHT absence. "No comparable lot" would send people to note
+            // one more price on a listing that was already noted; what
+            // is missing here is ANOTHER offer.
             return new Selection(List.of(), candidates.size(), 0, manqueA(ecarteUniquementParAge, seuleLAnnonceCourante));
         }
         return new Selection(unParAnnonce(memeProduit), candidates.size(), memeProduit.size(), ReferenceGap.NONE);
     }
 
     /**
-     * L'absence la plus précise que la sélection permette d'affirmer. L'ordre
-     * compte : si l'annonce courante a été écartée, c'est l'explication la plus
-     * proche de ce que voit l'utilisateur.
+     * The most precise absence that the selection allows us to state. The order
+     * matters: if the current listing was dropped, it is the explanation closest
+     * to what the user sees.
      */
     private static ReferenceGap manqueA(boolean ecarteParAge, boolean seuleLAnnonceCourante) {
         if (seuleLAnnonceCourante) {
@@ -171,19 +171,19 @@ public final class MarketComparableSelector {
     }
 
     /**
-     * Réduit les relevés à <b>un par annonce</b>, en gardant le plus récent.
+     * Reduces the observations to <b>one per listing</b>, keeping the most recent.
      *
-     * <h2>Le piège que ça supprime</h2>
-     * Une même annonce suivie dans le temps produit plusieurs relevés : c'est
-     * une information de prix utile, et elle reste en base. Mais un échantillon
-     * compte des <b>offres indépendantes</b>, pas des lignes. Sans ce
-     * regroupement, analyser cinq fois la même URL suffirait à décrocher une
-     * confiance HIGH sur un seul vendeur - un chiffre précis tiré d'une seule
-     * observation du marché.
+     * <h2>The trap that it removes</h2>
+     * The same listing followed over time produces several observations: this is
+     * useful price information, and it stays in the database. But a sample
+     * counts <b>independent offers</b>, not rows. Without this
+     * grouping, analysing the same URL five times would be enough to get
+     * HIGH confidence on a single seller - a precise number taken from a single
+     * observation of the market.
      * <p>
-     * Le plus récent l'emporte parce qu'il décrit l'état actuel de cette offre :
-     * une annonce passée de 70 à 60 EUR vaut 60 EUR aujourd'hui. À date égale,
-     * le relevé enregistré en dernier tranche.
+     * The most recent wins because it describes the current state of this offer:
+     * a listing that went from 70 to 60 EUR is worth 60 EUR today. With an equal date,
+     * the observation saved last decides.
      */
     private static List<MarketPriceObservation> unParAnnonce(List<MarketPriceObservation> observations) {
         Map<String, MarketPriceObservation> parAnnonce = new LinkedHashMap<>();
@@ -194,15 +194,15 @@ public final class MarketComparableSelector {
         return List.copyOf(parAnnonce.values());
     }
 
-    /** Le relevé qui décrit le mieux l'état actuel d'une offre. */
+    /** The observation that best describes the current state of an offer. */
     private static final Comparator<MarketPriceObservation> PLUS_RECENT =
             Comparator.comparing(MarketPriceObservation::observedAt)
                     .thenComparing(MarketPriceObservation::createdAt);
 
     /**
-     * Un relevé sans portée couvre l'édition entière : son nombre de tomes est
-     * celui de l'édition. Inconnu, il vaut 0 et sera classé
-     * {@link LotShape#INDETERMINATE} - jamais deviné.
+     * An observation without a scope covers the whole edition: its number of volumes is
+     * that of the edition. If unknown, it is 0 and will be classed
+     * {@link LotShape#INDETERMINATE} - never guessed.
      */
     static int nombreDeTomes(MarketPriceObservation observation, MangaEdition edition) {
         if (observation.scope() != null) {
@@ -213,9 +213,9 @@ public final class MarketComparableSelector {
     }
 
     /**
-     * Seuls les lots partiels ont besoin de cette vérification : un tome seul
-     * fait toujours un tome, et deux intégrales de la même édition font le même
-     * nombre de tomes.
+     * Only partial lots need this check: a single volume
+     * is always one volume, and two complete sets of the same edition have the same
+     * number of volumes.
      */
     private static boolean tailleCompatible(LotShape forme, int tomes, int cible) {
         if (forme != LotShape.PARTIAL_LOT) {
@@ -230,7 +230,7 @@ public final class MarketComparableSelector {
         return observation.observedAt().isBefore(today.minusMonths(ANCIENNETE_MAX_MOIS));
     }
 
-    /** Vrai quand le plus récent des relevés retenus a dépassé la fenêtre de fraîcheur. */
+    /** True when the most recent of the observations kept is past the freshness window. */
     static boolean toutEstAncien(List<MarketPriceObservation> retenus, LocalDate today) {
         LocalDate limite = today.minusMonths(FRAICHEUR_MOIS);
         return retenus.stream().noneMatch(observation -> !observation.observedAt().isBefore(limite));

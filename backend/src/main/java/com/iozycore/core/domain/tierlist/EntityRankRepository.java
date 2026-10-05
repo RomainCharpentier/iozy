@@ -11,7 +11,7 @@ public interface EntityRankRepository {
 
     Optional<EntityRank> findByEntityId(UUID entityId);
 
-    /** Toutes les entités classées d'un univers (board général - voir TierListService pour le regroupement par rang + la file "à classer"). */
+    /** All ranked entities of a universe (general board - see TierListService for the grouping by rank + the "to rank" queue). */
     List<EntityRank> findByEntityIds(Set<UUID> entityIds);
 
     void deleteByEntityId(UUID entityId);

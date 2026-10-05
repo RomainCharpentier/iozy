@@ -1,41 +1,41 @@
 name: Deploiement
 
-# Ce qui est sur `main` finit sur le NAS, sans geste manuel.
+# What is on `main` ends up on the NAS, with no manual step.
 #
-# ─── Le chemin, en entier ────────────────────────────────────────────────
-#   push sur main  →  tests backend + contrôles web  →  images publiées sur
-#   GHCR  →  Watchtower, sur le NAS, les récupère et redémarre.
+# ─── The whole path ──────────────────────────────────────────────────────
+#   push on main  →  backend tests + web checks  →  images published on
+#   GHCR  →  Watchtower, on the NAS, pulls them and restarts.
 #
-# Le NAS ne compile rien et n'expose rien : il VA CHERCHER (voir
-# backend/docker-compose.nas.yml). Aucun port entrant, aucun agent GitHub, et
-# rien à ouvrir sur la box - ce que ni un runner auto-hébergé ni un SSH depuis
-# GitHub n'auraient permis de dire.
+# The NAS builds nothing and exposes nothing: it FETCHES (see
+# backend/docker-compose.nas.yml). No incoming port, no GitHub agent, and
+# nothing to open on the box - which neither a self-hosted runner nor SSH from
+# GitHub would have allowed us to say.
 #
-# ─── Pourquoi les tests sont ICI et pas dans un workflow voisin ──────────
-# « Déployer main » n'a de sens que si main est digne de confiance. Un
-# workflow de publication séparé aurait dû attendre le résultat des autres,
-# et GitHub ne sait le faire proprement qu'avec `workflow_run` - qui ne se
-# déclenche pas quand le workflow attendu a été SAUTÉ par un filtre de
-# chemins. Un push touchant seulement le web n'aurait donc rien attendu du
-# tout. Les deux portes vivent donc dans ce fichier, en amont de la
-# publication, et `needs:` garantit qu'aucune image ne part si l'une refuse.
+# ─── Why the tests are HERE and not in a neighbouring workflow ───────────
+# "Deploy main" only makes sense if main can be trusted. A separate
+# publish workflow would have had to wait for the result of the others,
+# and GitHub only knows how to do that cleanly with `workflow_run` - which does not
+# fire when the awaited workflow was SKIPPED by a path
+# filter. A push touching only the web would then have waited for nothing at
+# all. So both gates live in this file, upstream of the
+# publication, and `needs:` guarantees that no image leaves if one refuses.
 #
-# ─── Ce que ce workflow ne fait PAS ──────────────────────────────────────
-# Il ne sauvegarde pas la base. Les migrations Flyway s'appliquent au
-# démarrage de l'API, donc automatiquement : une migration fautive part en
-# production sans que personne ne l'ait relue ce jour-là. La sauvegarde reste
-# le geste manuel décrit dans docs/EXPLOITATION.md, et elle compte davantage
-# depuis que ce fichier existe.
+# ─── What this workflow does NOT do ──────────────────────────────────────
+# It does not back up the database. The Flyway migrations are applied at the
+# start of the API, so automatically: a faulty migration goes to
+# production without anyone having re-read it that day. The backup stays
+# the manual step described in docs/EXPLOITATION.md, and it matters more
+# since this file exists.
 
 on:
   push:
     branches: [main]
-  # Pour rejouer un déploiement sans rien changer au code - typiquement après
-  # avoir corrigé le .env du NAS.
+  # To replay a deployment without changing anything in the code - typically after
+  # fixing the .env of the NAS.
   workflow_dispatch:
 
-# Deux pushes rapprochés ne doivent pas publier dans le désordre : le second
-# annule le premier, et c'est bien le dernier état de main qui gagne.
+# Two pushes close together must not publish out of order: the second
+# cancels the first, and it is the last state of main that wins.
 concurrency:
   group: deploiement
   cancel-in-progress: true
@@ -44,7 +44,7 @@ env:
   REGISTRE: ghcr.io
 
 jobs:
-  # ─────────────────────────────────────────────── Porte 1 : le backend
+  # ─────────────────────────────────────────────── Gate 1: the backend
   backend:
     name: Tests backend
     runs-on: ubuntu-latest
@@ -54,24 +54,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configurer Java 21 (Temurin)
+      - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
 
-      # Testcontainers a besoin du démon Docker, présent nativement sur les
-      # runners GitHub (pas de montage Docker-in-Docker comme en local).
+      # Testcontainers needs the Docker daemon, present natively on the
+      # GitHub runners (no Docker-in-Docker mount like locally).
       - name: mvn test
         run: mvn -B test
 
-  # ─────────────────────────────────────────────────── Porte 2 : le web
+  # ─────────────────────────────────────────────────── Gate 2: the web
   #
-  # Ces contrôles ne tournaient NULLE PART en intégration continue jusqu'ici :
-  # le seul workflow existant filtrait sur `backend/**`. Un push ne touchant
-  # que le web n'était donc vérifié par personne - acceptable tant qu'un
-  # humain déployait à la main, plus du tout maintenant.
+  # These checks ran NOWHERE in continuous integration until now:
+  # the only existing workflow filtered on `backend/**`. A push touching
+  # only the web was therefore checked by nobody - acceptable as long as a
+  # human deployed by hand, not at all now.
   web:
     name: Contrôles web
     runs-on: ubuntu-latest
@@ -89,8 +89,8 @@ jobs:
 
       - run: npm ci
 
-      # `tsc -b --noEmit` et non `npx tsc --noEmit` : ce dépôt est en mode
-      # projets TypeScript, et la seconde forme ne vérifie rien du tout.
+      # `tsc -b --noEmit` and not `npx tsc --noEmit`: this repository is in
+      # TypeScript project mode, and the second form checks nothing at all.
       - name: Types
         run: npm run typecheck
 
@@ -100,58 +100,58 @@ jobs:
       - name: Tests
         run: npm test
 
-      # Le contraste AA est une règle de ce projet, pas un conseil : elle se
-      # casse en changeant une couleur, ce qu'aucun test ne verrait.
-      - name: Contraste
+      # AA contrast is a rule of this project, not advice: it breaks when a
+      # colour changes, which no test would see.
+      - name: Contrast
         run: npm run check:contrast
 
       - name: Build
         run: npm run build
 
-  # ────────────────────────────────────────── Publication des deux images
+  # ────────────────────────────────────────── Publishing the two images
   publier:
     name: Publier les images
     needs: [backend, web]
     runs-on: ubuntu-latest
     permissions:
-      # Poser l'étiquette `vX.Y.Z` sur le commit livré : c'est elle qui relie
-      # le numéro affiché à l'écran au code qui tourne, ET le point de départ
-      # du calcul de la livraison suivante.
+      # Put the `vX.Y.Z` tag on the released commit: it is what links
+      # the number shown on screen to the code that is running, AND the starting
+      # point of the calculation of the next release.
       contents: write
-      # Écrire dans GHCR au nom du dépôt, avec le jeton fourni par GitHub :
-      # aucun secret à créer, et rien à faire tourner de plus.
+      # Write to GHCR on behalf of the repository, with the token given by GitHub:
+      # no secret to create, and nothing more to run.
       packages: write
     steps:
       - uses: actions/checkout@v4
         with:
-          # Le calcul demande TOUT l'historique et les étiquettes : le clone
-          # par défaut n'en prend qu'un commit et aucune étiquette. Sans ça, le
-          # script échoue plutôt que d'inventer un numéro - un numéro faux se
-          # lit exactement comme un numéro juste.
+          # The calculation needs the WHOLE history and the tags: the default clone
+          # takes only one commit and no tag. Without this, the
+          # script fails rather than invent a number - a wrong number
+          # reads exactly like a right one.
           fetch-depth: 0
 
-      # ─── Le numéro de la livraison ────────────────────────────────
+      # ─── The release number ───────────────────────────────────────
       #
-      # Majeure.Mineure.Patch, DÉDUIT des messages de commit : la règle et ses
-      # tests vivent dans web/scripts/version.mjs. Aucun geste à poser, donc
-      # rien à oublier - et le numéro dit ce qui a changé, pas seulement qu'il
-      # a changé. Il se compare aussi, ce qu'un SHA ne fera jamais : « serveur
-      # 1.2.0 » sous « version 1.3.1 » se lit d'un coup.
+      # Major.Minor.Patch, WORKED OUT from the commit messages: the rule and its
+      # tests live in web/scripts/version.mjs. No step to take, so
+      # nothing to forget - and the number says what changed, not only that it
+      # changed. It can also be compared, which a SHA never can: "server
+      # 1.2.0" under "version 1.3.1" reads at a glance.
       #
-      # `node` est présent sur les runners GitHub sans rien installer.
+      # `node` is present on the GitHub runners without installing anything.
       #
-      # L'affectation en deux temps est délibérée : `echo "x=$(cmd)"` masque
-      # l'échec de `cmd` derrière le succès d'`echo`, et publierait une version
-      # VIDE. Une affectation, elle, prend le statut de la commande, et
-      # `bash -e` arrête là.
-      - name: Numéroter la livraison
+      # The assignment in two steps is deliberate: `echo "x=$(cmd)"` hides
+      # the failure of `cmd` behind the success of `echo`, and would publish an
+      # EMPTY version. An assignment takes the status of the command, and
+      # `bash -e` stops there.
+      - name: Number the release
         id: livraison
         run: |
           numero=$(node web/scripts/version.mjs)
-          [ -n "$numero" ] || { echo "Numéro de version vide" >&2; exit 1; }
+          [ -n "$numero" ] || { echo "Empty version number" >&2; exit 1; }
           echo "numero=$numero" >> "$GITHUB_OUTPUT"
 
-      - name: Se connecter à GHCR
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRE }}
@@ -160,18 +160,18 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      # Les deux images portent `latest` ET `vX.Y.Z`. `latest` est ce que le
-      # NAS suit ; le numéro est ce qui permet de revenir en arrière à la main
-      # quand une version passe mal, sans rien reconstruire - et c'est celui
-      # que l'application affiche au bas de ses pages.
+      # Both images carry `latest` AND `vX.Y.Z`. `latest` is what the
+      # NAS follows; the number is what lets you go back by hand
+      # when a version goes badly, without rebuilding anything - and it is the one
+      # that the application shows at the bottom of its pages.
       #
-      # Le SHA ne sert plus d'étiquette d'image : il en faudrait deux à retenir
-      # là où un seul numéro suffit, et l'étiquette git `vX.Y.Z` posée plus bas
-      # mène de ce numéro au commit exact.
+      # The SHA is no longer used as an image tag: two would have to be remembered
+      # where a single number is enough, and the git tag `vX.Y.Z` set below
+      # leads from this number to the exact commit.
       #
-      # Le nom du dépôt est mis en minuscules : GHCR les exige, et
-      # `RomainCharpentier/iozycore` n'en est pas.
-      - name: Nom du dépôt en minuscules
+      # The repository name is put in lower case: GHCR requires it, and
+      # `RomainCharpentier/iozycore` is not.
+      - name: Repository name in lower case
         id: depot
         run: echo "nom=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
@@ -180,9 +180,9 @@ jobs:
         with:
           context: backend
           push: true
-          # Le numero est grave DANS l'image, et c'est le meme que son
-          # etiquette : ce que l'app affiche se retrouve tel quel dans GHCR, et
-          # sur une etiquette git qui designe le commit.
+          # The number is written INTO the image, and it is the same as its
+          # tag: what the app shows is found as is in GHCR, and
+          # on a git tag that points to the commit.
           build-args: VERSION=${{ steps.livraison.outputs.numero }}
           tags: |
             ${{ env.REGISTRE }}/${{ steps.depot.outputs.nom }}-api:latest
@@ -202,27 +202,27 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-      # ─── Ce qui relie le numéro au code ───────────────────────────
+      # ─── What links the number to the code ────────────────────────
       #
-      # Un numéro affiché ne vaut que si l'on peut remonter à ce qu'il
-      # désigne. `v1.3.1` est une étiquette git : elle se lit sur GitHub,
-      # `git show v1.3.1` la résout, et c'est ELLE que lit le calcul de la
-      # livraison suivante - ne pas la poser ferait recalculer la prochaine
-      # version depuis une base périmée.
+      # A displayed number is only worth something if you can go back to what it
+      # points to. `v1.3.1` is a git tag: it can be read on GitHub,
+      # `git show v1.3.1` resolves it, and it is the one that the calculation of
+      # the next release reads - not setting it would make the next
+      # version be calculated from an out-of-date base.
       #
-      # Posée APRÈS la publication, délibérément : une étiquette signifie
-      # « cette livraison est partie », jamais « on a essayé de la publier ».
+      # Set AFTER the publication, on purpose: a tag means
+      # "this release has left", never "we tried to publish it".
       #
-      # Rejouer le workflow sur le même commit (`workflow_dispatch`, après une
-      # correction du .env du NAS) retombe sur un numéro déjà étiqueté. On ne
-      # repose alors rien, plutôt que de faire échouer un déploiement pour une
-      # étiquette qui dit déjà la vérité.
-      - name: Étiqueter le commit livré
+      # Replaying the workflow on the same commit (`workflow_dispatch`, after a
+      # fix of the .env of the NAS) lands on a number that is already tagged. We
+      # then set nothing again, rather than make a deployment fail for a
+      # tag that already tells the truth.
+      - name: Tag the released commit
         env:
           ETIQUETTE: v${{ steps.livraison.outputs.numero }}
         run: |
           if git ls-remote --exit-code --tags origin "refs/tags/$ETIQUETTE" >/dev/null 2>&1; then
-            echo "$ETIQUETTE existe déjà : même livraison rejouée, rien à poser."
+            echo "$ETIQUETTE already exists: same release replayed, nothing to set."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
@@ -230,17 +230,17 @@ jobs:
           git tag -a "$ETIQUETTE" -m "Version ${{ steps.livraison.outputs.numero }}"
           git push origin "$ETIQUETTE"
 
-  # ──────────────────────────────────────────────────────────── Ménage
+  # ──────────────────────────────────────────────────────────── Cleanup
   #
-  # Un dépôt PRIVÉ n'a que 500 Mo de stockage de paquets sur le plan gratuit,
-  # et chaque publication y ajoute une couche (le jar fait ~60 Mo). Sans ce
-  # ménage, le quota est atteint en une poignée de déploiements et les pushes
-  # suivants échouent - sur une erreur de quota qui ne dit pas qu'elle vient
-  # d'un historique d'images que personne ne relira jamais.
+  # A PRIVATE repository only has 500 MB of package storage on the free plan,
+  # and each publication adds a layer (the jar is ~60 MB). Without this
+  # cleanup, the quota is reached in a handful of deployments and the following
+  # pushes fail - on a quota error that does not say it comes
+  # from a history of images that nobody will ever re-read.
   #
-  # Les cinq dernières versions suffisent à revenir en arrière ; au-delà, on
-  # reconstruit depuis l'étiquette `vX.Y.Z` du commit, ce qui est de toute
-  # façon plus sûr.
+  # The last five versions are enough to go back; beyond that, we
+  # rebuild from the `vX.Y.Z` tag of the commit, which is anyway
+  # safer.
   menage:
     name: Purger les vieilles images
     needs: publier
@@ -251,12 +251,12 @@ jobs:
       matrix:
         paquet: [iozycore-api, iozycore-web]
     steps:
-      - name: Ne garder que les 5 dernières
+      - name: Keep only the last 5
         uses: actions/delete-package-versions@v5
         with:
           package-name: ${{ matrix.paquet }}
           package-type: container
-          # Les 5 plus récentes sont gardées, les plus anciennes partent.
-          # `latest` pointe toujours vers la plus récente : il n'est donc
-          # jamais dans le lot supprimé.
+          # The 5 most recent are kept, the oldest go.
+          # `latest` always points to the most recent: it is therefore
+          # never in the deleted batch.
           min-versions-to-keep: 5

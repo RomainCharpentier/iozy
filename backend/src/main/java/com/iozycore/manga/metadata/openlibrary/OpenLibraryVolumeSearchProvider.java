@@ -26,29 +26,29 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Troisieme source de tomes : Open Library (openlibrary.org), ouverte, sans
- * cle ni quota - deja utilisee par ce depot pour les titres francais et les
- * codes-barres, jamais pour les tomes.
+ * Third source of volumes: Open Library (openlibrary.org), open, with no
+ * key or quota - already used by this repository for French titles and
+ * barcodes, never for volumes.
  *
- * <h2>Le cas qui l'a fait naitre</h2>
- * Signale par l'utilisateur le 2026-09-04 : « Doubt » (Yoshiki Tonogai)
- * existe en edition simple (4 tomes, Ki-oon, 2009-2010) ET en edition double
- * (2 tomes, Ki-oon, 2022). Mesure faite sur les trois sources : la BnF n'a
- * que la simple (les 22 notices deposees par cet auteur ont ete listees), et
- * Google Books ne rend AUCUN tome de cette serie (ses fiches francaises
- * n'ont ni editeur ni numero dans le titre). Open Library, elle, a les deux
- * tomes de la double - avec jaquette et ISBN.
+ * <h2>The case that gave birth to it</h2>
+ * Reported by the user on 2026-09-04: "Doubt" (Yoshiki Tonogai)
+ * exists in plain edition (4 volumes, Ki-oon, 2009-2010) AND in double edition
+ * (2 volumes, Ki-oon, 2022). Measurement done on the three sources: the BnF has
+ * only the plain one (the 22 records filed by this author were listed), and
+ * Google Books returns NO volume of this series (its French records
+ * have neither publisher nor number in the title). Open Library, for its part, has the two
+ * volumes of the double one - with cover and ISBN.
  *
- * <h2>Ce qu'elle sait, et ce qu'elle ne sait pas</h2>
- * Open Library catalogue des ouvrages, pas des series : le numero de tome se
- * lit dans le titre (« Doubt - Tome 1 »), comme chez Google Books, jamais
- * dans un champ dedie comme a la BnF. Elle n'a pas non plus de notion
- * d'edition : l'editeur en tient lieu, et c'est l'ISBN qui distingue ensuite
- * deux editions homonymes (voir
+ * <h2>What it knows, and what it does not know</h2>
+ * Open Library catalogs works, not series: the volume number is
+ * read in the title ("Doubt - Tome 1"), like at Google Books, never
+ * in a dedicated field like at the BnF. It also has no notion
+ * of edition: the publisher stands in for it, and it is the ISBN that then tells apart
+ * two homonym editions (see
  * {@code TomeSearchService.separerLesEditionsHomonymes}).
  *
- * <p>En dernier ({@code @Order(3)}) : la BnF a des champs structures, Google
- * Books des jaquettes commerciales ; celle-ci comble ce qui manque aux deux.
+ * <p>Last ({@code @Order(3)}): the BnF has structured fields, Google
+ * Books commercial covers; this one fills what is missing from both.
  */
 @Component
 @Order(3)
@@ -60,17 +60,17 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
             + "&fields=title,author_name,publisher,first_publish_year,isbn,cover_i";
     private static final String COVER_URL = "https://covers.openlibrary.org/b/id/%s-M.jpg";
 
-    /** « Doubt - Tome 1 », « Naruto, tome 5 », « Vol. 12 », « T.3 » - meme famille que Google Books. */
+    /** "Doubt - Tome 1", "Naruto, tome 5", "Vol. 12", "T.3" - same family as Google Books. */
     private static final Pattern VOLUME_NUMBER = Pattern.compile("(?i)\\b(?:tome|vol\\.?|t\\.?)\\s*0*(\\d+)");
 
     /**
-     * Open Library decrit des OEUVRES, pas des exemplaires : un meme document
-     * porte la liste de TOUS les editeurs et de TOUS les ISBN de ses
-     * editions, sans les apparier. « Jujutsu Kaisen, Vol. 7 » y a Viz Media
-     * en premier editeur et un ISBN 978-2 (celui de Ki-oon) dans la liste :
-     * le filtre par ISBN laissait passer une « edition Viz Media » de deux
-     * tomes (mesure du 2026-09-05). Un titre en « Vol. » est la convention
-     * anglophone ; les editeurs ci-dessous ne publient pas en francais.
+     * Open Library describes WORKS, not copies: the same document
+     * carries the list of ALL the publishers and ALL the ISBNs of its
+     * editions, without matching them. "Jujutsu Kaisen, Vol. 7" has Viz Media
+     * as first publisher and a 978-2 ISBN (the one of Ki-oon) in the list:
+     * the filter by ISBN let through a "Viz Media edition" of two
+     * volumes (measured on 2026-09-05). A title with "Vol." is the
+     * English-language convention; the publishers below do not publish in French.
      */
     private static final Pattern TITRE_ANGLOPHONE = Pattern.compile("(?i)\\bvol\\.?\\s*\\d");
     private static final List<String> EDITEURS_ANGLOPHONES = List.of(
@@ -92,9 +92,9 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
         if (seriesTitle == null || seriesTitle.isBlank()) {
             return List.of();
         }
-        // L'auteur DANS la requete, contrairement a Google Books : Open
-        // Library indexe peu de mangas francais, un titre court et courant
-        // (« Doubt ») y ramene sinon surtout des essais anglophones.
+        // The author IN the request, unlike Google Books: Open
+        // Library indexes few French mangas, a short and common title
+        // ("Doubt") otherwise brings back mostly English-language essays.
         String requete = seriesTitle + (author == null || author.isBlank() ? "" : " " + author);
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -105,29 +105,29 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
                     .build();
             HttpResponse<String> response = envoyerAvecUneReprise(request);
             if (response.statusCode() != 200) {
-                log.warn("Open Library a répondu {} pour la recherche de tomes '{}'", response.statusCode(), requete);
+                log.warn("Open Library answered {} for the volume search '{}'", response.statusCode(), requete);
                 throw new SourceUnavailableException("Open Library a répondu " + response.statusCode());
             }
             return parse(response.body(), seriesTitle);
         } catch (SourceUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            // Une source qui ne repond pas n'a rien DIT (Lot 126) : signalee
-            // comme telle, sinon son silence passait pour « aucun tome » et le
-            // resultat sans elle etait fige en cache comme complet - constate
-            // sur « Doubt », dont l'edition double a disparu d'une ligne ecrite
-            // pendant un delai de connexion de quelques secondes.
-            log.warn("Échec de la recherche de tomes Open Library pour '{}' : {}", requete, e.getMessage());
+            // A source that does not answer has said nothing (Batch 126): reported
+            // as such, otherwise its silence passed for "no volume" and the
+            // result without it was frozen in cache as complete - seen
+            // on "Doubt", whose double edition disappeared from a row written
+            // during a connection timeout of a few seconds.
+            log.warn("Open Library volume search failed for '{}': {}", requete, e.getMessage());
             throw new SourceUnavailableException("Open Library n'a pas répondu : " + e.getMessage());
         }
     }
 
     /**
-     * Open Library repond depuis Windows en moins d'une seconde, et depuis
-     * le conteneur tombe par intermittence en delai de CONNEXION (constate
-     * trois fois de suite le 2026-09-04, meme requete, meme minute). Une
-     * seconde tentative apres une courte pause suffit en general ; sinon la
-     * source est signalee muette, jamais vide.
+     * Open Library answers from Windows in under a second, and from
+     * the container it falls from time to time into a CONNECTION timeout (seen
+     * three times in a row on 2026-09-04, same request, same minute). A
+     * second attempt after a short pause is usually enough; otherwise the
+     * source is reported silent, never empty.
      */
     private HttpResponse<String> envoyerAvecUneReprise(HttpRequest request) throws Exception {
         try {
@@ -138,7 +138,7 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
         }
     }
 
-    /** Paquet-prive pour les tests : une reponse deja en memoire, sans HTTP. */
+    /** Package-private for the tests: an answer already in memory, without HTTP. */
     List<VolumeCandidate> parse(String body, String seriesTitle) throws Exception {
         List<VolumeCandidate> candidates = new ArrayList<>();
         String serieNormalisee = normaliser(seriesTitle);
@@ -147,9 +147,9 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
             if (titre == null || titre.isBlank()) {
                 continue;
             }
-            // Le titre doit COMMENCER par celui de la serie : « Doubt - Tome 1 »
-            // oui, « The Doubt Factory » non. Meme exigence que le prefixe
-            // verifie cote Google Books.
+            // The title must START with that of the series: "Doubt - Tome 1"
+            // yes, "The Doubt Factory" no. Same requirement as the prefix
+            // checked on the Google Books side.
             String titreNormalise = normaliser(titre);
             if (!titreNormalise.startsWith(serieNormalisee)) {
                 continue;
@@ -166,17 +166,17 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
                 continue;
             }
             if (editeur == null || editeur.isBlank()) {
-                // Sans editeur, impossible de nommer l'edition - et une
-                // « Édition inconnue » de plus n'aiderait personne ici, la
-                // BnF et Google Books couvrant deja ce cas.
+                // Without a publisher, impossible to name the edition - and one more
+                // "Édition inconnue" would help nobody here, the
+                // BnF and Google Books already covering this case.
                 continue;
             }
-            // Open Library est majoritairement anglophone : sans garde, les
-            // tomes Yen Press de la meme serie s'invitent comme une edition
-            // francaise (constate sur « Doubt »). Le filtre est l'ISBN
-            // lui-meme : 978-2 et 979-10 sont les groupes d'enregistrement
-            // de langue francaise. Une fiche sans ISBN est ecartee - elle ne
-            // pourrait de toute facon etre rattachee a aucune edition (voir
+            // Open Library is mostly English-language: without a guard, the
+            // Yen Press volumes of the same series invite themselves as a French
+            // edition (seen on "Doubt"). The filter is the ISBN
+            // itself: 978-2 and 979-10 are the French-language
+            // registration groups. A record without ISBN is dropped - it
+            // could not be attached to any edition anyway (see
             // TomeSearchService.separerLesEditionsHomonymes).
             String isbn = premier(doc.path("isbn"));
             if (!estIsbnFrancophone(isbn)) {
@@ -196,7 +196,7 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
         return candidates;
     }
 
-    /** 978-2 et 979-10 : les groupes d'enregistrement ISBN de langue francaise. */
+    /** 978-2 and 979-10: the French-language ISBN registration groups. */
     static boolean estAnglophone(String editeur) {
         String e = editeur.toLowerCase(Locale.ROOT);
         return EDITEURS_ANGLOPHONES.stream().anyMatch(e::contains);
@@ -227,7 +227,7 @@ public class OpenLibraryVolumeSearchProvider implements VolumeSearchProvider {
         return tableau.isArray() && !tableau.isEmpty() ? tableau.get(0).asText(null) : null;
     }
 
-    /** Casse, accents et ponctuation pliés - même règle que la comparaison de titres de la BnF. */
+    /** Case, accents and punctuation folded - same rule as the title comparison of the BnF. */
     private static String normaliser(String texte) {
         return java.text.Normalizer.normalize(texte, java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "")

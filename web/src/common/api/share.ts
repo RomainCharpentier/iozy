@@ -2,28 +2,28 @@ import { del, get, patch, post } from './client'
 import type { ShareDto, SharedSpaceDto } from '@/common/types/share'
 
 /**
- * Le partage d'espace : UN lien, dont on choisit les sections visibles.
+ * Space sharing: ONE link, whose visible sections you choose.
  *
- * Il y avait deux API distinctes - une pour la collection, une pour les envies -
- * produisant deux jetons : entrer par « Ma collection » ou par « Mes envies »
- * donnait deux URL différentes pour le même espace personnel. Ces fonctions
- * sont désormais les seules, quelle que soit la porte d'entrée.
+ * There used to be two separate APIs - one for the collection, one for the wishes -
+ * producing two tokens: entering through "Ma collection" or through "Mes envies"
+ * gave two different URLs for the same personal space. These functions
+ * are now the only ones, whatever the entry point.
  */
 export function getShare(): Promise<ShareDto> {
   return get<ShareDto>('/share')
 }
 
-/** Régénère : l'ancien jeton cesse immédiatement de fonctionner, et les choix
- * repartent des plus fermés (Tier Lists exclues). */
+/** Regenerates: the old token stops working immediately, and the choices
+ * start again from the most closed ones (Tier Lists excluded). */
 export function generateShare(): Promise<ShareDto> {
   return post<ShareDto>('/share')
 }
 
 /**
- * Change les sections visibles sans toucher au lien déjà distribué. Chaque
- * champ omis reste inchangé, ce qui permet à un écran de ne piloter que sa
- * propre section. Tout décocher est refusé (400) : un lien qui n'expose rien
- * se supprime, il ne se vide pas.
+ * Changes the visible sections without touching the link already handed out. Every
+ * omitted field stays unchanged, which lets a screen drive only its
+ * own section. Unchecking everything is refused (400): a link that exposes nothing
+ * is deleted, it is not emptied.
  */
 export function updateShare(sections: {
   shareCollection?: boolean
@@ -37,8 +37,8 @@ export function removeShare(): Promise<void> {
   return del('/share')
 }
 
-/** Lecture publique, non authentifiée - 404 = lien inconnu ou révoqué (le
- * backend ne distingue jamais les deux). */
+/** Public read, not authenticated - 404 = unknown or revoked link (the
+ * backend never tells the two apart). */
 export function getSharedSpace(token: string): Promise<SharedSpaceDto> {
   return get<SharedSpaceDto>(`/public/share/${token}`)
 }

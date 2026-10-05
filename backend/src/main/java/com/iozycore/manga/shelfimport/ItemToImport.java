@@ -4,18 +4,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Un tome que l'utilisateur a confirmé depuis l'écran de vérification.
+ * A volume that the user confirmed from the review screen.
  *
- * <p>Le serveur ne garde rien entre l'analyse et l'import : c'est l'écran qui
- * renvoie, pour chaque tome, ce qu'il a montré - le titre retenu, le numéro
- * (lu ou saisi), l'édition choisie, et les attributs de la fiche proposée si
- * l'utilisateur l'a gardée. Même contrat que l'ajout rapide du Catalogue.
+ * <p>The server keeps nothing between the analysis and the import: it is the screen that
+ * sends back, for each volume, what it showed - the chosen title, the number
+ * (read or typed), the chosen edition, and the attributes of the proposed detail page if
+ * the user kept it. Same contract as the quick add of the Catalog.
  *
- * @param seriesTitle   le titre sous lequel la série est retrouvée ou créée
- * @param volumeNumber  le numéro du tome, supérieur ou égal à 1
- * @param edition       l'édition, ou {@code null}/vide quand elle n'est pas connue
- * @param attributes    les attributs de la fiche source (auteur, année...) - vide si aucune
- * @param coverImageUrl la jaquette de la série proposée par la source, ou {@code null}
+ * @param seriesTitle   the title under which the series is found or created
+ * @param volumeNumber  the volume number, greater than or equal to 1
+ * @param edition       the edition, or {@code null}/empty when it is not known
+ * @param attributes    the attributes of the source detail page (author, year...) - empty if none
+ * @param coverImageUrl the cover of the series proposed by the source, or {@code null}
  */
 public record ItemToImport(String seriesTitle, int volumeNumber, String edition,
                            Map<String, Object> attributes, String coverImageUrl) {
@@ -37,9 +37,9 @@ public record ItemToImport(String seriesTitle, int volumeNumber, String edition,
     }
 
     /**
-     * Les attributs à poser sur la série : ceux de la fiche, plus la jaquette
-     * sous la clé que le Catalogue et le scan utilisent déjà. Une clé déjà
-     * présente dans les attributs n'est pas écrasée par la jaquette.
+     * The attributes to set on the series: those of the detail page, plus the cover
+     * under the key that the Catalog and the scan already use. A key already
+     * present in the attributes is not overwritten by the cover.
      */
     Map<String, Object> attributesForEntity() {
         Map<String, Object> resultat = new LinkedHashMap<>(attributes);

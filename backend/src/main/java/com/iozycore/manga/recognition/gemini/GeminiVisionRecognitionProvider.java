@@ -23,39 +23,39 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Lit les photos avec Gemini (ai.google.dev), en multimodal.
+ * Reads the photos with Gemini (ai.google.dev), in multimodal mode.
  *
- * <h2>Désactivé sans clé</h2>
- * Même convention que {@code GeminiEditionAdvisor} : clé absente, le moteur se
- * déclare indisponible et n'appelle jamais. Ce n'est pas une erreur, c'est
- * IozyCore sans reconnaissance - la saisie manuelle reste entière.
+ * <h2>Disabled without a key</h2>
+ * Same convention as {@code GeminiEditionAdvisor}: key missing, the engine
+ * declares itself unavailable and never calls. This is not an error, it is
+ * IozyCore without recognition - manual entry stays whole.
  *
- * <h2>Les images quittent la machine</h2>
- * À dire clairement, parce que c'est vrai : les photos analysées sont envoyées
- * à Google. C'est la raison pour laquelle rien n'est déclenché automatiquement
- * (l'utilisateur clique « Analyser les photos »), pour laquelle le nombre
- * d'images est plafonné, et pour laquelle aucun octet d'image n'apparaît dans
- * les journaux.
+ * <h2>The images leave the machine</h2>
+ * To be said clearly, because it is true: the analysed photos are sent
+ * to Google. This is the reason why nothing is triggered automatically
+ * (the user clicks "Analyser les photos"), why the number
+ * of images is capped, and why no image byte appears in
+ * the logs.
  *
- * <h2>Le prompt ne contient AUCUN texte d'annonce</h2>
- * Rien de ce que le vendeur a écrit n'entre ici : ni titre, ni description.
- * C'est à la fois une protection - un texte écrit par un tiers et concaténé
- * dans un prompt peut en détourner les consignes - et une exigence de
- * méthode : un modèle à qui l'on annonce « lot de 14 tomes de Platinum End »
- * rendra volontiers quatorze tomes de Platinum End, qu'ils soient sur les
- * photos ou non. Le texte est lu ailleurs, localement, par
- * {@code ListingTextRecognizer} ; ce moteur ne répond qu'à « que voit-on sur
- * ces images ? ».
+ * <h2>The prompt contains NO listing text</h2>
+ * Nothing that the seller wrote enters here: neither title nor description.
+ * This is both a protection - a text written by a third party and concatenated
+ * into a prompt can hijack its instructions - and a requirement of
+ * method: a model to which we announce "lot de 14 tomes de Platinum End"
+ * will gladly return fourteen volumes of Platinum End, whether they are on the
+ * photos or not. The text is read elsewhere, locally, by
+ * {@code ListingTextRecognizer}; this engine only answers "what do we see on
+ * these images?".
  * <p>
- * Les seules entrées de ce provider sont donc des <b>octets d'image</b> et un
- * code d'univers.
+ * The only inputs of this provider are therefore <b>image bytes</b> and a
+ * universe code.
  */
 @Component
 public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiVisionRecognitionProvider.class);
 
-    /** Plusieurs mégaoctets d'images à téléverser : un délai de texte ne suffit pas. */
+    /** Several megabytes of images to upload: a text timeout is not enough. */
     private static final Duration TIMEOUT = Duration.ofSeconds(45);
 
     private static final String PROMPT = """
@@ -100,7 +100,7 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
     @Value("${gemini.model:}")
     private String model;
 
-    /** Le modèle qui prend le relais quand le principal sature - voir GeminiRequests.avecRepli. */
+    /** The model that takes over when the main one is saturated - see GeminiRequests.avecRepli. */
     @Value("${gemini.fallback-model:}")
     private String fallbackModel;
 
@@ -124,9 +124,9 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
         if (!isAvailable() || images == null || images.isEmpty()) {
             return RecognitionResult.unavailable();
         }
-        // La V1 n'est validée que sur le manga : le moteur décline poliment le
-        // reste plutôt que de rendre des réponses invérifiées sur un jeu de
-        // société ou un jeu vidéo.
+        // V1 is only validated on manga: the engine politely declines the
+        // rest rather than returning unverified answers on a board
+        // game or a video game.
         if (context != null && context.expectedEntityTypeCode() != null && !context.isManga()) {
             return RecognitionResult.noEngine();
         }
@@ -140,12 +140,12 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
                     PROMPT.formatted(images.size()), jointes, TIMEOUT);
 
             if (response.statusCode() != 200) {
-                log.warn("Gemini vision ({}) a répondu {} pour {} photo(s) : {}",
+                log.warn("Gemini vision ({}) answered {} for {} photo(s): {}",
                         GeminiRequests.effectiveModel(model), response.statusCode(), images.size(),
                         GeminiRequests.snippet(response.body()));
-                // Un 429 qui subsiste après les reprises de GeminiRequests n'est
-                // plus un pic de charge : c'est le quota. Réessayer tout de suite
-                // ne servirait à rien, et l'écran doit dire autre chose.
+                // A 429 that remains after the retries of GeminiRequests is no
+                // longer a load spike: it is the quota. Trying again right away
+                // would be useless, and the screen must say something else.
                 return response.statusCode() == 429
                         ? RecognitionResult.quotaExceeded()
                         : RecognitionResult.unavailable();
@@ -158,14 +158,14 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             Thread.currentThread().interrupt();
             return RecognitionResult.unavailable();
         } catch (Exception e) {
-            // Jamais le corps de la requête dans les journaux : il contient les
-            // images en base64.
-            log.warn("Gemini vision indisponible : {}", e.getClass().getSimpleName());
+            // Never the body of the request in the logs: it contains the
+            // images in base64.
+            log.warn("Gemini vision unavailable: {}", e.getClass().getSimpleName());
             return RecognitionResult.unavailable();
         }
     }
 
-    /** Package-private et statique : la lecture du JSON se teste sans réseau. */
+    /** Package-private and static: reading the JSON can be tested without a network. */
     static RecognitionResult parse(ObjectMapper objectMapper, String json) throws Exception {
         JsonNode root = objectMapper.readTree(json);
         List<RecognizedItem> items = new ArrayList<>();
@@ -173,8 +173,8 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
         for (JsonNode node : root.path("items")) {
             String titre = texte(node, "seriesTitle");
             if (titre == null) {
-                // Sans titre lu, ce n'est pas un élément : le compter comme
-                // identifié gonflerait le lot d'une ligne vide.
+                // Without a title read, it is not an item: counting it as
+                // identified would inflate the batch with an empty line.
                 continue;
             }
             Set<Integer> photos = indexPhotos(node);
@@ -194,9 +194,9 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
     }
 
     /**
-     * Un EAN a 13 chiffres (ou 10 pour un vieil ISBN). Tout le reste est une
-     * hallucination de chiffres : la laisser passer donnerait à cet élément la
-     * priorité « identifiant exact » qu'il ne mérite pas.
+     * An EAN has 13 digits (or 10 for an old ISBN). Everything else is a
+     * digit hallucination: letting it through would give this item the
+     * "exact identifier" priority that it does not deserve.
      */
     private static String eanValide(String brut) {
         if (brut == null) {
@@ -213,8 +213,8 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
             return RecognitionConfidence.LOW;
         }
         String normalise = brut.trim().toUpperCase(Locale.ROOT);
-        // Une valeur inattendue devient LOW, jamais HIGH : dans le doute sur ce
-        // que le modèle a voulu dire, on ne pré-coche pas.
+        // An unexpected value becomes LOW, never HIGH: when in doubt about what
+        // the model meant, we do not pre-tick.
         return NIVEAUX.contains(normalise) ? RecognitionConfidence.valueOf(normalise) : RecognitionConfidence.LOW;
     }
 
@@ -234,11 +234,11 @@ public class GeminiVisionRecognitionProvider implements ImageRecognitionProvider
     }
 
     /**
-     * Le cadre du livre, si le modèle a su le situer : {@code box_2d} en
-     * millièmes, sur la photo {@code boxImage} - à défaut la première des
-     * photos où il dit l'avoir vu. Quatre nombres ou rien : un tableau
-     * incomplet, un texte, un rectangle sans surface ne donnent pas de cadre,
-     * et la lecture reste entière sans lui.
+     * The frame of the book, if the model could place it: {@code box_2d} in
+     * thousandths, on the photo {@code boxImage} - failing that the first of the
+     * photos where it says it saw it. Four numbers or nothing: an incomplete
+     * array, a text, a rectangle with no area do not give a frame,
+     * and the reading stays whole without it.
      */
     private static List<com.iozycore.manga.recognition.RecognizedBox> boites(JsonNode node, Set<Integer> photos) {
         JsonNode boite = node.path("box_2d");

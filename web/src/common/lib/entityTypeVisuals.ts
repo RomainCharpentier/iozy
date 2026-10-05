@@ -5,10 +5,9 @@ export interface EntityTypeVisual {
   color: string
   tint: string
   icon: LucideIcon
-  /** Ratio de la jaquette pour ce type - voir IozyCore DS v1.1/v1.2 (UNIVERSE) :
-   * les mangas/livres restent au format poche classique, les jeux vidéo
-   * penchent portrait plus large (jaquettes de boîtier), les jeux de société
-   * sont carrés (boîtes). */
+  /** Cover ratio for this type - see IozyCore DS v1.1/v1.2 (UNIVERSE):
+   * manga/books keep the classic pocket format, video games lean toward a
+   * wider portrait (box covers), board games are square (boxes). */
   aspectClassName: string
 }
 
@@ -20,12 +19,12 @@ const FALLBACK: EntityTypeVisual = {
 }
 
 /**
- * Palette proposée au choix pour un type créé par l'utilisateur. Fermée, et
- * pas un sélecteur libre de teinte : une couleur d'univers sert aussi de TEXTE
- * ("Tout voir" d'une ligne de Ma collection, titre de la page catégorie), donc
- * chaque entrée est calibrée pour tenir 4.5:1 sur les trois fonds de chaque
- * thème (voir index.css). Une teinte choisie à l'œil serait illisible dans un
- * thème sur deux - c'est exactement ce que le Lot 12 a eu à corriger.
+ * Palette offered as a choice for a type created by the user. Closed, and
+ * not a free color picker: a universe color is also used as TEXT
+ * ("Tout voir" of a row in Ma collection, title of the category page), so
+ * each entry is calibrated to hold 4.5:1 on the three backgrounds of each
+ * theme (see index.css). A shade chosen by eye would be unreadable in every
+ * other theme - this is exactly what Batch 12 had to fix.
  */
 export const UNIVERSE_PALETTE = [
   { key: 'terracotta', label: 'Terracotta' },
@@ -40,9 +39,9 @@ export const UNIVERSE_PALETTE = [
 
 export type UniverseColorKey = (typeof UNIVERSE_PALETTE)[number]['key']
 
-/** Les 4 premières clés réutilisent les tokens des univers livrés : un type
- * personnalisé "Terracotta" est exactement de la couleur de Manga, plutôt
- * qu'un second terracotta légèrement différent. */
+/** The first 4 keys reuse the tokens of the shipped universes: a custom
+ * "Terracotta" type has exactly the color of Manga, rather than a second,
+ * slightly different terracotta. */
 const COLOR_TOKENS: Record<string, { color: string; tint: string }> = {
   terracotta: { color: 'var(--color-universeManga)', tint: 'var(--color-universeMangaTint)' },
   indigo: { color: 'var(--color-universeVideoGame)', tint: 'var(--color-universeVideoGameTint)' },
@@ -54,8 +53,8 @@ const COLOR_TOKENS: Record<string, { color: string; tint: string }> = {
   ardoise: { color: 'var(--color-universeArdoise)', tint: 'var(--color-universeArdoiseTint)' },
 }
 
-/** Jeu d'icônes proposé - fermé lui aussi : une icône est un composant importé,
- * pas une chaîne, donc rien ne peut être rendu hors de cette liste. */
+/** Set of icons offered - closed too: an icon is an imported component,
+ * not a string, so nothing can be rendered outside this list. */
 export const UNIVERSE_ICONS = [
   { key: 'library', label: 'Bibliothèque', icon: Library },
   { key: 'book', label: 'Livre', icon: Book },
@@ -74,10 +73,10 @@ export const UNIVERSE_ICONS = [
 export type UniverseIconKey = (typeof UNIVERSE_ICONS)[number]['key']
 
 /**
- * Formats de jaquette proposés. Fermé comme le reste : ce sont des classes
- * Tailwind écrites en dur, seule forme que le compilateur sait extraire - une
- * classe construite dynamiquement (`aspect-[${ratio}]`) n'existerait tout
- * simplement pas dans le CSS produit.
+ * Cover formats offered. Closed like the rest: these are Tailwind classes
+ * written in full, the only form the compiler knows how to extract - a class
+ * built dynamically (`aspect-[${ratio}]`) would simply not exist in the
+ * produced CSS.
  */
 export const UNIVERSE_ASPECTS = [
   { key: 'portrait', label: 'Portrait', className: 'aspect-[2/3]', hint: 'Livres, mangas' },
@@ -90,25 +89,25 @@ export type UniverseAspectKey = (typeof UNIVERSE_ASPECTS)[number]['key']
 
 const ASPECTS: Record<string, string> = Object.fromEntries(UNIVERSE_ASPECTS.map((a) => [a.key, a.className]))
 
-/** Variable CSS d'une teinte de la palette - pour dessiner les pastilles de
- * choix dans le formulaire de type, sans passer par un faux EntityType. */
+/** CSS variable of a palette shade - to draw the choice dots in the type
+ * form, without going through a fake EntityType. */
 export function colorVarFor(key: string): string {
   return COLOR_TOKENS[key]?.color ?? FALLBACK.color
 }
 
 const ICONS: Record<string, LucideIcon> = Object.fromEntries(UNIVERSE_ICONS.map((i) => [i.key, i.icon]))
 
-/** Couleurs/icônes des univers livrés - teintes de la maquette V1.2 (const
- * UNIVERSE), clé sur `EntityType.code` (voir backend) plutôt que sur un id
- * arbitraire. "Livre" inclus par anticipation (présent dans la maquette) même
- * si ce type n'existe pas encore réellement dans cette instance.
+/** Colors/icons of the shipped universes - shades of the V1.2 mockup (const
+ * UNIVERSE), keyed on `EntityType.code` (see backend) rather than on an
+ * arbitrary id. "Livre" included in advance (present in the mockup) even
+ * if this type does not really exist yet in this instance.
  *
- * Valeurs déléguées à des tokens CSS (voir index.css) plutôt qu'écrites en
- * dur : ces couleurs ne servent pas qu'à des pastilles décoratives, elles sont
- * aussi du TEXTE - les valeurs de la maquette, calibrées pour un fond clair,
- * tombaient à 4.23:1 (manga) et 3.06:1 (jeu vidéo) sur le fond sombre. La
- * teinte reste celle de la maquette dans les deux thèmes, seule la luminosité
- * s'adapte. */
+ * Values delegated to CSS tokens (see index.css) rather than written in
+ * full: these colors are not only used for decorative dots, they are also
+ * TEXT - the values of the mockup, calibrated for a light background,
+ * dropped to 4.23:1 (manga) and 3.06:1 (video game) on the dark background.
+ * The shade stays the one of the mockup in both themes, only the brightness
+ * adapts. */
 const BY_CODE: Record<string, EntityTypeVisual> = {
   MANGA: { ...COLOR_TOKENS.terracotta, icon: Library, aspectClassName: 'aspect-[2/3]' },
   VIDEO_GAME: { ...COLOR_TOKENS.indigo, icon: Layers, aspectClassName: 'aspect-[3/4]' },
@@ -117,13 +116,13 @@ const BY_CODE: Record<string, EntityTypeVisual> = {
 }
 
 /**
- * Visuel d'un type. L'identité CHOISIE par l'utilisateur (colorKey/iconKey,
- * voir EntityType côté backend) gagne sur tout le reste - y compris pour les
- * types livrés, dont elle peut donc changer la couleur ; sinon le visuel
- * historique du code connu ; sinon le repli.
+ * Visual of a type. The identity CHOSEN by the user (colorKey/iconKey,
+ * see EntityType on the backend side) wins over everything else - including
+ * for the shipped types, whose color it can therefore change; otherwise the
+ * historical visual of the known code; otherwise the fallback.
  *
- * Accepte un simple code (appelants qui n'ont que ça sous la main) ou le type
- * entier, seul porteur des clés choisies.
+ * Accepts a simple code (callers that only have that at hand) or the whole
+ * type, the only carrier of the chosen keys.
  */
 export function getEntityTypeVisual(type: EntityTypeDto | string | undefined): EntityTypeVisual {
   const code = typeof type === 'string' ? type : type?.code
@@ -134,8 +133,8 @@ export function getEntityTypeVisual(type: EntityTypeDto | string | undefined): E
   const chosenColor = type.colorKey ? COLOR_TOKENS[type.colorKey] : undefined
   const chosenIcon = type.iconKey ? ICONS[type.iconKey] : undefined
   const chosenAspect = type.aspectKey ? ASPECTS[type.aspectKey] : undefined
-  // Une clé inconnue (palette élargie ailleurs, donnée saisie à la main) ne
-  // casse rien : on retombe simplement sur le visuel de base.
+  // An unknown key (palette extended elsewhere, data entered by hand) does
+  // not break anything: we simply fall back on the base visual.
   return {
     ...base,
     ...(chosenColor ?? {}),

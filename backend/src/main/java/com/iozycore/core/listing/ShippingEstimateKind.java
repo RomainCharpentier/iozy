@@ -1,74 +1,74 @@
 package com.iozycore.core.listing;
 
 /**
- * Ce que vaut vraiment le montant de livraison retenu pour une annonce.
+ * What the shipping amount retained for a listing is really worth.
  * <p>
- * Sans cette distinction, « 2,83 € » et « à partir de 2,83 € » se ressemblent
- * dans un {@code BigDecimal} et se confondent à l'écran - alors que le premier
- * est un coût, et le second un plancher. Le total qui en découle n'est pas
- * « le coût réel » mais « le coût minimum estimé », et l'utilisateur doit
- * pouvoir le lire ainsi avant de décider.
+ * Without this distinction, "2.83 EUR" and "from 2.83 EUR" look alike
+ * in a {@code BigDecimal} and get confused on screen - whereas the first
+ * is a cost, and the second a floor. The total that follows is not
+ * "the real cost" but "the estimated minimum cost", and the user must
+ * be able to read it that way before deciding.
  *
- * <h2>Une seule dimension, délibérément</h2>
- * On pourrait séparer « combien » (montant), « quelle précision » (ferme,
- * plancher, estimation) et « d'où ça vient » (source, utilisateur). En pratique
- * la provenance ne fait que déterminer la précision - une saisie manuelle est
- * une estimation, un tarif lu sur une source unique est ferme - et une
- * deuxième dimension n'apporterait qu'une combinatoire vide à figer dans le
- * JSONB des analyses. Cette énumération dit donc <b>ce que le montant vaut</b>,
- * ce dont l'écran et le calcul ont réellement besoin.
+ * <h2>A single dimension, deliberately</h2>
+ * We could separate "how much" (amount), "what precision" (firm,
+ * floor, estimate) and "where it comes from" (source, user). In practice
+ * the origin only determines the precision - a manual entry is
+ * an estimate, a rate read from a single source is firm - and a
+ * second dimension would only bring empty combinations to freeze in the
+ * JSONB of the analyses. This enumeration therefore says <b>what the amount is worth</b>,
+ * which is what the screen and the computation really need.
  *
- * <h2>Figée avec l'analyse</h2>
- * La sémantique est conservée avec l'analyse enregistrée : une livraison notée
- * « à partir de » ou « estimée » à l'instant de l'analyse ne doit jamais se
- * relire plus tard comme un tarif ferme.
+ * <h2>Frozen with the analysis</h2>
+ * The semantics are kept with the saved analysis: a shipping noted
+ * "from" or "estimated" at the time of the analysis must never be
+ * read later as a firm rate.
  */
 public enum ShippingEstimateKind {
 
-    /** Livraison annoncée offerte : zéro, et c'est un vrai zéro. */
+    /** Shipping announced as free: zero, and it is a real zero. */
     FREE,
 
     /**
-     * Un seul mode de livraison exposé par la source : le montant est celui qui
-     * sera facturé, pour autant qu'on puisse l'affirmer avant le paiement.
-     * <b>Réservé aux cas où la source permet réellement cette affirmation</b> -
-     * jamais attribué par défaut à un nombre qu'on a simplement reçu.
+     * A single shipping mode exposed by the source: the amount is the one that
+     * will be charged, as far as one can say so before payment.
+     * <b>Reserved for the cases where the source really allows this statement</b> -
+     * never assigned by default to a number we simply received.
      */
     EXACT,
 
     /**
-     * Plusieurs modes existent et la source affiche le moins cher. Le montant
-     * est un <b>plancher</b> : le réel dépend du point relais choisi.
+     * Several modes exist and the source displays the cheapest. The amount
+     * is a <b>floor</b>: the real one depends on the chosen pickup point.
      */
     FROM,
 
     /**
-     * Montant utilisable mais non garanti - typiquement saisi par
-     * l'utilisateur. Il compte dans le coût d'acquisition (l'ignorer minorerait
-     * l'achat), mais l'écran ne doit pas le présenter comme un tarif constaté,
-     * et surtout jamais comme une livraison « non communiquée » : l'utilisateur
-     * vient précisément de la communiquer.
+     * Usable but not guaranteed amount - typically typed by
+     * the user. It counts in the acquisition cost (ignoring it would understate
+     * the purchase), but the screen must not present it as an observed rate,
+     * and above all never as a shipping "not provided": the user
+     * has precisely just provided it.
      */
     ESTIMATED,
 
     /**
-     * Aucun montant exploitable. Surtout ne pas supposer zéro : le coût qui en
-     * découle est <b>incomplet</b>, et doit se lire comme tel. Un
-     * {@code UNKNOWN} ne porte jamais de montant entrant dans un calcul.
+     * No usable amount. Above all do not assume zero: the cost that
+     * follows is <b>incomplete</b>, and must be read as such. An
+     * {@code UNKNOWN} never carries an amount entering a computation.
      */
     UNKNOWN;
 
-    /** Vrai quand le total qui en découle est un minimum, pas un montant ferme. */
+    /** True when the total that follows is a minimum, not a firm amount. */
     public boolean isLowerBound() {
         return this == FROM;
     }
 
-    /** Vrai quand un montant exploitable existe (zéro compris) et entre donc dans le coût. */
+    /** True when a usable amount exists (zero included) and therefore enters the cost. */
     public boolean hasAmount() {
         return this != UNKNOWN;
     }
 
-    /** Vrai quand le montant est utilisable sans être garanti : à dire, jamais à taire. */
+    /** True when the amount is usable without being guaranteed: to be said, never hidden. */
     public boolean isEstimate() {
         return this == ESTIMATED;
     }

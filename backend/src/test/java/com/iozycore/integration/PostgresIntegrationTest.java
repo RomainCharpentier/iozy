@@ -8,57 +8,57 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Un seul PostgreSQL, un seul contexte Spring, pour <b>toute</b> la suite
- * d'intégration.
+ * One single PostgreSQL, one single Spring context, for <b>the whole</b>
+ * integration suite.
  *
- * <h2>Ce que ça remplace, et ce que ça coûtait</h2>
- * Quinze classes déclaraient chacune <b>leur propre</b>
- * {@code PostgreSQLContainer} avec son propre {@code @DynamicPropertySource}.
- * Chacune payait donc, à elle seule :
+ * <h2>What this replaces, and what it cost</h2>
+ * Fifteen classes each declared <b>their own</b>
+ * {@code PostgreSQLContainer} with their own {@code @DynamicPropertySource}.
+ * Each of them therefore paid, alone:
  * <ol>
- *   <li>le démarrage d'un conteneur Postgres ;</li>
- *   <li>l'exécution complète des migrations Flyway V1 à V19 ;</li>
- *   <li><b>et surtout</b> la reconstruction intégrale du contexte Spring.</li>
+ *   <li>the start of a Postgres container;</li>
+ *   <li>the full run of the Flyway migrations V1 to V19;</li>
+ *   <li><b>and above all</b> the complete rebuild of the Spring context.</li>
  * </ol>
  *
- * <p>Le troisième point est le vrai coupable, et il est contre-intuitif :
- * Spring met les contextes de test en cache, mais la clé de ce cache inclut
- * les <b>valeurs</b> des propriétés. Quinze conteneurs, c'est quinze URLs JDBC
- * différentes, donc quinze clés différentes, donc <b>zéro réutilisation</b> —
- * un cache qui ne sert jamais alors qu'il a l'air d'être là.
+ * <p>The third point is the real culprit, and it is counter-intuitive:
+ * Spring caches the test contexts, but the key of this cache includes
+ * the <b>values</b> of the properties. Fifteen containers means fifteen different
+ * JDBC URLs, so fifteen different keys, so <b>zero reuse</b> -
+ * a cache that is never used even though it looks like it is there.
  *
- * <p>Mesuré : 29 classes d'intégration pour <b>341 s</b>, soit environ 13 s
- * chacune, contre 3,3 s pour les 77 classes unitaires réunies. Le conteneur
- * unique était déjà la règle côté {@code HttpContractTestBase}, mais seulement
- * pour ses propres classes.
+ * <p>Measured: 29 integration classes for <b>341 s</b>, that is about 13 s
+ * each, against 3.3 s for the 77 unit classes together. The single container
+ * was already the rule for {@code HttpContractTestBase}, but only
+ * for its own classes.
  *
- * <h2>Un conteneur partagé, jamais {@code @Container}</h2>
- * L'annotation {@code @Container} de Testcontainers lie le cycle de vie du
- * conteneur à <b>une</b> classe : elle le démarre et l'arrête autour d'elle.
- * Or Spring, lui, garde son contexte — et donc son pool de connexions — vivant
- * d'une classe à l'autre. Les deux cycles de vie ne s'accordent pas, et le
- * contexte survivant se retrouve à pointer vers un conteneur éteint.
+ * <h2>A shared container, never {@code @Container}</h2>
+ * The Testcontainers {@code @Container} annotation ties the life cycle of the
+ * container to <b>one</b> class: it starts and stops it around that class.
+ * But Spring keeps its context - and so its connection pool - alive
+ * from one class to the next. The two life cycles do not match, and the
+ * surviving context ends up pointing to a stopped container.
  *
- * <p>Le conteneur est donc démarré <b>une fois</b>, dans un bloc statique, et
- * jamais arrêté explicitement : Ryuk s'en charge à la fin du JVM, et sur les
- * environnements où Ryuk est désactivé, la fin du processus suffit.
+ * <p>So the container is started <b>once</b>, in a static block, and
+ * never stopped explicitly: Ryuk does it at the end of the JVM, and on
+ * environments where Ryuk is disabled, the end of the process is enough.
  *
- * <h2>{@code @Transactional} isole chaque méthode</h2>
- * Puisque toutes les classes partagent désormais la même base, l'isolation
- * n'est plus un confort mais une nécessité. Les repositories (eux-mêmes
- * {@code @Transactional}, propagation {@code REQUIRED}) rejoignent la
- * transaction ouverte par le test, que Spring annule à la fin de chaque
- * méthode.
+ * <h2>{@code @Transactional} isolates each method</h2>
+ * Since all the classes now share the same database, isolation
+ * is no longer a comfort but a necessity. The repositories (themselves
+ * {@code @Transactional}, propagation {@code REQUIRED}) join the
+ * transaction opened by the test, which Spring rolls back at the end of each
+ * method.
  *
- * <p><b>Attention</b> : une classe qui compte des lignes doit compter un
- * <i>écart</i> (avant/après), jamais un total absolu. Les données de référence
- * — types d'entité, préférences — sont créées par les migrations et partagées.
+ * <p><b>Warning</b>: a class that counts rows must count a
+ * <i>difference</i> (before/after), never an absolute total. The reference data
+ * - entity types, preferences - are created by the migrations and shared.
  */
 @SpringBootTest
 @Transactional
-// Hors requête, ces tests parlent au nom du premier compte : voir
-// ComptePourLesTests pour pourquoi le repli de production (« personne »)
-// rendrait une centaine de tests aveugles à ce qu’ils viennent d’écrire.
+// Outside a request, these tests speak in the name of the first account: see
+// ComptePourLesTests for why the production fallback ("nobody")
+// would make a hundred tests blind to what they have just written.
 @Import(ComptePourLesTests.class)
 public abstract class PostgresIntegrationTest {
 
@@ -69,15 +69,15 @@ public abstract class PostgresIntegrationTest {
                     .withPassword("iozycore");
 
     static {
-        // Démarré une seule fois pour toute la JVM de test. Le bloc statique
-        // plutôt que @Container : voir plus haut.
+        // Started only once for the whole test JVM. The static block
+        // rather than @Container: see above.
         POSTGRES.start();
     }
 
     /**
-     * Les mêmes valeurs pour toutes les classes — c'est <b>exactement</b> ce qui
-     * permet à Spring de réutiliser un unique contexte au lieu d'en construire
-     * un par classe.
+     * The same values for all the classes - this is <b>exactly</b> what
+     * lets Spring reuse a single context instead of building
+     * one per class.
      */
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Pastille arrondie, utilisée pour les filtres de type et les tags.
+/// Rounded pill, used for type filters and tags.
 struct Chip: View {
     let label: String
     var isActive: Bool = false
@@ -15,8 +15,8 @@ struct Chip: View {
     }
 }
 
-/// Carte compacte pour un chiffre-clé (bento layout), utilisée dans les
-/// Étagères et l'onglet Stats.
+/// Compact card for a key figure (bento layout), used in the
+/// Shelves and the Stats tab.
 struct StatCard: View {
     let value: String
     let label: String

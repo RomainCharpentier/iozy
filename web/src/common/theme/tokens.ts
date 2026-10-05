@@ -1,16 +1,16 @@
-// Design tokens - miroir de src/index.css (@theme, pour les classes Tailwind
-// bg-accent/text-textDim/etc.) - ce fichier est la source de vérité pour le
-// TS/JS pur (ex: theme/gradient.ts, qui a besoin des valeurs hex brutes).
-// Palette terracotta (IozyCore DS v1.1) adoptée le 2026-08-19 - voir
-// docs/DESIGN_MIGRATION_V1.2.md. Snapshot du thème SOMBRE (défaut de l'app,
-// voir lib/theme.ts) : ce fichier n'a pas de mécanisme clair/sombre propre,
-// contrairement à index.css (aucun consommateur JS actuel n'en a besoin en
-// clair - à revisiter si un usage réel apparaît).
+// Design tokens - mirror of src/index.css (@theme, for the Tailwind classes
+// bg-accent/text-textDim/etc.) - this file is the source of truth for pure
+// TS/JS (e.g. theme/gradient.ts, which needs the raw hex values).
+// Terracotta palette (IozyCore DS v1.1) adopted on 2026-08-19 - see
+// docs/DESIGN_MIGRATION_V1.2.md. Snapshot of the DARK theme (default of the
+// app, see lib/theme.ts): this file has no light/dark mechanism of its own,
+// unlike index.css (no current JS consumer needs one in light - to be
+// revisited if a real use appears).
 // <p>
-// ios/IozyCore/DesignSystem/Theme.swift reste sur l'ancienne direction (lime
-// sur sombre) tant qu'il n'a pas reçu son propre lot de migration (accepté
-// explicitement, iOS hors périmètre de ce lot) - donc plus un vrai miroir
-// pour l'instant, juste documenté comme tel pour la prochaine fois.
+// ios/IozyCore/DesignSystem/Theme.swift stays on the old direction (lime
+// on dark) as long as it has not received its own migration batch (explicitly
+// accepted, iOS outside the scope of this batch) - so no longer a real mirror
+// for now, just documented as such for next time.
 export const colors = {
   background: '#16120F',
   surface: '#231E19',
@@ -23,13 +23,13 @@ export const colors = {
   pink: '#FF6FA5',
 } as const
 
-// Paires de dégradé pour les tuiles de couverture (pas d'images de
-// couverture réelles, droits non disponibles) - tons chauds et sourds,
-// cohérents avec la palette terracotta (voir DS v1.1, démonstration des
-// composants Tier : jaquettes de substitution dans ce même registre chaud/
-// mat plutôt que saturé néon). Remplace les 6 paires saturées de l'ancienne
-// direction lime, qui jureraient à côté du nouvel accent. Voir gradient.ts
-// pour l'algorithme de sélection (déterministe par titre, inchangé).
+// Gradient pairs for the cover tiles (no real cover images,
+// rights not available) - warm and muted tones, consistent with the
+// terracotta palette (see DS v1.1, demonstration of the Tier components:
+// substitute covers in this same warm/matte register rather than saturated
+// neon). Replaces the 6 saturated pairs of the old lime direction, which
+// would clash next to the new accent. See gradient.ts for the selection
+// algorithm (deterministic by title, unchanged).
 export const gradientPalettes: readonly [string, string][] = [
   ['C2492F', '5E1F14'],
   ['8A6A3A', '33251A'],

@@ -1,10 +1,11 @@
 import type { EntityResponse, OwnershipResponse } from '@/common/types/api'
 
-/** Modèle Tome != Ownership (voir backend, étapes 4-8) : un Variant catalogué
- * n'est pas forcément possédé (ex: exemplaire revendu dont l'Ownership a été
- * supprimée, mais dont le Tome reste connu). "Ma collection" montre ce que
- * l'utilisateur possède RÉELLEMENT, jamais tout ce qui est catalogué -
- * l'inverse ("ce qui manque") est le rôle de la fiche Série, pas de cet écran. */
+/** Volume model != Ownership (see backend, steps 4-8): a cataloged Variant
+ * is not necessarily owned (e.g. a resold copy whose Ownership was
+ * deleted, but whose Volume is still known). "Ma collection" shows what the
+ * user REALLY owns, never everything that is cataloged - the opposite
+ * ("what is missing") is the role of the Series detail page, not of this
+ * screen. */
 export function ownedVariantIds(ownerships: OwnershipResponse[]): Set<string> {
   const ids = new Set<string>()
   for (const o of ownerships) {
@@ -13,9 +14,10 @@ export function ownedVariantIds(ownerships: OwnershipResponse[]): Set<string> {
   return ids
 }
 
-/** true si l'Entity a au moins une possession active - pour une Entity sans
- * notion de tome (jeu vidéo/société), l'Ownership est directement rattachée
- * à l'Entity (variantId absent), voir QuickAddService côté backend. */
+/** true if the Entity has at least one active ownership - for an Entity
+ * without a notion of volume (video game/board game), the Ownership is
+ * attached directly to the Entity (variantId absent), see QuickAddService on
+ * the backend side. */
 export function isOwned(entity: EntityResponse, ownerships: OwnershipResponse[], owned: Set<string>): boolean {
   if (entity.variants.length > 0) {
     return entity.variants.some((v) => owned.has(v.id))

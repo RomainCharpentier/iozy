@@ -1,21 +1,20 @@
-# Une pile JETABLE, pour les tests de bout en bout.
+# A DISPOSABLE stack, for the end-to-end tests.
 #
-# ## Pourquoi une pile à part, et pas l'instance de développement
-# Les tests E2E écrivent : ils créent des œuvres, des possessions, des envies.
-# Les faire tourner sur l'instance de tous les jours polluerait une vraie
-# collection - et le cloisonnement par propriétaire n'y suffirait pas, le
-# CATALOGUE étant partagé par construction (une œuvre est la même pour tout le
-# monde). Les séries inventées par les tests apparaîtraient donc dans
-# « Rechercher ▸ Déjà dans IozyCore ».
+# ## Why a separate stack, and not the development instance
+# The E2E tests write: they create works, ownerships, wishes.
+# Running them on the everyday instance would pollute a real collection -
+# and the split by owner would not be enough, because the CATALOGUE is shared
+# by design (a work is the same for everyone). The series invented by the
+# tests would then show up in "Rechercher ▸ Déjà dans IozyCore".
 #
-# D'où : sa propre base, son propre port, et un volume anonyme qui disparaît
-# avec `down -v`. Rien à nettoyer, rien à se rappeler.
+# Hence: its own database, its own port, and an anonymous volume that goes
+# away with `down -v`. Nothing to clean up, nothing to remember.
 #
 # ## Usage
 #   docker compose -p iozycore-e2e -f docker-compose.e2e.yml up -d --wait
 #   docker compose -p iozycore-e2e -f docker-compose.e2e.yml down -v
 #
-# `npm run test:e2e` (dans web/) fait les deux autour des tests.
+# `npm run test:e2e` (in web/) does both around the tests.
 
 services:
   iozycore-api:
@@ -29,38 +28,38 @@ services:
       DB_NAME: iozycore_e2e
       DB_USER: iozycore
       DB_PASSWORD: iozycore_e2e
-      # Les tests créent le PREMIER compte, qui est libre : aucun code
-      # d'invitation n'est nécessaire. Les comptes SUIVANTS l'exigent, et la
-      # suite le connaît (web/e2e/compte.ts) : le parcours d'import crée un
-      # second compte pour le supprimer ensuite - l'administrateur de la suite
-      # ne peut pas se supprimer lui-même. Un code faux reste refusé, et un
-      # parcours le vérifie (porte.spec.ts).
+      # The tests create the FIRST account, which is free: no invite code
+      # is needed. The FOLLOWING accounts require one, and the suite
+      # knows it (web/e2e/compte.ts): the import flow creates a
+      # second account to delete it afterwards - the administrator of the suite
+      # cannot delete themselves. A wrong code is still refused, and a
+      # flow checks it (porte.spec.ts).
       IOZYCORE_INVITE_CODE: code-e2e
-      # Pas de TLS devant en local : un cookie `Secure` ne serait jamais posé.
+      # No TLS in front locally: a `Secure` cookie would never be set.
       SESSION_COOKIE_SECURE: "false"
-      # L'origine du serveur de dev lancé par Playwright (voir
-      # playwright.config.ts) - sans elle, toute écriture repartirait en 403.
+      # The origin of the dev server started by Playwright (see
+      # playwright.config.ts) - without it, every write would get a 403.
       WEB_ALLOWED_ORIGINS: http://localhost:5174
-      # Aucune clé de service externe, EN DUR : les tests ne doivent dépendre
-      # d'aucun fournisseur ni consommer de quota, les écrans qui en dépendent
-      # s'absentent proprement. Pas de `${GEMINI_API_KEY:-}` ici : Compose
-      # substitue aussi depuis backend/.env, et c'est la vraie clé qui est
-      # arrivée dans cette pile (2026-09-04) - l'analyse d'annonce a appelé
-      # l'IA pendant les tests et dépassé leurs dix secondes. Pour vérifier un
-      # fournisseur en direct, c'est la pile de développement qu'on utilise.
+      # No external service key, HARD-CODED: the tests must not depend on
+      # any provider or use up any quota, and the screens that depend on one
+      # are cleanly absent. No `${GEMINI_API_KEY:-}` here: Compose
+      # also substitutes from backend/.env, and the real key
+      # ended up in this stack (2026-09-04) - the listing analysis called
+      # the AI during the tests and went over their ten seconds. To check a
+      # provider live, the development stack is the one to use.
       GOOGLE_BOOKS_API_KEY: ""
       GEMINI_API_KEY: ""
       GEMINI_MODEL: ""
       GEMINI_FALLBACK_MODEL: ""
-      # Rien à relire la nuit sur une pile jetable sans fournisseur : le
-      # calendrier des sorties n'y montre que les dates saisies à la main.
+      # Nothing to re-read at night on a disposable stack without a provider: the
+      # release calendar only shows the dates entered by hand.
       RELEASES_REFRESH_ENABLED: "false"
     ports:
-      # 8090 et non 8080 : la pile de développement peut tourner en même temps.
+      # 8090 and not 8080: the development stack can run at the same time.
       - "8090:8080"
-    # Sondé sur la seule route ouverte sans compte : `--wait` attend donc une
-    # API qui RÉPOND, pas un conteneur qui a démarré. Les migrations Flyway
-    # tournent avant que Tomcat accepte une requête.
+    # Probed on the only route open without an account: `--wait` therefore waits
+    # for an API that ANSWERS, not a container that started. The Flyway migrations
+    # run before Tomcat accepts a request.
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/auth/etat || exit 1"]
       interval: 3s
@@ -74,7 +73,7 @@ services:
       POSTGRES_DB: iozycore_e2e
       POSTGRES_USER: iozycore
       POSTGRES_PASSWORD: iozycore_e2e
-    # Aucun volume nommé : la base vit et meurt avec la pile.
+    # No named volume: the database lives and dies with the stack.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U iozycore -d iozycore_e2e"]
       interval: 2s

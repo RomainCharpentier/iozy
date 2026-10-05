@@ -28,10 +28,10 @@ import { LienRetour } from '@/common/components/LienRetour'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * D'où l'on revient : Découvrir, qui porte la porte de cet écran depuis le
- * lot 137, ou la série quand on arrive de sa fiche (elle nomme son retour).
- * L'écran a été une destination de la navigation, sans retour à proposer ;
- * il ne l'est plus, et c'est un parcours manga que la barre ne nomme pas.
+ * Where we come back from: Découvrir, which carries the door to this screen since
+ * batch 137, or the series when we arrive from its detail page (it names its return).
+ * The screen used to be a navigation destination, with no return to offer;
+ * it no longer is, and it is a manga flow that the bar does not name.
  */
 const RETOUR_PAR_DEFAUT = { to: '/discover', libelle: 'Découvrir' }
 
@@ -42,9 +42,9 @@ interface QueuedItem {
   includedVolumes: number[]
 }
 
-/** Accepte "1-11", "1,2,5-9", etc. - jamais de plage inventée : un texte
- * illisible se traduit simplement par une liste vide (le bouton "+" reste
- * désactivé tant qu'aucun tome valide n'est reconnu). */
+/** Accepts "1-11", "1,2,5-9", etc. - never an invented range: an
+ * unreadable text simply becomes an empty list (the "+" button stays
+ * disabled as long as no valid volume is recognised). */
 function parseVolumes(text: string): number[] {
   const result = new Set<number>()
   for (const part of text.split(',')) {
@@ -66,27 +66,27 @@ function parseVolumes(text: string): number[] {
 }
 
 /**
- * "Analyser une annonce" - saisie d'une annonce d'occasion puis
- * analyse produisant un verdict, un prix conseillé/cible/maximum et un détail
- * de complétude/édition par série.
+ * "Analyse a listing" - entry of a second-hand listing then
+ * analysis producing a verdict, a recommended/target/maximum price and a
+ * completeness/edition detail per series.
  *
- * **Coller un lien d'annonce pré-remplit le brouillon** (voir ListingUrlField).
- * Le lien ne servait auparavant qu'à retrouver l'annonce plus tard ; il est
- * désormais lu — titre, prix, description, photos — pour n'avoir à saisir que
- * ce qui manque. Trois garde-fous encadrent ce pré-remplissage :
- * - seuls les champs RÉELLEMENT lus sont remplis : un prix que la source ne
- *   donne pas reste vide, jamais supposé ;
- * - une valeur déjà saisie n'est jamais écrasée, et la divergence est annoncée ;
- * - un échec (plateforme inconnue, annonce supprimée, source indisponible) ne
- *   bloque rien : la saisie manuelle est le parcours normal, pas un repli
- *   dégradé.
+ * **Pasting a listing link pre-fills the draft** (see ListingUrlField).
+ * The link used to only serve to find the listing again later; it is
+ * now read — title, price, description, photos — so that only what is
+ * missing has to be entered. Three safeguards frame this pre-fill:
+ * - only the fields REALLY read are filled in: a price that the source does not
+ *   give stays empty, never assumed;
+ * - a value already entered is never overwritten, and the divergence is announced;
+ * - a failure (unknown platform, deleted listing, unavailable source) does not
+ *   block anything: manual entry is the normal flow, not a degraded
+ *   fallback.
  *
- * Ce qui est calculé ensuite ne change pas d'un iota : le lien alimente le
- * brouillon, il ne double aucune logique d'analyse.
+ * What is computed afterwards does not change one bit: the link feeds the
+ * draft, it does not duplicate any analysis logic.
  */
 export function PurchaseAnalysisPage() {
-  // Contexte optionnel passé par la fiche d'une série (voir EntityDetailPage) -
-  // absent quand on arrive par Rechercher, par Profil, ou par URL directe.
+  // Optional context passed by the detail page of a series (see EntityDetailPage) -
+  // missing when we arrive through Search, through Profil, or by direct URL.
   const fromEntity = useLocation().state as { seriesTitle?: string; editionName?: string } | null
 
   const [platform, setPlatform] = useState<ListingPlatform>('VINTED')
@@ -97,17 +97,17 @@ export function PurchaseAnalysisPage() {
   const [buyerProtectionFee, setBuyerProtectionFee] = useState('')
   const [condition, setCondition] = useState<Condition>('VERY_GOOD')
   const [conditionAppliesToContainer, setConditionAppliesToContainer] = useState(false)
-  // Photos lues sur l'annonce - conservées avec l'analyse enregistrée, et
-  // retirables une à une avant de lancer le calcul.
+  // Photos read from the listing - kept with the saved analysis, and
+  // removable one by one before launching the calculation.
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
-  // Ce que vaut le montant de port retenu. Une saisie manuelle vaut ESTIMATED :
-  // le montant est connu sans être garanti - le classer inconnu ferait dire
-  // « livraison non communiquée » juste après que l'utilisateur l'a communiquée.
+  // What the retained shipping amount is worth. A manual entry is ESTIMATED:
+  // the amount is known without being guaranteed - classing it unknown would make the screen say
+  // "livraison non communiquée" right after the user has communicated it.
   const [shippingKind, setShippingKind] = useState<ShippingEstimateKind>('UNKNOWN')
-  // Identifiant de l'annonce chez la source, quand la lecture du lien l'a donné.
+  // Identifier of the listing at the source, when reading the link gave it.
   const [externalListingId, setExternalListingId] = useState('')
-  // Champs que l'utilisateur a modifiés lui-même : ce sont les seuls que le
-  // pré-remplissage n'a pas le droit de toucher (voir appliquerPreview).
+  // Fields that the user modified themselves: they are the only ones that the
+  // pre-fill has no right to touch (see appliquerPreview).
   const [saisisParUtilisateur, setSaisisParUtilisateur] = useState<Set<string>>(new Set())
 
   function marquerSaisi(champ: string) {
@@ -115,13 +115,13 @@ export function PurchaseAnalysisPage() {
   }
 
   /**
-   * Reporte dans le formulaire ce que l'annonce a livré.
+   * Carries into the form what the listing delivered.
    *
-   * Règle simple et sans surprise : un champ vide et non touché est
-   * pré-rempli ; un champ que l'utilisateur a rempli lui-même est CONSERVÉ, et
-   * son nom est renvoyé pour que l'écart avec l'annonce soit dit à l'écran
-   * plutôt que subi en silence. Les champs absents de `retrievedFields` ne sont
-   * jamais devinés.
+   * Simple rule with no surprise: an empty, untouched field is
+   * pre-filled; a field that the user filled in themselves is KEPT, and
+   * its name is returned so that the gap with the listing is said on screen
+   * rather than suffered in silence. The fields missing from `retrievedFields` are
+   * never guessed.
    */
   function appliquerPreview(preview: ListingPreviewDto): { conserves: string[] } {
     const conserves: string[] = []
@@ -143,13 +143,13 @@ export function PurchaseAnalysisPage() {
     if (preview.description) {
       appliquer('description', 'la description', description, preview.description, setDescription)
     }
-    // Les frais sont annoncés par l'annonce elle-même : les laisser à saisir
-    // alors qu'ils sont lisibles rendait le coût réel faux par défaut (0 €),
-    // et donc le verdict trop favorable.
+    // The fees are announced by the listing itself: leaving them to be entered
+    // while they are readable made the real cost wrong by default (0 €),
+    // and so the verdict too favourable.
     if (preview.shippingFee !== null) {
       appliquer('shippingFee', 'les frais de port', shippingFee, String(preview.shippingFee), setShippingFee)
-      // La nature suit le montant : sans elle, « à partir de 2,83 € » se
-      // relirait comme un tarif ferme.
+      // The nature follows the amount: without it, "à partir de 2,83 €" would
+      // be read as a firm rate.
       if (!saisisParUtilisateur.has('shippingFee') && !shippingFee.trim()) {
         setShippingKind(preview.shippingKind)
       }
@@ -158,38 +158,38 @@ export function PurchaseAnalysisPage() {
       appliquer('buyerProtectionFee', 'la protection acheteur', buyerProtectionFee,
         String(preview.buyerProtectionFee), setBuyerProtectionFee)
     }
-    // Les photos ne remplacent jamais une sélection en cours : elles s'ajoutent
-    // à ce qui est déjà là, sans doublon.
+    // The photos never replace a selection in progress: they are added
+    // to what is already there, without duplicates.
     if (preview.imageUrls.length > 0) {
       setPhotoUrls((prev) => Array.from(new Set([...prev, ...preview.imageUrls])))
     }
-    // La plateforme suit la source détectée tant que l'utilisateur ne l'a pas
-    // choisie lui-même - c'est un fait constaté, pas une supposition.
+    // The platform follows the detected source as long as the user has not
+    // chosen it themselves - it is an observed fact, not an assumption.
     if (preview.source !== 'OTHER' && !saisisParUtilisateur.has('platform')) {
       setPlatform(preview.source)
     }
     if (preview.url) setUrl(preview.url)
-    // Retenu tel quel : il ne s'affiche nulle part et n'entre dans aucun calcul.
-    // Il sert uniquement à reconnaître deux analyses de la même annonce.
+    // Kept as is: it is displayed nowhere and enters no calculation.
+    // It only serves to recognise two analyses of the same listing.
     setExternalListingId(preview.externalId ?? '')
-    // L'annonce a parlé : ses champs techniques se replient derrière un
-    // résumé. Ils restent corrigeables, mais ne barrent plus le chemin de
-    // celui qui n'a rien à corriger.
+    // The listing has spoken: its technical fields fold behind a
+    // summary. They stay correctable, but no longer block the path of
+    // someone with nothing to correct.
     if (preview.retrievedFields.length > 0) {
       setInfosDepliees(false)
     }
     return { conserves }
   }
 
-  // Description de l'annonce : lue sur la source quand elle existe, saisissable
-  // sinon. Elle ne rentre dans aucun calcul - elle sert à relire ce que le
-  // vendeur annonçait, notamment ce que les photos ne montrent pas.
+  // Description of the listing: read from the source when it exists, enterable
+  // otherwise. It enters no calculation - it serves to reread what the
+  // seller announced, notably what the photos do not show.
   const [description, setDescription] = useState('')
 
-  // Pré-remplissage quand on arrive depuis la fiche d'une série (voir
-  // EntityDetailPage, "Évaluer une annonce de cette série") - simple valeur
-  // initiale, jamais un champ verrouillé : le lot d'une annonce contient
-  // souvent d'autres séries, qu'on ajoute ensuite normalement.
+  // Pre-fill when we arrive from the detail page of a series (see
+  // EntityDetailPage, "Évaluer une annonce de cette série") - a simple initial
+  // value, never a locked field: the batch of a listing often contains
+  // other series, which are then added normally.
   const [seriesTitle, setSeriesTitle] = useState(fromEntity?.seriesTitle ?? '')
   const [editionName, setEditionName] = useState(fromEntity?.editionName ?? '')
   const [volumesText, setVolumesText] = useState('')
@@ -203,8 +203,8 @@ export function PurchaseAnalysisPage() {
         platform,
         url: url.trim() || undefined,
         rawTitle: rawTitle.trim() || `Lot ${LISTING_PLATFORM_LABELS[platform]}`,
-        // La description alimente les points de vigilance (paiement hors
-        // plateforme, texte trop court). Elle etait saisie mais jamais envoyee.
+        // The description feeds the warning points (payment outside
+        // the platform, text too short). It was entered but never sent.
         description: description.trim() || undefined,
         askingPrice: Number(askingPrice),
         shippingFee: shippingFee.trim() ? Number(shippingFee) : undefined,
@@ -217,9 +217,9 @@ export function PurchaseAnalysisPage() {
           editionName: item.editionName,
           includedVolumes: item.includedVolumes,
         })),
-        // Conservées avec l'analyse : celle-ci est l'état de l'annonce à
-        // l'instant où elle a été lue, et le reste même si le vendeur la
-        // modifie ou la retire ensuite.
+        // Kept with the analysis: it is the state of the listing at the
+        // moment it was read, and it stays so even if the seller
+        // changes or removes it afterwards.
         photoUrls,
         externalListingId: externalListingId.trim() || undefined,
       }),
@@ -242,14 +242,14 @@ export function PurchaseAnalysisPage() {
   }
 
   /**
-   * Verse dans le brouillon les éléments que l'utilisateur vient de confirmer
-   * dans la liste détectée.
+   * Adds to the draft the items that the user has just confirmed
+   * in the detected list.
    *
-   * Regroupe par série + édition : la reconnaissance rend un élément par tome,
-   * alors que l'analyse raisonne en lots. Fusionne avec un lot déjà présent
-   * plutôt que d'en créer un doublon, et n'ajoute jamais deux fois le même
-   * tome — un tome vu sur trois photos a déjà été consolidé côté serveur, mais
-   * l'utilisateur peut aussi l'avoir saisi à la main juste avant.
+   * Groups by series + edition: the recognition returns one item per volume,
+   * whereas the analysis reasons in batches. Merges with a batch already present
+   * rather than creating a duplicate, and never adds the same
+   * volume twice — a volume seen on three photos was already consolidated on the server,
+   * but the user may also have entered it by hand just before.
    */
   function confirmerElementsReconnus(elements: ElementConfirme[]) {
     if (elements.length === 0) return
@@ -274,58 +274,58 @@ export function PurchaseAnalysisPage() {
           })
         }
       }
-      // Tomes triés et texte reconstruit : le lot doit se relire simplement.
+      // Volumes sorted and text rebuilt: the batch must read simply.
       return suivant.map((item) => {
         const tomes = [...item.includedVolumes].sort((a, b) => a - b)
         return { ...item, includedVolumes: tomes, volumesText: tomes.join(', ') }
       })
     })
 
-    // Le retour visuel est traité par un effet, après le commit de React :
-    // appeler focus() ici viserait un nœud que le rendu suivant remplacera.
+    // The visual feedback is handled by an effect, after React's commit:
+    // calling focus() here would target a node that the next render will replace.
     setElementsAJusteAjoutes(elements.length)
   }
 
   /**
-   * Amène l'utilisateur au résultat quand des éléments viennent d'entrer dans
-   * le lot.
+   * Brings the user to the result when items have just entered
+   * the batch.
    *
-   * Le changement principal est dans la page, pas dans un bandeau : plutôt
-   * qu'un toast qui disparaît, on montre l'endroit où les éléments sont allés.
-   * Rien ne bouge si la liste est déjà sous les yeux - un défilement gratuit
-   * désoriente plus qu'il n'aide.
+   * The main change is in the page, not in a banner: rather
+   * than a toast that disappears, we show the place where the items went.
+   * Nothing moves if the list is already in view - a needless scroll
+   * disorients more than it helps.
    */
   /**
-   * Les champs techniques de l'annonce sont-ils dépliés ?
+   * Are the technical fields of the listing unfolded?
    *
-   * <b>Fermés d'entrée</b>, et rouverts sur demande. Ils l'étaient auparavant
-   * dès qu'une URL avait été lue - ce qui ne réglait que la moitié du
-   * problème : sur un formulaire vierge, les six champs restaient ouverts et
-   * l'écran faisait 2,2 hauteurs d'écran pour 25 contrôles, avant que
-   * l'utilisateur ait rien saisi.
+   * <b>Closed at first</b>, and reopened on request. They used to be closed
+   * as soon as a URL had been read - which only solved half of the
+   * problem: on a blank form, the six fields stayed open and
+   * the screen was 2.2 screen heights for 25 controls, before
+   * the user had entered anything.
    *
-   * <p>Or aucun de ces six champs n'est requis sauf le prix, et tous sont
-   * remplis automatiquement dès qu'un lien est collé - le parcours prévu. Les
-   * garder ouverts au cas où faisait payer à tout le monde le confort du
-   * parcours manuel.
+   * <p>Yet none of these six fields is required except the price, and all are
+   * filled in automatically as soon as a link is pasted - the intended flow. Keeping
+   * them open just in case made everyone pay for the comfort of the
+   * manual flow.
    */
   const [infosDepliees, setInfosDepliees] = useState(false)
 
-  /** L'état déclaré est-il ouvert ? Fermé d'entrée : il a un défaut sensé. */
+  /** Is the declared condition open? Closed at first: it has a sensible default. */
   const [etatDeplie, setEtatDeplie] = useState(false)
 
-  /** Rien de l'annonce n'a encore été saisi ni lu - le tout premier écran. */
+  /** Nothing of the listing has been entered or read yet - the very first screen. */
   const rienDeSaisi =
     !rawTitle.trim() && !askingPrice.trim() && !shippingFee.trim()
     && !buyerProtectionFee.trim() && !description.trim() && photoUrls.length === 0
 
   /**
-   * Le coût affiché sous le bouton, avec le nom que sa complétude autorise.
+   * The cost displayed under the button, with the name that its completeness allows.
    *
-   * Reprend la règle de {@code PurchaseAnalysisResultCard} plutôt que d'en
-   * inventer une : un port inconnu ne vaut jamais zéro, et appeler « coût
-   * total » un montant sans livraison ferait croire à un achat moins cher
-   * qu'il ne sera.
+   * Takes the rule of {@code PurchaseAnalysisResultCard} rather than inventing
+   * one: an unknown shipping is never worth zero, and calling an amount without delivery
+   * "coût total" would suggest a purchase cheaper
+   * than it will be.
    */
   const recapitulatifCout = (() => {
     const prix = Number(askingPrice)
@@ -349,8 +349,8 @@ export function PurchaseAnalysisPage() {
         const doux = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
         titre.scrollIntoView({ behavior: doux, block: 'center' })
       }
-      // Le focus annonce l'arrivée aux lecteurs d'écran, que le défilement
-      // laisserait muets.
+      // The focus announces the arrival to screen readers, which the scroll
+      // would leave silent.
       titre.focus({ preventScroll: true })
     }
     const minuteur = setTimeout(() => setElementsAJusteAjoutes(0), 4000)
@@ -379,22 +379,22 @@ export function PurchaseAnalysisPage() {
   }
 
   /**
-   * La ligne en cours de saisie, si elle est complète.
+   * The row being entered, if it is complete.
    *
-   * Elle compte dans le lot sans qu'on ait à presser « + ». Auparavant, remplir
-   * Série / Édition / Tomes puis viser « ANALYSER LE LOT » laissait le bouton
-   * grisé sans un mot d'explication : le « + » était un passage obligé que rien
-   * n'annonçait. Il ne sert plus qu'à enchaîner une série SUPPLÉMENTAIRE.
+   * It counts in the batch without needing to press "+". Before, filling in
+   * Series / Edition / Volumes then aiming at "ANALYSER LE LOT" left the button
+   * greyed out without a word of explanation: the "+" was a required step that nothing
+   * announced. It now only serves to chain an ADDITIONAL series.
    */
   const ligneEnCours: QueuedItem | null =
     seriesTitle.trim() && parsedVolumes.length > 0
       ? {
           seriesTitle: seriesTitle.trim(),
-          // L'édition n'est plus une condition : ne pas la connaître est un
-          // état légitime, que le moteur sait traiter (complétude inconnue,
-          // valeur neuve indisponible). L'exiger obligeait à en inventer une -
-          // et une étiquette inventée peut correspondre PAR ACCIDENT à une
-          // autre édition, faussant la référence marché sans rien signaler.
+          // The edition is no longer a condition: not knowing it is a
+          // legitimate state, which the engine knows how to handle (unknown completeness,
+          // new value unavailable). Requiring it forced users to invent one -
+          // and an invented label can match ANOTHER edition BY ACCIDENT,
+          // skewing the market reference without signalling anything.
           editionName: editionName.trim() || EDITION_INCONNUE,
           volumesText,
           includedVolumes: parsedVolumes,
@@ -404,32 +404,32 @@ export function PurchaseAnalysisPage() {
   const itemsAAnalyser = ligneEnCours ? [...items, ligneEnCours] : items
 
   /**
-   * Le décompte parle en TOMES, pas en lignes.
+   * The count speaks in VOLUMES, not in rows.
    *
-   * Le lot est modélisé par série + édition, avec un ensemble de tomes : « Hell's
-   * Paradise 6-10 » est UNE ligne. Annoncer « 1 élément » pour cinq livres
-   * serait exact du point de vue du modèle et faux du point de vue de
-   * l'acheteur, qui paie cinq tomes.
+   * The batch is modelled by series + edition, with a set of volumes: "Hell's
+   * Paradise 6-10" is ONE row. Announcing "1 élément" for five books
+   * would be exact from the point of view of the model and wrong from the point of view of
+   * the buyer, who pays for five volumes.
    */
   const nombreElementsDuLot = itemsAAnalyser.reduce((total, item) => total + item.includedVolumes.length, 0)
 
   /**
-   * Vrai si ce tome est déjà dans le lot.
+   * True if this volume is already in the batch.
    *
-   * Sert au panneau de détection à marquer « Ajouté au lot » plutôt que de
-   * laisser une proposition paraître en attente alors qu'elle est déjà prise
-   * en compte - et à empêcher de la confirmer une seconde fois.
+   * Serves the detection panel to mark "Ajouté au lot" rather than
+   * letting a proposal look pending when it is already taken
+   * into account - and to prevent confirming it a second time.
    */
   /**
-   * L'annonce nomme une série mais pas ses tomes (« 9 tomes de Naruto ») :
-   * on reprend le nom lu et on met le curseur sur la seule case encore vide.
-   * Le champ « Tomes » n'est PAS pré-rempli - déduire « 1-9 » d'un simple
-   * décompte inventerait précisément ce que le backend refuse d'inventer.
+   * The listing names a series but not its volumes ("9 tomes de Naruto"):
+   * we take the name that was read and put the cursor on the only box still empty.
+   * The "Tomes" field is NOT pre-filled - deducing "1-9" from a simple
+   * count would invent precisely what the backend refuses to invent.
    */
   function prefillSerieAnnoncee(titre: string) {
     setSeriesTitle(titre)
-    // Après le rendu, sinon le focus part sur un champ que React n'a pas
-    // encore réconcilié (constaté sur la confirmation d'éléments, Lot 31).
+    // After the render, otherwise the focus goes to a field that React has not
+    // yet reconciled (seen on the confirmation of items, Batch 31).
     setPrefillDemande(true)
   }
 
@@ -454,10 +454,10 @@ export function PurchaseAnalysisPage() {
   const canAnalyze = itemsAAnalyser.length > 0 && prixRenseigne
 
   /**
-   * Ce qui manque pour évaluer - dit, plutôt que laissé à deviner.
+   * What is missing to evaluate - said, rather than left to guess.
    *
-   * Ne parle JAMAIS d'édition : ne pas la connaître n'empêche pas d'évaluer un
-   * lot, et l'afficher comme un blocage relancerait l'obligation d'inventer.
+   * NEVER talks about the edition: not knowing it does not prevent evaluating a
+   * batch, and displaying it as a block would bring back the obligation to invent.
    */
   const raisonBlocage = canAnalyze
     ? null
@@ -504,10 +504,10 @@ export function PurchaseAnalysisPage() {
       />
 
       <div className="flex flex-col gap-4">
-        {/* Progressive disclosure : quand l'annonce a été lue, ses champs
-            techniques se replient derrière un résumé. Six champs ouverts en
-            permanence obligeaient à tout relire avant d'arriver à la seule
-            question qui compte - que contient ce lot. */}
+        {/* Progressive disclosure: when the listing has been read, its technical
+            fields fold behind a summary. Six fields open all the
+            time forced rereading everything before reaching the only
+            question that counts - what does this batch contain. */}
         {infosDepliees ? (
           <>
                     <section className="flex flex-col gap-3 rounded-xl bg-surface p-3">
@@ -561,11 +561,11 @@ export function PurchaseAnalysisPage() {
                             value={shippingFee}
                             onChange={(e) => {
                               marquerSaisi('shippingFee')
-                              // Un montant saisi à la main n'est ni « à partir de » ni
-                              // ferme - mais il est CONNU. Le classer inconnu ferait dire
-                              // « livraison non communiquée » à l'écran juste après que
-                              // l'utilisateur l'a communiquée, tout en comptant le montant
-                              // dans le coût. Champ vidé : on redevient réellement ignorant.
+                              // An amount entered by hand is neither "à partir de" nor
+                              // firm - but it is KNOWN. Classing it unknown would make the screen say
+                              // "livraison non communiquée" right after
+                              // the user has communicated it, while still counting the amount
+                              // in the cost. Field emptied: we become truly ignorant again.
                               setShippingKind(e.target.value.trim() ? 'ESTIMATED' : 'UNKNOWN')
                               setShippingFee(e.target.value)
                             }}
@@ -593,10 +593,10 @@ export function PurchaseAnalysisPage() {
                         </div>
                       </div>
 
-                      {/* Titre et description : pré-remplis quand l'annonce a pu être lue,
-                          saisissables sinon. Affichés en permanence plutôt que repliés -
-                          ils portent désormais du contenu récupéré, qu'il faut pouvoir
-                          relire et corriger avant d'analyser. */}
+                      {/* Title and description: pre-filled when the listing could be read,
+                          enterable otherwise. Displayed all the time rather than folded -
+                          they now carry retrieved content, which must be possible to
+                          reread and correct before analysing. */}
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs text-textDim" htmlFor="rawTitle">
@@ -645,11 +645,11 @@ export function PurchaseAnalysisPage() {
             </button>
           </>
         ) : rienDeSaisi ? (
-          /* Rien n'a encore été saisi : le résumé énumérerait trois absences
-             - « Annonce sans titre », « Prix non renseigné », « Port non
-             communiqué » - avant même que l'utilisateur ait commencé. Ce
-             n'est pas un résumé, c'est un reproche. Une invitation à la
-             place. */
+          /* Nothing has been entered yet: the summary would list three absences
+             - "Annonce sans titre", "Prix non renseigné", "Port non
+             communiqué" - before the user has even started. That
+             is not a summary, it is a reproach. An invitation
+             instead. */
           <button
             type="button"
             onClick={() => setInfosDepliees(true)}
@@ -689,9 +689,9 @@ export function PurchaseAnalysisPage() {
             </span>
           </div>
 
-          {/* La liste canonique d'abord : c'est elle qui part à l'analyse. Les
-              propositions et le formulaire ne sont que deux façons de
-              l'alimenter - il n'existe pas deux lots parallèles. */}
+          {/* The canonical list first: it is what goes to the analysis. The
+              proposals and the form are only two ways of
+              feeding it - there are not two parallel batches. */}
           {elementsAJusteAjoutes > 0 && (
             <p className="rounded-lg bg-okTint px-3 py-2 text-xs font-medium text-ok" role="status">
               {elementsAJusteAjoutes} élément{elementsAJusteAjoutes > 1 ? 's' : ''} ajouté
@@ -708,9 +708,9 @@ export function PurchaseAnalysisPage() {
             dejaDansLeLot={dejaDansLeLot}
             onConfirm={confirmerElementsReconnus}
             onPrefillSeries={prefillSerieAnnoncee}
-            // nombreElementsDuLot inclut la ligne en cours de saisie : c'est
-            // elle qu'on veut confronter au nombre annoncé, pas seulement les
-            // lignes déjà validées d'un clic sur « Autre série ».
+            // nombreElementsDuLot includes the row being entered: it is
+            // the one we want to compare with the announced number, not only the
+            // rows already validated by a click on "Autre série".
             tomesDansLeLot={nombreElementsDuLot}
           />
 
@@ -732,8 +732,8 @@ export function PurchaseAnalysisPage() {
                 autoComplete="off"
               />
             </div>
-            {/* Tomes + bouton restent groupés (jamais séparés par le wrap - le
-                bouton valide la ligne entière, pas seulement ce champ) */}
+            {/* Volumes + button stay grouped (never separated by the wrap - the
+                button validates the whole row, not only this field) */}
             <div className="flex items-end gap-2">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs text-textDim" htmlFor="itemVolumes">
@@ -753,10 +753,10 @@ export function PurchaseAnalysisPage() {
                 type="button"
                 onClick={queueItem}
                 disabled={!seriesTitle.trim() || parsedVolumes.length === 0}
-                // aria-label court pour l'annonce, title long pour l'infobulle :
-                // le title est le DERNIER recours de l'algorithme accname (et
-                // n'existe pas au doigt), il ne doit pas rester seul à nommer
-                // un bouton en icône seule - voir Lot 29.
+                // short aria-label for the listing, long title for the tooltip:
+                // the title is the LAST resort of the accname algorithm (and
+                // does not exist for a finger), it must not stay alone to name
+                // an icon-only button - see Batch 29.
                 aria-label="Ajouter une autre série au lot"
                 title="Ajouter une AUTRE série au lot - celle en cours de saisie est déjà comptée"
                 className="btn-secondaire shrink-0"
@@ -768,9 +768,9 @@ export function PurchaseAnalysisPage() {
           </div>
           <p className="text-xs text-textDim">Tomes : ex. "1-11" pour une plage, "1,3,5-9" pour plusieurs</p>
 
-          {/* L'édition vient APRÈS la série et les tomes, comme un résultat et
-              non comme une question : c'était la seule étape du produit où l'on
-              obligeait l'utilisateur à savoir - ou à inventer. */}
+          {/* The edition comes AFTER the series and the volumes, as a result and
+              not as a question: it was the only step of the product where the user was
+              forced to know - or to invent. */}
           <EditionStatusRow seriesTitle={seriesTitle} value={editionName} onChange={setEditionName} />
 
           {seriesTitle.trim() && editionName.trim() && editionName !== EDITION_INCONNUE && (
@@ -779,11 +779,11 @@ export function PurchaseAnalysisPage() {
 
         </section>
 
-        {/* Replié sur sa valeur : ce champ a un défaut sensé (« Très bon
-            état »), et six pastilles plus une case à cocher coûtaient 244 px
-            à quelqu'un qui, huit fois sur dix, ne les touchera pas. Le nom du
-            choix reste lu, donc vérifiable d'un coup d'œil - ce n'est pas
-            l'information qui disparaît, seulement les six façons d'en changer. */}
+        {/* Folded on its value: this field has a sensible default ("Très bon
+            état"), and six chips plus a checkbox cost 244 px
+            to someone who, eight times out of ten, will not touch them. The name of the
+            choice is still read, so checkable at a glance - the information does not
+            disappear, only the six ways to change it. */}
         <section className="flex flex-col gap-2 rounded-xl bg-surface p-3">
           {etatDeplie ? (
             <>
@@ -821,10 +821,10 @@ export function PurchaseAnalysisPage() {
 
         {analyzeMutation.isError && <ErrorBanner message={analyzeMutation.error.message} />}
 
-        {/* Le CTA porte ce qu'il va évaluer : le lien entre « Contenu du lot »
-            et le bouton devient visuel, plus seulement spatial. Le décompte est
-            en TOMES - c'est ce qu'on achète, pas le nombre de lignes du
-            modèle. */}
+        {/* The CTA carries what it will evaluate: the link between "Contenu du lot"
+            and the button becomes visual, no longer only spatial. The count is
+            in VOLUMES - it is what we buy, not the number of rows of the
+            model. */}
         {nombreElementsDuLot > 0 && (
           <p className="text-center text-xs text-textDim">
             {nombreElementsDuLot} tome{nombreElementsDuLot > 1 ? 's' : ''}
@@ -840,8 +840,8 @@ export function PurchaseAnalysisPage() {
         >
           {analyzeMutation.isPending ? 'Évaluation…' : 'Évaluer ce lot'}
         </button>
-        {/* Un bouton principal grisé sans explication est un cul-de-sac : on
-            dit ce qui manque, plutôt que de laisser chercher. */}
+        {/* A greyed-out main button with no explanation is a dead end: we
+            say what is missing, rather than leaving people to search. */}
         {raisonBlocage && (
           <p className="text-center text-xs text-textDim" role="status">
             {raisonBlocage}

@@ -41,8 +41,8 @@ class JpaFollowedEditionRepositoryAdapter implements FollowedEditionRepository {
 
     @Override
     public List<FollowedEdition> findByEntityIdIn(List<UUID> entityIds) {
-        // Une liste vide produirait un `IN ()` que Postgres refuse - on court-circuite
-        // plutôt que de laisser l'appelant s'en souvenir.
+        // An empty list would produce an `IN ()` that Postgres refuses - we short-circuit
+        // rather than let the caller remember it.
         if (entityIds.isEmpty()) {
             return List.of();
         }
@@ -53,9 +53,9 @@ class JpaFollowedEditionRepositoryAdapter implements FollowedEditionRepository {
 
     @Override
     public void deleteByEntityId(UUID entityId) {
-        // Une suppression EN MASSE (deleteBy…) ne passe pas non plus par le
-        // cloisonnement : elle efface les lignes de tout le monde. On lit
-        // d'abord - la lecture, elle, est filtrée - puis on supprime.
+        // A BULK delete (deleteBy…) does not go through the
+        // separation either: it deletes everyone's rows. We read
+        // first - the read, for its part, is filtered - then we delete.
         jpaRepository.findByEntityId(entityId).ifPresent(jpaRepository::delete);
     }
 

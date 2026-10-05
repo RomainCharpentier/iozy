@@ -18,11 +18,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Récupère les jeux "similaires" à un jeu IGDB précis (champ similar_games,
- * calculé par IGDB lui-même) - contrairement à BGG qui n'a pas d'équivalent
- * direct et nécessite de croiser catégories/mécaniques via BggThingFetcher +
- * BggHotListFetcher, IGDB fait le travail de similarité côté serveur, donc
- * un seul appel par jeu possédé suffit à la découverte (voir DiscoveryService).
+ * Fetches the "similar" games of a specific IGDB game (similar_games field,
+ * computed by IGDB itself) - unlike BGG, which has no direct
+ * equivalent and needs to cross categories/mechanics through BggThingFetcher +
+ * BggHotListFetcher, IGDB does the similarity work on the server side, so
+ * a single call per owned game is enough for discovery (see DiscoveryService).
  */
 @Component
 public class IgdbSimilarGamesFetcher {
@@ -59,16 +59,16 @@ public class IgdbSimilarGamesFetcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("IGDB a répondu {} pour /games?similar_games id={}", response.statusCode(), igdbId);
+                log.warn("IGDB answered {} for /games?similar_games id={}", response.statusCode(), igdbId);
                 return List.of();
             }
 
             return parse(response.body());
         } catch (IgdbUnavailableException e) {
-            log.warn("IGDB indisponible pour les jeux similaires à l'id {} : {}", igdbId, e.getMessage());
+            log.warn("IGDB unavailable for the games similar to id {}: {}", igdbId, e.getMessage());
             return List.of();
         } catch (Exception e) {
-            log.warn("Échec de l'appel IGDB similar_games pour l'id {} : {}", igdbId, e.getMessage());
+            log.warn("IGDB similar_games call failed for id {}: {}", igdbId, e.getMessage());
             return List.of();
         }
     }
@@ -77,8 +77,8 @@ public class IgdbSimilarGamesFetcher {
         JsonNode root = objectMapper.readTree(body);
         List<MetadataCandidate> candidates = new ArrayList<>();
 
-        // La requête "where id = X" renvoie un tableau à un seul élément
-        // (le jeu source), dont similar_games est le tableau qui nous intéresse.
+        // The query "where id = X" returns an array with a single element
+        // (the source game), whose similar_games is the array we are interested in.
         for (JsonNode game : root) {
             for (JsonNode similar : game.path("similar_games")) {
                 String similarId = similar.path("id").asText();

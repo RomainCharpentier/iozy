@@ -1,18 +1,18 @@
 import { del, get } from './client'
 
 /**
- * L'administration de l'INSTANCE : qui a un compte, et en supprimer un.
+ * Administration of the INSTANCE: who has an account, and deleting one.
  *
- * <p>Réservé aux comptes administrateurs (`compte.admin`, voir `api/auth`) —
- * mais c'est le <b>serveur</b> qui l'impose : tout `/api/admin/**` répond 403
- * sans le rôle. Ce que l'écran fait de `compte.admin`, c'est éviter de proposer
- * une porte fermée, jamais protéger quoi que ce soit.
+ * <p>Reserved for administrator accounts (`compte.admin`, see `api/auth`) -
+ * but it is the <b>server</b> that enforces it: every `/api/admin/**` answers 403
+ * without the role. What the screen does with `compte.admin` is avoid offering
+ * a closed door, never protect anything.
  *
- * <p>Rien ici ne donne accès aux données de qui que ce soit : des
- * métadonnées, et des nombres.
+ * <p>Nothing here gives access to anyone's data: only
+ * metadata, and numbers.
  */
 
-/** Ce que pèse un compte — ce qu'on détruirait en le supprimant. */
+/** What an account weighs - what would be destroyed by deleting it. */
 export interface VolumeDuCompte {
   possessions: number
   envies: number
@@ -27,7 +27,7 @@ export interface CompteAdministre {
   pseudo: string
   email: string
   admin: boolean
-  /** ISO 8601, tel que le serveur l'écrit. */
+  /** ISO 8601, as the server writes it. */
   creeLe: string
   volume: VolumeDuCompte
 }
@@ -37,10 +37,10 @@ export function listerComptes(): Promise<CompteAdministre[]> {
 }
 
 /**
- * Supprime un compte et **toutes** ses données. Définitif, sans reprise.
+ * Deletes an account and **all** its data. Final, no recovery.
  *
- * <p>409 quand l'administrateur vise son propre compte : le serveur le refuse,
- * et c'est ce qui garantit qu'il reste toujours quelqu'un pour administrer.
+ * <p>409 when the administrator targets their own account: the server refuses it,
+ * and this guarantees that someone always remains to administer.
  */
 export function supprimerCompte(id: string): Promise<void> {
   return del<void>(`/admin/comptes/${id}`)

@@ -20,19 +20,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Interroge l'API XML publique de BGG pour la collection d'un utilisateur
- * (endpoint /collection, différent de /search utilisé par BggMetadataProvider
- * - format XML différent, d'où une classe séparée plutôt qu'un partage
- * artificiel de code entre les deux).
+ * Queries the BGG public XML API for a user's collection
+ * (/collection endpoint, different from /search used by BggMetadataProvider
+ * - different XML format, hence a separate class instead of an artificial
+ * sharing of code between the two).
  * <p>
- * BGG exige depuis juillet 2025 un enregistrement d'application et un token
- * Bearer pour la quasi-totalité de son API (voir BggAuthorization) -
- * configurable via bgg.application-token (BGG_APPLICATION_TOKEN).
+ * Since July 2025, BGG requires an application registration and a
+ * Bearer token for almost all of its API (see BggAuthorization) -
+ * configurable with bgg.application-token (BGG_APPLICATION_TOKEN).
  * <p>
- * Particularité de cet endpoint : BGG répond parfois 202 (collection en
- * cours de préparation côté serveur) avant de répondre 200 avec les vraies
- * données - un ré-essai avec un court délai est le comportement recommandé
- * par BGG lui-même, pas une erreur à traiter comme telle.
+ * Particularity of this endpoint: BGG sometimes answers 202 (collection being
+ * prepared on the server side) before answering 200 with the real
+ * data - a retry with a short delay is the behaviour recommended
+ * by BGG itself, not an error to handle as such.
  */
 @Component
 public class BggCollectionFetcher {
@@ -50,7 +50,7 @@ public class BggCollectionFetcher {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    /** Levée si BGG ne renvoie pas la collection après plusieurs tentatives, ou si le username est invalide. */
+    /** Thrown if BGG does not return the collection after several attempts, or if the username is invalid. */
     public static class BggCollectionUnavailableException extends RuntimeException {
         public BggCollectionUnavailableException(String message) {
             super(message);
@@ -59,8 +59,8 @@ public class BggCollectionFetcher {
 
     public List<BggCollectionItem> fetchOwnedGames(String username) {
         if (applicationToken == null || applicationToken.isBlank()) {
-            log.warn("Aucun bgg.application-token configuré - appel BGG non authentifié, "
-                    + "non conforme aux conditions actuelles de BGG (voir boardgamegeek.com/using_the_xml_api)");
+            log.warn("No bgg.application-token configured - unauthenticated BGG call, "
+                    + "not compliant with BGG's current terms (see boardgamegeek.com/using_the_xml_api)");
         }
         String encodedUsername = URLEncoder.encode(username, StandardCharsets.UTF_8);
         HttpRequest request = BggAuthorization.applyToken(HttpRequest.newBuilder()
@@ -77,7 +77,7 @@ public class BggCollectionFetcher {
                     return parse(response.body());
                 }
                 if (response.statusCode() == 202) {
-                    log.info("BGG prépare la collection de '{}' (tentative {}/{}), nouvel essai dans {}s",
+                    log.info("BGG is preparing the collection of '{}' (attempt {}/{}), retrying in {}s",
                             username, attempt, MAX_ATTEMPTS, RETRY_DELAY.toSeconds());
                     Thread.sleep(RETRY_DELAY.toMillis());
                     continue;
@@ -103,7 +103,7 @@ public class BggCollectionFetcher {
     List<BggCollectionItem> parse(String xmlBody) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // prévention XXE
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); // XXE prevention
             Document document = factory.newDocumentBuilder()
                     .parse(new org.xml.sax.InputSource(new java.io.StringReader(xmlBody)));
 
@@ -113,7 +113,7 @@ public class BggCollectionFetcher {
             for (int i = 0; i < items.getLength(); i++) {
                 Element item = (Element) items.item(i);
                 if (!isOwned(item)) {
-                    continue; // filet de sécurité : own=1 est déjà demandé côté requête
+                    continue; // safety net: own=1 is already requested in the query
                 }
 
                 String objectId = item.getAttribute("objectid");

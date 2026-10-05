@@ -1,15 +1,15 @@
 import type { VolumeCandidateDto } from '@/common/types/api'
 
 /**
- * Clé stable identifiant un tome dans un ensemble de sélection.
+ * Stable key identifying a volume in a selection set.
  *
- * Une même série peut avoir plusieurs éditions portant chacune un tome
- * numéro 1 : la clé combine donc édition ET numéro, jamais le numéro seul.
+ * The same series can have several editions that each carry a volume
+ * number 1: the key therefore combines edition AND number, never the number alone.
  *
- * <p>Vit ici plutôt que dans `VolumeSelectionGrid` parce que c'est une
- * fonction pure, sans lien avec le rendu - et qu'un fichier qui exporte à la
- * fois un composant et autre chose fait perdre le rafraîchissement à chaud à
- * tout le module.
+ * <p>Lives here rather than in `VolumeSelectionGrid` because it is a pure
+ * function, unrelated to rendering - and because a file that exports both a
+ * component and something else makes the whole module lose hot
+ * refresh.
  */
 export function volumeKey(v: Pick<VolumeCandidateDto, 'edition' | 'volumeNumber'>): string {
   return `${v.edition}|${v.volumeNumber}`

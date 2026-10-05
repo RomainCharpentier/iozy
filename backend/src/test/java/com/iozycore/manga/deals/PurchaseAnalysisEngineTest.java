@@ -53,9 +53,9 @@ class PurchaseAnalysisEngineTest {
 
     @Test
     void an_ai_price_estimate_feeds_fair_value_and_negotiation_when_there_is_no_real_observation() {
-        // Prix neuf 20€/tome, état GOOD (45% de décote générique -> 11€/tome théorique) - mais l'IA
-        // estime 16€/tome (édition recherchée) : le prix retenu doit être celui de l'IA, pas la
-        // décote générique réappliquée par-dessus (ce serait compter la dépréciation deux fois).
+        // New price 20 EUR/volume, GOOD condition (45% generic discount -> 11 EUR/volume theoretical) - but the AI
+        // estimates 16 EUR/volume (sought-after edition): the chosen price must be the AI's, not the
+        // generic discount applied again on top (that would count depreciation twice).
         MangaEdition edition = MangaEdition.create("Vinland Saga", "Deluxe", EditionTier.DELUXE, "Kurokawa", 10,
                 new BigDecimal("20.00"), false, false, null);
         ListingItem item = item("Vinland Saga", Set.of(1));
@@ -69,7 +69,7 @@ class PurchaseAnalysisEngineTest {
         MarketPrice marketPrice = analysis.itemBreakdown().get(0).marketPrice();
         assertThat(marketPrice.basis()).isEqualTo(PriceBasis.AI_ESTIMATED);
         assertThat(marketPrice.aiEstimatedPrice()).isEqualByComparingTo(new BigDecimal("16.00"));
-        // Garde-fou : une estimation IA n'est jamais comptée comme une donnée de marché réelle.
+        // Safeguard: an AI estimate is never counted as real market data.
         assertThat(marketPrice.observationCount()).isZero();
 
         assertThat(analysis.negotiation().maxPrice()).isEqualByComparingTo(new BigDecimal("16.80")); // 16 * 1.05
@@ -161,8 +161,8 @@ class PurchaseAnalysisEngineTest {
         DuplicateAnalysis duplicates = analysis.itemBreakdown().get(0).duplicates();
         assertThat(duplicates.duplicateVolumeNumbers()).containsExactlyInAnyOrder(1, 2);
         assertThat(duplicates.usefulVolumeCount()).isEqualTo(1);
-        // Aucun avertissement en prose sur les doublons : l'information vit
-        // dans DuplicateAnalysis ci-dessus, jamais dupliquee en texte (Lot 30).
+        // No prose warning about duplicates: the information lives
+        // in DuplicateAnalysis above, never duplicated as text (Batch 30).
         assertThat(analysis.itemBreakdown().get(0).editionWarnings())
                 .noneMatch(w -> w.message().toLowerCase().contains("doublon"));
         assertThat(analysis.totalMaxWorthwhilePrice()).isEqualByComparingTo(new BigDecimal("6.90")); // 1 useful volume

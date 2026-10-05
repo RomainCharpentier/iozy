@@ -5,20 +5,20 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Ce que le texte d'une annonce permet de déduire — et surtout ce qu'il ne
- * permet pas.
+ * What the text of a listing lets us deduce — and above all what it does not
+ * let us deduce.
  * <p>
- * La moitié de ces tests vérifient une <b>absence</b> : « lot manga divers » ne
- * doit produire aucun tome. Inventer une intégrale à partir d'une formule vague
- * ferait calculer un prix par tome, un taux de doublons et un verdict d'achat
- * sur des tomes qui n'existent pas — un chiffre faux est bien pire qu'un
- * « à confirmer ».
+ * Half of these tests check an <b>absence</b>: "lot manga divers" must
+ * produce no volume. Inventing a complete set from a vague phrase
+ * would compute a price per volume, a duplicate rate and a buying verdict
+ * on volumes that do not exist — a wrong figure is much worse than an
+ * "to confirm".
  * <p>
- * Tous les textes ci-dessous sont fabriqués : aucune annonce réelle dans le dépôt.
+ * All the texts below are made up: no real listing in the repository.
  */
 class ListingTextParserTest {
 
-    // ------------------------------------------------------------- Ce qu'on lit
+    // ------------------------------------------------------------- What we read
 
     @Test
     void lit_une_plage_ecrite_en_toutes_lettres() {
@@ -59,22 +59,22 @@ class ListingTextParserTest {
 
     @Test
     void le_titre_prime_sur_la_description() {
-        // Le titre est bien plus fiable : une description peut mentionner
-        // d'autres séries, un historique d'achat, une autre annonce du vendeur.
+        // The title is much more reliable: a description may mention
+        // other series, a purchase history, another listing of the seller.
         ListingTextParser.Detection detection =
                 ListingTextParser.parse("Platinum End tomes 1 à 3", "j'ai aussi les tomes 8 à 12 d'une autre série");
 
         assertThat(detection.volumeNumbers()).containsExactly(1, 2, 3);
     }
 
-    // ------------------------------------------------ Ce qu'on refuse de deviner
+    // ------------------------------------------------ What we refuse to guess
 
     @Test
     void un_lot_annonce_comme_divers_ne_produit_aucun_tome() {
         ListingTextParser.Detection detection = ListingTextParser.parse("Lot manga divers 25 pièces", null);
 
-        // « 25 » est le nombre de pièces, pas un tome. Une formulation vague
-        // empoisonne tout ce qui l'entoure.
+        // "25" is the number of pieces, not a volume. A vague wording
+        // poisons everything around it.
         assertThat(detection.volumeNumbers()).isEmpty();
         assertThat(detection.vague()).isTrue();
         assertThat(detection.needsConfirmation()).isTrue();
@@ -85,8 +85,8 @@ class ListingTextParserTest {
         ListingTextParser.Detection detection = ListingTextParser.parse("Platinum End intégrale complète", null);
 
         assertThat(detection.mentionsComplete()).isTrue();
-        // On ne sait PAS combien de tomes compte la série : le déduire ici
-        // reviendrait à inventer la taille du lot.
+        // We do NOT know how many volumes the series has: deducing it here
+        // would mean inventing the size of the batch.
         assertThat(detection.volumeNumbers()).isEmpty();
         assertThat(detection.needsConfirmation()).isTrue();
     }
@@ -107,8 +107,8 @@ class ListingTextParserTest {
 
     @Test
     void une_plage_absurde_est_ignoree() {
-        // « 1 à 900 » n'est pas un lot de mangas : sans borne, le prix par tome
-        // deviendrait dérisoire et le verdict absurde.
+        // "1 à 900" is not a batch of mangas: without a limit, the price per volume
+        // would become tiny and the verdict absurd.
         assertThat(ListingTextParser.parse("Lot tomes 1 à 900", null).volumeNumbers()).isEmpty();
     }
 
@@ -119,20 +119,20 @@ class ListingTextParserTest {
 
     @Test
     void des_nombres_isoles_ne_deviennent_pas_des_tomes() {
-        // Ni l'année, ni le prix, ni le poids ne sont des numéros de tome : sans
-        // le mot « tome » ni plage explicite, on ne retient rien.
+        // Neither the year, nor the price, nor the weight are volume numbers: without
+        // the word "tome" or an explicit range, we keep nothing.
         assertThat(ListingTextParser.parse("Manga 2019 édition 20 euros", null).volumeNumbers()).isEmpty();
     }
 
     @Test
     void an_inclusive_range_counts_both_bounds() {
-        // « 6 à 10 » veut dire 6, 7, 8, 9 ET 10 : cinq tomes. Aucune règle ne
-        // doit se fonder sur un nombre annoncé ailleurs dans l'annonce.
+        // "6 à 10" means 6, 7, 8, 9 AND 10: five volumes. No rule
+        // must rely on a number announced elsewhere in the listing.
         assertThat(ListingTextParser.parse("Hell's Paradise tomes 6 à 10", null).volumeNumbers())
                 .containsExactly(6, 7, 8, 9, 10);
     }
 
-    // --------------------------------------------------------- Titre de série
+    // --------------------------------------------------------- Series title
 
     @Test
     void degage_un_titre_de_serie_exploitable() {
@@ -148,15 +148,15 @@ class ListingTextParserTest {
     }
 
 
-    // ------------------------------------- « 9 tomes » : combien, pas lesquels
+    // ------------------------------------- "9 tomes": how many, not which
 
     @Test
     void lit_le_nombre_de_tomes_annonce_sans_inventer_leurs_numeros() {
         ListingTextParser.Detection d = ListingTextParser.parse("9 tomes de Naruto", null);
 
-        // Le fond du sujet : le vendeur peut avoir les tomes 14 à 22. Dérouler
-        // 1 à 9 fabriquerait un verdict d'achat calculé sur des tomes que
-        // personne n'a vus.
+        // The core of the matter: the seller may have volumes 14 to 22. Unrolling
+        // 1 to 9 would build a buying verdict computed on volumes that
+        // nobody has seen.
         assertThat(d.announcedVolumeCount()).isEqualTo(9);
         assertThat(d.volumeNumbers()).isEmpty();
         assertThat(d.hasAnnouncedCountOnly()).isTrue();
@@ -172,9 +172,9 @@ class ListingTextParserTest {
 
     @Test
     void des_numeros_lus_font_toujours_foi_sur_un_nombre_annonce() {
-        // « Naruto tomes 1 à 9 » donne les deux lectures possibles ; garder les
-        // deux ferait afficher « 9 tomes annoncés » à côté de neuf tomes déjà
-        // identifiés, comme si quelque chose manquait encore.
+        // "Naruto tomes 1 à 9" gives the two possible readings; keeping both
+        // would show "9 volumes announced" next to nine volumes already
+        // identified, as if something were still missing.
         ListingTextParser.Detection d = ListingTextParser.parse("Naruto tomes 1 à 9", null);
 
         assertThat(d.volumeNumbers()).containsExactlyElementsOf(nombres(1, 9));
@@ -184,11 +184,11 @@ class ListingTextParserTest {
 
     @Test
     void la_longueur_de_l_oeuvre_n_est_pas_la_taille_du_lot() {
-        // Constate sur une vraie annonce Vinted : « Manga Your evil past -
-        // Seinen thriller - Serie en 14 tomes », pour un lot qui en contenait
-        // SIX. L'ecran annoncait « 14 tomes, sans dire lesquels », puis
-        // reprochait a l'utilisateur d'en avoir saisi trop peu : une phrase
-        // parfaitement honnete du vendeur devenait un reproche.
+        // Seen on a real Vinted listing: "Manga Your evil past -
+        // Seinen thriller - Serie en 14 tomes", for a batch that contained
+        // SIX. The screen announced "14 volumes, without saying which", then
+        // blamed the user for entering too few: a perfectly
+        // honest sentence of the seller became a reproach.
         ListingTextParser.Detection d = ListingTextParser.parse(
                 "Manga Your evil past - Seinen thriller",
                 "Manga Your evil past - Seinen thriller - Série en 14 tomes");
@@ -207,8 +207,8 @@ class ListingTextParserTest {
 
     @Test
     void une_taille_de_lot_reste_lue_meme_apres_une_mention_de_l_oeuvre() {
-        // « Serie en 14 tomes » decrit l'oeuvre ; « je vends 6 tomes » decrit la
-        // vente. La premiere ne doit pas faire rater la seconde.
+        // "Serie en 14 tomes" describes the work; "je vends 6 tomes" describes the
+        // sale. The first must not make us miss the second.
         ListingTextParser.Detection d = ListingTextParser.parse(
                 "Your evil past", "Série en 14 tomes. Je vends 6 tomes.");
 
@@ -222,8 +222,8 @@ class ListingTextParserTest {
 
     @Test
     void une_formulation_vague_ne_livre_aucun_nombre_non_plus() {
-        // « lot manga divers 25 pièces » ne décrit ni les tomes 25, ni un lot
-        // de 25 tomes identifiables : la formulation empoisonne tout.
+        // "lot manga divers 25 pièces" describes neither volumes 25, nor a batch
+        // of 25 identifiable volumes: the wording poisons everything.
         ListingTextParser.Detection d = ListingTextParser.parse("Lot manga divers 25 mangas", null);
 
         assertThat(d.vague()).isTrue();
@@ -232,8 +232,8 @@ class ListingTextParserTest {
 
     @Test
     void le_nombre_annonce_est_retire_du_titre_de_serie() {
-        // Sans ce retrait, « 9 tomes de Naruto » ne pouvait correspondre à
-        // aucune série du catalogue, et l'œuvre pourtant nommée restait invisible.
+        // Without this removal, "9 tomes de Naruto" could not match
+        // any series of the catalogue, and the work, though named, stayed invisible.
         assertThat(ListingTextParser.probableSeriesTitle("9 tomes de Naruto")).isEqualTo("Naruto");
         assertThat(ListingTextParser.probableSeriesTitle("Lot de 9 tomes Naruto")).isEqualTo("Naruto");
         assertThat(ListingTextParser.probableSeriesTitle("12 volumes de One Piece")).isEqualTo("One Piece");
@@ -241,8 +241,8 @@ class ListingTextParserTest {
 
     @Test
     void un_titre_dont_le_chiffre_appartient_a_l_oeuvre_n_est_pas_ampute() {
-        // Le motif exige un mot de support APRÈS le chiffre : « 20th Century
-        // Boys » et « 3 mètres au-dessus du ciel » gardent le leur.
+        // The pattern requires a support word AFTER the number: "20th Century
+        // Boys" and "3 mètres au-dessus du ciel" keep theirs.
         assertThat(ListingTextParser.probableSeriesTitle("20th Century Boys tomes 1 à 3"))
                 .isEqualTo("20th Century Boys");
         assertThat(ListingTextParser.parse("20th Century Boys", null).announcedVolumeCount()).isNull();

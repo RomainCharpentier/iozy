@@ -9,8 +9,8 @@ import java.util.UUID;
 public interface VariantJpaRepository extends JpaRepository<VariantJpaEntity, UUID> {
     List<VariantJpaEntity> findByEntityId(UUID entityId);
 
-    /** Chargement groupé : sans elle, lister N œuvres coûtait N requêtes de tomes
-     * (une par œuvre), sur le chemin le plus fréquenté de l'app - voir
+    /** Grouped loading: without it, listing N works cost N queries for volumes
+     * (one per work), on the busiest path of the app - see
      * JpaEntityRepositoryAdapter.withVariants. */
     List<VariantJpaEntity> findByEntityIdIn(Collection<UUID> entityIds);
 }

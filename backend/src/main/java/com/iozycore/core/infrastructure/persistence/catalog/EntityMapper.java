@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Traduit entre com.iozycore.core.domain.catalog.Entity et sa représentation
- * JPA. Les tags sont désormais portés par la table entity_tag (via
- * EntityJpaEntity.tagIds), les Relationship restent gérées séparément
- * (agrégat indépendant, cf. RelationshipPersistence).
+ * Translates between com.iozycore.core.domain.catalog.Entity and its JPA
+ * representation. Tags are now carried by the entity_tag table (via
+ * EntityJpaEntity.tagIds), Relationships are still handled separately
+ * (independent aggregate, see RelationshipPersistence).
  */
 public final class EntityMapper {
 

@@ -4,22 +4,22 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Un élément reconnu, confronté au catalogue - ce que l'écran de confirmation
- * affiche réellement.
+ * A recognised item, matched with the catalog - what the confirmation screen
+ * really shows.
  *
- * @param recognized      la lecture brute, conservée telle quelle : l'utilisateur doit
- *                        pouvoir voir ce qui a été lu, pas seulement ce qu'IozyCore en a fait
- * @param catalogStatus   voir {@link CatalogStatus}
- * @param entityId        la Série du catalogue, si elle a été retrouvée - {@code null} sinon.
- *                        Aucune Entity n'est créée ici, jamais.
- * @param catalogTitle    le titre retenu pour l'affichage et pour le lot : celui du
- *                        catalogue quand l'œuvre y figure - « Platinum End », même si la
- *                        photo disait « PLATINUM end » - sinon le titre lu débarrassé de
- *                        sa décoration d'annonce. Le texte d'origine reste dans
+ * @param recognized      the raw reading, kept as is: the user must
+ *                        be able to see what was read, not only what IozyCore made of it
+ * @param catalogStatus   see {@link CatalogStatus}
+ * @param entityId        the catalog series, if it was found - {@code null} otherwise.
+ *                        No Entity is created here, ever.
+ * @param catalogTitle    the title kept for display and for the batch: the one of the
+ *                        catalog when the work is in it - "Platinum End", even if the
+ *                        photo said "PLATINUM end" - otherwise the title read, stripped of
+ *                        its listing decoration. The original text stays in
  *                        {@code recognized.seriesTitleRaw()}.
- * @param editionOptions  les éditions connues de cette série, quand il faut en confirmer une.
- *                        Une proposition à choisir, jamais un choix déjà fait.
- * @param preselected     si l'écran doit pré-cocher cet élément - voir
+ * @param editionOptions  the known editions of this series, when one must be confirmed.
+ *                        A proposal to choose from, never a choice already made.
+ * @param preselected     whether the screen must pre-tick this item - see
  *                        {@link RecognitionConfidence#worthPreselecting()}
  */
 public record ResolvedItem(RecognizedItem recognized, CatalogStatus catalogStatus, UUID entityId,
@@ -29,18 +29,18 @@ public record ResolvedItem(RecognizedItem recognized, CatalogStatus catalogStatu
         editionOptions = editionOptions == null ? List.of() : List.copyOf(editionOptions);
     }
 
-    /** Une édition connue du catalogue, proposée à la confirmation. */
+    /** An edition known to the catalog, proposed for confirmation. */
     public record EditionOption(UUID editionId, String editionName, Integer totalVolumes) {
     }
 
-    /** Le titre à afficher : celui du catalogue s'il existe, sinon ce qui a été lu. */
+    /** The title to show: the one of the catalog if it exists, otherwise what was read. */
     public String displayTitle() {
         return catalogTitle != null ? catalogTitle : recognized.seriesTitleRaw();
     }
 
     /**
-     * Vrai quand cet élément peut alimenter l'analyse sans autre question :
-     * série connue, tome lu, édition tranchée. Tout le reste demande un geste.
+     * True when this item can feed the analysis without another question:
+     * known series, volume read, edition decided. Everything else asks for an action.
      */
     public boolean readyForAnalysis() {
         return catalogStatus == CatalogStatus.MATCHED && recognized.volumeNumber() != null;

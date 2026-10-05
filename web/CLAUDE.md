@@ -1,65 +1,66 @@
 # Web (React 19 + TypeScript + Vite 8 + TanStack Query + Tailwind v4)
 
-The living client. It always calls `/api/...` with a **relative** URL (Vite proxy in dev, nginx in prod), never an absolute URL to the backend.
+Le client vivant. Il appelle toujours `/api/...` en URL **relative** (proxy Vite en dev, nginx en prod), jamais une URL absolue vers le backend.
 
-## Commands
+## Commandes
 
-All from `web/`. The backend must run for dev (`cd ../backend && docker compose up --build`).
+Toutes depuis `web/`. Le backend doit tourner pour le dev (`cd ../backend && docker compose up --build`).
 
 ```bash
-npm run dev              # :5173, proxies /api to :8080
-npm test                 # Vitest, about 2 s: run it first, then at each step
-npm run typecheck        # tsc -b --noEmit: THE type check
-npm run lint             # oxlint: must print NOTHING (zero warnings)
-npm run check:contrast   # all colour pairs of both themes >= 4.5:1 (WCAG AA)
-npm run check:frontieres # import rules between pages and common
+npm run dev              # :5173, proxy /api vers :8080
+npm test                 # Vitest, ~2 s : à lancer en premier, puis à chaque itération
+npm run typecheck        # tsc -b --noEmit : LE contrôle de types
+npm run lint             # oxlint : doit n'afficher RIEN (zéro avertissement)
+npm run check:contrast   # tous les couples de couleurs des deux thèmes >= 4.5:1 (WCAG AA)
+npm run check:frontieres # règles d'import entre pages et common
 npm run build            # tsc -b && vite build
-npm run test:e2e         # Playwright, its own Docker stack (API :8090), about 45 s
-npm run check:pwa        # manifest and icons keep their promises
-npm run check:deploiement http://localhost:8081   # GET checks against a served app
+npm run test:e2e         # Playwright, sa propre pile Docker (API :8090), ~45 s
+npm run check:pwa        # manifeste et icônes tiennent leurs promesses
+npm run check:deploiement http://localhost:8081   # GET contre une app servie
 ```
 
-**`npx tsc --noEmit` checks nothing.** The root `tsconfig.json` is `files: []` plus references, so it always exits 0. Use `npm run typecheck`. To read an exit code, do not use a pipe.
+**`npx tsc --noEmit` ne vérifie rien.** Le `tsconfig.json` racine est `files: []` plus des références, donc il sort toujours 0. Utilise `npm run typecheck`. Pour lire un code de sortie, ne passe pas par un pipe.
 
-Before a commit: `npm test`, `typecheck`, `lint`, and `check:contrast` if you touched a colour. Run `check:deploiement` after any change to nginx or the Dockerfile.
+Avant un commit : `npm test`, `typecheck`, `lint`, et `check:contrast` si tu as touché une couleur. Lance `check:deploiement` après toute modification de nginx ou du Dockerfile.
 
-## Layout (`src/`)
+## Rangement (`src/`)
 
-- `app/`: router, providers, shell (`App.tsx`).
-- `pages/`: **one page = one folder**, named like its URL. Sub-pages are sub-folders. Inside: the page, its components, its hooks, its tests.
-- `common/`: what **several pages** share, nothing else: `components/` (design system: `Carte`, `Chip`, `Jaquette`, `GrilleVolumes`, … and `layout/`), `hooks/`, `lib/`, `api/`, `types/`, `theme/`.
-- `test/`: Vitest setup and `fixtures.ts`.
+- `app/` : routeur, providers, coquille (`App.tsx`).
+- `pages/` : **une page = un dossier**, nommé comme son URL. Les sous-pages sont des sous-dossiers. Dedans : la page, ses composants, ses hooks, ses tests.
+- `common/` : ce que **plusieurs pages** partagent, rien d'autre : `components/` (design system : `Carte`, `Chip`, `Jaquette`, `GrilleVolumes`… et `layout/`), `hooks/`, `lib/`, `api/`, `types/`, `theme/`.
+- `test/` : setup Vitest et `fixtures.ts`.
 
-Rules: a module used by **one page only** lives in that page. As soon as a **second page** needs it, it moves to `common`. A page composes, it does not compute: data in hooks, display in components. Import with the `@/` alias (`@/common/api/entities`), never `../../..`.
+Règles : un module utilisé par **une seule page** vit dans cette page. Dès qu'une **seconde page** en a besoin, il monte dans `common`. Une page compose, elle ne calcule pas : données dans des hooks, affichage dans des composants. Imports par l'alias `@/` (`@/common/api/entities`), jamais `../../..`.
 
-## How to
+## Comment faire
 
-- **API call**: in `common/api/<domain>.ts` (create the module if the domain is new), never in a component. Request and response types go in `common/types/api.ts`, with the same camelCase names as the Java DTOs.
-- **Screen**: a new folder under `pages/` and one route in `app/App.tsx`. Reuse `common/components/` and the tokens (`common/theme/tokens.ts`, Tailwind classes from `src/index.css`: `bg-surface`, `text-textDim`, `text-accent`, `font-display`, …). No hard-coded colours or sizes.
-- **Cache**: keys in `common/lib/queryKeys`, invalidations in `common/lib` too. A form wired to the wrong route, or a cache that is not invalidated, breaks no rule: the screen just stays on the old state. The e2e flows catch this.
+- **Appel API** : dans `common/api/<domaine>.ts` (crée le module si le domaine est nouveau), jamais dans un composant. Les types de requête et de réponse vont dans `common/types/api.ts`, avec les mêmes noms camelCase que les DTO Java.
+- **Écran** : un nouveau dossier sous `pages/` et une route dans `app/App.tsx`. Réutilise `common/components/` et les tokens (`common/theme/tokens.ts`, classes Tailwind issues de `src/index.css` : `bg-surface`, `text-textDim`, `text-accent`, `font-display`…). Pas de couleurs ni de tailles en dur.
+- **Cache** : clés dans `common/lib/queryKeys`, invalidations dans `common/lib` aussi. Un formulaire branché sur la mauvaise route, ou un cache qu'on oublie d'invalider, ne casse aucune règle : l'écran reste simplement sur l'état d'avant. C'est ce que les parcours e2e attrapent.
+- **Langue** : le code et les commentaires s'écrivent en anglais ; tout texte que lit l'utilisateur (JSX, libellés, `aria-label`, messages) reste en français.
 
 ## Tests
 
-- Vitest + Testing Library. Put `*.test.ts(x)` **next to the module it tests** (no `__tests__` folder). No `globals: true`: import `describe`/`it`/`expect`.
-- `src/test/fixtures.ts` builds the server objects (`oeuvre`, `tome`, `possession`, `edition`, `tag`). A test names only what matters to it.
-- A test is worth writing if it guards a **rule that breaks silently** (an unknown total you must not guess, one signal per card, a sentence that promises something). Check the **text read on screen**, never a CSS class or a `data-testid`.
-- A test is useful if it fails when you break its rule. To check: `node scripts/mutation.mjs <file> "<text>" "<replacement>"`. It mutates every match, runs the suite, restores the file, and exits with an error if nothing fails.
-- **E2E** (`e2e/*.spec.ts`): they start logged in (`compte.setup.ts` opens the session once). The test stack has **no provider key**. The flows use a collection type created for the occasion (free entry), never Jikan or Google Books. A second account is created on screen with `CODE_INVITATION` (`e2e/compte.ts`). To keep the stack after a failure: `IOZYCORE_E2E_GARDER_LA_PILE=1 npm run test:e2e`.
+- Vitest + Testing Library. Pose les `*.test.ts(x)` **à côté du module testé** (pas de dossier `__tests__`). Pas de `globals: true` : importe `describe`/`it`/`expect`.
+- `src/test/fixtures.ts` construit les objets du serveur (`oeuvre`, `tome`, `possession`, `edition`, `tag`). Un test ne nomme que ce qui le concerne.
+- Un test vaut la peine s'il garde une **règle qui se casse en silence** (un total inconnu qu'on ne doit pas deviner, un seul signal par carte, une phrase qui promet quelque chose). Vérifie le **texte lu à l'écran**, jamais une classe CSS ni un `data-testid`.
+- Un test est utile s'il tombe quand on casse sa règle. Pour le vérifier : `node scripts/mutation.mjs <fichier> "<texte>" "<remplacement>"`. Il mute toutes les occurrences, lance la suite, restaure le fichier, et sort en erreur si rien n'échoue.
+- **E2E** (`e2e/*.spec.ts`) : ils partent connectés (`compte.setup.ts` ouvre la session une fois). La pile de test n'a **aucune clé de fournisseur**. Les parcours passent par un type de collection créé pour l'occasion (saisie libre), jamais par Jikan ou Google Books. Un second compte se crée à l'écran avec `CODE_INVITATION` (`e2e/compte.ts`). Pour garder la pile après un échec : `IOZYCORE_E2E_GARDER_LA_PILE=1 npm run test:e2e`.
 
-## Check the UI in the app browser
+## Vérifier l'interface dans le navigateur de l'app
 
-The built-in browser **draws no frames**. `requestAnimationFrame`, `ResizeObserver` and screenshots do nothing there. Check by measurement (`getBoundingClientRect`, `read_page`, text) instead of screenshots. To see a **logged-in screen with data**: keep the e2e stack + use `web-e2e` (`.claude/launch.json`, :5174 → API :8090) + replay the Playwright session in a script. Do not touch the real collection.
+Le navigateur intégré **ne compose aucune image** : `requestAnimationFrame`, `ResizeObserver` et les captures d'écran n'y font rien. Vérifie par la mesure (`getBoundingClientRect`, `read_page`, texte) plutôt que par capture. Pour voir un **écran connecté avec des données** : garde la pile e2e + utilise `web-e2e` (`.claude/launch.json`, :5174 → API :8090) + rejoue la session Playwright dans un script. Ne touche pas à la vraie collection.
 
-To judge a screen, take screenshots on **mobile (390×844) and desktop (1280×900), dark and light theme**. The app is mobile-first, and what a screen shows with data cannot be read in the code. The e2e flows only create series without covers, so seed a believable collection (AniList metadata search, then `quick-add`, cover key `coverImageUrl`). On mobile, a page that overflows widens the render window. This is the sign of an overflow.
+Pour juger un écran, sors des captures **mobile (390×844) et bureau (1280×900), thèmes sombre et clair**. L'app est mobile-first, et ce qu'un écran montre avec des données ne se lit pas dans le code. Les parcours e2e ne créent que des séries sans jaquette : sème une collection crédible (recherche de métadonnées AniList puis `quick-add`, clé de jaquette `coverImageUrl`). Sur mobile, une page qui déborde élargit la fenêtre de rendu : c'est le signe d'un débordement.
 
-## Accessibility and design
+## Accessibilité et design
 
-- AA contrast in both themes (the script checks it). Touch targets, accessible names and focus order are part of the work, not a last pass.
-- Reference mockups are in `../design_handoff_v2/`. If there are several boards of the same screen, ask the owner **before** you code.
-- The log of UI batches is `../docs/DESIGN_MIGRATION_V1.2.md`. Add one section per batch.
+- Contraste AA dans les deux thèmes (le script le vérifie). Cibles tactiles, noms accessibles et ordre du focus font partie du travail, pas d'une passe finale.
+- Les maquettes de référence sont dans `../design_handoff_v2/`. S'il y a plusieurs planches du même écran, demande au propriétaire **avant** de coder.
+- Le journal des lots d'interface est `../docs/DESIGN_MIGRATION_V1.2.md`. Ajoute-y une section par lot.
 
-## PWA and deployment
+## PWA et déploiement
 
-The PWA is installable in **production only** (`sw.js` is registered from `main.tsx`. An app-shell cache would get in the way of hot reload). The service worker caches the shell, **never `/api`**: data served from a cache would be an old collection shown as the real one. nginx traps already fixed in `nginx.conf`: `.webmanifest` has no MIME type by default, and `sw.js` needs `Cache-Control: no-cache`. A stale nginx container on :8081 is fixed with `docker compose build web` then `up -d --force-recreate web`.
+La PWA est installable en **production seulement** (`sw.js` est enregistré depuis `main.tsx` ; un cache d'app shell gênerait le rechargement à chaud). Le service worker met en cache la coquille, **jamais `/api`** : des données servies depuis un cache seraient une collection périmée présentée comme la vraie. Pièges nginx déjà corrigés dans `nginx.conf` : `.webmanifest` n'a pas de type MIME par défaut, et `sw.js` doit sortir en `Cache-Control: no-cache`. Un conteneur nginx périmé sur :8081 se règle par `docker compose build web` puis `up -d --force-recreate web`.
 
-Camera scan (`/scan`) uses `BarcodeDetector` (Chrome/Edge, Android). Safari and Firefox fall back to typing the ISBN.
+Le scan par caméra (`/scan`) utilise `BarcodeDetector` (Chrome/Edge, Android). Safari et Firefox retombent sur la saisie de l'ISBN.

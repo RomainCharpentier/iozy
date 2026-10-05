@@ -1,4 +1,4 @@
-/** Échelle S à F (voir com.iozycore.domain.tierlist.Rank côté backend, IozyCore DS v1.1 côté design). */
+/** Scale S to F (see com.iozycore.domain.tierlist.Rank on the backend side, IozyCore DS v1.1 on the design side). */
 export type Rank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 
 export const RANKS: Rank[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F']
@@ -6,8 +6,8 @@ export const RANKS: Rank[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F']
 export interface TierListDto {
   id: string
   name: string
-  /** null = Tier List TRANSVERSE "toutes catégories" (scope 'all' de la maquette V1.2) -
-   * elle accepte des œuvres de n'importe quel univers, voir TierList côté backend. */
+  /** null = CROSS-CUTTING Tier List "all categories" (scope 'all' of the V1.2 mockup) -
+   * it accepts works of any universe, see TierList on the backend side. */
   entityTypeId: string | null
   activeRanks: Rank[]
   description: string | null
@@ -16,7 +16,7 @@ export interface TierListDto {
   rankedCount: number
 }
 
-/** Une œuvre au sein d'un board (classement général ou Tier List personnalisée) - jamais un id nu, toujours enrichie de son titre/jaquette (voir TierListEntryResponse côté backend). */
+/** A work within a board (general ranking or custom Tier List) - never a bare id, always enriched with its title/cover (see TierListEntryResponse on the backend side). */
 export interface TierListEntryDto {
   entityId: string
   title: string
@@ -41,7 +41,7 @@ export interface CustomRankEntryDto {
   rank: Rank
 }
 
-/** "Mes classements" côté fiche (voir EntityDetailPage/TomesGridSection). */
+/** "Mes classements" on the detail page side (see EntityDetailPage/TomesGridSection). */
 export interface EntityTierSummaryDto {
   generalRank: Rank | null
   customRanks: CustomRankEntryDto[]
@@ -49,7 +49,7 @@ export interface EntityTierSummaryDto {
 
 export interface CreateTierListRequest {
   name: string
-  /** null = Tier List transverse "toutes catégories" (voir TierListDto.entityTypeId). */
+  /** null = cross-cutting Tier List "all categories" (see TierListDto.entityTypeId). */
   entityTypeId: string | null
   activeRanks?: Rank[]
   description?: string

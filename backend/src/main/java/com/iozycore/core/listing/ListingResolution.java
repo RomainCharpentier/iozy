@@ -5,50 +5,50 @@ import com.iozycore.core.listing.ListingPlatform;
 import java.util.Optional;
 
 /**
- * L'issue d'une tentative de lecture d'annonce.
+ * The outcome of an attempt to read a listing.
  * <p>
- * Il y a bien plus que « ça a marché » et « ça a raté » : la moitié de
- * l'intérêt de ce module est de distinguer des situations auxquelles
- * l'utilisateur ne réagit pas de la même façon - une plateforme non encore
- * prise en charge n'est pas une annonce supprimée, qui n'est pas un blocage
- * temporaire. Un seul code d'erreur produirait le même message inutile dans
- * les trois cas.
+ * There is much more than "it worked" and "it failed": half of
+ * the value of this module is to tell apart situations to which
+ * the user does not react in the same way - a platform not yet
+ * supported is not a deleted listing, which is not a temporary
+ * block. A single error code would produce the same useless message in
+ * the three cases.
  * <p>
- * <b>Un résultat partiel est un succès.</b> Titre et prix lus mais photos
- * illisibles : {@link Status#PARTIAL}, avec le snapshot bien rempli de ce qui a
- * été trouvé. Ce n'est pas une erreur, c'est du travail en moins pour
- * l'utilisateur.
+ * <b>A partial result is a success.</b> Title and price read but photos
+ * unreadable: {@link Status#PARTIAL}, with the snapshot filled with what was
+ * found. It is not an error, it is less work for
+ * the user.
  */
 public record ListingResolution(Status status, ListingPlatform source, String url, ListingSnapshot snapshot) {
 
     public enum Status {
-        /** Tout ce que le provider sait lire a été lu. */
+        /** Everything the provider can read has been read. */
         SUCCESS,
-        /** Une partie seulement a été lue - le reste reste à saisir à la main. */
+        /** Only a part was read - the rest is still to be typed by hand. */
         PARTIAL,
-        /** URL inexploitable : ni absolue, ni HTTPS, ou hôte refusé par la liste blanche. */
+        /** Unusable URL: not absolute, not HTTPS, or host refused by the whitelist. */
         INVALID_URL,
-        /** URL valide mais aucune source connue ne la couvre - le parcours manuel continue, l'URL est conservée. */
+        /** Valid URL but no known source covers it - the manual flow continues, the URL is kept. */
         UNSUPPORTED_SOURCE,
         /**
-         * Source <b>reconnue</b>, mais qui refuse la lecture automatique.
+         * <b>Recognized</b> source, but which refuses automatic reading.
          *
-         * <p>À distinguer de {@link #UNSUPPORTED_SOURCE} (« personne ne couvre
-         * cette URL », donc un support viendra peut-être) et de
-         * {@link #UNAVAILABLE} (« ça n'a pas marché cette fois », donc
-         * réessayer a du sens). Ici, ni l'un ni l'autre : la plateforme se
-         * protège contre les robots, et aucune quantité de code ne changera
-         * cela sans franchir une ligne que ce projet ne franchit pas - pas de
-         * cookie utilisateur, pas d'API privée, pas de contournement anti-bot.
+         * <p>To be told apart from {@link #UNSUPPORTED_SOURCE} ("nobody covers
+         * this URL", so a support may come) and from
+         * {@link #UNAVAILABLE} ("it did not work this time", so
+         * retrying makes sense). Here, neither: the platform
+         * protects itself against robots, and no amount of code will change
+         * that without crossing a line that this project does not cross - no
+         * user cookie, no private API, no anti-bot workaround.
          *
-         * <p>Le dire explicitement évite de laisser croire à une
-         * fonctionnalité « pas encore » livrée : la saisie manuelle n'est pas
-         * un repli temporaire, c'est le parcours pour cette source.
+         * <p>Saying it explicitly avoids letting people believe in a
+         * feature "not yet" delivered: manual entry is not
+         * a temporary fallback, it is the flow for this source.
          */
         SOURCE_BLOCKS_AUTOMATION,
-        /** L'annonce n'existe plus, ou n'a jamais existé. */
+        /** The listing no longer exists, or never existed. */
         LISTING_NOT_FOUND,
-        /** La source n'a rien livré d'exploitable : blocage, panne, page illisible. Réessayer plus tard peut marcher. */
+        /** The source delivered nothing usable: blocking, outage, unreadable page. Retrying later may work. */
         UNAVAILABLE
     }
 
@@ -68,7 +68,7 @@ public record ListingResolution(Status status, ListingPlatform source, String ur
         return Optional.ofNullable(snapshot);
     }
 
-    /** Vrai quand quelque chose d'utilisable a été récupéré, complet ou non. */
+    /** True when something usable has been retrieved, complete or not. */
     public boolean hasData() {
         return snapshot != null && !snapshot.isEmpty();
     }

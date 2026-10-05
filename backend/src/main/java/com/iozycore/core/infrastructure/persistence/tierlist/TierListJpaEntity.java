@@ -13,16 +13,16 @@ public class TierListJpaEntity {
     @Id
     private UUID id;
 
-    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
+    // Isolation by owner: Hibernate adds this column to the
 
 
-    // clause WHERE de toute requête sur cette entité, et la remplit à
+    // WHERE clause of every query on this entity, and fills it on
 
 
-    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
+    // insert from ProprietaireCourant. A filter you cannot
 
 
-    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+    // forget, instead of a condition to rewrite in every query.
 
 
     @TenantId
@@ -34,11 +34,11 @@ public class TierListJpaEntity {
     @Column(nullable = false)
     private String name;
 
-    /** Nullable depuis V13 : null = Tier List transverse "toutes catégories" (voir TierList). */
+    /** Nullable since V13: null = cross-type Tier List "all categories" (see TierList). */
     @Column(name = "entity_type_id")
     private UUID entityTypeId;
 
-    /** Rangs actifs, sérialisés en liste jointe par virgules (ex: "S,A,B") - voir TierListMapper. */
+    /** Active ranks, serialized as a comma-joined list (e.g. "S,A,B") - see TierListMapper. */
     @Column(name = "active_ranks", nullable = false, length = 32)
     private String activeRanks;
 

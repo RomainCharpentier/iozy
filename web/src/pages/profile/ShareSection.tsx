@@ -7,22 +7,22 @@ import { ErrorBanner } from '@/common/components/ErrorBanner'
 import type { ShareDto } from '@/common/types/share'
 
 /**
- * Le partage d'espace : **un lien, des sections au choix**.
+ * The space sharing: **one link, sections of your choice**.
  *
- * Il y avait deux sections de réglages indépendantes - « Partager ma
- * collection » sous Profil, « Partager ma wishlist » sous Envies - chacune
- * avec son propre lien. Entrer par l'une ou par l'autre donnait deux URL
- * différentes pour le même espace personnel, et la personne qui les recevait
- * devait jongler entre deux pages.
+ * There were two independent settings sections - "Partager ma
+ * collection" under Profil, "Partager ma wishlist" under Envies - each
+ * with its own link. Entering by one or the other gave two different
+ * URLs for the same personal space, and the person who received them
+ * had to juggle between two pages.
  *
- * Ce composant est désormais le seul, monté à l'identique depuis Profil et
- * depuis Envies : les deux pilotent le **même** partage et le **même** jeton.
- * Ma collection et mes envies sont deux vues du même espace : elles se
- * partagent ensemble ou séparément, mais par le même lien.
+ * This component is now the only one, mounted identically from Profil and
+ * from Envies: both drive the **same** sharing and the **same** token.
+ * My collection and my wishes are two views of the same space: they are
+ * shared together or separately, but through the same link.
  *
- * <p>`miseEnAvant` a disparu avec l'écran Envies (lot C) : il ordonnait les
- * deux cases selon l'écran d'où l'on venait, et il n'y a plus qu'un écran
- * d'où venir.
+ * <p>`miseEnAvant` disappeared with the Envies screen (batch C): it ordered the
+ * two checkboxes according to the screen one came from, and there is now only one screen
+ * to come from.
  *
  */
 export function ShareSection() {
@@ -56,15 +56,15 @@ export function ShareSection() {
       setCopie(true)
       setTimeout(() => setCopie(false), 2000)
     } catch {
-      // Certains navigateurs refusent le presse-papier hors contexte sécurisé -
-      // le lien reste affiché et sélectionnable, on n'annonce pas une copie
-      // qui n'a pas eu lieu.
+      // Some browsers refuse the clipboard outside a secure context -
+      // the link stays displayed and selectable, we do not announce a copy
+      // that did not take place.
     }
   }
 
-  // Décocher la dernière section active est refusé côté domaine : plutôt que
-  // de laisser l'utilisateur se heurter à une erreur, la case correspondante
-  // est désactivée et la raison affichée.
+  // Unchecking the last active section is refused on the domain side: rather than
+  // letting the user run into an error, the matching checkbox
+  // is disabled and the reason displayed.
   const derniereSectionActive = (section: 'collection' | 'wishlist') =>
     section === 'collection'
       ? !!share?.shareCollection && !share?.shareWishlist
@@ -142,10 +142,10 @@ export function ShareSection() {
               )
             })}
 
-            {/* Les classements accompagnent la collection : sans elle, ils ne
-                sortent pas - la case suit donc son parent. Un classement est un
-                jugement personnel, pas un inventaire : il reste exclu par
-                défaut, y compris sur un lien tout neuf. */}
+            {/* The rankings go with the collection: without it, they do not
+                come out - the checkbox therefore follows its parent. A ranking is
+                a personal judgment, not an inventory: it stays excluded by
+                default, including on a brand new link. */}
             {share?.shareCollection && (
               <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 pl-8 hover:bg-rowHover">
                 <input

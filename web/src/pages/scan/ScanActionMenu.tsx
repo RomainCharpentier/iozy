@@ -5,41 +5,41 @@ import { COVER_IMAGE_ATTRIBUTE_KEY } from '@/common/lib/coverImage'
 import type { EntityResponse, MetadataCandidateDto } from '@/common/types/api'
 import { Jaquette } from '@/common/components/Jaquette'
 
-/** Ce qu'un scan vient d'identifier, avant toute écriture. */
+/** What a scan has just identified, before any write. */
 export interface ScanCandidate {
   code: string
   candidate: MetadataCandidateDto
-  /** Le type de collection scanné - permet de mettre en envies une œuvre encore inconnue. */
+  /** The collection type that was scanned - lets us wish a work that is still unknown. */
   entityTypeId: string
   volumeNumber?: number
   edition?: string
-  /** L'œuvre a déjà une fiche IozyCore (recherche locale par titre) - null sinon.
-   * Avoir une fiche ne veut pas dire la posséder : une œuvre mise en envies en a
-   * une sans aucun exemplaire. */
+  /** The work already has an IozyCore detail page (local search by title) - null otherwise.
+    * Having a page does not mean owning it: a work added to the wishlist has
+    * one with no copy at all. */
   existingEntity: EntityResponse | null
 }
 
 /**
- * Menu contextuel ouvert après CHAQUE scan reconnu : le scan n'écrit plus
- * rien de lui-même.
- * <p>
- * Il ajoutait auparavant chaque tome reconnu directement, sans demander - un
- * geste irréversible (l'exemplaire est créé) déclenché par un simple passage
- * de code-barres devant la caméra, y compris sur un tome scanné par erreur ou
- * déjà possédé. Le "· déjà possédé" ajouté plus tôt ne faisait que constater
- * l'ajout après coup.
- * <p>
- * Les actions proposées sont exactement celles que l'app sait faire d'un
- * code-barres, jamais une de plus : ajouter avec l'état choisi, ouvrir l'ajout
- * détaillé pour préciser édition et tome, la mettre en envies, ouvrir sa fiche
- * si elle en a déjà une, ou passer. « Ajouter aux envies » vaut pour TOUT livre
- * scanné, y compris inconnu : scanner en boutique une œuvre qu'on ne prend pas
- * aujourd'hui est justement le cas d'usage. Le backend crée alors sa fiche
- * catalogue, sans aucune possession.
- * <p>
- * Même patron que TierPicker : bottom-sheet en mobile, boîte centrée en
- * desktop, Escape / piège de focus / focus rendu au déclencheur via
- * useModalA11y.
+  * Context menu opened after EVERY recognised scan: the scan no longer writes
+  * anything by itself.
+  * <p>
+  * It used to add each recognised volume directly, without asking - an
+  * irreversible action (the copy is created) triggered by a barcode simply
+  * passing in front of the camera, even for a volume scanned by mistake or
+  * already owned. The "· already owned" mark added earlier only noted
+  * the add after the fact.
+  * <p>
+  * The proposed actions are exactly what the app can do with a
+  * barcode, never one more: add with the chosen condition, open the detailed add
+  * to set edition and volume, add it to the wishlist, open its detail page
+  * if it already has one, or skip. "Add to wishlist" applies to ANY scanned
+  * book, even an unknown one: scanning in a shop a work we do not buy
+  * today is exactly the use case. The backend then creates its catalogue
+  * page, with no ownership.
+  * <p>
+  * Same pattern as TierPicker: bottom sheet on mobile, centred box on
+  * desktop, Escape / focus trap / focus returned to the trigger via
+  * useModalA11y.
  */
 export function ScanActionMenu({
   pending,
@@ -83,9 +83,9 @@ export function ScanActionMenu({
               {volumeNumber !== undefined ? `Tome ${volumeNumber}` : 'Numéro de tome non détecté'}
               {edition && ` · ${edition}`}
             </span>
-            {/* Fait vérifiable : une fiche existe. Dire « déjà dans ta
-                collection » serait faux pour une œuvre seulement mise en
-                envies, qui a une fiche et zéro exemplaire. */}
+            {/* Verifiable fact: a page exists. Saying "already in your
+                    collection" would be false for a work only added to the
+                    wishlist, which has a page and zero copies. */}
             {existingEntity && <span className="text-xs text-accentText">Déjà connu d'IozyCore</span>}
           </div>
           <button
@@ -109,9 +109,9 @@ export function ScanActionMenu({
             {busy ? 'Ajout en cours...' : 'Ajouter à ma collection'}
           </button>
 
-          {/* Le tome n'est deviné qu'à partir du titre, sans garantie (voir
-              parseVolumeNumberFromTitle) - l'ajout détaillé est la sortie
-              quand le scan n'a pas su, ou quand l'édition proposée est fausse. */}
+          {/* The volume is only guessed from the title, with no guarantee (see
+                  parseVolumeNumberFromTitle) - the detailed add is the way out
+                  when the scan could not tell, or when the proposed edition is wrong. */}
           <button
             type="button"
             onClick={onOpenDraft}
@@ -122,9 +122,9 @@ export function ScanActionMenu({
             Choisir l'édition et les tomes
           </button>
 
-          {/* Proposé pour toute œuvre scannée : celle qui a déjà une fiche
-              par son identité interne, celle qui n'en a pas via sa référence
-              externe, que le backend résout ou crée - sans possession. */}
+          {/* Offered for every scanned work: one that already has a page goes
+                  by its internal identity, one that has none goes by its external
+                  reference, which the backend resolves or creates - without ownership. */}
           <div className="px-1 py-1">
             {existingEntity ? (
               <WishlistToggle entityId={existingEntity.id} entityTypeId={entityTypeId} />
@@ -134,8 +134,8 @@ export function ScanActionMenu({
                 external={{
                   entityTypeId,
                   title: candidate.title,
-                  // Même clé de jaquette que l'ajout normal, sinon l'œuvre
-                  // arriverait sans visuel dans les Envies.
+                  // Same cover key as the normal add, otherwise the work
+                  // would arrive with no image in the Wishlist.
                   attributes: candidate.imageUrl
                     ? { ...candidate.attributes, [COVER_IMAGE_ATTRIBUTE_KEY]: candidate.imageUrl }
                     : candidate.attributes,

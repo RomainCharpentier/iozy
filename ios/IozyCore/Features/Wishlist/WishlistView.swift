@@ -1,8 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// UC5 - Gérer la Wishlist. Complète le parcours 3 (une Entity "en
-/// wishlist" détectée lors d'une recherche peut être consultée ici).
+/// UC5 - Manage the Wishlist. Completes journey 3 (an Entity "in the
+/// wishlist" found during a search can be viewed here).
 struct WishlistView: View {
     @Query private var wishlistEntries: [WishlistEntryRecord]
     @Query private var entities: [EntityRecord]

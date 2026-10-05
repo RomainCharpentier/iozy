@@ -10,48 +10,48 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Reconnaît une annonce Leboncoin — et dit franchement qu'elle ne peut pas être
- * lue automatiquement.
+ * Recognizes a Leboncoin listing - and says frankly that it cannot be
+ * read automatically.
  *
- * <h2>Pourquoi un provider qui ne lit rien</h2>
- * Sans lui, un lien Leboncoin ressort en {@code UNSUPPORTED_SOURCE}, dont
- * l'écran tire « cette plateforme n'est pas encore récupérée automatiquement ».
- * Ce « pas encore » laisse attendre une fonctionnalité à venir. Elle ne viendra
- * pas ainsi, et le faire croire coûte plus qu'un aveu.
+ * <h2>Why a provider that reads nothing</h2>
+ * Without it, a Leboncoin link comes out as {@code UNSUPPORTED_SOURCE}, from which
+ * the screen draws "this platform is not yet fetched automatically".
+ * This "not yet" makes people expect a feature to come. It will not come
+ * that way, and making people believe so costs more than an admission.
  *
- * <h2>Ce qui a été constaté (2026-08-24)</h2>
- * Les pages d'annonce sont protégées par DataDome. Une requête serveur, sans
- * navigateur — exactement le profil de {@code ListingHttpFetcher} — reçoit un
- * <b>HTTP 403</b> de 771 octets pointant vers {@code captcha-delivery.com},
- * jamais l'annonce. Un navigateur automatisé reçoit la même page
- * d'interstitiel : titre vide, aucune donnée, {@code og:image} servi depuis
- * {@code img.datadome.co/captcha/…}. Il n'existe ni JSON-LD ni microdonnées à
- * lire.
+ * <h2>What was observed (2026-08-24)</h2>
+ * The listing pages are protected by DataDome. A server request, without
+ * a browser - exactly the profile of {@code ListingHttpFetcher} - receives an
+ * <b>HTTP 403</b> of 771 bytes pointing to {@code captcha-delivery.com},
+ * never the listing. An automated browser receives the same interstitial
+ * page: empty title, no data, {@code og:image} served from
+ * {@code img.datadome.co/captcha/...}. There is neither JSON-LD nor microdata to
+ * read.
  *
- * <h2>Ce que ce provider ne fera jamais</h2>
- * Passer outre. Ni cookie de session, ni API privée, ni maquillage de
- * navigateur, ni résolution de CAPTCHA : ce sont des lignes que ce projet ne
- * franchit pas, et une protection anti-robot est une volonté explicite de
- * l'éditeur, pas un obstacle technique à contourner.
+ * <h2>What this provider will never do</h2>
+ * Go around it. No session cookie, no private API, no browser
+ * disguise, no CAPTCHA solving: these are lines that this project does not
+ * cross, and an anti-robot protection is an explicit wish of the
+ * publisher, not a technical obstacle to work around.
  *
- * <h2>Aucune requête, par construction</h2>
- * {@link #allowedHosts()} rend un ensemble <b>vide</b> : ce provider n'autorise
- * le serveur à joindre aucun hôte. La reconnaissance passe par
- * {@link #supports(String)}, la lecture n'a pas lieu. Même un bug d'appel ne
- * pourrait pas déclencher de requête vers Leboncoin.
+ * <h2>No request, by construction</h2>
+ * {@link #allowedHosts()} returns an <b>empty</b> set: this provider does not allow
+ * the server to reach any host. Recognition goes through
+ * {@link #supports(String)}, the reading does not take place. Even a calling bug
+ * could not trigger a request to Leboncoin.
  *
- * <h2>Le jour où cela changerait</h2>
- * Si Leboncoin publiait une API ou levait la protection, cette classe devient
- * un vrai provider — même interface, mêmes appelants, aucun changement
- * ailleurs. C'est précisément ce que la couture {@code ListingProvider} permet.
+ * <h2>The day this would change</h2>
+ * If Leboncoin published an API or lifted the protection, this class would become
+ * a real provider - same interface, same callers, no change
+ * elsewhere. This is precisely what the {@code ListingProvider} seam allows.
  */
 @Component
 public class LeboncoinListingProvider implements ListingProvider {
 
     /**
-     * Domaines énumérés un par un, jamais déduits d'un motif du genre « tout ce
-     * qui contient leboncoin » - {@code leboncoin.fr.attaquant.example} ne doit
-     * pas passer pour Leboncoin. Même règle que pour Vinted.
+     * Domains listed one by one, never deduced from a pattern like "everything
+     * that contains leboncoin" - {@code leboncoin.fr.attaquant.example} must not
+     * pass for Leboncoin. Same rule as for Vinted.
      */
     private static final Set<String> HOTES_RECONNUS = construireHotes();
 
@@ -71,8 +71,8 @@ public class LeboncoinListingProvider implements ListingProvider {
     }
 
     /**
-     * Détection sur l'hôte seul, jamais sur « l'URL contient leboncoin ».
-     * Reconnaître ne veut pas dire lire : voir {@link #resolve(String)}.
+     * Detection on the host alone, never on "the URL contains leboncoin".
+     * Recognizing does not mean reading: see {@link #resolve(String)}.
      */
     @Override
     public boolean supports(String url) {
@@ -80,24 +80,24 @@ public class LeboncoinListingProvider implements ListingProvider {
     }
 
     /**
-     * Vide, et c'est le fond du sujet : ce provider n'autorise le serveur à
-     * joindre <b>aucun</b> hôte, puisqu'il ne lit rien.
+     * Empty, and this is the heart of the matter: this provider does not allow the server to
+     * reach <b>any</b> host, since it reads nothing.
      */
     @Override
     public Set<String> allowedHosts() {
         return Set.of();
     }
 
-    /** Sans lecture, pas de photos - donc aucun hôte d'images non plus. */
+    /** Without reading, no photos - so no image hosts either. */
     @Override
     public Set<String> allowedImageHosts() {
         return Set.of();
     }
 
     /**
-     * Rend immédiatement, <b>sans le moindre appel réseau</b> : le résultat est
-     * connu d'avance, et solliciter la plateforme pour se faire refuser
-     * n'apprendrait rien à personne.
+     * Returns immediately, <b>without any network call</b>: the result is
+     * known in advance, and asking the platform just to be refused
+     * would teach nobody anything.
      */
     @Override
     public ListingResolution resolve(String url) {

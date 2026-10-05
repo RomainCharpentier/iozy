@@ -1,58 +1,56 @@
 /**
- * Ce qu'une visite sans compte n'a pas à atteindre.
+ * What a visit without an account does not need to reach.
  *
- * <h2>Une seule liste, lue par tout ce qui mène quelque part</h2>
- * Le routage s'en sert pour renvoyer un visiteur à l'accueil, les deux barres
- * de navigation pour ne pas afficher une entrée qui rebondirait, les raccourcis
- * d'en-tête pour la même raison. Écrite trois fois, elle aurait divergé au
- * premier écran ajouté - et la divergence aurait pris la forme d'un onglet qui
- * renvoie chez soi sans rien dire.
+ * <h2>One single list, read by everything that leads somewhere</h2>
+ * Routing uses it to send a visitor back to the home page, the two navigation
+ * bars use it to avoid showing an entry that would bounce back, and the header
+ * shortcuts use it for the same reason. Written three times, it would have
+ * diverged at the first screen added - and the divergence would have looked
+ * like a tab that sends you home without saying anything.
  *
- * <h2>Ce n'est PAS une protection</h2>
- * La protection est côté serveur, et elle est totale : une session de visite
- * n'écrit rien, quelle que soit la route (voir SecurityConfig). Ceci ne fait
- * qu'éviter de proposer des portes qui ne mènent nulle part - un écran d'ajout
- * dont chaque bouton refuse, une administration qui répond 403 à sa propre
- * lecture.
+ * <h2>This is NOT a protection</h2>
+ * The protection is on the server side, and it is total: a visit session
+ * writes nothing, whatever the route (see SecurityConfig). This only avoids
+ * offering doors that lead nowhere - an add screen where every button
+ * refuses, an administration page that answers 403 to its own read.
  *
- * <h2>La règle qui a servi à trancher</h2>
- * Un écran est réservé aux comptes quand son sujet est d'<b>écrire</b>, de se
- * <b>gérer</b>, ou de <b>calculer sur une collection</b>. Ce qu'un visiteur
- * consulte, c'est le catalogue : les œuvres et leurs fiches. Tout le reste -
- * progression, statistiques, bilan, classements, envies - se dérive de ce que
- * quelqu'un possède, et une session de visite ne possède rien : ces écrans
- * s'afficheraient vides, ce qui se lit comme une panne plutôt que comme une
- * réponse.
+ * <h2>The rule used to decide</h2>
+ * A screen is reserved for accounts when its subject is to <b>write</b>, to
+ * <b>manage</b> oneself, or to <b>compute on a collection</b>. What a visitor
+ * looks at is the catalog: the works and their detail pages. Everything else -
+ * progress, statistics, summary, rankings, wishes - is derived from what
+ * someone owns, and a visit session owns nothing: these screens would show up
+ * empty, which reads as a failure rather than as an answer.
  */
 const RESERVEES_AUX_COMPTES = [
-  // « Ma collection » est un espace PERSONNEL : elle ne montre que ce qu'on
-  // possède ou souhaite (voir correspondAuFiltre), donc elle serait vide pour
-  // un visiteur - et intitulée « Ma », ce qui ne veut rien dire pour lui. Son
-  // équivalent consultable est le catalogue, à `/add`, qui reste ouvert.
+  // "Ma collection" is a PERSONAL space: it only shows what one owns or wishes
+  // (see correspondAuFiltre), so it would be empty for a visitor - and titled
+  // "Ma", which means nothing to them. Its viewable equivalent is the catalog,
+  // at `/add`, which stays open.
   '/',
-  // Écrire dans la collection. `/add` n'y est plus : c'est devenu l'entrée du
-  // CATALOGUE, et les gestes d'ajout qu'il porte encore sont masqués à un
-  // visiteur écran par écran (voir SearchPage).
+  // Writing in the collection. `/add` is no longer here: it became the entry
+  // of the CATALOG, and the add actions it still carries are hidden from a
+  // visitor screen by screen (see SearchPage).
   '/scan',
   '/apercu',
   '/import-bgg',
   '/import-photo',
-  // Analyser une annonce : chaque étape est un POST, dont certains sortent
-  // chez un fournisseur ou chez un modèle. Une porte ouverte à tout Internet
-  // n'a pas à offrir ça.
+  // Analyzing a listing: each step is a POST, and some of them go out to a
+  // provider or to a model. A door open to the whole Internet must not offer
+  // that.
   '/purchase-analysis',
-  // L'outillage de l'instance et du catalogue partagé.
+  // The tools of the instance and of the shared catalog.
   '/administration',
   '/types',
   '/editions',
-  // Son propre compte - ce qu'un visiteur n'a pas.
+  // One's own account - which a visitor does not have.
   '/profile',
   '/settings',
-  // Et tout ce qui se CALCULE sur une collection : progression, découvertes,
-  // statistiques, bilan, classements, envies. Une session de visite ne nomme
-  // aucun propriétaire (voir Invite côté serveur), donc ces écrans seraient
-  // exacts et vides - des zéros et des listes sans rien, qui se lisent comme
-  // une panne plutôt que comme une réponse.
+  // And everything that is COMPUTED on a collection: progress, discoveries,
+  // statistics, summary, rankings, wishes. A visit session names no owner
+  // (see Invite on the server side), so these screens would be exact and
+  // empty - zeros and lists with nothing in them, which read as a failure
+  // rather than as an answer.
   '/discover',
   '/tier-lists',
   '/stats',
@@ -62,8 +60,8 @@ const RESERVEES_AUX_COMPTES = [
 ]
 
 /**
- * Compare par préfixe de SEGMENT : `/types` couvre `/types/new`, sans jamais
- * attraper un `/typesomething` qui n'aurait rien à voir.
+ * Compares by SEGMENT prefix: `/types` covers `/types/new`, without ever
+ * catching a `/typesomething` that would have nothing to do with it.
  */
 export function estReserveeAuxComptes(chemin: string): boolean {
   return RESERVEES_AUX_COMPTES.some((route) => chemin === route || chemin.startsWith(`${route}/`))

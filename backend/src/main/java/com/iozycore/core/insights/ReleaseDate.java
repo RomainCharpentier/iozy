@@ -9,19 +9,19 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Une date de sortie telle qu'une source la connaît : au jour près, ou au
- * mois près quand c'est tout ce qu'elle sait dire.
+ * A release date as a source knows it: to the day, or to the
+ * month when that is all it can say.
  *
- * <p>Le calendrier n'affiche jamais une date approximative (décision du
- * journal de design, §44 : « jamais une date approximative »). Une précision
- * n'est pas une approximation : « octobre 2026 » est exactement ce que la
- * source sait, et c'est ce qui est montré. Une année seule, en revanche,
- * n'est pas une date de calendrier - la BnF (« DL 2009 ») et BoardGameGeek
- * (année de parution) en restent là, et ces sorties n'entrent pas dans le
- * calendrier.
+ * <p>The calendar never shows an approximate date (decision of the
+ * design log, §44: "never an approximate date"). A precision
+ * is not an approximation: "October 2026" is exactly what the
+ * source knows, and this is what is shown. A year alone, however,
+ * is not a calendar date - the BnF ("DL 2009") and BoardGameGeek
+ * (year of publication) stop there, and these releases do not enter the
+ * calendar.
  *
- * @param date      le jour, ou le premier jour du mois pour une précision au mois
- * @param precision ce que la source sait réellement
+ * @param date      the day, or the first day of the month for a month precision
+ * @param precision what the source really knows
  */
 public record ReleaseDate(LocalDate date, Precision precision) implements Comparable<ReleaseDate> {
 
@@ -30,7 +30,7 @@ public record ReleaseDate(LocalDate date, Precision precision) implements Compar
     private static final Pattern DAY = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     private static final Pattern MONTH = Pattern.compile("\\d{4}-\\d{2}");
 
-    /** Au même jour, le mois entier passe avant le jour précis : c'est la première date possible. */
+    /** On the same day, the whole month comes before the exact day: it is the first possible date. */
     private static final Comparator<ReleaseDate> ORDER = Comparator.comparing(ReleaseDate::date)
             .thenComparing(release -> release.precision() == Precision.MONTH ? 0 : 1);
 
@@ -51,10 +51,10 @@ public record ReleaseDate(LocalDate date, Precision precision) implements Compar
     }
 
     /**
-     * « 2026-10-14 » → jour ; « 2026-10 » → mois ; tout le reste (« 2026 »,
-     * « DL 2009 », vide, absent) → rien. Une valeur illisible ne lève pas :
-     * les attributs sont un sac non typé, et une saisie bancale ne doit pas
-     * faire tomber le calendrier entier.
+     * "2026-10-14" -> day; "2026-10" -> month; everything else ("2026",
+     * "DL 2009", empty, missing) -> nothing. An unreadable value does not throw:
+     * the attributes are an untyped bag, and a shaky input must not
+     * bring down the whole calendar.
      */
     public static Optional<ReleaseDate> parse(Object value) {
         if (!(value instanceof String text)) {
@@ -74,7 +74,7 @@ public record ReleaseDate(LocalDate date, Precision precision) implements Compar
         return Optional.empty();
     }
 
-    /** Vrai quand la sortie tombe dans la période - pour un mois, dès qu'il en recouvre un jour. */
+    /** True when the release falls in the period - for a month, as soon as it covers one day of it. */
     public boolean isWithin(LocalDate from, LocalDate to) {
         return switch (precision) {
             case DAY -> !date.isBefore(from) && !date.isAfter(to);
@@ -85,7 +85,7 @@ public record ReleaseDate(LocalDate date, Precision precision) implements Compar
         };
     }
 
-    /** « 2026-10-14 » ou « 2026-10 » - ce que le client reçoit, et ce qu'il peut renvoyer tel quel. */
+    /** "2026-10-14" or "2026-10" - what the client receives, and what it can send back as is. */
     public String iso() {
         return precision == Precision.DAY ? date.toString() : YearMonth.from(date).toString();
     }

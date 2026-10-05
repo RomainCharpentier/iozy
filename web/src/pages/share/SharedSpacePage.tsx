@@ -12,25 +12,25 @@ import { Jaquette } from '@/common/components/Jaquette'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * L'espace partagé, vu par quelqu'un qui n'a pas de compte.
+ * The shared space, seen by someone who has no account.
  *
- * Une seule page pour les deux sections, là où il y en avait deux - une par
- * lien. Les onglets n'apparaissent que si les deux sections sont réellement
- * partagées : un onglet inaccessible dirait déjà quelque chose du
- * propriétaire.
+ * A single page for both sections, where there used to be two - one per
+ * link. The tabs only appear if both sections are really
+ * shared: an inaccessible tab would already say something about the
+ * owner.
  *
- * **Strictement en lecture.** Volontairement hors de l'AppShell privé : pas
- * d'onglets « Ma collection / Rechercher / Découvrir », pas de cœur, pas
- * d'avatar, aucun lien profond vers l'application. Le visiteur ne doit pouvoir
- * atteindre que cette page. Aucune carte n'est cliquable : il n'existe pas de
- * fiche publique, et envoyer un visiteur anonyme vers une fiche privée
- * l'exposerait aux prix payés, notes et dates d'acquisition.
+ * **Strictly read-only.** Deliberately outside the private AppShell: no
+ * "Ma collection / Rechercher / Découvrir" tabs, no heart, no
+ * avatar, no deep link to the application. The visitor must only be able to
+ * reach this page. No card is clickable: there is no public
+ * detail page, and sending an anonymous visitor to a private detail page
+ * would expose them to the prices paid, notes and acquisition dates.
  *
- * Ce que la page reçoit est déjà filtré par le serveur : une section non
- * partagée est absente de la réponse, pas masquée à l'affichage.
+ * What the page receives is already filtered by the server: a section that is not
+ * shared is absent from the response, not hidden in the display.
  *
- * 404 (lien inconnu ou révoqué) affiche un message neutre, jamais un détail
- * qui laisserait deviner si le lien a existé un jour.
+ * 404 (unknown or revoked link) shows a neutral message, never a detail
+ * that would let one guess whether the link ever existed.
  */
 export function SharedSpacePage() {
   const { token } = useParams<{ token: string }>()
@@ -48,21 +48,21 @@ export function SharedSpacePage() {
   const aCollection = !!data?.collection
   const aEnvies = !!data?.wishlist
   const lesDeux = aCollection && aEnvies
-  // Sans onglets (une seule section partagée), l'onglet actif est simplement
-  // celle qui existe - il n'y a rien à choisir.
+  // Without tabs (a single shared section), the active tab is simply
+  // the one that exists - there is nothing to choose.
   const onglet = lesDeux ? (ongletDemande ?? 'collection') : aCollection ? 'collection' : 'wishlist'
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-5 bg-background p-4">
-      {/* Coquille publique minimale : le nom de l'app, et rien qui ressemble à
-          une navigation privée. Aucune identité n'est affichée - le modèle n'a
-          ni pseudo ni avatar, et cette page n'en invente pas. */}
+      {/* Minimal public shell: the name of the app, and nothing that looks like
+          a private navigation. No identity is shown - the model has
+          neither username nor avatar, and this page does not invent any. */}
       <header className="flex flex-col gap-1 pt-4">
         <span className="font-display text-sm font-semibold tracking-wide text-textDim uppercase">IozyCore</span>
         <h1 className="font-display text-2xl font-bold tracking-[-0.025em] text-textPrimary">
-          {/* Sans données (chargement, lien mort), un titre neutre : annoncer
-              « Envies partagées » sur un lien révoqué laisserait croire qu'il
-              a un jour mené quelque part, ce que cette page ne dit jamais. */}
+          {/* Without data (loading, dead link), a neutral title: announcing
+              "Envies partagées" on a revoked link would suggest that it
+              once led somewhere, which this page never says. */}
           {!data
             ? 'Espace partagé'
             : lesDeux
@@ -91,12 +91,12 @@ export function SharedSpacePage() {
               key={cle}
               type="button"
               onClick={() => setOngletDemande(cle)}
-              // aria-current plutôt qu'un simple style : l'onglet actif doit
-              // être annoncé, pas seulement coloré.
+              // aria-current rather than a simple style: the active tab must
+              // be announced, not only colored.
               aria-current={onglet === cle ? 'page' : undefined}
-              // Sans ce nom explicite, le compteur se colle au libellé et un
-              // lecteur d'écran annonce « Collection 5 » - un nombre sans unité,
-              // collé à un mot, qui ne veut rien dire à l'oreille.
+              // Without this explicit name, the counter sticks to the label and a
+              // screen reader announces "Collection 5" - a number without a unit,
+              // stuck to a word, which means nothing to the ear.
               aria-label={`${libelle}, ${nombre} œuvre${nombre > 1 ? 's' : ''}`}
               className={`min-h-11 border-b-2 px-3 text-sm font-semibold transition-colors ${
                 onglet === cle
@@ -150,9 +150,9 @@ function CollectionPartagee({
         </section>
       ))}
 
-      {/* tierLists null = non partagées : on n'affiche alors STRICTEMENT rien à
-          ce sujet, pas même une mention « classements non partagés » qui
-          révélerait déjà quelque chose. */}
+      {/* tierLists null = not shared: we then show STRICTLY nothing on
+          this subject, not even a "classements non partagés" mention that
+          would already reveal something. */}
       {tierLists && (tierLists.general.length > 0 || tierLists.custom.length > 0) && (
         <section className="flex flex-col gap-4 border-t border-line pt-5">
           <h2 className="font-display text-base font-semibold text-textPrimary">Classements</h2>
@@ -178,8 +178,8 @@ function EnviesPartagees({ items }: { items: SharedWishlistItemDto[] }) {
   )
 }
 
-/** Progression affichée seulement si le total est réellement connu - sinon le
- * nombre de tomes possédés seul, jamais un « X/? » ni un total deviné. */
+/** Progress displayed only if the total is really known - otherwise the
+ * number of owned volumes alone, never an "X/?" nor a guessed total. */
 function sousTitreCollection(item: SharedCollectionItemDto): string | null {
   const progression =
     item.totalVolumes !== null
@@ -191,18 +191,18 @@ function sousTitreCollection(item: SharedCollectionItemDto): string | null {
   return texte || null
 }
 
-/** Même grille pour les deux sections : 2 colonnes dès 375 px, puis 3 et 4 -
- * une collection publique ne doit pas devenir une grille microscopique sur
+/** Same grid for both sections: 2 columns from 375 px, then 3 and 4 -
+ * a public collection must not become a microscopic grid on
  * mobile. */
 function GrilleOeuvres({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{children}</div>
 }
 
 /**
- * La primitive visuelle commune aux deux sections - une jaquette, un titre, un
- * sous-titre facultatif. Non cliquable : aucune action, aucun lien.
- * Maintenir deux cartes presque identiques (une pour la collection, une pour
- * les envies) ferait diverger leur mise en page à la première retouche.
+ * The visual primitive common to both sections - a cover, a title, an
+ * optional subtitle. Not clickable: no action, no link.
+ * Maintaining two almost identical cards (one for the collection, one for
+ * the wishes) would make their layout diverge at the first touch-up.
  */
 function CarteOeuvre({
   title,
@@ -237,8 +237,8 @@ function TableauClassement({ board }: { board: SharedTierBoardDto }) {
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-textPrimary">{board.label}</h3>
-      {/* Ordre S->F imposé ici : le backend renvoie les rangs réellement
-          utilisés, pas forcément dans l'ordre de l'échelle. */}
+      {/* S->F order imposed here: the backend returns the ranks really
+          used, not necessarily in the order of the scale. */}
       {RANKS.filter((rank) => board.rows.some((row) => row.rank === rank)).map((rank) => {
         const row = board.rows.find((r) => r.rank === rank)!
         return (

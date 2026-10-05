@@ -70,7 +70,7 @@ class StatsServiceTest {
         StatsSummary summary = statsService.computeSummary();
 
         assertThat(summary.totalEntities()).isEqualTo(2);
-        assertThat(summary.totalActiveOwnerships()).isEqualTo(1); // Hollow Knight vendue, ne compte plus
+        assertThat(summary.totalActiveOwnerships()).isEqualTo(1); // Hollow Knight sold, no longer counts
         assertThat(summary.wishlistCount()).isEqualTo(1);
         assertThat(summary.experiencesThisYear()).isEqualTo(2);
 
@@ -83,7 +83,7 @@ class StatsServiceTest {
         StatsSummary.TypeStats videoGameStats = summary.byType().stream()
                 .filter(s -> s.entityTypeCode().equals("VIDEO_GAME")).findFirst().orElseThrow();
         assertThat(videoGameStats.activeOwnershipCount()).isEqualTo(0);
-        assertThat(videoGameStats.averageRating()).isNull(); // aucune expérience notée
+        assertThat(videoGameStats.averageRating()).isNull(); // no rated experience
 
         assertThat(summary.topTags()).hasSize(1);
         assertThat(summary.topTags().get(0).label()).isEqualTo("seinen");
@@ -141,12 +141,12 @@ class StatsServiceTest {
         Entity hollowKnight = Entity.create(EntityTypeFixtures.VIDEO_GAME.id(), "Hollow Knight");
         entityRepository.save(hollowKnight);
 
-        // Death Note : premier tome en 2025 (série pas "commencée" en 2026), un second tome en 2026.
+        // Death Note: first volume in 2025 (series not "started" in 2026), a second volume in 2026.
         ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
                 LocalDate.of(2025, 12, 1), null));
         ownershipRepository.save(Ownership.acquire(deathNote.id(), null, OwnershipCondition.NEW,
                 LocalDate.of(2026, 2, 1), null));
-        // Bakuman et Hollow Knight : toutes les deux acquises pour la première fois en 2026.
+        // Bakuman and Hollow Knight: both acquired for the first time in 2026.
         ownershipRepository.save(Ownership.acquire(bakuman.id(), null, OwnershipCondition.NEW,
                 LocalDate.of(2026, 3, 1), null));
         ownershipRepository.save(Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW,
@@ -163,8 +163,8 @@ class StatsServiceTest {
         YearlyRecap recap = statsService.computeYearlyRecap(2026);
 
         assertThat(recap.year()).isEqualTo(2026);
-        assertThat(recap.acquisitionsCount()).isEqualTo(3); // Death Note tome 2 + Bakuman + Hollow Knight
-        assertThat(recap.seriesStartedCount()).isEqualTo(2); // Bakuman + Hollow Knight, pas Death Note
+        assertThat(recap.acquisitionsCount()).isEqualTo(3); // Death Note volume 2 + Bakuman + Hollow Knight
+        assertThat(recap.seriesStartedCount()).isEqualTo(2); // Bakuman + Hollow Knight, not Death Note
         assertThat(recap.experiencesCount()).isEqualTo(1);
         assertThat(recap.averageRating()).isEqualTo(9.0);
         assertThat(recap.mostFeaturedCreator()).isEqualTo("Takeshi Obata");
@@ -204,8 +204,8 @@ class StatsServiceTest {
         InMemoryTagRepository tagRepository = new InMemoryTagRepository();
         InMemoryEntityTypeRepository entityTypeRepository = new InMemoryEntityTypeRepository();
 
-        // Une série à DEUX tomes possédés, dans une édition dont le prix neuf est
-        // connu : c'est lui qui fait la valeur, pas ce qu'on a payé.
+        // A series with TWO owned volumes, in an edition whose new price is
+        // known: that is what makes the value, not what was paid.
         Entity deathNote = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         deathNote.addVariant("Tome 1 — Black Édition", Map.of("volumeNumber", 1, "edition", "Black Édition"));
         deathNote.addVariant("Tome 2 — Black Édition", Map.of("volumeNumber", 2, "edition", "Black Édition"));
@@ -217,8 +217,8 @@ class StatsServiceTest {
         editionRepository.save(MangaEdition.create(deathNote.id(), "Death Note", "Black Édition",
                 EditionTier.INTEGRAL, "Kana", 6, new BigDecimal("14.90"), false, false, null));
 
-        // Le prix PAYÉ est volontairement absurde : il ne doit entrer dans aucun
-        // total. Ce que vaut la collection ne dépend pas de ce qu'elle a coûté.
+        // The PAID price is deliberately absurd: it must enter no
+        // total. What the collection is worth does not depend on what it cost.
         Ownership tome1 = Ownership.acquire(deathNote.id(),
                 deathNote.findVariantByLabel("Tome 1 — Black Édition").orElseThrow().id(),
                 OwnershipCondition.NEW, LocalDate.now(), null);
@@ -228,12 +228,12 @@ class StatsServiceTest {
                 deathNote.findVariantByLabel("Tome 2 — Black Édition").orElseThrow().id(),
                 OwnershipCondition.NEW, LocalDate.now(), null));
 
-        // Aucune source de prix neuf pour un jeu : il compte dans le total des
-        // possessions, jamais dans la valeur connue.
+        // No new-price source for a game: it counts in the total of
+        // possessions, never in the known value.
         ownershipRepository.save(Ownership.acquire(hollowKnight.id(), null,
                 OwnershipCondition.NEW, LocalDate.now(), null));
 
-        // Vendue : hors de tous les totaux.
+        // Sold: out of all totals.
         Ownership sold = Ownership.acquire(hollowKnight.id(), null, OwnershipCondition.NEW, LocalDate.now(), null);
         sold.markSold();
         ownershipRepository.save(sold);
@@ -244,10 +244,10 @@ class StatsServiceTest {
 
         CollectionValue value = statsService.computeCollectionValue();
 
-        // 2 tomes x 14,90 - et surtout pas les 2,00 payés.
+        // 2 volumes x 14,90 - and above all not the 2,00 paid.
         assertThat(value.totalKnownValue()).isEqualByComparingTo(new BigDecimal("29.80"));
         assertThat(value.pricedOwnershipCount()).isEqualTo(2);
-        assertThat(value.totalActiveOwnershipCount()).isEqualTo(3); // le jeu vendu est exclu
+        assertThat(value.totalActiveOwnershipCount()).isEqualTo(3); // the sold game is excluded
 
         CollectionValue.TypeValue mangaValue = value.byType().stream()
                 .filter(t -> t.entityTypeLabel().equals("Manga")).findFirst().orElseThrow();
@@ -295,12 +295,12 @@ class StatsServiceTest {
 
         @Override
         public List<Entity> search(String titleQuery, UUID entityTypeId, UUID tagId) {
-            // Rendait List.of() avec le commentaire « non exercé par ce test ».
-            // Ça a cessé d'être vrai le jour où la valeur de la collection a
-            // arrêté de lire les œuvres une par une (Lot 113) : le test a
-            // annoncé 0 € pour une collection qui en vaut 29,80. Un faux
-            // dépôt qui ment sur une méthode ne se signale que le jour où
-            // quelqu'un l'appelle.
+            // Used to return List.of() with the comment "not exercised by this test".
+            // That stopped being true the day the collection value
+            // stopped reading works one by one (Batch 113): the test
+            // announced 0 € for a collection worth 29,80. A fake
+            // repository that lies about a method is only noticed the day
+            // someone calls it.
             return store.values().stream()
                     .filter(e -> titleQuery == null
                             || e.title().toLowerCase().contains(titleQuery.toLowerCase()))
@@ -320,7 +320,7 @@ class StatsServiceTest {
         }
     }
 
-    /** Seedé avec les fixtures MANGA/VIDEO_GAME - les 2 types exercés par ce test. */
+    /** Seeded with the MANGA/VIDEO_GAME fixtures - the 2 types exercised by this test. */
     private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
         private final Map<UUID, EntityType> store = new HashMap<>(Map.of(
                 EntityTypeFixtures.MANGA.id(), EntityTypeFixtures.MANGA,

@@ -1,11 +1,11 @@
 /**
- * Le nom d'une source de métadonnées, tel qu'elle s'appelle.
+ * The name of a metadata source, as it is called.
  *
- * Les suggestions du Catalogue affichaient le code du fournisseur tel que
- * l'API le renvoie - « ANILIST », « GOOGLE_BOOKS », « OPEN_LIBRARY » - en
- * capitales et avec des tirets bas, au milieu d'une ligne en français. Un
- * code inconnu (une source ajoutée demain) reste affiché tel quel plutôt que
- * d'être caché : dire d'où vient une fiche compte plus que la joliesse.
+ * The Catalogue suggestions displayed the provider code as the API returns
+ * it - "ANILIST", "GOOGLE_BOOKS", "OPEN_LIBRARY" - in capitals and with
+ * underscores, in the middle of a French line. An unknown code (a source
+ * added tomorrow) stays displayed as it is rather than being hidden: saying
+ * where a detail page comes from matters more than prettiness.
  */
 const NOMS: Record<string, string> = {
   ANILIST: 'AniList',

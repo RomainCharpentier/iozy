@@ -31,9 +31,9 @@ class VerdictScorerTest {
 
     @Test
     void an_observed_price_that_is_not_comparable_does_not_count_as_market_alignment() {
-        // Un relevé existe pour l'édition (anyObservedMarketData), mais aucun sur un lot de forme
-        // et de taille voisines (anyComparableObservation) - le cas que MarketComparableSelector
-        // écarte, et que ce facteur annonçait comme "prix réellement relevé, confiance haute".
+        // A record exists for the edition (anyObservedMarketData), but none on a batch of similar shape
+        // and size (anyComparableObservation) - the case that MarketComparableSelector
+        // discards, and that this factor used to announce as "really observed price, high confidence".
         VerdictScorer.Input sansComparable = new VerdictScorer.Input(
                 new BigDecimal("50"), new BigDecimal("50"), null, null, true, Condition.GOOD, false, List.of(),
                 false, false, List.of(), false, null, false, NegotiationAdvice.ACCEPTABLE_AS_IS, true, false);
@@ -46,8 +46,8 @@ class VerdictScorerTest {
 
         assertThat(sans.score()).isEqualTo(40);
         assertThat(sans.confidence()).isEqualTo(ConfidenceLevel.LOW);
-        // Et le message ne se confond pas avec celui de l'absence totale de relevé : il y a quelque
-        // chose à faire - relever un prix sur un lot de taille voisine.
+        // And the message is not mixed up with that of a total absence of records: there is something
+        // to do - record a price on a batch of similar size.
         assertThat(sans.rationale()).contains("aucun sur un lot comparable");
         assertThat(avec.score()).isEqualTo(90);
         assertThat(avec.confidence()).isEqualTo(ConfidenceLevel.HIGH);

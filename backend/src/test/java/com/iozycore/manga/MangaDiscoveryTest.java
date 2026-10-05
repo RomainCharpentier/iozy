@@ -20,7 +20,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.insights.DiscoveryCandidate;
 
-/** La découverte des mangas - tests extraits de DiscoveryServiceTest au Lot 133. */
+/** Manga discovery - tests taken out of DiscoveryServiceTest in Batch 133. */
 class MangaDiscoveryTest {
 
     @Test
@@ -34,8 +34,8 @@ class MangaDiscoveryTest {
         experienceRepository.save(Experience.record_(deathNote.id(), null, "READ", LocalDate.now(), 9, null));
 
         StubJikanMetadataProvider jikan = new StubJikanMetadataProvider(List.of(
-                new MetadataCandidate("JIKAN", "1", "Death Note", null, Map.of()), // déjà possédé - doit être exclu
-                new MetadataCandidate("JIKAN", "2", "Bakuman", null, Map.of())     // nouveau - doit apparaître
+                new MetadataCandidate("JIKAN", "1", "Death Note", null, Map.of()), // already owned - must be excluded
+                new MetadataCandidate("JIKAN", "2", "Bakuman", null, Map.of())     // new - must appear
         ));
 
         MangaDiscovery service = new MangaDiscovery(entityRepository, experienceRepository, List.of(jikan));
@@ -53,11 +53,11 @@ class MangaDiscoveryTest {
         assertThat(service.discover(EntityTypeFixtures.MANGA)).isEmpty();
     }
 
-    // ------------------------------------------ Ce que la mesure a volume a trouve (lot 141)
+    // ------------------------------------------ What the volume measurement found (batch 141)
 
     @Test
     void lit_les_notes_en_une_seule_fois_et_non_une_fois_par_oeuvre() {
-        // 300 series = 300 requetes de notes par ouverture de Decouvrir.
+        // 300 series = 300 rating requests each time Discover opens.
         InMemoryEntityRepository entityRepository = new InMemoryEntityRepository();
         InMemoryExperienceRepository experienceRepository = new InMemoryExperienceRepository();
         for (int i = 0; i < 50; i++) {

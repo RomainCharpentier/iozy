@@ -8,23 +8,23 @@ public interface WishlistEntryRepository {
 
     WishlistEntry save(WishlistEntry entry);
 
-    /** L'envie portant sur l'ŒUVRE entière (variantId vide) - types sans tome. */
+    /** The wish about the whole WORK (variantId empty) - types without volumes. */
     Optional<WishlistEntry> findByEntityId(UUID entityId);
 
-    /** L'envie portant sur CE tome précis. */
+    /** The wish about THIS specific volume. */
     Optional<WishlistEntry> findByVariantId(UUID variantId);
 
-    /** Toutes les envies d'une œuvre, tomes compris - ce que la fiche affiche. */
+    /** All wishes of a work, volumes included - what the detail page shows. */
     List<WishlistEntry> findAllByEntityId(UUID entityId);
 
-    /** Utilisé par le Bounded Context Insights (étape 8) pour calculer les statistiques. */
+    /** Used by the Insights Bounded Context (step 8) to compute the statistics. */
     List<WishlistEntry> findAll();
 
-    /** Retire une entrée (voir le cycle de vie décrit sur {@link WishlistEntry}). Idempotent par contrat :
-     * un id déjà supprimé ou inconnu n'est jamais une erreur, jamais une exception - seul l'état "cette
-     * entrée n'est plus dans la wishlist" compte, qu'elle vienne d'être supprimée ou qu'elle l'ait déjà
-     * été (double clic, tuile obsolète après un rechargement tardif, etc.). N'affecte jamais l'Entity,
-     * la MangaEdition, le Variant ou l'Ownership visés par cette entrée - WishlistEntry ne porte qu'un
-     * entityId en simple valeur, sans relation JPA, donc aucune cascade possible côté catalogue/collection. */
+    /** Removes an entry (see the life cycle described on {@link WishlistEntry}). Idempotent by contract:
+     * an id already deleted or unknown is never an error, never an exception - only the state "this
+     * entry is no longer in the wishlist" counts, whether it was just deleted or already was
+     * (double click, outdated tile after a late reload, etc.). Never affects the Entity,
+     * the MangaEdition, the Variant or the Ownership targeted by this entry - WishlistEntry only carries an
+     * entityId as a plain value, without a JPA relation, so no cascade is possible on the catalog/collection side. */
     void deleteById(UUID id);
 }

@@ -8,19 +8,19 @@ import { LienRetour } from '@/common/components/LienRetour'
 import type { ImportRemarque, ImportReport } from '@/common/types/api'
 
 /**
- * Le retour de « Emporter ma collection » : on rend le fichier JSON, et la
- * collection se reconstruit dans ce compte.
+ * The return of "Emporter ma collection": the JSON file is given back, and the
+ * collection is rebuilt in this account.
  *
- * <h2>Deux temps, et le premier ne coûte rien</h2>
- * Choisir le fichier lance une <b>analyse</b> : le serveur dit ce qu'il
- * créerait, ce qu'il rattacherait à l'existant, ce qu'il ignorerait - sans
- * rien écrire. C'est l'écran de validation que §19 de docs/CONCEPTION.md
- * réclame avant tout import. « Importer » ne devient possible qu'après, et
- * rejoue exactement la même passe en écrivant, en une transaction.
+ * <h2>Two steps, and the first one costs nothing</h2>
+ * Choosing the file starts an <b>analysis</b>: the server says what it
+ * would create, what it would attach to the existing data, what it would ignore - without
+ * writing anything. It is the validation screen that section 19 of docs/CONCEPTION.md
+ * asks for before any import. "Importer" only becomes possible afterwards, and
+ * replays exactly the same pass while writing, in one transaction.
  *
- * <h2>Ce qui est dit d'emblée</h2>
- * Un import n'écrase jamais : il ajoute ou s'abstient. Une seule exception,
- * les préférences d'analyse d'achat, et le rapport la nomme (« remplacé »).
+ * <h2>What is said from the start</h2>
+ * An import never overwrites: it adds or abstains. One single exception,
+ * the purchase analysis preferences, and the report names it ("remplacé").
  */
 export function ImportPage() {
   const queryClient = useQueryClient()
@@ -31,8 +31,8 @@ export function ImportPage() {
   const analyse = useMutation({ mutationFn: analyserImport })
   const application = useMutation({
     mutationFn: appliquerImport,
-    // Tout peut avoir changé : catalogue, possessions, envies, classements.
-    // Invalider en bloc coûte moins qu'oublier une clé.
+    // Everything may have changed: catalog, ownerships, wishes, rankings.
+    // Invalidating in bulk costs less than forgetting one key.
     onSuccess: () => queryClient.invalidateQueries(),
   })
 
@@ -71,10 +71,10 @@ export function ImportPage() {
           <Upload size={16} className="shrink-0 text-accentText" />
           Fichier d’export (.json)
         </label>
-        {/* Le champ natif disait « Choose File / No file chosen », en anglais
-            quel que soit le navigateur. Il reste là pour la mécanique, invisible
-            (`sr-only`, donc toujours au clavier), et c'est un libellé habillé en
-            bouton qui l'ouvre ; le nom du fichier choisi s'affiche dessous. */}
+        {/* The native field said "Choose File / No file chosen", in English
+            whatever the browser. It stays there for the mechanics, invisible
+            (`sr-only`, therefore still reachable by keyboard), and it is a label dressed as a
+            button that opens it; the name of the chosen file is shown below. */}
         <input
           id="fichier-import"
           type="file"
@@ -204,7 +204,7 @@ const GENRE: Record<ImportRemarque['genre'], string> = {
   REMPLACE: 'remplacé',
 }
 
-/** Les décisions à lire avant d'appliquer - les abandons d'abord, ils sont les seuls qui perdent quelque chose. */
+/** The decisions to read before applying - the abandonments first, they are the only ones that lose something. */
 function Remarques({ remarques, nonListees }: { remarques: ImportRemarque[]; nonListees: number }) {
   const ordonnees = [...remarques].sort((a, b) => poids(a) - poids(b))
   return (

@@ -1,6 +1,6 @@
-// Clés de requête TanStack Query centralisées, pour que les invalidations
-// (ex: après une mutation) restent cohérentes entre écrans sans dupliquer
-// des tableaux de clés à la main partout.
+// Centralized TanStack Query query keys, so that invalidations
+// (e.g. after a mutation) stay consistent between screens without duplicating
+// key arrays by hand everywhere.
 export const queryKeys = {
   entities: {
     all: ['entities'] as const,
@@ -9,8 +9,8 @@ export const queryKeys = {
     detail: (id: string) => ['entities', id] as const,
   },
   ownerships: (entityId: string) => ['ownerships', entityId] as const,
-  /** Toutes les Ownership (voir listAllOwnerships) - clé distincte de
-   * ownerships(entityId) ci-dessus pour ne jamais collisionner en cache. */
+  /** All the Ownerships (see listAllOwnerships) - key distinct from
+   * ownerships(entityId) above so that they never collide in the cache. */
   allOwnerships: ['ownerships', 'all'] as const,
   experiences: (entityId: string) => ['experiences', entityId] as const,
   tags: {
@@ -20,16 +20,16 @@ export const queryKeys = {
     from: (entityId: string) => ['relationships', 'from', entityId] as const,
     to: (entityId: string) => ['relationships', 'to', entityId] as const,
   },
-  /** Les œuvres suivies du compte : le troisième état, à côté des possessions et des envies. */
+  /** The followed works of the account: the third state, next to ownerships and wishes. */
   followedWorks: { all: ['followedWorks'] as const },
   wishlist: {
     all: ['wishlist'] as const,
 
   },
-  /** La livraison du serveur : elle ne change qu'au redéploiement. */
+  /** The server delivery: it only changes at redeployment. */
   version: ['version'] as const,
-  // Partage d'espace - une seule clé, parce qu'il n'y a plus qu'un partage :
-  // collection et envies en sont deux sections, pas deux liens.
+  // Space sharing - one single key, because there is only one share left:
+  // collection and wishes are two sections of it, not two links.
   share: ['share'] as const,
   sharedSpace: (token: string) => ['share', 'shared', token] as const,
   insights: {
@@ -39,18 +39,18 @@ export const queryKeys = {
     yearlyRecap: (year: number) => ['insights', 'yearlyRecap', year] as const,
     value: ['insights', 'value'] as const,
     progress: ['insights', 'progress'] as const,
-    /** Préfixée par `progress` À DESSEIN : les invalidations existantes
-     *  (`insights.progress`) emportent donc aussi la progression d'une œuvre,
-     *  sans avoir à les recenser une seconde fois. */
+    /** Prefixed by `progress` ON PURPOSE: the existing invalidations
+     *  (`insights.progress`) therefore also carry the progress of a work,
+     *  without having to list them a second time. */
     progressOf: (entityId: string) => ['insights', 'progress', entityId] as const,
-    /** Le calendrier des sorties d'une période - un mois à l'écran, trois pour l'aperçu de Découvrir. */
+    /** The release calendar of a period - one month on screen, three for the Discover preview. */
     releases: (from: string, to: string) => ['insights', 'releases', from, to] as const,
   },
   metadata: {
     search: (entityTypeId: string, query: string) => ['metadata', 'search', entityTypeId, query] as const,
-    /** Les œuvres déjà connues comme sans tome, pour une page de résultats.
-     *  Clé par la liste des titres interrogés : changer de recherche change la
-     *  question, et deux pages de résultats n'ont pas la même réponse. */
+    /** The works already known as having no volumes, for a results page.
+     *  Keyed by the list of queried titles: changing the search changes the
+     *  question, and two results pages do not have the same answer. */
     sansTomes: (entityTypeId: string, titres: string) => ['metadata', 'sansTomes', entityTypeId, titres] as const,
   },
   entityTypes: {
@@ -65,36 +65,36 @@ export const queryKeys = {
     completeness: (seriesTitle: string, editionName: string, volumes: number[]) =>
       ['purchaseAnalysis', 'completeness', seriesTitle, editionName, volumes] as const,
     nearCompleteSuggestions: ['purchaseAnalysis', 'nearCompleteSuggestions'] as const,
-    /** Les prix relevés d'une édition (écran Éditions de référence). */
+    /** The observed prices of an edition (Éditions de référence screen). */
     marketObservations: (mangaEditionId: string) =>
       ['purchaseAnalysis', 'marketObservations', mangaEditionId] as const,
   },
-  /** Les tomes qu'un fournisseur connaît pour une œuvre, que le catalogue n'a
-   *  pas encore (voir useTomesProposes). Clé par type ET titre : c'est ce
-   *  couple que la recherche interroge, et deux œuvres homonymes de types
-   *  différents n'ont pas les mêmes tomes. */
-  /** L'auteur fait partie de la question : « les tomes de Doubt » et « les
-   *  tomes de Doubt PAR Tonogai » n'ont pas la même réponse (Lot 123). */
+  /** The volumes that a provider knows for a work, that the catalog does not
+   *  have yet (see useTomesProposes). Keyed by type AND title: this is the
+   *  pair that the search queries, and two homonymous works of different
+   *  types do not have the same volumes. */
+  /** The author is part of the question: "the volumes of Doubt" and "the
+   *  volumes of Doubt BY Tonogai" do not have the same answer (Batch 123). */
   tomesProposes: (entityTypeId: string, titre: string, auteur?: string) =>
     ['tomesProposes', entityTypeId, titre, auteur ?? null] as const,
-  /** L'édition suivie d'une série (voir api/followedEdition). Clé par série :
-   *  la fiche, la grille de tomes et les cartes d'édition la lisent toutes,
-   *  une seule requête pour les trois. */
+  /** The followed edition of a series (see api/followedEdition). Keyed by
+   *  series: the detail page, the volume grid and the edition cards all read
+   *  it, one single request for the three. */
   followedEdition: (entityId: string) => ['followedEdition', entityId] as const,
-  /** Qui est connecté, et ce que l'instance permet (voir lib/useAuth). Deux
-   *  clés distinctes : l'état de l'instance se lit sans compte, le compte non. */
+  /** Who is signed in, and what the instance allows (see lib/useAuth). Two
+   *  distinct keys: the state of the instance is read without an account, the account is not. */
   auth: {
     compte: ['auth', 'compte'] as const,
     etat: ['auth', 'etat'] as const,
   },
-  /** L'administration de l'instance - jamais les données de quelqu'un. */
+  /** The administration of the instance - never anyone's data. */
   admin: {
     comptes: ['admin', 'comptes'] as const,
   },
   tierLists: {
     general: (entityTypeId: string) => ['tierLists', 'general', entityTypeId] as const,
-    // null = les listes transverses "toutes catégories" (voir TierListDto.entityTypeId) -
-    // une famille à part, jamais mélangée avec celles d'un univers donné.
+    // null = the cross-cutting "all categories" lists (see TierListDto.entityTypeId) -
+    // a separate family, never mixed with those of a given universe.
     custom: (entityTypeId: string | null) => ['tierLists', 'custom', entityTypeId ?? 'all-universes'] as const,
     detail: (id: string) => ['tierLists', 'detail', id] as const,
     entitySummary: (entityId: string) => ['tierLists', 'entitySummary', entityId] as const,

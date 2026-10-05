@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Ce qu'un import ferait - ou vient de faire. Le meme objet sert aux deux :
- * l'analyse le remplit sans rien ecrire, l'application le remplit en
- * ecrivant, et l'ecran compare les deux d'un coup d'oeil.
+ * What an import would do - or just did. The same object serves both:
+ * the analysis fills it without writing anything, the application fills it
+ * while writing, and the screen compares the two at a glance.
  *
- * <p>Trois issues par ligne, jamais plus : <b>cree</b> (n'existait pas),
- * <b>rattache</b> (existait deja, on s'y est raccorde sans doublon) ou
- * <b>ignore</b> (impossible ou incomplet, et la remarque dit pourquoi). Un
- * import ne modifie jamais une donnee existante : il ajoute ou s'abstient.
+ * <p>Three outcomes per row, never more: <b>created</b> (did not exist),
+ * <b>attached</b> (already existed, we linked to it without a duplicate) or
+ * <b>ignored</b> (impossible or incomplete, and the remark says why). An
+ * import never changes existing data: it adds or abstains.
  */
 public record ImportReport(boolean applique, List<Section> sections, List<Remarque> remarques,
                            int remarquesNonListees) {
@@ -21,14 +21,14 @@ public record ImportReport(boolean applique, List<Section> sections, List<Remarq
     public record Section(String cle, String libelle, int crees, int rattaches, int ignores) {
     }
 
-    /** Une decision qui merite d'etre lue avant d'appliquer : un rattachement ou un abandon. */
+    /** A decision worth reading before applying: an attachment or a skip. */
     public record Remarque(String section, String genre, String sujet, String detail) {
         public static final String RATTACHE = "RATTACHE";
         public static final String IGNORE = "IGNORE";
         public static final String REMPLACE = "REMPLACE";
     }
 
-    /** Accumulateur : les compteurs par section, dans l'ordre ou l'import les traite. */
+    /** Accumulator: the counters per section, in the order the import handles them. */
     public static final class Cumul {
         private static final int REMARQUES_MAX = 300;
 

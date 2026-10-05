@@ -1,32 +1,32 @@
 import { Bookmark, Check, Plus } from 'lucide-react'
 
 export interface EditionAffichee {
-  /** Le nom de l'édition. `''` pour le groupe « édition non précisée », qui
-   *  peut être AFFICHÉ mais jamais SUIVI (voir FollowedEdition côté backend). */
+  /** The name of the edition. `''` for the "edition not specified" group, which
+   *  can be DISPLAYED but never FOLLOWED (see FollowedEdition on the backend side). */
   nom: string
   editeur: string | null
-  /** Nombre de tomes de l'édition, null tant qu'aucune source ne le connaît. */
+  /** Number of volumes of the edition, null as long as no source knows it. */
   total: number | null
   possedes: number
 }
 
 /**
- * La rangée « ÉDITIONS · n » de la maquette : une carte par édition, chacune
- * avec sa propre progression.
+ * The "ÉDITIONS · n" row of the mockup: one card per edition, each
+ * with its own progress.
  *
- * <h2>Choisir n'est pas suivre</h2>
- * Deux gestes distincts, que la maquette sépare et que l'ancienne fiche
- * confondait en un seul état local :
+ * <h2>Choosing is not following</h2>
+ * Two separate gestures, which the mockup separates and which the old page
+ * merged into a single local state:
  * <ul>
- *   <li><b>Choisir</b> (cliquer la carte) ne change que ce qu'on REGARDE - la
- *       grille de tomes en dessous. Volatile, oublié en quittant la page.</li>
- *   <li><b>Suivre</b> (« Suivre cette édition ») déclare celle qu'on
- *       collectionne. C'est une donnée persistée, elle décide de l'édition
- *       ouverte par défaut à la prochaine visite.</li>
+ *   <li><b>Choose</b> (click the card) only changes what is being LOOKED AT - the
+ *       volume grid below. Volatile, forgotten when leaving the page.</li>
+ *   <li><b>Follow</b> ("Suivre cette édition") declares the one being
+ *       collected. It is persisted data, it decides which edition is
+ *       opened by default on the next visit.</li>
  * </ul>
- * D'où deux commandes sur la même carte plutôt qu'un clic qui ferait les deux :
- * comparer trois éditions avant d'en choisir une est le cas normal, et chaque
- * coup d'œil ne doit pas réécrire ce qu'on collectionne.
+ * Hence two controls on the same card rather than one click doing both:
+ * comparing three editions before choosing one is the normal case, and each
+ * glance must not rewrite what is being collected.
  */
 export function CartesEditions({
   editions,
@@ -41,24 +41,24 @@ export function CartesEditions({
 }: {
   editions: EditionAffichee[]
   editionAffichee: string
-  /** null quand l'utilisateur n'a encore rien déclaré, et sur l'écran d'ajout
-   *  où l'œuvre n'existe pas encore : on ne suit pas une édition d'une série
-   *  qu'on n'a pas. */
+  /** null when the user has not declared anything yet, and on the add screen
+   *  where the work does not exist yet: one does not follow an edition of a series
+   *  one does not have. */
   editionSuivie?: string | null
   onAfficher: (nom: string) => void
   onSuivre?: (nom: string) => void
   onNePlusSuivre?: () => void
   onAjouterEdition?: () => void
-  /** L'espace « Éditer » : au repos la fiche se LIT, et aucune action de
-   *  catalogue n'y apparaît. Ajouter une édition ou un tome relève de la
-   *  connaissance catalographique, pas de la collection personnelle (étude
-   *  produit du 2026-08-27, §10) - ces actions vivent donc toutes derrière
-   *  cette bascule, jamais saupoudrées dans la page. Absent des écrans qui
-   *  n'ont rien à modifier : le bouton disparaît au lieu de rester inerte. */
+  /** The "Éditer" space: at rest the page is READ, and no catalog
+   *  action appears on it. Adding an edition or a volume is part of
+   *  cataloging knowledge, not of the personal collection (product
+   *  study of 2026-08-27, section 10) - so these actions all live behind
+   *  this switch, never sprinkled in the page. Absent from screens that
+   *  have nothing to change: the button disappears instead of staying inert. */
   modeEdition?: boolean
-  /** Ce que la jauge d'une carte COMPTE. Sur la fiche, des tomes possédés ;
-   *  à l'ajout, des tomes cochés. Même dessin, deux sens - et le sens doit
-   *  être dit au lecteur d'écran, à qui « 3/27 » ne suffit pas. */
+  /** What the gauge of a card COUNTS. On the detail page, owned volumes;
+   *  when adding, checked volumes. Same drawing, two meanings - and the meaning must
+   *  be told to the screen reader, for whom "3/27" is not enough. */
   sensProgression?: 'possession' | 'selection'
 }) {
   return (
@@ -67,15 +67,15 @@ export function CartesEditions({
         <span className="text-[11px] font-semibold tracking-[0.14em] text-faint uppercase">
           Éditions · {editions.length}
         </span>
-        {/* Le passage en mode édition a quitté cette rangée pour l'en-tête de
-            la fiche (voir FicheHero) : il ouvre le catalogue de l'ŒUVRE, pas
-            celui de ses éditions, et cette rangée n'existe pas sur un type qui
-            n'en a aucune. Ne reste ici que ce qui parle vraiment d'éditions. */}
+        {/* The switch to edit mode left this row for the header of
+            the detail page (see FicheHero): it opens the catalog of the WORK, not
+            that of its editions, and this row does not exist on a type that has
+            none. Only what really speaks about editions stays here. */}
         {modeEdition && (
           <div className="flex items-center gap-2">
             {onAjouterEdition && (
-              // « Ajouter » doit toujours dire OÙ (§11) : un « + » nu ne
-              // distinguait pas ce geste de catalogue d'un ajout à la
+              // "Ajouter" must always say WHERE (section 11): a bare "+" did not
+              // tell this catalog gesture apart from an add to the
               // collection.
               <button
                 type="button"
@@ -125,12 +125,12 @@ export function CartesEditions({
                     </span>
                   )}
                 </span>
-                {/* Ce qu'on sait de l'édition - son ÉDITEUR et son nombre de
-                    tomes, pas son nom, qui est juste au-dessus. D'où
-                    « Détails à renseigner » et non « Édition à renseigner » :
-                    le second, posé sous « Crunchyroll », se lisait comme une
-                    contradiction (on nomme l'édition ET on dit qu'elle est à
-                    renseigner). Le crayon de correction est dans « L'œuvre ». */}
+                {/* What is known about the edition - its PUBLISHER and its number of
+                    volumes, not its name, which is just above. Hence
+                    "Détails à renseigner" and not "Édition à renseigner":
+                    the second one, placed under "Crunchyroll", read like a
+                    contradiction (the edition is named AND said to need
+                    filling in). The correction pencil is in "L'œuvre". */}
                 <span className="text-[12.5px] text-faint">
                   {[edition.editeur, edition.total !== null ? `${edition.total} tomes` : null]
                     .filter(Boolean)
@@ -150,14 +150,14 @@ export function CartesEditions({
                       edition.possedes > 0 ? 'text-accentText' : 'text-faint'
                     }`}
                   >
-                    {/* Pas de « 2/? » : un ratio dont le dénominateur est
-                        inconnu se lit comme une donnée manquante alors que le
-                        numérateur, lui, est parfaitement su. On affiche
-                        simplement ce qu'on a. Le total d'une édition n'est
-                        connu que renseigné (voir MangaEdition) - le déduire du
-                        nombre de tomes qu'une recherche a RAMENÉS
-                        empoisonnerait le moteur de complétude, qui s'en sert
-                        ensuite pour dire ce qui manque et ce qu'il en coûte. */}
+                    {/* No "2/?": a ratio whose denominator is
+                        unknown reads like missing data while the
+                        numerator is perfectly known. We simply show
+                        what we have. The total of an edition is only
+                        known when filled in (see MangaEdition) - deducing it from the
+                        number of volumes a search BROUGHT BACK
+                        would poison the completeness engine, which then uses it
+                        to say what is missing and what it costs. */}
                     <span aria-hidden="true">
                       {edition.total !== null
                         ? `${edition.possedes}/${edition.total}`
@@ -173,15 +173,15 @@ export function CartesEditions({
                 </span>
               </button>
 
-              {/* « Suivre » n'a de sens que sur une édition NOMMÉE : le groupe
-                  des tomes sans édition précisée n'est pas une édition qu'on
-                  peut collectionner, c'est le fourre-tout de ce qu'on ignore. */}
-              {/* Plus derrière le pinceau : suivre une édition est la
-                  décision principale de cette rangée, et la cacher derrière un
-                  mode d'édition la rendait introuvable - la donnée persistée
-                  côté backend n'avait aucun chemin évident pour être posée.
-                  Affiché dès qu'il y a un CHOIX réel : avec une seule édition,
-                  déclarer laquelle on collectionne ne veut rien dire. */}
+              {/* "Suivre" only makes sense on a NAMED edition: the group
+                  of volumes without a specified edition is not an edition one can
+                  collect, it is the catch-all of what we do not know. */}
+              {/* No longer behind the pencil: following an edition is the
+                  main decision of this row, and hiding it behind an edit
+                  mode made it impossible to find - the data persisted
+                  on the backend side had no obvious path to be set.
+                  Shown as soon as there is a real CHOICE: with a single edition,
+                  declaring which one is collected means nothing. */}
               {editions.length > 1 && onSuivre && onNePlusSuivre && edition.nom !== '' && (
                 suivie ? (
                   <button

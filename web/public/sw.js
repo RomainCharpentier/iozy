@@ -1,40 +1,40 @@
 /**
- * Le service worker d'IozyCore — la coquille de l'app, jamais ses données.
+ * The IozyCore service worker — the shell of the app, never its data.
  *
- * ## Ce qu'il fait, et surtout ce qu'il ne fait pas
- * Il met en cache ce qui EST l'application : le document, les scripts, les
- * styles, les polices, les icônes. Il ne touche **jamais** à `/api` - ni pour
- * lire, ni pour écrire. Une collection servie depuis un cache serait une
- * collection périmée présentée comme la vraie, et le reste de l'app est
- * construit tout entier sur l'inverse : ne jamais afficher un chiffre auquel
- * on ne croit pas. Un backend éteint doit donc continuer de produire
- * l'erreur franche que `api/client.ts` traduit déjà en français.
+ * ## What it does, and above all what it does not do
+ * It caches what IS the application: the document, the scripts, the styles,
+ * the fonts, the icons. It **never** touches `/api` - neither to read nor to
+ * write. A collection served from a cache would be a stale collection passed
+ * off as the real one, and the rest of the app is built entirely on the
+ * opposite: never show a number we do not believe. A stopped backend must
+ * therefore keep producing the plain error that `api/client.ts` already
+ * translates into French.
  *
- * Sa raison d'être n'est pas le hors-ligne : c'est **l'installation**. Sans
- * service worker gérant `fetch`, un navigateur ne propose pas d'installer
- * l'app sur l'écran d'accueil - et une app de collection qu'on ne peut pas
- * ouvrir d'un pouce en brocante rate l'essentiel de son usage.
+ * Its purpose is not offline use: it is **installation**. Without a service
+ * worker handling `fetch`, a browser does not offer to install the app on the
+ * home screen - and a collection app that cannot be opened with one thumb at
+ * a flea market misses most of its use.
  *
- * ## Deux stratégies, selon ce que l'URL promet
- * Les fichiers de `/assets/` portent une empreinte dans leur nom : leur
- * contenu ne changera JAMAIS, donc le cache d'abord, sans condition. Tout le
- * reste - le document, le manifeste, les icônes - garde le réseau d'abord,
- * avec le cache en filet : c'est ce qui fait qu'un déploiement est visible à
- * la première visite suivante, et pas à la seconde.
+ * ## Two strategies, depending on what the URL promises
+ * The files in `/assets/` carry a hash in their name: their content will
+ * NEVER change, so cache first, unconditionally. Everything else - the
+ * document, the manifest, the icons - keeps network first, with the cache as
+ * a safety net: this is why a deployment is visible on the next visit, and
+ * not on the second one.
  *
- * ## Testé
- * `strategiePour()` est une fonction pure, exportée sur `self` pour que
- * `src/sw.test.ts` l'exerce : c'est là que vivent les décisions, et une
- * erreur de tri y servirait silencieusement de vieilles données.
+ * ## Tested
+ * `strategiePour()` is a pure function, exported on `self` so that
+ * `src/sw.test.ts` can exercise it: this is where the decisions live, and a
+ * sorting mistake there would silently serve old data.
  */
 
 const VERSION = 'iozycore-v1'
 
-/** Ce qui ne passe jamais par ce service worker, quoi qu'il arrive. */
+/** What never goes through this service worker, whatever happens. */
 function horsPerimetre(url, methode) {
   if (methode !== 'GET') return true
   if (url.origin !== self.location.origin) return true
-  // Les données de l'utilisateur : lues au réseau, ou pas du tout.
+  // The user's data: read from the network, or not at all.
   if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return true
   return false
 }
@@ -44,7 +44,7 @@ function horsPerimetre(url, methode) {
  */
 function strategiePour(url, methode = 'GET') {
   if (horsPerimetre(url, methode)) return 'ignorer'
-  // Nom empreinté par le build : le contenu est immuable, le cache fait foi.
+  // Name hashed by the build: the content is immutable, the cache is trusted.
   if (url.pathname.startsWith('/assets/')) return 'cache-dabord'
   return 'reseau-dabord'
 }
@@ -69,8 +69,8 @@ async function reseauDabord(requete) {
   } catch (panne) {
     const enCache = await cache.match(requete)
     if (enCache) return enCache
-    // Une navigation sans réseau ni cache exact : le document d'accueil fait
-    // office de coquille, le routeur reprend la main côté client.
+    // A navigation with no network and no exact cache entry: the home
+    // document acts as the shell, and the router takes over on the client.
     if (requete.mode === 'navigate') {
       const accueil = await cache.match('/')
       if (accueil) return accueil
@@ -80,8 +80,8 @@ async function reseauDabord(requete) {
 }
 
 self.addEventListener('install', (evenement) => {
-  // La coquille minimale, pour qu'une première visite hors ligne ait au moins
-  // un document à rendre. Le reste se met en cache à l'usage.
+  // The minimal shell, so that a first offline visit has at least one
+  // document to render. The rest is cached as it is used.
   evenement.waitUntil(
     caches
       .open(VERSION)
@@ -91,8 +91,8 @@ self.addEventListener('install', (evenement) => {
 })
 
 self.addEventListener('activate', (evenement) => {
-  // Les caches des versions précédentes ne servent plus à rien : les garder
-  // ferait grossir le stockage du téléphone sans jamais rien resservir.
+  // The caches of previous versions are useless: keeping them would grow the
+  // phone storage without ever serving anything again.
   evenement.waitUntil(
     caches
       .keys()

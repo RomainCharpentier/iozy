@@ -11,24 +11,24 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Administrer l'INSTANCE : qui a un compte, et en supprimer un.
+ * Administer the INSTANCE: who has an account, and delete one.
  *
- * <h2>Ce que ce service ne fait pas</h2>
- * Il ne donne accès à <b>aucune</b> donnée d'un autre compte. Ce qu'il rend,
- * ce sont des métadonnées - pseudo, adresse, date, et des <b>nombres</b> - et
- * l'isolation par propriétaire reste entière partout ailleurs. Un
- * administrateur n'est pas un super-utilisateur : c'est quelqu'un qui répond
- * de la machine, pas des collections qui y vivent.
+ * <h2>What this service does not do</h2>
+ * It gives access to <b>no</b> data of another account. What it returns
+ * is metadata - pseudo, address, date, and <b>numbers</b> - and
+ * isolation by owner stays whole everywhere else. An
+ * administrator is not a super-user: it is someone who answers
+ * for the machine, not for the collections that live on it.
  *
- * <h2>Une suppression est définitive, et elle emporte tout</h2>
- * Elle efface les onze tables cloisonnées puis le compte lui-même. Rien ne la
- * défait : il n'y a ni corbeille, ni journal, ni sauvegarde applicative. Le
- * contrôleur exige donc une confirmation, et l'écran l'annonce en toutes
- * lettres avec ce que le compte pèse.
+ * <h2>A deletion is final, and it takes everything with it</h2>
+ * It erases the eleven partitioned tables then the account itself. Nothing
+ * undoes it: there is no trash, no journal, no application backup. The
+ * controller therefore requires a confirmation, and the screen announces it in full
+ * with what the account weighs.
  *
- * <p>Le <b>catalogue</b> (œuvres, tomes, éditions, tags, relations) n'est pas
- * touché : il est partagé, une œuvre est la même pour tout le monde, et la
- * supprimer la retirerait de la collection des autres.
+ * <p>The <b>catalog</b> (works, volumes, editions, tags, relationships) is not
+ * touched: it is shared, a work is the same for everyone, and
+ * deleting it would remove it from the collection of the others.
  */
 @Service
 public class GestionDesComptes {
@@ -41,7 +41,7 @@ public class GestionDesComptes {
         this.donnees = donnees;
     }
 
-    /** Un compte tel que l'administration le voit : de quoi décider, jamais de quoi lire. */
+    /** An account as the administration sees it: enough to decide, never enough to read. */
     public record CompteAdministre(UUID id, String pseudo, String email, boolean admin, Instant creeLe,
                                     DonneesParProprietaire.Volume volume) {
     }
@@ -56,13 +56,13 @@ public class GestionDesComptes {
     }
 
     /**
-     * Supprime un compte et tout ce qui lui appartient.
+     * Deletes an account and everything that belongs to it.
      *
-     * @param demandeur l'administrateur qui agit - il ne peut pas se supprimer
-     *                  lui-même : il perdrait sa session au milieu du geste, et
-     *                  surtout une instance doit garder quelqu'un qui puisse
-     *                  l'administrer. C'est aussi ce qui garantit qu'il reste
-     *                  toujours au moins un administrateur.
+     * @param demandeur the administrator who acts - they cannot delete
+     *                  themselves: they would lose their session in the middle of the action, and
+     *                  above all an instance must keep someone who can
+     *                  administer it. This is also what guarantees that there
+     *                  is always at least one administrator.
      */
     @Transactional
     public void supprimer(UUID id, UUID demandeur) {
@@ -72,21 +72,21 @@ public class GestionDesComptes {
         AppUser compte = comptes.findById(id)
                 .orElseThrow(() -> new CompteIntrouvable("Ce compte n'existe pas ou plus."));
 
-        // Les données d'abord, le compte ensuite. Dans l'autre sens, un échec
-        // entre les deux laisserait des lignes appartenant à un identifiant que
-        // plus personne ne porte - invisibles, et impossibles à retrouver.
+        // The data first, the account after. The other way round, a failure
+        // between the two would leave rows belonging to an id that
+        // nobody carries anymore - invisible, and impossible to find.
         donnees.effacerToutCeQuiAppartientA(compte.id());
         comptes.supprimer(compte.id());
     }
 
-    /** Le compte visé n'existe pas (404). */
+    /** The targeted account does not exist (404). */
     public static class CompteIntrouvable extends RuntimeException {
         public CompteIntrouvable(String message) {
             super(message);
         }
     }
 
-    /** Une demande bien formée, mais que l'application refuse (409). */
+    /** A well-formed request, but that the application refuses (409). */
     public static class SuppressionRefusee extends RuntimeException {
         public SuppressionRefusee(String message) {
             super(message);

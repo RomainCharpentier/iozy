@@ -26,9 +26,9 @@ import { useFiltresCollection } from './useFiltresCollection'
 import { SqueletteRail } from '@/common/components/Squelette'
 
 /**
- * Ce que compte le sous-titre, selon ce qu'on regarde. Un décompte doit nommer
- * la chose comptée : sous « Envies + non groupée », « 12 titres possédés »
- * serait faux deux fois.
+ * What the subtitle counts, depending on what is being looked at. A count must name
+ * the thing counted: under "Envies + non groupée", "12 titres possédés"
+ * would be wrong twice.
  */
 const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n: number) => string>> = {
   groupee: {
@@ -37,9 +37,9 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
     suivies: (n) => `titre${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
     envies: (n) => `titre${n > 1 ? 's' : ''} avec une envie en cours`,
   },
-  // Sans nom d'objet en vue dégroupée : « tome » ne vaut que pour un manga, et
-  // « élément » sonne comme un mot de développeur. Le contraste avec
-  // « titres » de la vue groupée dit déjà ce qu'on compte.
+  // Without an object name in the ungrouped view: "tome" only applies to a manga, and
+  // "élément" sounds like a developer word. The contrast with
+  // "titres" of the grouped view already says what is counted.
   plate: {
     tout: (n) => `possédé${n > 1 ? 's' : ''} ou voulu${n > 1 ? 's' : ''}`,
     possedes: (n) => `possédé${n > 1 ? 's' : ''}`,
@@ -48,7 +48,7 @@ const LIBELLES_DECOMPTE: Record<'groupee' | 'plate', Record<FiltreCollection, (n
   },
 }
 
-/** Un écran vide doit dire POURQUOI il l'est, et par où en sortir. */
+/** An empty screen must say WHY it is empty, and how to get out of it. */
 function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre: string; detail: string } {
   if (filtresActifs) {
     return { titre: 'Rien ne correspond à ces filtres.', detail: '' }
@@ -71,48 +71,48 @@ function messageVide(filtre: FiltreCollection, filtresActifs: boolean): { titre:
   }
 }
 
-// Référence stable pour le fallback "pas encore chargé" - un `[]` inline
-// serait recréé à chaque render et invaliderait la mémoïsation.
+// Stable reference for the "not loaded yet" fallback - an inline `[]`
+// would be recreated at every render and would invalidate the memoization.
 
 /**
- * Structure V1.2 (voir docs/DESIGN_MIGRATION_V1.2.md, Lot 3) : une ligne par
- * catégorie possédée (voir CategorySection) plutôt qu'une grille unique
- * filtrée par chips Tout/Manga/Jeu vidéo/Jeu de société - la répartition
- * par type est maintenant structurelle, plus besoin de choisir un filtre
- * pour la voir. Le filtre "Par tome" (grille à plat, un tome = une tuile)
- * n'a pas d'équivalent dans cette structure en rails (chaque rail montre
- * des SÉRIES, jamais des tomes individuels) et n'apparaît nulle part dans
- * la maquette V1.2 - retiré de cet écran (différence documentée, voir
- * docs/DESIGN_MIGRATION_V1.2.md). Rien n'est perdu côté modèle/données : le
- * suivi tome par tome (Ownership individuelle) reste entier.
+ * V1.2 structure (see docs/DESIGN_MIGRATION_V1.2.md, Batch 3): one row per
+ * owned category (see CategorySection) rather than a single grid
+ * filtered by chips Tout/Manga/Jeu vidéo/Jeu de société - the split
+ * by type is now structural, no need to choose a filter
+ * to see it. The "Par tome" filter (flat grid, one volume = one tile)
+ * has no equivalent in this rail structure (each rail shows
+ * SERIES, never individual volumes) and appears nowhere in
+ * the V1.2 mockup - removed from this screen (documented difference, see
+ * docs/DESIGN_MIGRATION_V1.2.md). Nothing is lost on the model/data side: the
+ * volume by volume tracking (individual Ownership) stays whole.
  *
- * <h2>Une page, trois lectures (étude produit du 2026-08-27)</h2>
- * « Collection » et « Envies » étaient deux écrans pour le même endroit. Ce
- * sont désormais trois FILTRES - Tout / Possédés / Envies - qui raisonnent
- * tous sur les ÉLÉMENTS qu'un groupe contient, et deux VUES : groupée (une
- * carte par groupe) ou dégroupée (les éléments eux-mêmes). Le mode « par
- * tome » retiré au Lot 3 revient donc ici, mais comme une vue de plein droit
- * plutôt que comme un filtre de type déguisé - et sans supposer que
- * l'élément soit un tome : chaque type a ses propres groupes.
+ * <h2>One page, three readings (product study of 2026-08-27)</h2>
+ * "Collection" and "Envies" were two screens for the same place. They
+ * are now three FILTERS - Tout / Possédés / Envies - which all reason
+ * about the ITEMS that a group contains, and two VIEWS: grouped (one
+ * card per group) or ungrouped (the items themselves). The "by
+ * volume" mode removed in Batch 3 therefore comes back here, but as a full view
+ * rather than as a disguised type filter - and without assuming that
+ * the item is a volume: each type has its own groups.
  *
- * <p>Filtre, vue et tri sont mémorisés (voir lib/preferencesCollection) : ils
- * décrivent une habitude, pas un choix à refaire à chaque ouverture.
+ * <p>Filter, view and sort are remembered (see lib/preferencesCollection): they
+ * describe a habit, not a choice to redo at every opening.
  *
- * <h2>L'écran du cœur (lot 136)</h2>
- * Cette page vaut pour n'importe quelle collection : rien de ce qu'elle montre
- * ne suppose un univers. Ce qui est propre à l'un d'eux - l'outil de jaquettes
- * des mangas, l'import BoardGameGeek - vit sur son rayon ou sur le Catalogue,
- * jamais dans la barre d'outils d'ici ; et l'ordre des rails vient des données
- * (voir ordonnerLesTypes), pas d'une liste de codes qui nommait le manga en
- * premier.
+ * <h2>The core screen (batch 136)</h2>
+ * This page works for any collection: nothing that it shows
+ * assumes a universe. What belongs to one of them - the cover tool
+ * of the mangas, the BoardGameGeek import - lives on its shelf or on the Catalog,
+ * never in the toolbar here; and the order of the rails comes from the data
+ * (see ordonnerLesTypes), not from a list of codes that named manga
+ * first.
  */
 export function ShelfPage() {
   const navigate = useNavigate()
   const filtres = useFiltresCollection()
   const preferences = usePreferencesCollection()
   const [hubMenuOpen, setHubMenuOpen] = useState(false)
-  // Escape + piège de focus + focus rendu au déclencheur - voir
-  // useModalA11y (Lot 9).
+  // Escape + focus trap + focus returned to the trigger - see
+  // useModalA11y (Batch 9).
   const hubMenuRef = useModalA11y<HTMLDivElement>(hubMenuOpen, () => setHubMenuOpen(false))
 
   const donnees = useDonneesCollection()
@@ -128,8 +128,8 @@ export function ShelfPage() {
     wishlist,
   } = donnees
 
-  // L'état de chaque œuvre, calculé une fois : les trois compteurs de la barre
-  // et la liste affichée le lisent tous, au lieu de le redériver chacun.
+  // The state of each work, computed once: the three counters of the bar
+  // and the displayed list all read it, instead of deriving it again each.
   const etats = useMemo(
     () => new Map(allEntities.map((e) => [e.id, etatDeLOeuvre(e, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies)])),
     [allEntities, ownerships, owned, tomesVoulus, oeuvresVoulues, oeuvresSuivies],
@@ -139,10 +139,10 @@ export function ShelfPage() {
 
   const typesParId = useMemo(() => new Map(entityTypes.map((t) => [t.id, t])), [entityTypes])
 
-  /** Les œuvres que CE filtre retient - le filtre d'état (Complètes /
-   *  Incomplètes) ne s'appliquant qu'à ce qui a une complétude, une œuvre
-   *  seulement voulue n'en ayant pas encore. Le tag, lui, vaut pour toutes :
-   *  il se pose sur l'œuvre, possédée ou non. */
+  /** The works that THIS filter keeps - the state filter (Complètes /
+   *  Incomplètes) only applies to what has a completeness, a work
+   *  that is only wished not having one yet. The tag, for its part, applies to all:
+   *  it is set on the work, owned or not. */
   const retenuesPour = useCallback(
     (filtre: FiltreCollection) =>
       allEntities.filter((e) => {
@@ -167,13 +167,13 @@ export function ShelfPage() {
   )
 
   /**
-   * Ce que chaque filtre donnerait, **dans la vue courante**.
+   * What each filter would give, **in the current view**.
    *
-   * Le compteur passait toujours par les groupes : en vue dégroupée il
-   * annonçait « Possédés 6 » au-dessus de douze tuiles. Un nombre posé à côté
-   * d'un libellé doit compter ce que ce libellé montre - sinon il n'est pas
-   * une aide, c'est une contradiction. Il suit donc le même chemin que
-   * l'affichage, filtre d'état compris.
+   * The counter always went through the groups: in the ungrouped view it
+   * announced "Possédés 6" above twelve tiles. A number placed next
+   * to a label must count what this label shows - otherwise it is not
+   * a help, it is a contradiction. It therefore follows the same path as
+   * the display, state filter included.
    */
   const comptes = useMemo(() => {
     const compter = (filtre: FiltreCollection) => {
@@ -201,9 +201,9 @@ export function ShelfPage() {
     [etats, tomesVoulus, oeuvresVoulues, preferences.filtre],
   )
 
-  // L'ordre des rails se calcule sur TOUTE la collection - possédée ou voulue,
-  // avant filtre et quelle que soit la vue : changer de filtre ne doit pas
-  // faire sauter un rail au-dessus d'un autre.
+  // The order of the rails is computed on the WHOLE collection - owned or wished,
+  // before the filter and whatever the view: changing the filter must not
+  // make a rail jump above another one.
   const titresParType = useMemo(() => compterLesTitresParType(retenuesPour('tout')), [retenuesPour])
 
   const sections = useMemo(
@@ -216,9 +216,9 @@ export function ShelfPage() {
     [triees, preferences.filtre, contexteAplatissement],
   )
 
-  // Le tri par titre est déjà porté par l'ordre des œuvres ; par récence, ce
-  // sont les ÉLÉMENTS qu'il faut réordonner - sans quoi ceux d'un même groupe
-  // resteraient ensemble alors que la vue dégroupée les délie justement.
+  // The sort by title is already carried by the order of the works; by recency, it
+  // is the ITEMS that must be reordered - otherwise those of the same group
+  // would stay together although the ungrouped view precisely unlinks them.
   const tuilesAffichees = useMemo(
     () =>
       preferences.tri === 'titre'
@@ -228,12 +228,12 @@ export function ShelfPage() {
   )
 
   /**
-   * Les rangées à afficher - MÊME forme, MÊME composant, dans les deux vues.
+   * The rows to display - SAME shape, SAME component, in both views.
    *
-   * Dégrouper ne change que ce qu'une rangée contient : des groupes ou les
-   * éléments qu'ils contiennent. La présentation, elle, ne bouge pas - halo
-   * teinté par univers, en-tête cliquable, défilement horizontal. Une seconde
-   * mise en forme n'aurait fait que diverger de celle-ci.
+   * Ungrouping only changes what a row contains: groups or the
+   * items that they contain. The presentation, for its part, does not move - halo
+   * tinted by universe, clickable header, horizontal scroll. A second
+   * layout would only have diverged from this one.
    */
   const rangees = useMemo(
     () =>
@@ -254,14 +254,14 @@ export function ShelfPage() {
   }, [ownerships])
 
   /**
-   * Vrai seulement quand TOUT ce dont un chiffre dépend est arrivé.
+   * True only when EVERYTHING that a number depends on has arrived.
    *
-   * Un décompte se calcule sur `data ?? []` : tant qu'une seule de ces
-   * requêtes n'a pas répondu, il vaut zéro - et l'écran annonce alors une
-   * collection vide à quelqu'un qui en a une (constaté en gelant l'API :
-   * « 0 possédé ou voulu », filtres à 0/0/0, pendant que « Chargement... »
-   * s'affichait juste en dessous). Le référentiel d'éditions en fait partie :
-   * il décide de la complétude, donc du filtre Complètes/Incomplètes.
+   * A count is computed on `data ?? []`: as long as one single one of these
+   * queries has not answered, it is zero - and the screen then announces an
+   * empty collection to someone who has one (observed by freezing the API:
+   * "0 possédé ou voulu", filters at 0/0/0, while "Chargement..."
+   * was displayed just below). The editions reference is part of it:
+   * it decides the completeness, therefore the Complètes/Incomplètes filter.
    */
   const isLoading = donnees.chargement
   const affiches = preferences.vue === 'plate' ? tuilesAffichees.length : triees.length
@@ -270,8 +270,8 @@ export function ShelfPage() {
 
   return (
     <div className="flex flex-col gap-1">
-      {/* Le sous-titre suit le filtre : sous « Envies », annoncer un nombre de
-          titres possédés décrirait autre chose que ce qui est à l'écran. */}
+      {/* The subtitle follows the filter: under "Envies", announcing a number of
+          titres possédés would describe something other than what is on the screen. */}
       <EnTeteSection
         niveau={1}
         titre="Ma collection"
@@ -284,8 +284,8 @@ export function ShelfPage() {
                 ` · ${addedThisMonthCount} ajout${addedThisMonthCount > 1 ? 's' : ''} ce mois`}
             </>
           ) : (
-            // Occupe la même ligne pour que rien ne saute quand le vrai
-            // décompte arrive.
+            // Takes the same line so that nothing jumps when the real
+            // count arrives.
             'Chargement...'
           )
         }
@@ -303,10 +303,10 @@ export function ShelfPage() {
         />
       </div>
 
-      {/* Toolbar calme : une seule entrée Filtres (badge si actif), deux
-          raccourcis visibles, le reste dans "Plus d'outils" (voir la
-          maquette V1.2 - "la bibliothèque reste dominante, la toolbar reste
-          calme"). */}
+      {/* Calm toolbar: one single Filtres entry (badge if active), two
+          visible shortcuts, the rest in "Plus d'outils" (see the
+          V1.2 mockup - "the library stays dominant, the toolbar stays
+          calm"). */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -326,11 +326,11 @@ export function ShelfPage() {
             </span>
           )}
         </button>
-        {/* « Valeur » menait à un écran intitulé « Statistiques », où il
-            fallait ensuite trouver la section - trois mots pour une seule
-            idée (UX-6). Le bouton emmène désormais À la section qui porte
-            ce nom, exactement comme « Partager » déroule jusqu'au partage
-            depuis Ma collection. */}
+        {/* "Valeur" led to a screen titled "Statistiques", where it
+            then had to find the section - three words for a single
+            idea (UX-6). The button now takes the user TO the section that bears
+            this name, exactly as "Partager" scrolls down to the sharing
+            from My collection. */}
         <button
           type="button"
           onClick={() => navigate('/stats', { state: { focusValeur: true } })}
@@ -343,8 +343,8 @@ export function ShelfPage() {
           type="button"
           onClick={() => setHubMenuOpen(true)}
           title="Plus d'outils"
-          // aria-label en plus du title : un bouton qui n'a qu'une icône tire
-          // sinon son nom accessible du seul title, jamais annoncé au toucher.
+          // aria-label in addition to title: a button that only has an icon otherwise
+          // takes its accessible name from the title alone, never announced on touch.
           aria-label="Plus d'outils"
           aria-expanded={hubMenuOpen}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-textPrimary shadow-token-sm transition-colors hover:bg-rowHover"
@@ -433,20 +433,20 @@ export function ShelfPage() {
                 <X size={16} />
               </button>
             </div>
-            {/* « Catégories de collection » ici plutôt qu'uniquement sous
-                Administration : une catégorie STRUCTURE cet
-                écran (un rail par type), c'est donc ici qu'on se rend compte
-                qu'il en manque un - signalé par l'utilisateur, "pas logique de
-                passer par le profil". L'écran reste atteignable depuis
-                Administration : ce n'est pas un déplacement mais un second
-                chemin, plus court, posé là où le besoin naît. */}
+            {/* "Catégories de collection" here rather than only under
+                Administration: a category STRUCTURES this
+                screen (one rail per type), so this is where one realizes
+                that one is missing - reported by the user, "pas logique de
+                passer par le profil". The screen stays reachable from
+                Administration: this is not a move but a second
+                path, shorter, placed where the need is born. */}
             <button
               type="button"
               onClick={() => {
                 setHubMenuOpen(false)
-                // L'origine voyage avec la navigation : sans elle, le lien de
-                // retour de cet écran proposerait Administration, son parent
-                // naturel - un détour, pour quelqu'un qui vient d'ici.
+                // The origin travels with the navigation: without it, the back link
+                // of this screen would offer Administration, its natural
+                // parent - a detour, for someone who comes from here.
                 navigate('/types', { state: { retour: { to: '/', libelle: 'Ma collection' } } })
               }}
               className="flex min-h-[50px] w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-rowHover"
@@ -455,10 +455,10 @@ export function ShelfPage() {
               Catégories de collection
               <span className="ml-auto text-xs font-normal text-textDim">{entityTypes.length}</span>
             </button>
-            {/* Raccourci vers le partage commun, pas un second mécanisme :
-                collection et envies se partagent par le MÊME lien, et ce
-                raccourci mène donc aux mêmes réglages que depuis Profil ou
-                Envies. Entrer par ici ne crée pas un jeton de plus. */}
+            {/* Shortcut to the common sharing, not a second mechanism:
+                collection and wishes are shared by the SAME link, and this
+                shortcut therefore leads to the same settings as from Profil or
+                Envies. Entering from here does not create one more token. */}
             <button
               type="button"
               onClick={() => {

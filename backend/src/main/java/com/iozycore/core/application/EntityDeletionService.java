@@ -10,19 +10,19 @@ import java.util.UUID;
 import java.util.List;
 
 /**
- * Traduit en couche application la règle validée à l'étape 7 : la
- * suppression d'une Entity est bloquée tant qu'il existe des Ownership
- * ou des Experience qui la référencent. Ce n'est pas au domaine de
- * connaître les repositories des autres agrégats (ils sont
- * indépendants), donc la règle est orchestrée ici plutôt que dans
- * l'agrégat Entity lui-même.
+ * Expresses in the application layer the rule validated in step 7: the
+ * deletion of an Entity is blocked as long as there are Ownerships
+ * or Experiences that reference it. It is not up to the domain to
+ * know the repositories of the other aggregates (they are
+ * independent), so the rule is orchestrated here rather than in
+ * the Entity aggregate itself.
  * <p>
- * Modèle catalogue cible Série -> Édition -> Tome (étape 5) : bloquée aussi
- * tant qu'une Édition catalogue ({@code MangaEdition.entityId}) référence
- * encore cette Entity - sans cette garde, supprimer une Entity dont tous les
- * Tomes ont déjà été retirés un par un (voir VariantDeletionService) mais dont
- * une Édition survit encore (ex: des observations de marché existent pour
- * elle) rejetterait avec une erreur SQL brute plutôt qu'un message clair.
+ * Target catalog model Series -> Edition -> Volume (step 5): also blocked
+ * as long as a catalog Edition ({@code MangaEdition.entityId}) still references
+ * this Entity - without this guard, deleting an Entity whose Volumes
+ * were all already removed one by one (see VariantDeletionService) but of which
+ * an Edition still survives (e.g. market observations exist for
+ * it) would be rejected with a raw SQL error rather than a clear message.
  */
 @Service
 public class EntityDeletionService {
@@ -30,7 +30,7 @@ public class EntityDeletionService {
     private final EntityRepository entityRepository;
     private final OwnershipRepository ownershipRepository;
     private final ExperienceRepository experienceRepository;
-    /** Ce que chaque univers peut encore retenir - les éditions de référence d'un manga (Lot 133). */
+    /** What each universe can still hold - the reference editions of a manga (Batch 133). */
     private final List<EntityDeletionGuard> guards;
 
     public EntityDeletionService(EntityRepository entityRepository,

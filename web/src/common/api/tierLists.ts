@@ -10,13 +10,13 @@ import type {
   UpdateTierListRequest,
 } from '@/common/types/tierList'
 
-// ═══ Classement général ═══
+// ═══ General ranking ═══
 
 export function getGeneralBoard(entityTypeId: string): Promise<GeneralBoardDto> {
   return get<GeneralBoardDto>(`/tier-lists/general${buildQuery({ entityTypeId })}`)
 }
 
-/** `rank: null` déclasse l'œuvre ("non classé"). */
+/** `rank: null` unranks the work ("unranked"). */
 export function setGeneralRank(entityId: string, rank: Rank | null): Promise<TierListEntryDto> {
   return put<TierListEntryDto>(`/tier-lists/general/entities/${entityId}`, { rank })
 }
@@ -25,10 +25,10 @@ export function getEntityTierSummary(entityId: string): Promise<EntityTierSummar
   return get<EntityTierSummaryDto>(`/tier-lists/entities/${entityId}/summary`)
 }
 
-// ═══ Tier Lists personnalisées ═══
+// ═══ Custom Tier Lists ═══
 
-/** `entityTypeId` null = les Tier Lists transverses "toutes catégories" (voir
- * TierListController.byEntityType, paramètre omis), jamais toutes les listes confondues. */
+/** `entityTypeId` null = the cross-category "all categories" Tier Lists (see
+ * TierListController.byEntityType, omitted parameter), never all lists together. */
 export function listTierLists(entityTypeId: string | null): Promise<TierListDto[]> {
   return get<TierListDto[]>(`/tier-lists${buildQuery({ entityTypeId })}`)
 }
@@ -53,7 +53,7 @@ export function addTierListItems(id: string, entityIds: string[]): Promise<TierL
   return post<TierListDetailDto>(`/tier-lists/${id}/items`, { entityIds })
 }
 
-/** `rank: null` déclasse l'œuvre sans la retirer de la liste (reste "non classée"). */
+/** `rank: null` unranks the work without removing it from the list (stays "unranked"). */
 export function setTierListItemRank(id: string, entityId: string, rank: Rank | null): Promise<TierListEntryDto> {
   return put<TierListEntryDto>(`/tier-lists/${id}/items/${entityId}`, { rank })
 }

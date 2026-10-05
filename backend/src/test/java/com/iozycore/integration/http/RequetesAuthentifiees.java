@@ -9,17 +9,17 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 /**
- * Fait partir chaque requête de contrat au nom d'un compte connecté, avec son
- * jeton CSRF.
+ * Makes each contract request go out in the name of a connected account, with its
+ * CSRF token.
  *
- * <p>Posé ici, en un seul endroit, plutôt qu'ajouté à la main sur des centaines
- * d'appels : un {@code .with(csrf())} oublié quelque part se lirait comme un
- * défaut du contrôleur qu'on teste, alors que ce serait un défaut du test.
+ * <p>Set here, in one single place, rather than added by hand to hundreds
+ * of calls: a {@code .with(csrf())} forgotten somewhere would read as a
+ * defect of the controller being tested, when it would be a defect of the test.
  *
- * <p>Une classe à part et non imbriquée dans {@code HttpContractTestBase} :
- * Spring Boot ne détecte les {@code @TestConfiguration} imbriquées que sur la
- * classe de test réellement exécutée, jamais sur une classe mère abstraite -
- * l'{@code @Import} de la classe mère, lui, est bien hérité.
+ * <p>A separate class and not nested in {@code HttpContractTestBase}:
+ * Spring Boot only detects nested {@code @TestConfiguration} on the
+ * test class really executed, never on an abstract parent class -
+ * the {@code @Import} of the parent class, however, is inherited.
  */
 @TestConfiguration
 public class RequetesAuthentifiees {

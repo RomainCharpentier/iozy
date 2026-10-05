@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, CameraOff } from 'lucide-react'
 
-/** Détecteur natif du navigateur (Shape Detection API) - support Chrome/Edge/
- * Opera (desktop + Android), absent de Safari et Firefox à ce jour. Pas de
- * librairie JS ajoutée pour combler l'écart : sur un navigateur non
- * supporté, ce composant affiche juste un message et la saisie manuelle
- * existante (voir BarcodeLookupField) reste le seul repli. */
+/** Native browser detector (Shape Detection API) - supported in Chrome/Edge/
+  * Opera (desktop + Android), missing from Safari and Firefox today. No JS
+  * library was added to fill the gap: on an unsupported browser, this
+  * component only shows a message, and the existing manual entry (see
+  * BarcodeLookupField) is the only fallback. */
 interface BarcodeDetectorLike {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>
 }
@@ -17,16 +17,16 @@ declare global {
 }
 
 const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e']
-/** Évite de redéclencher le même code pendant qu'il reste dans le cadre -
- * sans ça, pointer la caméra 2 secondes sur un même tome l'ajoute en boucle. */
+/** Avoids firing the same code again while it stays in the frame -
+  * without it, pointing the camera at the same volume for 2 seconds adds it in a loop. */
 const RESCAN_COOLDOWN_MS = 3000
 
 /**
- * "Ajout rapide par scan" (brainstorm) - scanne successivement plusieurs
- * codes-barres via la caméra, un `onScan(code)` par code détecté (dédupliqué
- * le temps du cooldown). Ne fait AUCUN lookup/ajout lui-même - c'est au
- * parent (ScanPage) d'orchestrer lookupBarcode + quickAdd, ce composant se
- * limite à la mécanique caméra/détection.
+  * "Quick add by scan" (brainstorm) - scans several barcodes in a row
+  * with the camera, one `onScan(code)` per detected code (deduplicated
+  * during the cooldown). It does NO lookup or add itself - the
+  * parent (ScanPage) orchestrates lookupBarcode + quickAdd, and this component
+  * only handles the camera and detection mechanics.
  */
 export function CameraBarcodeScanner({ onScan }: { onScan: (code: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -61,7 +61,7 @@ export function CameraBarcodeScanner({ onScan }: { onScan: (code: string) => voi
         }
       })
       .catch(() => {
-        // Best-effort par nature - une frame illisible ne doit jamais interrompre le flux.
+        // Best-effort by nature - an unreadable frame must never interrupt the stream.
       })
       .finally(() => {
         rafRef.current = requestAnimationFrame(detectLoop)

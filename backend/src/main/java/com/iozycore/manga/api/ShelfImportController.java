@@ -27,20 +27,20 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Importer sa bibliothèque depuis des photos de l'étagère.
+ * Import your library from photos of the shelf.
  *
- * <p>Deux temps, comme l'import d'un export : une lecture qui n'écrit rien
- * ({@code /analyze-photos}), puis l'écriture de ce que l'utilisateur a
- * confirmé ({@code /apply}). Le serveur ne garde rien entre les deux.
+ * <p>Two steps, like the import of an export: a read that writes nothing
+ * ({@code /analyze-photos}), then the writing of what the user
+ * confirmed ({@code /apply}). The server keeps nothing between the two.
  *
- * <p>Les photos sont envoyées à un moteur de vision externe quand une clé est
- * configurée ; sans clé, seuls les codes-barres visibles sont lus, en local.
- * Dans les deux cas la réponse le dit ({@code visionStatus}), et l'écran doit
- * le répéter : une étagère dont rien n'est lu n'est pas une panne.
+ * <p>The photos are sent to an external vision engine when a key is
+ * configured; without a key, only the visible barcodes are read, locally.
+ * In both cases the response says so ({@code visionStatus}), and the screen must
+ * repeat it: a shelf from which nothing is read is not a failure.
  */
 @RestController
 @RequestMapping("/api/shelf-import")
-@Tag(name = "Shelf import", description = "Importer sa bibliothèque depuis des photos de l'étagère")
+@Tag(name = "Shelf import", description = "Import your library from photos of the shelf")
 public class ShelfImportController {
 
     private final ShelfImportService service;
@@ -51,7 +51,7 @@ public class ShelfImportController {
         this.uploadedImageReader = uploadedImageReader;
     }
 
-    /** La fiche que les sources proposent pour une série absente du catalogue. */
+    /** The detail page that the sources propose for a series missing from the catalog. */
     public record ProposalResponse(String source, String externalId, String title, String imageUrl,
                                    Map<String, Object> attributes) {
         static ProposalResponse from(MetadataCandidate candidate) {
@@ -62,12 +62,12 @@ public class ShelfImportController {
     }
 
     /**
-     * @param item            la lecture, telle que l'analyse d'annonce la rend - même forme, même écran
-     * @param alreadyOwned    un exemplaire de ce numéro est encore possédé : coché et inerte à l'écran
-     * @param proposal        la fiche proposée pour une série inconnue, ou null
-     * @param proposalByTitle vrai si le titre de la fiche correspond à ce qui a été lu (gardée
-     *                        d'office) ; faux si elle n'est que le premier résultat de la
-     *                        recherche (montrée, gardée seulement sur un geste)
+     * @param item            the reading, as the listing analysis returns it - same shape, same screen
+     * @param alreadyOwned    a copy of this number is still owned: ticked and inert on screen
+     * @param proposal        the detail page proposed for an unknown series, or null
+     * @param proposalByTitle true if the title of the detail page matches what was read (kept
+     *                        by default); false if it is only the first result of the
+     *                        search (shown, kept only on an action)
      */
     public record ShelfItemResponse(RecognitionController.RecognizedItemResponse item, boolean alreadyOwned,
                                     ProposalResponse proposal, boolean proposalByTitle) {
@@ -82,10 +82,10 @@ public class ShelfImportController {
                                         int lookupsSkipped) {
     }
 
-    @Operation(summary = "Lire des photos de l'étagère : séries, tomes et éditions visibles, confrontés au "
-            + "catalogue ET à la collection (alreadyOwned). Pour une série absente du catalogue, la fiche "
-            + "que les sources proposent (proposal). Répond 200 même quand rien n'est lu : visionStatus dit "
-            + "pourquoi. N'écrit RIEN.")
+    @Operation(summary = "Read photos of the shelf: visible series, volumes and editions, checked against the "
+            + "catalog AND the collection (alreadyOwned). For a series missing from the catalog, the detail page "
+            + "that the sources propose (proposal). Answers 200 even when nothing is read: visionStatus says "
+            + "why. Writes NOTHING.")
     @PostMapping(value = "/analyze-photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ShelfAnalysisResponse analyzePhotos(@RequestPart("photos") List<MultipartFile> photos) {
         if (photos == null || photos.isEmpty() || photos.stream().allMatch(MultipartFile::isEmpty)) {
@@ -114,11 +114,11 @@ public class ShelfImportController {
     }
 
     /**
-     * @param seriesTitle   le titre sous lequel la série est retrouvée ou créée
-     * @param volumeNumber  lu sur la photo ou saisi - jamais deviné par le serveur
-     * @param edition       l'édition choisie, absente si l'utilisateur ne la connaît pas
-     * @param attributes    les attributs de la fiche proposée, si gardée
-     * @param coverImageUrl la jaquette de la fiche proposée, si gardée
+     * @param seriesTitle   the title under which the series is found or created
+     * @param volumeNumber  read from the photo or typed - never guessed by the server
+     * @param edition       the chosen edition, missing if the user does not know it
+     * @param attributes    the attributes of the proposed detail page, if kept
+     * @param coverImageUrl the cover of the proposed detail page, if kept
      */
     public record ItemRequest(String seriesTitle, Integer volumeNumber, String edition,
                               Map<String, Object> attributes, String coverImageUrl) {
@@ -139,13 +139,13 @@ public class ShelfImportController {
                                 long seriesCreated) {
     }
 
-    /** Plus que ce qu'une étagère montre : au-delà, c'est une erreur d'appel, pas un import. */
+    /** More than what a shelf shows: beyond that, it is a call error, not an import. */
     static final int TOMES_MAX_PAR_IMPORT = 500;
 
-    @Operation(summary = "Ajouter à la collection les tomes confirmés depuis l'écran de vérification, en une "
-            + "transaction. Chaque tome passe par l'ajout rapide (série retrouvée ou créée, tome retrouvé ou "
-            + "créé, possession ajoutée). Un tome dont un exemplaire est encore possédé n'est pas ajouté une "
-            + "seconde fois (outcome ALREADY_OWNED). 400 si un tome n'a pas de titre ou de numéro.")
+    @Operation(summary = "Add to the collection the volumes confirmed from the review screen, in one "
+            + "transaction. Each volume goes through quick add (series found or created, volume found or "
+            + "created, ownership added). A volume of which a copy is still owned is not added a "
+            + "second time (outcome ALREADY_OWNED). 400 if a volume has no title or number.")
     @PostMapping("/apply")
     public ApplyResponse apply(@RequestBody ApplyRequest request) {
         if (request == null || request.items() == null || request.items().isEmpty()) {

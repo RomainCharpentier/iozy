@@ -1,10 +1,10 @@
 import Foundation
 
-/// DTOs miroir des réponses JSON du backend (OwnershipController,
-/// ExperienceController). occurredAt/acquiredAt restent des String
-/// (format "yyyy-MM-dd", LocalDate côté Java) plutôt que des Date Swift,
-/// pour éviter tout conflit avec la stratégie .iso8601 du JSONDecoder
-/// (pensée pour des timestamps complets, pas des dates seules).
+/// DTOs mirroring the JSON responses of the backend (OwnershipController,
+/// ExperienceController). occurredAt/acquiredAt stay Strings
+/// (format "yyyy-MM-dd", LocalDate on the Java side) rather than Swift Dates,
+/// to avoid any conflict with the .iso8601 strategy of the JSONDecoder
+/// (made for full timestamps, not for dates alone).
 struct OwnershipDTO: Codable, Identifiable {
     let id: UUID
     let entityId: UUID
@@ -34,35 +34,35 @@ struct MetadataCandidateDTO: Codable, Identifiable {
     var id: String { "\(source)-\(externalId)" }
 }
 
-/// Un tome précis d'une édition réelle d'une série (voir VolumeCandidate
-/// côté backend) - pour la sélection visuelle des tomes possédés (façon
-/// Mangacollec), plutôt qu'une saisie manuelle du numéro de tome.
+/// An exact volume of a real edition of a series (see VolumeCandidate
+/// on the backend side) - for the visual selection of owned volumes (like
+/// Mangacollec), rather than typing the volume number by hand.
 struct VolumeCandidateDTO: Codable, Identifiable, Hashable {
     let edition: String
     let volumeNumber: Int
     let imageUrl: String?
     let title: String
-    // Une Ownership active référence déjà le Variant correspondant (série
-    // déjà présente dans la collection) - purement indicatif, ne bloque
-    // jamais la sélection (un 2e exemplaire du même tome reste possible).
+    // An active Ownership already references the matching Variant (series
+    // already in the collection) - only informative, never blocks
+    // the selection (a 2nd copy of the same volume is still possible).
     let alreadyOwned: Bool
 
-    // Une même série peut avoir plusieurs éditions avec chacune un tome
-    // numéro 1 - l'id doit donc combiner édition + numéro, jamais le numéro seul.
+    // The same series can have several editions, each with a volume
+    // number 1 - so the id must combine edition + number, never the number alone.
     var id: String { "\(edition)|\(volumeNumber)" }
 }
 
-/// Réponse de GET /metadata/volumes (voir VolumesResponse côté backend) -
-/// `quotaExceeded` distingue `volumes` vide "aucune édition trouvée" d'un
-/// quota Google Books dépassé sur toutes les clés configurées, pour afficher
-/// un message adapté plutôt que de laisser croire à tort qu'il n'y a rien.
+/// Response of GET /metadata/volumes (see VolumesResponse on the backend side) -
+/// `quotaExceeded` tells an empty `volumes` meaning "no edition found" apart from
+/// a Google Books quota exceeded on all configured keys, to show
+/// a suitable message instead of wrongly suggesting that there is nothing.
 struct VolumesResponseDTO: Codable {
     let volumes: [VolumeCandidateDTO]
     let quotaExceeded: Bool
 }
 
-/// Wrapper minimal pour décoder un Map<String, Object> JSON hétérogène
-/// (String/Number/Bool) renvoyé par le backend (attributes de MetadataCandidate).
+/// Minimal wrapper to decode a heterogeneous JSON Map<String, Object>
+/// (String/Number/Bool) returned by the backend (attributes of MetadataCandidate).
 struct AnyCodableValue: Codable {
     let stringValue: String
 
@@ -100,9 +100,9 @@ extension APIClient {
         return try await get("/metadata/search?entityTypeId=\(entityTypeId.uuidString)&query=\(encodedQuery)")
     }
 
-    /// Renvoie nil si aucune métadonnée n'a été trouvée pour ce code-barres
-    /// (404 côté backend) plutôt que de propager une erreur - un ISBN
-    /// inconnu n'est pas un cas exceptionnel, juste "pas de résultat".
+    /// Returns nil if no metadata was found for this barcode
+    /// (404 on the backend side) instead of propagating an error - an unknown
+    /// ISBN is not an exceptional case, just "no result".
     func lookupBarcode(entityTypeId: UUID, barcode: String) async throws -> MetadataCandidateDTO? {
         let encodedBarcode = barcode.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? barcode
         do {
@@ -116,21 +116,21 @@ extension APIClient {
         let frenchTitle: String
     }
 
-    /// Recherche best-effort d'un titre d'édition française (Open Library,
-    /// puis Google Books en repli) - à n'appeler qu'une fois par sélection de
-    /// suggestion (voir QuickAddView.selectCandidate), jamais pour toute une
-    /// liste de résultats. `author` (mangaka) est optionnel mais améliore
-    /// nettement la précision. `malId` (déjà connu du candidat sélectionné)
-    /// permet d'écarter une suite/spin-off connu(e) (voir RelatedSeriesService
-    /// côté backend) mal résolu(e) à la place du titre cherché - ex: "Dragon
-    /// Ball Super nº 18" pour "Dragon Ball" (vérifié manuellement, voir
-    /// historique) - best-effort, sans effet si absent. `titleRomaji` est
-    /// essayé en repli de `query` pour cette même détection (vérifié
-    /// manuellement sur "Attack on Titan"/"Shingeki no Kyojin", voir
-    /// historique) - un spin-off peut être indexé côté MyAnimeList sous le
-    /// titre romaji plutôt que le titre affiché. Renvoie nil si rien
-    /// trouvé (404), pas une erreur : l'appelant garde alors le titre
-    /// anglais/romaji déjà affiché.
+    /// Best-effort search of a French edition title (Open Library,
+    /// then Google Books as a fallback) - to be called only once per selected
+    /// suggestion (see QuickAddView.selectCandidate), never for a whole
+    /// list of results. `author` (mangaka) is optional but clearly improves
+    /// precision. `malId` (already known from the selected candidate)
+    /// lets us discard a known sequel/spin-off (see RelatedSeriesService
+    /// on the backend side) wrongly resolved instead of the searched title - e.g. "Dragon
+    /// Ball Super nº 18" for "Dragon Ball" (checked manually, see
+    /// history) - best-effort, no effect if absent. `titleRomaji` is
+    /// tried as a fallback for `query` for this same detection (checked
+    /// manually on "Attack on Titan"/"Shingeki no Kyojin", see
+    /// history) - a spin-off can be indexed on the MyAnimeList side under the
+    /// romaji title rather than the displayed title. Returns nil if nothing
+    /// found (404), not an error: the caller then keeps the
+    /// English/romaji title already displayed.
     func fetchFrenchTitle(entityTypeId: UUID, query: String, author: String? = nil, malId: String? = nil, titleRomaji: String? = nil) async throws -> String? {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         var path = "/metadata/french-title?entityTypeId=\(entityTypeId.uuidString)&query=\(encodedQuery)"
@@ -153,11 +153,11 @@ extension APIClient {
         }
     }
 
-    /// volumeNumber/edition/volumeImageUrl sont optionnels et réservés au cas
-    /// "tome d'une série" (Manga) - voir QuickAddService côté backend. nil
-    /// pour les appelants qui n'en ont pas besoin (ex: ajout depuis Découverte).
-    /// volumeImageUrl est la jaquette de CE tome précis (voir VolumeCandidateDTO),
-    /// distincte de la jaquette de la série éventuellement présente dans `attributes`.
+    /// volumeNumber/edition/volumeImageUrl are optional and reserved for the
+    /// "volume of a series" case (Manga) - see QuickAddService on the backend side. nil
+    /// for callers that do not need them (e.g. add from Discovery).
+    /// volumeImageUrl is the cover art of THIS exact volume (see VolumeCandidateDTO),
+    /// different from the cover art of the series that may be in `attributes`.
     struct QuickAddWithAttributesRequest: Encodable {
         let entityTypeId: UUID
         let title: String
@@ -176,24 +176,24 @@ extension APIClient {
         return try await post("/entities/quick-add", body: body)
     }
 
-    /// Recherche best-effort des tomes réels (avec jaquette) des éditions
-    /// françaises d'une série (Google Books) - pour la sélection visuelle des
-    /// tomes possédés (voir VolumeSelectionGrid). `volumes` vide = rien
-    /// trouvé, jamais une erreur : l'appelant garde alors la saisie manuelle
-    /// du tome - `quotaExceeded` distingue ce cas d'un quota Google Books
-    /// dépassé (voir VolumesResponseDTO). Résultat stocké durablement côté
-    /// backend - un résultat une fois trouvé n'est plus jamais rappelé
-    /// automatiquement, forceRefresh (bouton "Actualiser") est le seul moyen
-    /// de relancer les requêtes couvertes par la recherche initiale (mots-clés
-    /// d'édition les plus courants). deepSearch (bouton "Chercher plus
-    /// d'éditions") FUSIONNE en plus avec des mots-clés plus rares, jamais
-    /// lancés automatiquement vu leur coût - incompatible avec forceRefresh,
-    /// deepSearch est alors prioritaire côté backend. malId+originalTitle
-    /// (déjà connus du candidat sélectionné) permettent d'écarter un
-    /// spin-off/side-story connu (voir RelatedSeriesService côté backend) -
-    /// best-effort, sans effet si l'un des deux manque. titleRomaji est
-    /// essayé en repli d'originalTitle pour cette même détection (voir
-    /// fetchFrenchTitle ci-dessus).
+    /// Best-effort search of the real volumes (with cover art) of the French
+    /// editions of a series (Google Books) - for the visual selection of
+    /// owned volumes (see VolumeSelectionGrid). Empty `volumes` = nothing
+    /// found, never an error: the caller then keeps the manual entry
+    /// of the volume - `quotaExceeded` tells this case apart from a Google Books quota
+    /// exceeded (see VolumesResponseDTO). Result stored durably on the
+    /// backend side - a result once found is never called again
+    /// automatically, forceRefresh ("Actualiser" button) is the only way
+    /// to run again the requests covered by the initial search (most common
+    /// edition keywords). deepSearch ("Chercher plus
+    /// d'éditions" button) also MERGES with rarer keywords, never
+    /// run automatically because of their cost - incompatible with forceRefresh,
+    /// deepSearch then has priority on the backend side. malId+originalTitle
+    /// (already known from the selected candidate) let us discard a known
+    /// spin-off/side-story (see RelatedSeriesService on the backend side) -
+    /// best-effort, no effect if one of the two is missing. titleRomaji is
+    /// tried as a fallback for originalTitle for this same detection (see
+    /// fetchFrenchTitle above).
     func searchVolumes(entityTypeId: UUID, title: String, author: String? = nil, forceRefresh: Bool = false, deepSearch: Bool = false, malId: String? = nil, originalTitle: String? = nil, titleRomaji: String? = nil) async throws -> VolumesResponseDTO {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
         var path = "/metadata/volumes?entityTypeId=\(entityTypeId.uuidString)&title=\(encodedTitle)"

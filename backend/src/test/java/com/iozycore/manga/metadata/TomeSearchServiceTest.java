@@ -14,7 +14,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Les tomes et editions d'un manga - tests extraits de MetadataSearchServiceTest au Lot 132. */
+/** The volumes and editions of a manga - tests taken out of MetadataSearchServiceTest in Batch 132. */
 class TomeSearchServiceTest {
 
     private static final EntityType MANGA = new EntityType(UUID.randomUUID(), "MANGA", "Manga", Set.of(), Set.of());
@@ -35,10 +35,10 @@ class TomeSearchServiceTest {
 
     @Test
     void reports_quota_exceeded_when_a_provider_fails_with_no_usable_result() {
-        // Cas réel qui motive VolumeSearchResult (voir historique) : un
-        // quota Google Books dépassé pendant la recherche de tomes
-        // ressemblait, côté client, à "aucune édition trouvée" - le
-        // distinguer permet d'afficher un message adapté.
+        // Real case that motivates VolumeSearchResult (see history): a
+        // Google Books quota exceeded during the volume search
+        // looked, on the client side, like "no edition found" -
+        // telling them apart lets us show a suitable message.
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
         TomeSearchService service =
                 new TomeSearchService(List.of(provider), new FakeVolumeSearchCacheRepository());
@@ -51,11 +51,11 @@ class TomeSearchServiceTest {
 
     @Test
     void reports_a_provider_that_did_not_answer_at_all_and_never_caches_that_emptiness() {
-        // Défaut constaté le 2026-08-27 (voir Lot 58) : Google Books a répondu
-        // 503 pendant un « Retrouver 1 jaquette » sur Naruto. La liste vide qui
-        // en résultait était (a) affichée comme « Aucune trouvée cette fois. »,
-        // (b) mise en cache DURABLEMENT - le bouton restait donc impuissant même
-        // une fois la source rétablie. Une panne ne se mémorise pas.
+        // Flaw seen on 2026-08-27 (see Batch 58): Google Books answered
+        // 503 during a "Retrouver 1 jaquette" on Naruto. The empty list that
+        // resulted was (a) shown as "Aucune trouvée cette fois.",
+        // (b) cached DURABLY - so the button stayed powerless even
+        // once the source was back. An outage is not remembered.
         FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new SourceUnavailableException("503"));
         TomeSearchService service = new TomeSearchService(List.of(provider), durableStorage);
@@ -66,18 +66,18 @@ class TomeSearchServiceTest {
         assertThat(result.providerUnavailable()).isTrue();
         assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty();
 
-        // Et la recherche suivante rappelle bien le fournisseur, au lieu d'être
-        // servie par un vide mémorisé.
+        // And the next search does call the provider again, instead of being
+        // served by a remembered empty result.
         service.searchVolumes(MANGA, "Naruto", "Kishimoto");
         assertThat(provider.callCount).isEqualTo(2);
     }
 
     @Test
     void keeps_the_most_precise_publication_date_when_two_providers_know_the_same_tome() {
-        // La BnF passe en premier et ne date qu'à l'année ; Google Books
-        // connaît le jour. Le calendrier des sorties (lot 146) a besoin du
-        // jour, quel que soit l'ordre des fournisseurs - avec ou sans
-        // jaquette côté BnF (les notices récentes en ont une).
+        // The BnF comes first and only dates to the year; Google Books
+        // knows the day. The releases calendar (batch 146) needs the
+        // day, whatever the order of providers - with or without
+        // a cover on the BnF side (recent records have one).
         FakeVolumeSearchProvider bnf = new FakeVolumeSearchProvider(List.of(
                 new VolumeCandidate("Kana", 72, "https://bnf/72.jpg", "Naruto 72", "9782505000723", 2026, "2026"),
                 new VolumeCandidate("Kana", 73, null, "Naruto 73", null, 2026, "2026")));
@@ -91,11 +91,11 @@ class TomeSearchServiceTest {
         assertThat(volumes).hasSize(2);
         VolumeCandidate tome72 = volumes.stream().filter(v -> v.volumeNumber() == 72).findFirst().orElseThrow();
         VolumeCandidate tome73 = volumes.stream().filter(v -> v.volumeNumber() == 73).findFirst().orElseThrow();
-        // Le premier rencontré garde ses champs (jaquette, ISBN), et prend le jour.
+        // The first one met keeps its fields (cover, ISBN), and takes the day.
         assertThat(tome72.imageUrl()).isEqualTo("https://bnf/72.jpg");
         assertThat(tome72.isbn()).isEqualTo("9782505000723");
         assertThat(tome72.releaseDate()).isEqualTo("2026-10-14");
-        // Sans jaquette, il prend celle du second - et sa date, plus précise.
+        // Without a cover, it takes the second one's - and its date, which is more precise.
         assertThat(tome73.imageUrl()).isEqualTo("https://gb/73.jpg");
         assertThat(tome73.releaseDate()).isEqualTo("2026-12");
     }
@@ -109,18 +109,18 @@ class TomeSearchServiceTest {
 
         VolumeSearchResult result = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
-        assertThat(result.volumes()).hasSize(1); // le résultat de "succeeding" n'est pas perdu
-        assertThat(result.providerUnavailable()).isTrue(); // mais le quota dépassé ailleurs reste signalé
+        assertThat(result.volumes()).hasSize(1); // the result of "succeeding" is not lost
+        assertThat(result.providerUnavailable()).isTrue(); // but the quota exceeded elsewhere is still reported
     }
 
     @Test
     void caches_a_genuine_empty_volume_search_so_a_later_call_does_not_hit_the_provider_again() {
-        // Optimisation ajoutée après avoir constaté (voir historique) qu'une
-        // série sans édition française relançait les 8 requêtes Google Books
-        // à CHAQUE recherche, indéfiniment, sans jamais être mémorisée -
-        // contrairement à barcodeCache/frenchTitleCache, une liste vide EST
-        // désormais un résultat comme un autre pour volumeSearchCache tant
-        // que ce n'est pas le quota qui en est la cause (voir le test suivant).
+        // Optimisation added after noticing (see history) that a
+        // series with no French edition re-ran the 8 Google Books requests
+        // on EVERY search, indefinitely, without ever being remembered -
+        // unlike barcodeCache/frenchTitleCache, an empty list IS
+        // now a result like any other for volumeSearchCache as long
+        // as the quota is not the cause (see the next test).
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(List.of());
         TomeSearchService service =
                 new TomeSearchService(List.of(provider), new FakeVolumeSearchCacheRepository());
@@ -130,13 +130,13 @@ class TomeSearchServiceTest {
 
         assertThat(first.volumes()).isEmpty();
         assertThat(second.volumes()).isEmpty();
-        assertThat(provider.callCount).isEqualTo(1); // servi par le cache au 2e appel
+        assertThat(provider.callCount).isEqualTo(1); // served by the cache on the 2nd call
     }
 
     @Test
     void never_caches_an_empty_result_caused_by_a_quota_failure_so_a_later_retry_can_still_succeed() {
-        // Un échec transitoire (quota, timeout...) ne doit jamais condamner
-        // la même recherche pendant 24h - même principe déjà en place pour
+        // A transient failure (quota, timeout...) must never condemn
+        // the same search for 24h - same principle already in place for
         // barcodeCache/frenchTitleCache.
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(new QuotaExceededException("quota dépassé"));
         TomeSearchService service =
@@ -145,7 +145,7 @@ class TomeSearchServiceTest {
         service.searchVolumes(MANGA, "Death Note", "Ohba");
         service.searchVolumes(MANGA, "Death Note", "Ohba");
 
-        assertThat(provider.callCount).isEqualTo(2); // jamais servi par le cache
+        assertThat(provider.callCount).isEqualTo(2); // never served by the cache
     }
 
     @Test
@@ -163,9 +163,9 @@ class TomeSearchServiceTest {
 
     @Test
     void a_volume_search_already_in_durable_storage_never_calls_the_provider_even_on_a_fresh_service_instance() {
-        // Simule un redémarrage du backend : le cache mémoire (TtlCache) est
-        // reconstruit à vide, mais le stockage durable (base de données) survit -
-        // deux instances distinctes de TomeSearchService partagent le même repo.
+        // Simulates a backend restart: the memory cache (TtlCache) is
+        // rebuilt empty, but the durable storage (database) survives -
+        // two distinct instances of TomeSearchService share the same repo.
         FakeVolumeSearchCacheRepository durableStorage = new FakeVolumeSearchCacheRepository();
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
                 List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
@@ -177,7 +177,7 @@ class TomeSearchServiceTest {
                 new TomeSearchService(List.of(provider), durableStorage);
         afterRestart.searchVolumes(MANGA, "Death Note", "Ohba");
 
-        assertThat(provider.callCount).isEqualTo(1); // le "redémarrage" n'a pas relancé Google Books
+        assertThat(provider.callCount).isEqualTo(1); // the "restart" did not call Google Books again
     }
 
     @Test
@@ -190,20 +190,20 @@ class TomeSearchServiceTest {
         service.searchVolumes(MANGA, "Death Note", "Ohba");
 
         provider.results = List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1"),
-                new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")); // nouvelle édition parue depuis
+                new VolumeCandidate("Kana", 2, null, "Death Note - Tome 2")); // new edition released since
         VolumeSearchResult withoutRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba");
         VolumeSearchResult withRefresh = service.searchVolumes(MANGA, "Death Note", "Ohba", true);
 
-        assertThat(withoutRefresh.volumes()).hasSize(1); // servi par le cache, ignore le changement
-        assertThat(withRefresh.volumes()).hasSize(2); // "Actualiser" relance bien Google Books
+        assertThat(withoutRefresh.volumes()).hasSize(1); // served by the cache, ignores the change
+        assertThat(withRefresh.volumes()).hasSize(2); // "Actualiser" does call Google Books again
         assertThat(provider.callCount).isEqualTo(2);
     }
 
     @Test
     void search_additional_editions_merges_with_the_already_cached_quick_result() {
-        // Recherche rapide d'abord (met "Kana" en cache), puis "Chercher plus
-        // d'éditions" (voir bouton côté client) doit AJOUTER "Perfect
-        // Edition" au résultat déjà connu, pas le remplacer.
+        // Quick search first (puts "Kana" in the cache), then "Chercher plus
+        // d'éditions" (see the client-side button) must ADD "Perfect
+        // Edition" to the already known result, not replace it.
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(
                 List.of(new VolumeCandidate("Kana", 1, null, "Death Note - Tome 1")));
         provider.additionalResults = List.of(new VolumeCandidate("Perfect Edition", 1, null, "Death Note Perfect Edition - Tome 1"));
@@ -215,7 +215,7 @@ class TomeSearchServiceTest {
 
         assertThat(result.volumes()).extracting(VolumeCandidate::edition).containsExactlyInAnyOrder("Kana", "Perfect Edition");
         assertThat(provider.additionalCallCount).isEqualTo(1);
-        assertThat(provider.callCount).isEqualTo(1); // searchVolumes (rapide) n'est PAS rappelé
+        assertThat(provider.callCount).isEqualTo(1); // searchVolumes (quick) is NOT called again
     }
 
     @Test
@@ -231,8 +231,8 @@ class TomeSearchServiceTest {
 
         VolumeSearchResult laterQuickSearch = service.searchVolumes(MANGA, "Death Note", "Ohba");
 
-        assertThat(laterQuickSearch.volumes()).hasSize(2); // "Perfect Edition" reste acquis, pas juste "Kana"
-        assertThat(provider.callCount).isEqualTo(1); // jamais rappelé, servi par le cache déjà fusionné
+        assertThat(laterQuickSearch.volumes()).hasSize(2); // "Perfect Edition" is kept, not just "Kana"
+        assertThat(provider.callCount).isEqualTo(1); // never called again, served by the already merged cache
     }
 
     @Test
@@ -247,19 +247,19 @@ class TomeSearchServiceTest {
 
         VolumeSearchResult result = service.searchAdditionalEditions(MANGA, "Death Note", "Ohba");
 
-        assertThat(result.volumes()).hasSize(1); // le résultat déjà connu reste renvoyé
+        assertThat(result.volumes()).hasSize(1); // the already known result is still returned
         assertThat(result.providerUnavailable()).isTrue();
         assertThat(durableStorage.find(MANGA.id(), "death note", "ohba")).hasValueSatisfying(
-                volumes -> assertThat(volumes).hasSize(1)); // pas écrasé par un échec
+                volumes -> assertThat(volumes).hasSize(1)); // not overwritten by a failure
     }
 
-    // ------------------------------------ Les editions secondaires (lot 144)
+    // ------------------------------------ The secondary editions (batch 144)
 
     @Test
     void completes_a_secondary_edition_by_searching_it_by_name_and_files_the_finds_under_it() {
-        // Mesure du 2026-09-05 : Naruto, Kana 72 et Hokage 19 sur 36 - la BnF
-        // ne tient l'edition Hokage qu'a moitie, et la sonde tome par tome ne
-        // comble que les numeros absents de TOUTES les editions.
+        // Measured on 2026-09-05: Naruto, Kana 72 and Hokage 19 out of 36 - the BnF
+        // only holds the Hokage edition halfway, and the volume-by-volume probe only
+        // fills the numbers missing from ALL the editions.
         List<VolumeCandidate> bnf = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
             bnf.add(new VolumeCandidate("Kana", i, null, "Naruto T" + i, "978250500000" + i, 2002));
@@ -268,17 +268,17 @@ class TomeSearchServiceTest {
         bnf.add(new VolumeCandidate("Hokage", 2, null, "Naruto Hokage T2", "9782505111112", 2022));
         FakeVolumeSearchProvider provider = new FakeVolumeSearchProvider(bnf);
         provider.editionResults = Map.of("Hokage", List.of(
-                // deja la : ne doit pas doubler
+                // already there: must not be doubled
                 new VolumeCandidate("Edition Hokage", 2, "http://c/2.jpg", "Naruto Edition Hokage Tome 2"),
-                // nouveau : rejoint « Hokage », pas une seconde edition « Edition Hokage »
+                // new: joins "Hokage", not a second edition "Edition Hokage"
                 new VolumeCandidate("Edition Hokage", 3, "http://c/3.jpg", "Naruto Edition Hokage Tome 3"),
-                // la meme requete rend aussi l'edition simple : rien a faire ici
+                // the same request also returns the plain edition: nothing to do here
                 new VolumeCandidate("Kana", 4, null, "Naruto Tome 4")));
         TomeSearchService service = new TomeSearchService(List.of(provider), new FakeVolumeSearchCacheRepository());
 
         VolumeSearchResult result = service.searchVolumes(MANGA, "Naruto", "Kishimoto");
 
-        assertThat(provider.editionCalls).containsExactly("Hokage"); // jamais l'edition principale
+        assertThat(provider.editionCalls).containsExactly("Hokage"); // never the main edition
         assertThat(result.volumes().stream().filter(v -> v.edition().equals("Hokage")).map(VolumeCandidate::volumeNumber).sorted().toList())
                 .containsExactly(1, 2, 3);
         assertThat(result.volumes().stream().filter(v -> v.edition().equals("Kana")).count()).isEqualTo(5);
@@ -311,24 +311,24 @@ class TomeSearchServiceTest {
 
         assertThat(result.volumes()).hasSize(5);
         assertThat(result.providerUnavailable()).isTrue();
-        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty(); // rien de fige pendant la panne
+        assertThat(durableStorage.find(MANGA.id(), "naruto", "kishimoto")).isEmpty(); // nothing frozen during the outage
     }
 
     private static final class FakeVolumeSearchProvider implements VolumeSearchProvider {
-        // Volontairement mutable (pas final) : force_refresh_bypasses_both_caches
-        // simule une nouvelle parution entre deux appels.
+        // Deliberately mutable (not final): force_refresh_bypasses_both_caches
+        // simulates a new release between two calls.
         List<VolumeCandidate> results;
-        // Non-null : simule un fournisseur qui échoue systématiquement (voir
+        // Non-null: simulates a provider that always fails (see
         // reports_quota_exceeded_when_a_provider_fails_with_no_usable_result).
         private final RuntimeException failure;
         int callCount = 0;
-        // Résultat/échec de searchAdditionalEditions - distinct de results/failure
-        // (recherche rapide) : les deux méthodes sont appelées séparément par
-        // TomeSearchService selon l'action de l'utilisateur.
+        // Result/failure of searchAdditionalEditions - distinct from results/failure
+        // (quick search): the two methods are called separately by
+        // TomeSearchService depending on the user's action.
         List<VolumeCandidate> additionalResults = List.of();
         RuntimeException additionalFailure;
         int additionalCallCount = 0;
-        // Les editions cherchees par leur nom (lot 144) : nom -> fiches rendues.
+        // The editions searched by their name (batch 144): name -> records returned.
         Map<String, List<VolumeCandidate>> editionResults = Map.of();
         RuntimeException editionFailure;
         final List<String> editionCalls = new ArrayList<>();
@@ -348,9 +348,9 @@ class TomeSearchServiceTest {
             return "MANGA".equals(entityType.code());
         }
 
-        // excludedTitleFragments ignoré ici : couvert par
-        // GoogleBooksVolumeSearchProviderTest, cette fake n'a pas besoin de le
-        // vérifier à nouveau au niveau du service.
+        // excludedTitleFragments ignored here: covered by
+        // GoogleBooksVolumeSearchProviderTest, this fake does not need to
+        // check it again at the service level.
         @Override
         public List<VolumeCandidate> searchVolumes(String seriesTitle, String author, List<String> excludedTitleFragments) {
             callCount++;
@@ -379,9 +379,9 @@ class TomeSearchServiceTest {
         }
     }
 
-    /** Simule la table volume_search_cache (V3__volume_search_cache.sql) - une
-     * simple Map en mémoire suffit à vérifier que TomeSearchService lit/écrit
-     * bien ce stockage, sans avoir besoin d'une vraie base pour ce test unitaire. */
+    /** Simulates the volume_search_cache table (V3__volume_search_cache.sql) - a
+     * simple in-memory Map is enough to check that TomeSearchService reads/writes
+     * this storage properly, without needing a real database for this unit test. */
     private static final class FakeVolumeSearchCacheRepository implements VolumeSearchCacheRepository {
         private final Map<String, List<VolumeCandidate>> store = new java.util.HashMap<>();
 

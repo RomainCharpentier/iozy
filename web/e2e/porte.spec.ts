@@ -2,32 +2,32 @@ import { expect, test } from '@playwright/test'
 import { COMPTE } from './compte'
 
 /**
- * <b>Entrer et sortir, pour de vrai.</b>
+ * <b>Get in and out, for real.</b>
  *
- * Ces tests partent <b>anonymes</b> — c'est tout leur intérêt. Les autres
- * parcours rejouent une session déjà ouverte ; ceux-ci vérifient qu'on peut
- * l'ouvrir, qu'un mauvais mot de passe ne l'ouvre pas, et que la refermer la
- * referme vraiment côté serveur.
+ * These tests start <b>anonymous</b> — that is their whole point. The other
+ * journeys replay an already opened session; these check that it can be
+ * opened, that a wrong password does not open it, and that closing it really
+ * closes it on the server side.
  *
- * <p>Chaque test ouvre sa PROPRE session : se déconnecter invalide une session
- * côté serveur, et emprunter celle des autres tests les casserait tous.
+ * <p>Each test opens its OWN session: logging out invalidates a session on the
+ * server side, and borrowing the one of the other tests would break them all.
  */
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test('sans compte, rien de la collection ne s’affiche', async ({ page }) => {
+test('without an account, nothing of the collection is displayed', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Se connecter' })).toBeVisible()
-  // Ni navigation, ni compteur, ni titre d'œuvre : la porte remplace l'écran,
-  // elle ne se pose pas dessus.
+  // No navigation, no counter, no work title: the door replaces the screen,
+  // it is not laid over it.
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
 })
 
-test('un compte de plus exige le code d’invitation, et un faux code est refusé', async ({ page }) => {
-  // Le premier compte existe (voir compte.setup) : à partir de là, la porte a
-  // une clé. L'écran propose de créer un compte parce que la pile en a
-  // configuré une (voir docker-compose.e2e.yml) - sans code configuré, il ne
-  // proposerait rien du tout, ce qui n'ouvrirait qu'un refus.
+test('one more account requires the invitation code, and a wrong code is refused', async ({ page }) => {
+  // The first account exists (see compte.setup): from then on, the door has a
+  // key. The screen offers to create an account because the stack configured
+  // one (see docker-compose.e2e.yml) - without a configured code, it would
+  // offer nothing at all, which would only open a refusal.
   await page.goto('/')
   await page.getByRole('button', { name: 'Créer un compte avec une invitation' }).click()
   await page.getByLabel('Adresse e-mail').fill('intrus@iozycore.test')
@@ -40,7 +40,7 @@ test('un compte de plus exige le code d’invitation, et un faux code est refus�
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
 })
 
-test('un mot de passe faux ne dit pas si l’adresse existe', async ({ page }) => {
+test('a wrong password does not say whether the address exists', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Adresse e-mail').fill(COMPTE.email)
   await page.getByLabel('Mot de passe').fill('ce-n-est-pas-le-bon')
@@ -52,30 +52,30 @@ test('un mot de passe faux ne dit pas si l’adresse existe', async ({ page }) =
   await page.getByLabel('Mot de passe').fill('ce-n-est-pas-le-bon')
   await page.getByRole('button', { name: 'Se connecter' }).click()
 
-  // Le même message, mot pour mot : distinguer offrirait un test d'existence
-  // de compte à qui n'en a pas.
+  // The same message, word for word: telling them apart would offer an
+  // account existence test to whoever has none.
   await expect(page.getByText('Adresse ou mot de passe incorrect.')).toHaveText(refusMotDePasse ?? '')
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toHaveCount(0)
 })
 
-test('se connecter puis se déconnecter referme vraiment', async ({ page }) => {
+test('logging in then logging out really closes', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Adresse e-mail').fill(COMPTE.email)
   await page.getByLabel('Mot de passe').fill(COMPTE.motDePasse)
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expect(page.getByRole('heading', { name: 'Ma collection' })).toBeVisible()
 
-  // Par le CHEMIN, pas par l'URL : avatar ▸ Profil, où « Mon compte » se lit
-  // directement (lot 140 : plus de sous-écran Paramètres), et la sortie est
-  // dans l'en-tête, le même bouton sur tous les écrans.
+  // By the PATH, not by the URL: avatar ▸ Profil, where "Mon compte" is read
+  // directly (batch 140: no more Paramètres subscreen), and the exit is in the
+  // header, the same button on all screens.
   await page.getByRole('link', { name: new RegExp(`Mon profil — ${COMPTE.pseudo}`) }).first().click()
   await expect(page.getByRole('region', { name: 'Mon compte' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Paramètres/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Se déconnecter' }).click()
   await expect(page.getByRole('heading', { name: 'Se connecter' })).toBeVisible()
 
-  // Et la session est morte CÔTÉ SERVEUR, pas seulement effacée à l'écran :
-  // revenir sur la collection ne la rouvre pas.
+  // And the session is dead ON THE SERVER SIDE, not only erased on the screen:
+  // going back to the collection does not reopen it.
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Se connecter' })).toBeVisible()
 })

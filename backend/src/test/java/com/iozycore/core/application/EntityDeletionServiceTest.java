@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.iozycore.manga.MangaEditionDeletionGuard;
 
 /**
- * Vérifie la garde de suppression d'une Entity (Série), y compris l'extension
- * étape 5 (modèle Série -> Édition -> Tome) : bloquée aussi tant qu'une Édition
- * catalogue la référence encore.
+ * Checks the delete guard of an Entity (Series), including the step 5 extension
+ * (Series -> Edition -> Volume model): also blocked as long as a catalog Edition
+ * still references it.
  */
 class EntityDeletionServiceTest {
 
@@ -75,8 +75,8 @@ class EntityDeletionServiceTest {
 
     @Test
     void an_entity_still_referenced_by_a_catalog_edition_is_never_deleted() {
-        // Étape 5 : sans cette garde, la contrainte FK manga_edition.entity_id
-        // rejetterait la suppression avec une erreur SQL brute plutôt qu'un message clair.
+        // Step 5: without this guard, the FK constraint manga_edition.entity_id
+        // would reject the deletion with a raw SQL error instead of a clear message.
         Entity entity = Entity.create(EntityTypeFixtures.MANGA.id(), "Death Note");
         entityRepository.save(entity);
         mangaEditionRepository.save(MangaEdition.create(entity.id(), "Death Note", "Perfect Edition",

@@ -14,13 +14,13 @@ import { Jaquette } from '@/common/components/Jaquette'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * Ajout d'œuvres à une Tier List personnalisée - étape explicite obligatoire
- * côté backend (voir TierListController.addItems : une Tier List perso ne
- * contient jamais implicitement "tout ce qui est possédé", contrairement au
- * classement général - voir GeneralTierBoardPage). Candidats = possédées de
- * l'univers de cette liste (même règle que ShelfPage - isOwned/ownedVariantIds)
- * et pas déjà dans la liste. Drawer desktop / feuille mobile, même patron
- * responsive que CollectionFilters/TierPicker.
+ * Adding works to a custom Tier List - explicit mandatory step
+ * on the backend side (see TierListController.addItems: a custom Tier List never
+ * implicitly contains "everything that is owned", unlike the
+ * general ranking - see GeneralTierBoardPage). Candidates = owned works of
+ * the universe of this list (same rule as ShelfPage - isOwned/ownedVariantIds)
+ * and not already in the list. Desktop drawer / mobile sheet, same responsive
+ * pattern as CollectionFilters/TierPicker.
  */
 export function AddTierListItemsPanel({
   tierListId,
@@ -29,21 +29,21 @@ export function AddTierListItemsPanel({
   onClose,
 }: {
   tierListId: string
-  /** null pour une Tier List transverse "toutes catégories" - les candidats sont
-   * alors cherchés sans filtre de type (voir TierList côté backend). */
+  /** null for a cross-category "toutes catégories" Tier List - the candidates are
+   * then searched without a type filter (see TierList on the backend side). */
   entityTypeId: string | null
   alreadyAddedIds: Set<string>
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  // Toujours monté "ouvert" par le parent (voir CustomTierBoardPage,
-  // `{addingItems && <...>}`) - voir useModalA11y (Lot 9).
+  // Always mounted "open" by the parent (see CustomTierBoardPage,
+  // `{addingItems && <...>}`) - see useModalA11y (batch 9).
   const containerRef = useModalA11y<HTMLDivElement>(true, onClose)
 
-  // Liste transverse (entityTypeId null) : candidats de TOUS les univers -
-  // la recherche sans filtre est déjà celle qu'utilise Découvrir/Opportunités,
-  // donc partagée en cache avec elle plutôt qu'une requête de plus.
+  // Cross-category list (entityTypeId null): candidates from ALL universes -
+  // the search without a filter is already the one used by Découvrir/Opportunités,
+  // so shared in cache with it rather than one more request.
   const searchFilter = entityTypeId === null ? {} : { entityTypeId }
   const entitiesQuery = useQuery({
     queryKey: queryKeys.entities.search(searchFilter),

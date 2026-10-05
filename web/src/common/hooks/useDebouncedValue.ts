@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-/** Debounce une valeur (ex: texte de recherche). 300ms par défaut, adapté à
- * une recherche locale (RelationshipsSection, gratuite - simple requête SQL
- * sur la collection). QuickAddPage passe un délai plus long
- * (500ms) pour sa recherche de métadonnées externes (Jikan/MAL/BGG/IGDB),
- * plus coûteuse à limiter - voir le commentaire d'usage sur place. */
+/** Debounces a value (e.g. search text). 300ms by default, suited to a
+ * local search (RelationshipsSection, free - simple SQL query on the
+ * collection). QuickAddPage passes a longer delay
+ * (500ms) for its external metadata search (Jikan/MAL/BGG/IGDB), which is
+ * more expensive to limit - see the usage comment on site. */
 export function useDebouncedValue<T>(value: T, delayMs = 300): T {
   const [debounced, setDebounced] = useState(value)
 

@@ -1,30 +1,30 @@
 version: "3.9"
 
-# Déploiement IozyCore sur NAS Synology (Container Manager / docker-compose).
-# 3 services : API, base de données, reverse proxy HTTPS.
-# PostgreSQL n'est jamais exposé directement à l'extérieur.
+# IozyCore deployment on a Synology NAS (Container Manager / docker-compose).
+# 3 services: API, database, HTTPS reverse proxy.
+# PostgreSQL is never exposed directly to the outside.
 #
-# ─── Authentification (simplifiée le 2026-08-30) ─────────────────────────
-# Ce fichier portait une authentification HTTP Basic au niveau de Traefik,
-# et c'était juste : l'application n'en avait AUCUNE en propre. Sans elle,
-# qui connaissait l'hôte lisait et écrivait toute la collection
-# (GET /api/export/json, DELETE /api/entities/{id}), Swagger comprise - CORS
-# n'y change rien, allowedOrigins n'est vérifié que par un navigateur, jamais
-# par curl.
+# ─── Authentication (simplified on 2026-08-30) ───────────────────────────
+# This file used to carry HTTP Basic authentication at the Traefik level,
+# and that was right: the application had NONE of its own. Without it,
+# anyone who knew the host could read and write the whole collection
+# (GET /api/export/json, DELETE /api/entities/{id}), Swagger included - CORS
+# changes nothing here, allowedOrigins is only checked by a browser, never
+# by curl.
 #
-# Ce n'est plus vrai depuis le Lot 94 : l'API est fermée par Spring Security,
-# tout répond 401 sans session, et les données sont cloisonnées par compte
-# (Lot 95). Le Basic était donc devenu une SECONDE demande de mot de passe
-# devant la première - et surtout il cassait les liens de partage, dont le
-# destinataire est censé n'avoir rien à saisir. Il est retiré.
+# This is no longer true since Batch 94: the API is closed by Spring Security,
+# everything answers 401 without a session, and the data is split by account
+# (Batch 95). Basic had therefore become a SECOND password prompt
+# in front of the first one - and above all it broke the share links, whose
+# recipient is supposed to have nothing to type. It is removed.
 #
-# Ce qui reste ouvert, et c'est le serveur qui le décide (voir SecurityConfig,
-# pas ce fichier) : la connexion, l'état de l'instance, et
-# GET /api/public/share/{jeton} - dont le jeton fait office de mot de passe.
+# What stays open, and the server decides it (see SecurityConfig,
+# not this file): the login, the state of the instance, and
+# GET /api/public/share/{token} - whose token acts as a password.
 #
-# Conséquence pratique : deux routeurs Traefik au lieu de quatre. Les
-# exceptions de chemin n'ont plus lieu d'être puisqu'il n'y a plus de porte
-# à contourner.
+# Practical consequence: two Traefik routers instead of four. The
+# path exceptions have no reason to exist since there is no door
+# to get around.
 
 services:
   iozycore-api:
@@ -49,23 +49,23 @@ services:
       RELEASES_REFRESH_SERIES_PER_NIGHT: ${RELEASES_REFRESH_SERIES_PER_NIGHT:-10}
       GOOGLE_BOOKS_BACKUP_API_KEYS: ${GOOGLE_BOOKS_BACKUP_API_KEYS:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      # Il y a du TLS devant (Traefik + Let's Encrypt) : le cookie de session
-      # ne doit jamais repartir en clair.
+      # There is TLS in front (Traefik + Let's Encrypt): the session cookie
+      # must never leave in clear text.
       SESSION_COOKIE_SECURE: "true"
-      # Vide = la création de compte est FERMÉE après le premier. C'est le
-      # défaut voulu : une instance exposée sans y penser ne devient pas une
-      # base ouverte à qui passe. Le définir ouvre « Créer un compte avec une
-      # invitation » sur l'écran de connexion.
+      # Empty = account creation is CLOSED after the first one. This is the
+      # wanted default: an instance exposed without thinking about it does not
+      # become a database open to anyone. Setting it opens "Créer un compte avec une
+      # invitation" on the login screen.
       IOZYCORE_INVITE_CODE: ${IOZYCORE_INVITE_CODE:-}
-      # Doit correspondre au domaine du service "web" ci-dessous - requis
-      # même si nginx proxy /api en apparence "same-origin" pour le
-      # navigateur : les requêtes POST/PATCH/DELETE envoient toujours un
-      # header Origin, que Spring vérifie (voir api/config/CorsConfig.java).
-      # Guillemets OBLIGATOIRES : le message d'erreur contient "ex: https://..."
-      # et un ": " dans un scalaire nu fait lire une imbrication à YAML - sans
-      # eux, tout le fichier est invalide et `docker compose` refuse de le
-      # charger ("mapping values are not allowed in this context", trouvé au
-      # Lot 27 en validant le fichier pour la première fois).
+      # Must match the domain of the "web" service below - required
+      # even if nginx proxies /api as "same-origin" in appearance for the
+      # browser: POST/PATCH/DELETE requests always send an
+      # Origin header, which Spring checks (see api/config/CorsConfig.java).
+      # Quotes REQUIRED: the error message contains "ex: https://..."
+      # and a ": " in a bare scalar makes YAML read a nesting - without
+      # them, the whole file is invalid and `docker compose` refuses to
+      # load it ("mapping values are not allowed in this context", found in
+      # Batch 27 when validating the file for the first time).
       WEB_ALLOWED_ORIGINS: "${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://app.iozycore.mondomaine.tld)}"
     volumes:
       - media_data:/app/media
@@ -73,11 +73,11 @@ services:
       - internal
       - proxy
     labels:
-      # Labels Traefik : routage HTTPS automatique avec Let's Encrypt.
-      # Remplacer iozycore.mondomaine.tld par ton propre domaine/DDNS Synology.
+      # Traefik labels: automatic HTTPS routing with Let's Encrypt.
+      # Replace iozycore.mondomaine.tld with your own Synology domain/DDNS.
       - "traefik.enable=true"
-      # Un seul routeur : c'est l'application qui décide ce qui est ouvert,
-      # pas le proxy (voir l'en-tête).
+      # Only one router: the application decides what is open,
+      # not the proxy (see the header).
       - "traefik.http.routers.iozycore.rule=Host(`iozycore.mondomaine.tld`)"
       - "traefik.http.routers.iozycore.entrypoints=websecure"
       - "traefik.http.routers.iozycore.tls.certresolver=letsencrypt"
@@ -90,18 +90,18 @@ services:
     depends_on:
       - iozycore-api
     networks:
-      - internal   # pour joindre iozycore-api via le proxy nginx interne (voir web/nginx.conf)
-      - proxy      # pour être routable par Traefik
+      - internal   # to reach iozycore-api through the internal nginx proxy (see web/nginx.conf)
+      - proxy      # to be routable by Traefik
     labels:
-      # Sous-domaine séparé de l'API (iozycore.mondomaine.tld reste dédié à
-      # l'iOS/Swagger/accès direct) - nginx proxy /api en interne vers
-      # iozycore-api. Ce domaine doit être répété dans WEB_ALLOWED_ORIGINS
-      # (service iozycore-api ci-dessus) : nginx rend la lecture "same-origin"
-      # pour le navigateur, mais les requêtes d'écriture (POST/PATCH/DELETE)
-      # envoient quand même un header Origin que Spring vérifie.
+      # Separate subdomain from the API (iozycore.mondomaine.tld stays dedicated to
+      # iOS/Swagger/direct access) - nginx proxies /api internally to
+      # iozycore-api. This domain must be repeated in WEB_ALLOWED_ORIGINS
+      # (iozycore-api service above): nginx makes reading "same-origin"
+      # for the browser, but write requests (POST/PATCH/DELETE)
+      # still send an Origin header that Spring checks.
       - "traefik.enable=true"
-      # L'app se protège elle-même : écran de connexion, session en cookie,
-      # et les liens de partage qui s'ouvrent sans compte. Rien à filtrer ici.
+      # The app protects itself: login screen, cookie session,
+      # and share links that open without an account. Nothing to filter here.
       - "traefik.http.routers.iozycore-web.rule=Host(`app.iozycore.mondomaine.tld`)"
       - "traefik.http.routers.iozycore-web.entrypoints=websecure"
       - "traefik.http.routers.iozycore-web.tls.certresolver=letsencrypt"
@@ -123,8 +123,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # Pas de port exposé publiquement : uniquement accessible depuis
-    # le réseau interne "internal" par iozycore-api.
+    # No publicly exposed port: only reachable from
+    # the "internal" network by iozycore-api.
 
   reverse-proxy:
     image: traefik:v3.1

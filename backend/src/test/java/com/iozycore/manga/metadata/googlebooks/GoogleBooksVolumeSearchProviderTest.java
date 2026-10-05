@@ -9,13 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GoogleBooksVolumeSearchProviderTest {
 
-    // ------------------------------------ Une edition cherchee par son nom (lot 144)
+    // ------------------------------------ An edition searched by its name (batch 144)
 
     @Test
     void searchEdition_reads_the_pages_one_after_the_other_and_stops_at_the_first_empty_one() {
-        // « One Piece Édition originale » : 300 fiches annoncees, un tome
-        // francais sur deux dans la premiere page (mesure du 2026-09-06) -
-        // une seule page laissait l'edition a 30 tomes sur 66.
+        // "One Piece Édition originale": 300 records announced, one French
+        // volume out of two in the first page (measured on 2026-09-06) -
+        // a single page left the edition at 30 volumes out of 66.
         List<String> urls = new java.util.ArrayList<>();
         GoogleBooksHttpClient client = new GoogleBooksHttpClient("", "") {
             @Override
@@ -40,7 +40,7 @@ class GoogleBooksVolumeSearchProviderTest {
         List<VolumeCandidate> result = provider.searchEdition("One Piece", "Eiichiro Oda", "Édition originale", List.of());
 
         assertThat(result).extracting(VolumeCandidate::volumeNumber).containsExactly(24, 45);
-        assertThat(urls).hasSize(3); // deux pages pleines, puis la premiere page vide arrete la lecture
+        assertThat(urls).hasSize(3); // two full pages, then the first empty page stops the reading
         assertThat(urls.get(0)).contains("intitle%3AOne+Piece+%C3%89dition+originale");
     }
 
@@ -53,12 +53,12 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void excludes_a_result_whose_listed_author_shares_no_word_with_the_expected_author() throws Exception {
-        // Cas réel trouvé en continuant les tests sur "Monster" (voir
-        // historique) : "Monster Allergy Next Gen" (BD italienne) et
-        // "Monster Délices" (manga culinaire) commencent tous deux
-        // littéralement par "Monster " - un simple préfixe exact ne suffit
-        // pas à confirmer qu'il s'agit du "Monster" de Naoki Urasawa quand
-        // Google Books liste un auteur SANS AUCUN rapport.
+        // Real case found while continuing the tests on "Monster" (see
+        // history): "Monster Allergy Next Gen" (Italian comic) and
+        // "Monster Délices" (culinary manga) both start
+        // literally with "Monster " - a simple exact prefix is not enough
+        // to confirm it is the "Monster" by Naoki Urasawa when
+        // Google Books lists an author with NO connection.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -79,10 +79,10 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void reads_the_publication_date_at_the_precision_google_books_gives_it() throws Exception {
-        // Le calendrier des sorties (lot 146) lit le jour quand la fiche le
-        // porte - une précommande aussi -, le mois ou l'année sinon, et rien
-        // d'une forme inattendue. L'année seule reste dans `annee`, qui sert à
-        // nommer une édition.
+        // The releases calendar (batch 146) reads the day when the record
+        // carries it - a pre-order too -, the month or the year otherwise, and nothing
+        // of an unexpected form. The year alone stays in `annee`, which is used to
+        // name an edition.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -103,10 +103,10 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void keeps_a_result_with_no_author_listed_even_when_the_expected_author_is_known() throws Exception {
-        // La plupart des fiches françaises n'ont pas le champ auteur
-        // correctement renseigné (vérifié manuellement, voir historique) -
-        // l'absence d'auteur ne doit jamais exclure un résultat par ailleurs
-        // valide, contrairement à un mismatch EXPLICITE ci-dessus.
+        // Most French records do not have the author field
+        // properly filled in (checked manually, see history) -
+        // the absence of an author must never exclude an otherwise valid
+        // result, unlike an EXPLICIT mismatch above.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -123,12 +123,12 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void extracts_a_bare_zero_padded_volume_number_without_a_tome_keyword() throws Exception {
-        // Cas réel observé (voir historique) : l'édition française "Sword
-        // Art Online" (Ofelbe) numérote ses tomes SANS mot-clé "Tome"/"T."
-        // ni "Vol." - juste un numéro à zéro de tête collé au titre de
-        // série, avant le nom de l'arc ("Aincrad") - sans ce repli, la série
-        // entière ne remontait AUCUN résultat (rejetée comme un coffret sans
-        // numéro exploitable).
+        // Real case observed (see history): the French edition "Sword
+        // Art Online" (Ofelbe) numbers its volumes WITHOUT the keyword "Tome"/"T."
+        // or "Vol." - just a zero-padded number stuck to the series
+        // title, before the arc name ("Aincrad") - without this fallback, the whole
+        // series returned NO result (rejected as a box set without a
+        // usable number).
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -147,10 +147,10 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void matches_the_series_prefix_even_when_google_books_uses_a_hyphen_where_the_series_title_has_a_space() throws Exception {
-        // Cas réel observé (voir historique) : le titre officiel français est
-        // indexé "ONE-PUNCH MAN" (tiret) alors que le titre de série connu
-        // (MyAnimeList) est "One Punch Man" (espace) - un simple startsWith
-        // rendait TOUS les tomes de ce manga très connu invisibles.
+        // Real case observed (see history): the official French title is
+        // indexed "ONE-PUNCH MAN" (dash) while the known series title
+        // (MyAnimeList) is "One Punch Man" (space) - a simple startsWith
+        // made ALL the volumes of this very well known manga invisible.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -169,10 +169,10 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void matches_the_series_prefix_even_when_google_books_inserts_a_space_the_series_title_does_not_have() throws Exception {
-        // Cas réel observé (voir historique) : le titre officiel français est
-        // indexé "Haikyu !! - Les As du volley T10" (espace avant "!!")
-        // alors que le titre de série connu (MyAnimeList) est "Haikyu!!"
-        // (aucun espace) - même limite que le cas "One Punch Man" ci-dessus.
+        // Real case observed (see history): the official French title is
+        // indexed "Haikyu !! - Les As du volley T10" (space before "!!")
+        // while the known series title (MyAnimeList) is "Haikyu!!"
+        // (no space) - same limit as the "One Punch Man" case above.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -191,9 +191,9 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void strips_parentheses_left_over_around_a_collection_name() throws Exception {
-        // Cas réel observé (voir historique) : "Yu-Gi-Oh ! (Intégrale) -
-        // Tome 1" a son nom de collection entre parenthèses - sans nettoyage
-        // des parenthèses, l'édition extraite restait "(Intégrale)".
+        // Real case observed (see history): "Yu-Gi-Oh ! (Intégrale) -
+        // Tome 1" has its collection name in parentheses - without cleaning
+        // the parentheses, the extracted edition stayed "(Intégrale)".
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -212,13 +212,13 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void strips_a_historical_alias_in_parentheses_stuck_to_the_series_title_before_the_volume_number() throws Exception {
-        // Cas réel observé (voir historique) : "City Hunter (Nicky Larson)
-        // Tome 1 . Edition de luxe" fait suivre le titre d'un alias
-        // historique entre parenthèses ("Nicky Larson", nom de l'adaptation
-        // française de City Hunter) AVANT le numéro de tome - sans le
-        // distinguer d'un vrai nom d'édition entre parenthèses (voir le test
-        // précédent), l'édition extraite restait "Nicky Larson) . Edition De
-        // Luxe" (parenthèse fermante orpheline mélangée au vrai nom d'édition).
+        // Real case observed (see history): "City Hunter (Nicky Larson)
+        // Tome 1 . Edition de luxe" follows the title with a historical
+        // alias in parentheses ("Nicky Larson", name of the French
+        // adaptation of City Hunter) BEFORE the volume number - without
+        // telling it apart from a real edition name in parentheses (see the
+        // previous test), the extracted edition stayed "Nicky Larson) . Edition De
+        // Luxe" (orphan closing parenthesis mixed with the real edition name).
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -238,8 +238,8 @@ class GoogleBooksVolumeSearchProviderTest {
     @Test
     void extracts_volume_number_and_falls_back_to_publisher_when_no_collection_name_remains() throws Exception {
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
-        // Cas réel observé (voir historique) : le titre ne contient que la
-        // série + le numéro de tome, rien à isoler comme nom de collection.
+        // Real case observed (see history): the title only contains the
+        // series + the volume number, nothing to isolate as a collection name.
         String body = """
                 {
                   "items": [
@@ -253,15 +253,15 @@ class GoogleBooksVolumeSearchProviderTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).volumeNumber()).isEqualTo(3);
-        assertThat(result.get(0).edition()).isEqualTo("Kana"); // repli sur l'éditeur
-        assertThat(result.get(0).imageUrl()).isEqualTo("https://books.google.com/tome3.jpg"); // forcé en https
+        assertThat(result.get(0).edition()).isEqualTo("Kana"); // fallback on the publisher
+        assertThat(result.get(0).imageUrl()).isEqualTo("https://books.google.com/tome3.jpg"); // forced to https
     }
 
     @Test
     void extracts_the_abbreviated_t_zero_prefixed_volume_number_format() throws Exception {
-        // Cas réel observé (voir historique) : Google Books indexe parfois le
-        // tome sous la forme abrégée "T04" (sans point, zéro de tête) plutôt
-        // que "Tome 4" - ex: "Fragments d'elles T04" (Nao Emoto / Mag Hsu, Pika).
+        // Real case observed (see history): Google Books sometimes indexes the
+        // volume in the abbreviated form "T04" (no dot, zero-padded) rather
+        // than "Tome 4" - e.g. "Fragments d'elles T04" (Nao Emoto / Mag Hsu, Pika).
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -275,7 +275,7 @@ class GoogleBooksVolumeSearchProviderTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).volumeNumber()).isEqualTo(4);
-        assertThat(result.get(0).edition()).isEqualTo("Pika"); // repli sur l'éditeur, pas de nom de collection
+        assertThat(result.get(0).edition()).isEqualTo("Pika"); // fallback on the publisher, no collection name
     }
 
     @Test
@@ -291,16 +291,16 @@ class GoogleBooksVolumeSearchProviderTest {
 
         List<VolumeCandidate> result = provider.parse(body, "One Piece");
 
-        assertThat(result.get(0).edition()).isEqualTo("Édition Originale"); // capitalisé mot par mot
+        assertThat(result.get(0).edition()).isEqualTo("Édition Originale"); // capitalised word by word
         assertThat(result.get(0).volumeNumber()).isEqualTo(60);
     }
 
     @Test
     void strips_a_leading_period_left_over_when_the_volume_number_appears_before_the_collection_name() throws Exception {
-        // Cas réel observé (voir historique) : "Chainsaw Man Tome 18 .
-        // Edition collector" place le numéro de tome AVANT le nom de
-        // collection, séparé par un point - sans nettoyage du point,
-        // l'édition extraite restait ". Edition collector".
+        // Real case observed (see history): "Chainsaw Man Tome 18 .
+        // Edition collector" places the volume number BEFORE the name of the
+        // collection, separated by a dot - without cleaning the dot,
+        // the extracted edition stayed ". Edition collector".
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -318,11 +318,11 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void treats_a_publisher_name_with_a_trailing_manga_suffix_the_same_as_without_it() throws Exception {
-        // Cas réel observé (voir historique) : "Demon Slayer" ressort à la
-        // fois avec publisher="Panini" (ex: "Demon Slayer T01") et
-        // publisher="Panini Manga" (ex: "Demon Slayer Tome 11") pour le MÊME
-        // éditeur réel - sans normalisation, ça formait deux onglets
-        // d'édition ("Panini" et "Panini Manga") au lieu d'un seul.
+        // Real case observed (see history): "Demon Slayer" comes out both
+        // with publisher="Panini" (e.g. "Demon Slayer T01") and
+        // publisher="Panini Manga" (e.g. "Demon Slayer Tome 11") for the SAME
+        // real publisher - without normalisation, that formed two edition
+        // tabs ("Panini" and "Panini Manga") instead of one.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -340,12 +340,12 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void falls_back_to_the_publisher_when_the_extracted_collection_name_just_repeats_the_series_title() throws Exception {
-        // Cas réel observé (voir historique) : "Kingdom - Tome 70 - Kingdom"
-        // répète le titre de la série APRÈS le numéro de tome sur certaines
-        // fiches Google Books - une fois le préfixe et le numéro retirés, il
-        // ne reste que ce doublon, qui ressemblerait sinon à un vrai nom de
-        // collection appelé "Kingdom" (identique à la série, donc sans
-        // valeur informative).
+        // Real case observed (see history): "Kingdom - Tome 70 - Kingdom"
+        // repeats the series title AFTER the volume number on some
+        // Google Books records - once the prefix and the number are removed, only
+        // this duplicate is left, which would otherwise look like a real
+        // collection name called "Kingdom" (identical to the series, so with no
+        // informative value).
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -357,18 +357,18 @@ class GoogleBooksVolumeSearchProviderTest {
 
         List<VolumeCandidate> result = provider.parse(body, "Kingdom");
 
-        assertThat(result.get(0).edition()).isEqualTo("Meian"); // repli sur l'éditeur, pas "Kingdom"
+        assertThat(result.get(0).edition()).isEqualTo("Meian"); // fallback on the publisher, not "Kingdom"
     }
 
     @Test
     void falls_back_to_edition_inconnue_when_the_publisher_field_is_corrupted() throws Exception {
-        // Cas réel observé (voir historique) : le endpoint de RECHERCHE
-        // Google Books ("/volumes?q=...") renvoie "12-21" comme "publisher"
-        // pour plusieurs tomes distincts de "Vinland Saga", alors que le
-        // endpoint de LECTURE PAR IDENTIFIANT ("/volumes/{id}") renvoie
-        // pourtant "UNIVERS POCHE" pour ces mêmes identifiants - un vrai
-        // éditeur contient toujours au moins une lettre, contrairement à
-        // cette valeur numérique visiblement corrompue côté Google.
+        // Real case observed (see history): the Google Books SEARCH
+        // endpoint ("/volumes?q=...") returns "12-21" as "publisher"
+        // for several distinct volumes of "Vinland Saga", while the
+        // READ BY IDENTIFIER endpoint ("/volumes/{id}") returns
+        // "UNIVERS POCHE" for these same identifiers - a real
+        // publisher always contains at least one letter, unlike
+        // this numeric value visibly corrupted on Google's side.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -385,11 +385,11 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void strips_the_dangling_range_connector_left_over_by_a_multi_volume_omnibus_title() throws Exception {
-        // Cas réel observé (voir historique) : "L'Attaque des Titans -
-        // L'intégrale T01 à T04" (coffret de 4 tomes) contient DEUX numéros
-        // de tome ("T01" et "T04") reliés par "à" - une fois les deux numéros
-        // retirés, "à" reste seul au milieu du texte restant et se retrouve
-        // capitalisé en "À" ("L'intégrale À" au lieu de "L'intégrale").
+        // Real case observed (see history): "L'Attaque des Titans -
+        // L'intégrale T01 à T04" (box set of 4 volumes) contains TWO volume
+        // numbers ("T01" and "T04") linked by "à" - once the two numbers are
+        // removed, "à" stays alone in the middle of the remaining text and ends up
+        // capitalised as "À" ("L'intégrale À" instead of "L'intégrale").
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -407,12 +407,12 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void treats_an_internal_hyphen_in_the_collection_name_as_a_space_so_variants_share_one_edition() throws Exception {
-        // Cas réel observé (voir historique) : Google Books indexe la même
-        // collection "My Hero Academia Team-Up Mission" sous trois formes
-        // différentes selon le tome ("Team Up Mission" sans tiret, "Team-Up
-        // Mission" et "Team-up Mission" avec tiret et casse différente) - sans
-        // normalisation, ça formait trois onglets d'édition quasi identiques
-        // au lieu d'un seul.
+        // Real case observed (see history): Google Books indexes the same
+        // collection "My Hero Academia Team-Up Mission" in three different
+        // forms depending on the volume ("Team Up Mission" without a dash, "Team-Up
+        // Mission" and "Team-up Mission" with a dash and different case) - without
+        // normalisation, that formed three nearly identical edition tabs
+        // instead of one.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -448,9 +448,9 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void excludes_a_different_spin_off_series_that_merely_mentions_the_searched_title() throws Exception {
-        // Cas réel observé (voir historique) : chercher "Naruto" remonte des
-        // tomes de "Boruto - Naruto Next Generations", un spin-off distinct,
-        // pas une édition de Naruto.
+        // Real case observed (see history): searching "Naruto" returns
+        // volumes of "Boruto - Naruto Next Generations", a distinct spin-off,
+        // not an edition of Naruto.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -467,11 +467,11 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void excludes_a_sequel_series_glued_to_the_searched_title_with_no_separating_space() throws Exception {
-        // Cas réel observé (voir historique) : chercher "Tokyo Ghoul" remonte
-        // des tomes de "Tokyo Ghoul:re" (la suite, une série à part sur
-        // MyAnimeList) - ":re" est collé sans espace, contrairement à un vrai
-        // nom de collection ("One Piece - Édition originale"...), toujours
-        // séparé du titre de la série par un espace.
+        // Real case observed (see history): searching "Tokyo Ghoul" returns
+        // volumes of "Tokyo Ghoul:re" (the sequel, a separate series on
+        // MyAnimeList) - ":re" is stuck on with no space, unlike a real
+        // collection name ("One Piece - Édition originale"...), always
+        // separated from the series title by a space.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -488,12 +488,12 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void excludes_a_known_spin_off_series_flagged_via_related_series_fragments() throws Exception {
-        // Cas réel observé (voir historique) : "Blue Lock - Episode Nagi -
-        // Tome 5" commence bien par "Blue Lock" et respecte la séparation
-        // par espace (contrairement au cas Tokyo Ghoul:re ci-dessus) - donc
-        // structurellement indiscernable d'un vrai nom de collection, sauf à
-        // savoir par une source externe (voir RelatedSeriesService, dérivé
-        // des relations MyAnimeList) que "Episode Nagi" désigne un spin-off.
+        // Real case observed (see history): "Blue Lock - Episode Nagi -
+        // Tome 5" does start with "Blue Lock" and respects the separation
+        // by space (unlike the Tokyo Ghoul:re case above) - so
+        // structurally indistinguishable from a real collection name, unless
+        // we know from an external source (see RelatedSeriesService, derived
+        // from the MyAnimeList relations) that "Episode Nagi" designates a spin-off.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -506,7 +506,7 @@ class GoogleBooksVolumeSearchProviderTest {
 
         List<VolumeCandidate> result = provider.parse(body, "Blue Lock", List.of("Episode Nagi"));
 
-        assertThat(result).hasSize(1); // seule la vraie édition de Blue Lock reste
+        assertThat(result).hasSize(1); // only the real Blue Lock edition remains
         assertThat(result.get(0).edition()).isEqualTo("Pika");
     }
 
@@ -544,13 +544,13 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void treats_a_bare_series_title_with_no_volume_number_at_all_as_a_one_shot() throws Exception {
-        // Cas réel observé (voir historique) : "Re/member" et "Hideout" sont
-        // des one-shots (manga complets en un seul tome) - leur titre brut
-        // EST exactement le titre de la série, sans "Tome N" nulle part
-        // (contrairement à "Death Note Complete Box Set" ci-dessus, qui n'a
-        // pas de numéro non plus mais laisse du texte descriptif après le
-        // titre de série - un vrai coffret, pas un one-shot). Sans ce repli,
-        // ces mangas étaient invisibles à la recherche de tomes.
+        // Real case observed (see history): "Re/member" and "Hideout" are
+        // one-shots (complete manga in a single volume) - their raw title
+        // IS exactly the series title, with no "Tome N" anywhere
+        // (unlike "Death Note Complete Box Set" above, which has
+        // no number either but leaves descriptive text after the
+        // series title - a real box set, not a one-shot). Without this fallback,
+        // these manga were invisible to the volume search.
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -569,11 +569,11 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void does_not_promote_a_bare_title_mention_to_tome_one_when_real_numbered_tomes_also_exist() throws Exception {
-        // Un titre nu MÉLANGÉ à de vrais tomes numérotés indique une vraie
-        // série multi-tomes mal couverte par une fiche incomplète (ex: une
-        // republication du tome déjà listé plus loin sans son numéro) - le
-        // titre nu est alors du bruit à écarter, jamais un one-shot à
-        // promouvoir en "Tome 1" (qui existe déjà légitimement par ailleurs).
+        // A bare title MIXED with real numbered volumes indicates a real
+        // multi-volume series poorly covered by an incomplete record (e.g. a
+        // republication of the volume already listed further on without its number) - the
+        // bare title is then noise to discard, never a one-shot to
+        // promote to "Tome 1" (which already legitimately exists elsewhere).
         GoogleBooksVolumeSearchProvider provider = new GoogleBooksVolumeSearchProvider();
         String body = """
                 {
@@ -592,15 +592,15 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void keeps_several_editions_that_each_have_only_one_volume_when_none_is_solidly_represented() {
-        // Cas réel observé sur "Sword Art Online" (voir historique) : les
-        // arcs "Aincrad", "Progressive" et "Ordinal Scale" ne ressortent
-        // chacun qu'avec UN SEUL tome trouvé (limite de couverture Google
-        // Books, pas un faux positif) - sans cet assouplissement, les TROIS
-        // étaient écartés comme du bruit (countByEdition.size() > 1), la
-        // série entière ne remontant plus AUCUN résultat. filterOutNoiseEditions
-        // testée directement (package-private) : parse() ne représente
-        // qu'une seule requête/mot-clé, ce filtre n'agit qu'après fusion de
-        // TOUTES les requêtes (voir runKeywordSearches).
+        // Real case observed on "Sword Art Online" (see history): the
+        // arcs "Aincrad", "Progressive" and "Ordinal Scale" each only come out
+        // with ONE SINGLE volume found (Google Books coverage limit,
+        // not a false positive) - without this relaxation, ALL THREE
+        // were discarded as noise (countByEdition.size() > 1), the
+        // whole series returning NO result. filterOutNoiseEditions is
+        // tested directly (package-private): parse() only represents
+        // a single request/keyword, this filter only acts after merging
+        // ALL the requests (see runKeywordSearches).
         List<VolumeCandidate> candidates = List.of(
                 new VolumeCandidate("Aincrad", 1, null, "Sword Art Online 001 Aincrad"),
                 new VolumeCandidate("Progressive", 2, null, "Sword Art Online Progressive Tome 2"),
@@ -613,9 +613,9 @@ class GoogleBooksVolumeSearchProviderTest {
 
     @Test
     void still_discards_a_single_volume_edition_when_another_edition_is_solidly_represented() {
-        // Contrairement au cas ci-dessus : ici "Kana" est solidement
-        // représentée (3 tomes) - "Party" (1 seul tome) ressort alors bien
-        // comme un faux positif isolé à écarter, comportement inchangé.
+        // Unlike the case above: here "Kana" is solidly
+        // represented (3 volumes) - "Party" (1 single volume) then does come out
+        // as an isolated false positive to discard, unchanged behaviour.
         List<VolumeCandidate> candidates = List.of(
                 new VolumeCandidate("Kana", 1, null, "One Piece - Tome 1"),
                 new VolumeCandidate("Kana", 2, null, "One Piece - Tome 2"),

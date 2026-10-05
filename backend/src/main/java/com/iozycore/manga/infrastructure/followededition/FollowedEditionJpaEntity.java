@@ -16,16 +16,16 @@ public class FollowedEditionJpaEntity {
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
-    // Cloisonnement par propriétaire : Hibernate ajoute cette colonne à la
+    // Separation by owner: Hibernate adds this column to the
 
 
-    // clause WHERE de toute requête sur cette entité, et la remplit à
+    // WHERE clause of every query on this entity, and fills it in at
 
 
-    // l'insertion depuis ProprietaireCourant. Un filtre qu'on ne peut pas
+    // insert time from ProprietaireCourant. A filter that cannot be
 
 
-    // oublier, plutôt qu'une condition à réécrire dans chaque requête.
+    // forgotten, rather than a condition to rewrite in every query.
 
 
     @TenantId

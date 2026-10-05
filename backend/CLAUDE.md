@@ -1,32 +1,32 @@
 # Backend (Spring Boot, Java 21)
 
-A DDD modulith. The top of `backend/README.md` still describes the old split by layers (`domain/`, `application/`, …). The real structure is below.
+Modulith DDD. Le début de `backend/README.md` décrit encore l'ancien découpage par couches (`domain/`, `application/`…). La structure réelle est ci-dessous.
 
 ## Structure
 
-`src/main/java/com/iozycore/`:
+`src/main/java/com/iozycore/` :
 
-| Module | Role |
+| Module | Rôle |
 |---|---|
-| `core` | Generic catalogue, ownerships, wishes, tier lists, accounts, sharing, export, statistics, calendar, listings, Gemini, and the **extension points** (for example `ReleaseSource` in `core/insights`) |
-| `manga` | French editions, volumes, sources (AniList, Jikan, MAL, Google Books, BnF, Open Library), purchase analysis, stack recognition, shelf import |
+| `core` | Catalogue générique, possessions, envies, tier lists, comptes, partage, export, statistiques, calendrier, annonces, Gemini, et les **points d'extension** (par exemple `ReleaseSource` dans `core/insights`) |
+| `manga` | Éditions françaises, tomes, sources (AniList, Jikan, MAL, Google Books, BnF, Open Library), analyse d'achat, reconnaissance de piles, import d'étagère |
 | `videogame` | IGDB |
 | `boardgame` | BoardGameGeek |
-| `custom` | Types defined inside iozycore, with no provider |
+| `custom` | Types définis dans iozycore, sans fournisseur |
 
-Each module has its layers: framework-free domain, use cases, persistence, API. The domain knows neither Spring nor JPA. **A universe never depends on another universe, and the core depends on no universe.** If you need a call in that direction, add an extension point in `core`.
+Chaque module a ses couches : domaine sans framework, cas d'usage, persistance, API. Le domaine ne connaît ni Spring ni JPA. **Un univers ne dépend jamais d'un autre univers, et le cœur ne dépend d'aucun univers.** Si tu as besoin d'un appel dans ce sens, crée un point d'extension dans `core`.
 
-## Run and test
+## Lancer et tester
 
-`java` and `mvn` are not installed on the dev machine. Everything goes through Docker. Docker Desktop must be running (`docker version` to check).
+`java` et `mvn` ne sont pas installés sur la machine de dev : tout passe par Docker. Docker Desktop doit tourner (`docker version` pour vérifier).
 
-Dev stack (API :8080, database, web :8081):
+Pile de dev (API :8080, base, web :8081) :
 
 ```bash
 cd backend && docker compose up --build
 ```
 
-Tests, from Git Bash (`MSYS_NO_PATHCONV=1` stops `-w /build` from being rewritten as a Windows path):
+Tests, depuis Git Bash (`MSYS_NO_PATHCONV=1` évite que `-w /build` soit réécrit en chemin Windows) :
 
 ```bash
 MSYS_NO_PATHCONV=1 docker run --rm \
@@ -36,57 +36,58 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   -e TESTCONTAINERS_RYUK_DISABLED=true \
   -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
   maven:3.9-eclipse-temurin-21 \
-  mvn -o -q -B surefire:test -Dtest='ClassATest,ClassBTest'
+  mvn -o -q -B surefire:test -Dtest='ClasseATest,ClasseBTest'
 ```
 
-- **Iterate on a subset**, not on the full suite. `surefire:test` alone (no compile lifecycle) has a floor of about 4 s, against 52 s. Separator: a comma (`+` does not work). After you change sources, run `mvn -o test-compile` first (about 15 s). Always use `-o` (the `maven_repo_cache` volume already has everything).
-- If only unit logic changed: `-Dtest='!*IntegrationTest,!*HttpContractTest'` (the fast half).
-- **Full suite only before a commit**: same command with `mvn -B -o test` (about 95 s). The integration tests share one container through `PostgresIntegrationTest`. Keep this shared base. One `PostgreSQLContainer` per class breaks the Spring context cache (341 s against 80 s).
-- The two `TESTCONTAINERS_*` variables are required for Testcontainers on Docker Desktop/WSL2. Without them you get "Connection refused" or a Ryuk timeout.
-- **After you delete or move a class, run `mvn -B -o clean test`** at least once. Without `clean`, old `.class` files stay in `target/` (mounted from the host). You then get a false "Schema-validation: missing table" or a `ConflictingBeanDefinitionException` on every test.
-- Two Maven runs at the same time on the same `target/` break each other. Do not run a suite in the background during another `mvn`.
-- Capture the exit code of `mvn` itself (`code=$?` on its own line), not the one of a final `echo` or of `| head`.
+- **Itère sur un sous-ensemble**, pas sur la suite complète. `surefire:test` seul (sans cycle de compilation) tient un plancher d'environ 4 s contre 52 s. Séparateur : la virgule (`+` ne marche pas). Après avoir modifié des sources, lance d'abord `mvn -o test-compile` (~15 s). Toujours `-o` (le volume `maven_repo_cache` a déjà tout).
+- Seule la logique unitaire a bougé : `-Dtest='!*IntegrationTest,!*HttpContractTest'` (la moitié rapide).
+- **Suite complète seulement avant un commit** : même commande avec `mvn -B -o test` (~95 s). Les tests d'intégration partagent un seul conteneur via `PostgresIntegrationTest`. Garde cette base commune : un `PostgreSQLContainer` par classe casse le cache de contextes Spring (341 s contre 80 s).
+- Les deux variables `TESTCONTAINERS_*` sont indispensables pour Testcontainers sous Docker Desktop/WSL2. Sans elles : « Connection refused » ou timeout Ryuk.
+- **Après avoir supprimé ou déplacé une classe, lance `mvn -B -o clean test`** au moins une fois. Sans `clean`, les anciens `.class` restent dans `target/` (monté depuis l'hôte) : faux « Schema-validation: missing table » ou `ConflictingBeanDefinitionException` sur tous les tests.
+- Deux Maven simultanés sur le même `target/` se marchent dessus. Ne lance pas une suite en arrière-plan pendant un autre `mvn`.
+- Capture le code de sortie de `mvn` lui-même (`code=$?` sur sa propre ligne), pas celui d'un `echo` final ni d'un `| head`.
 
-## Docker traps
+## Pièges Docker
 
-- After a rebuild that should change behaviour, check that the container runs the new image (`docker inspect <container> --format '{{.Image}}'` against `docker images`). If not, run `docker compose up -d --force-recreate iozycore-api`. Never hide the output of `docker compose build` (`failed to solve` shows there).
-- `docker compose up --build -d web` also recreates the API (`depends_on`), so sessions are lost. To rebuild only the web: `docker compose build web && docker compose up -d --no-deps web`.
-- `docker-compose.e2e.yml` started from `backend/` reads `backend/.env` (the real keys). The E2E stack must hard-code provider keys to `""`. To test a provider live, use the dev stack, never the E2E stack.
+- Après un rebuild censé changer le comportement, vérifie que le conteneur tourne sur la nouvelle image (`docker inspect <conteneur> --format '{{.Image}}'` contre `docker images`). Sinon : `docker compose up -d --force-recreate iozycore-api`. Ne masque jamais la sortie de `docker compose build` (`failed to solve` s'y lit).
+- `docker compose up --build -d web` recrée aussi l'API (`depends_on`) : sessions perdues. Pour ne reconstruire que le web : `docker compose build web && docker compose up -d --no-deps web`.
+- `docker-compose.e2e.yml` lancé depuis `backend/` lit `backend/.env` (les vraies clés). La pile E2E doit fixer les clés de fournisseurs à `""` en dur. Pour tester un fournisseur en direct, utilise la pile de dev, jamais la pile E2E.
 
 ## Conventions
 
-- Aggregates: private constructor, static factory (`create()`, `acquire()`, …), `reconstitute()` to reload. Reference: `Ownership.java`.
-- **Flyway migrations**: `V{n}__description.sql`. **Never edit a migration that has shipped.** One more column means: migration + `{Xxx}JpaEntity` + adapter mapper + DTO.
-- No business logic in REST controllers.
-- **Tests without Mockito**: hand-written in-memory repositories for application logic. Testcontainers (real PostgreSQL) for JPA/SQL. Inline fixtures for parsing external sources. **Never a real network call in a test.**
-- A failing external source returns an empty list for that source (`WARN` log). It never returns an error.
+- Agrégats : constructeur privé, factory statique (`create()`, `acquire()`…), `reconstitute()` pour recharger. Référence : `Ownership.java`.
+- **Migrations Flyway** : `V{n}__description.sql`. **Ne modifie jamais une migration déjà livrée**, pas même un commentaire. Une colonne de plus = migration + `{Xxx}JpaEntity` + mapper de l'adaptateur + DTO.
+- Pas de logique métier dans les contrôleurs REST.
+- **Tests sans Mockito** : dépôts en mémoire écrits à la main pour la logique applicative ; Testcontainers (vrai PostgreSQL) pour JPA/SQL ; fixtures inline pour le parsing de sources externes. **Jamais d'appel réseau réel dans un test.**
+- Une source externe en panne renvoie une liste vide pour cette source (log `WARN`), jamais une erreur.
+- Le code, les commentaires et les logs s'écrivent en anglais ; les messages d'erreur d'API que le web affiche restent en français.
 
-## Owner isolation (read before you write a repository)
+## Isolation par propriétaire (à lire avant d'écrire un dépôt)
 
-Private tables have an `owner_id` column marked `@TenantId`. Hibernate filters every query and fills the column on insert, from `ProprietaireCourant`. With no known account, the owner is `PERSONNE` (sees nothing).
+Les tables privées ont une colonne `owner_id` annotée `@TenantId`. Hibernate filtre toute requête et remplit la colonne à l'insertion, depuis `ProprietaireCourant`. Sans compte connu, le propriétaire vaut `PERSONNE` (ne voit rien).
 
-Two holes that `@TenantId` does not close:
-- JPA `findById` loads by primary key **with no query**, so with no filter. Use the derived `findOneById` methods.
-- `deleteById` and bulk `deleteBy…` ignore the filter. Read first (filtered), then delete what was found.
+Deux trous que `@TenantId` ne bouche pas :
+- `findById` JPA charge par clé primaire **sans requête**, donc sans filtre. Utilise les `findOneById` dérivés.
+- `deleteById` et les `deleteBy…` en masse ignorent le filtre. Lis d'abord (filtré), supprime ensuite ce qui a été trouvé.
 
-The only legitimate crossing is the share link (`AuNomDe.executer(owner, …)` in `PublicShareController`). `JdbcDonneesParProprietaire` (account deletion) is the only code that goes over the wall with SQL.
+Le seul franchissement légitime est le lien de partage (`AuNomDe.executer(proprietaire, …)` dans `PublicShareController`). `JdbcDonneesParProprietaire` (suppression de compte) est le seul code qui passe en SQL par-dessus la cloison.
 
-## Security and sessions
+## Sécurité et sessions
 
-- Everything answers 401 without a session, except `GET /api/auth/etat`, `POST /api/auth/login`, `POST /api/auth/register` and `/api/public/**`. Swagger is closed too.
-- The visitor ("Visiter sans compte") has no owner. It is read-only on the server (`SecurityConfig` refuses everything except `GET`) and sees only the catalogue.
-- CSRF: the token is in the readable `XSRF-TOKEN` cookie and is sent back as `X-XSRF-TOKEN`. The explicit `CsrfTokenRequestAttributeHandler` in `SecurityConfig` is needed. Do not remove it.
-- A 404 goes through the security chain again (`dispatcherTypeMatchers(ERROR).permitAll()`). Only `PorteSurUnVraiServeurTest` sees this case (MockMvc does not replay it).
-- Sessions live in memory. A restart logs everyone out. This is accepted.
-- A new origin that serves the web (port, domain) must be added to `web.allowed-origins` (`CorsConfig`). Otherwise writes answer 403 "Invalid CORS request".
-- Creating an account after the first one is closed until `IOZYCORE_INVITE_CODE` is set. Missing configuration closes the door. It never opens it.
+- Tout répond 401 sans session, sauf `GET /api/auth/etat`, `POST /api/auth/login`, `POST /api/auth/register` et `/api/public/**`. Swagger est fermé aussi.
+- Le visiteur (« Visiter sans compte ») n'a aucun propriétaire. Il est en lecture seule côté serveur (`SecurityConfig` refuse tout sauf `GET`) et ne voit que le catalogue.
+- CSRF : le jeton est dans le cookie lisible `XSRF-TOKEN`, renvoyé en `X-XSRF-TOKEN`. Le `CsrfTokenRequestAttributeHandler` explicite de `SecurityConfig` est nécessaire. Ne le retire pas.
+- Un 404 repasse par la chaîne de sécurité (`dispatcherTypeMatchers(ERROR).permitAll()`). Seul `PorteSurUnVraiServeurTest` voit ce cas (MockMvc ne le rejoue pas).
+- Les sessions vivent en mémoire. Un redémarrage déconnecte tout le monde. C'est assumé.
+- Une nouvelle origine qui sert le web (port, domaine) doit être ajoutée à `web.allowed-origins` (`CorsConfig`). Sinon les écritures répondent 403 « Invalid CORS request ».
+- La création d'un compte après le premier est fermée tant que `IOZYCORE_INVITE_CODE` n'est pas défini. L'absence de configuration ferme la porte, elle ne l'ouvre jamais.
 
-## External providers
+## Fournisseurs externes
 
-For quotas, error codes and the fallback order, see "Quand un fournisseur se tait" in the root `README.md`. Order rule: the source with the most calls available goes first. Google Books is the only one with a daily quota (429, reset around 9:00 Paris time). Gemini (AI help) can answer 503 (load) or 429 (daily quota). Plan a fallback.
+Pour les quotas, les codes d'erreur et l'ordre de repli, voir « Quand un fournisseur se tait » dans le `README.md` racine. Règle d'ordre : la source qui a le plus d'appels disponibles passe en premier. Google Books est la seule avec un quota journalier (429, remis à zéro vers 9 h heure de Paris). Gemini (assistance IA) peut répondre 503 (charge) ou 429 (quota du jour) : prévois un repli.
 
-Gemini has a fallback model (`GEMINI_FALLBACK_MODEL`) for when the main one stays saturated. A 503 or 429 is retried before a failure is reported. A reached quota is reported as a quota, not as an outage to retry.
+Gemini a un modèle de repli (`GEMINI_FALLBACK_MODEL`) quand le principal reste saturé. Un 503 ou un 429 est réessayé avant d'annoncer un échec, et un quota atteint se dit comme tel, pas comme une panne à réessayer.
 
-Settings live in `backend/.env` (template: `.env.example`, the full list is the truth): `BGG_APPLICATION_TOKEN`, `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`, `MAL_CLIENT_ID`, `GOOGLE_BOOKS_API_KEY`/`GOOGLE_BOOKS_BACKUP_API_KEYS`, `GEMINI_API_KEY`/`GEMINI_MODEL`/`GEMINI_FALLBACK_MODEL`, `IOZYCORE_INVITE_CODE`, `WEB_ALLOWED_ORIGINS`, `SESSION_COOKIE_SECURE`, `RELEASES_REFRESH_*`.
+Les réglages vivent dans `backend/.env` (modèle : `.env.example`, la liste complète fait foi) : `BGG_APPLICATION_TOKEN`, `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`, `MAL_CLIENT_ID`, `GOOGLE_BOOKS_API_KEY`/`GOOGLE_BOOKS_BACKUP_API_KEYS`, `GEMINI_API_KEY`/`GEMINI_MODEL`/`GEMINI_FALLBACK_MODEL`, `IOZYCORE_INVITE_CODE`, `WEB_ALLOWED_ORIGINS`, `SESSION_COOKIE_SECURE`, `RELEASES_REFRESH_*`.
 
-Existing extension points (interfaces in `core`, implementations at the root of each universe): `DiscoverySource`, `SeriesProgressSource`, `OwnedValueSource`, `CoverImageCheck`, `EditionLinker`, `EntityDeletionGuard`, `VariantDeletionHook`, `TransferModule`, `ReleaseSource`. Spring Modulith 1.2.x (Boot 3.3 line): run `ModulesTest` before any commit that touches packages. HTTP routes do not move when a module moves.
+Points d'extension existants (interfaces dans `core`, implémentations à la racine de chaque univers) : `DiscoverySource`, `SeriesProgressSource`, `OwnedValueSource`, `CoverImageCheck`, `EditionLinker`, `EntityDeletionGuard`, `VariantDeletionHook`, `TransferModule`, `ReleaseSource`. Spring Modulith 1.2.x (ligne Boot 3.3) : lance `ModulesTest` avant tout commit qui touche aux paquets. Les routes HTTP ne bougent pas quand un module bouge.

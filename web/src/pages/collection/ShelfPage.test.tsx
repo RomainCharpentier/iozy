@@ -1,16 +1,16 @@
 /**
- * <b>Ma collection, filtrée par tag.</b>
+ * <b>My collection, filtered by tag.</b>
  *
- * <p>Le panneau a ses propres tests ({@code CollectionFilters.test.tsx}) : il
- * liste les tags et remonte celui qu'on choisit. Ce qu'il ne peut pas prouver,
- * c'est que l'écran s'en <b>serve</b> - un `porteLeTag` oublié dans le filtrage
- * laisse un panneau parfaitement fonctionnel devant une grille qui ne bouge
- * pas. C'est exactement l'état dans lequel les tags ont vécu jusqu'ici :
- * posables, et sans effet.
+ * <p>The panel has its own tests ({@code CollectionFilters.test.tsx}): it
+ * lists the tags and reports the one that is chosen. What it cannot prove
+ * is that the screen <b>uses</b> it - a `porteLeTag` forgotten in the filtering
+ * leaves a perfectly working panel in front of a grid that does not move.
+ * This is exactly the state in which tags have lived until now:
+ * possible to set, and without effect.
  *
- * <p>Les données viennent de {@code useDonneesCollection}, remplacé ici : ce
- * hook a ses quatre requêtes et son propre contrat, et ce test parle du
- * filtrage, pas du chargement.
+ * <p>The data comes from {@code useDonneesCollection}, replaced here: this
+ * hook has its four queries and its own contract, and this test is about
+ * the filtering, not about the loading.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -55,9 +55,9 @@ beforeEach(() => {
     entityTypes: [MANGA],
     ownerships: possessions,
     progression: new Map(),
-    // Les deux œuvres sont possédées : sans ça, le filtre Tout/Possédés/Envies
-    // les écarterait avant même que le tag ait son mot à dire, et le test
-    // passerait pour la mauvaise raison.
+    // Both works are owned: without that, the All/Owned/Wishes filter
+    // would remove them before the tag even has its say, and the test
+    // would pass for the wrong reason.
     owned: new Set(['tome-1']),
     oeuvresVoulues: new Set<string>(),
     oeuvresSuivies: new Set<string>(),
@@ -69,14 +69,14 @@ beforeEach(() => {
   })
 })
 
-/** Ouvre le panneau et choisit un tag - le geste complet, depuis l'écran. */
+/** Opens the panel and chooses a tag - the complete gesture, from the screen. */
 async function filtrerSur(nomDuTag: string) {
   await userEvent.click(screen.getByRole('button', { name: /Filtres/ }))
   await userEvent.click(await screen.findByRole('radio', { name: nomDuTag }))
 }
 
-describe('le filtre par tag', () => {
-  it("ne retient que les œuvres qui portent le tag", async () => {
+describe('the tag filter', () => {
+  it("keeps only the works that carry the tag", async () => {
     render(<ShelfPage />, { wrapper: enrobage })
     expect(screen.getByRole('button', { name: /Berserk/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Vagabond/ })).toBeInTheDocument()
@@ -87,17 +87,17 @@ describe('le filtre par tag', () => {
     expect(screen.getByRole('button', { name: /Berserk/ })).toBeInTheDocument()
   })
 
-  it('compte dans la pastille du bouton Filtres', async () => {
+  it('counts in the badge of the Filtres button', async () => {
     render(<ShelfPage />, { wrapper: enrobage })
 
     await filtrerSur('Lu')
 
-    // La pastille annonçait « 1 » en dur, quel que soit le nombre de filtres
-    // posés : elle compte désormais.
+    // The badge announced "1" hard-coded, whatever the number of filters
+    // set: it now counts.
     expect(screen.getByRole('button', { name: /Filtres/ })).toHaveTextContent('1')
   })
 
-  it('se relâche quand on revient à « Tous »', async () => {
+  it('is released when going back to "Tous"', async () => {
     render(<ShelfPage />, { wrapper: enrobage })
     await filtrerSur('Lu')
     await waitFor(() => expect(screen.queryByRole('button', { name: /Vagabond/ })).not.toBeInTheDocument())
@@ -107,10 +107,10 @@ describe('le filtre par tag', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /Vagabond/ })).toBeInTheDocument())
   })
 
-  it('laisse un écran vide qui dit pourquoi, et par où en sortir', async () => {
+  it('leaves an empty screen that says why, and how to get out of it', async () => {
     donnees.useDonneesCollection.mockReturnValue({
       ...donnees.useDonneesCollection(),
-      entities: [VAGABOND], // aucune œuvre ne porte le tag
+      entities: [VAGABOND], // no work carries the tag
     })
     render(<ShelfPage />, { wrapper: enrobage })
 

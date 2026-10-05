@@ -15,21 +15,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * <b>Qui a le droit de créer un compte, et ce que devient la collection déjà
- * saisie.</b>
+ * <b>Who may create an account, and what happens to the collection already
+ * entered.</b>
  *
- * <h2>Les deux règles qui décident de tout</h2>
- * Le <b>premier</b> compte est libre - il faut bien que quelqu'un entre - et il
- * <b>reprend l'identifiant du propriétaire par défaut</b> : les possessions,
- * envies et classements déjà en base deviennent les siens sans qu'une ligne ne
- * bouge. Les <b>suivants</b> exigent un code d'invitation, et <b>l'absence de
- * code configuré ferme la porte</b> au lieu de l'ouvrir. C'est le sens de la
- * mesure : une instance déployée sans y penser ne doit pas devenir une base
- * ouverte à qui passe.
+ * <h2>The two rules that decide everything</h2>
+ * The <b>first</b> account is free - someone has to get in - and it
+ * <b>takes over the default owner's identifier</b>: the ownerships,
+ * wishes and rankings already in the database become theirs without a row
+ * moving. The <b>next ones</b> need an invitation code, and <b>a missing
+ * configured code closes the door</b> instead of opening it. This is the point of the
+ * measure: an instance deployed without thinking about it must not become a database
+ * open to anyone passing by.
  */
 class AuthServiceTest {
 
-    /** Une table de comptes en mémoire - ces règles n'ont rien à voir avec SQL. */
+    /** An in-memory accounts table - these rules have nothing to do with SQL. */
     static class ComptesEnMemoire implements AppUserRepository {
         private final Map<UUID, AppUser> parId = new HashMap<>();
 
@@ -72,7 +72,7 @@ class AuthServiceTest {
         }
     }
 
-    /** Un encodeur reconnaissable : ce test parle d'autorisation, pas de cryptographie. */
+    /** A recognisable encoder: this test is about authorization, not cryptography. */
     private static final PasswordEncoder ENCODEUR = new PasswordEncoder() {
         @Override
         public String encode(CharSequence brut) {
@@ -96,8 +96,8 @@ class AuthServiceTest {
         AppUser premier = service("").creer("Romain@Example.COM", "un-mot-de-passe", "Romain", null);
 
         assertThat(premier.id()).isEqualTo(DefaultOwner.ID);
-        // L'adresse est rangée en minuscules : deux comptes ne peuvent pas
-        // différer par la seule casse.
+        // The address is stored in lowercase: two accounts cannot
+        // differ only by case.
         assertThat(premier.email()).isEqualTo("romain@example.com");
         assertThat(premier.passwordHash()).isEqualTo("hache:un-mot-de-passe");
     }
@@ -124,8 +124,8 @@ class AuthServiceTest {
 
         AppUser second = service.creer("second@example.com", "un-mot-de-passe", "Second", "  SESAME ");
 
-        // Un identifiant NEUF : le second compte arrive sur une collection vide,
-        // il ne rejoint pas celle du premier.
+        // A NEW identifier: the second account starts on an empty collection,
+        // it does not join the first one's.
         assertThat(second.id()).isNotEqualTo(DefaultOwner.ID);
     }
 
@@ -160,9 +160,9 @@ class AuthServiceTest {
 
     @Test
     void un_pseudo_vide_ferme_la_porte_plutot_que_de_recopier_l_adresse() {
-        // Avant le pseudo, un nom laissé vide était remplacé par l'adresse
-        // e-mail. L'avatar du menu affichait alors l'adresse de quelqu'un, et
-        // deux comptes pouvaient porter le même nom : ce repli n'existe plus.
+        // Before the username, a name left empty was replaced by the e-mail
+        // address. The menu avatar then showed someone's address, and
+        // two accounts could have the same name: this fallback no longer exists.
         assertThatThrownBy(() -> service("").creer("romain@example.com", "un-mot-de-passe", "   ", null))
                 .isInstanceOf(AuthService.CreationRefusee.class)
                 .hasMessageContaining("pseudo");
@@ -172,10 +172,10 @@ class AuthServiceTest {
     void un_pseudo_mal_forme_est_refuse_avec_une_phrase_qui_dit_la_regle() {
         AuthService service = service("");
 
-        // Trop court, une espace, une arobase, et un début qui ne se lit pas.
+        // Too short, a space, an at sign, and a start that cannot be read.
         for (String refuse : new String[] { "ro", "jean dupont", "romain@local", "-romain" }) {
             assertThatThrownBy(() -> service.creer("romain@example.com", "un-mot-de-passe", refuse, null))
-                    .as("pseudo refusé : %s", refuse)
+                    .as("username refused: %s", refuse)
                     .isInstanceOf(AuthService.CreationRefusee.class)
                     .hasMessageContaining("pseudo");
         }
@@ -183,8 +183,8 @@ class AuthServiceTest {
 
     @Test
     void un_pseudo_accentue_est_accepte() {
-        // Refuser « Rémi » dans une application française serait une règle
-        // technique déguisée en règle produit.
+        // Refusing "Rémi" in a French application would be a technical
+        // rule disguised as a product rule.
         AppUser compte = service("").creer("remi@example.com", "un-mot-de-passe", "Rémi", null);
 
         assertThat(compte.pseudo()).isEqualTo("Rémi");

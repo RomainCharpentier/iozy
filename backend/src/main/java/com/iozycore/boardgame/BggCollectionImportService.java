@@ -14,15 +14,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Importe en une fois les jeux de société marqués "possédés" dans la
- * collection BGG d'un utilisateur. Réutilise QuickAddService (donc sa
- * déduplication par titre) plutôt que de dupliquer la logique de création
- * Entity+Ownership - un import BGG et un ajout rapide manuel sont
- * fondamentalement la même opération, juste déclenchée en masse.
+ * Imports in one go the board games marked "owned" in a user's
+ * BGG collection. Reuses QuickAddService (so its deduplication
+ * by title) instead of duplicating the Entity+Ownership creation logic
+ * - a BGG import and a manual quick add are
+ * basically the same operation, just triggered in bulk.
  * <p>
- * Chaque jeu est importé dans sa propre transaction (via l'appel à
- * QuickAddService, lui-même @Transactional) : un item invalide au milieu
- * d'une collection de 200 jeux ne fait pas échouer les 199 autres.
+ * Each game is imported in its own transaction (through the call to
+ * QuickAddService, which is itself @Transactional): one invalid item in the middle
+ * of a collection of 200 games does not make the other 199 fail.
  */
 @Service
 public class BggCollectionImportService {
@@ -46,8 +46,8 @@ public class BggCollectionImportService {
     public ImportResult importOwnedGames(String bggUsername) {
         List<BggCollectionItem> items = collectionFetcher.fetchOwnedGames(bggUsername);
 
-        // Résolu une fois (pas par item) - l'import BGG reste intrinsèquement
-        // lié au type "jeu de société", câblé sur son code bien connu.
+        // Resolved once (not per item) - the BGG import is inherently
+        // tied to the "board game" type, wired on its well-known code.
         UUID boardGameTypeId = entityTypeRepository.findByCode("BOARD_GAME")
                 .orElseThrow(() -> new IllegalStateException("Type BOARD_GAME introuvable"))
                 .id();
@@ -71,9 +71,9 @@ public class BggCollectionImportService {
                     created++;
                 }
             } catch (Exception e) {
-                // Un jeu qui échoue à l'import (titre vide, etc.) ne doit pas
-                // arrêter l'import des suivants - on le compte et on continue.
-                log.warn("Échec de l'import du jeu BGG '{}' (id {}) : {}", item.title(), item.externalId(), e.getMessage());
+                // A game that fails to import (empty title, etc.) must not
+                // stop the import of the next ones - we count it and carry on.
+                log.warn("Failed to import BGG game '{}' (id {}): {}", item.title(), item.externalId(), e.getMessage());
                 failed++;
             }
         }

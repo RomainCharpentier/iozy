@@ -20,10 +20,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
-/** Les œuvres suivies du compte : le troisième état, à côté des possessions et des envies. */
+/** The followed works of the account: the third state, next to ownerships and wishes. */
 @RestController
 @RequestMapping("/api/followed-works")
-@Tag(name = "Œuvres suivies", description = "Suivre une œuvre : en attendre les sorties (calendrier)")
+@Tag(name = "Followed works", description = "Follow a work: wait for its releases (calendar)")
 public class FollowedWorkController {
 
     private final WorkFollowing workFollowing;
@@ -34,7 +34,7 @@ public class FollowedWorkController {
         this.followedWorkRepository = followedWorkRepository;
     }
 
-    @Operation(summary = "Suivre une œuvre (idempotent). Retire l'envie de l'œuvre : un état à la fois.")
+    @Operation(summary = "Follow a work (idempotent). Removes the wish for the work: one state at a time.")
     @PutMapping
     public FollowedWorkResponse follow(@RequestBody FollowRequest request) {
         if (request == null || request.entityId() == null) {
@@ -43,14 +43,14 @@ public class FollowedWorkController {
         return FollowedWorkResponse.from(workFollowing.follow(request.entityId()));
     }
 
-    @Operation(summary = "Ne plus suivre une œuvre (idempotent)")
+    @Operation(summary = "Stop following a work (idempotent)")
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unfollow(@RequestParam UUID entityId) {
         workFollowing.unfollow(entityId);
     }
 
-    @Operation(summary = "Lister les œuvres suivies du compte")
+    @Operation(summary = "List the followed works of the account")
     @GetMapping
     public List<FollowedWorkResponse> list() {
         return followedWorkRepository.findAll().stream().map(FollowedWorkResponse::from).toList();

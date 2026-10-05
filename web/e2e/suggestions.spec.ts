@@ -2,54 +2,55 @@ import { expect, test } from '@playwright/test'
 import { serieAvecEdition } from './amorcage'
 
 /**
- * <b>Voir les séries presque complètes, et ce qu'il en coûterait de les
- * finir.</b>
+ * <b>See the almost complete series, and what it would cost to finish
+ * them.</b>
  *
- * <p>Septième des dix parcours structurants, et le seul qui traverse les
- * <b>trois</b> calculs du serveur d'un coup : la progression (ce qu'on
- * possède), la complétude (ce qui manque, d'après l'édition de référence) et le
- * prix (ce que ça coûte, d'après la base la plus fiable disponible). Chacun a
- * ses tests unitaires ; leur enchaînement n'en avait aucun.
+ * <p>Seventh of the ten structuring journeys, and the only one that crosses
+ * the <b>three</b> server calculations at once: the progress (what we own),
+ * the completeness (what is missing, according to the reference edition) and
+ * the price (what it costs, according to the most reliable base available).
+ * Each has its unit tests; their sequence had none.
  *
- * <p>Le parcours part de <b>Découvrir</b> et non de l'URL : les deux surfaces
- * qui montrent ces suggestions lisent le même endpoint, et « Tout voir » est le
- * chemin réel entre elles. Une régression de routage y est invisible autrement.
+ * <p>The journey starts from <b>Découvrir</b> and not from the URL: the two
+ * surfaces that show these suggestions read the same endpoint, and "Tout voir"
+ * is the real path between them. A routing regression is invisible there
+ * otherwise.
  */
 
-test('repérer une série presque complète depuis Découvrir, et rejoindre sa fiche', async ({ page }) => {
+test('spot an almost complete series from Découvrir, and reach its detail page', async ({ page }) => {
   const titre = `Pluto ${Date.now()}`
   const { entityId } = await serieAvecEdition(page, {
     titre,
     edition: 'Standard',
     totalVolumes: 8,
     tomesPossedes: [1, 2, 3, 4, 5, 6],
-    // Un prix de référence : sans lui, la suggestion existe mais ne peut
-    // annoncer aucun coût - et c'est précisément la moitié de sa raison d'être.
+    // A reference price: without it, the suggestion exists but cannot
+    // announce any cost - and this is precisely half of its purpose.
     prixNeufAuTome: 9,
   })
 
-  // --- 1. L'aperçu de Découvrir la fait remonter
+  // --- 1. The Découvrir preview brings it up
   await page.goto('/discover')
   const opportunite = page.getByRole('button', { name: new RegExp(titre) }).first()
   await expect(opportunite).toBeVisible()
 
-  // --- 1 bis. Les découvertes par univers vivent ici aussi (lot 142), à la
-  //     demande : sans note posée, le manga n'a aucun auteur favori à
-  //     proposer, et il le dit - un silence se lirait comme une panne.
+  // --- 1 bis. The discoveries by universe live here too (batch 142), on
+  //     demand: with no rating given, the manga has no favorite author to
+  //     offer, and it says so - a silence would read as a failure.
   await expect(page.getByRole('heading', { name: 'Découvertes' })).toBeVisible()
   await page.getByRole('button', { name: 'Voir des suggestions' }).click()
   await expect(page.getByText(/^Manga : rien à proposer/)).toBeVisible()
 
-  // --- 2. « Tout voir » mène à l'écran complet
+  // --- 2. "Tout voir" leads to the full screen
   await page.getByRole('button', { name: 'Tout voir' }).first().click()
   await expect(page).toHaveURL(/\/suggestions$/)
   await expect(page.getByRole('heading', { name: "Suggestions d'achats" })).toBeVisible()
 
-  // --- 3. Ce que la ligne annonce : l'édition, le manque, et le coût
+  // --- 3. What the row announces: the edition, the gap, and the cost
   //
-  //     Deux tomes à 9 € : 18 €, sur la base du prix neuf faute de relevé de
-  //     marché. La base est NOMMÉE - « théorique » n'est pas « marché », et
-  //     l'utilisateur décide en le sachant.
+  //     Two volumes at 9 €: 18 €, based on the new price for lack of a
+  //     market reading. The base is NAMED - "théorique" is not "marché", and
+  //     the user decides knowing it.
   const ligne = page.getByRole('button', { name: new RegExp(titre) })
   await expect(ligne).toContainText('Standard')
   await expect(ligne).toContainText('6/8 tomes')
@@ -57,15 +58,15 @@ test('repérer une série presque complète depuis Découvrir, et rejoindre sa f
   await expect(ligne).toContainText(/18,00\s€/)
   await expect(ligne).toContainText('théorique')
 
-  // --- 4. Et elle emmène là où on peut agir
+  // --- 4. And it takes us where we can act
   await ligne.click()
   await expect(page).toHaveURL(new RegExp(`/entity/${entityId}$`))
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
 })
 
-test('une série complète ne se suggère pas', async ({ page }) => {
-  // La règle qui rend cet écran utilisable : il ne liste QUE ce sur quoi on
-  // peut agir. Une série complète y apparaîtrait comme un rappel de rien.
+test('a complete series is not suggested', async ({ page }) => {
+  // The rule that makes this screen usable: it lists ONLY what we can act
+  // on. A complete series would appear there as a reminder of nothing.
   const titre = `Solanin ${Date.now()}`
   await serieAvecEdition(page, {
     titre,

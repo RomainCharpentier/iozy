@@ -4,23 +4,23 @@ import java.math.BigDecimal;
 import java.util.Set;
 
 /**
- * "Analyse d'un lot" (brainstorm de fonctionnalités) - doublons entre un
- * {@link ListingItem} et les tomes déjà possédés (voir
- * {@link MangaSeries#knownEntityId()}, prévu pour ça dès l'origine mais
- * jamais exploité jusqu'ici) - see {@link DuplicateDetector}.
+ * "Lot analysis" (feature brainstorm) - duplicates between a
+ * {@link ListingItem} and the volumes already owned (see
+ * {@link MangaSeries#knownEntityId()}, planned for this from the start but
+ * never used until now) - see {@link DuplicateDetector}.
  * <p>
- * Volontairement additif : n'affecte jamais {@link NegotiationRecommendation}
- * ni {@link Verdict} (dont les calculs sont vérifiés contre les exemples
- * chiffrés du cahier des charges) - une information consultative en plus,
- * jamais une réécriture du moteur de score déjà validé.
+ * Deliberately additive: never affects {@link NegotiationRecommendation}
+ * or {@link Verdict} (whose calculations are checked against the numbered
+ * examples of the specification) - one more piece of advisory information,
+ * never a rewrite of the score engine that is already validated.
  *
- * @param duplicateVolumeNumbers tomes du lot déjà possédés (actifs, ni vendus ni perdus)
- * @param usefulVolumeCount      includedVolumes moins les doublons - jamais négatif
- * @param pricePerUsefulVolume   itemCostShare réparti sur les seuls tomes utiles - null si aucun
- *                               tome utile, ou si itemCostShare est lui-même inconnu
- * @param maxWorthwhilePrice     jusqu'à quel prix ce lot reste intéressant compte tenu des doublons -
- *                               perVolumeMarketPrice (observé ou théorique, jamais inventé) multiplié
- *                               par usefulVolumeCount ; null si aucun tome utile ou prix/tome inconnu
+ * @param duplicateVolumeNumbers volumes of the lot already owned (active, neither sold nor lost)
+ * @param usefulVolumeCount      includedVolumes minus the duplicates - never negative
+ * @param pricePerUsefulVolume   itemCostShare spread over the useful volumes only - null if there is no
+ *                               useful volume, or if itemCostShare itself is unknown
+ * @param maxWorthwhilePrice     up to which price this lot stays interesting given the duplicates -
+ *                               perVolumeMarketPrice (observed or theoretical, never made up) multiplied
+ *                               by usefulVolumeCount; null if no useful volume or unknown price per volume
  */
 public record DuplicateAnalysis(Set<Integer> duplicateVolumeNumbers, int usefulVolumeCount,
                                  BigDecimal pricePerUsefulVolume, BigDecimal maxWorthwhilePrice) {

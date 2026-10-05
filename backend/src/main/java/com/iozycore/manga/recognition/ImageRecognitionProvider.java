@@ -3,39 +3,39 @@ package com.iozycore.manga.recognition;
 import java.util.List;
 
 /**
- * Un moteur capable de lire des photos et d'y proposer des œuvres.
+ * An engine able to read photos and propose works from them.
  *
- * <h2>Volontairement minuscule</h2>
- * Même esprit que {@code ListingProvider} et {@code MetadataProvider} : cette
- * interface existe pour qu'un second moteur soit une classe de plus et rien
- * d'autre - un décodeur de code-barres local, un modèle auto-hébergé, un autre
- * fournisseur cloud. Elle ne cherche pas à décrire tous les moteurs possibles.
+ * <h2>Deliberately tiny</h2>
+ * Same spirit as {@code ListingProvider} and {@code MetadataProvider}: this
+ * interface exists so that a second engine is one more class and nothing
+ * else - a local barcode decoder, a self-hosted model, another
+ * cloud provider. It does not try to describe all possible engines.
  *
- * <h2>Pourquoi une abstraction plutôt qu'un appel direct</h2>
- * Sans elle, le nom du fournisseur du jour se retrouverait dans le service, le
- * contrôleur et les tests, et en changer voudrait dire les rouvrir tous. Ici,
- * un moteur se remplace en changeant le bean - c'est aussi ce qui permet aux
- * tests de n'appeler <b>aucune IA réelle</b>.
+ * <h2>Why an abstraction rather than a direct call</h2>
+ * Without it, the name of the provider of the day would end up in the service, the
+ * controller and the tests, and changing it would mean reopening them all. Here,
+ * an engine is replaced by changing the bean - this is also what lets the
+ * tests call <b>no real AI</b>.
  *
- * <h2>Ne lève pas pour une panne</h2>
- * Une panne, un quota dépassé, un délai écoulé rendent
- * {@link RecognitionResult#unavailable()}, jamais une exception : IozyCore doit
- * rester utilisable sans reconnaissance, et une exception qui remonte
- * casserait le parcours d'analyse manuelle.
+ * <h2>Does not throw for a failure</h2>
+ * A failure, an exceeded quota, an elapsed timeout return
+ * {@link RecognitionResult#unavailable()}, never an exception: IozyCore must
+ * stay usable without recognition, and an exception that bubbles up
+ * would break the manual analysis flow.
  */
 public interface ImageRecognitionProvider {
 
     /**
-     * Vrai si ce moteur est réellement utilisable maintenant - typiquement
-     * « une clé d'API est configurée ». Un moteur non configuré n'est pas une
-     * erreur : IozyCore fonctionne sans, l'écran le dit et la saisie manuelle
-     * reste entière.
+     * True if this engine is really usable now - typically
+     * "an API key is configured". An engine that is not configured is not an
+     * error: IozyCore works without it, the screen says so and manual entry
+     * stays whole.
      */
     boolean isAvailable();
 
-    /** Ce qu'il croit voir. Ne doit jamais lever, voir la Javadoc de l'interface. */
+    /** What it thinks it sees. Must never throw, see the Javadoc of the interface. */
     RecognitionResult recognize(List<RecognitionImage> images, RecognitionContext context);
 
-    /** Ce qui apparaîtra dans l'évidence et les journaux - jamais une clé, jamais une URL d'appel. */
+    /** What will appear in the evidence and the logs - never a key, never a call URL. */
     String name();
 }

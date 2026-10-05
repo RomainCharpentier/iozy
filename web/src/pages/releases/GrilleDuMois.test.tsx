@@ -1,7 +1,7 @@
 /**
- * <b>Le mois en grille.</b> Ce qui se casse en silence : une semaine qui ne
- * commence plus le lundi, aujourd'hui qui n'est plus marqué, un jour chargé
- * qu'on ne peut plus choisir - ou un jour vide qu'on peut.
+ * <b>The month as a grid.</b> What breaks silently: a week that no longer
+ * starts on Monday, today that is no longer marked, a busy day
+ * that can no longer be chosen - or an empty day that can.
  */
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -26,7 +26,7 @@ function sortie(label: string, coverImageUrl: string | null = null): ReleaseEntr
 }
 
 describe('GrilleDuMois', () => {
-  it('range le mois en semaines, marque aujourd’hui, et ne rend cliquables que les jours qui ont une sortie', async () => {
+  it('lays out the month in weeks, marks today, and only makes clickable the days that have a release', async () => {
     const onChoisir = vi.fn()
     render(
       <GrilleDuMois
@@ -40,11 +40,11 @@ describe('GrilleDuMois', () => {
 
     expect(screen.getByRole('table', { name: 'Grille de septembre 2026' })).toBeInTheDocument()
     expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'])
-    // L'en-tête, puis cinq semaines : du lundi 31 août au dimanche 4 octobre.
+    // The header, then five weeks: from Monday 31 August to Sunday 4 October.
     expect(screen.getAllByRole('row')).toHaveLength(6)
     expect(screen.getByText('10').closest('[aria-current="date"]')).not.toBeNull()
 
-    // Un seul jour a quelque chose : un seul bouton, qui dit combien et montre deux jaquettes puis « +1 ».
+    // Only one day has something: one single button, which says how many and shows two covers then "+1".
     expect(screen.getAllByRole('button')).toHaveLength(1)
     const jour = screen.getByRole('button', { name: 'mercredi 30 septembre, 3 sorties' })
     expect(within(jour).getByRole('presentation', { hidden: true })).toHaveAttribute('src', 'https://img/72.jpg')
@@ -55,7 +55,7 @@ describe('GrilleDuMois', () => {
     expect(onChoisir).toHaveBeenCalledWith('2026-09-30')
   })
 
-  it('un jour choisi se voit, et se relâche d’un second clic', async () => {
+  it('a chosen day is visible, and is released by a second click', async () => {
     const onChoisir = vi.fn()
     render(
       <GrilleDuMois

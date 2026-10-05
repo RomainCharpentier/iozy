@@ -3,31 +3,31 @@ import { Check, CheckCheck, Heart, Plus, Trash2, X } from 'lucide-react'
 import { Jaquette } from '@/common/components/Jaquette'
 
 /**
- * Un tome tel qu'une grille l'affiche, quelle que soit sa provenance.
+ * A volume as a grid shows it, whatever its origin.
  *
- * <h2>Le point de rencontre de deux modèles</h2>
- * La fiche part de `TomeTile` (un Variant catalogué, une Ownership, une
- * complétude) ; l'ajout part de `VolumeCandidateDto` (un résultat de
- * recherche externe, pas encore en base). Ces deux formes n'ont pas les mêmes
- * champs et n'ont pas à en avoir : ce qu'une GRILLE a besoin de savoir d'un
- * tome, c'est son numéro, sa jaquette, s'il est déjà possédé, et s'il est
- * mis en avant. Chaque écran traduit sa propre donnée vers ceci.
+ * <h2>The meeting point of two models</h2>
+ * The detail page starts from `TomeTile` (a cataloged Variant, an Ownership, a
+ * completeness); the add flow starts from `VolumeCandidateDto` (an external
+ * search result, not in the database yet). These two shapes do not have the same
+ * fields and do not need to: what a GRID needs to know about a
+ * volume is its number, its cover, whether it is already owned, and whether it is
+ * highlighted. Each screen translates its own data into this.
  */
 export interface VolumeAffiche {
-  /** Identité stable dans la grille. Une série peut avoir un tome 1 par
-   *  édition : c'est à l'appelant de composer une clé qui en tient compte
-   *  (voir lib/volumeKey). */
+  /** Stable identity in the grid. A series can have a volume 1 per
+   *  edition: it is up to the caller to build a key that takes this into account
+   *  (see lib/volumeKey). */
   cle: string
   numero: number
   jaquetteUrl: string | null
-  /** Une Ownership active existe pour ce tome. Vrai dans les deux écrans - et
-   *  c'est justement ce qui rend la grille commune possible. */
+  /** An active Ownership exists for this volume. True on both screens - and
+   *  this is exactly what makes the common grid possible. */
   possede: boolean
-  /** Ce tome est dans les envies. Exclusif de `possede` : vouloir et avoir
-   *  sont deux etats du meme objet, jamais deux etats superposes. */
+  /** This volume is in the wishes. Exclusive with `possede`: wanting and having
+   *  are two states of the same object, never two states stacked together. */
   voulu?: boolean
-  /** Mis en avant : le tome dont le panneau est ouvert (navigation), ou le
-   *  tome coché (sélection). Deux sens, un seul état visuel. */
+  /** Highlighted: the volume whose panel is open (browse mode), or the
+   *  checked volume (selection mode). Two meanings, one visual state. */
   actif: boolean
 }
 
@@ -40,22 +40,22 @@ const FILTRES: { cle: FiltreVolumes; libelle: string }[] = [
 ]
 
 /**
- * La grille de tomes de l'application - une seule, deux modes.
+ * The volume grid of the application - only one, two modes.
  *
- * <h2>Pourquoi un composant commun, alors que les gestes diffèrent</h2>
- * `navigation` (fiche) ouvre le tome cliqué ; `selection` (ajout) le coche, et
- * plusieurs peuvent l'être. Ce sont deux gestes, mais **une seule chose
- * regardée** : la liste des tomes d'une édition, avec ce que j'en possède
- * déjà. Avant, chaque écran redessinait sa propre tuile - ratios différents
- * (78px auto-fill contre 64×96 fixe), replis différents, badges différents -
- * si bien qu'un tome ne se ressemblait pas d'un écran à l'autre alors que
- * c'est le même objet.
+ * <h2>Why a common component, when the gestures differ</h2>
+ * `navigation` (detail page) opens the clicked volume; `selection` (add) checks it, and
+ * several can be checked. These are two gestures, but **only one thing
+ * being looked at**: the list of volumes of an edition, with what I already
+ * own of it. Before, each screen redrew its own tile - different ratios
+ * (78px auto-fill against fixed 64×96), different fallbacks, different badges -
+ * so that a volume did not look the same from one screen to the other even though
+ * it is the same object.
  *
- * <p>Le mode ne fait varier que trois choses, toutes visibles ici : la
- * sémantique ARIA du bouton, le badge de coin, et la présence des actions au
- * survol. Tout le reste - mesures, repli numéroté, filtres, atténuation d'un
- * manquant - est commun, et c'est ce qui garantit que les deux écrans ne
- * peuvent plus diverger.
+ * <p>The mode only changes three things, all visible here: the
+ * ARIA semantics of the button, the corner badge, and the presence of the actions on
+ * hover. Everything else - measures, numbered fallback, filters, dimming of a
+ * missing volume - is common, and this is what guarantees that the two screens can
+ * no longer diverge.
  */
 export function GrilleVolumes({
   volumes,
@@ -73,32 +73,32 @@ export function GrilleVolumes({
   volumes: VolumeAffiche[]
   mode: 'navigation' | 'selection'
   onActiver: (cle: string) => void
-  /** Les deux gestes d'un tome, en mode navigation. Absents en mode
-   *  sélection, où cocher EST le geste. */
+  /** The two gestures of a volume, in browse mode. Absent in selection
+   *  mode, where checking IS the gesture. */
   onJeLAi?: (cle: string) => void
   onJeLeVeux?: (cle: string) => void
-  /** Retirer un tome POSSÉDÉ de la collection - en deux gestes (voir
-   *  TuileVolume) : avec cette prop, activer une tuile possédée l'ARME au lieu
-   *  d'appeler `onActiver`, et c'est la tuile qui pose la question. Absente,
-   *  l'activation garde son sens d'avant. */
+  /** Remove an OWNED volume from the collection - in two gestures (see
+   *  TuileVolume): with this prop, activating an owned tile ARMS it instead of
+   *  calling `onActiver`, and the tile asks the question. When absent,
+   *  activation keeps its previous meaning. */
   onRetirer?: (cle: string) => void
   filtre: FiltreVolumes
   onFiltre: (filtre: FiltreVolumes) => void
-  /** Ce qui se dit à gauche des filtres, sur la MÊME ligne : l'édition
-   *  regardée et son avancement. Deux lignes de titre au-dessus d'une rangée
-   *  de filtres coûtaient une centaine de pixels avant la première jaquette,
-   *  pour un rappel de ce que les cartes d'édition disent déjà juste
-   *  au-dessus. */
+  /** What is said on the left of the filters, on the SAME line: the edition
+   *  being looked at and its progress. Two title lines above a row
+   *  of filters cost about a hundred pixels before the first cover,
+   *  for a reminder of what the edition cards already say just
+   *  above. */
   enTete?: ReactNode
-  /** Une tuile d'action en fin de grille (« ajouter un tome »). */
+  /** An action tile at the end of the grid ("ajouter un tome"). */
   action?: { libelle: string; onClick: () => void }
   videMessage?: string
 }) {
-  // Sur `volumes` et non sur `visibles` : un compteur qui ne compterait que ce
-  // qui est déjà à l'écran dirait toujours le total de la vue courante.
+  // On `volumes` and not on `visibles`: a counter that only counted what
+  // is already on screen would always say the total of the current view.
   const possedes = volumes.filter((volume) => volume.possede).length
-  // Le tome dont la tuile demande confirmation avant de le retirer - un seul à
-  // la fois : armer un autre tome désarme le premier.
+  // The volume whose tile asks for confirmation before removing it - only one at
+  // a time: arming another volume disarms the first.
   const [armee, setArmee] = useState<string | null>(null)
   const comptes: Record<FiltreVolumes, number> = {
     tous: volumes.length,
@@ -114,18 +114,18 @@ export function GrilleVolumes({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Une seule rangée : ce qu'on regarde à gauche, comment on le filtre à
-          droite. Elle se replie d'elle-même quand la place manque. */}
+      {/* A single row: what is looked at on the left, how it is filtered on the
+          right. It folds by itself when there is not enough room. */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         {enTete}
-        {/* Du TEXTE, pas des pastilles dans un conteneur : trois libellés
-            séparés par des points, l'actif en encre pleine. Et chacun porte son
-            nombre, si bien que la rangée informe au lieu de seulement occuper -
-            on voit combien il manque sans avoir à cliquer.
+        {/* TEXT, not pills in a container: three labels
+            separated by dots, the active one in solid ink. And each one carries its
+            number, so that the row informs instead of only taking up space -
+            one sees how many are missing without having to click.
 
-            Un vrai groupe de boutons radio malgré l'apparence : trois vues qui
-            s'excluent, ce que `aria-pressed` ne dirait pas - il annoncerait
-            trois interrupteurs indépendants dont deux « inactifs ». */}
+            A real group of radio buttons despite the look: three views that
+            exclude each other, which `aria-pressed` would not say - it would announce
+            three independent switches of which two are "inactive". */}
         <div
           role="radiogroup"
           aria-label="Filtrer les tomes"
@@ -177,8 +177,8 @@ export function GrilleVolumes({
               volume={volume}
               mode={mode}
               onActiver={() => {
-                // Un tome possédé ne se retire qu'au second geste : le premier
-                // l'arme (un second tap sur la même tuile la désarme).
+                // An owned volume is only removed on the second gesture: the first
+                // arms it (a second tap on the same tile disarms it).
                 if (onRetirer && mode === 'navigation' && volume.possede) {
                   setArmee((courante) => (courante === volume.cle ? null : volume.cle))
                   return
@@ -200,10 +200,10 @@ export function GrilleVolumes({
               onGarder={() => setArmee(null)}
             />
           ))}
-          {/* Le libellé est ÉCRIT, pas seulement dans un `title` : « ajouter »
-              doit toujours dire où, et un « + » nu au bout d'une grille de tomes
-              se confondait avec un ajout à la collection alors qu'il alimente le
-              catalogue (étude produit du 2026-08-27, §11). */}
+          {/* The label is WRITTEN, not only in a `title`: "ajouter"
+              must always say where, and a bare "+" at the end of a volume grid
+              was confused with an add to the collection while it feeds the
+              catalog (product study of 2026-08-27, section 11). */}
           {action && (
             <button
               type="button"
@@ -235,19 +235,19 @@ function TuileVolume({
   onActiver: () => void
   onJeLAi?: () => void
   onJeLeVeux?: () => void
-  /** La tuile pose sa question « Retirer ? » (voir le bloc en bas). */
+  /** The tile asks its question "Retirer ?" (see the block at the bottom). */
   armee?: boolean
   onRetirer?: () => void
   onGarder?: () => void
 }) {
   const selection = mode === 'selection'
-  // En sélection, un tome déjà possédé n'est PAS atténué : le cocher reste
-  // légitime (c'est un deuxième exemplaire), et le pâlir laisserait croire
-  // qu'il est indisponible. En navigation au contraire, l'atténuation EST
-  // l'information : c'est ce qui fait voir les trous d'une collection.
-  // Un tome VOULU n'est pas atténué comme un manquant : la décision est prise,
-  // et le pâlir le rendrait moins visible que ce qu'on n'a pas encore
-  // tranché. Trois états, trois traitements.
+  // In selection, an already owned volume is NOT dimmed: checking it stays
+  // legitimate (it is a second copy), and fading it would suggest
+  // that it is unavailable. In browse mode, on the contrary, dimming IS
+  // the information: it is what shows the holes of a collection.
+  // A WANTED volume is not dimmed like a missing one: the decision is made,
+  // and fading it would make it less visible than what has not yet been
+  // decided. Three states, three treatments.
   const attenue = !selection && !volume.possede && !volume.voulu
 
   return (
@@ -255,11 +255,11 @@ function TuileVolume({
       <button
         type="button"
         onClick={onActiver}
-        // Deux sémantiques : un interrupteur en sélection (l'état compte et
-        // doit être annoncé), un simple bouton en navigation (il mène ailleurs).
+        // Two semantics: a switch in selection (the state matters and
+        // must be announced), a simple button in browse mode (it leads elsewhere).
         aria-pressed={selection ? volume.actif : undefined}
-        // Une tuile possédée qui peut se retirer déploie sa question : l'attribut
-        // le dit à qui ne voit pas l'écran.
+        // An owned tile that can be removed unfolds its question: the attribute
+        // says it to whoever does not see the screen.
         aria-expanded={!selection && volume.possede && onRetirer ? armee : undefined}
         aria-label={
           selection
@@ -275,8 +275,8 @@ function TuileVolume({
         }`}
       >
         <Jaquette src={volume.jaquetteUrl} repli={null} className="absolute inset-0 h-full w-full object-cover" />
-        {/* Le numéro reste dans l'arbre même sous une jaquette : c'est lui qui
-            porte l'information, et sans jaquette c'est tout ce qu'il y a. */}
+        {/* The number stays in the tree even under a cover: it is what
+            carries the information, and without a cover it is all there is. */}
         <span
           className={`relative font-display text-[17px] font-medium tracking-[0.01em] ${
             volume.jaquetteUrl ? 'sr-only' : 'text-white/90'
@@ -285,11 +285,11 @@ function TuileVolume({
           {String(volume.numero).padStart(2, '0')}
         </span>
 
-        {/* « Déjà possédé » et « coché » sont deux informations distinctes qui
-            coexistent : re-cocher un tome possédé signale un 2e exemplaire.
-            D'où deux coins différents, jamais un seul badge à double sens. */}
-        {/* Le cœur DIT l'état, il ne le change pas : on en sort par le menu
-            ci-dessous, où l'action est nommée. */}
+        {/* "Already owned" and "checked" are two distinct pieces of information that
+            coexist: re-checking an owned volume signals a 2nd copy.
+            Hence two different corners, never a single badge with a double meaning. */}
+        {/* The heart SAYS the state, it does not change it: one leaves it through the menu
+            below, where the action is named. */}
         {!selection && volume.voulu && (
           <span
             title="Dans mes envies"
@@ -313,18 +313,18 @@ function TuileVolume({
         )}
       </button>
 
-      {/* Le menu du tome : les deux gestes possibles sur l'objet réellement
-          concerné. Rien du tout sur un tome DÉJÀ POSSÉDÉ - vouloir ce qu'on a
-          n'a pas de sens (le backend le refuse en 409), et l'avoir non plus.
-          Le garde porte sur la nappe entière et pas seulement sur ses boutons :
-          vide, elle couvrait quand même la tuile et avalait au survol le clic
-          qui lui était destiné (trouvé en vérifiant en direct).
+      {/* The menu of the volume: the two possible gestures on the object really
+          concerned. Nothing at all on an ALREADY OWNED volume - wanting what one has
+          makes no sense (the backend refuses it with a 409), and having it neither.
+          The guard applies to the whole overlay and not only to its buttons:
+          empty, it still covered the tile and swallowed on hover the click
+          meant for it (found when checking live).
 
-          Souris uniquement, et inertes hors survol : ces boutons ne doivent ni
-          intercepter un clic destiné à la tuile, ni s'intercaler dans l'ordre
-          de tabulation. Le clavier et le tactile passent par la tuile : un
-          tome manquant s'ajoute d'un geste, un tome possédé arme sa question
-          « Retirer ? » (voir le bloc en bas). */}
+          Mouse only, and inert outside hover: these buttons must neither
+          intercept a click meant for the tile, nor get into the tab
+          order. Keyboard and touch go through the tile: a missing
+          volume is added in one gesture, an owned volume arms its question
+          "Retirer ?" (see the block at the bottom). */}
       {!selection && !volume.possede && (onJeLAi || onJeLeVeux) && (
         <div
           className={`pointer-events-none absolute inset-0 grid overflow-hidden rounded-lg opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 ${
@@ -364,13 +364,13 @@ function TuileVolume({
         </div>
       )}
 
-      {/* La question d'un tome possédé, posée sur la tuile elle-même. Un tap
-          retirait aussitôt un exemplaire - sa date d'acquisition avec -
-          rattrapable six secondes par « Annuler » : au doigt, sur une grille
-          de soixante-quatorze cases, le geste le plus facile à faire sans le
-          vouloir. Le premier tap arme, et deux vrais boutons, nommés,
-          atteignables au doigt comme au clavier, font le reste ; l'ajout, lui,
-          ne détruit rien et reste un seul geste (lot 148). */}
+      {/* The question of an owned volume, asked on the tile itself. A tap
+          used to remove a copy at once - its acquisition date with it -
+          recoverable for six seconds through "Annuler": with a finger, on a grid
+          of seventy-four cells, the easiest gesture to do without
+          meaning to. The first tap arms, and two real buttons, named,
+          reachable by finger as well as by keyboard, do the rest; adding
+          destroys nothing and stays a single gesture (batch 148). */}
       {!selection && volume.possede && onRetirer && armee && (
         <div className="absolute inset-0 grid grid-rows-2 overflow-hidden rounded-lg">
           <button

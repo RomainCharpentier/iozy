@@ -3,22 +3,22 @@ import { JOURS_DE_LA_SEMAINE_COURTS, libelleJour, libelleMois } from '@/common/l
 import type { ReleaseEntryDto } from '@/common/types/api'
 import { cleDeSortie, grilleDuMois, type CaseDuMois } from './releaseCalendar'
 
-/** Au-delà, la case écrit « +n » plutôt que d'empiler : elle fait 49 px de large sur un téléphone. */
+/** Beyond that, the cell writes "+n" rather than stacking: it is 49 px wide on a phone. */
 const JAQUETTES_PAR_CASE = 2
 
 const CLASSE_CASE = 'flex min-h-14 w-full flex-col gap-1 rounded-lg p-1 sm:min-h-20'
 
 /**
- * Le mois en grille, lundi en tête (lot 146) : chaque jour à sa place,
- * aujourd'hui marqué, les jours des mois voisins grisés pour compléter la
- * semaine. Un jour qui a des sorties montre leurs jaquettes et se choisit :
- * l'agenda dessous ne montre alors que lui.
+ * The month as a grid, Monday first (batch 146): each day in its place,
+ * today marked, the days of the neighbouring months greyed out to complete the
+ * week. A day that has releases shows their covers and can be chosen:
+ * the agenda below then shows only it.
  *
- * <p>Un tableau, pas une grille ARIA : les colonnes sont les jours de la
- * semaine et les lignes des semaines - c'est exactement ce qu'un tableau dit
- * à un lecteur d'écran, sans réinventer la navigation au clavier. Seuls les
- * jours qui ont quelque chose sont des boutons : un jour vide n'a rien à
- * ouvrir, en faire une cible n'apprendrait rien.
+ * <p>A table, not an ARIA grid: the columns are the days of the
+ * week and the rows are weeks - it is exactly what a table says
+ * to a screen reader, without reinventing keyboard navigation. Only the
+ * days that have something are buttons: an empty day has nothing to
+ * open, making it a target would teach nothing.
  */
 export function GrilleDuMois({
   mois,
@@ -27,14 +27,14 @@ export function GrilleDuMois({
   onChoisir,
   aujourdHui,
 }: {
-  /** « 2026-10 » */
+  /** "2026-10" */
   mois: string
-  /** Les sorties datées au jour, par jour ISO - déjà filtrées par catégorie. */
+  /** The releases dated to the day, by ISO day - already filtered by category. */
   parJour: Map<string, ReleaseEntryDto[]>
   jourChoisi: string | null
-  /** `null` pour revenir au mois entier. */
+  /** `null` to go back to the whole month. */
   onChoisir: (iso: string | null) => void
-  /** « 2026-10-14 », la date locale de l'appareil. */
+  /** "2026-10-14", the local date of the device. */
   aujourdHui: string
 }) {
   return (

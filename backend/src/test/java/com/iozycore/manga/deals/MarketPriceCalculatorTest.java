@@ -38,7 +38,7 @@ class MarketPriceCalculatorTest {
 
     @Test
     void normalizes_a_scoped_observation_to_a_per_volume_price() {
-        // 60 EUR pour un lot de 3 tomes (T1-3) -> 20 EUR/tome.
+        // 60 EUR for a batch of 3 volumes (T1-3) -> 20 EUR/volume.
         MarketPriceObservation obs = observation(new VolumeRange(1, 3), "60.00");
 
         MarketPrice price = calculator.computePerVolume(null, List.of(obs));
@@ -58,9 +58,9 @@ class MarketPriceCalculatorTest {
 
         assertThat(price.basis()).isEqualTo(PriceBasis.AI_ESTIMATED);
         assertThat(price.observationCount()).isZero();
-        assertThat(price.observedMedian()).isNull(); // garde-fou : jamais confondu avec une observation réelle
+        assertThat(price.observedMedian()).isNull(); // safeguard: never confused with a real observation
         assertThat(price.aiEstimatedPrice()).isEqualByComparingTo(new BigDecimal("15.00"));
-        assertThat(price.theoreticalEstimate()).isEqualByComparingTo(new BigDecimal("19.90")); // conservé à titre indicatif
+        assertThat(price.theoreticalEstimate()).isEqualByComparingTo(new BigDecimal("19.90")); // kept for information only
         assertThat(price.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
         assertThat(price.bestEstimate()).isEqualByComparingTo(new BigDecimal("15.00"));
     }
@@ -81,7 +81,7 @@ class MarketPriceCalculatorTest {
     void an_unscoped_observation_is_normalized_using_the_edition_total_volume_count() {
         MangaEdition edition = MangaEdition.create("Sanctuary", "Perfect Edition", EditionTier.PERFECT, "Glénat", 6,
                 null, false, false, null);
-        MarketPriceObservation obs = observation(null, "150.00"); // lot complet, pas de plage précisée
+        MarketPriceObservation obs = observation(null, "150.00"); // complete batch, no range given
 
         MarketPrice price = calculator.computePerVolume(edition, List.of(obs));
 
@@ -106,9 +106,9 @@ class MarketPriceCalculatorTest {
 
     @Test
     void an_observation_that_cannot_be_normalized_is_simply_ignored_never_invented() {
-        // Pas de plage précisée ET aucune édition connue -> impossible de
-        // ramener ce prix à un prix/tome, l'observation est ignorée plutôt
-        // que de deviner un dénominateur.
+        // No range given AND no known edition -> impossible to
+        // bring this price down to a price/volume, the observation is ignored rather
+        // than guessing a denominator.
         MarketPriceObservation obs = observation(null, "150.00");
 
         MarketPrice price = calculator.computePerVolume(null, List.of(obs));

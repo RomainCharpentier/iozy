@@ -27,7 +27,7 @@ import com.iozycore.core.insights.SeriesProgressGateway;
 
 @RestController
 @RequestMapping("/api/insights")
-@Tag(name = "Insights", description = "UC6 - statistiques et découverte (lecture seule)")
+@Tag(name = "Insights", description = "UC6 - statistics and discovery (read only)")
 public class InsightsController {
 
     private final StatsService statsService;
@@ -44,53 +44,53 @@ public class InsightsController {
         this.releaseCalendarService = releaseCalendarService;
     }
 
-    @Operation(summary = "Statistiques agrégées : nombre d'entités/possessions par type, "
-            + "note moyenne, expériences de l'année en cours, tags les plus utilisés")
+    @Operation(summary = "Aggregated statistics: number of entities/ownerships per type, "
+            + "average rating, experiences of the current year, most used tags")
     @GetMapping("/stats")
     public StatsSummary stats() {
         return statsService.computeSummary();
     }
 
-    @Operation(summary = "\"Calcul automatique de la valeur de la collection\" (§15 V2) : somme des prix d'achat "
-            + "renseignés sur les possessions actuellement possédées, par type - jamais présentée comme la valeur "
-            + "réelle complète tant que toutes les possessions n'ont pas un prix renseigné")
+    @Operation(summary = "\"Automatic computation of the collection value\" (§15 V2): sum of the purchase prices "
+            + "filled in on the currently owned ownerships, per type - never presented as the full real "
+            + "value as long as not all ownerships have a price filled in")
     @GetMapping("/value")
     public CollectionValue value() {
         return statsService.computeCollectionValue();
     }
 
-    @Operation(summary = "\"Évolution de ma collection\" : nombre de tomes/exemplaires ajoutés par mois, "
-            + "du plus ancien au plus récent - comptages uniquement, aucune valeur monétaire")
+    @Operation(summary = "\"Evolution of my collection\": number of volumes/copies added per month, "
+            + "from the oldest to the newest - counts only, no monetary value")
     @GetMapping("/timeline")
     public List<StatsSummary.MonthlyPoint> timeline() {
         return statsService.computeTimeline();
     }
 
-    @Operation(summary = "\"Bilan annuel\" : nombre d'ajouts, séries commencées, auteur/studio le plus présent "
-            + "pour une année donnée (défaut : année en cours) - pas d'endpoint public, à télécharger en image côté client")
+    @Operation(summary = "\"Yearly review\": number of additions, series started, most present author/studio "
+            + "for a given year (default: current year) - no public endpoint, to be downloaded as an image on the client side")
     @GetMapping("/yearly-recap")
     public YearlyRecap yearlyRecap(@RequestParam(required = false) Integer year) {
         return statsService.computeYearlyRecap(year != null ? year : LocalDate.now().getYear());
     }
 
-    @Operation(summary = "Progression \"X tomes possédés sur Y\" de chaque œuvre - source unique, "
-            + "à consommer plutôt qu'à recalculer (voir SeriesProgressGateway)")
+    @Operation(summary = "Progress \"X volumes owned out of Y\" of each work - single source, "
+            + "to be consumed rather than recomputed (see SeriesProgressGateway)")
     @GetMapping("/progress")
     public List<CollectionProgress> progress() {
         return collectionProgressService.computeAll();
     }
 
-    @Operation(summary = "La même progression, pour UNE œuvre - ce dont a besoin sa fiche, "
-            + "sans télécharger celle de toute la collection. 404 si l'œuvre n'existe pas.")
+    @Operation(summary = "The same progress, for ONE work - what its detail page needs, "
+            + "without downloading the one of the whole collection. 404 if the work does not exist.")
     @GetMapping("/progress/{entityId}")
     public CollectionProgress progress(@PathVariable UUID entityId) {
         return collectionProgressService.compute(entityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Œuvre inconnue : " + entityId));
     }
 
-    @Operation(summary = "Découverte heuristique (pas d'IA) : mangas du même auteur que tes mangas "
-            + "les mieux notés, jeux de société tendance partageant des catégories avec les tiens, "
-            + "ou jeux vidéo similaires aux tiens (IGDB). entityTypeCode attendu : MANGA, BOARD_GAME ou VIDEO_GAME")
+    @Operation(summary = "Heuristic discovery (no AI): mangas by the same author as your "
+            + "best rated mangas, trending board games sharing categories with yours, "
+            + "or video games similar to yours (IGDB). Expected entityTypeCode: MANGA, BOARD_GAME or VIDEO_GAME")
     @GetMapping("/discover")
     public List<DiscoveryCandidate> discover(@RequestParam String entityTypeCode) {
         try {
@@ -100,11 +100,11 @@ public class InsightsController {
         }
     }
 
-    @Operation(summary = "Calendrier des sorties : ce qui sort entre deux dates (incluses, un an au plus) pour les "
-            + "œuvres possédées ou en envie, toutes catégories confondues - tomes datés par Google Books pour les "
-            + "mangas, dates IGDB pour les jeux vidéo, et la date saisie sur une fiche pour n'importe quelle œuvre. "
-            + "Jamais une date approximative : une source qui ne connaît que l'année ne met rien ici. "
-            + "400 sur une date illisible, une période à l'envers ou plus longue qu'un an.")
+    @Operation(summary = "Release calendar: what comes out between two dates (included, one year at most) for "
+            + "owned or wished works, all categories together - volumes dated by Google Books for "
+            + "mangas, IGDB dates for video games, and the date typed on a detail page for any work. "
+            + "Never an approximate date: a source that only knows the year puts nothing here. "
+            + "400 on an unreadable date, a reversed period or one longer than a year.")
     @GetMapping("/releases")
     public ReleaseCalendarResponse releases(@RequestParam String from, @RequestParam String to) {
         try {
@@ -114,7 +114,7 @@ public class InsightsController {
         }
     }
 
-    /** Une date ISO au jour près, sans quoi le message nomme le paramètre en cause plutôt que de laisser passer un 500. */
+    /** An ISO date to the day, without which the message names the parameter at fault rather than letting a 500 through. */
     private static LocalDate parseDay(String value, String parameter) {
         try {
             return LocalDate.parse(value.trim());

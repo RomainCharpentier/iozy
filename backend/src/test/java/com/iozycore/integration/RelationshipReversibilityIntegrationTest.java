@@ -18,17 +18,17 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Une relation créée par erreur doit pouvoir être corrigée ou retirée.
+ * A relationship created by mistake must be correctable or removable.
  * <p>
- * Le type choisi à la création n'était jamais réaffiché par la fiche, et aucun
- * endpoint ne permettait ni de le changer ni de supprimer le lien : une
- * relation erronée restait à la fois invisible et définitive
+ * The type chosen at creation was never shown again by the detail page, and no
+ * endpoint allowed to change it or to delete the link: a wrong
+ * relationship stayed both invisible and permanent
  * (docs/USER_JOURNEYS.md, §14).
  * <p>
- * Seul le TYPE est modifiable, et c'est délibéré : changer une extrémité ne
- * corrige pas une relation, cela en décrit une autre. Le test qui compte le
- * plus est le dernier : supprimer un lien ne touche à aucune des deux œuvres
- * liées.
+ * Only the TYPE can be edited, and this is deliberate: changing an end does not
+ * correct a relationship, it describes another one. The test that matters
+ * most is the last one: deleting a link touches neither of the two linked
+ * works.
  */
 class RelationshipReversibilityIntegrationTest extends PostgresIntegrationTest {
 
@@ -57,8 +57,8 @@ class RelationshipReversibilityIntegrationTest extends PostgresIntegrationTest {
                 creee.id(), new UpdateRelationshipRequest("RELATED_TO"));
 
         assertThat(corrigee.relationshipType()).isEqualTo("RELATED_TO");
-        // Les extrémités ne bougent pas : corriger un type, ce n'est pas
-        // relier deux autres œuvres.
+        // The ends do not move: correcting a type is not
+        // linking two other works.
         assertThat(corrigee.sourceEntityId()).isEqualTo(source);
         assertThat(corrigee.targetEntityId()).isEqualTo(cible);
         assertThat(relationshipController.fromEntity(source))

@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Les sorties des jeux vidéo : la date IGDB des jeux possédés ou voulus, en un appel. */
+/** Video game releases: the IGDB date of owned or wanted games, in one call. */
 class VideoGameReleasesTest {
 
     private static final LocalDate NOVEMBER_1 = LocalDate.of(2026, 11, 1);
@@ -57,7 +57,7 @@ class VideoGameReleasesTest {
         assertThat(silksong.source()).isEqualTo("IGDB");
         assertThat(silksong.label()).isEmpty();
         ReleaseEntry tunic = entries.stream().filter(e -> e.entityId().equals(wanted.id())).findFirst().orElseThrow();
-        // Suivi mais pas possédé : à acheter. L'envie n'est plus un état de l'œuvre au calendrier.
+        // Followed but not owned: to buy. The wish is no longer a state of the work on the calendar.
         assertThat(tunic.relation()).isEqualTo(ReleaseEntry.Relation.MISSING);
     }
 

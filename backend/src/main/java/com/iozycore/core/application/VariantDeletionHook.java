@@ -6,12 +6,12 @@ import com.iozycore.core.domain.catalog.Variant;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : ce qu'un univers fait APRÈS la suppression
- * d'un tome - le module manga y efface l'édition de référence devenue
- * orpheline, si aucun prix relevé ne la retient (Lot 133).
+ * Extension point of the core: what a universe does AFTER the deletion
+ * of a volume - the manga module deletes the reference edition that became
+ * orphan, if no recorded price holds it (Batch 133).
  */
 public interface VariantDeletionHook {
 
-    /** L'œuvre déjà sauvegardée sans le tome ; le tome tel qu'il était. */
+    /** The work already saved without the volume; the volume as it was. */
     void apresSuppression(Entity oeuvre, Variant tomeSupprime, UUID tomeSupprimeId);
 }

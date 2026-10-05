@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La lecture du JSON rendu par Gemini - sans réseau. Ce qui compte ici :
- * le cadre d'un livre arrive tel que le modèle l'a situé, et son absence ou
- * sa malformation ne coûte jamais la lecture elle-même.
+ * Reading the JSON returned by Gemini - without network. What matters here:
+ * the frame of a book arrives as the model placed it, and its absence or
+ * its malformation never costs the reading itself.
  */
 class GeminiVisionRecognitionProviderTest {
 

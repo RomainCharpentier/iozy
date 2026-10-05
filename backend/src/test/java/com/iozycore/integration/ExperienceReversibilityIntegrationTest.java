@@ -19,18 +19,18 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Une expérience créée par l'utilisateur ne doit pas rester prisonnière de
- * l'application.
+ * An experience created by the user must not stay a prisoner of
+ * the application.
  * <p>
- * Enregistrée, elle ne pouvait jusqu'ici plus être ni corrigée ni retirée
- * (docs/USER_JOURNEYS.md, §14) : une note posée par réflexe faussait
- * durablement la moyenne, les statistiques et le bilan annuel, qui se calculent
- * tous dessus.
+ * Once saved, it could until now no longer be corrected or removed
+ * (docs/USER_JOURNEYS.md, §14): a rating set by reflex permanently distorted
+ * the average, the statistics and the yearly review, which are all computed
+ * from it.
  * <p>
- * Ces tests vérifient le cycle complet créer → relire → modifier → supprimer →
- * relire, et surtout ce qui ne doit PAS bouger au passage : le type, la date et
- * le tome concerné restent immuables - se tromper de tome, c'est avoir
- * enregistré une AUTRE expérience.
+ * These tests check the full cycle create → read again → edit → delete →
+ * read again, and above all what must NOT change on the way: the type, the date and
+ * the volume concerned stay immutable - choosing the wrong volume means having
+ * saved ANOTHER experience.
  */
 class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
 
@@ -59,8 +59,8 @@ class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(modifiee.rating()).isEqualTo(9);
         assertThat(modifiee.comment()).isEqualTo("Relu, encore meilleur");
-        // Relecture depuis la base, pas seulement la réponse du PATCH : c'est la
-        // persistance qu'on vérifie, pas l'objet renvoyé.
+        // Read again from the database, not only the PATCH response: it is the
+        // persistence that we check, not the returned object.
         assertThat(experienceController.byEntity(entityId))
                 .filteredOn(e -> e.id().equals(creee.id()))
                 .singleElement()
@@ -73,7 +73,7 @@ class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(experienceController.byEntity(entityId)).extracting(ExperienceResponse::id)
                 .doesNotContain(creee.id());
-        // L'œuvre elle-même n'est pas concernée par le retrait d'une expérience.
+        // The work itself is not concerned by the removal of an experience.
         assertThat(entityRepository.findById(entityId)).isPresent();
     }
 
@@ -97,8 +97,8 @@ class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
         ExperienceResponse creee = experienceController.record(new RecordExperienceRequest(
                 entityId, null, "READ", LocalDate.now(), 6, "Un avis vite écrit"));
 
-        // null n'est pas « inchangé » ici mais bien « efface » - sans quoi une
-        // note posée par erreur ne pourrait plus jamais être retirée.
+        // null does not mean "unchanged" here but "clears" - otherwise a
+        // rating set by mistake could never be removed again.
         ExperienceResponse effacee = experienceController.update(creee.id(), new UpdateExperienceRequest(null, null));
 
         assertThat(effacee.rating()).isNull();
@@ -125,8 +125,8 @@ class ExperienceReversibilityIntegrationTest extends PostgresIntegrationTest {
                 entityId, null, "READ", LocalDate.now(), 7, null));
         experienceController.delete(creee.id());
 
-        // Double clic, ou tuile obsolète après un rechargement tardif : jamais
-        // une erreur, comme les autres suppressions du projet.
+        // Double click, or obsolete tile after a late reload: never
+        // an error, like the other deletions of the project.
         assertThatCode(() -> experienceController.delete(creee.id())).doesNotThrowAnyException();
         assertThatCode(() -> experienceController.delete(UUID.randomUUID())).doesNotThrowAnyException();
     }

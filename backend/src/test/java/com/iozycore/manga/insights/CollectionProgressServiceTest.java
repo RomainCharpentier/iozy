@@ -24,10 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.core.insights.CollectionProgress;
 
 /**
- * Les règles de la progression "X sur Y" vivent désormais à un seul endroit
- * (voir CollectionProgressService) - ce test EST leur spécification. Chaque cas
- * ci-dessous vient d'un écart réellement constaté entre deux écrans pendant
- * l'audit du 2026-08-21.
+ * The rules of the "X of Y" progress now live in one single place
+ * (see CollectionProgressService) - this test IS their specification. Each case
+ * below comes from a gap really seen between two screens during
+ * the audit of 2026-08-21.
  */
 class CollectionProgressServiceTest {
 
@@ -38,8 +38,8 @@ class CollectionProgressServiceTest {
 
     @Test
     void a_volume_without_an_edition_joins_the_single_named_one() {
-        // Le cas Naruto : tomes 18 et 30 en "Kana", tome 1 sans édition saisie.
-        // Ma collection annonçait 3/72, le moteur de suggestions 2/72.
+        // The Naruto case: volumes 18 and 30 in "Kana", volume 1 with no edition entered.
+        // My collection said 3/72, the suggestion engine 2/72.
         Entity naruto = Entity.create(EntityTypeFixtures.MANGA.id(), "Naruto");
         Variant t18 = naruto.addVariant("Tome 18", Map.of("volumeNumber", 18, "edition", "Kana"));
         Variant t30 = naruto.addVariant("Tome 30", Map.of("volumeNumber", 30, "edition", "Kana"));
@@ -78,8 +78,8 @@ class CollectionProgressServiceTest {
 
     @Test
     void a_catalogued_edition_owning_nothing_never_hides_the_progression_of_the_collected_one() {
-        // Le cas Raw Hero : une édition parasite à 0 tome possédé faisait perdre
-        // "3/6" à la tuile de Ma collection, qui retombait sur "3 tomes".
+        // The Raw Hero case: a stray edition with 0 owned volumes made the
+        // My collection tile lose "3/6", which fell back to "3 tomes".
         Entity rawHero = Entity.create(EntityTypeFixtures.MANGA.id(), "Raw Hero");
         Variant t2 = rawHero.addVariant("Tome 2", Map.of("volumeNumber", 2, "edition", "Soleil"));
         rawHero.addVariant("Tome 1 perfect", Map.of("volumeNumber", 1, "edition", "Perfect (test)"));
@@ -107,10 +107,10 @@ class CollectionProgressServiceTest {
 
         CollectionProgress progress = service.compute(series.id()).orElseThrow();
 
-        // Deux éditions réellement collectionnées : aucune ne peut être nommée
-        // seule sans mentir, la vue à une ligne doit se rabattre sur le total.
+        // Two editions really collected: none can be named
+        // alone without lying, the one-line view must fall back on the total.
         assertThat(progress.dominantEdition()).isNull();
-        assertThat(progress.ownedVolumeCount()).isEqualTo(1); // le MÊME tome 1, dans deux éditions
+        assertThat(progress.ownedVolumeCount()).isEqualTo(1); // the SAME volume 1, in two editions
     }
 
     @Test
@@ -150,7 +150,7 @@ class CollectionProgressServiceTest {
         Variant t1 = series.addVariant("Tome 1", Map.of("volumeNumber", 1, "edition", "Crunchyroll"));
         entities.save(series);
         own(series, t1);
-        // Aucune fiche MangaEdition enregistrée pour cette édition.
+        // No MangaEdition record stored for this edition.
 
         CollectionProgress progress = service.compute(series.id()).orElseThrow();
 
@@ -175,7 +175,7 @@ class CollectionProgressServiceTest {
         ownerships.save(Ownership.acquire(entity.id(), variant.id(), OwnershipCondition.USED, LocalDate.now(), null));
     }
 
-    // --- doublures en mémoire (mêmes conventions que StatsServiceTest) ---
+    // --- in-memory doubles (same conventions as StatsServiceTest) ---
 
     private static class InMemoryEntityRepository implements EntityRepository {
         private final Map<UUID, Entity> store = new HashMap<>();

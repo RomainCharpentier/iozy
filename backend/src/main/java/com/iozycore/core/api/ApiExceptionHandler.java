@@ -45,43 +45,43 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * Filet général : une contrainte de base violée (unicité, clé étrangère)
-     * sortait en 500 avec la requête SQL complète et le nom de la contrainte.
-     * Trois cas ont déjà été corrigés un par un en amont - suppression d'édition
-     * (Lot 26), wishlist et relations (Lot 28), création d'édition en double
-     * (Lot 36) - mais chacun ne fermait que sa porte. Ici on ferme le couloir :
-     * un conflit de données est un 409, jamais une trace SQL à l'écran.
+     * General safety net: a violated database constraint (uniqueness, foreign key)
+     * used to come out as a 500 with the full SQL query and the name of the constraint.
+     * Three cases were already fixed one by one upstream - edition deletion
+     * (Batch 26), wishlist and relationships (Batch 28), creation of a duplicate edition
+     * (Batch 36) - but each one only closed its own door. Here we close the corridor:
+     * a data conflict is a 409, never an SQL trace on the screen.
      * <p>
-     * Le message reste générique volontairement : celui de Postgres nomme des
-     * colonnes et des contraintes, qui ne veulent rien dire pour qui lit
-     * l'écran. Le détail part en WARN dans les logs, car cette exception peut
-     * aussi trahir un vrai défaut serveur.
+     * The message stays generic on purpose: the Postgres one names
+     * columns and constraints, which mean nothing to whoever reads
+     * the screen. The detail goes to WARN in the logs, because this exception can
+     * also reveal a real server defect.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Requête refusée en 409 (contrainte de base violée)", ex);
+        log.warn("Request refused with 409 (database constraint violated)", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "Cette donnée entre en conflit avec une donnée existante."));
     }
 
     /**
-     * Un identifiant absent du corps de la requête arrive jusqu'à Spring Data,
-     * qui refuse un {@code findById(null)} : l'{@code IllegalArgumentException}
-     * qu'il lève est enveloppée dans une {@link InvalidDataAccessApiUsageException},
-     * que le handler d'{@code IllegalArgumentException} ci-dessus ne voit donc
-     * pas - le client recevait un 500 avec la trace, là où le corps envoyé était
-     * simplement incomplet (ex: {@code POST /api/entities/quick-add} sans
+     * An id missing from the request body reaches Spring Data,
+     * which refuses a {@code findById(null)}: the {@code IllegalArgumentException}
+     * it raises is wrapped in an {@link InvalidDataAccessApiUsageException},
+     * which the {@code IllegalArgumentException} handler above therefore does not
+     * see - the client got a 500 with the trace, where the body sent was
+     * simply incomplete (e.g. {@code POST /api/entities/quick-add} without
      * {@code entityTypeId}).
      * <p>
-     * Message générique et non {@code ex.getMessage()} : la phrase de Spring est
-     * en anglais et parle de l'API JPA, pas de la requête HTTP. Le détail part
-     * en WARN dans les logs, car cette exception peut aussi trahir un vrai
-     * défaut serveur (requête JPQL invalide) - qu'un 400 muet rendrait
+     * Generic message and not {@code ex.getMessage()}: the Spring sentence is
+     * in English and talks about the JPA API, not about the HTTP request. The detail goes
+     * to WARN in the logs, because this exception can also reveal a real
+     * server defect (invalid JPQL query) - which a silent 400 would make
      * invisible.
      */
     @ExceptionHandler(InvalidDataAccessApiUsageException.class)
     public ResponseEntity<Map<String, String>> handleInvalidDataAccessUsage(InvalidDataAccessApiUsageException ex) {
-        log.warn("Requête refusée en 400 (usage invalide de la couche d'accès aux données)", ex);
+        log.warn("Request refused with 400 (invalid use of the data access layer)", ex);
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "Requête invalide : un identifiant obligatoire est absent ou mal formé."));
     }

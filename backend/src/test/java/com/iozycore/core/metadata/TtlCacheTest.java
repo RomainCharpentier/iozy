@@ -27,8 +27,8 @@ class TtlCacheTest {
 
     @Test
     void treats_an_already_expired_entry_as_absent() {
-        // TTL négatif = déjà expiré au moment du put, pour tester l'expiration
-        // sans dépendre d'un vrai sleep().
+        // Negative TTL = already expired at the time of put, to test expiry
+        // without depending on a real sleep().
         TtlCache<String, String> cache = new TtlCache<>(Duration.ofSeconds(-1), 10);
 
         cache.put("naruto", "Naruto");
@@ -42,10 +42,10 @@ class TtlCacheTest {
 
         cache.put("a", "1");
         cache.put("b", "2");
-        cache.put("c", "3"); // déclenche la purge complète (taille déjà à maxEntries)
+        cache.put("c", "3"); // triggers the full purge (size already at maxEntries)
 
-        // La purge simple (pas de LRU) vide tout avant d'insérer le nouvel
-        // élément - seul le dernier survit, "a"/"b" sont perdus.
+        // The simple purge (no LRU) empties everything before inserting the new
+        // element - only the last survives, "a"/"b" are lost.
         assertThat(cache.get("a")).isEmpty();
         assertThat(cache.get("b")).isEmpty();
         assertThat(cache.get("c")).contains("3");

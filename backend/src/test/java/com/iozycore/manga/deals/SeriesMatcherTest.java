@@ -17,13 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Le point de passage unique entre un titre lu quelque part et une œuvre du
+ * The single point of passage between a title read somewhere and a work of the
  * catalogue.
  *
- * <p>C'est ici que la décoration d'annonce est retirée, plutôt que chez chaque
- * appelant : texte de l'annonce, lecture de photo ou saisie manuelle traversent
- * tous cette porte, et une seule normalisation ne peut pas en contredire une
- * autre.
+ * <p>This is where listing decoration is removed, rather than in each
+ * caller: listing text, photo reading or manual entry all go through
+ * this door, and a single normalisation cannot contradict
+ * another.
  */
 class SeriesMatcherTest {
 
@@ -33,7 +33,7 @@ class SeriesMatcherTest {
     private final TypesEnMemoire types = new TypesEnMemoire();
     private final SeriesMatcher matcher = new SeriesMatcher(catalogue, types);
 
-    // ====================================================== Le défaut corrigé
+    // ====================================================== The fixed flaw
 
     @Test
     void a_decorated_listing_title_still_finds_the_catalogued_series() {
@@ -42,8 +42,8 @@ class SeriesMatcherTest {
         MangaSeries serie = matcher.match("🔥 Hell's Paradise");
 
         assertThat(serie.knownEntityId()).isEqualTo(hellsParadise);
-        // Le titre rendu est celui de l'œuvre, pas celui de l'annonce : c'est
-        // lui qui s'affiche et qui part dans le lot.
+        // The returned title is the work's, not the listing's: it is
+        // the one that is displayed and that goes into the batch.
         assertThat(serie.title()).isEqualTo("Hell's Paradise");
     }
 
@@ -54,8 +54,8 @@ class SeriesMatcherTest {
         matcher.match("🔥 Hell's Paradise");
         matcher.match("✨ Hell's Paradise ✨");
 
-        // SeriesMatcher est en lecture seule : une reconnaissance ne devient
-        // jamais une fiche catalogue toute seule.
+        // SeriesMatcher is read-only: a recognition never becomes
+        // a catalogue work page on its own.
         assertThat(catalogue.creations()).isZero();
         assertThat(catalogue.tailles()).isEqualTo(1);
     }
@@ -69,7 +69,7 @@ class SeriesMatcherTest {
         assertThat(matcher.match("【】 Death Note").knownEntityId()).isEqualTo(deathNote);
     }
 
-    // ====================================================== Titres légitimes
+    // ====================================================== Legitimate titles
 
     @Test
     void a_title_whose_punctuation_matters_is_still_found() {
@@ -98,7 +98,7 @@ class SeriesMatcherTest {
         assertThat(matcher.match("🔥 Boruto").title()).isEqualTo("Boruto");
     }
 
-    // ====================================================== Bout en bout : annonce -> catalogue
+    // ====================================================== End to end: listing -> catalogue
 
     @Test
     void a_listing_whose_title_contains_a_number_finds_its_catalogued_series() {
@@ -132,8 +132,8 @@ class SeriesMatcherTest {
 
     @Test
     void a_decorated_listing_with_a_numeric_title_still_finds_its_series() {
-        // Les deux couches se complètent : le parser isole le titre du lot, le
-        // normaliseur retire la décoration périphérique.
+        // The two layers complement each other: the parser isolates the batch title, the
+        // normaliser removes the peripheral decoration.
         UUID century = catalogue.ajouter("20th Century Boys");
 
         String titre = ListingTextParser.probableSeriesTitle("🔥 20th Century Boys – Tomes 1 à 4");
@@ -141,7 +141,7 @@ class SeriesMatcherTest {
         assertThat(matcher.match(titre).knownEntityId()).isEqualTo(century);
     }
 
-    // ====================================================== Bords
+    // ====================================================== Edges
 
     @Test
     void a_title_without_any_word_is_refused_rather_than_matched_on_nothing() {
@@ -151,11 +151,11 @@ class SeriesMatcherTest {
 
     @Test
     void a_title_made_only_of_decoration_does_not_become_empty() {
-        // Inexploitable, mais le vider ferait perdre la seule trace disponible.
+        // Unusable, but emptying it would lose the only available trace.
         assertThat(matcher.match("🔥🔥").title()).isEqualTo("🔥🔥");
     }
 
-    // ====================================================== Doublures
+    // ====================================================== Doubles
 
     private static class TypesEnMemoire implements EntityTypeRepository {
         @Override
@@ -186,7 +186,7 @@ class SeriesMatcherTest {
         }
     }
 
-    /** Compte toute écriture : le matcher ne doit en produire aucune. */
+    /** Counts every write: the matcher must produce none. */
     private static class CatalogueEnMemoire implements EntityRepository {
         private final List<Entity> entities = new ArrayList<>();
         private int creations;
@@ -219,7 +219,7 @@ class SeriesMatcherTest {
 
         @Override
         public Optional<Entity> findByTypeAndTitle(UUID entityTypeId, String title) {
-            // Même convention que l'adaptateur JPA : insensible à la casse.
+            // Same convention as the JPA adapter: case-insensitive.
             return entities.stream()
                     .filter(e -> e.entityTypeId().equals(entityTypeId) && e.title().equalsIgnoreCase(title))
                     .findFirst();

@@ -14,8 +14,8 @@ import { Squelette } from '@/common/components/Squelette'
 
 export function StatsPage() {
 
-  // Toujours à jour, jamais de cache - une donnée périmée n'a pas de sens
-  // pour des statistiques (même choix explicite que côté iOS).
+  // Always up to date, never cached - stale data makes no sense
+  // for statistics (same explicit choice as on the iOS side).
   const statsQuery = useQuery({
     queryKey: queryKeys.insights.stats,
     queryFn: getStats,
@@ -23,18 +23,18 @@ export function StatsPage() {
     gcTime: 0,
   })
 
-  // Arriver par « Valeur » (Ma collection) ou par le hero du Profil doit
-  // montrer la valeur tout de suite : ces contrôles la NOMMENT, et déposer
-  // quelqu'un en haut d'un écran intitulé « Statistiques » lui laisse la
-  // chercher. Même patron que Profil ▸ Partager (voir ProfilePage).
+  // Arriving through "Valeur" (Ma collection) or through the Profil hero must
+  // show the value right away: these controls NAME it, and dropping
+  // someone at the top of a screen titled "Statistiques" leaves them
+  // to look for it. Same pattern as Profil ▸ Partager (see ProfilePage).
   const valeurRef = useRef<HTMLDivElement>(null)
   const focusValeur = (useLocation().state as { focusValeur?: boolean } | null)?.focusValeur
   useEffect(() => {
     if (focusValeur) valeurRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    // La section n'EXISTE pas avant que les statistiques arrivent : sans
-    // cette dépendance, l'effet cherchait une référence encore vide et
-    // laissait la page en haut - le bouton « Valeur » promettait alors une
-    // section qu'il fallait quand même aller chercher (constaté en direct).
+    // The section does NOT EXIST before the statistics arrive: without
+    // this dependency, the effect looked for a reference that was still empty and
+    // left the page at the top - the "Valeur" button then promised a
+    // section that one still had to go and look for (observed live).
   }, [focusValeur, statsQuery.data])
 
   return (
@@ -49,11 +49,11 @@ export function StatsPage() {
       {statsQuery.data && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            {/* « Œuvres » et « Exemplaires », jamais deux fois « possédés ».
-                Ma collection compte des ŒUVRES (« 5 titres possédés »), cet
-                écran comptait des EXEMPLAIRES sous le même mot : les deux
-                chiffres étaient justes et se contredisaient à la lecture
-                (5 contre 10). « Entités » disait juste le nom de la table. */}
+            {/* "Œuvres" and "Exemplaires", never twice "possédés".
+                Ma collection counts WORKS ("5 titres possédés"), this
+                screen counted COPIES under the same word: both
+                numbers were right and contradicted each other when read
+                (5 against 10). "Entités" only said the name of the table. */}
             <StatCard value={String(statsQuery.data.totalEntities)} label="Œuvres au catalogue" />
             <StatCard value={String(statsQuery.data.totalActiveOwnerships)} label="Exemplaires possédés" />
             <StatCard value={String(statsQuery.data.wishlistCount)} label="Envies" />
@@ -66,10 +66,10 @@ export function StatsPage() {
 
           <CollectionTimelineSection />
 
-          {/* Gardée comme sa voisine « Tags les plus utilisés » juste en dessous :
-              sans cela, le titre « Par type » s'affichait seul, avec rien sous
-              lui. Un intertitre orphelin se lit comme un chargement qui n'a
-              jamais abouti. */}
+          {/* Kept like its neighbour "Tags les plus utilisés" just below:
+              without it, the title "Par type" was shown alone, with nothing under
+              it. An orphan subheading reads as a loading that never
+              completed. */}
           {statsQuery.data.byType.length > 0 && (
           <section className="flex flex-col gap-2">
             <h2 className="font-display text-lg font-semibold text-textPrimary">Par type</h2>
@@ -77,11 +77,11 @@ export function StatsPage() {
               {statsQuery.data.byType.map((type) => (
                 <li key={type.entityTypeCode} className="rounded-xl bg-surface p-3">
                   <p className="font-medium text-textPrimary">{type.entityTypeLabel}</p>
-                  {/* "Fiches" (Entity, ex: une série) et "exemplaires possédés" (Ownership,
-                      ex: un tome) sont deux unités différentes - jamais mélangées sous des
-                      libellés génériques ("au total"/"possédé(s)") qui ne le précisaient pas,
-                      au point de pouvoir lire comme contradictoire (plus "possédé" que
-                      "total" est le cas normal pour un manga multi-tomes). */}
+                  {/* "Fiches" (Entity, e.g. a series) and "exemplaires possédés" (Ownership,
+                      e.g. a volume) are two different units - never mixed under
+                      generic labels ("au total"/"possédé(s)") that did not specify it,
+                      to the point of reading as contradictory (more "possédé" than
+                      "total" is the normal case for a multi-volume manga). */}
                   <p className="text-sm text-textDim">
                     {type.entityCount} fiche{type.entityCount > 1 ? 's' : ''} ·{' '}
                     {type.activeOwnershipCount} exemplaire{type.activeOwnershipCount > 1 ? 's' : ''} possédé

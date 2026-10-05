@@ -1,47 +1,47 @@
 import { useState, type ReactNode } from 'react'
 
 type Props = {
-  /** L'URL de la jaquette. Absente ou vide : `repli` est rendu directement. */
+  /** The URL of the cover. Absent or empty: `repli` is rendered directly. */
   src: string | null | undefined
-  /** Les classes de l'image elle-même. */
+  /** The classes of the image itself. */
   className?: string
   /**
-   * Ce qui s'affiche à la place. Chaque écran avait déjà le sien pour le cas
-   * « pas de jaquette du tout » - un aplat, un numéro de tome, un titre en
-   * petit. On le lui repasse tel quel : le rendu ne change pas d'un pixel,
-   * seul le cas d'échec rejoint le cas d'absence.
+   * What is displayed instead. Each screen already had its own for the case
+   * "no cover at all" - a flat color, a volume number, a small title.
+   * We pass it back to it as it is: the rendering does not change by one pixel,
+   * only the failure case joins the absence case.
    */
   repli: ReactNode
-  /** Paresseuse par défaut (lot 141) : une liste de tomes ou de suggestions
-   *  ne charge que ce qui approche de l'écran. `eager` pour la jaquette du
-   *  hero d'une fiche, qui est toujours la première chose qu'on voit. */
+  /** Lazy by default (batch 141): a list of volumes or suggestions
+   *  only loads what is close to the screen. `eager` for the cover of the
+   *  hero of a detail page, which is always the first thing we see. */
   loading?: 'lazy' | 'eager'
 }
 
 /**
- * Une jaquette qui a un plan B.
+ * A cover that has a plan B.
  *
- * <h2>Le défaut</h2>
- * Vingt et une balises `img` dans l'application, <b>une seule</b> gérait
- * `onError` (CoverTile). Partout ailleurs, une URL qui ne répond plus laissait
- * un trou : le cadre garde sa taille, rien ne s'y affiche. Mesuré sur la fiche
- * d'une œuvre, l'image la plus visible de l'application - 112 × 168 pixels de
- * vide, et le conteneur sans le moindre fond derrière.
+ * <h2>The flaw</h2>
+ * Twenty-one `img` tags in the application, <b>only one</b> handled
+ * `onError` (CoverTile). Everywhere else, a URL that no longer answered left
+ * a hole: the frame keeps its size, nothing is displayed in it. Measured on the detail page
+ * of a work, the most visible image of the application - 112 × 168 pixels of
+ * emptiness, and the container without any background behind.
  *
- * <p>Ce n'est pas un cas de laboratoire : ces URL pointent vers des hôtes
- * externes (Google Books, BGG). Elles cassent, changent, ou refusent d'être
- * affichées depuis un autre site - et l'application n'en sait rien tant que
- * l'image n'a pas essayé de se charger.
+ * <p>This is not a lab case: these URLs point to external hosts
+ * (Google Books, BGG). They break, change, or refuse to be
+ * displayed from another site - and the application knows nothing about it until
+ * the image has tried to load.
  *
- * <h2>Pourquoi un composant</h2>
- * Le remède tient en un `onError`, mais écrit vingt fois il serait oublié la
- * vingt et unième - c'est exactement ce qui s'est passé. Ici la règle vit à un
- * seul endroit.
+ * <h2>Why a component</h2>
+ * The remedy fits in one `onError`, but written twenty times it would be forgotten the
+ * twenty-first time - which is exactly what happened. Here the rule lives in a
+ * single place.
  */
 export function Jaquette({ src, className, repli, loading = 'lazy' }: Props) {
-  // On mémorise l'URL fautive, pas un simple booléen : sinon, corriger la
-  // couverture d'une série (« Modifier la couverture ») laisserait le repli
-  // affiché pour la NOUVELLE URL, qui n'a pourtant jamais échoué.
+  // We remember the faulty URL, not a simple boolean: otherwise, fixing the
+  // cover of a series ("Modifier la couverture") would leave the fallback
+  // displayed for the NEW URL, which has never failed.
   const [urlEnEchec, setUrlEnEchec] = useState<string | null>(null)
 
   if (!src || src === urlEnEchec) return <>{repli}</>

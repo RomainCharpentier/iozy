@@ -30,9 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.iozycore.manga.MangaEditionLinker;
 
 /**
- * Vérifie l'orchestration de l'import BGG - le fetcher est stubbé (pas
- * d'appel réseau réel dans les tests), les repositories sont de simples
- * fakes en mémoire, comme pour QuickAddServiceTest.
+ * Checks the orchestration of the BGG import - the fetcher is stubbed (no
+ * real network call in the tests), the repositories are simple in-memory
+ * fakes, as for QuickAddServiceTest.
  */
 class BggCollectionImportServiceTest {
 
@@ -77,7 +77,7 @@ class BggCollectionImportServiceTest {
 
         assertThat(second.matchedExisting()).isEqualTo(1);
         assertThat(second.created()).isEqualTo(0);
-        assertThat(entityRepository.count()).isEqualTo(1); // toujours un seul Catan dans le Catalog
+        assertThat(entityRepository.count()).isEqualTo(1); // still only one Catan in the Catalog
     }
 
     private static class StubBggCollectionFetcher extends BggCollectionFetcher {
@@ -150,7 +150,7 @@ class BggCollectionImportServiceTest {
         }
     }
 
-    /** Seedé avec la fixture BOARD_GAME - le seul type que l'import BGG résout (par code). */
+    /** Seeded with the BOARD_GAME fixture - the only type the BGG import resolves (by code). */
     private static class InMemoryEntityTypeRepository implements EntityTypeRepository {
         private final Map<UUID, EntityType> store = new HashMap<>(
                 Map.of(EntityTypeFixtures.BOARD_GAME.id(), EntityTypeFixtures.BOARD_GAME));
@@ -182,8 +182,8 @@ class BggCollectionImportServiceTest {
         }
     }
 
-    /** Faux repository en mémoire pour MangaEdition - jamais réellement exercé ici (les jeux de
-     * société n'ont ni volumeNumber ni edition), requis seulement pour construire QuickAddService. */
+    /** Fake in-memory repository for MangaEdition - never really used here (board
+     * games have neither volumeNumber nor edition), only required to build QuickAddService. */
     private static class InMemoryMangaEditionRepository implements MangaEditionRepository {
         private final Map<UUID, MangaEdition> store = new HashMap<>();
 
@@ -278,9 +278,9 @@ class BggCollectionImportServiceTest {
         }
     }
 
-    /** Double local, comme les autres dépôts de ce fichier : QuickAddService
-     *  referme l'envie d'une œuvre qu'on vient d'acquérir (voir
-     *  retirerDesEnvies), il lui faut donc un dépôt d'envies. */
+    /** Local double, like the other repositories in this file: QuickAddService
+     *  closes the wish of a work that was just acquired (see
+     *  retirerDesEnvies), so it needs a wish repository. */
     private static class InMemoryWishlistEntryRepository implements WishlistEntryRepository {
         private final Map<UUID, WishlistEntry> parId = new LinkedHashMap<>();
 

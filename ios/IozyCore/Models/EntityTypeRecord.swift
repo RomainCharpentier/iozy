@@ -1,23 +1,23 @@
 import Foundation
 import SwiftData
 
-/// Cache local des types d'entité (éditeur de types dynamique) - contrairement
-/// aux tags/relations (jamais persistés, juste @State éphémère le temps de
-/// la session sur la fiche détail), les types sont nécessaires hors ligne
-/// pour que les pickers QuickAdd/Shelf restent utilisables sans réseau,
-/// donc suivent le même pattern persistant que EntityRecord/OwnershipRecord.
-/// Remplace l'ancien EntityTypeMVP (enum à 3 cas codés en dur, supprimé).
+/// Local cache of entity types (dynamic type editor) - unlike
+/// tags/relations (never persisted, just temporary @State for the time of
+/// the session on the detail page), types are needed offline
+/// so the QuickAdd/Shelf pickers stay usable without network,
+/// so they follow the same persistent pattern as EntityRecord/OwnershipRecord.
+/// Replaces the old EntityTypeMVP (enum with 3 hard-coded cases, removed).
 @Model
 final class EntityTypeRecord {
     @Attribute(.unique) var id: UUID
     var code: String
     var label: String
-    var allowedExperienceTypesJSON: String   // [String] encodé en JSON, même convention que attributesJSON
+    var allowedExperienceTypesJSON: String   // [String] encoded as JSON, same convention as attributesJSON
     var customFieldKeysJSON: String
-    /// Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
-    /// type - jamais le cas pour un type personnalisé créé via cet éditeur
-    /// (voir QuickAddView : l'ajout est bloqué sans suggestion choisie
-    /// uniquement quand c'est vrai).
+    /// At least one metadata provider (Jikan/BGG/IGDB) supports this
+    /// type - never the case for a custom type created with this editor
+    /// (see QuickAddView: adding is blocked without a chosen suggestion
+    /// only when this is true).
     var hasMetadataProvider: Bool
     var lastSyncedAt: Date
 
@@ -40,8 +40,8 @@ final class EntityTypeRecord {
         Self.decode(customFieldKeysJSON)
     }
 
-    /// Met à jour ce record depuis une réponse serveur fraîche (upsert-by-id,
-    /// même pattern que les autres records - voir EntityDetailView.syncFromServer()).
+    /// Updates this record from a fresh server response (upsert-by-id,
+    /// same pattern as the other records - see EntityDetailView.syncFromServer()).
     func update(from dto: EntityTypeDTO) {
         code = dto.code
         label = dto.label
@@ -51,21 +51,21 @@ final class EntityTypeRecord {
         lastSyncedAt = .now
     }
 
-    /// Résout un type par id dans une liste déjà chargée (ex: un @Query) -
-    /// remplace l'ancien EntityTypeMVP.from(uuid:) statique, puisque la
-    /// liste des types est maintenant dynamique et doit être passée
-    /// explicitement plutôt que déduite d'un enum à cas fixes.
+    /// Resolves a type by id in an already loaded list (e.g. a @Query) -
+    /// replaces the old static EntityTypeMVP.from(uuid:), since the
+    /// list of types is now dynamic and must be passed
+    /// explicitly rather than deduced from an enum with fixed cases.
     static func find(id: UUID, in types: [EntityTypeRecord]) -> EntityTypeRecord? {
         types.first { $0.id == id }
     }
 
-    /// Récupère les types depuis l'API et upsert-by-id dans le cache local -
-    /// appelé depuis le `.task` de chaque écran qui en a besoin (Shelf,
-    /// QuickAdd, EntityDetail, Stats), même pattern que
-    /// EntityDetailView.syncFromServer() pour les autres records. Échec
-    /// réseau silencieux : le cache local existant (potentiellement vide au
-    /// tout premier lancement) reste affiché, cohérent avec le
-    /// comportement dégradé déjà en place ailleurs dans l'app.
+    /// Fetches the types from the API and upserts-by-id into the local cache -
+    /// called from the `.task` of each screen that needs them (Shelf,
+    /// QuickAdd, EntityDetail, Stats), same pattern as
+    /// EntityDetailView.syncFromServer() for the other records. Silent
+    /// network failure: the existing local cache (possibly empty on the
+    /// very first launch) stays displayed, consistent with the
+    /// degraded behavior already in place elsewhere in the app.
     @MainActor
     static func syncFromServer(modelContext: ModelContext, existing: [EntityTypeRecord]) async {
         guard let fetched = try? await APIClient.shared.listEntityTypes() else {

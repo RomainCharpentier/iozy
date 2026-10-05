@@ -1,74 +1,74 @@
 version: "3.9"
 
-# Déploiement sur NAS Synology, DERRIÈRE le reverse proxy de DSM.
+# Deployment on a Synology NAS, BEHIND the DSM reverse proxy.
 #
-# ─── Pourquoi ce fichier, et pas docker-compose.yml ──────────────────────
-# Deux différences, une seule idée : le NAS ne compile rien.
+# ─── Why this file, and not docker-compose.yml ───────────────────────────
+# Two differences, one idea: the NAS builds nothing.
 #
-#   1. `image:` au lieu de `build:`. Construire ici demanderait Maven et Node
-#      sur un Celeron J3455 - faisable, long, et à recommencer à chaque mise
-#      à jour. Les images se construisent sur GitHub Actions à chaque push sur
-#      `main`, et le NAS les RÉCUPÈRE (voir le service `watchtower` plus bas).
-#   2. Un seul port publié, 8081. L'API (8080) et PostgreSQL (5432) restent
-#      dans le réseau interne : nginx atteint l'API par le nom du service, et
-#      rien d'autre n'a de raison d'être joignable depuis le LAN.
+#   1. `image:` instead of `build:`. Building here would need Maven and Node
+#      on a Celeron J3455 - possible, slow, and to redo at every update.
+#      The images are built on GitHub Actions at every push on
+#      `main`, and the NAS PULLS them (see the `watchtower` service below).
+#   2. Only one published port, 8081. The API (8080) and PostgreSQL (5432) stay
+#      in the internal network: nginx reaches the API by the service name, and
+#      nothing else has a reason to be reachable from the LAN.
 #
-# ─── Pourquoi pas docker-compose.synology.yml ────────────────────────────
-# Celui-là embarque Traefik et réclame les ports 80 et 443, que DSM occupe.
-# Ici, c'est le reverse proxy de DSM qui fait le travail - il gère déjà les
-# certificats Let's Encrypt, et il ne demande qu'un enregistrement :
+# ─── Why not docker-compose.synology.yml ─────────────────────────────────
+# That one ships Traefik and asks for ports 80 and 443, which DSM uses.
+# Here, the DSM reverse proxy does the job - it already handles the
+# Let's Encrypt certificates, and it only needs one entry:
 #
-#   HTTPS · ton-nom.synology.me · 443   →   HTTP · localhost · 8081
+#   HTTPS · your-name.synology.me · 443   →   HTTP · localhost · 8081
 #
-# Un seul, parce que nginx (conteneur `web`) achemine déjà /api vers l'API en
-# interne : le navigateur ne voit qu'UNE origine, ce dont le cookie de session
-# dépend (voir docs/DEPLOIEMENT.md, « Pourquoi la réécriture »).
+# Only one, because nginx (the `web` container) already routes /api to the API
+# internally: the browser sees only ONE origin, which the session cookie
+# depends on (see docs/DEPLOIEMENT.md, "Pourquoi la réécriture").
 #
-# ─── La mise à jour est AUTOMATIQUE ──────────────────────────────────────
-# Ce qui est sur `main` arrive ici tout seul : GitHub Actions teste, construit
-# les deux images et les publie sur GHCR ; `watchtower`, ci-dessous, les
-# récupère et redémarre ce qui a changé (voir .github/workflows/deploiement.yml).
+# ─── The update is AUTOMATIC ─────────────────────────────────────────────
+# What is on `main` arrives here by itself: GitHub Actions tests, builds
+# the two images and publishes them on GHCR; `watchtower`, below, pulls
+# them and restarts what changed (see .github/workflows/deploiement.yml).
 #
-# Le NAS VA CHERCHER, il n'est jamais appelé : aucun port entrant, aucun agent
-# GitHub, rien à ouvrir sur la box. C'est ce qui écarte le runner
-# auto-hébergé et le SSH depuis GitHub, qui demandaient l'un ou l'autre.
+# The NAS FETCHES, it is never called: no incoming port, no GitHub agent,
+# nothing to open on the box. This is what rules out the
+# self-hosted runner and SSH from GitHub, which needed one or the other.
 #
-# Contrepartie assumée : le délai est celui du sondage (5 min ci-dessous), et
-# un push fautif part en production comme les autres - c'est le sens de la
-# demande. Les portes sont EN AMONT, dans le workflow : rien n'est publié si
-# les tests refusent.
+# Accepted trade-off: the delay is the polling one (5 min below), and
+# a faulty push goes to production like the others - that is the point of
+# the request. The gates are UPSTREAM, in the workflow: nothing is published if
+# the tests refuse.
 #
-# ─── Mise en route ───────────────────────────────────────────────────────
-#   1. S'identifier une fois auprès de GHCR (dépôt privé) :
-#        docker login ghcr.io -u <ton-login-github>
-#      (mot de passe = un jeton personnel GitHub avec la portée `read:packages`)
-#   2. Créer .env à côté de ce fichier (voir .env.example) :
+# ─── Getting started ─────────────────────────────────────────────────────
+#   1. Log in once to GHCR (private repository):
+#        docker login ghcr.io -u <your-github-login>
+#      (password = a GitHub personal token with the `read:packages` scope)
+#   2. Create .env next to this file (see .env.example):
 #        DB_PASSWORD=...
-#        WEB_ALLOWED_ORIGINS=https://ton-nom.synology.me
-#        GHCR_USER=... / GHCR_TOKEN=...   (le même jeton, pour watchtower)
+#        WEB_ALLOWED_ORIGINS=https://your-name.synology.me
+#        GHCR_USER=... / GHCR_TOKEN=...   (the same token, for watchtower)
 #   3. docker compose -f docker-compose.nas.yml up -d
-#      (sur un DSM plus ancien, la commande s'écrit `docker-compose -f ...` :
-#       Container Manager n'a la forme en deux mots que depuis Compose v2)
+#      (on an older DSM, the command is written `docker-compose -f ...`:
+#       Container Manager only has the two-word form since Compose v2)
 #
-# ─── Deux pièges, rencontrés pour de vrai ────────────────────────────────
-#   - `DB_PASSWORD` ne change QUE ce que l'API présente. Le mot de passe réel
-#     est fixé à la PREMIÈRE création du volume et n'en bouge plus : le
-#     modifier ensuite donne « password authentication failed ». Aligner
-#     l'existant plutôt que de recréer le volume (on y perdrait la collection) :
-#       docker exec -e PGPASSWORD=<ancien> <conteneur-postgres> \
-#         psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<nouveau>';"
-#   - « Après avoir recréé l'API, redémarrer web » : ce piège est RÉGLÉ, et il
-#     fallait qu'il le soit. nginx résolvait `iozycore-api` au démarrage et
-#     gardait l'ancienne adresse - l'API répondait 200 sur :8080 pendant que
-#     :8081 rendait 502. Le contournement était une consigne à se rappeler, et
-#     une mise à jour automatique n'a personne pour se la rappeler. nginx
-#     re-résout désormais à chaque requête (voir web/nginx.conf, `resolver`).
+# ─── Two traps, met for real ─────────────────────────────────────────────
+#   - `DB_PASSWORD` only changes what the API presents. The real password
+#     is set at the FIRST creation of the volume and never moves after:
+#     changing it later gives "password authentication failed". Align the
+#     existing one rather than recreating the volume (the collection would be lost):
+#       docker exec -e PGPASSWORD=<old> <postgres-container> \
+#         psql -U iozycore -d iozycore -c "ALTER USER iozycore WITH PASSWORD '<new>';"
+#   - "After recreating the API, restart web": this trap is FIXED, and it
+#     had to be. nginx resolved `iozycore-api` at startup and
+#     kept the old address - the API answered 200 on :8080 while
+#     :8081 gave 502. The workaround was an instruction to remember, and
+#     an automatic update has nobody to remember it. nginx
+#     now re-resolves on every request (see web/nginx.conf, `resolver`).
 
 services:
   iozycore-api:
-    # `latest` et non un SHA : c'est ce que watchtower suit. Revenir en
-    # arrière se fait en épinglant ici un SHA publié (voir le workflow, qui
-    # étiquette chaque image des deux façons) puis en relançant `up -d`.
+    # `latest` and not a SHA: this is what watchtower follows. Going back
+    # is done by pinning a published SHA here (see the workflow, which
+    # tags each image both ways) then running `up -d` again.
     image: ghcr.io/romaincharpentier/iozycore-api:latest
     restart: unless-stopped
     depends_on:
@@ -80,18 +80,18 @@ services:
       DB_NAME: ${DB_NAME:-iozycore}
       DB_USER: ${DB_USER:-iozycore}
       DB_PASSWORD: ${DB_PASSWORD:?erreur - définir DB_PASSWORD dans .env}
-      # Le domaine servi par le reverse proxy de DSM. Sans lui, la lecture
-      # passe et TOUTE écriture part en 403 : le défaut se remarque au premier
-      # ajout, pas au premier chargement.
+      # The domain served by the DSM reverse proxy. Without it, reading
+      # works and EVERY write gets a 403: the problem shows at the first
+      # add, not at the first load.
       WEB_ALLOWED_ORIGINS: "${WEB_ALLOWED_ORIGINS:?erreur - définir WEB_ALLOWED_ORIGINS dans .env (ex: https://ton-nom.synology.me)}"
-      # Il y a du TLS devant : le cookie de session ne repart jamais en clair.
+      # There is TLS in front: the session cookie never leaves in clear text.
       SESSION_COOKIE_SECURE: "true"
-      # Vide = création de compte FERMÉE après le premier. C'est le défaut
-      # voulu pour une instance exposée : l'absence de configuration ferme la
-      # porte, elle ne l'ouvre pas.
+      # Empty = account creation CLOSED after the first one. This is the
+      # wanted default for an exposed instance: missing configuration closes the
+      # door, it does not open it.
       IOZYCORE_INVITE_CODE: ${IOZYCORE_INVITE_CODE:-}
-      # Toutes facultatives : sans elles, les fonctionnalités correspondantes
-      # s'absentent proprement (voir .env.example, qui dit ce que chacune coupe).
+      # All optional: without them, the matching features
+      # are cleanly absent (see .env.example, which says what each one turns off).
       BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN:-}
       IGDB_CLIENT_ID: ${IGDB_CLIENT_ID:-}
       IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET:-}
@@ -106,9 +106,9 @@ services:
     networks:
       - internal
     labels:
-      # Ce que watchtower a le droit de mettre à jour. Il tourne en
-      # `--label-enable` : sans cette étiquette, un conteneur est ignoré. Le
-      # défaut est donc « on n'y touche pas », ce qui protège `postgres`.
+      # What watchtower is allowed to update. It runs with
+      # `--label-enable`: without this label, a container is ignored. The
+      # default is therefore "do not touch it", which protects `postgres`.
       com.centurylinklabs.watchtower.enable: "true"
 
   web:
@@ -116,7 +116,7 @@ services:
     restart: unless-stopped
     depends_on:
       - iozycore-api
-    # Le SEUL port publié. C'est lui que le reverse proxy de DSM vise.
+    # The ONLY published port. This is the one the DSM reverse proxy targets.
     ports:
       - "8081:80"
     networks:
@@ -124,32 +124,32 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
-  # Le seul conteneur qui parle à l'extérieur, et il ne fait que DEMANDER.
+  # The only container that talks to the outside, and it only ASKS.
   #
-  # Toutes les 5 minutes : « ces images ont-elles changé ? ». Si oui, il les
-  # récupère, recrée les conteneurs concernés, et s'arrête là. `--cleanup`
-  # supprime l'image remplacée - sans lui, le disque du NAS se remplit d'une
-  # version par déploiement, en silence.
+  # Every 5 minutes: "have these images changed?". If yes, it pulls
+  # them, recreates the containers concerned, and stops there. `--cleanup`
+  # removes the replaced image - without it, the NAS disk fills up with one
+  # version per deployment, silently.
   #
-  # Il ne surveille QUE ce qui porte l'étiquette ci-dessous : `postgres`, lui,
-  # ne doit jamais être mis à jour tout seul. Un saut de version majeure de
-  # PostgreSQL refuse de démarrer sur un répertoire de données existant, et
-  # cela arriverait un dimanche à 3 h du matin, sans personne pour le lire.
+  # It only watches what carries the label below: `postgres` must
+  # never be updated by itself. A major version jump of
+  # PostgreSQL refuses to start on an existing data directory, and
+  # it would happen on a Sunday at 3 am, with nobody to read it.
   watchtower:
     image: containrrr/watchtower
     restart: unless-stopped
     command: --label-enable --cleanup --interval 300
     environment:
-      # Le dépôt est privé : sans ces deux valeurs, watchtower interroge GHCR
-      # en anonyme, reçoit un refus, et se tait. Un jeton en LECTURE seule
-      # (`read:packages`) suffit - il ne publie rien.
+      # The repository is private: without these two values, watchtower queries GHCR
+      # anonymously, gets a refusal, and goes quiet. A READ-only token
+      # (`read:packages`) is enough - it publishes nothing.
       REPO_USER: ${GHCR_USER:?erreur - définir GHCR_USER dans .env}
       REPO_PASS: ${GHCR_TOKEN:?erreur - définir GHCR_TOKEN dans .env}
       TZ: ${TZ:-Europe/Paris}
     volumes:
-      # Le seul moyen de recréer un conteneur voisin. C'est un accès complet au
-      # démon Docker du NAS : il vaut ce que vaut l'image `containrrr/watchtower`,
-      # et c'est la raison pour laquelle rien d'autre n'est monté ici.
+      # The only way to recreate a neighbour container. It is full access to the
+      # Docker daemon of the NAS: it is worth what the `containrrr/watchtower`
+      # image is worth, and this is why nothing else is mounted here.
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - internal

@@ -5,17 +5,17 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Extraire ce qu'une annonce dit des tomes <b>sans détruire le nom de
- * l'œuvre</b>.
+ * Extract what a listing says about volumes <b>without destroying the name of
+ * the work</b>.
  *
- * <p>Le parser supprimait auparavant tous les chiffres et toute la ponctuation
- * avant d'espérer que le reste soit le titre. « 20th Century Boys » y devenait
- * « th Century Boys », et aucune normalisation en aval ne pouvait le
- * reconstruire : l'information était perdue à la source.
+ * <p>The parser used to remove all digits and all punctuation
+ * before hoping that the rest was the title. "20th Century Boys" became
+ * "th Century Boys" there, and no downstream normalisation could
+ * rebuild it: the information was lost at the source.
  *
- * <p>Les chiffres et la ponctuation appartiennent souvent à l'identité d'une
- * série. Ce qui doit partir, c'est le <b>segment reconnu comme expression de
- * tomes</b>, et lui seul.
+ * <p>Digits and punctuation often belong to the identity of a
+ * series. What must go is the <b>segment recognised as an expression of
+ * volumes</b>, and only that.
  */
 class SeriesTitleExtractionTest {
 
@@ -27,7 +27,7 @@ class SeriesTitleExtractionTest {
         return ListingTextParser.sorted(ListingTextParser.parse(annonce, null).volumeNumbers());
     }
 
-    // ====================================================== Chiffres du titre
+    // ====================================================== Digits of the title
 
     @Test
     void a_number_that_belongs_to_the_title_survives() {
@@ -54,7 +54,7 @@ class SeriesTitleExtractionTest {
         assertThat(titre("009 Re:Cyborg")).isEqualTo("009 Re:Cyborg");
     }
 
-    // ====================================================== Ponctuation légitime
+    // ====================================================== Legitimate punctuation
 
     @Test
     void a_colon_and_a_hyphen_inside_a_title_are_part_of_it() {
@@ -86,13 +86,13 @@ class SeriesTitleExtractionTest {
                 .isEqualTo("JoJo's Bizarre Adventure: Part 5");
     }
 
-    // ====================================================== Séparateurs d'annonce
+    // ====================================================== Listing separators
 
     @Test
     void a_commercial_separator_at_the_edge_is_trimmed() {
-        // Le tiret sépare ici l'œuvre de l'information de lot ; celui de
-        // « Kaguya-sama » lui appartient. La différence est sa position, pas
-        // sa nature - d'où un rognage aux bords seulement.
+        // The dash here separates the work from the batch information; the one in
+        // "Kaguya-sama" belongs to it. The difference is its position, not
+        // its nature - hence a trim at the edges only.
         assertThat(titre("Hell's Paradise – Tomes 6 à 10")).isEqualTo("Hell's Paradise");
         assertThat(titre("Hell's Paradise - Tomes 6 à 10")).isEqualTo("Hell's Paradise");
         assertThat(titre("Death Note : tomes 1 à 6")).isEqualTo("Death Note");
@@ -112,7 +112,7 @@ class SeriesTitleExtractionTest {
         assertThat(titre("Death Note T1 à T6")).isEqualTo("Death Note");
     }
 
-    // ====================================================== Mentions commerciales
+    // ====================================================== Commercial mentions
 
     @Test
     void commercial_words_are_still_removed() {
@@ -121,12 +121,12 @@ class SeriesTitleExtractionTest {
         assertThat(titre("Vinland Saga intégrale")).isEqualTo("Vinland Saga");
     }
 
-    // ====================================================== Faux positifs
+    // ====================================================== False positives
 
     @Test
     void a_vague_lot_never_produces_a_series_and_a_volume() {
-        // « 20 » est ici un nombre de pièces, pas un tome : rien ne l'introduit
-        // comme tel. Préférer aucune proposition à une fausse.
+        // "20" is here a number of pieces, not a volume: nothing introduces it
+        // as such. Better no proposal than a wrong one.
         assertThat(tomes("Lot manga 20 tomes")).isEmpty();
     }
 

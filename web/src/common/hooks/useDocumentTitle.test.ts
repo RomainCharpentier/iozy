@@ -1,16 +1,17 @@
 /**
- * <b>Le titre de l'onglet, qui est aussi une annonce d'accessibilité.</b>
+ * <b>The tab title, which is also an accessibility announcement.</b>
  *
- * Les dix-sept routes portaient toutes « IozyCore ». Ce n'était pas qu'une
- * gêne : dans une application d'une seule page, <b>rien n'annonce une
- * navigation à un lecteur d'écran</b> - la page ne se recharge pas. La mise à
- * jour du titre est le remède conventionnel, et elle est donc vérifiée ici
- * comme un comportement, pas comme un détail cosmétique.
+ * The seventeen routes all carried "IozyCore". It was not only an
+ * annoyance: in a single-page application, <b>nothing announces a
+ * navigation to a screen reader</b> - the page does not reload. Updating the
+ * title is the conventional remedy, and it is therefore checked here as a
+ * behavior, not as a cosmetic detail.
  *
- * <p>Le titre est lu depuis le `h1` plutôt que déclaré dans une table
- * route → libellé : deux listes qui divergent, ce dépôt connaît. Trois
- * situations en découlent, et chacune casse en silence : le `h1` est déjà là,
- * il arrive <b>après</b> (page en chargement), ou il n'existe pas.
+ * <p>The title is read from the `h1` rather than declared in a
+ * route → label table: this repository knows two lists that diverge. Three
+ * situations follow from it, and each one breaks silently: the `h1` is
+ * already there, it arrives <b>after</b> (page loading), or it does not
+ * exist.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
@@ -28,8 +29,8 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('quand le titre est déjà là', () => {
-  it('fait suivre le titre du document', () => {
+describe('when the title is already there', () => {
+  it('makes the document title follow', () => {
     poser('<main><h1>Berserk</h1></main>')
 
     renderHook(() => useDocumentTitleFromHeading('/entity/berserk'))
@@ -37,7 +38,7 @@ describe('quand le titre est déjà là', () => {
     expect(document.title).toBe('Berserk · IozyCore')
   })
 
-  it('lit un h1 hors de <main> - l’espace partagé public vit hors du shell', () => {
+  it('reads an h1 outside <main> - the public shared space lives outside the shell', () => {
     poser('<h1>La collection de Romain</h1>')
 
     renderHook(() => useDocumentTitleFromHeading('/public/share/jeton'))
@@ -45,7 +46,7 @@ describe('quand le titre est déjà là', () => {
     expect(document.title).toBe('La collection de Romain · IozyCore')
   })
 
-  it('normalise les espaces d’un titre écrit sur plusieurs lignes', () => {
+  it('normalizes the spaces of a title written on several lines', () => {
     poser('<main><h1>\n  Ma\n  collection\n</h1></main>')
 
     renderHook(() => useDocumentTitleFromHeading('/'))
@@ -54,9 +55,9 @@ describe('quand le titre est déjà là', () => {
   })
 })
 
-describe('quand le titre arrive après', () => {
-  it('n’affiche pas le titre de la page précédente pendant le chargement', () => {
-    // Un squelette sans h1 : garder « Berserk » ferait mentir l'onglet.
+describe('when the title arrives after', () => {
+  it('does not show the title of the previous page during loading', () => {
+    // A skeleton without an h1: keeping "Berserk" would make the tab lie.
     document.title = 'Berserk · IozyCore'
     poser('<main><div>chargement…</div></main>')
 
@@ -65,7 +66,7 @@ describe('quand le titre arrive après', () => {
     expect(document.title).toBe('IozyCore')
   })
 
-  it('rattrape le titre dès qu’il apparaît', async () => {
+  it('catches the title as soon as it appears', async () => {
     poser('<main><div>chargement…</div></main>')
     renderHook(() => useDocumentTitleFromHeading('/stats'))
 
@@ -74,10 +75,10 @@ describe('quand le titre arrive après', () => {
     await waitFor(() => expect(document.title).toBe('Statistiques · IozyCore'))
   })
 
-  it('ne prend pas « … » pour un titre, et suit le libellé qui le remplace', async () => {
-    // Un rayon affiche « … » le temps que le nom de la catégorie arrive, puis
-    // React remplace le TEXTE du h1 sans toucher au nœud : l'onglet restait
-    // « … · IozyCore » (constaté sur /collection/:id, lot 148).
+  it('does not take "…" for a title, and follows the label that replaces it', async () => {
+    // A shelf displays "…" while the name of the category arrives, then
+    // React replaces the TEXT of the h1 without touching the node: the tab
+    // stayed "… · IozyCore" (seen on /collection/:id, batch 148).
     poser('<main><h1>…</h1></main>')
     renderHook(() => useDocumentTitleFromHeading('/collection/manga'))
 
@@ -89,10 +90,11 @@ describe('quand le titre arrive après', () => {
   })
 })
 
-describe('quand l’écran change sans que l’URL bouge', () => {
-  it('suit le nouveau titre - la porte d’authentification est au même endroit', () => {
-    // Se connecter remplace tout l'écran sans changer d'URL : sans clé qui en
-    // tienne compte, l'onglet garderait « IozyCore » sur la collection.
+describe('when the screen changes without the URL moving', () => {
+  it('follows the new title - the authentication gate is in the same place', () => {
+    // Signing in replaces the whole screen without changing the URL: without
+    // a key that takes it into account, the tab would keep "IozyCore" on the
+    // collection.
     poser('<main><h1>IozyCore</h1></main>')
     const { rerender } = renderHook(({ cle }) => useDocumentTitleFromHeading(cle), {
       initialProps: { cle: '/|anonyme' },
@@ -105,7 +107,7 @@ describe('quand l’écran change sans que l’URL bouge', () => {
     expect(document.title).toBe('Ma collection · IozyCore')
   })
 
-  it('ne suffixe pas le nom de l’application par lui-même', () => {
+  it('does not suffix the name of the application with itself', () => {
     poser('<main><h1>IozyCore</h1></main>')
 
     renderHook(() => useDocumentTitleFromHeading('/'))
@@ -114,8 +116,8 @@ describe('quand l’écran change sans que l’URL bouge', () => {
   })
 })
 
-describe('quand il n’y a pas de titre du tout', () => {
-  it('retombe sur le nom de l’application', () => {
+describe('when there is no title at all', () => {
+  it('falls back on the name of the application', () => {
     poser('<main></main>')
 
     renderHook(() => useDocumentTitleFromHeading('/inconnue'))
@@ -123,14 +125,14 @@ describe('quand il n’y a pas de titre du tout', () => {
     expect(document.title).toBe('IozyCore')
   })
 
-  it('ne laisse pas un observateur derrière lui après démontage', async () => {
+  it('does not leave an observer behind after unmount', async () => {
     poser('<main></main>')
     const { unmount } = renderHook(() => useDocumentTitleFromHeading('/inconnue'))
 
     unmount()
     document.querySelector('main')!.innerHTML = '<h1>Trop tard</h1>'
 
-    // Laisse une chance à un observateur resté vivant de se manifester.
+    // Gives a chance to an observer that stayed alive to show itself.
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(document.title).toBe('IozyCore')
   })

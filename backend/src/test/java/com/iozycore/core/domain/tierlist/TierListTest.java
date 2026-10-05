@@ -15,7 +15,7 @@ class TierListTest {
     void creer_une_tier_list_la_date_et_laisse_le_proprietaire_a_la_session() {
         TierList list = TierList.create("Mes mangas préférés", UUID.randomUUID(), EnumSet.of(Rank.S, Rank.A), "Test");
 
-        // Pas de propriétaire choisi ici : la session tranche à l'écriture.
+        // No owner chosen here: the session decides at write time.
         assertThat(list.ownerId()).isNull();
         assertThat(list.name()).isEqualTo("Mes mangas préférés");
         assertThat(list.activeRanks()).containsExactlyInAnyOrder(Rank.S, Rank.A);
@@ -65,10 +65,10 @@ class TierListTest {
 
     @Test
     void a_tier_list_without_an_entity_type_spans_all_universes() {
-        // Remplace l'ancienne règle "une Tier List appartient forcément à UN
-        // univers" : la maquette V1.2 prévoit un scope 'all' (écart documenté
-        // au Lot 7, comblé au Lot 14). Un univers absent n'est plus un oubli,
-        // c'est un choix explicite côté client.
+        // Replaces the old rule "a Tier List necessarily belongs to ONE
+        // universe": the V1.2 mockup provides an 'all' scope (gap documented
+        // in Batch 7, filled in Batch 14). A missing universe is no longer an oversight,
+        // it is an explicit choice on the client side.
         TierList crossUniverse = TierList.create("Mes coups de coeur, tous supports", null, null, null);
 
         assertThat(crossUniverse.isAllUniverses()).isTrue();

@@ -1,40 +1,40 @@
 package com.iozycore.manga.recognition;
 
 /**
- * À quel point IozyCore croit à ce qu'il propose sur une photo.
+ * How much IozyCore believes what it proposes on a photo.
  *
- * <h2>Trois niveaux, pas un pourcentage</h2>
- * Aucun moteur de reconnaissance branché ici n'est <b>calibré</b> : un modèle
- * qui annonce « 97,36 % » dit sa propre assurance, pas sa justesse mesurée.
- * Afficher ce nombre donnerait à l'utilisateur une précision que personne n'a
- * vérifiée. Trois niveaux nommés se lisent pour ce qu'ils sont - un tri, pas
- * une mesure - et restent honnêtes tant que le système ne l'est pas.
+ * <h2>Three levels, not a percentage</h2>
+ * No recognition engine plugged in here is <b>calibrated</b>: a model
+ * that announces "97.36%" gives its own assurance, not its measured accuracy.
+ * Showing this number would give the user a precision that nobody has
+ * checked. Three named levels read for what they are - a sort, not
+ * a measure - and stay honest as long as the system is not.
  *
- * <h2>Aucun niveau n'autorise une écriture automatique</h2>
- * Même {@link #HIGH} reste une proposition à confirmer. La différence entre
- * les niveaux est ce que l'écran met en avant, jamais le droit d'écrire seul
- * dans le catalogue ou la collection.
+ * <h2>No level allows an automatic write</h2>
+ * Even {@link #HIGH} stays a proposal to confirm. The difference between
+ * the levels is what the screen puts forward, never the right to write alone
+ * into the catalog or the collection.
  */
 public enum RecognitionConfidence {
 
-    /** Titre et numéro de tome lisibles, ou identifiant exact (EAN) reconnu. */
+    /** Title and volume number readable, or exact identifier (EAN) recognised. */
     HIGH,
 
-    /** L'un des deux est lisible, l'autre déduit du contexte du lot. */
+    /** One of the two is readable, the other deduced from the context of the batch. */
     MEDIUM,
 
-    /** Une piste, pas une identification - à ne jamais pré-cocher à l'écran. */
+    /** A lead, not an identification - never to pre-tick on screen. */
     LOW;
 
     /**
-     * Vrai si la proposition mérite d'être pré-sélectionnée à l'écran. Ce n'est
-     * pas un droit d'écriture : l'utilisateur confirme toujours.
+     * True if the proposal deserves to be pre-selected on screen. This is
+     * not a right to write: the user always confirms.
      */
     public boolean worthPreselecting() {
         return this == HIGH;
     }
 
-    /** Le plus prudent des deux - sert quand deux photos se contredisent. */
+    /** The most cautious of the two - used when two photos contradict each other. */
     public RecognitionConfidence lowerOf(RecognitionConfidence other) {
         if (other == null) {
             return this;
@@ -42,7 +42,7 @@ public enum RecognitionConfidence {
         return compareTo(other) >= 0 ? this : other;
     }
 
-    /** Le plus confiant des deux - sert quand deux photos se confortent. */
+    /** The most confident of the two - used when two photos support each other. */
     public RecognitionConfidence higherOf(RecognitionConfidence other) {
         if (other == null) {
             return this;

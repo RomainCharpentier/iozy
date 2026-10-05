@@ -1,11 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// Éditeur de types dynamique : liste des catégories de la collection
-/// (les 3 types MVP historiques + tout type créé par l'utilisateur).
-/// Accessible depuis un bouton toolbar sur ShelfView (même emplacement
-/// que "Importer depuis BGG"), poussé plutôt que présenté en sheet vu
-/// l'ampleur de l'écran (liste + formulaire de création/édition).
+/// Dynamic type editor: list of the categories of the collection
+/// (the 3 historical MVP types + any type created by the user).
+/// Reachable from a toolbar button on ShelfView (same place
+/// as "Importer depuis BGG"), pushed rather than shown as a sheet given
+/// the size of the screen (list + create/edit form).
 struct EntityTypeListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \EntityTypeRecord.label) private var entityTypes: [EntityTypeRecord]
@@ -58,9 +58,9 @@ struct EntityTypeListView: View {
         }
     }
 
-    /// Le backend bloque (409) la suppression d'un type encore utilisé par
-    /// au moins une Entity - même garde-fou que la suppression d'une
-    /// Entity elle-même (voir EntityTypeDeletionNotAllowedException).
+    /// The backend blocks (409) the deletion of a type still used by
+    /// at least one Entity - same safeguard as the deletion of an
+    /// Entity itself (see EntityTypeDeletionNotAllowedException).
     private func delete(at offsets: IndexSet) {
         errorMessage = nil
         for index in offsets {

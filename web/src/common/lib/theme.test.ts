@@ -1,15 +1,15 @@
 /**
- * <b>Le thème, et l'attribut qui ne doit pas rester dans le DOM.</b>
+ * <b>The theme, and the attribute that must not stay in the DOM.</b>
  *
- * Deux choses se jouent ici, et aucune ne se voit dans un test visuel :
+ * Two things are at stake here, and neither shows in a visual test:
  * <ul>
- *   <li>le thème stocké est appliqué <b>avant le premier rendu React</b> (appel
- *       synchrone dans `main.tsx`) - sans quoi la page clignote du thème par
- *       défaut au thème choisi ;</li>
- *   <li>passer au clair <b>retire</b> l'attribut. Lui affecter `undefined` le
- *       fixerait à la chaîne `"undefined"` : le clair fonctionnerait quand même,
- *       par accident, mais tout futur sélecteur `:root:not([data-theme])`
- *       échouerait sans raison visible.</li>
+ *   <li>the stored theme is applied <b>before the first React render</b>
+ *       (synchronous call in `main.tsx`) - otherwise the page flashes from
+ *       the default theme to the chosen theme;</li>
+ *   <li>switching to light <b>removes</b> the attribute. Assigning `undefined`
+ *       to it would set it to the string `"undefined"`: light would still
+ *       work, by accident, but any future `:root:not([data-theme])` selector
+ *       would fail for no visible reason.</li>
  * </ul>
  */
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -20,20 +20,21 @@ const CLE = 'iozycore.theme'
 
 beforeEach(() => {
   localStorage.clear()
-  // Le thème vit dans un magasin de module (voir theme.ts) : sans ce retour
-  // au stocké, un test hériterait du dernier thème posé par le précédent.
+  // The theme lives in a module store (see theme.ts): without this return
+  // to the stored one, a test would inherit the last theme set by the
+  // previous one.
   applyStoredTheme()
   delete document.documentElement.dataset.theme
 })
 
 describe('applyStoredTheme', () => {
-  it('applique le sombre par défaut', () => {
+  it('applies dark by default', () => {
     applyStoredTheme()
 
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('applique le thème mémorisé', () => {
+  it('applies the remembered theme', () => {
     localStorage.setItem(CLE, 'light')
 
     applyStoredTheme()
@@ -41,7 +42,7 @@ describe('applyStoredTheme', () => {
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false)
   })
 
-  it('ignore une valeur stockée qui n’est pas un thème', () => {
+  it('ignores a stored value that is not a theme', () => {
     localStorage.setItem(CLE, 'sepia')
 
     applyStoredTheme()
@@ -51,7 +52,7 @@ describe('applyStoredTheme', () => {
 })
 
 describe('useTheme', () => {
-  it('bascule d’un thème à l’autre et le mémorise', () => {
+  it('switches from one theme to the other and remembers it', () => {
     const { result } = renderHook(() => useTheme())
     expect(result.current.theme).toBe('dark')
 
@@ -61,7 +62,7 @@ describe('useTheme', () => {
     expect(localStorage.getItem(CLE)).toBe('light')
   })
 
-  it('RETIRE l’attribut en clair, au lieu d’y écrire « undefined »', () => {
+  it('REMOVES the attribute in light, instead of writing "undefined" in it', () => {
     const { result } = renderHook(() => useTheme())
 
     act(() => result.current.setTheme('light'))
@@ -70,7 +71,7 @@ describe('useTheme', () => {
     expect(document.documentElement.getAttribute('data-theme')).not.toBe('undefined')
   })
 
-  it('repose l’attribut en revenant au sombre', () => {
+  it('sets the attribute again when going back to dark', () => {
     const { result } = renderHook(() => useTheme())
 
     act(() => result.current.setTheme('light'))
@@ -79,11 +80,11 @@ describe('useTheme', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('fait voir le même thème à tous ceux qui le lisent', () => {
-    // Le bouton de l'en-tête est rendu deux fois (barre desktop, barre
-    // mobile) : chaque hook gardait son propre état, et l'icône de l'autre
-    // barre aurait montré l'ancien mode après un clic - puis « rebasculé »
-    // vers celui qu'on venait de quitter. Un seul magasin, souscrit par tous.
+  it('makes everyone who reads it see the same theme', () => {
+    // The header button is rendered twice (desktop bar, mobile bar): each
+    // hook kept its own state, and the icon of the other bar would have shown
+    // the old mode after a click - then "toggled back" to the one we had just
+    // left. One single store, subscribed to by all.
     const premier = renderHook(() => useTheme())
     const second = renderHook(() => useTheme())
 

@@ -5,10 +5,10 @@ import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.docs.Documenter;
 
 /**
- * Les frontières du modulith, vérifiées à chaque build (Lot 133) : un cœur
- * ouvert et quatre univers fermés, sans dépendance du cœur vers un univers,
- * sans dépendance entre univers, sans cycle. Le test dessine aussi la carte
- * des modules dans target/spring-modulith-docs.
+ * The module boundaries, checked on every build (Batch 133): one open
+ * core and four closed universes, with no dependency from the core to a universe,
+ * none between universes, no cycle. The test also draws the map
+ * of the modules in target/spring-modulith-docs.
  */
 class ModulesTest {
 

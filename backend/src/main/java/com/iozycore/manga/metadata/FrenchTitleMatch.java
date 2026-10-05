@@ -1,31 +1,31 @@
 package com.iozycore.manga.metadata;
 
 /**
- * Un titre français trouvé par un {@link FrenchTitleProvider}, accompagné de
- * la façon dont il a été trouvé : deux résultats n'ont pas du tout la même
- * valeur de preuve, et
+ * A French title found by a {@link FrenchTitleProvider}, together with
+ * how it was found: two results do not have the same
+ * proof value at all, and
  * {@link FrenchTitleService#findFrenchTitle(com.iozycore.core.domain.catalog.EntityType, String, String, java.util.List, String)}
- * s'en sert pour arbitrer entre fournisseurs (une correspondance sur la
- * série cherchée l'emporte sur une simple trouvaille "du même auteur", quel
- * que soit l'ordre des fournisseurs) et pour décider s'il faut vérifier le
- * résultat avant de le retenir.
+ * uses this to choose between providers (a match on the
+ * searched series wins over a simple "same author" find, whatever
+ * the order of the providers) and to decide if the
+ * result must be checked before it is kept.
  */
 public record FrenchTitleMatch(String title, Confidence confidence) {
 
     public enum Confidence {
         /**
-         * La recherche qui a trouvé ce titre contenait les termes de la série
-         * cherchée (titre complet, ou un mot distinctif de ce titre) : c'est
-         * la requête elle-même qui rattache le résultat à la série demandée.
+         * The search that found this title contained the terms of the
+         * searched series (full title, or a distinctive word of this title): it is
+         * the query itself that links the result to the requested series.
          */
         SERIES_MATCHED,
         /**
-         * Dernier recours "auteur seul" : RIEN de la série cherchée n'a
-         * matché, le résultat n'est qu'un livre français de cet auteur. Peut
-         * être le bon titre traduit ("Forget Me Not" -&gt; "Fragments
-         * d'elles"), mais tout aussi bien une AUTRE œuvre du même auteur
-         * ("Vagabond" -&gt; "Slam Dunk") - à vérifier avant d'être retenu,
-         * voir FrenchTitleService.namesAnotherKnownWork.
+         * Last resort "author only": NOTHING of the searched series
+         * matched, the result is only a French book by this author. It can
+         * be the right translated title ("Forget Me Not" -&gt; "Fragments
+         * d'elles"), but just as well ANOTHER work by the same author
+         * ("Vagabond" -&gt; "Slam Dunk") - to check before it is kept,
+         * see FrenchTitleService.namesAnotherKnownWork.
          */
         AUTHOR_ONLY
     }

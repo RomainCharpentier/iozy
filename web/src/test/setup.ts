@@ -1,27 +1,27 @@
 /**
- * Ce que chaque test web trouve déjà en place.
+ * What each web test already finds in place.
  *
- * Deux choses seulement, et aucune n'est un raccourci d'écriture :
- * les matchers DOM de jest-dom (`toBeInTheDocument`, `toHaveTextContent`…),
- * qui disent ce qu'ils vérifient bien mieux qu'une assertion sur un nœud ;
- * et le démontage systématique du rendu précédent, sans quoi deux tests d'un
- * même fichier chercheraient leur texte dans le DOM cumulé des deux.
+ * Two things only, and neither is a writing shortcut:
+ * the DOM matchers of jest-dom (`toBeInTheDocument`, `toHaveTextContent`...),
+ * which say what they check much better than an assertion on a node;
+ * and the systematic unmounting of the previous render, without which two
+ * tests of the same file would look for their text in the accumulated DOM of
+ * both.
  *
- * Le `localStorage` est celui de jsdom : réel, et partagé par tous les tests
- * d'un même fichier. Un test qui écrit dedans (préférences, langue des titres)
- * le remet à zéro lui-même - le déclarer ici cacherait la dépendance.
+ * `localStorage` is the one of jsdom: real, and shared by all the tests of
+ * the same file. A test that writes in it (preferences, title language)
+ * resets it itself - declaring it here would hide the dependency.
  *
- * <h2>ResizeObserver, faute de mise en page</h2>
- * jsdom ne l'implémente pas, et tout écran qui affiche un titre passe par
- * `TexteCoupe`, qui s'en sert pour savoir si le texte déborde. Sans ce
- * bouchon, le rendu échoue avant la première assertion - pour une raison qui
- * n'a rien à voir avec ce qu'on teste.
+ * <h2>ResizeObserver, for lack of layout</h2>
+ * jsdom does not implement it, and every screen that displays a title goes
+ * through `TexteCoupe`, which uses it to know whether the text overflows.
+ * Without this stub, the render fails before the first assertion - for a
+ * reason that has nothing to do with what is being tested.
  *
- * <p>Il ne notifie jamais : jsdom ne fait aucune mise en page, donc aucune
- * taille ne change réellement. Un bouchon qui déclencherait un rappel
- * inventerait une mesure, et `TexteCoupe` conclurait au hasard. Ce qu'un test
- * peut affirmer ici, c'est le TEXTE ; ce qu'il ne peut pas, c'est sa
- * troncature (voir aussi le navigateur de test, dont le viewport vaut 0).
+ * <p>It never notifies: jsdom does no layout, so no size really changes. A
+ * stub that triggered a callback would invent a measurement, and `TexteCoupe`
+ * would conclude at random. What a test can assert here is the TEXT; what it
+ * cannot is its truncation (see also the test browser, whose viewport is 0).
  */
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'

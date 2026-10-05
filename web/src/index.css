@@ -1,117 +1,117 @@
 @import "tailwindcss";
 
-/* Design tokens Tailwind — miroir de web/src/theme/tokens.ts (source de
-   vérité pour le TS/JS, ex: theme/gradient.ts) — voir aussi
-   ios/IozyCore/DesignSystem/Theme.swift, qui reste sur l'ancienne direction
-   (lime sur sombre) tant qu'il n'a pas reçu son propre lot de migration
-   (accepté explicitement — voir docs/DESIGN_MIGRATION_V1.2.md).
+/* Tailwind design tokens — mirror of web/src/theme/tokens.ts (source of
+   truth for TS/JS, e.g. theme/gradient.ts) — see also
+   ios/IozyCore/DesignSystem/Theme.swift, which stays on the old direction
+   (lime on dark) until it gets its own migration batch
+   (explicitly accepted — see docs/DESIGN_MIGRATION_V1.2.md).
    <p>
-   Palette terracotta — adoptée depuis IozyCore DS v1.1.dc.html (thèmes clair
-   ET sombre "expériences de premier niveau", pas un mode secondaire). Valeurs
-   ci-dessous = thème clair par défaut dans :root (source), thème sombre en
-   [data-theme="dark"] (voir theme.ts pour le mécanisme de bascule - défaut
-   réel = sombre au premier chargement, pour ne pas surprendre les usages
-   existants qui n'ont connu que le sombre jusqu'ici).
+   Terracotta palette — adopted from IozyCore DS v1.1.dc.html (light AND dark
+   themes are "first-level experiences", not a secondary mode). Values
+   below = default light theme in :root (source), dark theme in
+   [data-theme="dark"] (see theme.ts for the switch mechanism - real default
+   = dark on first load, so as not to surprise existing users who have only
+   known the dark one so far).
    <p>
-   Suffixes en camelCase (pas kebab-case) pour matcher 1:1 les noms de
-   Theme.swift historiques (textPrimary, accentText...) - Tailwind v4 génère
-   les classes utilitaires à partir du nom exact après "color-", donc ceci
-   donne bg-surface2, text-textPrimary, text-accentText, etc. plutôt que
-   l'ambigu "text-text-primary". Noms conservés même quand la VALEUR change
+   Suffixes in camelCase (not kebab-case) to match 1:1 the historical
+   Theme.swift names (textPrimary, accentText...) - Tailwind v4 generates
+   the utility classes from the exact name after "color-", so this
+   gives bg-surface2, text-textPrimary, text-accentText, etc. rather than
+   the ambiguous "text-text-primary". Names kept even when the VALUE changes
    (background/surface/surface2/textPrimary/textDim/accent/accentText/danger/
-   warning) pour ne pas casser les ~40 fichiers qui les référencent déjà;
-   nouveaux rôles de la DS v1.1 (dim/muted/faint, accentTint/accentPress,
-   dangerText/dangerTint, ok/okTint, warn.../ déjà couvert par warning/
+   warning) so as not to break the ~40 files that already reference them;
+   new roles of DS v1.1 (dim/muted/faint, accentTint/accentPress,
+   dangerText/dangerTint, ok/okTint, warn.../ already covered by warning/
    warningTint, line/lineStrong/fieldBorder, softBtn/softPress/rowHover,
-   handle/scrim) ajoutés en complément - voir "réutilise/complète les tokens
-   existants" du brief de migration. */
+   handle/scrim) added as a complement - see "reuse/complete the existing
+   tokens" of the migration brief. */
 @theme {
   --color-background: #faf6f2;
   --color-surface: #fffdfb;
   --color-surface2: #f4ece5;
   --color-textPrimary: #231e1a;
-  /* dim : sous-titres et corps secondaire (garde le nom historique
-     textDim). muted/faint : deux niveaux plus discrets, nouveaux. */
+  /* dim: subtitles and secondary body text (keeps the historical name
+     textDim). muted/faint: two more discreet levels, new. */
   --color-textDim: #544a43;
   --color-muted: #6b605a;
-  /* #746963 et non le #7c716a de la DS : le niveau le plus discret des
-     quatre restait sous le seuil AA (4.41 sur le fond, 4.06 sur surface2) -
-     c'est pourtant lui qui porte des compteurs et des méta-informations
-     réellement lues. Calibré pour tenir 4.5:1 sur les TROIS fonds du thème
-     (background/surface/surface2), pas seulement sur le plus contrasté.
-     Assombri une seconde fois (#746963 -> #6c625c) : il manquait un QUATRIÈME
-     fond, celui des en-têtes de rayon, teinté par l'univers - 4.21 dessus. */
+  /* #746963 and not the DS #7c716a: the most discreet level of the
+     four stayed under the AA threshold (4.41 on the background, 4.06 on surface2) -
+     yet it is the one that carries counters and meta information
+     that are really read. Calibrated to hold 4.5:1 on the THREE backgrounds of the theme
+     (background/surface/surface2), not only on the most contrasted one.
+     Darkened a second time (#746963 -> #6c625c): a FOURTH background was missing,
+     the one of the shelf headers, tinted by the universe - 4.21 on it. */
   --color-faint: #6c625c;
 
-  /* #bc583b et non le #c05a3c de la DS : c'est l'assombrissement MINIMAL
-     (1% de luminosité, indiscernable à l'œil) qui fait passer le blanc posé
-     dessus de 4.40 à 4.57 - la DS ne fixe que la couleur de remplissage, et
-     son propre mock écrit bien du #fff par-dessus (voir les boutons
-     primaires de IozyCore.dc.html), combinaison qui ratait le seuil AA de
-     4.5 de justesse. */
+  /* #bc583b and not the DS #c05a3c: it is the MINIMAL darkening
+     (1% of lightness, indistinguishable by eye) that raises the white placed
+     on it from 4.40 to 4.57 - the DS only fixes the fill color, and
+     its own mock does write #fff on top (see the primary buttons of
+     IozyCore.dc.html), a combination that just missed the AA threshold of
+     4.5. */
   --color-accent: #bc583b;
   --color-accentText: #a2452c;
   --color-accentPress: #933d24;
   --color-accentTint: rgb(192 90 60 / 12%);
-  /* Encre à poser SUR un remplissage accent (bouton primaire, chip
-     sélectionnée, pastille). À ne jamais confondre avec accentText, qui est
-     l'accent EN TANT QUE texte, sur fond neutre : les deux étaient
-     systématiquement mélangés avant ce lot (`bg-accent text-accentText`,
-     ~40 fichiers), soit 1.47:1 en sombre - illisible. */
+  /* Ink to place ON an accent fill (primary button, selected
+     chip, pill). Never to be confused with accentText, which is
+     the accent AS text, on a neutral background: the two were
+     systematically mixed up before this batch (`bg-accent text-accentText`,
+     ~40 files), which gave 1.47:1 in dark - unreadable. */
   --color-accentInk: #ffffff;
 
   --color-danger: #9c3324;
   --color-dangerText: #8c2d20;
   --color-dangerTint: rgb(156 51 36 / 10%);
-  /* Encre à poser SUR un remplissage danger (bouton "Confirmer" d'une
-     suppression, badge "À éviter"). Même distinction qu'accent/accentInk :
-     dangerText est le danger EN TEXTE sur fond neutre, dangerInk est ce qu'on
-     écrit PAR-DESSUS. Les cinq usages existants mélangeaient text-white et
-     text-textPrimary, fautifs dans un thème ou dans l'autre (3.29:1 pour le
-     blanc en sombre, 2.29:1 pour l'encre foncée en clair). */
+  /* Ink to place ON a danger fill ("Confirmer" button of a
+     deletion, "À éviter" badge). Same distinction as accent/accentInk:
+     dangerText is danger AS text on a neutral background, dangerInk is what we
+     write ON TOP of it. The five existing uses mixed text-white and
+     text-textPrimary, wrong in one theme or the other (3.29:1 for
+     white in dark, 2.29:1 for dark ink in light). */
   --color-dangerInk: #ffffff;
 
   --color-ok: #356b56;
   --color-okTint: rgb(53 107 86 / 12%);
   --color-warning: #7a5c10;
   --color-warningTint: rgb(122 92 16 / 12%);
-  /* Encre sur un remplissage warning - même distinction qu'accent/accentInk et
-     danger/dangerInk. Le badge "Prix correct" portait text-accentText sur
-     bg-warning : 1.21:1 en sombre, illisible. */
+  /* Ink on a warning fill - same distinction as accent/accentInk and
+     danger/dangerInk. The "Prix correct" badge carried text-accentText on
+     bg-warning: 1.21:1 in dark, unreadable. */
   --color-warningInk: #ffffff;
 
-  /* Bordures et fonds interactifs discrets - toujours dérivés de l'encre du
-     thème (35,30,26 en clair / 244,238,231 en sombre), jamais un gris
-     indépendant qui se déphase du thème. */
+  /* Discreet borders and interactive backgrounds - always derived from the ink of
+     the theme (35,30,26 in light / 244,238,231 in dark), never an
+     independent gray that goes out of phase with the theme. */
   --color-line: rgb(35 30 26 / 10%);
   --color-lineStrong: rgb(35 30 26 / 17%);
   --color-fieldBorder: rgb(35 30 26 / 14%);
   --color-softBtn: rgb(35 30 26 / 6%);
   --color-softPress: rgb(35 30 26 / 13%);
   --color-rowHover: rgb(35 30 26 / 4%);
-  /* Le fond qu'un contrôle SANS fond prend au survol. Nettement plus marqué
-     que rowHover, calibré pour une rangée entière : ici la surface est petite
-     - un bouton de barre, un lien d'en-tête - et un voile de 4 % y passe
-     inaperçu. */
+  /* The background that a control WITHOUT a background takes on hover. Clearly stronger
+     than rowHover, calibrated for a whole row: here the surface is small
+     - a bar button, a header link - and a 4 % veil goes unnoticed
+     there. */
   --color-hoverSurface: rgb(35 30 26 / 10%);
   --color-handle: rgb(35 30 26 / 20%);
   --color-scrim: rgb(35 30 26 / 38%);
 
-  /* Type de contenu (Manga/Jeu vidéo/Jeu de société/Livre) - hors périmètre
-     DS v1.1 (non redéfini par thème), conservé tel quel de la palette
-     précédente le temps qu'un lot dédié Collection (Lot 3) tranche la
-     couleur par univers de la maquette V1.2. */
+  /* Content type (Manga/Video game/Board game/Book) - outside the
+     DS v1.1 scope (not redefined per theme), kept as is from the
+     previous palette until a dedicated Collection batch (Batch 3) decides the
+     color per universe of the V1.2 mockup. */
   --color-violet: #8b7fff;
   --color-pink: #ff6fa5;
 
-  /* Couleurs par univers (voir lib/entityTypeVisuals.ts) - teintes de la
-     maquette V1.2, mais réactives au thème, contrairement à ce qui était
-     prévu au Lot 3 ("identité de catégorie stable") : ces valeurs sont
-     calibrées pour un fond CLAIR et servent aussi de texte ("Tout voir", le
-     titre de la page catégorie), où elles tombaient à 4.23:1 sur le fond
-     sombre et 3.06:1 pour le jeu vidéo. La teinte (l'identité) est
-     conservée, seule la luminosité s'adapte - même arbitrage que l'échelle
-     de rang, déjà thème-réactive. */
+  /* Colors per universe (see lib/entityTypeVisuals.ts) - tints of the
+     V1.2 mockup, but reactive to the theme, unlike what was
+     planned in Batch 3 ("stable category identity"): these values
+     are calibrated for a LIGHT background and also serve as text ("Tout voir", the
+     title of the category page), where they fell to 4.23:1 on the dark
+     background and 3.06:1 for the video game. The tint (the identity) is
+     kept, only the lightness adapts - same trade-off as the rank
+     scale, already theme-reactive. */
   --color-universeManga: #a2452c;
   --color-universeVideoGame: #3f4c80;
   --color-universeBoardGame: #2f5d4b;
@@ -121,13 +121,13 @@
   --color-universeBoardGameTint: rgb(63 122 99 / 12%);
   --color-universeBookTint: rgb(163 120 47 / 12%);
 
-  /* Teintes proposées au choix pour un type créé par l'utilisateur (voir
-     lib/entityTypeVisuals, UNIVERSE_PALETTE). Calibrées comme les 4 ci-dessus :
-     chacune tient au moins 4.5:1 sur les TROIS fonds de son thème
-     (background/surface/surface2), parce qu'une couleur d'univers est aussi du
-     TEXTE ("Tout voir", titre de la page catégorie). C'est la raison d'une
-     palette fermée plutôt que d'un sélecteur libre : un rouge choisi à l'œil
-     serait illisible dans un thème sur deux. */
+  /* Tints offered as a choice for a type created by the user (see
+     lib/entityTypeVisuals, UNIVERSE_PALETTE). Calibrated like the 4 above:
+     each one holds at least 4.5:1 on the THREE backgrounds of its theme
+     (background/surface/surface2), because a universe color is also
+     TEXT ("Tout voir", title of the category page). This is the reason for a closed
+     palette rather than a free picker: a red chosen by eye
+     would be unreadable in one theme out of two. */
   --color-universeViolet: #6f4eb7;
   --color-universeRose: #a33e68;
   --color-universeCyan: #2b6a73;
@@ -146,20 +146,20 @@
   --font-body: "Inter", sans-serif;
 }
 
-/* Échelle de rang Tier Lists (S à F) - valeurs exactes de la DS v1.1
-   (RANK_SCALE) : teintes profondes en clair, éclaircies en sombre avec
-   encre foncée sur la pastille (voir lib/tierListVisuals.ts pour l'encre).
-   Théme-réactives comme accent/danger, contrairement aux couleurs de
-   catégorie (entityTypeVisuals.ts, fixes) - le rang est un jugement, pas
-   une identité stable. */
+/* Tier Lists rank scale (S to F) - exact values of DS v1.1
+   (RANK_SCALE): deep tints in light, lightened in dark with
+   dark ink on the pill (see lib/tierListVisuals.ts for the ink).
+   Theme-reactive like accent/danger, unlike the
+   category colors (entityTypeVisuals.ts, fixed) - rank is a judgment, not
+   a stable identity. */
 :root {
   --color-rank-s: #9c3324;
-  /* rank-a/rank-b assombris par rapport à la DS (#c05a3c/#b8801f) pour la
-     même raison que --color-accent ci-dessous : l'encre du badge est
-     BLANCHE en thème clair (voir lib/tierListVisuals.ts, rankInk de la DS),
-     et ces deux fonds la laissaient à 4.40 et 3.42 - la lettre du rang,
-     seule porteuse de l'information, devenait pâle sur l'ambre. Teinte
-     conservée, luminosité juste descendue au seuil AA. */
+  /* rank-a/rank-b darkened compared to the DS (#c05a3c/#b8801f) for the
+     same reason as --color-accent below: the badge ink is
+     WHITE in the light theme (see lib/tierListVisuals.ts, rankInk of the DS),
+     and these two backgrounds left it at 4.40 and 3.42 - the rank letter,
+     the only carrier of the information, became pale on the amber. Tint
+     kept, lightness just lowered to the AA threshold. */
   --color-rank-a: #bc583b;
   --color-rank-b: #9c6c1a;
   --color-rank-c: #6e7d33;
@@ -178,10 +178,10 @@
   --color-rank-f: #a99c91;
 }
 
-/* Thème sombre - même jeu de rôles, valeurs DS v1.1 "Thème sombre". Une
-   seule redéfinition par rôle : les classes Tailwind générées (bg-surface,
-   text-textDim...) référencent déjà `var(--color-*)`, donc les surcharger
-   ici suffit à basculer TOUT composant existant sans y retoucher. */
+/* Dark theme - same set of roles, DS v1.1 "Dark theme" values. A
+   single redefinition per role: the generated Tailwind classes (bg-surface,
+   text-textDim...) already reference `var(--color-*)`, so overriding them
+   here is enough to switch EVERY existing component without touching it. */
 [data-theme="dark"] {
   --color-background: #16120f;
   --color-surface: #231e19;
@@ -189,34 +189,34 @@
   --color-textPrimary: #f4eee7;
   --color-textDim: #c2b5a9;
   --color-muted: #a99c91;
-  /* Même correction qu'en clair, dans l'autre sens : #95887d tombait à 4.34
-     sur surface2. Relevé une seconde fois (#978b80 -> #9e9288) : les en-têtes
-     de rayon posent ce gris sur un fond TEINTÉ par l'univers, plus sombre que
-     surface2, où il retombait à 4.35 (compte d'œuvres du rayon). */
+  /* Same fix as in light, the other way round: #95887d fell to 4.34
+     on surface2. Raised a second time (#978b80 -> #9e9288): the shelf
+     headers place this gray on a background TINTED by the universe, darker than
+     surface2, where it fell back to 4.35 (work count of the shelf). */
   --color-faint: #9e9288;
 
   --color-accent: #d9694a;
   --color-accentText: #ef9070;
   --color-accentPress: #f0a184;
   --color-accentTint: rgb(217 105 74 / 18%);
-  /* Encre FONCÉE sur l'accent éclairci du thème sombre (5.38:1, contre 3.46
-     pour du blanc) - même principe que l'échelle de rang ci-dessus, dont les
-     pastilles éclaircies portent déjà une encre foncée en sombre. */
+  /* DARK ink on the lightened accent of the dark theme (5.38:1, against 3.46
+     for white) - same principle as the rank scale above, whose lightened
+     pills already carry a dark ink in dark. */
   --color-accentInk: #16120f;
 
   --color-danger: #e8654a;
   --color-dangerText: #f08a72;
   --color-dangerTint: rgb(232 101 74 / 16%);
-  /* Encre FONCÉE sur le danger éclairci du thème sombre (5.67:1, contre 3.29
-     pour du blanc) - même principe qu'accentInk. */
+  /* DARK ink on the lightened danger of the dark theme (5.67:1, against 3.29
+     for white) - same principle as accentInk. */
   --color-dangerInk: #16120f;
 
   --color-ok: #6cbd9d;
   --color-okTint: rgb(108 189 157 / 14%);
   --color-warning: #d9b64a;
   --color-warningTint: rgb(217 182 74 / 16%);
-  /* Encre FONCÉE sur l'ambre éclairci du thème sombre (9.53:1, contre 1.96
-     pour du blanc). */
+  /* DARK ink on the lightened amber of the dark theme (9.53:1, against 1.96
+     for white). */
   --color-warningInk: #16120f;
 
   --color-universeManga: #e0805f;
@@ -243,8 +243,8 @@
   --color-softBtn: rgb(244 238 231 / 9%);
   --color-softPress: rgb(244 238 231 / 19%);
   --color-rowHover: rgb(244 238 231 / 6%);
-  /* 14 % et non 10 % : un voile clair sur fond sombre se voit moins qu'un
-     voile foncé sur fond clair, à opacité égale. */
+  /* 14 % and not 10 %: a light veil on a dark background is less visible than a dark
+     veil on a light background, at equal opacity. */
   --color-hoverSurface: rgb(244 238 231 / 14%);
   --color-handle: rgb(244 238 231 / 24%);
   --color-scrim: rgb(0 0 0 / 60%);
@@ -255,11 +255,11 @@
   --shadow-token-accent: 0 8px 20px rgb(0 0 0 / 50%);
 }
 
-/* Thème sombre par défaut au premier chargement (voir lib/theme.ts) - l'app
-   n'a connu que le sombre jusqu'ici, un défaut clair aurait surpris sans
-   raison. Reste un choix explicite et bascule-able, pas un suivi de
-   `prefers-color-scheme` (même logique que l'ancien `html{color-scheme:dark}`
-   forcé, qu'on retire au profit de ce mécanisme réellement bi-thème). */
+/* Dark theme by default on first load (see lib/theme.ts) - the app
+   has only known the dark one so far, a light default would have surprised for no
+   reason. It stays an explicit and switchable choice, not a follow of
+   `prefers-color-scheme` (same logic as the old forced `html{color-scheme:dark}`,
+   which is removed in favor of this really bi-theme mechanism). */
 html {
   color-scheme: light dark;
 }
@@ -272,41 +272,41 @@ body {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* Polish global des interactions, appliqué une fois ici plutôt que répété
-   composant par composant : jusqu'ici aucun bouton n'avait de retour visuel
-   au survol au-delà de `disabled:opacity`, et les changements d'état
-   (hover, disabled, focus) étaient instantanés. `:not(:disabled)` évite de
-   se cumuler avec `disabled:opacity-50` déjà posé sur certains boutons. Les
-   champs de saisie gardent en plus leur propre `focus:ring-2` (ajouté à
-   chacun) - `outline` seul aurait été invisible partout où
-   `focus:outline-none` était déjà posé, sans indicateur de remplacement. */
+/* Global polish of interactions, applied once here rather than repeated
+   component by component: until now no button had visual feedback
+   on hover beyond `disabled:opacity`, and the state changes
+   (hover, disabled, focus) were instantaneous. `:not(:disabled)` avoids
+   stacking with the `disabled:opacity-50` already set on some buttons. The
+   input fields also keep their own `focus:ring-2` (added to
+   each one) - `outline` alone would have been invisible everywhere
+   `focus:outline-none` was already set, with no replacement indicator. */
 button, a, input, textarea, select {
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
     opacity 150ms ease, box-shadow 150ms ease, transform 150ms ease, filter 150ms ease;
 }
 
-/* Le survol change la COULEUR, il ne baisse plus l'opacité.
+/* Hover changes the COLOR, it no longer lowers the opacity.
 
-   L'ancienne règle posait `opacity: 0.85`. Deux défauts, dont un de fond :
+   The old rule set `opacity: 0.85`. Two flaws, one of them fundamental:
 
-   - `disabled` s'écrit `opacity-50` dans tout le dépôt. L'application disait
-     donc « moins opaque » à la fois pour « tu peux interagir » et pour « tu ne
-     peux pas », et ne les distinguait que par la QUANTITÉ. Survoler un bouton
-     le faisait légèrement pâlir - le geste exact qui doit le faire avancer ;
-   - une centaine de contrôles déclarent déjà leur propre survol
-     (`hover:bg-rowHover`, `hover:text-textPrimary`…). L'opacité globale se
-     cumulait par-dessus, si bien qu'ils changeaient de couleur ET pâlissaient.
+   - `disabled` is written `opacity-50` across the repository. The application
+     therefore said "less opaque" both for "you can interact" and for "you
+     cannot", and only told them apart by the QUANTITY. Hovering a button
+     made it slightly fade - the exact gesture that must make it stand out;
+   - a hundred controls already declare their own hover
+     (`hover:bg-rowHover`, `hover:text-textPrimary`…). The global opacity
+     stacked on top, so that they changed color AND faded.
 
-   Pourquoi `filter` et pas un voile de fond. Toute propriété UNIQUE finit par
-   écraser celle d'un composant : un voile en `background-image` aurait effacé
-   le dégradé de l'avatar de profil, un `box-shadow: inset` aurait effacé les
-   vingt-six `shadow-token-*` du dépôt. `filter` n'entre en collision avec
-   rien - il n'est utilisé nulle part ailleurs - et agit sur le rendu ENTIER :
-   un fond plein s'assombrit, un dégradé s'assombrit sans se défaire, et un
-   bouton sans fond voit son texte foncer, ce qui reste un signal.
+   Why `filter` and not a background veil. Any SINGLE property ends up
+   overriding the one of a component: a veil in `background-image` would have erased
+   the gradient of the profile avatar, an `inset box-shadow` would have erased
+   the twenty-six `shadow-token-*` of the repository. `filter` collides with
+   nothing - it is used nowhere else - and acts on the WHOLE rendering:
+   a solid background darkens, a gradient darkens without coming apart, and a
+   button without a background sees its text darken, which is still a signal.
 
-   Le sens s'inverse avec le thème : assombrir sur fond clair, éclaircir sur
-   fond sombre. Un seul facteur, deux valeurs. */
+   The direction reverses with the theme: darken on a light background, lighten on a
+   dark background. A single factor, two values. */
 :root {
   --hover-brightness: 0.90;
 }
@@ -315,31 +315,31 @@ button, a, input, textarea, select {
   --hover-brightness: 1.25;
 }
 
-/* Un fond au survol, mais seulement sur ce qui a DÉJÀ une forme de surface.
+/* A background on hover, but only on what ALREADY has the shape of a surface.
 
-   Le raisonnement s'est fait en deux temps, le second corrigeant le premier.
+   The reasoning happened in two steps, the second correcting the first.
 
-   D'abord le constat : sur l'accueil, seize contrôles sur dix-neuf n'ont aucun
-   fond - boutons de barre, liens d'en-tête, icônes. `filter` n'y peint que le
-   texte, déjà presque noir, et le survol s'y voyait à peine. D'où l'idée de
-   leur en donner un.
+   First the observation: on the home page, sixteen controls out of nineteen have no
+   background - bar buttons, header links, icons. `filter` only paints the
+   text there, already almost black, and the hover was barely visible. Hence the idea of
+   giving them one.
 
-   Puis le défaut de cette idée : appliquée à TOUS, elle dessinait un rectangle
-   collé aux lettres du titre « IozyCore » - un lien de texte nu, sans marge ni
-   rayon. Ce qui ressemble à un survol sur un bouton ressemble à une erreur sur
-   un mot.
+   Then the flaw of that idea: applied to ALL, it drew a rectangle
+   stuck to the letters of the "IozyCore" title - a bare text link, with no margin or
+   radius. What looks like a hover on a button looks like an error on
+   a word.
 
-   `[class*="rounded"]` trie les deux cas, et le tri a été vérifié : sur les
-   dix-neuf contrôles de l'accueil, la présence de la classe prédit exactement
-   celle d'un rayon calculé, sans exception. Ce qui est arrondi est traité
-   comme une surface et reçoit un fond ; ce qui ne l'est pas est du texte, et
-   garde le seul assombrissement - complété, là où il le faut, par les survols
-   que les composants déclarent eux-mêmes (`hover:-translate-y-0.5` sur les
-   cartes, `hover:text-textPrimary` sur les onglets).
+   `[class*="rounded"]` sorts the two cases, and the sorting was checked: on the
+   nineteen controls of the home page, the presence of the class predicts exactly
+   the presence of a computed radius, without exception. What is rounded is treated
+   as a surface and receives a background; what is not is text, and
+   keeps only the darkening - completed, where needed, by the hovers
+   that the components declare themselves (`hover:-translate-y-0.5` on
+   cards, `hover:text-textPrimary` on tabs).
 
-   `@layer base` À DESSEIN : les utilitaires Tailwind vivent dans une couche
-   supérieure, donc un bouton déjà rempli (`bg-accent`) garde sa couleur, et
-   seul un bouton arrondi SANS remplissage reçoit ce fond. */
+   `@layer base` ON PURPOSE: Tailwind utilities live in a higher layer, so a button already
+   filled (`bg-accent`) keeps its color, and
+   only a rounded button WITHOUT a fill receives this background. */
 @layer base {
   @media (hover: hover) {
     button:not(:disabled)[class*="rounded"]:hover,
@@ -349,16 +349,16 @@ button, a, input, textarea, select {
   }
 }
 
-/* Hors couche, donc appliqué à tous : c'est ce qui fait réagir les boutons
-   pleins et les dégradés, que la règle ci-dessus laisse volontairement
-   intacts.
+/* Outside a layer, so applied to all: this is what makes filled buttons
+   and gradients react, which the rule above deliberately leaves
+   untouched.
 
-   `@media (hover: hover)`, sur les deux règles : un écran tactile n'a pas de
-   survol, il a un « dernier élément touché » - et le navigateur y laisse
-   l'état :hover collé jusqu'au toucher suivant. Un bouton restait donc
-   éclairci après le tap, comme s'il était resté enfoncé (lot 148). Tailwind
-   gère déjà ses propres variantes `hover:` ainsi ; ces deux règles maison
-   ne le faisaient pas. */
+   `@media (hover: hover)`, on both rules: a touch screen has no
+   hover, it has a "last touched element" - and the browser leaves the
+   :hover state stuck there until the next touch. A button therefore stayed
+   lightened after the tap, as if it had stayed pressed (batch 148). Tailwind
+   already handles its own `hover:` variants this way; these two custom rules
+   did not. */
 @media (hover: hover) {
   button:not(:disabled):hover,
   a:hover {
@@ -366,17 +366,17 @@ button, a, input, textarea, select {
   }
 }
 
-/* Le curseur main sur ce qui se clique.
+/* The hand cursor on what is clickable.
 
-   Il venait gratuitement du Preflight de Tailwind v3, qui posait
-   `cursor: pointer` sur les boutons. La v4 a aligné son Preflight sur le
-   défaut du navigateur (`cursor: default`) : la montée de version a donc
-   retiré l'affordance de TOUS les boutons de l'application, en silence et
-   sans rien casser de visible. Les liens, eux, la tiennent du navigateur et
-   n'ont jamais été touchés - d'où un dépôt où la moitié des contrôles
-   changeait le curseur et l'autre non.
+   It came for free from the Preflight of Tailwind v3, which set
+   `cursor: pointer` on buttons. v4 aligned its Preflight on the
+   browser default (`cursor: default`): the version upgrade therefore
+   removed the affordance from ALL the buttons of the application, silently
+   and without breaking anything visible. Links get it from the browser and
+   were never touched - hence a repository where half of the controls
+   changed the cursor and the other half did not.
 
-   `:not(:disabled)` laisse la main à `not-allowed` ci-dessous. */
+   `:not(:disabled)` leaves the hand to `not-allowed` below. */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
 [role="switch"]:not([aria-disabled="true"]),
@@ -389,9 +389,9 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Anneau de focus clavier — 2px accent, offset 2px, jamais le bleu par
-   défaut du navigateur (voir DS v1.1 §5). `:focus-visible` uniquement : pas
-   d'anneau permanent au clic souris/tactile. */
+/* Keyboard focus ring — 2px accent, offset 2px, never the browser's default
+   blue (see DS v1.1 §5). `:focus-visible` only: no permanent
+   ring on mouse/touch click. */
 :focus {
   outline: none;
 }
@@ -402,41 +402,40 @@ button:disabled {
   border-radius: 4px;
 }
 
-/* Chaque écran occupe la colonne du milieu de la grille de page ; seule une
-   bande qui demande explicitement `col-span-full` traverse tout l'écran (voir
+/* Each screen takes up the middle column of the page grid; only a
+   band that explicitly asks for `col-span-full` crosses the whole screen (see
    AppShell.CLASSE_BANDE_PLEINE_LARGEUR).
 
-   `@layer base` À DESSEIN, et pour la même raison que la règle de survol plus
-   haut : les utilitaires Tailwind vivent dans une couche supérieure, donc le
-   `col-span-full` d'un enfant l'emporte. Écrite en utilitaire (`*:col-start-2`),
-   cette règle gagnerait au contraire toujours - le sélecteur d'un parent
-   (`.x > *`) est plus spécifique que la classe d'un enfant - et aucune bande ne
-   pourrait plus sortir de sa colonne. */
+   `@layer base` ON PURPOSE, and for the same reason as the hover rule above:
+   Tailwind utilities live in a higher layer, so the child's
+   `col-span-full` wins. Written as a utility (`*:col-start-2`),
+   this rule would always win instead - the selector of a parent
+   (`.x > *`) is more specific than the class of a child - and no band
+   could leave its column anymore. */
 @layer base {
   main[data-grille] > * {
     grid-column: 2;
-    /* Un élément de grille vaut `min-width: auto` par défaut, donc refuse de
-       descendre sous la largeur intrinsèque de son contenu : un titre en
-       `truncate` ou un tableau large repousserait alors la colonne et ferait
-       déborder la page - exactement ce que `<main>` en bloc empêchait
-       gratuitement. Même correctif que les colonnes de AddVolumeSection. */
+    /* A grid item has `min-width: auto` by default, so it refuses to go below the
+       intrinsic width of its content: a `truncate` title or a wide table would then
+       push the column and make the page overflow - exactly what a block `<main>` prevented
+       for free. Same fix as the columns of AddVolumeSection. */
     min-width: 0;
   }
 }
 
-/* Barre de défilement horizontale discrète, pour les rangées de Ma collection
-   et partout où un contenu défile latéralement.
+/* Discreet horizontal scrollbar, for the rows of Ma collection
+   and everywhere a content scrolls sideways.
 
-   La barre native de Windows est épaisse, opaque et toujours visible : posée
-   sous chaque rangée d'univers, elle attirait l'œil plus que les jaquettes
-   qu'elle sert. Ici elle devient un filet fin dans les tons de l'interface,
-   qui suit le thème clair/sombre comme le reste.
+   The native Windows bar is thick, opaque and always visible: placed
+   under each universe row, it drew the eye more than the covers
+   it serves. Here it becomes a thin line in the tones of the interface,
+   which follows the light/dark theme like the rest.
 
-   `scrollbar-width`/`scrollbar-color` couvrent Firefox, les sélecteurs
-   `::-webkit-scrollbar` couvrent Chrome/Safari - les deux syntaxes coexistent
-   sans se gêner, et un navigateur qui n'en comprend aucune garde simplement
-   sa barre d'origine. Jamais `display: none` : une barre invisible ôte le
-   seul indice qu'il reste du contenu à droite. */
+   `scrollbar-width`/`scrollbar-color` cover Firefox, the
+   `::-webkit-scrollbar` selectors cover Chrome/Safari - both syntaxes coexist
+   without getting in each other's way, and a browser that understands neither simply keeps
+   its original bar. Never `display: none`: an invisible bar removes the
+   only hint that there is more content to the right. */
 @utility defilement-discret {
   scrollbar-width: thin;
   scrollbar-color: var(--color-lineStrong) transparent;
@@ -461,67 +460,67 @@ button:disabled {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Le système (lot 149) : un seul bouton, un seul champ, une seule barre.
+   The system (batch 149): one button, one field, one bar.
 
-   Cinquante boutons primaires s'écrivaient de quatorze façons (`py-1.5`,
+   Fifty primary buttons were written in fourteen ways (`py-1.5`,
    `py-2`, `py-2.5`, `py-3`, `rounded-lg`, `rounded-xl`, `rounded-[14px]`…),
-   et cent soixante-cinq `rounded-lg` côtoyaient cent dix-sept `rounded-xl`.
-   Aucun n'était faux ; ensemble ils faisaient une interface qui hésite. Ces
-   utilitaires disent chaque chose une fois, et les écrans les nomment.
+   and a hundred and sixty-five `rounded-lg` sat next to a hundred and seventeen `rounded-xl`.
+   None was wrong; together they made an interface that hesitates. These
+   utilities say each thing once, and the screens name them.
 
-   Rayons : 12 px (boutons, champs, puces, lignes), 16 px (tuiles, cartes
-   courantes), 20 px (grandes cartes), 24 px (nappes et panneaux). Hauteur
-   des contrôles : 44 px. Pression : la surface se contracte de 2 %.
+   Radii: 12 px (buttons, fields, chips, rows), 16 px (tiles, common
+   cards), 20 px (large cards), 24 px (sheets and panels). Height
+   of controls: 44 px. Press: the surface shrinks by 2 %.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Le bouton primaire : l'accent, plein, avec son ombre teintée. */
+/* The primary button: the accent, filled, with its tinted shadow. */
 @utility btn-primaire {
   @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold whitespace-nowrap text-accentInk shadow-token-accent transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
-/* Le bouton secondaire : une surface, un filet, une ombre douce. */
+/* The secondary button: a surface, a line, a soft shadow. */
 @utility btn-secondaire {
   @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-surface px-4 text-sm font-semibold whitespace-nowrap text-textPrimary ring-1 ring-line shadow-token-sm transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
-/* Le bouton discret : du texte, rien autour - pour « Annuler », les liens d'action. */
+/* The discreet button: text, nothing around it - for "Annuler", action links. */
 @utility btn-discret {
   @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold whitespace-nowrap text-textDim transition duration-150 select-none hover:text-textPrimary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
-/* Le bouton de danger : plein, pour ce qui détruit et l'a déjà dit. */
+/* The danger button: filled, for what destroys and has already said so. */
 @utility btn-danger {
   @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-danger px-4 text-sm font-semibold whitespace-nowrap text-dangerInk transition duration-150 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
-/* Le champ de saisie : 44 px, filet intérieur, anneau d'accent au focus. */
+/* The input field: 44 px, inner line, accent ring on focus. */
 @utility champ {
   @apply min-h-11 rounded-xl bg-surface2 px-3.5 py-2 text-sm text-textPrimary ring-1 ring-fieldBorder ring-inset transition-shadow duration-150 placeholder:text-faint focus:ring-2 focus:ring-accent focus:outline-none disabled:opacity-50;
 }
 
-/* Une barre de navigation en verre : translucide, floutée, un filet. */
+/* A glass navigation bar: translucent, blurred, a line. */
 @utility barre-verre {
   @apply bg-surface/85 backdrop-blur-xl backdrop-saturate-150;
 }
 
-/* Un bloc en attente de ses données : la forme de ce qui va venir. */
+/* A block waiting for its data: the shape of what is going to come. */
 @utility squelette {
   @apply animate-pulse rounded-xl bg-surface2;
 }
 
-/* Une ligne de liste longue : le navigateur ne la rend que près de l'écran.
-   La hauteur réservée évite que la barre de défilement saute. */
+/* A long list row: the browser only renders it close to the screen.
+   The reserved height prevents the scrollbar from jumping. */
 @utility ligne-differee {
   content-visibility: auto;
   contain-intrinsic-size: auto 3.75rem;
 }
 
-/* Les compteurs s'alignent : chaque chiffre a la même largeur. */
+/* Counters line up: every digit has the same width. */
 @utility compteur {
   font-variant-numeric: tabular-nums;
 }
 
-/* Le mouvement s'efface pour qui l'a demandé au système. */
+/* Motion fades away for whoever asked the system for it. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

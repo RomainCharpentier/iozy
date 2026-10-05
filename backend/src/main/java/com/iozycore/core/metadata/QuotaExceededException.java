@@ -1,20 +1,20 @@
 package com.iozycore.core.metadata;
 
 /**
- * Levée par un fournisseur externe (voir GoogleBooksHttpClient) quand TOUTES
- * les clés API disponibles pour ce fournisseur ont épuisé leur quota - à
- * distinguer d'une absence de résultat légitime. Volontairement générique
- * (pas de sous-classe par fournisseur) : {@link MetadataSearchService} ne
- * connaît jamais un fournisseur externe précis (voir sa javadoc), seulement
- * ce signal neutre.
+ * Thrown by an external provider (see GoogleBooksHttpClient) when ALL
+ * the API keys available for this provider have used up their quota - to
+ * be told apart from a legitimate absence of results. Deliberately generic
+ * (no subclass per provider): {@link MetadataSearchService} never
+ * knows a precise external provider (see its javadoc), only
+ * this neutral signal.
  * <p>
- * Cas réel qui motive cette exception (vérifié manuellement, voir historique
- * de la conversation) : le quota Google Books épuisé pendant une recherche
- * de tomes renvoyait silencieusement une liste vide, indiscernable côté
- * utilisateur d'une série qui n'a réellement aucune édition française -
- * TomeSearchService.searchVolumes capture cette exception pour le
- * signaler explicitement au client plutôt que de laisser croire à tort
- * "aucune édition trouvée".
+ * Real case that motivates this exception (checked manually, see history
+ * of the conversation): the Google Books quota used up during a search
+ * for volumes silently returned an empty list, indistinguishable on the
+ * user side from a series that really has no French edition -
+ * TomeSearchService.searchVolumes catches this exception to
+ * report it explicitly to the client rather than let people wrongly believe
+ * "no edition found".
  */
 public class QuotaExceededException extends RuntimeException {
     public QuotaExceededException(String message) {

@@ -19,36 +19,36 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Interroge l'API officielle MyAnimeList v2 (voir MyAnimeListMetadataProvider,
- * même Client ID) pour les séries liées ({@code related_manga}) d'un manga -
- * volontairement PAS Jikan (wrapper tiers, voir javadoc de
- * MyAnimeListMetadataProvider) : constaté indisponible (504 "failed to
- * connect to MyAnimeList") au moment d'écrire ce fournisseur, alors que
- * l'API officielle répondait normalement pour le même identifiant.
+ * Queries the official MyAnimeList v2 API (see MyAnimeListMetadataProvider,
+ * same Client ID) for the related series ({@code related_manga}) of a manga -
+ * deliberately NOT Jikan (third-party wrapper, see javadoc of
+ * MyAnimeListMetadataProvider): seen unavailable (504 "failed to
+ * connect to MyAnimeList") at the time of writing this provider, while
+ * the official API answered normally for the same id.
  * <p>
- * "spin_off", "side_story", "sequel", "prequel", "alternative_version" et
- * "alternative_setting" sont retenues comme séries clairement DISTINCTES
- * (vérifié manuellement sur "Blue Lock" -&gt; "Blue Lock: Episode Nagi" et
- * "Demon Slayer" -&gt; "Kimetsu Gakuen!", tous deux tagués "spin_off" ;
- * "Dragon Ball" -&gt; "Dragon Ball Super", tagué "sequel" - une suite avec
- * sa propre histoire, pas une édition ; "Dragon Ball" -&gt; "Dragon Ball
- * SD", tagué "alternative_version" - une parodie chibi à l'histoire
- * distincte, MyAnimeList ne distinguant pas fiablement dans cette catégorie
- * une vraie réédition (kanzenban, couleur...) d'une réinterprétation à
- * l'histoire différente comme celle-ci ; signalé directement par
- * l'utilisateur en testant "Dragon Ball", voir historique de la
- * conversation ; "Shaman King" -&gt; "Shaman King Zero", tagué "prequel" -
- * une préquelle avec sa propre histoire, ressortait à tort comme une
- * édition nommée "0" avant l'ajout de cette relation, trouvé en continuant
- * les tests, voir historique ; "Gantz" -&gt; "Gantz:E", tagué
- * "alternative_setting" - un spin-off à l'univers alternatif (même
- * personnages, contexte différent), ressortait à tort comme une édition
- * nommée "E", trouvé en continuant les tests, voir historique - PREMIER cas
- * concret rencontré pour cette relation malgré des tests étendus sur de
- * nombreuses franchises cette session, justifiant de l'ajouter à son tour).
+ * "spin_off", "side_story", "sequel", "prequel", "alternative_version" and
+ * "alternative_setting" are kept as clearly DISTINCT series
+ * (checked manually on "Blue Lock" -&gt; "Blue Lock: Episode Nagi" and
+ * "Demon Slayer" -&gt; "Kimetsu Gakuen!", both tagged "spin_off";
+ * "Dragon Ball" -&gt; "Dragon Ball Super", tagged "sequel" - a sequel with
+ * its own story, not an edition; "Dragon Ball" -&gt; "Dragon Ball
+ * SD", tagged "alternative_version" - a chibi parody with a
+ * distinct story, MyAnimeList not reliably telling apart in this category
+ * a real reissue (kanzenban, color...) from a reinterpretation with a
+ * different story like this one; reported directly by
+ * the user while testing "Dragon Ball", see history of the
+ * conversation; "Shaman King" -&gt; "Shaman King Zero", tagged "prequel" -
+ * a prequel with its own story, wrongly came out as an
+ * edition named "0" before this relation was added, found while continuing
+ * the tests, see history; "Gantz" -&gt; "Gantz:E", tagged
+ * "alternative_setting" - a spin-off in an alternative universe (same
+ * characters, different context), wrongly came out as an edition
+ * named "E", found while continuing the tests, see history - FIRST concrete
+ * case met for this relation despite extended tests on
+ * many franchises this session, justifying adding it in its turn).
  * <p>
- * Pas de mode dégradé sans Client ID configuré (comme MyAnimeListMetadataProvider) :
- * supports() renvoie false tant que {@code mal.client-id} est vide.
+ * No degraded mode without a configured Client ID (like MyAnimeListMetadataProvider):
+ * supports() returns false as long as {@code mal.client-id} is empty.
  */
 @Component
 public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
@@ -86,15 +86,15 @@ public class MyAnimeListRelatedSeriesProvider implements RelatedSeriesProvider {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("MyAnimeList a répondu {} pour les relations de '{}'", response.statusCode(), externalId);
+                log.warn("MyAnimeList answered {} for the relations of '{}'", response.statusCode(), externalId);
                 return List.of();
             }
 
             return parse(response.body());
         } catch (Exception e) {
-            // Best-effort : une panne ne doit jamais bloquer la recherche de
-            // tomes, juste la priver de ce filtre supplémentaire.
-            log.warn("Échec de la recherche des relations MyAnimeList pour '{}' : {}", externalId, e.getMessage());
+            // Best-effort: an outage must never block the search of
+            // volumes, just deprive it of this additional filter.
+            log.warn("MyAnimeList relations search failed for '{}': {}", externalId, e.getMessage());
             return List.of();
         }
     }

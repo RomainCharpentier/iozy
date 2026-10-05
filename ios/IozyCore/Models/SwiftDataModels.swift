@@ -1,17 +1,17 @@
 import Foundation
 import SwiftData
 
-/// Cache local d'une Entity, pour la consultation hors ligne (parcours 3 :
-/// vérification avant achat en brocante/salon sans réseau fiable).
-/// La source de vérité reste toujours l'API backend ; ce modèle n'est
-/// jamais modifié directement par l'utilisateur sans passer par une
-/// synchronisation.
+/// Local cache of an Entity, for offline use (journey 3:
+/// check before buying at a flea market/fair without reliable network).
+/// The source of truth is always the backend API; this model is
+/// never changed directly by the user without going through a
+/// synchronization.
 @Model
 final class EntityRecord {
     @Attribute(.unique) var id: UUID
     var entityTypeId: UUID
     var title: String
-    var attributesJSON: String   // JSON brut des attributs (JSONB côté backend)
+    var attributesJSON: String   // Raw JSON of the attributes (JSONB on the backend side)
     var lastSyncedAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \VariantRecord.entity)
@@ -25,11 +25,11 @@ final class EntityRecord {
         self.lastSyncedAt = lastSyncedAt
     }
 
-    // Plus de propriété `entityType` calculée ici : les types sont
-    // désormais dynamiques (EntityTypeRecord, éditeur de types), donc leur
-    // résolution a besoin de la liste chargée - voir
-    // EntityTypeRecord.find(id:in:), appelé depuis chaque vue avec son
-    // propre @Query plutôt que déduit ici d'un enum à cas fixes.
+    // No more computed `entityType` property here: types are
+    // now dynamic (EntityTypeRecord, type editor), so resolving them
+    // needs the loaded list - see
+    // EntityTypeRecord.find(id:in:), called from each view with its
+    // own @Query rather than deduced here from an enum with fixed cases.
 }
 
 @Model
@@ -45,8 +45,8 @@ final class VariantRecord {
     }
 }
 
-/// Cache local d'une Ownership. Simplifiée comme validé en conception :
-/// pas de prix, pas de statut "prêté".
+/// Local cache of an Ownership. Simplified as validated during design:
+/// no price, no "lent" status.
 @Model
 final class OwnershipRecord {
     @Attribute(.unique) var id: UUID
@@ -69,7 +69,7 @@ final class OwnershipRecord {
     }
 }
 
-/// Cache local d'une Experience. Une seule note + un commentaire, comme validé.
+/// Local cache of an Experience. A single rating + a comment, as validated.
 @Model
 final class ExperienceRecord {
     @Attribute(.unique) var id: UUID

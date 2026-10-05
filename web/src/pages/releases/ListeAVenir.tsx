@@ -10,14 +10,14 @@ import { cleDeSortie, grouperParMois } from './releaseCalendar'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * Tout ce qui vient dans l'année, mois par mois, dans l'ordre du calendrier
- * (lot 146, retour d'usage du 2026-09-10). La grille ne montre qu'un mois ;
- * cette liste répond à l'autre question - « qu'est-ce qui m'attend ? » - sans
- * tourner les pages. Une ligne ne mène pas à la fiche : elle amène la grille
- * sur son jour, où l'agenda du mois fait le reste.
+ * Everything that comes within the year, month by month, in calendar order
+ * (batch 146, usage feedback of 2026-09-10). The grid only shows one month;
+ * this list answers the other question - "what is waiting for me?" - without
+ * turning the pages. A row does not lead to the detail page: it brings the grid
+ * to its day, where the agenda of the month does the rest.
  *
- * <p>Sa propre requête, sur un an moins un jour à partir d'aujourd'hui : le
- * mois affiché change, pas ce qui vient.
+ * <p>Its own query, over one year minus one day from today: the
+ * displayed month changes, not what is coming.
  */
 export function ListeAVenir({
   libelleParType,
@@ -25,7 +25,7 @@ export function ListeAVenir({
   className = '',
 }: {
   libelleParType: Map<string, string>
-  /** Le mois à afficher (« 2026-11 »), et le jour à choisir quand la source le connaît. */
+  /** The month to show ("2026-11"), and the day to choose when the source knows it. */
   onVoir: (mois: string, jour: string | null) => void
   className?: string
 }) {

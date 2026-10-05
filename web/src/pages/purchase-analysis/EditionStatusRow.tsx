@@ -4,28 +4,28 @@ import { searchEditionsForSeries } from '@/common/api/purchaseAnalysis'
 import { EditionPicker, EDITION_INCONNUE } from './EditionPicker'
 
 /**
- * L'édition, présentée comme un **résultat** et non comme une question.
+ * The edition, presented as a **result** and not as a question.
  *
- * <h2>Le changement</h2>
- * Le formulaire demandait « Édition » avec pour seul guide « ex: Perfect
- * Edition », entre la série et les tomes, sur le chemin critique. C'était la
- * seule étape du produit où l'on obligeait l'utilisateur à savoir quelque
- * chose que le catalogue sait souvent mieux que lui - et à inventer sinon.
+ * <h2>The change</h2>
+ * The form asked for "Édition" with only "ex: Perfect
+ * Edition" as a guide, between the series and the volumes, on the critical path. It was the
+ * only step of the product where the user was forced to know something
+ * that the catalogue often knows better than they do - and to invent otherwise.
  *
- * L'ordre s'inverse : on saisit la série et les tomes, puis IozyCore cherche
- * l'édition et affiche ce qu'il a trouvé. Trois états, tous exploitables :
+ * The order is reversed: we enter the series and the volumes, then IozyCore looks for
+ * the edition and shows what it found. Three states, all usable:
  *
  * <ul>
- *   <li><b>résolue</b> - une seule édition connue pour cette série, retenue,
- *       modifiable d'un clic ;</li>
- *   <li><b>à confirmer</b> - plusieurs candidates, proposées sans qu'aucune ne
- *       soit choisie d'office ;</li>
- *   <li><b>non déterminée</b> - rien au catalogue. L'analyse reste possible :
- *       le moteur dégrade honnêtement (complétude inconnue, valeur neuve
- *       indisponible) plutôt que de bloquer.</li>
+ *   <li><b>resolved</b> - a single known edition for this series, kept,
+ *       editable in one click;</li>
+ *   <li><b>to confirm</b> - several candidates, offered without any
+ *       being chosen by default;</li>
+ *   <li><b>undetermined</b> - nothing in the catalogue. The analysis stays possible:
+ *       the engine degrades honestly (unknown completeness, new value
+ *       unavailable) rather than blocking.</li>
  * </ul>
  *
- * Dans aucun de ces cas l'édition n'empêche d'évaluer le lot.
+ * In none of these cases does the edition prevent evaluating the batch.
  */
 export function EditionStatusRow({
   seriesTitle,
@@ -33,7 +33,7 @@ export function EditionStatusRow({
   onChange,
 }: {
   seriesTitle: string
-  /** Vide = pas encore tranchée ; l'analyse la traitera comme inconnue. */
+  /** Empty = not decided yet; the analysis will treat it as unknown. */
   value: string
   onChange: (editionName: string) => void
 }) {
@@ -48,22 +48,22 @@ export function EditionStatusRow({
   })
 
   /**
-   * Mémorisé, et pas seulement pour faire taire le linter : `?? []` fabrique
-   * un tableau NEUF à chaque rendu tant que la requête n'a pas répondu, si
-   * bien que l'effet ci-dessous se réexécutait à chaque rendu. Il en sortait
-   * aussitôt - une liste vide n'a jamais une seule édition - donc rien ne
-   * cassait, mais la dépendance mentait sur ce qui la fait changer.
+   * Memoised, and not only to silence the linter: `?? []` creates a
+   * NEW array on each render until the query has answered, so
+   * the effect below re-ran on each render. It exited right away
+   * - an empty list never has a single edition - so nothing
+   * broke, but the dependency lied about what makes it change.
    */
   const connues = useMemo(() => editionsQuery.data ?? [], [editionsQuery.data])
 
   /**
-   * Une édition unique au catalogue est adoptée pour de bon, pas seulement
-   * affichée.
+   * A single edition in the catalogue is adopted for good, not only
+   * displayed.
    *
-   * Sans cela, l'écran annonçait « Édition · Black Édition » pendant que le lot
-   * enregistrait « Édition inconnue » : l'affichage déduisait l'édition unique
-   * localement sans jamais la remonter. Promettre une chose et en analyser une
-   * autre est pire que de ne rien proposer.
+   * Without this, the screen announced "Édition · Black Édition" while the batch
+   * saved "Édition inconnue": the display deduced the single edition
+   * locally without ever passing it up. Promising one thing and analysing
+   * another is worse than offering nothing.
    */
   useEffect(() => {
     if (value.trim()) return
@@ -94,8 +94,8 @@ export function EditionStatusRow({
     return <p className="text-xs text-textDim">Recherche de l'édition…</p>
   }
 
-  // Choix explicite de l'utilisateur, ou édition unique du catalogue : on
-  // affiche ce qui sera utilisé, pas une question.
+  // Explicit choice of the user, or single edition of the catalogue: we
+  // display what will be used, not a question.
   const retenue = value.trim()
 
   if (retenue && retenue !== EDITION_INCONNUE) {
@@ -151,7 +151,7 @@ export function EditionStatusRow({
     )
   }
 
-  // Rien au catalogue : on le dit, et on n'en fait pas un obstacle.
+  // Nothing in the catalogue: we say so, and we do not make it an obstacle.
   return (
     <LigneEtat
       libelle="Édition"

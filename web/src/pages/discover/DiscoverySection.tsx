@@ -10,26 +10,26 @@ import { CLASSE_CARTE } from '@/common/components/Carte'
 import type { DiscoveryCandidateDto, EntityTypeDto } from '@/common/types/api'
 
 /**
- * Panneau « Découvertes » de Découvrir : ce que chaque univers sait proposer
- * à partir de ce qu'on possède.
+ * "Découvertes" panel of Découvrir: what each universe knows how to offer
+ * from what one owns.
  *
- * <h2>Ici, et plus dans Statistiques (lot 142)</h2>
- * Cette section vivait en bas de l'écran Statistiques, où rien ne la laissait
- * chercher ; et Découvrir, l'écran qui porte son nom, gardait à sa place un
- * panneau « Prochaines sorties » qui n'avait rien à dire - aucune source de
- * calendrier n'existe. Le panneau qui n'avait rien à dire est parti, celui-ci
- * prend sa place.
+ * <h2>Here, and no longer in Statistiques (batch 142)</h2>
+ * This section lived at the bottom of the Statistiques screen, where nothing made one
+ * look for it; and Découvrir, the screen that bears its name, kept in its place a
+ * "Prochaines sorties" panel that had nothing to say - no calendar
+ * source exists. The panel that had nothing to say is gone, this one
+ * takes its place.
  *
- * <h2>Chaque univers branche le sien, le cœur ne sait rien d'eux</h2>
- * Le manga propose d'autres œuvres des mêmes auteurs que tes mieux notés, le
- * jeu vidéo des jeux proches de ceux que tu as, le jeu de société les jeux en
- * vue qui partagent leurs mécaniques. Un type sans source de découverte - un
- * type personnalisé - n'a pas de section : c'est le type qui le dit
- * (`hasDiscoverySource`), pas une liste de codes écrite ici.
+ * <h2>Each universe plugs in its own, the core knows nothing about them</h2>
+ * Manga offers other works by the same authors as your best rated, video
+ * games offer games close to the ones you have, board games offer the games
+ * in sight that share their mechanics. A type without a discovery source - a
+ * custom type - has no section: the type says so
+ * (`hasDiscoverySource`), not a list of codes written here.
  *
- * <p>À la demande : chaque univers interroge une source externe, et un écran
- * qui les lancerait toutes à l'ouverture coûterait plusieurs secondes à qui
- * venait seulement classer une Tier List.
+ * <p>On demand: each universe queries an external source, and a screen
+ * that launched them all on opening would cost several seconds to whoever
+ * only came to rank a Tier List.
  */
 export function DiscoverySection() {
   const [demandees, setDemandees] = useState(false)
@@ -80,10 +80,10 @@ export function DiscoverySection() {
 
 function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
   const queryClient = useQueryClient()
-  // Clé candidat (source+externalId) -> entityId créé, une fois ajouté.
-  // Suivi par identité du candidat + id réellement créé plutôt que par
-  // titre : une collision de titre marquerait à tort un autre élément
-  // comme ajouté.
+  // Candidate key (source+externalId) -> entityId created, once added.
+  // Tracked by candidate identity + really created id rather than by
+  // title: a title collision would wrongly mark another item
+  // as added.
   const [added, setAdded] = useState<Record<string, string>>({})
 
   const discoveryQuery = useQuery({
@@ -97,9 +97,9 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
         entityTypeId: entityType.id,
         title: candidate.title,
         condition: 'NEW',
-        // L'identifiant chez la source, pour que la fiche retrouve sa
-        // jaquette et ses métadonnées : la clé dépend de la SOURCE, pas du
-        // type - un même type peut en avoir plusieurs.
+        // The identifier at the source, so that the detail page finds its
+        // cover and its metadata: the key depends on the SOURCE, not on the
+        // type - a same type can have several.
         attributes:
           candidate.source === 'BGG'
             ? { bggId: candidate.externalId }
@@ -116,7 +116,7 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
   if (discoveryQuery.isError) return <ErrorBanner message={discoveryQuery.error.message} />
   if (discoveryQuery.isLoading) return <p className="text-sm text-textDim">Chargement des suggestions {entityType.label}…</p>
   if (!discoveryQuery.data || discoveryQuery.data.length === 0) {
-    // Un silence se lirait comme une panne : dire qu'il n'y a rien, et pour qui.
+    // A silence would read as a failure: say that there is nothing, and for whom.
     return <p className="text-sm text-textDim">{entityType.label} : rien à proposer pour l'instant.</p>
   }
 
@@ -131,7 +131,7 @@ function DiscoveryTypeList({ entityType }: { entityType: EntityTypeDto }) {
             <li key={key} className="flex items-center justify-between gap-3 rounded-xl bg-surface p-3">
               <div className="min-w-0 text-sm">
                 <p className="text-textPrimary">{candidate.title}</p>
-                {/* La raison, toujours écrite : sinon c'est une page de promos. */}
+                {/* The reason, always written: otherwise it is a page of promotions. */}
                 <p className="text-textDim">{candidate.reason}</p>
               </div>
               {isAdded ? (

@@ -12,24 +12,24 @@ import type { TagDto } from '@/common/types/api'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * Les tags de l'instance, et de quoi faire le ménage.
+ * The tags of the instance, and the means to clean them up.
  *
- * <h2>Ce qui manquait</h2>
- * On pouvait créer un tag et l'attacher, puis (depuis le 2026-08-29) filtrer
- * dessus. Jamais le <b>renommer</b> ni le <b>supprimer</b> : une faute de
- * frappe était définitive, et la liste du filtre ne faisait que grossir.
- * Exactement le défaut « poser sans pouvoir gérer » déjà corrigé pour les prix
- * relevés.
+ * <h2>What was missing</h2>
+ * One could create a tag and attach it, then (since 2026-08-29) filter
+ * on it. Never <b>rename</b> or <b>delete</b> it: a typo
+ * was final, and the filter list only kept growing.
+ * Exactly the "set without being able to manage" defect already fixed for the recorded
+ * prices.
  *
- * <h2>Le décompte vient d'ici, pas d'une route de plus</h2>
- * Combien d'œuvres portent ce tag ? La réponse est dans les œuvres, que Ma
- * collection charge déjà et garde en cache (\`entities.search\`) : ajouter un
- * endpoint pour un nombre affiché sur un écran d'administration serait payer
- * une route pour ce qu'on a sous la main.
+ * <h2>The count comes from here, not from one more route</h2>
+ * How many works carry this tag? The answer is in the works, which My
+ * collection already loads and keeps in cache (\`entities.search\`): adding an
+ * endpoint for a number displayed on an administration screen would be paying
+ * a route for what we have at hand.
  *
- * <p>Le décompte n'est pas décoratif : c'est lui qui dit ce qu'une suppression
- * va détacher. « Supprimer un tag posé sur 12 œuvres » et « supprimer un tag
- * qui ne sert à rien » ne sont pas le même geste.
+ * <p>The count is not decorative: it is what says what a deletion
+ * will detach. "Supprimer un tag posé sur 12 œuvres" and "supprimer un tag
+ * qui ne sert à rien" are not the same gesture.
  */
 export function TagsPage() {
   const queryClient = useQueryClient()
@@ -46,8 +46,8 @@ export function TagsPage() {
 
   function rafraichir() {
     queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
-    // Les œuvres portent les identifiants de tags : un tag supprimé les rend
-    // périmées, et le filtre de Ma collection les lit.
+    // The works carry the tag identifiers: a deleted tag makes them
+    // stale, and the filter of Ma collection reads them.
     queryClient.invalidateQueries({ queryKey: queryKeys.entities.all })
   }
 
@@ -173,8 +173,8 @@ function LigneTag({
             Annuler
           </button>
         </div>
-        {/* Renommer ne détache rien : le tag garde son identité, seul son nom
-            change - sur les 12 œuvres d'un coup, pas une par une. */}
+        {/* Renaming detaches nothing: the tag keeps its identity, only its name
+            changes - on the 12 works at once, not one by one. */}
         <span className="text-xs text-textDim">{porte} — le nouveau nom s'appliquera partout.</span>
         {renommage.isError && <ErrorBanner message={renommage.error.message} />}
       </form>
@@ -212,8 +212,8 @@ function LigneTag({
 
       {enConfirmation && (
         <div className="flex flex-col gap-2.5">
-          {/* Ce qui part, et ce qui reste : la crainte qu'on a le doigt sur le
-              bouton est de perdre les œuvres, pas l'étiquette. */}
+          {/* What goes away, and what stays: the fear that one has with a finger on the
+              button is of losing the works, not the label. */}
           <p className="text-sm text-dangerText">
             Supprimer le tag « {tag.label} » ?{' '}
             {usages > 0

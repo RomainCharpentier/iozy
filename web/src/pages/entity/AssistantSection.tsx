@@ -9,37 +9,37 @@ import { libelleBaseLong } from '@/common/lib/basePrix'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * Les réponses de l'assistant : deux questions FIXES, dont la réponse est
- * CALCULÉE à partir des données déjà chargées par la page - jamais une saisie
- * libre, jamais un appel à un modèle de langage, jamais une réponse rédigée
- * d'avance (commentaire source de la maquette V1.2 : « Assistant : contextuel,
- * pas un chatbot »).
+ * The assistant's answers: two FIXED questions, whose answer is
+ * COMPUTED from the data already loaded by the page - never free
+ * input, never a call to a language model, never an answer written
+ * in advance (source comment of mockup V1.2: "Assistant: contextual,
+ * not a chatbot").
  *
- * <h2>Pourquoi il vit dans la barre de sections</h2>
- * Il occupait avant une section à part, coincée dans la colonne de droite de
- * « Mes tomes ». Mais ses deux questions ne portent pas sur une section : « que
- * me manque-t-il » interroge la possession, « où en suis-je » interroge les
- * lectures. La maquette v4 le sort donc des sections et le pose à droite de la
- * barre, disponible quelle que soit celle qu'on regarde. D'où la découpe en
- * deux morceaux : les BOUTONS (dans la barre) et la RÉPONSE (sous la barre).
+ * <h2>Why it lives in the section bar</h2>
+ * It used to take a section of its own, squeezed in the right column of
+ * "Mes tomes". But its two questions are not about one section: "what am I
+ * missing" asks about ownership, "where am I" asks about
+ * readings. Mockup v4 therefore takes it out of the sections and puts it at the right of the
+ * bar, available whichever section is being looked at. Hence the split into
+ * two parts: the BUTTONS (in the bar) and the ANSWER (under the bar).
  *
- * <h2>La seconde question de la maquette V1.2 n'est toujours pas répondable</h2>
- * « Qu'est-ce qui ressemble à mes S ? » n'a rien à comparer : aucun champ
- * genre/thème n'est stocké dans ce backend (même raison que l'absence de ligne
- * « Genre » dans « L'œuvre »). Remplacée par « Où en suis-je dans mes lectures ? »,
- * répondable avec les Experiences réelles (choix utilisateur du 2026-08-20).
+ * <h2>The second question of mockup V1.2 still cannot be answered</h2>
+ * "What looks like my S?" has nothing to compare: no
+ * genre/theme field is stored in this backend (same reason as the absence of a
+ * "Genre" line in "L'œuvre"). Replaced by "Where am I in my readings?",
+ * which can be answered with the real Experiences (user choice of 2026-08-20).
  *
- * <h2>Aucun appel réseau propre</h2>
- * La complétude passe par la MÊME clé de cache que la page et « Mes tomes »
- * (React Query partage la requête), les expériences sont déjà chargées.
+ * <h2>No network call of its own</h2>
+ * Completeness goes through the SAME cache key as the page and "Mes tomes"
+ * (React Query shares the request), the experiences are already loaded.
  */
 export type QuestionAssistant = 'missing' | 'reading'
 
 
-/** La réponse, posée juste sous la barre de sections. Séparée des boutons
- *  ci-dessus parce qu'elle ne tient pas dans une barre collante : elle fait
- *  plusieurs lignes, et une barre qui grandit en collant repousserait le
- *  contenu qu'on est en train de lire. */
+/** The answer, placed just under the section bar. Separate from the buttons
+ *  above because it does not fit in a sticky bar: it takes
+ *  several lines, and a bar that grows while sticky would push away the
+ *  content being read. */
 export function ReponseAssistant({
   entityId,
   entityTitle,
@@ -52,21 +52,21 @@ export function ReponseAssistant({
   entityTitle: string
   variants: VariantDto[]
   experiences: ExperienceResponse[]
-  /** null quand aucune édition n'est affichée (type sans tome, série sans
-   *  aucun tome) : « que me manque-t-il » n'a alors rien sur quoi compter. */
+  /** null when no edition is displayed (type without volumes, series without
+   *  any volume): "what am I missing" then has nothing to count on. */
   activeGroup: EditionProgressDto | null
   question: QuestionAssistant
 }) {
   const navigate = useNavigate()
-  // Possédés et catalogués viennent du serveur avec le groupe (voir
-  // GET /insights/progress/{entityId}) : cette section les recomptait à partir
-  // des Ownership, avec sa propre idée de ce qui appartient à l'édition.
+  // Owned and cataloged counts come from the server with the group (see
+  // GET /insights/progress/{entityId}): this section used to recount them from
+  // the Ownership records, with its own idea of what belongs to the edition.
   const owned = activeGroup?.ownedVolumeNumbers ?? []
   const editionName = activeGroup?.editionName ?? ''
 
-  // La complétude reste, et c'est SA question : ce qui manque et ce que ça
-  // coûterait (prix du marché). La progression, elle, ne sait que compter -
-  // les deux ne se recouvrent pas.
+  // Completeness stays, and it is ITS question: what is missing and what it
+  // would cost (market price). Progress only knows how to count -
+  // the two do not overlap.
   const completenessQuery = useQuery({
     queryKey: queryKeys.purchaseAnalysis.completeness(entityTitle, editionName, owned),
     queryFn: () =>
@@ -75,8 +75,8 @@ export function ReponseAssistant({
   })
 
   return (
-    // aria-live : la réponse apparaît sans changer de page ni de focus - un
-    // lecteur d'écran doit l'annoncer, sinon le clic ne « fait rien » pour lui.
+    // aria-live: the answer appears without a page change or a focus change - a
+    // screen reader must announce it, otherwise the click "does nothing" for it.
     <div
       aria-live="polite"
       className="flex flex-col gap-2 rounded-[20px] border border-surface2 bg-surface p-5 text-sm text-textPrimary shadow-token-sm"
@@ -108,8 +108,8 @@ export function ReponseAssistant({
   )
 }
 
-/** "12, 14, 15, 16, 20" -> "12, 14 à 16, 20" - une liste de 30 numéros bruts
- * n'est pas une réponse lisible, alors que des plages le sont. */
+/** "12, 14, 15, 16, 20" -> "12, 14 à 16, 20" - a list of 30 raw numbers
+ * is not a readable answer, while ranges are. */
 function formatVolumeRanges(volumeNumbers: number[]): string {
   const sorted = [...volumeNumbers].sort((a, b) => a - b)
   const parts: string[] = []
@@ -128,8 +128,8 @@ function formatVolumeRanges(volumeNumbers: number[]): string {
   return parts.join(', ')
 }
 
-/** "1 tome" / "5 tomes" - l'accord doit suivre le nombre calculé, sinon la
- * réponse affiche "1 tomes" dès qu'il n'en manque qu'un. */
+/** "1 tome" / "5 tomes" - the agreement must follow the computed number, otherwise the
+ * answer shows "1 tomes" as soon as only one is missing. */
 function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return count > 1 ? pluralForm : singular
 }
@@ -159,9 +159,9 @@ function MissingAnswer({
 }) {
   const base = libelleBaseLong(costToCompleteBasis)
 
-  // Édition non précisée : la complétude est TOUJOURS calculée par édition
-  // (deux éditions d'une même série n'ont pas le même nombre de tomes, voir
-  // CollectionStatus côté backend) - sans édition, il n'y a rien à comparer.
+  // Edition not specified: completeness is ALWAYS computed per edition
+  // (two editions of the same series do not have the same number of volumes, see
+  // CollectionStatus on the backend side) - without an edition, there is nothing to compare.
   if (editionName === '') {
     return (
       <p className="text-textDim">
@@ -202,11 +202,11 @@ function MissingAnswer({
         </strong>{' '}
         sur {totalVolumes} (tu en as {ownedCount}) : {formatVolumeRanges(missingVolumeNumbers)}.
       </p>
-      {/* Distinction "déjà catalogué" / "purement virtuel" : elle existe dans
-          la réponse backend (modèle Tome != Ownership) et change ce que
-          l'utilisateur doit faire - un tome catalogué se rattache, un tome
-          virtuel doit d'abord être créé. Affichée seulement quand la
-          distinction est réellement renseignée. */}
+      {/* Distinction "already cataloged" / "purely virtual": it exists in
+          the backend answer (Tome model != Ownership) and changes what
+          the user must do - a cataloged volume is attached, a virtual
+          volume must first be created. Shown only when the
+          distinction is really filled in. */}
       {cataloguedMissingVolumeNumbers.length > 0 && (
         <p className="text-xs text-textDim">
           {cataloguedMissingVolumeNumbers.length === 1
@@ -240,19 +240,19 @@ function ReadingAnswer({
   experiences: ExperienceResponse[]
   variants: VariantDto[]
   ownedVolumes: number[]
-  /** null pour un type sans notion de tome : les lectures existent toujours,
-   *  elles ne se rattachent simplement a aucun numero. */
+  /** null for a type without the notion of volume: readings always exist,
+   *  they are simply not attached to any number. */
   activeGroup: EditionProgressDto | null
 }) {
-  // Un tome lu est une Experience portant un variantId (voir Experience.
-  // variantId, ajouté avec le sélecteur de tome) - les expériences SANS tome
-  // précisé restent comptées à part : elles concernent la série, pas un
-  // tome, et les fondre dans le compteur mentirait sur l'avancement.
+  // A read volume is an Experience carrying a variantId (see Experience.
+  // variantId, added with the volume selector) - experiences WITHOUT a
+  // specified volume are counted apart: they concern the series, not a
+  // volume, and merging them into the counter would lie about progress.
   const volumeNumberById = new Map<string, number>()
   for (const variant of variants) {
-    // Le numéro se lit STRICTEMENT comme partout ailleurs (voir attributsTome) :
-    // cette boucle acceptait seule un numéro écrit en texte, si bien qu'un tome
-    // ainsi saisi aurait été compté ici et invisible dans la grille.
+    // The number is read STRICTLY as everywhere else (see attributsTome):
+    // this loop alone accepted a number written as text, so that a volume
+    // entered that way would have been counted here and invisible in the grid.
     const volumeNumber = numeroDe(variant)
     if (volumeNumber !== null && activeGroup?.sourceEditions.includes(editionDe(variant))) {
       volumeNumberById.set(variant.id, volumeNumber)
@@ -279,10 +279,10 @@ function ReadingAnswer({
 
   return (
     <>
-      {/* Volontairement PAS un ratio "lus sur possédés" : un tome lu puis
-          revendu ferait afficher "3 tomes sur les 1 que tu possèdes". Ce
-          qu'il reste à lire est dit plus bas, à partir des tomes réellement
-          possédés. */}
+      {/* Deliberately NOT a "read out of owned" ratio: a volume read then
+          resold would show "3 volumes out of the 1 you own". What
+          is left to read is said further down, based on the volumes really
+          owned. */}
       {readVolumes.length > 0 ? (
         <p>
           Tu as lu{' '}

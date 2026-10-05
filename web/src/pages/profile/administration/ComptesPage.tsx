@@ -11,25 +11,25 @@ import { LienRetour } from '@/common/components/LienRetour'
 import { Squelette } from '@/common/components/Squelette'
 
 /**
- * Les comptes de l'instance — pour qui en répond.
+ * The accounts of the instance - for whoever answers for them.
  *
- * <h2>Ce que cet écran ne montre pas</h2>
- * Aucune donnée de personne. Un pseudo, une adresse, une date, et des
- * <b>nombres</b> : l'isolation par propriétaire est entière, et rien ici ne
- * l'ouvre. Un administrateur répond de la machine, pas des collections qui y
- * vivent.
+ * <h2>What this screen does not show</h2>
+ * No data of any person. A username, an address, a date, and
+ * <b>numbers</b>: the isolation by owner is complete, and nothing here
+ * opens it. An administrator answers for the machine, not for the collections that
+ * live on it.
  *
- * <h2>Pourquoi les nombres sont là, et pas en petit</h2>
- * Ils ne décorent pas : ce sont eux qu'on lit avant de supprimer. « 412
- * possessions » et « aucune donnée » ne se suppriment pas du même geste, et un
- * écran qui montrerait seulement des pseudos ferait prendre la décision à
- * l'aveugle.
+ * <h2>Why the numbers are there, and not small</h2>
+ * They do not decorate: they are what one reads before deleting. "412
+ * possessions" and "aucune donnée" are not deleted with the same gesture, and a
+ * screen that only showed usernames would make the decision
+ * blindly.
  *
- * <h2>La suppression est définitive</h2>
- * Elle emporte possessions, envies, expériences, classements et analyses. Pas
- * de corbeille, pas d'annulation — d'où la confirmation en deux temps, même
- * patron que la suppression d'une fiche, et la phrase qui nomme ce qui part.
- * Le <b>catalogue</b>, lui, est partagé et n'est pas touché.
+ * <h2>The deletion is final</h2>
+ * It takes away ownerships, wishes, experiences, rankings and analyses. No
+ * trash, no undo - hence the two-step confirmation, same
+ * pattern as the deletion of a work page, and the sentence that names what goes away.
+ * The <b>catalog</b>, for its part, is shared and is not touched.
  */
 export function ComptesPage() {
   const { compte: moi } = useAuth()
@@ -81,7 +81,7 @@ export function ComptesPage() {
   )
 }
 
-/** Ce que le compte détruirait, en toutes lettres - « rien » quand c'est rien. */
+/** What the account would destroy, in full words - "rien" when it is nothing. */
 function resumeDuVolume(compte: CompteAdministre): string {
   if (compte.volume.total === 0) return 'Aucune donnée'
   const morceaux = [
@@ -127,8 +127,8 @@ function LigneCompte({
                 Administrateur
               </span>
             )}
-            {/* Se reconnaître dans une liste de comptes évite de chercher
-                pourquoi le bouton « Supprimer » manque sur cette ligne-là. */}
+            {/* Recognizing oneself in a list of accounts avoids looking for
+                why the "Supprimer" button is missing on that row. */}
             {cestMoi && <span className="text-xs text-textDim">(toi)</span>}
           </span>
           <span className="text-xs text-textDim">{compte.email}</span>
@@ -137,9 +137,9 @@ function LigneCompte({
           </span>
         </div>
 
-        {/* Aucun bouton sur sa propre ligne : le serveur refuse ce geste (409),
-            et proposer une action pour n'annoncer qu'un refus est une porte
-            peinte sur un mur. */}
+        {/* No button on one's own row: the server refuses this gesture (409),
+            and offering an action only to announce a refusal is a door
+            painted on a wall. */}
         {!cestMoi && !enConfirmation && (
           <button
             type="button"

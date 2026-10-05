@@ -27,34 +27,34 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Le calendrier des sorties, pour les mangas : les tomes datés des séries
- * qu'on possède ou qu'on veut - la façade du module manga vers le cœur
- * (lot 146).
+ * The release calendar, for mangas: the dated volumes of the series
+ * the user owns or wants - the facade of the manga module towards the core
+ * (batch 146).
  *
- * <h2>D'où viennent les dates</h2>
- * Du résultat stocké de la recherche de tomes ({@code volume_search_cache}),
- * le même que lit la grille des tomes d'une fiche : Google Books y écrit le
- * jour de parution, précommandes comprises ; la BnF et Open Library n'y
- * mettent que l'année, dont le calendrier ne fait rien. Aucun fournisseur
- * n'est appelé ici : c'est {@link MangaReleaseRefresh} qui relit les séries
- * en cours, la nuit, pour que les tomes annoncés finissent par y être.
+ * <h2>Where the dates come from</h2>
+ * From the stored result of the volume search ({@code volume_search_cache}),
+ * the same one the volume grid of a detail page reads: Google Books writes the
+ * release day there, pre-orders included; BnF and Open Library only put
+ * the year there, which the calendar does nothing with. No provider
+ * is called here: it is {@link MangaReleaseRefresh} that re-reads the ongoing
+ * series, at night, so that announced volumes end up being there.
  *
- * <h2>Quelle édition</h2>
- * Une série a un tome 1 par édition, et le calendrier ne les montre pas
- * toutes : l'édition suivie quand il y en a une (le badge « SUIVIE » de la
- * fiche), sinon celles dont on possède déjà des tomes, sinon - pour une série
- * seulement voulue - la plus fournie. Un tome d'une autre édition n'est pas
- * une sortie qui concerne cette collection.
+ * <h2>Which edition</h2>
+ * A series has one volume 1 per edition, and the calendar does not show
+ * them all: the followed edition when there is one (the "SUIVIE" badge of the
+ * detail page), otherwise the ones whose volumes are already owned, otherwise - for a series
+ * only wanted - the fullest one. A volume of another edition is not
+ * a release that concerns this collection.
  *
- * <h2>La relation, toujours écrite</h2>
- * Possédé quand le tome (édition, numéro) est en possession active ; voulu
- * quand il est dans les envies, ou que la série entière l'est sans rien de
- * possédé ; manquant sinon - c'est le cas qui appelle un geste.
+ * <h2>The relation, always written</h2>
+ * Owned when the volume (edition, number) is in active ownership; wanted
+ * when it is in the wishes, or when the whole series is, with nothing
+ * owned; missing otherwise - this is the case that calls for an action.
  */
 @Component
 public class MangaReleases implements ReleaseSource {
 
-    /** Les jours et les mois viennent de Google Books ; la BnF ne date qu'à l'année. */
+    /** Days and months come from Google Books; BnF only dates to the year. */
     static final String SOURCE = "GOOGLE_BOOKS";
 
     private static final String MANGAKA = "mangaka";
@@ -83,8 +83,8 @@ public class MangaReleases implements ReleaseSource {
             return List.of();
         }
 
-        // Les résultats stockés de toutes les séries, en une lecture ; les
-        // éditions suivies, en une autre.
+        // The stored results of all the series, in one read; the
+        // followed editions, in another.
         Set<String> normalizedTitles = series.stream()
                 .map(entity -> TexteRecherche.normaliser(entity.title()))
                 .collect(Collectors.toSet());
@@ -120,8 +120,8 @@ public class MangaReleases implements ReleaseSource {
                 String key = candidate.key();
                 ReleaseEntry.Relation relation = ownedKeys.contains(key) ? ReleaseEntry.Relation.OWNED
                         : wantedKeys.contains(key) ? ReleaseEntry.Relation.WANTED
-                        // La série est suivie : un tome qu'on n'a pas est à acheter, sauf
-                        // celui qu'on a dit vouloir - l'envie d'un tome reste un état du tome.
+                        // The series is followed: a volume the user does not have is to be bought, except
+                        // the one they said they want - the wish for a volume stays a state of the volume.
                         : ReleaseEntry.Relation.MISSING;
                 entries.add(new ReleaseEntry(date.get(), entity.id(), entity.title(), entity.entityTypeId(),
                         "Tome " + candidate.volumeNumber() + " · " + candidate.edition(), candidate.volumeNumber(),
@@ -132,7 +132,7 @@ public class MangaReleases implements ReleaseSource {
         return entries;
     }
 
-    /** L'édition suivie, sinon celles qu'on possède, sinon la plus fournie du résultat - normalisées. */
+    /** The followed edition, otherwise the ones owned, otherwise the fullest of the result - normalised. */
     private static Set<String> editionsToShow(String followedEdition, Set<UUID> ownedVariantIds,
                                               Map<UUID, Variant> variantsById, List<VolumeCandidate> candidates) {
         if (followedEdition != null && !followedEdition.isBlank()) {
@@ -160,7 +160,7 @@ public class MangaReleases implements ReleaseSource {
                 .orElse(Set.of());
     }
 
-    /** L'identité (édition, numéro) des tomes désignés - la même qu'un {@link VolumeCandidate}. */
+    /** The identity (edition, number) of the designated volumes - the same as a {@link VolumeCandidate}. */
     private static Set<String> keysOf(Set<UUID> variantIds, Map<UUID, Variant> variantsById) {
         Set<String> keys = new HashSet<>();
         if (variantIds == null) {
@@ -191,7 +191,7 @@ public class MangaReleases implements ReleaseSource {
         return value instanceof String s ? s.trim() : "";
     }
 
-    /** Les attributs sont un sac non typé : le numéro arrive en nombre d'un fournisseur, en texte d'un autre. */
+    /** The attributes are an untyped bag: the number arrives as a number from one provider, as text from another. */
     private static Integer volumeNumberOf(Variant variant) {
         Object value = variant.attributes().get(VOLUME_NUMBER);
         if (value instanceof Number number) {

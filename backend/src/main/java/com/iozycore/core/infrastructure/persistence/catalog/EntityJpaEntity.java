@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-// Note : annotation @jakarta.persistence.Entity utilisée en forme qualifiée
-// pour ne pas entrer en collision avec com.iozycore.core.domain.catalog.Entity.
+// Note: annotation @jakarta.persistence.Entity used in qualified form
+// to avoid a collision with com.iozycore.core.domain.catalog.Entity.
 @jakarta.persistence.Entity
 @Table(name = "entity")
 public class EntityJpaEntity {
@@ -38,18 +38,18 @@ public class EntityJpaEntity {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> attributes;
 
-    /** Les cles d'attributs saisies a la main (V32, Lot 130). */
+    /** The attribute keys typed by hand (V32, Batch 130). */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "manual_attribute_keys", columnDefinition = "jsonb", nullable = false)
     private List<String> manualAttributeKeys = new ArrayList<>();
 
-    // Table entity_tag(entity_id, tag_id) déjà créée par V1__init_schema.sql
+    // Table entity_tag(entity_id, tag_id) already created by V1__init_schema.sql
     //
-    // @BatchSize : en EAGER seul, Hibernate chargeait les tags d'UNE œuvre par
-    // requête - mesuré à 7 requêtes entity_tag pour lister 6 œuvres, sur le
-    // chemin le plus fréquenté de l'app (Ma collection, export, progression...).
-    // Avec un lot de 100, la même liste tient en une requête, et une collection
-    // de 500 séries en cinq au lieu de cinq cents.
+    // @BatchSize: with EAGER alone, Hibernate loaded the tags of ONE work per
+    // query - measured at 7 entity_tag queries to list 6 works, on the
+    // busiest path of the app (My collection, export, progress...).
+    // With a batch of 100, the same list fits in one query, and a collection
+    // of 500 series in five instead of five hundred.
     @BatchSize(size = 100)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "entity_tag", joinColumns = @JoinColumn(name = "entity_id"))
@@ -63,7 +63,7 @@ public class EntityJpaEntity {
     private Instant updatedAt;
 
     protected EntityJpaEntity() {
-        // requis par JPA
+        // required by JPA
     }
 
     public EntityJpaEntity(UUID id, UUID entityTypeId, String title, Map<String, Object> attributes,

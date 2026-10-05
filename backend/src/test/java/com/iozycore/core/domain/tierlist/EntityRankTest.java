@@ -16,7 +16,7 @@ class EntityRankTest {
         EntityRank rank = EntityRank.assign(entityId, Rank.S);
 
         assertThat(rank.entityId()).isEqualTo(entityId);
-        // Pas de propriétaire choisi ici : la session tranche à l'écriture.
+        // No owner chosen here: the session decides at write time.
         assertThat(rank.ownerId()).isNull();
         assertThat(rank.rank()).isEqualTo(Rank.S);
         assertThat(rank.rankedAt()).isNotNull();

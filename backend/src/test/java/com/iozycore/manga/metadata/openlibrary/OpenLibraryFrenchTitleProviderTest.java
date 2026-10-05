@@ -11,11 +11,11 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void treats_a_single_word_author_as_too_generic_for_the_author_only_fallback() {
-        // Cas réel trouvé en continuant les tests sur "Akame ga Kill" (voir
-        // historique) : "Takahiro" (mononyme, pseudonyme du scénariste)
-        // remontait "Trapped Life" de "Haruki Takahiro", une personne
-        // différente sans aucun rapport - un nom complet reste bien plus
-        // distinctif.
+        // Real case found while continuing the tests on "Akame ga Kill" (see
+        // history): "Takahiro" (mononym, pen name of the writer)
+        // returned "Trapped Life" by "Haruki Takahiro", a
+        // different person with no connection - a full name stays much more
+        // distinctive.
         assertThat(OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Takahiro")).isTrue();
         assertThat(OpenLibraryFrenchTitleProvider.isTooGenericForAuthorOnlySearch("Akira Toriyama")).isFalse();
     }
@@ -39,12 +39,12 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void skips_a_known_related_series_and_falls_through_to_the_next_result() throws Exception {
-        // Cas réel observé (voir historique) : "Dragon Ball Super nº 18"
-        // ressort en PREMIER résultat pour "Dragon Ball" - sa suite, mieux
-        // référencée sur Open Library, avant le vrai "Dragon Ball, tome 1".
-        // "Dragon Ball Super" partage pourtant bien le préfixe "Dragon Ball" -
-        // seule cette information externe (suite connue, voir
-        // RelatedSeriesService) permet de l'écarter et de passer au suivant.
+        // Real case observed (see history): "Dragon Ball Super nº 18"
+        // comes out as the FIRST result for "Dragon Ball" - its sequel, better
+        // referenced on Open Library, before the real "Dragon Ball, tome 1".
+        // "Dragon Ball Super" does share the prefix "Dragon Ball" -
+        // only this external information (known sequel, see
+        // RelatedSeriesService) allows us to discard it and move to the next one.
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
                 {
@@ -62,9 +62,9 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void strips_a_dash_separated_tome_suffix_without_leaving_a_dangling_dash() throws Exception {
-        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
-        // historique) : un titre séparé par un tiret plutôt qu'une virgule
-        // laissait un tiret résiduel une fois le suffixe "Tome N" retiré.
+        // Same fix as the twin GoogleBooksFrenchTitleProvider (see
+        // history): a title separated by a dash rather than a comma
+        // left a leftover dash once the suffix "Tome N" was removed.
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
                 {
@@ -81,9 +81,9 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void prefers_a_tome_numbered_result_over_an_unrelated_homonym_from_the_same_author() throws Exception {
-        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
-        // historique) : "L'Art des Sorciers" (artbook sans rapport, même
-        // auteur) avant "L'Atelier des Sorciers T15" (le vrai manga).
+        // Same fix as the twin GoogleBooksFrenchTitleProvider (see
+        // history): "L'Art des Sorciers" (unrelated artbook, same
+        // author) before "L'Atelier des Sorciers T15" (the real manga).
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
                 {
@@ -101,11 +101,11 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void recognizes_a_parenthesized_tome_number_as_a_real_series_entry() throws Exception {
-        // Même correctif que le jumeau GoogleBooksFrenchTitleProvider (voir
-        // historique) : "Gloutons et Dragons (Tome 12)" (titre français réel
-        // de "Delicious in Dungeon") avait son numéro PARENTHÉSÉ ignoré,
-        // faisant retomber le dernier recours "auteur seul" sur "Les Sept
-        // Rejetons du dragon", un autre livre du même auteur sans rapport.
+        // Same fix as the twin GoogleBooksFrenchTitleProvider (see
+        // history): "Gloutons et Dragons (Tome 12)" (real French title
+        // of "Delicious in Dungeon") had its PARENTHESISED number ignored,
+        // making the last resort "author only" fall back on "Les Sept
+        // Rejetons du dragon", another unrelated book by the same author.
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
                 {
@@ -140,12 +140,12 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void refuses_a_result_without_a_tome_number_when_only_the_author_name_matched() throws Exception {
-        // Dernier recours "auteur seul" : rien de la série cherchée n'a
-        // matché, un livre sans numéro de tome y est presque toujours un
-        // artbook/guide/one-shot du même auteur - mieux vaut ne rien
-        // remonter que de faire passer "Les Sept Rejetons du dragon" pour le
-        // titre français de "Delicious in Dungeon". Le repli reste en place
-        // aux étapes qui, elles, ont bien matché la série (voir
+        // Last resort "author only": nothing of the searched series
+        // matched, a book without a volume number there is almost always an
+        // artbook/guide/one-shot by the same author - better to return nothing
+        // than to pass "Les Sept Rejetons du dragon" off as the
+        // French title of "Delicious in Dungeon". The fallback stays in place
+        // at the steps that did match the series (see
         // falls_back_to_the_first_result_when_none_has_an_extractable_tome_number).
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
@@ -162,14 +162,14 @@ class OpenLibraryFrenchTitleProviderTest {
 
     @Test
     void skips_a_result_whose_title_is_actually_in_japanese_and_falls_through_to_the_next_one() throws Exception {
-        // Cas réel trouvé en continuant les tests sur "Detective Conan" (voir
-        // historique) : "language=fre" DANS LA REQUÊTE ne garantit QUE
-        // l'existence d'une édition française parmi toutes celles de
-        // l'œuvre - le "title" renvoyé reste le titre canonique, souvent en
-        // japonais pour un manga ("名探偵コナン") - sans ce filet de
-        // sécurité, la recherche de tomes qui suit repartait avec du
-        // japonais comme "titre français", ne trouvant alors STRICTEMENT
-        // AUCUN résultat.
+        // Real case found while continuing the tests on "Detective Conan" (see
+        // history): "language=fre" IN THE QUERY only guarantees
+        // the existence of a French edition among all those of
+        // the work - the returned "title" stays the canonical title, often in
+        // Japanese for a manga ("名探偵コナン") - without this safety
+        // net, the volume search that follows set off with
+        // Japanese as the "French title", then finding STRICTLY
+        // NO result.
         OpenLibraryFrenchTitleProvider provider = new OpenLibraryFrenchTitleProvider();
         String body = """
                 {
@@ -213,10 +213,10 @@ class OpenLibraryFrenchTitleProviderTest {
         assertThat(OpenLibraryFrenchTitleProvider.cleanVolumeSuffix("Boruto")).isEqualTo("Boruto");
     }
 
-    // "Attack on Titan" -> auteur+titre complet ne matche jamais une édition
-    // française traduite (voir le commentaire de classe pour le pourquoi) -
-    // "Titan" doit rester un candidat essayé isolément, "on" doit être
-    // exclu (mot vide) même s'il fait 2 caractères de moins que le seuil.
+    // "Attack on Titan" -> author + full title never matches a translated
+    // French edition (see the class comment for why) -
+    // "Titan" must stay a candidate tried on its own, "on" must be
+    // excluded (stop word) even if it is 2 characters under the threshold.
     @Test
     void extracts_significant_words_excluding_stopwords_and_short_words() {
         assertThat(OpenLibraryFrenchTitleProvider.significantWords("Attack on Titan")).containsExactly("Attack", "Titan");

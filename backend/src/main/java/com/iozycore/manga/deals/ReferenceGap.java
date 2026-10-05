@@ -1,47 +1,47 @@
 package com.iozycore.manga.deals;
 
 /**
- * Ce qui manque pour qu'une référence marché existe.
+ * What is missing for a market reference to exist.
  *
- * <h2>Dire quoi faire, pas seulement qu'on ne sait pas</h2>
- * « Référence insuffisante » laisse l'utilisateur sans prise. « 3 prix relevés
- * sur cette édition, mais aucun sur un lot de taille comparable » lui dit
- * exactement quel relevé ajouter pour que la prochaine analyse tranche. C'est
- * la différence entre un écran honnête et un écran muet.
+ * <h2>Say what to do, not only that we do not know</h2>
+ * "Reference not sufficient" leaves the user with nothing to act on. "3 prices observed
+ * on this edition, but none on a lot of comparable size" tells them
+ * exactly which observation to add so that the next analysis can decide. This is
+ * the difference between an honest screen and a silent screen.
  */
 public enum ReferenceGap {
 
-    /** Rien ne manque : la référence existe. */
+    /** Nothing is missing: the reference exists. */
     NONE,
 
-    /** L'édition n'est pas encore au catalogue - aucun relevé ne peut s'y rattacher. */
+    /** The edition is not in the catalogue yet - no observation can be linked to it. */
     EDITION_NOT_IN_CATALOGUE,
 
-    /** Aucun prix relevé sur cette édition. */
+    /** No price observed on this edition. */
     NO_OBSERVATION,
 
     /**
-     * Des relevés existent, mais aucun ne porte sur un produit comparable -
-     * tome seul contre lot, ou lots de tailles trop éloignées. Le cas le plus
-     * important : c'est précisément celui où l'ancienne moyenne inventait un
-     * prix.
+     * Observations exist, but none is about a comparable product -
+     * single volume against lot, or lots of sizes too far apart. The most
+     * important case: it is exactly the one where the old average made up a
+     * price.
      */
     NO_COMPARABLE_SHAPE,
 
-    /** Des comparables existaient, mais tous trop anciens pour décrire le marché d'aujourd'hui. */
+    /** Comparables existed, but all too old to describe today's market. */
     ONLY_STALE_OBSERVATIONS,
 
     /**
-     * Le seul relevé comparable vient de <b>cette annonce-ci</b>, relevée lors
-     * d'une analyse précédente. Elle est exclue de sa propre référence - sinon
-     * toute annonce réanalysée se dirait « au prix du marché », le sien. Il
-     * manque donc une autre offre, pas un autre relevé de celle-là.
+     * The only comparable observation comes from <b>this very listing</b>, noted during
+     * a previous analysis. It is excluded from its own reference - otherwise
+     * any listing that is analysed again would say "at market price", its own. So
+     * another offer is missing, not another observation of this one.
      */
     ONLY_CURRENT_LISTING,
 
-    /** Lot multi-séries dont au moins une série n'a pas de référence : la somme serait tronquée, donc trompeuse. */
+    /** Multi-series lot where at least one series has no reference: the sum would be truncated, so misleading. */
     INCOMPLETE_LOT_COVERAGE,
 
-    /** Analyse antérieure à l'enregistrement de cette information. */
+    /** Analysis older than the recording of this information. */
     NOT_RECORDED
 }

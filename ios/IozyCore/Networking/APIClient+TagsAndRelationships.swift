@@ -24,8 +24,8 @@ extension APIClient {
         let label: String
     }
 
-    /// Le backend réutilise un tag existant si le label correspond déjà
-    /// (voir TagController côté Spring) - pas de risque de doublon ici.
+    /// The backend reuses an existing tag if the label already matches
+    /// (see TagController on the Spring side) - no risk of a duplicate here.
     func createTag(label: String) async throws -> TagDTO {
         try await post("/tags", body: CreateTagRequest(label: label))
     }
@@ -38,11 +38,11 @@ extension APIClient {
         try await delete("/tags/entities/\(entityId.uuidString)/\(tagId.uuidString)")
     }
 
-    // MARK: - Entity (détail, avec tagIds - distinct de EntityRecord qui est le cache local)
+    // MARK: - Entity (detail, with tagIds - distinct from EntityRecord which is the local cache)
 
-    /// Tome précis d'une édition (ex: "Tome 3 — Kana") - voir Variant côté
-    /// domaine backend. attributes contient typiquement volumeNumber (Int)
-    /// et edition (String), tous deux facultatifs.
+    /// Exact volume of an edition (e.g. "Volume 3 — Kana") - see Variant on the
+    /// backend domain side. attributes typically contains volumeNumber (Int)
+    /// and edition (String), both optional.
     struct VariantDTO: Codable, Identifiable, Hashable {
         let id: UUID
         let label: String
@@ -65,10 +65,10 @@ extension APIClient {
         try await get("/entities/\(id.uuidString)")
     }
 
-    /// Recherche transversale sur la collection (UC4) - par titre, tous
-    /// types confondus si entityTypeId est nil. C'est la vraie recherche
-    /// dans ta collection, distincte de searchMetadata (qui interroge des
-    /// sources externes comme Jikan/BGG pour préparer un ajout).
+    /// Cross search on the collection (UC4) - by title, all
+    /// types together if entityTypeId is nil. This is the real search
+    /// in your collection, different from searchMetadata (which queries external
+    /// sources like Jikan/BGG to prepare an add).
     func searchEntities(query: String, entityTypeId: UUID? = nil, tagId: UUID? = nil) async throws -> [EntityDetailDTO] {
         var path = "/entities/search?"
         var components: [String] = []
@@ -85,12 +85,12 @@ extension APIClient {
         return try await get(path)
     }
 
-    /// Utilisé pour rafraîchir le cache local après un import en masse (BGG).
+    /// Used to refresh the local cache after a bulk import (BGG).
     func fetchAllEntities(entityTypeId: UUID) async throws -> [EntityDetailDTO] {
         try await get("/entities?entityTypeId=\(entityTypeId.uuidString)")
     }
 
-    // MARK: - Import de collection BGG
+    // MARK: - BGG collection import
 
     struct BggImportResult: Decodable {
         let totalFound: Int

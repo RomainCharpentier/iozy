@@ -1,17 +1,16 @@
 /**
- * <b>Un réglage retenu d'une visite à l'autre, et qui survit à ce qu'il relit.</b>
+ * <b>A setting remembered from one visit to the next, and which survives what it reads back.</b>
  *
- * Ces préférences viennent du `localStorage` : une donnée que l'app ne contrôle
- * pas: écrite par une version précédente, tronquée, éditée à la main, ou
- * simplement refusée par le navigateur en navigation privée. Deux règles en
- * découlent, et les deux se cassent en silence - l'écran s'ouvre juste sur le
- * mauvais filtre :
+ * These preferences come from `localStorage`: data that the app does not
+ * control: written by a previous version, truncated, edited by hand, or
+ * simply refused by the browser in private browsing. Two rules follow from
+ * it, and both break silently - the screen just opens on the wrong filter:
  * <ul>
- *   <li>la validation est faite <b>champ par champ</b> : un réglage ajouté plus
- *       tard, ou corrompu, ne doit pas faire retomber les autres sur leur
- *       défaut ;</li>
- *   <li>écrire ne remplace que ce qu'on nomme - `definir({ tri })` ne doit pas
- *       effacer le filtre en cours.</li>
+ *   <li>the validation is done <b>field by field</b>: a setting added later,
+ *       or a corrupted one, must not make the others fall back to their
+ *       default;</li>
+ *   <li>writing only replaces what is named - `definir({ tri })` must not
+ *       erase the current filter.</li>
  * </ul>
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -27,14 +26,14 @@ function lireBrut(): unknown {
 beforeEach(() => localStorage.clear())
 afterEach(() => vi.restoreAllMocks())
 
-describe('la lecture', () => {
-  it('ouvre sur « tout / groupée / récent » quand rien n’a jamais été choisi', () => {
+describe('the reading', () => {
+  it('opens on "all / grouped / recent" when nothing was ever chosen', () => {
     const { result } = renderHook(() => usePreferencesCollection())
 
     expect(result.current).toMatchObject({ filtre: 'tout', vue: 'groupee', tri: 'recent' })
   })
 
-  it('relit ce qui a été choisi', () => {
+  it('reads back what was chosen', () => {
     localStorage.setItem(CLE, JSON.stringify({ filtre: 'envies', vue: 'plate', tri: 'titre' }))
 
     const { result } = renderHook(() => usePreferencesCollection())
@@ -42,9 +41,9 @@ describe('la lecture', () => {
     expect(result.current).toMatchObject({ filtre: 'envies', vue: 'plate', tri: 'titre' })
   })
 
-  it('ne laisse pas un champ corrompu emporter les autres', () => {
-    // Le cas d'un réglage renommé entre deux versions : « grille » n'existe
-    // plus, mais le filtre et le tri choisis, eux, sont toujours valides.
+  it('does not let a corrupted field carry the others away', () => {
+    // The case of a setting renamed between two versions: "grille" no longer
+    // exists, but the chosen filter and sort are still valid.
     localStorage.setItem(CLE, JSON.stringify({ filtre: 'possedes', vue: 'grille', tri: 'titre' }))
 
     const { result } = renderHook(() => usePreferencesCollection())
@@ -52,7 +51,7 @@ describe('la lecture', () => {
     expect(result.current).toMatchObject({ filtre: 'possedes', vue: 'groupee', tri: 'titre' })
   })
 
-  it('survit à un contenu qui n’est même pas du JSON', () => {
+  it('survives a content that is not even JSON', () => {
     localStorage.setItem(CLE, '{ceci nest pas du json')
 
     const { result } = renderHook(() => usePreferencesCollection())
@@ -60,7 +59,7 @@ describe('la lecture', () => {
     expect(result.current).toMatchObject({ filtre: 'tout', vue: 'groupee', tri: 'recent' })
   })
 
-  it('survit à un JSON valide qui n’est pas un objet', () => {
+  it('survives a valid JSON that is not an object', () => {
     localStorage.setItem(CLE, '"envies"')
 
     const { result } = renderHook(() => usePreferencesCollection())
@@ -69,17 +68,17 @@ describe('la lecture', () => {
   })
 })
 
-describe('l’écriture', () => {
-  it('ne remplace que ce qu’on nomme', () => {
+describe('the writing', () => {
+  it('only replaces what is named', () => {
     definirPreferencesCollection({ filtre: 'envies' })
     definirPreferencesCollection({ tri: 'titre' })
 
     expect(lireBrut()).toEqual({ filtre: 'envies', vue: 'groupee', tri: 'titre' })
   })
 
-  it('met à jour les écrans déjà ouverts, sans rechargement', () => {
-    // Ma collection et la vue d'une catégorie partagent le réglage : elles
-    // doivent se suivre, pas repartir chacune de son propre défaut.
+  it('updates the screens that are already open, without a reload', () => {
+    // Ma collection and the view of a category share the setting: they must
+    // follow each other, not each start from their own default.
     const { result } = renderHook(() => usePreferencesCollection())
 
     act(() => definirPreferencesCollection({ vue: 'plate' }))
@@ -87,9 +86,9 @@ describe('l’écriture', () => {
     expect(result.current.vue).toBe('plate')
   })
 
-  it('laisse la page utilisable quand le stockage est refusé', () => {
-    // Navigation privée : `setItem` lève. Le comportement voulu est explicite
-    // dans le module - la page ne tombe pas, elle oublie simplement le choix.
+  it('leaves the page usable when the storage is refused', () => {
+    // Private browsing: `setItem` throws. The intended behavior is explicit
+    // in the module - the page does not fall, it simply forgets the choice.
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError')
     })

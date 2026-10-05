@@ -3,9 +3,9 @@ package com.iozycore.core.domain.catalog;
 import java.util.UUID;
 
 /**
- * Lien typé entre deux Entity (ex: ADAPTED_INTO, PART_OF_SERIES).
- * Le type de relation reste une chaîne libre pour rester configurable
- * sans modification du code, conformément au principe de généricité.
+ * Typed link between two Entity (e.g. ADAPTED_INTO, PART_OF_SERIES).
+ * The relationship type stays a free string to stay configurable
+ * without code changes, following the genericity principle.
  */
 public record Relationship(
         UUID id,
@@ -14,9 +14,9 @@ public record Relationship(
         String relationshipType
 ) {
     public Relationship {
-        // Avant ces deux gardes, un corps de requête incomplet arrivait jusqu'au
-        // .equals() ci-dessous et remontait une NullPointerException en 500
-        // ("Cannot invoke java.util.UUID.equals(Object)") - voir Lot 28.
+        // Before these two guards, an incomplete request body reached the
+        // .equals() below and raised a NullPointerException as a 500
+        // ("Cannot invoke java.util.UUID.equals(Object)") - see Batch 28.
         if (sourceEntityId == null) {
             throw new IllegalArgumentException("Une relation doit avoir une Entity source");
         }

@@ -1,15 +1,15 @@
 /**
- * <b>Faire le ménage dans les étiquettes.</b>
+ * <b>Cleaning up the labels.</b>
  *
- * <p>On pouvait créer un tag, l'attacher, puis filtrer dessus — jamais le
- * renommer ni le supprimer. Deux règles portent tout l'écran, et aucune ne
- * casse bruyamment :
+ * <p>One could create a tag, attach it, then filter on it - but never
+ * rename or delete it. Two rules carry the whole screen, and neither
+ * breaks loudly:
  * <ul>
- *   <li>le <b>décompte</b> dit ce qu'une suppression va détacher. Supprimer un
- *       tag posé sur 12 œuvres et supprimer un tag qui ne sert à rien ne sont
- *       pas le même geste ;</li>
- *   <li><b>renommer n'est pas supprimer</b> : le tag garde son identité, seul
- *       son nom change — sur toutes les œuvres d'un coup.</li>
+ *   <li>the <b>count</b> says what a deletion will detach. Deleting a
+ *       tag set on 12 works and deleting a tag that is useless are not
+ *       the same gesture;</li>
+ *   <li><b>renaming is not deleting</b>: the tag keeps its identity, only
+ *       its name changes - on all the works at once.</li>
  * </ul>
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -59,17 +59,17 @@ beforeEach(async () => {
   await waitFor(() => expect(screen.getByText('seinen')).toBeInTheDocument())
 })
 
-describe('le décompte', () => {
-  it('dit sur combien d’œuvres chaque tag est posé', () => {
+describe('the count', () => {
+  it('says on how many works each tag is set', () => {
     expect(screen.getByText('Sur 2 œuvres')).toBeInTheDocument()
-    // Un tag que rien ne porte n'est pas une absence de donnée : c'est
-    // précisément celui qu'on peut retirer sans y penser.
+    // A tag that nothing carries is not a lack of data: it is
+    // precisely the one that can be removed without thinking.
     expect(screen.getByText('Sur aucune œuvre')).toBeInTheDocument()
   })
 })
 
-describe('renommer', () => {
-  it('garde le tag et prévient que le nom s’appliquera partout', async () => {
+describe('rename', () => {
+  it('keeps the tag and warns that the name will apply everywhere', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Renommer le tag seinen' }))
 
     expect(screen.getByText(/le nouveau nom s'appliquera partout/)).toBeInTheDocument()
@@ -84,8 +84,8 @@ describe('renommer', () => {
   })
 })
 
-describe('supprimer', () => {
-  it('annonce ce qui sera détaché, et ce qui ne bouge pas', async () => {
+describe('delete', () => {
+  it('announces what will be detached, and what does not move', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Supprimer le tag seinen' }))
 
     expect(screen.getByText(/retiré des 2 œuvres qui le portent/)).toBeInTheDocument()
@@ -93,7 +93,7 @@ describe('supprimer', () => {
     expect(apiTags.supprimerTag).not.toHaveBeenCalled()
   })
 
-  it('n’envoie la demande qu’après confirmation', async () => {
+  it('only sends the request after confirmation', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Supprimer le tag orphelin' }))
     await userEvent.click(screen.getByRole('button', { name: 'Confirmer la suppression' }))
 

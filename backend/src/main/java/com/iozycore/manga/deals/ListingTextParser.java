@@ -10,108 +10,108 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Devine ce qu'une annonce contient, à partir de son seul texte.
+ * Guesses what a listing contains, from its text alone.
  *
- * <h2>Déterministe, jamais devin</h2>
- * Des règles écrites, pas un modèle : « tomes 1 à 14 » donne 1..14 parce que la
- * phrase le dit, pas parce qu'un score de vraisemblance l'estime. Une annonce
- * qui n'annonce rien de précis - « lot manga divers » - ne produit
- * <b>rien</b>. Inventer une intégrale de 12 tomes à partir de trois mots
- * fabriquerait un verdict d'achat calculé sur des tomes qui n'existent pas,
- * ce qui est bien pire que de ne rien proposer.
+ * <h2>Deterministic, never a guesser</h2>
+ * Written rules, not a model: "tomes 1 à 14" gives 1..14 because the
+ * sentence says so, not because a likelihood score estimates it. A listing
+ * that announces nothing precise - "lot manga divers" - produces
+ * <b>nothing</b>. Making up a complete set of 12 volumes from three words
+ * would build a purchase verdict computed on volumes that do not exist,
+ * which is much worse than proposing nothing.
  *
- * <h2>Une proposition, jamais une vérité</h2>
- * Le résultat est destiné à être <b>confirmé par l'utilisateur</b> avant
- * d'entrer dans l'analyse. {@link Detection#needsConfirmation()} dit quand le
- * doute est tel qu'il faut le signaler à l'écran.
+ * <h2>A proposal, never a truth</h2>
+ * The result is meant to be <b>confirmed by the user</b> before
+ * it enters the analysis. {@link Detection#needsConfirmation()} says when the
+ * doubt is such that it must be shown on the screen.
  *
- * <h2>Ce que cette classe ne fait pas</h2>
- * Elle ne consulte ni le catalogue, ni la collection, ni le réseau : c'est une
- * fonction du texte vers des numéros. Le rapprochement avec une série connue
- * revient à {@link SeriesMatcher}, et la confrontation aux possessions à
+ * <h2>What this class does not do</h2>
+ * It does not consult the catalogue, the collection or the network: it is a
+ * function from text to numbers. Matching with a known series
+ * is the job of {@link SeriesMatcher}, and comparing with the owned items is the job of
  * {@link CollectionFit}.
  */
 public final class ListingTextParser {
 
     /**
-     * Au-delà, on refuse : « tomes 1 à 900 » est une coquille ou un autre
-     * usage du mot, pas un lot. Sans cette borne, une plage absurde ferait
-     * exploser le calcul du prix par tome.
+     * Above this, we refuse: "tomes 1 à 900" is a typo or another
+     * use of the word, not a lot. Without this limit, an absurd range would make
+     * the price per volume calculation explode.
      */
     private static final int NUMERO_DE_TOME_MAX = 300;
 
-    /** Ce qui annonce un numéro de tome : « tome », « tomes », « volume », « vol. », « t. », « T ». */
+    /** What announces a volume number: "tome", "tomes", "volume", "vol.", "t.", "T". */
     private static final String PREFIXE_TOME = "(?:tomes?|volumes?|vol\\.?|t\\.?)";
 
     /**
-     * « tome 1 à 14 », « 1 à 14 », « du 1 au 14 », « T1 à T6 », « 1-6 ».
+     * "tome 1 à 14", "1 à 14", "du 1 au 14", "T1 à T6", "1-6".
      * <p>
-     * Le préfixe est accepté <b>des deux côtés</b> : « T1 à T6 » est aussi
-     * courant que « tomes 1 à 6 », et sans cela le « T6 » restait collé au
-     * titre.
+     * The prefix is accepted <b>on both sides</b>: "T1 à T6" is as
+     * common as "tomes 1 à 6", and without this the "T6" stayed stuck to the
+     * title.
      */
     private static final Pattern PLAGE_EN_LETTRES = Pattern.compile(
             "(?i)\\b" + PREFIXE_TOME + "?\\s*(?:du\\s*)?(\\d{1,3})\\s*(?:à|a|au|-|–|/)\\s*"
                     + PREFIXE_TOME + "?\\s*(\\d{1,3})\\b");
 
     /**
-     * « tomes 1, 2, 3, 5 », « tomes 1 et 2 » - la liste doit être introduite,
-     * sinon tout nombre du texte serait un tome.
+     * "tomes 1, 2, 3, 5", "tomes 1 et 2" - the list must be introduced,
+     * otherwise any number in the text would be a volume.
      */
     private static final Pattern LISTE_INTRODUITE = Pattern.compile(
             "(?i)\\b" + PREFIXE_TOME + "\\s*((?:\\d{1,3}\\s*(?:,|\\+|&|et)\\s*)+\\d{1,3})\\b");
 
-    /** « tome 7 » seul. */
+    /** "tome 7" alone. */
     private static final Pattern TOME_UNIQUE = Pattern.compile(
             "(?i)\\b" + PREFIXE_TOME + "\\s*(\\d{1,3})\\b");
 
     /**
-     * « 9 tomes », « 12 volumes », « 9 mangas » - le chiffre est <b>avant</b> le
-     * mot, et c'est toute la différence : il donne la <b>taille</b> du lot, pas
-     * l'identité des tomes.
+     * "9 tomes", "12 volumes", "9 mangas" - the number comes <b>before</b> the
+     * word, and that is the whole difference: it gives the <b>size</b> of the lot, not
+     * the identity of the volumes.
      *
-     * <p>« 9 tomes de Naruto » ne dit pas qu'il s'agit des tomes 1 à 9 : le
-     * vendeur peut très bien avoir les tomes 14 à 22. Ce nombre est donc lu et
-     * rapporté, <b>jamais déroulé en numéros</b> - inventer 1 à 9 fabriquerait
-     * un verdict d'achat calculé sur des tomes que personne n'a vus.
+     * <p>"9 tomes de Naruto" does not say that these are volumes 1 to 9: the
+     * seller may well have volumes 14 to 22. This number is therefore read and
+     * reported, <b>never unrolled into numbers</b> - making up 1 to 9 would build
+     * a purchase verdict computed on volumes that nobody has seen.
      *
-     * <p>Le connecteur est avalé <b>des deux côtés</b> : « 9 tomes <b>de</b>
-     * Naruto » le pose après, « Lot <b>de</b> 9 tomes Naruto » le pose avant.
-     * Sans cela le titre probable gardait un « de » orphelin qu'aucune série ne
-     * porte, et le rapprochement catalogue échouait sur un mot de liaison.
+     * <p>The connector is swallowed <b>on both sides</b>: "9 tomes <b>de</b>
+     * Naruto" puts it after, "Lot <b>de</b> 9 tomes Naruto" puts it before.
+     * Without this the probable title kept an orphan "de" that no series
+     * carries, and the catalogue match failed on a linking word.
      */
     private static final Pattern NOMBRE_DE_TOMES = Pattern.compile(
             "(?i)(?:\\b(?:de|du|des|d')\\s+)?\\b(\\d{1,3})\\s*(?:tomes|volumes|mangas|livres|bds)\\b"
                     + "(?:\\s+(?:de|du|des|d'))?");
 
     /**
-     * Les mentions commerciales d'une annonce, qui ne font pas partie du nom
-     * d'une œuvre. Retirées comme <b>mots entiers</b> : « lot » disparaît de
-     * « Lot Death Note », pas de « Camelot ».
+     * The commercial mentions of a listing, which are not part of the name
+     * of a work. Removed as <b>whole words</b>: "lot" disappears from
+     * "Lot Death Note", not from "Camelot".
      */
     private static final Pattern MOTS_COMMERCIAUX = Pattern.compile(
             "(?i)\\b(?:int[ée]grale|s[ée]rie compl[èe]te|collection compl[èe]te|lot complet|coffret|lot"
                     + "|neuf|comme neuf|tbe|be)\\b");
 
     /**
-     * Les séparateurs qu'une annonce pose <b>autour</b> de ses informations.
-     * Rognés aux extrémités seulement : « Hell's Paradise – » perd son tiret,
-     * « Kaguya-sama: Love Is War » garde le sien, et un « - » au milieu d'un
-     * titre n'est jamais touché faute de pouvoir prouver qu'il sépare.
+     * The separators that a listing puts <b>around</b> its information.
+     * Trimmed at the ends only: "Hell's Paradise – " loses its dash,
+     * "Kaguya-sama: Love Is War" keeps its own, and a "-" in the middle of a
+     * title is never touched because we cannot prove that it separates.
      *
-     * <p>{@code +} et {@code &} y figurent depuis qu'un titre comme « Naruto
-     * 1-3 + TBE » ressortait en « Naruto <b>+</b> » : une chaîne qu'aucune
-     * série du catalogue ne porte, donc un rapprochement perdu sur un signe de
-     * ponctuation resté seul en bout de ligne.
+     * <p>{@code +} and {@code &} are in it since a title like "Naruto
+     * 1-3 + TBE" came out as "Naruto <b>+</b>": a string that no
+     * series of the catalogue carries, so a match lost on a punctuation
+     * sign left alone at the end of the line.
      */
     private static final Pattern SEPARATEURS_AUX_BORDS =
             Pattern.compile("^[\\s\\-–—|:;,/+&]+|[\\s\\-–—|:;,/+&]+$");
 
-    /** Annonce un ensemble sans en donner les bornes : on le note, on n'en déduit pas de numéros. */
+    /** Announces a whole set without giving its limits: we note it, we do not deduce numbers from it. */
     private static final Pattern MENTION_INTEGRALE = Pattern.compile(
             "int[ée]grale|s[ée]rie compl[èe]te|collection compl[èe]te|lot complet|coffret complet");
 
-    /** Formulations trop vagues pour qu'un numéro trouvé à côté veuille dire quoi que ce soit. */
+    /** Wordings too vague for a number found next to them to mean anything. */
     private static final Pattern MENTION_VAGUE = Pattern.compile(
             "lot (?:de )?mangas? divers|lot divers|mangas? divers|lot vari[ée]|divers mangas?|lot de livres divers");
 
@@ -119,24 +119,24 @@ public final class ListingTextParser {
     }
 
     /**
-     * Ce que le texte a livré.
+     * What the text delivered.
      *
-     * @param volumeNumbers    numéros lus explicitement - vide quand le texte ne les donne pas
-     * @param mentionsComplete l'annonce se dit « intégrale » / « série complète » sans donner les bornes
-     * @param vague            formulation trop imprécise pour identifier quoi que ce soit
-     * @param announcedVolumeCount combien de tomes l'annonce dit contenir, <b>sans dire lesquels</b>
-     *                         (« 9 tomes de Naruto ») - {@code null} quand elle ne le dit pas.
-     *                         Renseigné <b>uniquement</b> à défaut de numéros : quand ceux-ci sont
-     *                         connus, leur nombre se compte, et deux sources pour la même grandeur
-     *                         finiraient par se contredire
+     * @param volumeNumbers    numbers read explicitly - empty when the text does not give them
+     * @param mentionsComplete the listing says "intégrale" / "série complète" without giving the limits
+     * @param vague            wording too imprecise to identify anything
+     * @param announcedVolumeCount how many volumes the listing says it contains, <b>without saying which</b>
+     *                         ("9 tomes de Naruto") - {@code null} when it does not say.
+     *                         Filled <b>only</b> when there are no numbers: when these are
+     *                         known, their number can be counted, and two sources for the same quantity
+     *                         would end up contradicting each other
      */
     public record Detection(Set<Integer> volumeNumbers, boolean mentionsComplete, boolean vague,
                             Integer announcedVolumeCount) {
 
         public Detection {
             volumeNumbers = volumeNumbers == null ? Set.of() : new TreeSet<>(volumeNumbers);
-            // Un nombre annoncé À CÔTÉ de numéros lus serait redondant au mieux,
-            // contradictoire au pire : les numéros font foi.
+            // A number announced NEXT TO numbers that were read would be redundant at best,
+            // contradictory at worst: the numbers are the reference.
             announcedVolumeCount = volumeNumbers.isEmpty() ? announcedVolumeCount : null;
         }
 
@@ -144,7 +144,7 @@ public final class ListingTextParser {
             return new Detection(Set.of(), false, false, null);
         }
 
-        /** Le texte dit combien, sans dire lesquels - la seule question qui reste ouverte. */
+        /** The text says how many, without saying which - the only question that stays open. */
         public boolean hasAnnouncedCountOnly() {
             return volumeNumbers.isEmpty() && announcedVolumeCount != null;
         }
@@ -154,17 +154,17 @@ public final class ListingTextParser {
         }
 
         /**
-         * Vrai quand l'utilisateur doit regarder de près avant de lancer l'analyse :
-         * soit rien n'a été identifié, soit le texte annonce un ensemble complet
-         * dont on ignore la taille (« intégrale » sans numéros), soit il est
-         * délibérément vague.
+         * True when the user must look closely before starting the analysis:
+         * either nothing was identified, or the text announces a complete set
+         * whose size is unknown ("intégrale" without numbers), or it is
+         * deliberately vague.
          */
         public boolean needsConfirmation() {
             return vague || !hasVolumes();
         }
     }
 
-    /** Lit le titre puis, seulement s'il n'a rien donné, la description - le titre est bien plus fiable. */
+    /** Reads the title and then, only if it gave nothing, the description - the title is far more reliable. */
     public static Detection parse(String title, String description) {
         String titre = normaliser(title);
         String texte = normaliser(description);
@@ -172,8 +172,8 @@ public final class ListingTextParser {
         boolean vague = MENTION_VAGUE.matcher(titre).find()
                 || (titre.isBlank() && MENTION_VAGUE.matcher(texte).find());
         if (vague) {
-            // Une formulation vague empoisonne tout ce qui l'entoure : « lot manga
-            // divers 25 pièces » ne décrit pas les tomes 25.
+            // A vague wording poisons everything around it: "lot manga
+            // divers 25 pièces" does not describe volume 25.
             return new Detection(Set.of(), false, true, null);
         }
 
@@ -181,8 +181,8 @@ public final class ListingTextParser {
         Set<Integer> numeros = !depuisTitre.isEmpty() ? depuisTitre : numeros(texte);
         boolean complete = MENTION_INTEGRALE.matcher(titre).find() || MENTION_INTEGRALE.matcher(texte).find();
 
-        // Cherché seulement à défaut de numéros, et dans le titre d'abord :
-        // une description bavarde parle souvent d'autre chose que du lot.
+        // Searched only when there are no numbers, and in the title first:
+        // a chatty description often talks about something other than the lot.
         Integer nombreAnnonce = numeros.isEmpty() ? premierNombreDeTomes(titre) : null;
         if (nombreAnnonce == null && numeros.isEmpty()) {
             nombreAnnonce = premierNombreDeTomes(texte);
@@ -192,27 +192,27 @@ public final class ListingTextParser {
     }
 
     /**
-     * Ce qui, juste avant un nombre de tomes, décrit <b>l'œuvre</b> et non le lot.
+     * What, just before a number of volumes, describes <b>the work</b> and not the lot.
      *
-     * <p>Constaté sur une vraie annonce : « Manga Your evil past - Seinen
-     * thriller — <b>Série en 14 tomes</b> », pour un lot qui en contenait
-     * <b>six</b>. Sans ce garde, l'écran annonçait « l'annonce indique 14 tomes,
-     * sans dire lesquels », puis reprochait à l'utilisateur d'en avoir saisi
-     * trop peu. Une phrase parfaitement honnête du vendeur devenait un reproche.
+     * <p>Seen on a real listing: "Manga Your evil past - Seinen
+     * thriller — <b>Série en 14 tomes</b>", for a lot that contained
+     * <b>six</b>. Without this guard, the screen said "the listing says 14 volumes,
+     * without saying which", then blamed the user for entering
+     * too few. A perfectly honest sentence from the seller became a reproach.
      *
-     * <p>« Série en 14 tomes » dit la <i>longueur de l'œuvre</i> ; « lot de 9
-     * tomes » dit la <i>taille de la vente</i>. Les deux se ressemblent et ne
-     * veulent pas dire la même chose.
+     * <p>"Série en 14 tomes" says the <i>length of the work</i>; "lot de 9
+     * tomes" says the <i>size of the sale</i>. The two look alike and do not
+     * mean the same thing.
      */
     private static final Pattern DECRIT_L_OEUVRE_PAS_LE_LOT = Pattern.compile(
             "(?i)\\b(?:s[ée]ries?|collections?|sagas?|œuvres?|oeuvres?)\\b[^.;!?]{0,20}$");
 
     /**
-     * Le nombre de tomes annoncé, ou {@code null}.
+     * The announced number of volumes, or {@code null}.
      *
-     * <p>Le <b>premier</b> seulement : « lot de 9 tomes, 3 séries » décrit neuf
-     * tomes, pas trois. Prendre le plus grand, ou les additionner, reviendrait
-     * à interpréter une phrase qu'on ne comprend pas.
+     * <p>Only the <b>first</b>: "lot de 9 tomes, 3 séries" describes nine
+     * volumes, not three. Taking the largest, or adding them up, would mean
+     * interpreting a sentence that we do not understand.
      */
     private static Integer premierNombreDeTomes(String texte) {
         if (texte == null || texte.isBlank()) {
@@ -221,52 +221,52 @@ public final class ListingTextParser {
         Matcher m = NOMBRE_DE_TOMES.matcher(texte);
         while (m.find()) {
             if (DECRIT_L_OEUVRE_PAS_LE_LOT.matcher(texte.substring(0, m.start())).find()) {
-                // Ce nombre-là décrit l'œuvre, pas la vente. On poursuit la
-                // lecture : la même annonce peut donner ensuite la taille du lot.
+                // This number describes the work, not the sale. We keep
+                // reading: the same listing may then give the size of the lot.
                 continue;
             }
             int n = Integer.parseInt(m.group(1));
-            // 1 tome n'est pas un lot, et au-delà du plafond des numéros ce
-            // n'est plus une taille de lot mais un autre nombre mal lu.
+            // 1 volume is not a lot, and above the ceiling of the numbers it
+            // is no longer a lot size but another number that was misread.
             return n >= 2 && n <= NUMERO_DE_TOME_MAX ? n : null;
         }
         return null;
     }
 
     /**
-     * Ce qu'un texte dit des tomes, <b>et</b> ce qu'il en reste une fois ces
-     * expressions retirées.
+     * What a text says about the volumes, <b>and</b> what is left of it once these
+     * expressions are removed.
      *
-     * <p>Rendre les deux ensemble est tout l'intérêt : le titre probable
-     * s'obtient en enlevant <b>exactement le segment reconnu</b>, jamais en
-     * supprimant tous les chiffres et toute la ponctuation. « 20th Century
-     * Boys tomes 1 à 5 » perd « tomes 1 à 5 » et garde son « 20 ».
+     * <p>Returning both together is the whole point: the probable title
+     * is obtained by removing <b>exactly the recognised segment</b>, never by
+     * deleting all the digits and all the punctuation. "20th Century
+     * Boys tomes 1 à 5" loses "tomes 1 à 5" and keeps its "20".
      *
-     * @param numeros les tomes lus - vide si le texte n'en décrit aucun
-     * @param reste   le texte privé des expressions de tomes reconnues
+     * @param numeros the volumes read - empty if the text describes none
+     * @param reste   the text without the recognised volume expressions
      */
     record ExpressionsDeTomes(Set<Integer> numeros, String reste) {
     }
 
     /**
-     * Les numéros d'un texte, par ordre de fiabilité décroissante : une plage
-     * explicite, sinon une liste introduite par « tomes », sinon des tomes
-     * cités un à un. On ne descend au niveau suivant que si le précédent n'a
-     * rien donné - mélanger les trois ferait entrer des nombres qui ne sont pas
-     * des tomes (année, prix, nombre de pièces).
+     * The numbers of a text, in order of decreasing reliability: an explicit
+     * range, otherwise a list introduced by "tomes", otherwise volumes
+     * quoted one by one. We go down to the next level only if the previous one gave
+     * nothing - mixing the three would let in numbers that are not
+     * volumes (year, price, number of pieces).
      */
     static ExpressionsDeTomes extraire(String texte) {
         if (texte == null || texte.isBlank()) {
             return new ExpressionsDeTomes(Set.of(), "");
         }
-        // Une plage RECONNUE mais rejetée (bornes absurdes, ordre inversé) arrête
-        // tout : le texte décrit clairement un intervalle qu'on n'a pas su lire.
-        // Sans ce garde, « tomes 1 à 900 » retombait sur l'heuristique du tome
-        // isolé et rendait [1] - un lot d'un seul tome là où l'annonce en
-        // annonce des centaines, donc un prix par tome et un verdict faux.
+        // A range that was RECOGNISED but rejected (absurd limits, reversed order) stops
+        // everything: the text clearly describes an interval that we could not read.
+        // Without this guard, "tomes 1 à 900" fell back to the isolated volume
+        // heuristic and returned [1] - a lot of a single volume where the listing
+        // announces hundreds, so a wrong price per volume and a wrong verdict.
         //
-        // Le segment reste retiré du titre dans tous les cas : il décrit bien
-        // des tomes, même mal formés.
+        // The segment is still removed from the title in all cases: it does describe
+        // volumes, even badly formed.
         if (PLAGE_EN_LETTRES.matcher(texte).find()) {
             return new ExpressionsDeTomes(depuisPlages(texte),
                     PLAGE_EN_LETTRES.matcher(texte).replaceAll(" "));
@@ -292,7 +292,7 @@ public final class ListingTextParser {
         while (m.find()) {
             int debut = Integer.parseInt(m.group(1));
             int fin = Integer.parseInt(m.group(2));
-            // Une plage descendante ou hors bornes n'est pas une plage de tomes.
+            // A descending or out-of-limits range is not a range of volumes.
             if (debut >= 1 && fin >= debut && fin <= NUMERO_DE_TOME_MAX) {
                 for (int i = debut; i <= fin; i++) {
                     numeros.add(i);
@@ -323,13 +323,13 @@ public final class ListingTextParser {
     }
 
     /**
-     * L'édition nommée dans ce titre, ou {@code null}.
+     * The edition named in this title, or {@code null}.
      *
-     * <p>Lue <b>après</b> retrait des expressions de tomes, sinon « tomes 1 à 3
-     * edition » ferait passer « 3 » pour le nom d'une édition.
+     * <p>Read <b>after</b> removing the volume expressions, otherwise "tomes 1 à 3
+     * edition" would make "3" pass for the name of an edition.
      *
-     * <p>Ce n'est qu'un indice : c'est le catalogue qui dira s'il correspond à
-     * une édition réellement connue de la série.
+     * <p>It is only a hint: the catalogue will say whether it matches
+     * an edition that is really known for the series.
      */
     public static String probableEdition(String title) {
         if (title == null || title.isBlank()) {
@@ -350,33 +350,33 @@ public final class ListingTextParser {
     }
 
     /**
-     * Le titre de série probable : ce qui reste une fois retirés les numéros,
-     * les mots de lot et la ponctuation. Rendu tel quel à
-     * {@link SeriesMatcher}, qui décidera s'il correspond à une série connue -
-     * cette méthode ne prétend pas connaître le catalogue.
+     * The probable series title: what is left once the numbers,
+     * the lot words and the punctuation are removed. Handed as is to
+     * {@link SeriesMatcher}, which will decide whether it matches a known series -
+     * this method does not pretend to know the catalogue.
      */
     public static String probableSeriesTitle(String title) {
         if (title == null || title.isBlank()) {
             return "";
         }
-        // Retirer SEULEMENT ce qui a été reconnu comme expression de tomes, puis
-        // les mentions commerciales, puis les séparateurs des bords.
+        // Remove ONLY what was recognised as a volume expression, then
+        // the commercial mentions, then the separators at the edges.
         //
-        // Cette méthode supprimait auparavant TOUS les chiffres et TOUTE la
-        // ponctuation avant d'espérer que le reste soit le titre. « 20th Century
-        // Boys » y devenait « th Century Boys », « Kaguya-sama: Love Is War »
-        // devenait « Kaguya sama Love Is War », et aucune normalisation en aval
-        // ne pouvait reconstruire ce qui était détruit. Les chiffres et la
-        // ponctuation appartiennent souvent à l'identité d'une œuvre.
+        // This method used to remove ALL the digits and ALL the punctuation
+        // before hoping that the rest was the title. "20th Century
+        // Boys" became "th Century Boys" there, "Kaguya-sama: Love Is War"
+        // became "Kaguya sama Love Is War", and no normalisation downstream
+        // could rebuild what was destroyed. Digits and
+        // punctuation often belong to the identity of a work.
         String reste = extraire(title).reste();
-        // « 9 tomes de Naruto » doit rendre « Naruto », pas « 9 tomes de Naruto » :
-        // sans ce retrait, aucun rapprochement catalogue n'était possible, et la
-        // série pourtant nommée noir sur blanc restait invisible.
+        // "9 tomes de Naruto" must return "Naruto", not "9 tomes de Naruto":
+        // without this removal, no catalogue match was possible, and the
+        // series, though named in black and white, stayed invisible.
         reste = NOMBRE_DE_TOMES.matcher(reste).replaceAll(" ");
-        // Même raisonnement pour l'édition : « Naruto Perfect Edition » sortait
-        // comme une SÉRIE de ce nom, que le catalogue ne connaît pas - alors que
-        // « Naruto » seul retrouvait sa fiche. Nommer l'édition, ce que les
-        // vendeurs font sans cesse, faisait perdre la série.
+        // Same reasoning for the edition: "Naruto Perfect Edition" came out
+        // as a SERIES of this name, which the catalogue does not know - while
+        // "Naruto" alone found its work page. Naming the edition, which sellers
+        // do all the time, made us lose the series.
         reste = EditionMention.lire(reste).reste();
         reste = MOTS_COMMERCIAUX.matcher(reste).replaceAll(" ");
         reste = reste.replaceAll("\\s+", " ").trim();
@@ -388,7 +388,7 @@ public final class ListingTextParser {
         return valeur == null ? "" : valeur.toLowerCase(Locale.ROOT);
     }
 
-    /** Utilitaire de lecture : les numéros triés, pour l'affichage et les tests. */
+    /** Reading helper: the numbers sorted, for display and tests. */
     public static List<Integer> sorted(Set<Integer> numeros) {
         return new ArrayList<>(new LinkedHashSet<>(new TreeSet<>(numeros)));
     }

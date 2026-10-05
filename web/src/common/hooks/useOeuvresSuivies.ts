@@ -5,14 +5,14 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { invaliderApresSuivi } from '@/common/lib/invalidations'
 
 /**
- * SOURCE UNIQUE de « ce que je suis » - le troisième état d'une œuvre, avec
- * Possédé et Envie, un seul à la fois. Suivre une œuvre, c'est en attendre
- * les sorties : c'est elle, et elle seule, qui entre au calendrier.
+ * SINGLE SOURCE of "what I follow" - the third state of a work, with
+ * Owned and Wish, only one at a time. Following a work means waiting for its
+ * releases: it, and it alone, enters the calendar.
  *
- * <p>Même patron que les envies (voir useWishlist) : un message bref avec
- * « Annuler », et l'annulation refait EXACTEMENT le geste inverse. Le serveur
- * tient la règle d'exclusivité ; ici on ne fait qu'invalider ce qu'elle a pu
- * changer - l'envie retirée par un suivi, le calendrier.
+ * <p>Same pattern as the wishes (see useWishlist): a brief message with
+ * "Annuler", and the cancel does EXACTLY the opposite action. The server
+ * holds the exclusivity rule; here we only invalidate what it may have
+ * changed - the wish removed by a follow, the calendar.
  */
 export function useOeuvresSuivies() {
   const queryClient = useQueryClient()
@@ -35,8 +35,8 @@ export function useOeuvresSuivies() {
     mutationFn: ({ entityId }: { entityId: string; silencieux?: boolean }) => unfollowWork(entityId),
     onSuccess: (_rien, variables) => {
       invaliderApresSuivi(queryClient)
-      // `silencieux` = ce retrait EST l'annulation d'un suivi : reproposer
-      // « Annuler » ferait boucler entre deux messages.
+      // `silencieux` = this removal IS the cancellation of a follow: offering
+      // "Annuler" again would loop between two messages.
       if (variables.silencieux) return
       toast('Œuvre plus suivie', { label: 'Annuler', onAction: () => suivre.mutate(variables.entityId) })
     },
@@ -49,7 +49,7 @@ export function useOeuvresSuivies() {
     estSuivie: (entityId: string) => suivies.some((s) => s.entityId === entityId),
     suivre: (entityId: string) => suivre.mutate(entityId),
     nePlusSuivre: (entityId: string) => nePlusSuivre.mutate({ entityId }),
-    /** Le geste du bouton : suivre, ou cesser de suivre, selon l'état. */
+    /** The action of the button: follow, or stop following, depending on the state. */
     basculer(entityId: string) {
       if (suivies.some((s) => s.entityId === entityId)) nePlusSuivre.mutate({ entityId })
       else suivre.mutate(entityId)

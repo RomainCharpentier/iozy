@@ -10,26 +10,26 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Une analyse est un instantané, et un instantané se relit tel qu'il a été
- * pris.</b>
+ * <b>An analysis is a snapshot, and a snapshot is read back as it was
+ * taken.</b>
  * <p>
- * Les analyses vivent en JSONB (voir {@code PurchaseAnalysisJpaEntity}) : celles
- * enregistrées avant qu'un composant existe ne le portent tout simplement pas.
- * Le contrat est alors le même partout dans ce record : <b>dire qu'on l'ignore
- * plutôt que de l'inventer après coup</b> - une référence sans provenance rend
- * {@code NOT_RECORDED}, une référence sans réserves les rend nulles, jamais des
- * valeurs reconstituées qui donneraient à un ancien verdict une assurance qu'il
- * n'avait pas.
+ * Analyses live in JSONB (see {@code PurchaseAnalysisJpaEntity}): those
+ * saved before a component existed simply do not carry it.
+ * The contract is then the same everywhere in this record: <b>say that it is unknown
+ * rather than invent it afterwards</b> - a reference without provenance returns
+ * {@code NOT_RECORDED}, a reference without caveats returns them as null, never
+ * rebuilt values that would give an old verdict a confidence it
+ * did not have.
  * <p>
- * Ce test est ce qui autorise le record à n'avoir <b>qu'un seul</b>
- * constructeur : la compatibilité ascendante est une propriété de la
- * désérialisation, pas d'une surcharge à maintenir.
+ * This test is what allows the record to have <b>only one</b>
+ * constructor: backward compatibility is a property of
+ * deserialisation, not of an overload to maintain.
  */
 class ListingAssessmentSnapshotTest {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
-    /** Le contenu exact d'un payload enregistré avant le Lot 88 : dix composants, pas treize. */
+    /** The exact content of a payload saved before Batch 88: ten components, not thirteen. */
     private static final String AVANT_LOT_88 = """
             {"collectionFit":null,"pricePosition":"FAIR_PRICE","referencePrice":50.00,
              "referenceConfidence":"HIGH","deviationPercent":-4,"trust":null,
@@ -41,13 +41,13 @@ class ListingAssessmentSnapshotTest {
     void une_analyse_enregistree_avant_les_reserves_se_relit_sans_se_les_inventer() throws Exception {
         ListingAssessment assessment = MAPPER.readValue(AVANT_LOT_88, ListingAssessment.class);
 
-        // Ce qu'elle portait est rendu intact.
+        // What it carried is returned intact.
         assertThat(assessment.referencePrice()).isEqualByComparingTo("50.00");
         assertThat(assessment.referenceSampleSize()).isEqualTo(3);
         assertThat(assessment.referenceSource()).isEqualTo(MarketReferenceSource.OBSERVED_COMPARABLES);
         assertThat(assessment.pricePosition()).isEqualTo(PricePosition.FAIR_PRICE);
 
-        // Ce qu'elle ne portait pas reste absent - et se lit comme tel à l'écran.
+        // What it did not carry stays absent - and reads as such on screen.
         assertThat(assessment.referenceSpreadPercent()).isNull();
         assertThat(assessment.referenceMostRecentObservation()).isNull();
         assertThat(assessment.referenceExaminedCount()).isZero();

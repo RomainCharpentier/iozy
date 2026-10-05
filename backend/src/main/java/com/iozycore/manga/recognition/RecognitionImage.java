@@ -1,26 +1,26 @@
 package com.iozycore.manga.recognition;
 
 /**
- * Une photo réellement récupérée, prête à être analysée.
+ * A photo really fetched, ready to be analysed.
  *
- * <h2>Des octets, pas une URL</h2>
- * Le moteur ne reçoit jamais d'URL : c'est {@link RecognitionImageFetcher} qui
- * décide ce qui peut être joint et le rapporte en octets. Un moteur ne peut
- * donc pas, par construction, aller chercher une adresse arbitraire - la
- * liste blanche est franchie une seule fois, à un seul endroit.
+ * <h2>Bytes, not a URL</h2>
+ * The engine never receives a URL: it is {@link RecognitionImageFetcher} that
+ * decides what can be attached and reports it as bytes. An engine therefore cannot,
+ * by construction, go and fetch an arbitrary address - the
+ * whitelist is crossed only once, in one place.
  *
- * <h2>Ces octets ne sont jamais journalisés</h2>
- * Ni ici, ni chez les providers. Une image en base64 dans les logs, c'est le
- * contenu d'une annonce - parfois un intérieur, un visage - recopié dans un
- * fichier que personne ne surveille.
+ * <h2>These bytes are never logged</h2>
+ * Neither here, nor in the providers. A base64 image in the logs is the
+ * content of a listing - sometimes an interior, a face - copied into a
+ * file that nobody watches.
  *
- * @param index      position 0-based dans la demande, celle que l'écran affiche
- * @param sourceUrl  d'où elle vient - conservée pour l'affichage, jamais rejointe par un
- *                   moteur. <b>{@code null}</b> pour une photo envoyée par l'utilisateur :
- *                   elle ne vient d'aucune adresse, et lui en inventer une laisserait croire
- *                   qu'on pourrait y retourner
- * @param bytes      le contenu, borné par le fetcher
- * @param mediaType  type MIME constaté, déjà validé
+ * @param index      0-based position in the request, the one the screen shows
+ * @param sourceUrl  where it comes from - kept for display, never joined by an
+ *                   engine. <b>{@code null}</b> for a photo sent by the user:
+ *                   it comes from no address, and inventing one would make us believe
+ *                   that we could go back to it
+ * @param bytes      the content, bounded by the fetcher
+ * @param mediaType  MIME type observed, already validated
  */
 public record RecognitionImage(int index, String sourceUrl, byte[] bytes, String mediaType) {
 
@@ -34,8 +34,8 @@ public record RecognitionImage(int index, String sourceUrl, byte[] bytes, String
     }
 
     /**
-     * {@code toString} sans les octets : un record les afficherait par défaut,
-     * et cette ligne finirait dans une trace d'exception.
+     * {@code toString} without the bytes: a record would show them by default,
+     * and this line would end up in an exception trace.
      */
     @Override
     public String toString() {

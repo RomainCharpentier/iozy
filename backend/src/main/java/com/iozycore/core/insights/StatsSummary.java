@@ -3,12 +3,12 @@ package com.iozycore.core.insights;
 import java.util.List;
 
 /**
- * Statistiques agrégées de la collection (UC6 de la conception, Bounded
- * Context Insights). Calculées à la demande par requêtes d'agrégation
- * directes, pas via un modèle de lecture événementiel séparé - à l'échelle
- * d'une collection personnelle, la ceremony d'un vrai read-model
- * événementiel n'apporterait rien (voir étape 8 : le choix d'un
- * event-sourcing complet avait déjà été écarté comme disproportionné).
+ * Aggregated statistics of the collection (UC6 of the design, Bounded
+ * Context Insights). Computed on demand by direct aggregation
+ * queries, not through a separate event-driven read model - at the scale
+ * of a personal collection, the ceremony of a real event-driven
+ * read-model would bring nothing (see step 8: the choice of a full
+ * event-sourcing had already been dismissed as disproportionate).
  */
 public record StatsSummary(
         long totalEntities,
@@ -32,10 +32,10 @@ public record StatsSummary(
     }
 
     /**
-     * Un mois de la "Évolution de ma collection" (voir StatsService.computeTimeline) -
-     * comptages uniquement, jamais de valeur monétaire : aucun champ de prix d'achat
-     * n'existe encore sur Ownership (voir purchaseanalysis, qui porte les prix
-     * mais uniquement pour des annonces analysées, pas pour la collection possédée).
+     * One month of the "Evolution of my collection" (see StatsService.computeTimeline) -
+     * counts only, never a monetary value: no purchase price field
+     * exists yet on Ownership (see purchaseanalysis, which carries the prices
+     * but only for analyzed listings, not for the owned collection).
      */
     public record MonthlyPoint(String month, long tomesAdded) {
     }

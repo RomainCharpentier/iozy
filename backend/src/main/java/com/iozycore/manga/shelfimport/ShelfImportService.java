@@ -34,46 +34,46 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Importer sa bibliothèque à partir de photos de l'étagère.
+ * Import your library from photos of the shelf.
  *
  * <pre>
- * photos ──> ListingRecognitionService ──> propositions (séries, tomes, éditions)
+ * photos ──> ListingRecognitionService ──> proposals (series, volumes, editions)
  *                                                │
  *                          ┌─────────────────────┴─────────────────────┐
- *                          │ déjà possédé ? (variantes + possessions)  │
- *                          │ fiche proposée ? (sources, si hors catalogue) │
+ *                          │ already owned? (variants + ownerships)    │
+ *                          │ detail page proposed? (sources, if not in catalog) │
  *                          └─────────────────────┬─────────────────────┘
  *                                                ↓
- *                                   l'écran de vérification
- *                                                ↓ (geste de l'utilisateur)
- *                                       apply : ajout rapide, tome par tome
+ *                                   the review screen
+ *                                                ↓ (user action)
+ *                                       apply: quick add, volume by volume
  * </pre>
  *
- * <h2>Le même moteur que l'analyse d'annonce</h2>
- * Rien n'est lu deux fois : la lecture des photos, la consolidation et la
- * confrontation au catalogue sont celles de {@link ListingRecognitionService}.
- * Ce service n'ajoute que ce qui distingue une étagère d'une annonce : sur une
- * annonce, on se demande ce qu'on <b>achèterait</b> ; sur son étagère, ce
- * qu'on <b>a déjà</b>. D'où les deux questions posées ici et pas là-bas.
+ * <h2>The same engine as the listing analysis</h2>
+ * Nothing is read twice: reading the photos, consolidation and
+ * matching with the catalog are those of {@link ListingRecognitionService}.
+ * This service only adds what sets a shelf apart from a listing: on a
+ * listing, we ask what we would <b>buy</b>; on one's shelf, what
+ * we <b>already have</b>. Hence the two questions asked here and not there.
  *
- * <h2>Déjà possédé</h2>
- * Un tome de son étagère qu'on possède déjà dans iozycore ne doit pas devenir
- * un second exemplaire : rephotographier la même rangée ne doit rien créer.
- * La règle est volontairement large - le numéro suffit, quelle que soit
- * l'édition - parce qu'une lecture d'édition sur une tranche est incertaine,
- * et qu'un doublon coûte plus qu'un tome à confirmer à la main.
+ * <h2>Already owned</h2>
+ * A volume of the shelf that is already owned in iozycore must not become
+ * a second copy: photographing the same row again must create nothing.
+ * The rule is deliberately wide - the number is enough, whatever
+ * the edition - because an edition reading on a spine is uncertain,
+ * and a duplicate costs more than a volume to confirm by hand.
  *
- * <h2>Une fiche proposée, jamais imposée</h2>
- * Une série absente du catalogue est cherchée chez les sources sous le titre
- * lu ; la première fiche dont le titre correspond est <b>proposée</b>, avec
- * sa jaquette et ses attributs, comme le ferait le Catalogue. L'utilisateur
- * la voit avant d'importer. Aucune fiche n'est créée ici.
+ * <h2>A detail page proposed, never imposed</h2>
+ * A series missing from the catalog is searched at the sources under the title
+ * read; the first detail page whose title matches is <b>proposed</b>, with
+ * its cover and its attributes, as the Catalog would do. The user
+ * sees it before importing. No detail page is created here.
  *
- * <h2>Ce que l'analyse n'écrit jamais</h2>
- * {@link #analyze} ne crée ni Entity, ni tome, ni possession. Seul
- * {@link #apply}, sur la liste que l'utilisateur a confirmée, écrit - et il
- * réutilise l'ajout rapide, donc la même déduplication (type + titre pour la
- * série, libellé pour le tome) que le Catalogue et le scan.
+ * <h2>What the analysis never writes</h2>
+ * {@link #analyze} creates no Entity, no volume, no ownership. Only
+ * {@link #apply}, on the list the user confirmed, writes - and it
+ * reuses quick add, so the same deduplication (type + title for the
+ * series, label for the volume) as the Catalog and the scan.
  */
 @Service
 public class ShelfImportService {
@@ -81,19 +81,19 @@ public class ShelfImportService {
     private static final Logger log = LoggerFactory.getLogger(ShelfImportService.class);
 
     /**
-     * Combien de séries inconnues sont cherchées chez les sources pour une
-     * analyse. Une étagère en montre rarement plus ; au-delà, les suivantes
-     * restent « sans fiche » et le compte est rendu à l'écran, plutôt que de
-     * brûler les quotas des fournisseurs sur une seule photo.
+     * How many unknown series are searched at the sources for one
+     * analysis. A shelf rarely shows more; beyond that, the next ones
+     * stay "without a detail page" and the count is shown on screen, instead of
+     * burning the providers' quotas on a single photo.
      */
     static final int RECHERCHES_MAX = 20;
 
-    /** La lecture des photos - le moteur d'annonce, sans texte d'annonce. */
+    /** Reading the photos - the listing engine, without listing text. */
     interface Lecture {
         ListingRecognitionService.Analysis lire(List<RecognitionImage> photos, int demandees);
     }
 
-    /** Ce que le service lit du catalogue et de la collection. */
+    /** What the service reads from the catalog and the collection. */
     interface Catalogue {
         Optional<EntityType> mangaType();
 
@@ -106,7 +106,7 @@ public class ShelfImportService {
         List<MetadataCandidate> chercher(EntityType type, String titre);
     }
 
-    /** L'ajout d'un tome à la collection - l'ajout rapide, sous une signature courte. */
+    /** Adding a volume to the collection - quick add, under a short signature. */
     interface Ajout {
         QuickAddService.QuickAddResult ajouter(UUID entityTypeId, String title, Map<String, Object> attributes,
                                                int volumeNumber, String edition);
@@ -161,13 +161,13 @@ public class ShelfImportService {
         this.ajout = ajout;
     }
 
-    // ================================================================ Lecture
+    // ================================================================ Reading
 
     /**
-     * Lit les photos et rend ce que l'écran de vérification affiche.
+     * Reads the photos and returns what the review screen shows.
      *
-     * @param photos    les images déjà validées par {@code UploadedImageReader}
-     * @param demandees ce que l'utilisateur a envoyé, y compris ce qui a été écarté
+     * @param photos    the images already validated by {@code UploadedImageReader}
+     * @param demandees what the user sent, including what was dropped
      */
     @Transactional(readOnly = true)
     public ShelfAnalysis analyze(List<RecognitionImage> photos, int demandees) {
@@ -206,11 +206,11 @@ public class ShelfImportService {
     }
 
     /**
-     * Les numéros de tome dont au moins un exemplaire est encore possédé.
+     * The volume numbers of which at least one copy is still owned.
      *
-     * <p>Une variante n'est pas une possession : un tome peut avoir été voulu,
-     * vendu ou perdu. Seule une possession <b>active</b> compte, et le numéro
-     * est lu sur la variante qu'elle référence.
+     * <p>A variant is not an ownership: a volume may have been wanted,
+     * sold or lost. Only an <b>active</b> ownership counts, and the number
+     * is read from the variant it references.
      */
     private Set<Integer> numerosPossedes(UUID entityId) {
         Optional<Entity> entity = catalogue.entity(entityId);
@@ -231,7 +231,7 @@ public class ShelfImportService {
                 .collect(Collectors.toSet());
     }
 
-    /** Le numéro d'un tome, tel que TomeResolver l'écrit dans les attributs de la variante. */
+    /** The number of a volume, as TomeResolver writes it in the variant attributes. */
     static Integer numeroDe(Variant variante) {
         Object brut = variante.attributes().get("volumeNumber");
         if (brut instanceof Number nombre) {
@@ -248,24 +248,24 @@ public class ShelfImportService {
     }
 
     /**
-     * La fiche que le Catalogue proposerait pour ce titre.
+     * The detail page that the Catalog would propose for this title.
      *
-     * <p>Le titre exact d'abord ; à défaut, une fiche dont le titre contient
-     * chaque mot lu - « Naruto » lu sur une tranche ne doit pas devenir
-     * « Boruto : Naruto Next Generations » alors que « Naruto » existe, mais
-     * « Attaque des Titans » peut retrouver « L'Attaque des Titans ». Rien de
-     * plus lâche : une fiche fausse proposée avec assurance coûte plus qu'une
-     * série créée avec son seul titre.
+     * <p>The exact title first; failing that, a detail page whose title contains
+     * every word read - "Naruto" read on a spine must not become
+     * "Boruto : Naruto Next Generations" when "Naruto" exists, but
+     * "Attaque des Titans" can find "L'Attaque des Titans". Nothing
+     * looser: a wrong detail page proposed with confidence costs more than a
+     * series created with its title only.
      */
     /**
-     * @param fiche      la fiche proposée
-     * @param parLeTitre vrai quand son titre correspond à ce qui a été lu ; faux
-     *                   quand elle n'est que le premier résultat de la recherche
+     * @param fiche      the proposed detail page
+     * @param parLeTitre true when its title matches what was read; false
+     *                   when it is only the first result of the search
      */
     record Proposition(MetadataCandidate fiche, boolean parLeTitre) {
     }
 
-    /** En deçà, un titre lu est trop vague pour qu'un premier résultat de recherche vaille quelque chose. */
+    /** Below this, a title read is too vague for a first search result to be worth anything. */
     static final int MOTS_MIN_POUR_LE_PREMIER_RESULTAT = 2;
 
     private Optional<Proposition> proposerUneFiche(EntityType manga, String titreLu) {
@@ -273,10 +273,10 @@ public class ShelfImportService {
         try {
             candidats = catalogue.chercher(manga, titreLu);
         } catch (RuntimeException e) {
-            // Une source qui se tait n'empêche pas d'importer : la série sera
-            // créée avec le titre lu, et « Recharger depuis la source » fera
-            // le reste plus tard.
-            log.warn("Recherche de fiche impossible pour « {} » : {}", titreLu, e.getClass().getSimpleName());
+            // A source that stays silent does not prevent the import: the series will be
+            // created with the title read, and "Recharger depuis la source" will do
+            // the rest later.
+            log.warn("Detail page search impossible for \"{}\": {}", titreLu, e.getClass().getSimpleName());
             return Optional.empty();
         }
         if (candidats == null || candidats.isEmpty()) {
@@ -296,12 +296,12 @@ public class ShelfImportService {
         if (contient.isPresent()) {
             return contient.map(c -> new Proposition(c, true));
         }
-        // Le titre français d'une étagère (« L'Attaque des Titans ») ne ressemble
-        // pas au titre romaji ou anglais de la fiche (« Shingeki no Kyojin ») ;
-        // la recherche, elle, le retrouve par ses synonymes. Le premier résultat
-        // est alors PROPOSÉ mais pas cru : l'écran le montre comme une piste, et
-        // ne le garde que si l'utilisateur le dit. Jamais sur un mot seul : trop
-        // vague pour qu'un premier résultat désigne quelque chose.
+        // The French title of a shelf ("L'Attaque des Titans") does not look like
+        // the romaji or English title of the detail page ("Shingeki no Kyojin");
+        // the search, however, finds it through its synonyms. The first result
+        // is then PROPOSED but not believed: the screen shows it as a lead, and
+        // keeps it only if the user says so. Never on a single word: too
+        // vague for a first result to designate anything.
         long mots = java.util.Arrays.stream(lu.split(" ")).filter(mot -> !mot.isBlank()).count();
         if (mots >= MOTS_MIN_POUR_LE_PREMIER_RESULTAT) {
             return Optional.of(new Proposition(candidats.get(0), false));
@@ -309,16 +309,16 @@ public class ShelfImportService {
         return Optional.empty();
     }
 
-    // ================================================================ Écriture
+    // ================================================================ Writing
 
     /**
-     * Ajoute les tomes confirmés, dans une seule transaction.
+     * Adds the confirmed volumes, in a single transaction.
      *
-     * <p>Chaque tome passe par l'ajout rapide : la série est retrouvée ou
-     * créée (type + titre), le tome retrouvé ou créé (libellé), la possession
-     * ajoutée. Un tome dont un exemplaire est encore possédé n'est pas ajouté
-     * une seconde fois - même règle qu'à l'analyse, revérifiée ici parce que la
-     * collection a pu changer entre les deux.
+     * <p>Each volume goes through quick add: the series is found or
+     * created (type + title), the volume found or created (label), the ownership
+     * added. A volume of which a copy is still owned is not added
+     * a second time - same rule as at analysis, checked again here because the
+     * collection may have changed between the two.
      */
     @Transactional
     public ShelfImportReport apply(List<ItemToImport> items) {

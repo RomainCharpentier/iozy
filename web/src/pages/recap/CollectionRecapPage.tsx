@@ -11,21 +11,21 @@ import { LienRetour } from '@/common/components/LienRetour'
 import { formaterDecimal } from '@/common/lib/formats'
 import { Squelette } from '@/common/components/Squelette'
 
-/** Même algorithme que gradientFor (theme/gradient.ts), mais renvoie les 2
- * couleurs hexadécimales brutes plutôt qu'une chaîne CSS - nécessaire pour
- * dessiner le dégradé sur un <canvas> (export image), où CSS n'existe pas. */
+/** Same algorithm as gradientFor (theme/gradient.ts), but returns the 2
+ * raw hexadecimal colors rather than a CSS string - needed to
+ * draw the gradient on a <canvas> (image export), where CSS does not exist. */
 function gradientColorsFor(key: string): [string, string] {
   const [from, to] = gradientPalettes[djb2Hash(key) % gradientPalettes.length]
   return [`#${from}`, `#${to}`]
 }
 
-/** "Bilan annuel" (Mon profil) - « 84 tomes achetés, 12 séries commencées,
- * auteur le plus présent... » en carte visuelle façon "Wrapped". Pas de lien
- * public : aucun système d'authentification n'existe encore dans l'app pour
- * distinguer "moi" de "n'importe qui", donc le partage se fait en
- * téléchargeant l'image générée ci-dessous puis en la diffusant soi-même
- * (réseaux sociaux, message...), jamais via une URL exposant directement les
- * données du propriétaire. */
+/** "Bilan annuel" (Mon profil) - "84 tomes achetés, 12 séries commencées,
+ * auteur le plus présent..." as a visual card in the "Wrapped" style. No public
+ * link: no authentication system exists yet in the app to
+ * tell "me" from "anyone", so the sharing is done by
+ * downloading the image generated below and then spreading it oneself
+ * (social networks, message...), never through a URL directly exposing the
+ * data of the owner. */
 export function CollectionRecapPage() {
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)

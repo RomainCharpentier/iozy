@@ -14,22 +14,22 @@ interface EntityTypeFormPageProps {
   mode: 'create' | 'edit'
 }
 
-/** Création/édition d'un type. Les types d'expérience autorisés et les
- * champs personnalisés sont des listes libres en saisie (chaque type MVP
- * historique a la sienne, aucune liste canonique commune n'existe côté
- * backend pour proposer un multi-select) - même formulaire que côté iOS
+/** Creation/edition of a type. The allowed experience types and the
+ * custom fields are free lists entered by typing (each historical
+ * MVP type has its own, no common canonical list exists on the
+ * backend side to offer a multi-select) - same form as on iOS
  * (EntityTypeFormView). */
 /** "Vinyles" -> "VINYLE", "Jeux de société" -> "JEUX_DE_SOCIETE" - accents
- * retirés, séparateurs en underscore, majuscules : la forme qu'ont déjà les
- * codes livrés (MANGA, VIDEO_GAME, BOARD_GAME). Reste modifiable à la main :
- * c'est une proposition, pas une contrainte. */
+ * removed, separators as underscore, uppercase: the form that the delivered
+ * codes already have (MANGA, VIDEO_GAME, BOARD_GAME). Can still be edited by hand:
+ * it is a suggestion, not a constraint. */
 function codeFromLabel(label: string): string {
   return label
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toUpperCase()
-    // Les ligatures ne se décomposent pas en NFD : sans cette ligne, « Œuvres »
-    // donnait le code « UVRES », la lettre initiale simplement avalée.
+    // Ligatures do not decompose in NFD: without this line, "Œuvres"
+    // gave the code "UVRES", the initial letter simply swallowed.
     .replace(/Œ/g, 'OE')
     .replace(/Æ/g, 'AE')
     .replace(/[^A-Z0-9]+/g, '_')
@@ -45,16 +45,16 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
 
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
-  // Identité visuelle : des CLÉS de palette, pas une couleur libre - chaque
-  // teinte de UNIVERSE_PALETTE est calibrée pour rester lisible en TEXTE dans
-  // les deux thèmes, ce qu'un sélecteur libre ne peut pas garantir.
+  // Visual identity: palette KEYS, not a free color - each
+  // shade of UNIVERSE_PALETTE is calibrated to stay readable as TEXT in
+  // both themes, which a free picker cannot guarantee.
   const [colorKey, setColorKey] = useState<string | null>(null)
   const [iconKey, setIconKey] = useState<string | null>(null)
   const [aspectKey, setAspectKey] = useState<string | null>(null)
-  // Le code suit le label tant que l'utilisateur n'y a pas touché : l'aide
-  // sous le champ promettait "normalisé automatiquement" alors qu'il fallait
-  // inventer un code technique à la main (VINYLE, BOARD_GAME...). Une fois
-  // édité manuellement, il n'est plus jamais écrasé.
+  // The code follows the label as long as the user has not touched it: the help
+  // under the field promised "normalisé automatiquement" while one had to
+  // invent a technical code by hand (VINYLE, BOARD_GAME...). Once
+  // edited manually, it is never overwritten again.
   const [codeEditedByHand, setCodeEditedByHand] = useState(false)
   const [allowedExperienceTypes, setAllowedExperienceTypes] = useState<string[]>([])
   const [customFieldKeys, setCustomFieldKeys] = useState<string[]>([])
@@ -98,15 +98,15 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
   })
 
   /**
-   * Ce qui manque pour créer le type - dit, plutôt que laissé à deviner.
+   * What is missing to create the type - said, rather than left to guess.
    *
-   * Même principe que `raisonBlocage` dans PurchaseAnalysisPage, qui le
-   * formule ainsi : un bouton principal grisé sans explication est un
-   * cul-de-sac. Il manquait ici, et le cas y est nettement plus retors : le
-   * code se DÉDUIT du label, et codeFromLabel ne garde que [A-Z0-9]. Un label
-   * en japonais, en cyrillique ou fait de symboles produit donc un code vide -
-   * l'écran montre alors un label bien rempli, un champ Code vide qu'on n'a
-   * jamais touché, et un bouton mort. Vérifié : « 漫画 » donne exactement ça.
+   * Same principle as `raisonBlocage` in PurchaseAnalysisPage, which words it
+   * like this: a greyed-out main button without explanation is a
+   * dead end. It was missing here, and the case is clearly trickier here: the
+   * code is DEDUCED from the label, and codeFromLabel only keeps [A-Z0-9]. A label
+   * in Japanese, in Cyrillic or made of symbols therefore produces an empty code -
+   * the screen then shows a well-filled label, an empty Code field that was
+   * never touched, and a dead button. Checked: "漫画" gives exactly that.
    */
   const raisonBlocage = !label.trim()
     ? 'Donne un label à ce type : c’est le nom que tu liras dans l’application.'
@@ -120,11 +120,11 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
     mutation.mutate()
   }
 
-  // Le retour anticipé est le bon choix ici - rendre le formulaire pendant le
-  // chargement montrerait des champs vides qui se rempliraient sous les doigts
-  // de qui a commencé à taper. Mais le titre, lui, reste : sans h1 la page perd
-  // le titre de son onglet (useDocumentTitle le lit dessus) et son repère de
-  // structure. Ce cas n'existe qu'en mode édition, d'où le titre en dur.
+  // The early return is the right choice here - rendering the form during
+  // loading would show empty fields that would fill up under the fingers
+  // of whoever started typing. But the title stays: without an h1 the page loses
+  // the title of its tab (useDocumentTitle reads it from it) and its structure
+  // landmark. This case only exists in edit mode, hence the hard-coded title.
   if (mode === 'edit' && entityTypesQuery.isLoading) {
     return (
       <div className="flex flex-col gap-5">
@@ -241,8 +241,8 @@ export function EntityTypeFormPage({ mode }: EntityTypeFormPageProps) {
                 title={entry.hint}
                 className="flex flex-col items-center gap-1.5"
               >
-                {/* Un aperçu de la forme réelle plutôt qu'un nom seul : "3/4"
-                    ne dit rien tant qu'on ne l'a pas vu à côté d'un carré. */}
+                {/* A preview of the real shape rather than a name alone: "3/4"
+                    says nothing until it is seen next to a square. */}
                 <span
                   className={`w-12 rounded-lg ${entry.className} ${
                     aspectKey === entry.key ? 'bg-accent ring-2 ring-accent ring-offset-2 ring-offset-background' : 'bg-surface2'
@@ -299,8 +299,8 @@ interface ChipListFieldProps {
 
 function ChipListField({ title, placeholder, values, onChange }: ChipListFieldProps) {
   const [newValue, setNewValue] = useState('')
-  // Identifiant stable dérivé du titre : deux ChipListField coexistent sur ce
-  // formulaire, chacun doit pointer SON propre libellé.
+  // Stable identifier derived from the title: two ChipListField coexist on this
+  // form, each must point to ITS own label.
   const labelId = `chip-field-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 
   function add() {
@@ -312,9 +312,9 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Le titre de section EST le libellé du champ : sans ce lien explicite,
-          un lecteur d'écran annonce "zone d'édition" sans nom (le placeholder
-          ne fait pas office de libellé). */}
+      {/* The section title IS the label of the field: without this explicit link,
+          a screen reader announces "zone d'édition" with no name (the placeholder
+          does not act as a label). */}
       <span className="text-sm text-textDim" id={labelId}>
         {title}
       </span>
@@ -349,15 +349,15 @@ function ChipListField({ title, placeholder, values, onChange }: ChipListFieldPr
               className="flex items-center gap-0.5 rounded-full bg-surface py-1 pr-1 pl-3 text-sm text-textPrimary"
             >
               {value}
-              {/* Le libellé de la puce est DANS le <span> parent, pas dans le
-                  bouton : sans aria-label, celui-ci s'annonçait "bouton" tout
-                  court. Invisible au Lot 24, qui n'a audité que /types/new -
-                  un formulaire vierge, donc sans aucune puce (voir Lot 29). */}
-              {/* 24x24 de zone cliquable pour une croix de 12px : en dessous,
-                  la cible échoue au critère WCAG 2.5.8 (24x24 minimum) et
-                  l'exception d'espacement ne s'applique pas, les puces étant
-                  collées les unes aux autres. La puce compense par un padding
-                  droit réduit, pour que rien ne grossisse visuellement. */}
+              {/* The label of the chip is INSIDE the parent <span>, not in the
+                  button: without aria-label, it was announced as "bouton"
+                  and nothing more. Invisible in batch 24, which only audited /types/new -
+                  a blank form, therefore without any chip (see batch 29). */}
+              {/* 24x24 of clickable area for a cross of 12px: below that,
+                  the target fails the WCAG 2.5.8 criterion (24x24 minimum) and
+                  the spacing exception does not apply, the chips being
+                  stuck to each other. The chip compensates with a reduced right
+                  padding, so that nothing grows visually. */}
               <button
                 type="button"
                 aria-label={`Retirer ${value}`}

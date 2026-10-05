@@ -9,15 +9,15 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Convertit un {@link ExportDocument} en plusieurs fichiers CSV (un par
- * type de ressource), zippés ensemble par ExportController - voir §19,
- * docs/CONCEPTION.md. Volontairement séparé de ExportService (pure
- * transformation, aucune dépendance aux repositories, testable seule).
+ * Converts an {@link ExportDocument} into several CSV files (one per
+ * resource type), zipped together by ExportController - see §19,
+ * docs/CONCEPTION.md. Deliberately separate from ExportService (pure
+ * transformation, no dependency on repositories, testable alone).
  * <p>
- * Les attributs libres (JSONB, Map arbitraire) n'ont pas de colonnes fixes
- * communes à tous les types d'Entity - sérialisés en JSON dans une seule
- * cellule plutôt que d'inventer des colonnes qui n'auraient de sens que
- * pour certaines lignes.
+ * Free attributes (JSONB, arbitrary Map) have no fixed columns
+ * common to all Entity types - serialized as JSON in a single
+ * cell rather than inventing columns that would only make sense
+ * for some rows.
  */
 @Component
 public class ExportCsvWriter {
@@ -91,8 +91,8 @@ public class ExportCsvWriter {
                 document.generalRankings(),
                 r -> List.of(str(r.entityId()), str(r.entityTitle()), str(r.rank()))));
 
-        // Une ligne par ŒUVRE classée, la liste étant répétée en colonnes : un
-        // CSV imbriqué n'existe pas, et c'est le classement qu'on vient lire.
+        // One row per ranked WORK, the list being repeated in columns: a
+        // nested CSV does not exist, and the ranking is what people come to read.
         files.put("tier-lists.csv", writeCsv(
                 List.of("tierListId", "tierListName", "entityTypeLabel", "activeRanks", "entityId", "entityTitle", "rank"),
                 document.tierLists().stream()
@@ -132,9 +132,9 @@ public class ExportCsvWriter {
                         String.join(";", t.allowedExperienceTypes()), String.join(";", t.customFieldKeys()),
                         str(t.colorKey()), str(t.iconKey()), str(t.aspectKey()))));
 
-        // Une seule ligne : ce profil est unique (application mono-utilisateur,
-        // voir CollectorPreferences). Un CSV d'une ligne reste plus lisible
-        // qu'un JSON noye dans un autre fichier.
+        // A single row: this profile is unique (single-user application,
+        // see CollectorPreferences). A one-row CSV stays more readable
+        // than a JSON drowned in another file.
         ExportDocument.CollectorPreferencesExport prefs = document.collectorPreferences();
         files.put("collector-preferences.csv", writeCsv(
                 List.of("editionTierRanking", "avoidOutdatedEditionWhenBetterExistsOrAnnounced",
@@ -171,7 +171,7 @@ public class ExportCsvWriter {
         }
     }
 
-    /** RFC4180 minimal : entoure de guillemets si la valeur contient une virgule, un guillemet ou un retour à la ligne. */
+    /** Minimal RFC4180: wrapped in quotes if the value contains a comma, a quote or a line break. */
     private String escape(String value) {
         if (value == null) {
             return "";

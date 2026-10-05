@@ -14,18 +14,18 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Ne pas savoir qui écrit doit faire voir RIEN, jamais la collection du
- * premier compte.</b>
+ * <b>Not knowing who writes must show NOTHING, never the collection of the
+ * first account.</b>
  *
- * <p>C'est la règle qui rend le cloisonnement sûr : tout le reste s'appuie
- * dessus. Un repli sur {@link DefaultOwner#ID} - l'identifiant que porte la
- * collection d'origine - transformerait chaque oubli en fuite silencieuse,
- * alors qu'un repli sur « personne » transforme le même oubli en écran vide,
- * c'est-à-dire en défaut visible.
+ * <p>This is the rule that makes the separation safe: everything else relies
+ * on it. A fallback to {@link DefaultOwner#ID} - the identifier carried by the
+ * original collection - would turn every oversight into a silent leak,
+ * while a fallback to "nobody" turns the same oversight into an empty screen,
+ * that is, into a visible defect.
  *
- * <p>Les tests d'intégration, eux, remplacent volontairement ce repli (voir
- * {@code ComptePourLesTests}) : ce fichier est donc le seul endroit où la
- * règle de production est vérifiée telle quelle.
+ * <p>The integration tests deliberately replace this fallback (see
+ * {@code ComptePourLesTests}): this file is therefore the only place where the
+ * production rule is checked as it is.
  */
 class UtilisateurCourantTest {
 
@@ -55,9 +55,9 @@ class UtilisateurCourantTest {
 
     @Test
     void une_authentification_anonyme_ne_vaut_pas_un_compte() {
-        // Spring pose ce jeton quand personne n'est connecté : il est
-        // « authentifié » au sens du framework, et son principal est la chaîne
-        // « anonymousUser ». Le prendre pour un compte ferait tout basculer.
+        // Spring sets this token when nobody is logged in: it is
+        // "authenticated" in the framework's sense, and its principal is the string
+        // "anonymousUser". Taking it for an account would break everything.
         SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
                 "cle", "anonymousUser", List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
 

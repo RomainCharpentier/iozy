@@ -8,19 +8,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Point d'entrée unique du module : reçoit une URL collée par l'utilisateur,
- * trouve le provider qui la couvre, et lui délègue la lecture.
+ * Single entry point of the module: receives a URL pasted by the user,
+ * finds the provider that covers it, and delegates the reading to it.
  * <p>
- * Toute la logique propre à une plateforme vit dans son provider - il n'y a ici
- * ni {@code if (url.contains("vinted"))}, ni parsing, ni appel réseau. Ajouter
- * Leboncoin consistera à publier un second {@link ListingProvider} : Spring
- * l'injectera dans la liste ci-dessous et rien d'autre ne bougera.
+ * All the logic specific to a platform lives in its provider - there is here
+ * neither {@code if (url.contains("vinted"))}, nor parsing, nor network call. Adding
+ * Leboncoin will consist in publishing a second {@link ListingProvider}: Spring
+ * will inject it into the list below and nothing else will move.
  * <p>
- * <b>Une URL non couverte n'est pas une erreur.</b> Elle rend
- * {@link ListingResolution.Status#UNSUPPORTED_SOURCE}, l'URL est conservée
- * telle quelle, et l'utilisateur saisit son annonce à la main comme avant. Le
- * lien reste utile : il permettra de retrouver l'annonce depuis l'analyse
- * enregistrée.
+ * <b>An uncovered URL is not an error.</b> It returns
+ * {@link ListingResolution.Status#UNSUPPORTED_SOURCE}, the URL is kept
+ * as is, and the user types their listing by hand as before. The
+ * link stays useful: it will allow finding the listing again from the saved
+ * analysis.
  */
 @Service
 public class ListingSourceResolver {
@@ -32,15 +32,15 @@ public class ListingSourceResolver {
     }
 
     /**
-     * La plateforme reconnue pour cette URL, sans aucun appel réseau -
-     * c'est ce que le formulaire utilise pour annoncer « Détection : Vinted »
-     * avant même de récupérer quoi que ce soit.
+     * The platform recognized for this URL, without any network call -
+     * it is what the form uses to announce "Detection: Vinted"
+     * even before retrieving anything.
      */
     public ListingPlatform detectSource(String url) {
         return providerFor(url).map(ListingProvider::platform).orElse(ListingPlatform.OTHER);
     }
 
-    /** Lit l'annonce si une source la couvre, sinon le dit sans rien tenter. */
+    /** Reads the listing if a source covers it, otherwise says so without trying anything. */
     public ListingResolution resolve(String url) {
         if (url == null || url.isBlank() || !isWellFormedHttps(url)) {
             return ListingResolution.failed(ListingResolution.Status.INVALID_URL, ListingPlatform.OTHER, url);
@@ -59,12 +59,12 @@ public class ListingSourceResolver {
     }
 
     /**
-     * Refus immédiat de ce qui n'est manifestement pas une adresse web
-     * consultable : {@code file://}, {@code ftp://}, une adresse relative, du
-     * texte libre. Le contrôle complet (liste blanche, adresses internes) reste
-     * du ressort de {@link ListingUrlGuard}, au moment de la récupération -
-     * celui-ci ne fait que distinguer « URL invalide » de « source non prise en
-     * charge », deux messages différents pour l'utilisateur.
+     * Immediate refusal of what is obviously not a consultable
+     * web address: {@code file://}, {@code ftp://}, a relative address, free
+     * text. The full check (whitelist, internal addresses) remains
+     * the job of {@link ListingUrlGuard}, at fetching time -
+     * this one only tells "invalid URL" apart from "unsupported
+     * source", two different messages for the user.
      */
     private static boolean isWellFormedHttps(String url) {
         try {

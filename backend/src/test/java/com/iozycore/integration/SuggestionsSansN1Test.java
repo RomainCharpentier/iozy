@@ -25,34 +25,34 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * <b>Le coût des suggestions d'achat ne doit pas suivre la taille de la
+ * <b>The cost of the purchase suggestions must not follow the size of the
  * collection.</b>
  *
- * <p>Constat C1 de l'audit technique :
- * {@code GET /purchase-analysis/near-complete-suggestions} demandait
- * <b>88 requêtes SQL pour 5 séries et 148 pour 11</b> - une dizaine de plus par
- * série ajoutée. Sur le jeu de données du moment, l'écran répondait en 29 ms :
- * rien ne se voyait, et c'est précisément pourquoi un test est nécessaire.
- * Une régression ici ne casse aucun résultat, elle rend juste l'écran plus lent
- * chaque fois que l'utilisateur ajoute une série.
+ * <p>Finding C1 of the technical audit:
+ * {@code GET /purchase-analysis/near-complete-suggestions} needed
+ * <b>88 SQL queries for 5 series and 148 for 11</b> - about ten more per
+ * series added. On the data set of the moment, the screen answered in 29 ms:
+ * nothing could be seen, and this is exactly why a test is needed.
+ * A regression here breaks no result, it just makes the screen slower
+ * each time the user adds a series.
  *
- * <h2>Ce que ce test affirme, et ce qu'il refuse d'affirmer</h2>
- * Il compare le <b>même appel</b> sur deux tailles de catalogue et exige que le
- * nombre de requêtes ne <b>croisse pas</b> avec le nombre de séries. Il ne fige
- * volontairement pas un nombre absolu : ce chiffre dépend du contenu de la base
- * partagée par la suite d'intégration, et un seuil exact se serait périmé au
- * premier test voisin ajouté. Ce qui compte, et ce qui a été violé, c'est la
- * <b>pente</b>.
+ * <h2>What this test states, and what it refuses to state</h2>
+ * It compares the <b>same call</b> on two catalogue sizes and requires that the
+ * number of queries does <b>not grow</b> with the number of series. It deliberately
+ * does not fix an absolute number: this figure depends on the content of the database
+ * shared by the integration suite, and an exact threshold would have become outdated at the
+ * first neighbour test added. What matters, and what was violated, is the
+ * <b>slope</b>.
  *
- * <p>Témoin mesuré sur ce jeu-ci (des séries plus petites que celles de
- * l'audit, donc des nombres plus petits) : <b>38 puis 70</b> requêtes avant
- * correction, <b>10 puis 10</b> après. Le test échoue bien sur le code
- * d'avant.
+ * <p>Witness measured on this data set (series smaller than those of
+ * the audit, so smaller numbers): <b>38 then 70</b> queries before
+ * the fix, <b>10 then 10</b> after. The test does fail on the code
+ * from before.
  *
- * <h2>Pourquoi vider le contexte de persistance entre les deux mesures</h2>
- * Les entités déjà chargées par la première mesure resteraient dans le cache de
- * premier niveau et masqueraient une partie des chargements de la seconde -
- * la pente mesurée serait alors plus plate que la vraie.
+ * <h2>Why clear the persistence context between the two measures</h2>
+ * The entities already loaded by the first measure would stay in the
+ * first level cache and would hide a part of the loads of the second -
+ * the measured slope would then be flatter than the real one.
  */
 class SuggestionsSansN1Test extends PostgresIntegrationTest {
 
@@ -80,11 +80,11 @@ class SuggestionsSansN1Test extends PostgresIntegrationTest {
         poserDesSeries(5);
         long avec5Series = requetesPourUnAppel(statistiques);
 
-        poserDesSeries(6); // 11 au total, les deux tailles mesurées par l'audit
+        poserDesSeries(6); // 11 in total, the two sizes measured by the audit
         long avec11Series = requetesPourUnAppel(statistiques);
 
         assertThat(avec11Series)
-                .as("6 séries de plus ne doivent coûter aucune requête de plus (C1 : +10 par série)")
+                .as("6 more series must not cost any more query (C1: +10 per series)")
                 .isEqualTo(avec5Series);
     }
 
@@ -96,7 +96,7 @@ class SuggestionsSansN1Test extends PostgresIntegrationTest {
         return statistiques.getPrepareStatementCount() - avant;
     }
 
-    /** Des séries complètes de leur point de vue : une édition de référence, des tomes, des possessions. */
+    /** Series that are complete from their point of view: a reference edition, volumes, ownerships. */
     private void poserDesSeries(int combien) {
         for (int index = 0; index < combien; index++) {
             String titre = "Série C1 " + UUID.randomUUID();

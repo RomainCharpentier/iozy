@@ -1,30 +1,29 @@
 /**
- * Les indices qu'une œuvre porte déjà pour interroger un fournisseur.
+ * The hints that a work already carries to query a provider.
  *
- * <h2>Une seule liste, quatre appelants</h2>
- * Ces attributs ont été recopiés du fournisseur au moment où l'œuvre a été
- * résolue (voir MetadataSearchService côté serveur) : les redonner en entrée
- * d'une recherche ultérieure, c'est ce qui distingue « Naruto » de ses huit
- * dérivés. Trois écrans les ré-extrayaient chacun à la main, chacun un
- * sous-ensemble différent - la recherche de tomes en utilisait quatre, le
- * rattrapage de jaquettes un seul, la résolution de titre français trois.
+ * <h2>One single list, four callers</h2>
+ * These attributes were copied from the provider when the work was resolved
+ * (see MetadataSearchService on the server side): giving them back as input
+ * to a later search is what tells "Naruto" apart from its eight spin-offs.
+ * Three screens extracted them again by hand, each with a different subset -
+ * the volume search used four, the cover backfill only one, the French title
+ * resolution three.
  *
- * <h2>`mangaka` et non `creatorFrom`</h2>
- * Volontairement l'auteur MANGA seul, jamais le `studio` d'un jeu vidéo :
- * les trois appelants interrogent des fournisseurs de manga (recherche de
- * tomes, titre français). Un studio y serait un indice faux, pas un indice
- * en plus. `creatorFrom` reste la fonction d'AFFICHAGE, elle, tous types
- * confondus.
+ * <h2>`mangaka` and not `creatorFrom`</h2>
+ * Deliberately the MANGA author only, never the `studio` of a video game:
+ * the three callers query manga providers (volume search, French title). A
+ * studio would be a wrong hint there, not an extra hint. `creatorFrom`
+ * remains the DISPLAY function, for all types together.
  */
 export interface IndicesOeuvre {
   author?: string
   malId?: string
   titleRomaji?: string
-  /** Le titre d'origine du catalogue : c'est lui qui retrouve les éditions
-   *  chez les fournisseurs qui n'indexent pas le titre français. */
+  /** The original title of the catalog: it is the one that finds the editions
+   *  at providers that do not index the French title. */
   originalTitle?: string
-  /** Le nombre de tomes d'après le catalogue : jusqu'à lui, le serveur sonde
-   *  les numéros manquants un par un (Lot 125). */
+  /** The number of volumes according to the catalog: up to this number, the
+   *  server probes the missing numbers one by one (Batch 125). */
   totalVolumes?: number
 }
 

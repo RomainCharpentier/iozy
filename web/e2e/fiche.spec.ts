@@ -2,21 +2,21 @@ import { expect, test } from '@playwright/test'
 import { serieAvecEdition } from './amorcage'
 
 /**
- * <b>« X/Y tomes », et le geste qui le fait bouger.</b>
+ * <b>"X/Y tomes", and the gesture that makes it move.</b>
  *
- * <p>Deux des dix parcours structurants, et les plus fréquents de tous : lire
- * où en est une série, et cocher le tome qu'on vient d'acheter. Ce qui se
- * vérifie ici et nulle part ailleurs, c'est la <b>chaîne complète</b> - la
- * grille annonce un tome manquant, un clic l'ajoute, le serveur écrit, la
- * progression suit. Chacun de ces maillons a son test unitaire ; leur
- * enchaînement n'en avait aucun.
+ * <p>Two of the ten structuring journeys, and the most frequent of all:
+ * reading where a series stands, and ticking the volume we just bought. What
+ * is checked here and nowhere else is the <b>complete chain</b> - the grid
+ * announces a missing volume, a click adds it, the server writes, the
+ * progress follows. Each of these links has its unit test; their sequence had
+ * none.
  *
- * <p>L'état de départ est posé par l'API (voir `amorcage.ts`) : un manga ne
- * s'ajoute pas à la main sans fournisseur de métadonnées, et c'est justement
- * sur un manga que « X/Y » existe.
+ * <p>The starting state is set by the API (see `amorcage.ts`): a manga cannot
+ * be added by hand without a metadata provider, and it is precisely on a
+ * manga that "X/Y" exists.
  */
 
-test('lire la progression d’une édition, puis cocher un tome manquant', async ({ page }) => {
+test('read the progress of an edition, then tick a missing volume', async ({ page }) => {
   const titre = `Vagabond ${Date.now()}`
   const { entityId } = await serieAvecEdition(page, {
     titre,
@@ -28,39 +28,39 @@ test('lire la progression d’une édition, puis cocher un tome manquant', async
   await page.goto(`/entity/${entityId}`)
   await expect(page.getByRole('heading', { name: titre })).toBeVisible()
 
-  // --- La progression, telle que la carte d'édition l'annonce
+  // --- The progress, as the edition card announces it
   await expect(page.getByText('1/6')).toBeVisible()
-  // Et telle qu'un lecteur d'écran l'entend : « 3/27 » ne suffit pas.
+  // And as a screen reader hears it: "3/27" is not enough.
   await expect(page.getByText('1 tome possédé sur 6')).toBeAttached()
-  // Le total vient de la fiche d'édition, jamais deviné.
+  // The total comes from the edition record, never guessed.
   await expect(page.getByText('6 tomes')).toBeVisible()
 
-  // --- La grille dit ce qui manque
+  // --- The grid says what is missing
   await expect(page.getByRole('button', { name: 'Tome 1, possédé' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Tome 2, manquant' })).toBeVisible()
 
-  // --- « Je l'ai » : un clic, rien à remplir.
+  // --- "Je l'ai": one click, nothing to fill in.
   //
-  //     Deux gestes mènent au même endroit, et ce test a servi à découvrir
-  //     lequel appartient à qui. À la SOURIS, survoler la tuile fait
-  //     apparaître un calque à deux boutons (« Je l'ai » / « Je le veux »)
-  //     qui recouvre entièrement la tuile : cliquer la tuile elle-même est
-  //     alors impossible, le calque intercepte. Au DOIGT, il n'y a pas de
-  //     survol : le calque ne se montre jamais et c'est la tuile qui reçoit
-  //     le geste. Les deux appellent le même ajout, aucun chemin ne manque.
-  //     Le survol vise la TUILE ENTIÈRE (le conteneur), pas le bouton du
-  //     dessous : survoler la tuile elle-même est refusé pour la même raison
-  //     qu'un clic - dès que le calque apparaît, c'est lui qui reçoit le
-  //     pointeur. Le conteneur, lui, le contient.
+  //     Two gestures lead to the same place, and this test was used to find
+  //     out which one belongs to whom. With the MOUSE, hovering the tile
+  //     shows an overlay with two buttons ("Je l'ai" / "Je le veux") that
+  //     fully covers the tile: clicking the tile itself is then impossible,
+  //     the overlay intercepts. With a FINGER, there is no hover: the overlay
+  //     never shows and the tile receives the gesture. Both call the same
+  //     add, no path is missing.
+  //     The hover targets the WHOLE TILE (the container), not the button
+  //     below: hovering the tile itself is refused for the same reason as a
+  //     click - as soon as the overlay appears, it receives the pointer. The
+  //     container, on the other hand, contains it.
   await page.getByRole('button', { name: 'Tome 2, manquant' }).locator('..').hover()
   await page.getByTitle("J'ai le tome 2").click()
 
   await expect(page.getByRole('button', { name: 'Tome 2, possédé' })).toBeVisible()
-  // La progression a suivi - c'est le maillon qui se casse en silence quand
-  // une invalidation de cache manque : le tome change d'état, le compteur non.
+  // The progress followed - this is the link that breaks silently when a cache
+  // invalidation is missing: the volume changes state, the counter does not.
   await expect(page.getByText('2/6')).toBeVisible()
 
-  // --- Et Ma collection le sait aussi, sans rechargement manuel
+  // --- And Ma collection knows it too, without a manual reload
   await page.goto('/')
   await expect(page.getByRole('button', { name: new RegExp(`${titre}.*2/6 tomes`) })).toBeVisible()
 })

@@ -1,5 +1,5 @@
 package com.iozycore.boardgame.bgg;
 
-/** Un jeu marqué "possédé" (own="1") dans la collection BGG d'un utilisateur. */
+/** A game marked "owned" (own="1") in a user's BGG collection. */
 public record BggCollectionItem(String externalId, String title, String yearPublished) {
 }

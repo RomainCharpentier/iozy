@@ -21,24 +21,24 @@ import { EDITION_INCONNUE } from './EditionPicker'
 import { TexteCoupe } from '@/common/components/TexteCoupe'
 
 /**
- * « Éléments détectés » : les propositions à vérifier avant de les verser dans
- * le contenu du lot.
+ * "Éléments détectés": the proposals to check before adding them to
+ * the content of the batch.
  *
- * <h2>Groupé par série, parce que l'édition l'est</h2>
- * La première version affichait une carte par tome. Pour un lot de quatorze
- * tomes d'une même série, cela donnait **1878 px de haut — 2,6 écrans — et
- * quatorze champs d'édition identiques** à remplir un par un.
+ * <h2>Grouped by series, because the edition is</h2>
+ * The first version displayed one card per volume. For a batch of fourteen
+ * volumes of the same series, this gave **1878 px high — 2.6 screens — and
+ * fourteen identical edition fields** to fill in one by one.
  *
- * Or l'édition n'est pas une propriété du tome : c'est une propriété de la
- * série. La demander quatorze fois pour la même œuvre n'était pas seulement
- * encombrant, c'était faux. Les propositions sont donc regroupées par série,
- * les tomes deviennent des pastilles cochables, et l'édition se choisit **une
- * fois par groupe**.
+ * Yet the edition is not a property of the volume: it is a property of the
+ * series. Asking for it fourteen times for the same work was not only
+ * cumbersome, it was wrong. The proposals are therefore grouped by series,
+ * the volumes become tickable chips, and the edition is chosen **once
+ * per group**.
  *
- * <h2>Deux principes inchangés</h2>
- * Le texte est analysé gratuitement dès qu'il existe ; les photos ne partent
- * que sur un clic. Et une correction manuelle n'est jamais écrasée : les
- * corrections sont mémorisées par identité de candidat, pas par position.
+ * <h2>Two principles unchanged</h2>
+ * The text is analysed for free as soon as it exists; the photos only leave
+ * on a click. And a manual correction is never overwritten: the
+ * corrections are remembered by candidate identity, not by position.
  */
 
 export interface ElementConfirme {
@@ -59,14 +59,14 @@ interface Ligne {
   cle: string
 }
 
-/** Une série reconnue, avec les tomes qu'on lui attribue. */
+/** A recognised series, with the volumes assigned to it. */
 interface Groupe {
   cle: string
   seriesTitle: string
   catalogStatus: RecognizedItemDto['catalogStatus']
   editionOptions: EditionOptionDto[]
   sourceLabels: string[]
-  /** La plus basse du groupe : c'est elle qui doit inciter à vérifier. */
+  /** The lowest of the group: it is the one that should prompt a check. */
   confiance: RecognitionConfidence
   lignes: Ligne[]
 }
@@ -84,27 +84,27 @@ export function ListingDetectionPanel({
   description: string
   imageUrls: string[]
   /**
-   * Reprend la main sur la saisie manuelle quand l'annonce nomme une série sans
-   * dire quels tomes. Sans cela on renverrait l'utilisateur retaper « Naruto »,
-   * un mot que le titre contenait déjà et qu'IozyCore a lu.
+   * Takes back control from manual entry when the listing names a series without
+   * saying which volumes. Without it we would send the user to retype "Naruto",
+   * a word that the title already contained and that IozyCore read.
    */
   onPrefillSeries: (seriesTitle: string) => void
   /**
-   * Combien de tomes le lot contient déjà. Sert uniquement à confronter la
-   * saisie au nombre annoncé : un lot saisi incomplet donne un prix par tome
-   * flatteur, et donc un verdict d'achat trop favorable.
+   * How many volumes the batch already contains. Only serves to compare the
+   * entry with the announced number: an incomplete batch entered gives a flattering
+   * price per volume, and so a purchase verdict that is too favourable.
    */
   tomesDansLeLot: number
   /**
-   * Ce tome est-il déjà dans le contenu du lot ? Une proposition déjà versée
-   * s'affiche cochée et inerte, plutôt que de paraître en attente.
+   * Is this volume already in the content of the batch? A proposal already added
+   * is displayed ticked and inert, rather than looking pending.
    */
   dejaDansLeLot: (seriesTitle: string, editionName: string, volumeNumber: number) => boolean
-  /** Reçoit les éléments confirmés — le parent les verse dans le contenu du lot. */
+  /** Receives the confirmed items — the parent adds them to the content of the batch. */
   onConfirm: (elements: ElementConfirme[]) => void
 }) {
   const [resultat, setResultat] = useState<AnalyzeListingResponse | null>(null)
-  /** Corrections indexées par identité de candidat — jamais par position. */
+  /** Corrections indexed by candidate identity — never by position. */
   const [corrections, setCorrections] = useState<Record<string, Correction>>({})
 
   const mutation = useMutation({
@@ -112,8 +112,8 @@ export function ListingDetectionPanel({
       analyzeListing({
         title: title.trim() || undefined,
         description: description.trim() || undefined,
-        // Ne PAS envoyer les photos est ce qui garantit qu'aucun moteur ne
-        // tourne. C'est le consentement, pas un drapeau à part.
+        // NOT sending the photos is what guarantees that no engine
+        // runs. It is the consent, not a separate flag.
         imageUrls: avecPhotos && imageUrls.length > 0 ? imageUrls : undefined,
         entityTypeCode: 'MANGA',
       }),
@@ -121,12 +121,12 @@ export function ListingDetectionPanel({
   })
 
   /**
-   * Les photos que l'utilisateur fournit lui-même.
+   * The photos that the user provides themselves.
    *
-   * Chemin volontairement séparé de `mutation` : celle-ci part d'URLs que le
-   * serveur va chercher, celle-là de fichiers déjà entre les mains du
-   * navigateur. Les confondre obligerait à écrire « si l'un, alors pas
-   * l'autre » — une règle qu'on finit toujours par lire de travers.
+   * Path deliberately separate from `mutation`: that one starts from URLs that the
+   * server will fetch, this one from files already in the hands of the
+   * browser. Mixing them up would force writing "if one, then not
+   * the other" — a rule that is always eventually read the wrong way.
    */
   const [refusees, setRefusees] = useState<string | null>(null)
   const champFichiers = useRef<HTMLInputElement | null>(null)
@@ -144,17 +144,17 @@ export function ListingDetectionPanel({
   const choisirPhotos = (liste: FileList | null) => {
     setRefusees(null)
     if (!liste || liste.length === 0) return
-    // Copié AVANT de vider le champ : la FileList est vivante, la vider
-    // viderait aussi ce qu'on tient.
+    // Copied BEFORE emptying the field: the FileList is live, emptying it
+    // would also empty what we hold.
     const fichiers = Array.from(liste)
 
-    // Le champ est vidé pour que rechoisir le MÊME fichier relance bien une
-    // analyse : sans cela, l'événement `change` ne se déclenche pas.
+    // The field is emptied so that choosing the SAME file again does
+    // relaunch an analysis: without this, the `change` event does not fire.
     if (champFichiers.current) champFichiers.current.value = ''
 
-    // Réduction et tri partagés avec l'import d'étagère (photosAAnalyser) :
-    // une photo de téléphone trop lourde est réduite plutôt qu'écartée, et
-    // ce qui ne part pas est dit au moment du choix, en nommant la raison.
+    // Reduction and sorting shared with the shelf import (photosAAnalyser):
+    // a phone photo that is too heavy is reduced rather than discarded, and
+    // what does not go is said at the time of the choice, naming the reason.
     void preparerLesPhotos(fichiers).then(({ retenues, message }) => {
       setRefusees(message)
       if (retenues.length > 0) envoiPhotos.mutate(retenues)
@@ -166,8 +166,8 @@ export function ListingDetectionPanel({
   const { mutate } = mutation
   const analyserTexte = useCallback(() => mutate(false), [mutate])
 
-  // Analyse automatique du texte : local, déterministe, gratuit. Débouncée pour
-  // ne pas relancer à chaque frappe quand l'utilisateur corrige le titre.
+  // Automatic analysis of the text: local, deterministic, free. Debounced so as
+  // not to relaunch at each keystroke when the user corrects the title.
   const texte = `${title} ${description}`
   const dernierTexte = useRef<string>('')
   useEffect(() => {
@@ -181,14 +181,14 @@ export function ListingDetectionPanel({
   }, [texte, title, description, analyserTexte])
 
   /**
-   * Rien à montrer encore — mais l'envoi de photos doit rester atteignable.
+   * Nothing to show yet — but sending photos must stay reachable.
    *
-   * Le panneau complet ne s'ouvre qu'une fois qu'il a quelque chose à proposer :
-   * il avait déjà été jugé trop encombrant, et un en-tête vide en haut d'un
-   * formulaire vierge n'apprend rien. Le cacher entièrement fermait pourtant la
-   * porte dans le seul cas où elle sert vraiment : une annonce sans texte
-   * exploitable, ou une plateforme dont les photos ne sont pas récupérables.
-   * D'où cette version d'une ligne — le geste, sans le décor.
+   * The full panel only opens once it has something to propose:
+   * it had already been judged too cluttered, and an empty header at the top of a
+   * blank form teaches nothing. Hiding it entirely did close the
+   * door in the only case where it is really useful: a listing with no usable
+   * text, or a platform whose photos cannot be retrieved.
+   * Hence this one-line version — the action, without the decor.
    */
   if (!resultat && !enCours) {
     return (
@@ -231,7 +231,7 @@ export function ListingDetectionPanel({
     .map((item) => ({ item, cle: identite(item) }))
     .filter(({ cle }) => !corrections[cle]?.retire)
 
-  /** L'édition retenue pour cette ligne : correction, sinon lecture. */
+  /** The edition retained for this row: correction, otherwise reading. */
   function editionDe(ligne: Ligne): string | null {
     return corrections[ligne.cle]?.editionName ?? ligne.item.editionHint
   }
@@ -250,9 +250,9 @@ export function ListingDetectionPanel({
   }
 
   /**
-   * Les propositions, réunies par série. L'édition **lue** entre dans la clé :
-   * si les photos distinguent « Perfect » et « Standard » de la même série, ce
-   * sont deux groupes — les fondre choisirait à la place de l'utilisateur.
+   * The proposals, gathered by series. The edition **read** is part of the key:
+   * if the photos tell "Perfect" and "Standard" of the same series apart, these
+   * are two groups — merging them would choose in place of the user.
    */
   const groupes: Groupe[] = []
   for (const ligne of lignes) {
@@ -280,7 +280,7 @@ export function ListingDetectionPanel({
     setCorrections((prev) => ({ ...prev, [cle]: { ...prev[cle], ...patch } }))
   }
 
-  /** Une édition choisie vaut pour toute la série : c'est sa propriété, pas celle d'un tome. */
+  /** A chosen edition applies to the whole series: it is its property, not that of a volume. */
   function choisirEdition(groupe: Groupe, editionName: string) {
     setCorrections((prev) => {
       const suivant = { ...prev }
@@ -326,13 +326,13 @@ export function ListingDetectionPanel({
 
   const analysePhotosFaite = resultat?.visionStatus != null
   /**
-   * Les photos ont-elles apporté quelque chose, par un moyen ou par un autre ?
+   * Did the photos bring something, by one means or another?
    *
-   * Un code-barres lu sur une photo est une proposition venue de la photo, même
-   * quand le moteur de vision n'a rien vu — et c'est un cas courant, une image
-   * de dos de manga ne montrant qu'un code. Sans cette distinction, l'écran
-   * affichait « Les photos n'ont rien ajouté de lisible » juste au-dessus d'un
-   * tome identifié par ces mêmes photos, avec un identifiant exact.
+   * A barcode read on a photo is a proposal coming from the photo, even
+   * when the vision engine saw nothing — and it is a common case, an image
+   * of the back of a manga showing only a code. Without this distinction, the screen
+   * displayed "Les photos n'ont rien ajouté de lisible" right above a
+   * volume identified by these same photos, with an exact identifier.
    */
   const photosOntApporte = (resultat?.items ?? []).some((item) =>
     item.sources.some((source) => source === 'EAN' || source === 'VISION'),
@@ -342,8 +342,8 @@ export function ListingDetectionPanel({
       ? MESSAGES_VISION[resultat.visionStatus]
       : ''
 
-  // Le serveur ne renvoie ce nombre que tant que la question reste ouverte : dès
-  // qu'un tome est identifié, il disparaît de lui-même. Rien à arbitrer ici.
+  // The server only returns this number while the question stays open: as soon
+  // as a volume is identified, it disappears by itself. Nothing to arbitrate here.
   const nombreAnnonce = resultat?.announcedVolumeCount ?? null
   const serieAnnoncee = resultat?.announcedSeriesTitle ?? null
 
@@ -373,10 +373,10 @@ export function ListingDetectionPanel({
             </button>
           )}
 
-          {/* Toujours proposé, MÊME sans photo récupérée - c'est précisément ce
-              cas qui était aveugle : une plateforme qui refuse la lecture
-              automatique, ou une annonce dont le texte ne nomme aucune série.
-              Discret quand des photos ont été récupérées, principal sinon. */}
+          {/* Always offered, EVEN without a retrieved photo - it is precisely this
+              case that was blind: a platform that refuses automatic
+              reading, or a listing whose text names no series.
+              Discreet when photos were retrieved, main otherwise. */}
           <button
             type="button"
             onClick={() => champFichiers.current?.click()}
@@ -427,15 +427,15 @@ export function ListingDetectionPanel({
         </p>
       )}
 
-      {/* « 9 tomes de Naruto » : l'annonce dit combien, pas lesquels.
-          Rien n'est proposé - le vendeur peut avoir les tomes 14 à 22, et
-          cocher 1 à 9 d'office donnerait un verdict faux avec l'aplomb d'un
-          calcul. On dit ce qu'on sait, et on pose la seule question ouverte.
+      {/* "9 tomes de Naruto": the listing says how many, not which.
+          Nothing is proposed - the seller may have volumes 14 to 22, and
+          ticking 1 to 9 by default would give a wrong verdict with the confidence of a
+          calculation. We say what we know, and ask the only open question.
 
-          Retiré dès que le lot contient quelque chose : la question a trouvé
-          preneur, et le bouton de pré-remplissage écraserait alors la série
-          que l'utilisateur vient de saisir. Le décompte, lui, reste surveillé
-          juste en dessous. */}
+          Removed as soon as the batch contains something: the question found
+          an answer, and the pre-fill button would then overwrite the series
+          that the user has just entered. The count, for its part, stays monitored
+          just below. */}
       {nombreAnnonce !== null && tomesDansLeLot === 0 && (
         <div className="flex flex-col gap-1.5 rounded-lg bg-surface px-2.5 py-2">
           <p className="flex items-start gap-1.5 text-xs text-textPrimary">
@@ -468,10 +468,10 @@ export function ListingDetectionPanel({
         </div>
       )}
 
-      {/* Le filet que ce nombre rend possible. Une note, jamais un blocage :
-          l'utilisateur peut délibérément ne retenir qu'une partie du lot. Mais
-          saisir 6 tomes là où l'annonce en annonce 9 donne un prix par tome
-          flatteur, donc un verdict trop favorable - et ça, il doit le voir. */}
+      {/* The safety net that this number makes possible. A note, never a block:
+          the user may deliberately keep only part of the batch. But
+          entering 6 volumes where the listing announces 9 gives a flattering price per
+          volume, so a verdict that is too favourable - and they must see that. */}
       {nombreAnnonce !== null && tomesDansLeLot > 0 && tomesDansLeLot !== nombreAnnonce && (
         <p className="flex items-start gap-1.5 text-xs text-textDim" role="status">
           <AlertCircle size={13} className="mt-0.5 shrink-0" />
@@ -563,7 +563,7 @@ function GroupeSerie({
         <div className="flex min-w-0 flex-col">
           <TexteCoupe texte={groupe.seriesTitle} className="truncate text-sm font-medium text-textPrimary" />
           <span className="flex flex-wrap items-center gap-x-2 text-xs">
-            {/* La provenance parle de la donnée, jamais du fournisseur d'IA. */}
+            {/* The provenance speaks of the data, never of the AI provider. */}
             <span className="text-textDim">{groupe.sourceLabels.join(' + ')}</span>
             <span className={COULEURS_CONFIANCE[groupe.confiance]}>
               {LIBELLES_CONFIANCE[groupe.confiance]}
@@ -583,8 +583,8 @@ function GroupeSerie({
         </button>
       </div>
 
-      {/* Les tomes en pastilles : quatorze tomes tiennent sur deux lignes au
-          lieu de quatorze cartes. */}
+      {/* The volumes as chips: fourteen volumes fit on two lines instead
+          of fourteen cards. */}
       <div className="flex flex-wrap items-center gap-1.5">
         {groupe.lignes.map((ligne) => {
           const dansLeLot = estDansLeLot(ligne)
@@ -625,7 +625,7 @@ function GroupeSerie({
         )}
       </div>
 
-      {/* Une seule fois pour la série : l'édition n'est pas une propriété du tome. */}
+      {/* Once for the series: the edition is not a property of the volume. */}
       {restantes.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-textDim">Édition :</span>
@@ -662,8 +662,8 @@ function GroupeSerie({
         </div>
       )}
 
-      {/* Dit seulement quand ça bloque vraiment : une pastille cochée qui ne
-          compte pas au compteur se lit comme un bug. */}
+      {/* Said only when it really blocks: a ticked chip that does not
+          count in the counter reads as a bug. */}
       {aDesTomesCoches && !editionChoisie && (
         <p className="text-xs text-warning" role="status">
           Choisissez l'édition pour pouvoir ajouter ces tomes au lot.

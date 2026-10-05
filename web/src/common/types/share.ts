@@ -1,8 +1,8 @@
-/** Miroir de ShareDtos côté backend - voir sa javadoc pour la liste de ce qui
- * est DÉLIBÉRÉMENT absent de la vue publique (identifiants, prix, valeur
- * estimée, dates d'acquisition, notes, tags, relations, analyses). */
+/** Mirror of ShareDtos on the backend side - see its javadoc for the list of what
+ * is DELIBERATELY absent from the public view (identifiers, prices, estimated
+ * value, acquisition dates, notes, tags, relations, analyses). */
 
-/** État du partage côté propriétaire. `token` null = aucun lien actif. */
+/** State of the share on the owner side. `token` null = no active link. */
 export interface ShareDto {
   token: string | null
   shareCollection: boolean
@@ -13,11 +13,11 @@ export interface ShareDto {
 export interface SharedCollectionItemDto {
   title: string
   coverImageUrl: string | null
-  /** Éditions réellement possédées (souvent une seule, vide si non renseignée). */
+  /** Editions really owned (often a single one, empty if not filled in). */
   editions: string[]
-  /** Tomes DISTINCTS possédés - 0 pour une œuvre possédée sans tome précis. */
+  /** DISTINCT volumes owned - 0 for a work owned without a precise volume. */
   ownedVolumeCount: number
-  /** null = total inconnu : la progression n'est alors pas affichée, jamais devinée. */
+  /** null = unknown total: the progress is then not displayed, never guessed. */
   totalVolumes: number | null
 }
 
@@ -53,10 +53,10 @@ export interface SharedTierListsDto {
 }
 
 /**
- * Ce qu'un visiteur reçoit. Une section non partagée vaut `null` et n'est
- * même pas calculée côté serveur - distinct d'un tableau vide, qui dirait
- * « partagée, mais rien dedans ». C'est ce qui permet à la page de n'afficher
- * que les onglets réellement accessibles.
+ * What a visitor receives. A section that is not shared is `null` and is
+ * not even computed on the server side - different from an empty array, which
+ * would say "shared, but nothing in it". This is what lets the page only
+ * display the tabs that are really accessible.
  */
 export interface SharedSpaceDto {
   collection: SharedUniverseDto[] | null

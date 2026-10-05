@@ -1,28 +1,28 @@
 /**
- * <b>La frontière d'une visite, telle qu'elle est réellement calculée.</b>
+ * <b>The boundary of a visit, as it is really computed.</b>
  *
- * Cette liste est lue à trois endroits qui ne se parlent pas - le routage, les
- * deux barres de navigation, les raccourcis d'en-tête. Une comparaison
- * approximative s'y verrait mal : un écran de trop resterait proposé à un
- * visiteur (et rebondirait sans un mot), un écran de moins disparaîtrait pour
- * un compte ordinaire, sur des chemins que personne ne pense à rouvrir.
+ * This list is read in three places that do not talk to each other - the
+ * routing, the two navigation bars, the header shortcuts. A loose comparison
+ * would be hard to notice there: one screen too many would stay offered to a
+ * visitor (and would bounce without a word), one screen too few would
+ * disappear for an ordinary account, on paths that nobody thinks to reopen.
  */
 import { describe, expect, it } from 'vitest'
 import { estReserveeAuxComptes } from './accesInvite'
 
-describe('ce qu’une visite ne peut pas atteindre', () => {
-  it('ferme les écrans dont le sujet est d’écrire', () => {
+describe('what a visit cannot reach', () => {
+  it('closes the screens whose subject is to write', () => {
     expect(estReserveeAuxComptes('/scan')).toBe(true)
     expect(estReserveeAuxComptes('/import-bgg')).toBe(true)
     expect(estReserveeAuxComptes('/import-photo')).toBe(true)
-    // Chaque étape d'une analyse est un POST, dont certains sortent chez un
-    // fournisseur ou chez un modèle : une porte ouverte à tout Internet n'a
-    // pas à offrir ça.
+    // Each step of an analysis is a POST, and some of them go out to a
+    // provider or to a model: a door open to the whole Internet must not
+    // offer that.
     expect(estReserveeAuxComptes('/purchase-analysis')).toBe(true)
     expect(estReserveeAuxComptes('/purchase-analysis/history')).toBe(true)
   })
 
-  it('ferme l’outillage de l’instance et le compte lui-même', () => {
+  it('closes the tools of the instance and the account itself', () => {
     expect(estReserveeAuxComptes('/administration')).toBe(true)
     expect(estReserveeAuxComptes('/administration/comptes')).toBe(true)
     expect(estReserveeAuxComptes('/types/new')).toBe(true)
@@ -30,28 +30,28 @@ describe('ce qu’une visite ne peut pas atteindre', () => {
     expect(estReserveeAuxComptes('/settings')).toBe(true)
   })
 
-  it('laisse ouvert le CATALOGUE, qui est ce qu’un visiteur vient voir', () => {
-    // `/add` n'est plus un écran d'ajout : c'est l'entrée du catalogue, et la
-    // destination de repli du routage pour un visiteur. Le fermer bouclerait
-    // la redirection sur elle-même.
+  it('leaves the CATALOG open, which is what a visitor comes to see', () => {
+    // `/add` is no longer an add screen: it is the entry of the catalog, and
+    // the fallback destination of the routing for a visitor. Closing it would
+    // make the redirect loop on itself.
     expect(estReserveeAuxComptes('/add')).toBe(false)
     expect(estReserveeAuxComptes('/entity/abc-123')).toBe(false)
     expect(estReserveeAuxComptes('/collection/manga')).toBe(false)
   })
 
-  it('ferme « Ma collection », qui est un espace PERSONNEL', () => {
-    // Elle ne montre que ce qu'on possède ou souhaite : elle serait vide pour
-    // un visiteur, et son titre parlerait d'une collection qu'il n'a pas.
+  it('closes "Ma collection", which is a PERSONAL space', () => {
+    // It only shows what one owns or wishes: it would be empty for a visitor,
+    // and its title would speak of a collection that they do not have.
     expect(estReserveeAuxComptes('/')).toBe(true)
-    // Sans faire de « / » un préfixe qui avalerait tout le reste.
+    // Without making "/" a prefix that would swallow everything else.
     expect(estReserveeAuxComptes('/add')).toBe(false)
     expect(estReserveeAuxComptes('/entity/abc')).toBe(false)
   })
 
-  it('ferme ce qui se CALCULE sur une collection, et serait donc vide', () => {
-    // Une session de visite ne nomme aucun propriétaire : ces écrans seraient
-    // exacts et vides - des zéros et des listes sans rien, qui se lisent comme
-    // une panne plutôt que comme une réponse.
+  it('closes what is COMPUTED on a collection, and would therefore be empty', () => {
+    // A visit session names no owner: these screens would be exact and
+    // empty - zeros and lists with nothing in them, which read as a failure
+    // rather than as an answer.
     expect(estReserveeAuxComptes('/discover')).toBe(true)
     expect(estReserveeAuxComptes('/tier-lists/general/manga')).toBe(true)
     expect(estReserveeAuxComptes('/stats')).toBe(true)
@@ -60,9 +60,9 @@ describe('ce qu’une visite ne peut pas atteindre', () => {
     expect(estReserveeAuxComptes('/wishlist')).toBe(true)
   })
 
-  it('compare des SEGMENTS, pas des débuts de chaîne', () => {
-    // Sans cette nuance, `/types` fermerait un futur `/typesetting` - et
-    // l'écran disparaîtrait de la navigation sans que rien ne l'explique.
+  it('compares SEGMENTS, not string beginnings', () => {
+    // Without this nuance, `/types` would close a future `/typesetting` - and
+    // the screen would disappear from the navigation with nothing to explain it.
     expect(estReserveeAuxComptes('/typesetting')).toBe(false)
     expect(estReserveeAuxComptes('/scanner-pro')).toBe(false)
   })

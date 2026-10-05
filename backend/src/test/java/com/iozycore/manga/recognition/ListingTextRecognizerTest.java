@@ -7,13 +7,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Ce que le texte d'une annonce permet de proposer, sans le moindre appel
- * externe.
+ * What the text of a listing lets us propose, without any external
+ * call.
  *
- * <p>C'est le gain principal de cette passe : « Platinum End intégrale tomes 1
- * à 14 » est compris pour zéro euro et zéro seconde d'attente. Solliciter un
- * moteur de vision pour retrouver ce que le vendeur a écrit noir sur blanc
- * serait payer pour deviner une information donnée.
+ * <p>This is the main gain of this pass: "Platinum End intégrale tomes 1
+ * à 14" is understood for zero euros and zero seconds of waiting. Asking a
+ * vision engine to find what the seller wrote in black and white
+ * would be paying to guess a piece of information we already have.
  */
 class ListingTextRecognizerTest {
 
@@ -45,9 +45,9 @@ class ListingTextRecognizerTest {
 
     @Test
     void a_vague_listing_never_invents_a_series() {
-        // « Beau lot manga » ne décrit aucun tome. Inventer une intégrale à
-        // partir de trois mots fabriquerait un verdict calculé sur des tomes
-        // qui n'existent pas.
+        // "Beau lot manga" describes no volume. Inventing a complete set from
+        // three words would build a verdict computed on volumes
+        // that do not exist.
         assertThat(ListingTextRecognizer.recognize("Lot manga", null)).isEmpty();
         assertThat(ListingTextRecognizer.recognize("Beau lot de mangas shonen", null)).isEmpty();
         assertThat(ListingTextRecognizer.recognize("Lot manga divers 25 pièces", null)).isEmpty();
@@ -55,8 +55,8 @@ class ListingTextRecognizerTest {
 
     @Test
     void volumes_without_an_identifiable_series_yield_nothing() {
-        // « lot mangas 1 à 10 » donne des numéros mais aucune œuvre : dix lignes
-        // « ? tome N » n'aideraient personne.
+        // "lot mangas 1 à 10" gives numbers but no work: ten lines
+        // "? tome N" would help nobody.
         assertThat(ListingTextRecognizer.recognize("Lot mangas 1 à 10", null)).isEmpty();
     }
 
@@ -79,7 +79,7 @@ class ListingTextRecognizerTest {
         RecognizedItem item = ListingTextRecognizer.recognize("Platinum End tome 7", null).get(0);
 
         assertThat(item.sources()).containsExactly(RecognitionSource.TEXT);
-        // On ne lui invente pas une photo 0 : le texte n'en a pas.
+        // We do not invent a photo 0 for it: the text has none.
         assertThat(item.sourceImages()).isEmpty();
     }
 
@@ -92,8 +92,8 @@ class ListingTextRecognizerTest {
 
     @Test
     void reading_the_text_is_certain_even_though_owning_the_volumes_is_not() {
-        // La LECTURE est sûre : la phrase dit « 1 à 14 ». Que le vendeur les ait
-        // vraiment est une autre question, portée par la source TEXT.
+        // The READING is sure: the sentence says "1 à 14". Whether the seller really has them
+        // is another question, carried by the TEXT source.
         RecognizedItem item = ListingTextRecognizer.recognize("Platinum End 1-14", null).get(0);
 
         assertThat(item.confidence()).isEqualTo(RecognitionConfidence.HIGH);
@@ -102,18 +102,18 @@ class ListingTextRecognizerTest {
 
     @Test
     void an_edition_is_never_INVENTED_from_the_text() {
-        // Ce test disait « jamais devinée », ce qui n'est plus la règle : le
-        // parser lit désormais l'édition quand le titre la NOMME. Ce qu'il ne
-        // fait toujours pas, et ne fera pas, c'est en supposer une quand le
-        // titre se tait - « Death Note tomes 1 à 6 » n'en nomme aucune.
+        // This test used to say "never guessed", which is no longer the rule: the
+        // parser now reads the edition when the title NAMES it. What it
+        // still does not do, and will not do, is assume one when the
+        // title is silent - "Death Note tomes 1 à 6" names none.
         assertThat(ListingTextRecognizer.recognize("Death Note tomes 1 à 6", null))
                 .allSatisfy(item -> assertThat(item.editionIsUnknown()).isTrue());
     }
 
     @Test
     void an_unreasonably_large_lot_is_not_unrolled_into_hundreds_of_rows() {
-        // La borne du parser accepte jusqu'à 300 ; produire trois cents lignes à
-        // cocher serait inutilisable. Un lot pareil se saisit autrement.
+        // The parser limit accepts up to 300; producing three hundred lines to
+        // tick would be unusable. Such a batch is entered another way.
         assertThat(ListingTextRecognizer.recognize("Naruto tomes 1 à 200", null)).isEmpty();
     }
 
@@ -123,14 +123,14 @@ class ListingTextRecognizerTest {
         assertThat(ListingTextRecognizer.recognize("Platinum End tomes 14 à 3", null)).isEmpty();
     }
 
-    // ============================= « 9 tomes » : combien, mais pas lesquels
+    // ============================= "9 tomes": how many, but not which
 
     @Test
     void an_announced_count_produces_no_proposal_at_all() {
-        // Le coeur du sujet. Dérouler 1 à 9 serait le geste facile et le
-        // mauvais : le vendeur peut avoir les tomes 14 à 22, et un verdict
-        // d'achat calculé sur des tomes inventés serait faux avec l'aplomb
-        // d'un calcul.
+        // The core of the matter. Unrolling 1 to 9 would be the easy and the
+        // wrong move: the seller may have volumes 14 to 22, and a buying
+        // verdict computed on invented volumes would be wrong with the confidence
+        // of a calculation.
         ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("9 tomes de Naruto", null);
 
         assertThat(lecture.items()).isEmpty();
@@ -140,18 +140,18 @@ class ListingTextRecognizerTest {
 
     @Test
     void the_series_is_named_even_though_no_volume_can_be_proposed() {
-        // Ce que l'annonce dit VRAIMENT est conservé : la série est nommée noir
-        // sur blanc, seuls les numéros manquent. La perdre obligerait
-        // l'utilisateur à retaper ce que le titre contenait déjà.
+        // What the listing REALLY says is kept: the series is named in black
+        // and white, only the numbers are missing. Losing it would force
+        // the user to retype what the title already contained.
         assertThat(ListingTextRecognizer.read("Lot de 12 tomes One Piece", null).announcedSeriesTitle())
                 .isEqualTo("One Piece");
     }
 
     @Test
     void a_count_without_an_identifiable_work_keeps_the_count_and_drops_the_series() {
-        // « lot de 9 mangas » ne nomme aucune oeuvre. Le nombre reste vrai et
-        // servira à vérifier la saisie ; fabriquer une série « mangas »
-        // n'aiderait personne.
+        // "lot de 9 mangas" names no work. The number stays true and
+        // will serve to check the entry; making up a "mangas" series
+        // would help nobody.
         ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("Lot de 9 mangas", null);
 
         assertThat(lecture.items()).isEmpty();
@@ -164,8 +164,8 @@ class ListingTextRecognizerTest {
         ListingTextRecognizer.TextReading lecture = ListingTextRecognizer.read("Naruto tomes 1 à 9", null);
 
         assertThat(lecture.items()).hasSize(9);
-        // Sinon l'écran afficherait « 9 tomes annoncés » à côté de neuf tomes
-        // déjà identifiés, comme si quelque chose manquait encore.
+        // Otherwise the screen would show "9 volumes announced" next to nine volumes
+        // already identified, as if something were still missing.
         assertThat(lecture.announcedVolumeCount()).isNull();
     }
 
@@ -179,20 +179,20 @@ class ListingTextRecognizerTest {
 
     @Test
     void the_legacy_entry_point_still_answers_a_plain_list() {
-        // recognize() reste le chemin des appelants qui ne veulent que les
-        // propositions : la nouvelle lecture ne casse pas l'ancienne.
+        // recognize() stays the path for callers that only want the
+        // proposals: the new reading does not break the old one.
         assertThat(ListingTextRecognizer.recognize("9 tomes de Naruto", null)).isEmpty();
         assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1 à 3", null)).hasSize(3);
     }
 
-    // ================================ Lots enumerant PLUSIEURS series
+    // ================================ Batches listing SEVERAL series
 
     @Test
     void two_series_in_one_title_are_read_as_two_series() {
-        // Avant : trois tomes attribues a une serie nommee « Death Note +
-        // Bakuman ». Deux livres disparaissaient du decompte - les tomes 1-2 de
-        // Bakuman, fondus dans la plage 1-3 - et le lot ressortait moins cher
-        // au tome qu'il ne l'etait.
+        // Before: three volumes attributed to a series named "Death Note +
+        // Bakuman". Two books disappeared from the count - volumes 1-2 of
+        // Bakuman, merged into the range 1-3 - and the batch came out cheaper
+        // per volume than it really was.
         List<RecognizedItem> propositions = ListingTextRecognizer.recognize("Death Note 1-3 + Bakuman 1-2", null);
 
         assertThat(propositions).hasSize(5);
@@ -214,9 +214,9 @@ class ListingTextRecognizerTest {
 
     @Test
     void volumes_never_leak_from_one_series_to_the_other() {
-        // Le fond du sujet : chaque segment est relu SEUL, ses tomes ne sont
-        // qu'a lui. « Death Note tome 1 / Bakuman tome 4 » disait avant que le
-        // lot contenait un Death Note 4 - un livre qui n'y est pas.
+        // The core of the matter: each segment is re-read ALONE, its volumes belong
+        // only to it. "Death Note tome 1 / Bakuman tome 4" used to say that the
+        // batch contained a Death Note 4 - a book that is not there.
         List<RecognizedItem> propositions =
                 ListingTextRecognizer.recognize("Death Note tome 1 / Bakuman tome 4", null);
 
@@ -226,13 +226,13 @@ class ListingTextRecognizerTest {
                 .extracting(RecognizedItem::volumeNumber).containsExactly(4);
     }
 
-    // ---- Le garde-fou : ces separateurs servent AUSSI a autre chose
+    // ---- The safeguard: these separators ALSO serve for something else
 
     @Test
     void a_comma_separated_list_of_volumes_is_not_a_list_of_series() {
-        // « tomes 1, 2, 4 » : le decoupage donnerait « tomes 1 », « 2 », « 4 »,
-        // dont aucun ne porte d'oeuvre. Une seule serie valide, donc on ne
-        // touche a rien.
+        // "tomes 1, 2, 4": the split would give "tomes 1", "2", "4",
+        // none of which carries a work. A single valid series, so we do not
+        // touch anything.
         assertThat(ListingTextRecognizer.recognize("Platinum End tomes 1, 2, 4", null))
                 .extracting(RecognizedItem::volumeNumber).containsExactly(1, 2, 4);
     }
@@ -244,14 +244,14 @@ class ListingTextRecognizerTest {
 
     @Test
     void a_title_that_merely_contains_a_separator_is_left_alone() {
-        // « Jojo's Bizarre Adventure, Part 4 » : le second segment ne porte
-        // aucun tome, donc une seule serie valide, donc comportement inchange.
+        // "Jojo's Bizarre Adventure, Part 4": the second segment carries
+        // no volume, so a single valid series, so unchanged behaviour.
         List<RecognizedItem> propositions =
                 ListingTextRecognizer.recognize("Jojo's Bizarre Adventure, Part 4 tomes 1 à 3", null);
 
-        // Trois tomes d'UNE seule oeuvre - « Part 4 » appartient au nom de
-        // l'oeuvre, pas a une seconde serie. Ce qui compte est qu'il n'y en ait
-        // qu'une, pas la facon exacte dont le titre est nettoye.
+        // Three volumes of ONE single work - "Part 4" belongs to the name of
+        // the work, not to a second series. What matters is that there is only
+        // one, not the exact way the title is cleaned.
         assertThat(propositions).hasSize(3);
         assertThat(propositions).extracting(RecognizedItem::seriesTitleRaw).hasSize(3);
         assertThat(propositions.stream().map(RecognizedItem::seriesTitleRaw).distinct().toList()).hasSize(1);
@@ -266,20 +266,20 @@ class ListingTextRecognizerTest {
 
     @Test
     void a_segment_without_an_identifiable_work_does_not_make_a_second_series() {
-        // « Naruto 1-3 + TBE » : « TBE » n'est pas une oeuvre. Une seule serie
-        // valide, donc la lecture normale reprend la main.
+        // "Naruto 1-3 + TBE": "TBE" is not a work. A single valid series,
+        // so the normal reading takes over again.
         assertThat(ListingTextRecognizer.recognize("Naruto 1-3 + TBE", null))
                 .extracting(RecognizedItem::seriesTitleRaw).containsOnly("Naruto");
     }
 
-    // ================================ L'edition nommee dans le titre
+    // ================================ The edition named in the title
 
     @Test
     void naming_the_edition_no_longer_destroys_the_series() {
-        // Le vrai degat d'avant : « Naruto Perfect Edition » ressortait comme
-        // une SERIE de ce nom, que le catalogue ne connait pas - alors que
-        // « Naruto » seul retrouvait sa fiche. Nommer l'edition, ce que les
-        // vendeurs font sans cesse, faisait perdre la serie.
+        // The real damage before: "Naruto Perfect Edition" came out as
+        // a SERIES of that name, which the catalogue does not know - while
+        // "Naruto" alone found its work page. Naming the edition, which sellers
+        // do all the time, made us lose the series.
         List<RecognizedItem> propositions =
                 ListingTextRecognizer.recognize("Naruto Perfect Edition tomes 1 à 3", null);
 
@@ -292,14 +292,14 @@ class ListingTextRecognizerTest {
         List<RecognizedItem> propositions =
                 ListingTextRecognizer.recognize("Naruto Perfect Edition tomes 1 à 3", null);
 
-        // L'edition est une propriete de la SERIE : les trois tomes la portent.
+        // The edition is a property of the SERIES: the three volumes carry it.
         assertThat(propositions).extracting(RecognizedItem::editionHint)
                 .containsOnly("Perfect Edition");
     }
 
     @Test
     void a_title_that_names_no_edition_leaves_it_unknown() {
-        // Rien n'est suppose. Une edition absente reste absente.
+        // Nothing is assumed. A missing edition stays missing.
         assertThat(ListingTextRecognizer.recognize("Naruto tomes 1 à 3", null))
                 .extracting(RecognizedItem::editionHint).containsOnlyNulls();
     }
@@ -317,7 +317,7 @@ class ListingTextRecognizerTest {
 
     @Test
     void a_series_whose_name_looks_like_a_tier_keeps_its_name() {
-        // « Black Butler » n'est pas une edition « Black » de « Butler ».
+        // "Black Butler" is not a "Black" edition of "Butler".
         assertThat(ListingTextRecognizer.recognize("Black Butler tomes 1 à 3", null))
                 .extracting(RecognizedItem::seriesTitleRaw).containsOnly("Black Butler");
     }

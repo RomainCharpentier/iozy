@@ -21,14 +21,14 @@ public class AppUserJpaEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    // Unique sans tenir compte de la casse, par un index fonctionnel posé en
-    // V27 (`lower(pseudo)`) : `unique = true` ici décrirait une unicité
-    // sensible à la casse, que la base n'applique pas.
+    // Unique regardless of case, through a functional index created in
+    // V27 (`lower(pseudo)`): `unique = true` here would describe a
+    // case-sensitive uniqueness, which the database does not enforce.
     @Column(name = "pseudo", nullable = false)
     private String pseudo;
 
-    // Le seul droit qui distingue deux comptes, et il ne porte que sur
-    // l'instance - jamais sur les données d'autrui (voir V28).
+    // The only right that tells two accounts apart, and it only applies to
+    // the instance - never to the data of others (see V28).
     @Column(name = "is_admin", nullable = false)
     private boolean admin;
 

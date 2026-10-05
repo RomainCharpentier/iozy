@@ -5,15 +5,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Retirer la décoration d'une annonce sans abîmer le nom d'une œuvre.
+ * Remove the decoration of a listing without damaging the name of a work.
  *
- * <p>Les deux moitiés comptent autant : laisser un emoji fait rater un
- * appariement, mais rogner un tiret ou un point d'exclamation fabrique un titre
- * qui n'existe pas - et cette seconde erreur est silencieuse.
+ * <p>Both halves matter equally: leaving an emoji makes a
+ * match fail, but trimming a dash or an exclamation mark builds a title
+ * that does not exist - and this second error is silent.
  */
 class SeriesTitleNormalizerTest {
 
-    // ====================================================== Décoration retirée
+    // ====================================================== Decoration removed
 
     @Test
     void a_leading_emoji_is_not_part_of_the_work_title() {
@@ -41,8 +41,8 @@ class SeriesTitleNormalizerTest {
 
     @Test
     void an_emoji_with_its_invisible_baggage_leaves_nothing_behind() {
-        // Un emoji traîne souvent un sélecteur de variante (U+FE0F) : le
-        // laisser derrière rendrait le titre différent sans que rien ne se voie.
+        // An emoji often drags a variation selector (U+FE0F): leaving
+        // it behind would make the title different without anything showing.
         assertThat(SeriesTitleNormalizer.normalize("❤️ Nana")).isEqualTo("Nana");
         assertThat(SeriesTitleNormalizer.normalize("Nana ❤️")).isEqualTo("Nana");
     }
@@ -52,7 +52,7 @@ class SeriesTitleNormalizerTest {
         assertThat(SeriesTitleNormalizer.normalize("🔥   Hell's   Paradise")).isEqualTo("Hell's Paradise");
     }
 
-    // ====================================================== Titres légitimes intacts
+    // ====================================================== Legitimate titles intact
 
     @Test
     void a_trailing_exclamation_mark_belongs_to_the_title() {
@@ -82,8 +82,8 @@ class SeriesTitleNormalizerTest {
 
     @Test
     void a_symbol_INSIDE_a_title_is_left_alone() {
-        // Rien ne permet d'affirmer qu'il décore plutôt qu'il ne nomme : dans le
-        // doute, on garde. Un appariement manqué se corrige, un titre inventé non.
+        // Nothing allows us to say that it decorates rather than names: when in
+        // doubt, we keep it. A missed match can be fixed, an invented title cannot.
         assertThat(SeriesTitleNormalizer.normalize("Fate/stay night")).isEqualTo("Fate/stay night");
         assertThat(SeriesTitleNormalizer.normalize("Nana ★ Seven")).isEqualTo("Nana ★ Seven");
     }
@@ -94,7 +94,7 @@ class SeriesTitleNormalizerTest {
         assertThat(SeriesTitleNormalizer.normalize("Vinland Saga")).isEqualTo("Vinland Saga");
     }
 
-    // ====================================================== Bords
+    // ====================================================== Edges
 
     @Test
     void nothing_in_gives_an_empty_string_never_a_failure() {
@@ -105,8 +105,8 @@ class SeriesTitleNormalizerTest {
 
     @Test
     void a_title_made_only_of_decoration_keeps_its_original_form() {
-        // Inexploitable de toute façon - mais le vider ferait perdre la seule
-        // information disponible, et un titre vide lève plus loin.
+        // Unusable anyway - but emptying it would lose the only
+        // information available, and an empty title throws further on.
         assertThat(SeriesTitleNormalizer.normalize("🔥🔥🔥")).isEqualTo("🔥🔥🔥");
     }
 }

@@ -3,49 +3,49 @@ package com.iozycore.core.metadata;
 import java.util.Optional;
 
 /**
- * Ce qu'une recherche par code-barres a donné — <b>y compris quand elle n'a
- * rien donné</b>.
+ * What a barcode search gave - <b>including when it gave
+ * nothing</b>.
  *
- * <h2>Deux vides qui ne se ressemblent pas</h2>
- * Les providers rendaient {@code Optional.empty()} dans deux situations que
- * rien ne distinguait ensuite :
+ * <h2>Two empties that do not look alike</h2>
+ * The providers returned {@code Optional.empty()} in two situations that
+ * nothing told apart afterwards:
  * <ul>
- *   <li><b>ABSENT</b> — la base a répondu, et elle ne connaît pas ce code.
- *       C'est une <i>réponse</i>, et elle a de la valeur : la reposer dans la
- *       minute donnera la même chose ;</li>
- *   <li><b>UNAVAILABLE</b> — la base n'a pas pu répondre : réseau coupé,
- *       délai dépassé, quota épuisé, corps illisible. Ce n'est pas une réponse,
- *       c'est une absence de réponse, et le ré-essai est légitime.</li>
+ *   <li><b>ABSENT</b> - the database answered, and it does not know this code.
+ *       It is an <i>answer</i>, and it has value: asking it again within the
+ *       minute will give the same thing;</li>
+ *   <li><b>UNAVAILABLE</b> - the database could not answer: network down,
+ *       timeout, quota exhausted, unreadable body. It is not an answer,
+ *       it is an absence of answer, and retrying is legitimate.</li>
  * </ul>
  *
- * <h2>Pourquoi la distinction a fini par compter</h2>
- * Tant que les codes-barres arrivaient un par un, depuis une caméra, les
- * confondre ne coûtait rien : l'utilisateur rescanne. Depuis que les photos
- * d'un lot en livrent une douzaine d'un coup — et qu'une identification prend
- * de 1,4 à 5,5 secondes — mémoriser les absences est devenu précieux.
+ * <h2>Why the distinction ended up mattering</h2>
+ * As long as barcodes arrived one by one, from a camera, mixing
+ * them up cost nothing: the user scans again. Since the photos
+ * of a batch deliver a dozen at once - and an identification takes
+ * from 1.4 to 5.5 seconds - remembering the absences has become valuable.
  *
- * <p>Mais mémoriser une <i>panne</i> serait un défaut grave : le ré-essai de
- * l'utilisateur rendrait l'échec en cache au lieu de retenter, et un incident
- * d'une seconde se figerait pour une demi-heure. C'est précisément ce que le
+ * <p>But remembering an <i>outage</i> would be a serious defect: the user's retry
+ * would return the cached failure instead of trying again, and a one-second
+ * incident would freeze for half an hour. This is precisely what the
  * test {@code does_not_cache_a_failed_barcode_lookup_so_a_later_retry_can_still_succeed}
- * protège depuis longtemps, et il avait raison.
+ * has protected for a long time, and it was right.
  *
- * @param candidate l'œuvre trouvée, ou {@code null}
- * @param conclusive vrai quand la base <b>a répondu</b> - qu'elle ait trouvé ou non
+ * @param candidate the work found, or {@code null}
+ * @param conclusive true when the database <b>answered</b> - whether it found or not
  */
 public record BarcodeLookup(MetadataCandidate candidate, boolean conclusive) {
 
-    /** La base connaît ce code. */
+    /** The database knows this code. */
     public static BarcodeLookup found(MetadataCandidate candidate) {
         return new BarcodeLookup(candidate, true);
     }
 
-    /** La base a répondu, et ne connaît pas ce code. */
+    /** The database answered, and does not know this code. */
     public static BarcodeLookup absent() {
         return new BarcodeLookup(null, true);
     }
 
-    /** La base n'a pas pu répondre - le ré-essai reste légitime. */
+    /** The database could not answer - retrying remains legitimate. */
     public static BarcodeLookup unavailable() {
         return new BarcodeLookup(null, false);
     }
@@ -54,7 +54,7 @@ public record BarcodeLookup(MetadataCandidate candidate, boolean conclusive) {
         return Optional.ofNullable(candidate);
     }
 
-    /** Cherché, et introuvable : la seule situation qu'il vaille la peine de mémoriser. */
+    /** Searched, and not found: the only situation worth remembering. */
     public boolean knownAbsent() {
         return conclusive && candidate == null;
     }

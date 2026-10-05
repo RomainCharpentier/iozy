@@ -12,16 +12,16 @@ import { formaterEuros } from '@/common/lib/formats'
 const CONFIDENCE_LABELS = { HIGH: 'haute', MEDIUM: 'moyenne', LOW: 'faible' } as const
 
 /**
- * Résout une édition connue par (série, nom d'édition) ; si elle n'existe
- * pas encore (404, pas une vraie erreur), propose une saisie progressive
- * inline plutôt qu'un écran d'administration séparé - la donnée saisie ici
- * est persistée et réutilisée pour toutes les analyses futures référençant
- * cette même édition (voir MangaEditionRepository côté backend).
+ * Resolves a known edition by (series, edition name); if it does not exist
+ * yet (404, not a real error), offers a progressive entry
+ * inline rather than a separate administration screen - the data entered here
+ * is persisted and reused for all future analyses referencing
+ * this same edition (see MangaEditionRepository on the backend).
  * <p>
- * Aucune valeur n'est jamais inventée : tant que rien n'est saisi ici,
- * l'analyse traite l'édition comme inconnue (complétude non calculable,
- * prix théorique indisponible) plutôt que de deviner un nombre de tomes ou
- * un prix neuf.
+ * No value is ever invented: as long as nothing is entered here,
+ * the analysis treats the edition as unknown (completeness not computable,
+ * theoretical price unavailable) rather than guessing a number of volumes or
+ * a new price.
  */
 export function EditionReferenceLookup({
   seriesTitle,
@@ -50,7 +50,7 @@ export function EditionReferenceLookup({
     queryKey: queryKeys.purchaseAnalysis.edition(trimmedSeries, trimmedEdition),
     queryFn: () => findEdition(trimmedSeries, trimmedEdition),
     enabled,
-    retry: false, // 404 = édition pas encore connue, pas une panne réseau à retenter
+    retry: false, // 404 = edition not yet known, not a network failure to retry
   })
 
   const notFound = editionQuery.isError && editionQuery.error instanceof ApiError && editionQuery.error.status === 404
@@ -65,9 +65,9 @@ export function EditionReferenceLookup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editionQuery.isSuccess, editionQuery.data])
 
-  // Phase 2 (assistance IA) - un brouillon à relire, jamais enregistré tout seul :
-  // ne fait que pré-remplir les champs ci-dessous, "Enregistrer cette édition"
-  // reste l'unique action qui persiste quoi que ce soit.
+  // Phase 2 (AI assist) - a draft to review, never saved on its own:
+  // it only pre-fills the fields below, "Enregistrer cette édition"
+  // stays the only action that persists anything.
   const suggestMutation = useMutation({
     mutationFn: () => suggestEditionReferenceData(trimmedSeries, trimmedEdition),
     onSuccess: (suggestion) => {
@@ -129,7 +129,7 @@ export function EditionReferenceLookup({
     return <ErrorBanner message="Impossible de vérifier cette édition pour le moment." />
   }
 
-  // notFound === true à partir d'ici.
+  // notFound === true from here on.
   if (!expanded) {
     return (
       <button type="button" onClick={() => setExpanded(true)} className="flex items-center gap-1.5 text-xs text-textDim underline">

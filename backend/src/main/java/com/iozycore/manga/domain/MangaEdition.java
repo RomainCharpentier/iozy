@@ -14,8 +14,8 @@ import java.util.UUID;
  * defaulted to 0, which would wrongly read as "this edition has no
  * volumes" instead of "completeness cannot be computed yet".
  * <p>
- * Moved into the catalog domain (2026-08-14, modèle manga cible Série ->
- * Édition -> Tome) from the {@code purchaseanalysis} module it was
+ * Moved into the catalog domain (2026-08-14, target manga model Series ->
+ * Edition -> Volume) from the {@code purchaseanalysis} module it was
  * originally built in for "Analyse d'achat": every field here (name, tier,
  * publisher, volume count, language, out-of-print, better-edition-announced,
  * retail price) is an intrinsic catalog fact about the edition itself, none
@@ -26,7 +26,7 @@ import java.util.UUID;
  * ({@code manga_edition}) kept unchanged to avoid an unnecessary rename
  * migration.
  * <p>
- * {@code entityId} links this edition to its Série ({@link Entity}) -
+ * {@code entityId} links this edition to its Series ({@link Entity}) -
  * nullable and additive. {@code seriesTitle} remains the primary
  * identifier used by text-matching (see {@code SeriesMatcher}) during
  * import/purchase-analysis: an edition can legitimately exist before, or
@@ -56,7 +56,7 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
         languageCode = languageCode == null || languageCode.isBlank() ? "fr" : languageCode;
     }
 
-    /** Without a known Série yet - see {@code entityId} javadoc above. */
+    /** Without a known Series yet - see {@code entityId} javadoc above. */
     public static MangaEdition create(String seriesTitle, String editionName, EditionTier tier, String publisher,
                                        Integer totalVolumes, BigDecimal retailPriceNewPerVolume, boolean outOfPrint,
                                        boolean betterEditionAnnounced, String betterEditionNote) {
@@ -64,7 +64,7 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
                 outOfPrint, betterEditionAnnounced, betterEditionNote);
     }
 
-    /** Variant that also links this edition to its catalog Série from creation. */
+    /** Variant that also links this edition to its catalog Series from creation. */
     public static MangaEdition create(UUID entityId, String seriesTitle, String editionName, EditionTier tier,
                                        String publisher, Integer totalVolumes, BigDecimal retailPriceNewPerVolume,
                                        boolean outOfPrint, boolean betterEditionAnnounced, String betterEditionNote) {
@@ -88,7 +88,7 @@ public record MangaEdition(UUID id, UUID entityId, String seriesTitle, String ed
                 languageCode, createdAt, Instant.now());
     }
 
-    /** Links this edition to its catalog Série after the fact (e.g. once SeriesMatcher resolves a real Entity for
+    /** Links this edition to its catalog Series after the fact (e.g. once SeriesMatcher resolves a real Entity for
      * an edition that was created before one existed) - additive, never called with null to erase a known value. */
     public MangaEdition withEntityId(UUID entityId) {
         return new MangaEdition(id, entityId, seriesTitle, editionName, tier, publisher, totalVolumes,

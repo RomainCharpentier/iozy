@@ -1,9 +1,9 @@
 import { Tag, Layers, Package, Folder, Bookmark, Box, Grid3x3, Puzzle, Archive } from 'lucide-react'
 import { djb2Hash } from './gradient'
 
-/** Icônes génériques pour un type créé par l'utilisateur (pas de curation
- * possible comme pour les 3 types MVP historiques) - même principe que
- * gradientFor() : hash déterministe du code vers une petite liste fixe. */
+/** Generic icons for a type created by the user (no curation
+ * possible as for the 3 historical MVP types) - same principle as
+ * gradientFor(): deterministic hash of the code into a small fixed list. */
 const iconFallbacks = [Tag, Layers, Package, Folder, Bookmark, Box, Grid3x3, Puzzle, Archive]
 
 export function iconFor(code: string) {

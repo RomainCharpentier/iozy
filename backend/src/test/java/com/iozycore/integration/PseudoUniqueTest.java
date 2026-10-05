@@ -12,19 +12,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * <b>Deux personnes ne peuvent pas porter le même pseudo, et c'est la BASE qui
- * le garantit.</b>
+ * <b>Two people cannot have the same username, and it is the DATABASE that
+ * guarantees it.</b>
  *
- * <p>{@code AuthService} vérifie déjà qu'un pseudo est libre avant d'écrire -
- * mais pour la <b>phrase</b> : « Ce pseudo est déjà pris » se lit, une
- * violation d'index non. Cette vérification, seule, laisse passer deux
- * créations simultanées : chacune lit « libre », puis chacune écrit.
+ * <p>{@code AuthService} already checks that a username is free before writing -
+ * but for the <b>sentence</b>: "Ce pseudo est déjà pris" can be read, an
+ * index violation cannot. This check, alone, lets two simultaneous
+ * creations through: each reads "free", then each writes.
  *
- * <p>L'index unique de la migration V27 est ce qui rend le doublon
- * <b>impossible</b>, et non seulement improbable. Il est posé sur
- * {@code lower(pseudo)} : deux comptes ne peuvent pas non plus différer par la
- * seule casse - « Romain » et « romain » désignent la même personne pour tout
- * lecteur humain.
+ * <p>The unique index of migration V27 is what makes the duplicate
+ * <b>impossible</b>, and not only unlikely. It is set on
+ * {@code lower(pseudo)}: two accounts also cannot differ by
+ * case only - "Romain" and "romain" are the same person for any
+ * human reader.
  */
 class PseudoUniqueTest extends PostgresIntegrationTest {
 
@@ -43,9 +43,9 @@ class PseudoUniqueTest extends PostgresIntegrationTest {
         comptes.save(new AppUser(UUID.randomUUID(), "deux-" + pseudo + "@example.com", "hache",
                 pseudo.toUpperCase(), false, null));
 
-        // Le flush est explicite : sans lui, l'écriture attendrait la fin de la
-        // transaction et l'échec tomberait hors du test, là où plus personne ne
-        // le rattache à ce qu'il vérifie.
+        // The flush is explicit: without it, the write would wait for the end of the
+        // transaction and the failure would fall outside the test, where nobody
+        // links it anymore to what it checks.
         assertThatThrownBy(entityManager::flush).isInstanceOf(Exception.class);
     }
 
@@ -55,8 +55,8 @@ class PseudoUniqueTest extends PostgresIntegrationTest {
         comptes.save(new AppUser(UUID.randomUUID(), pseudo + "@example.com", "hache", pseudo, false, null));
         entityManager.flush();
 
-        // Chercher « RÉMI... » doit trouver « Rémi... » : c'est cette lecture
-        // qui permet à la porte d'expliquer un refus au lieu de le subir.
+        // Searching "RÉMI..." must find "Rémi...": this reading
+        // is what lets the door explain a refusal instead of just enforcing it.
         assertThat(comptes.findByPseudo(pseudo.toUpperCase())).isPresent();
     }
 }

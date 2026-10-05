@@ -3,24 +3,24 @@ package com.iozycore.manga.recognition;
 import java.util.Set;
 
 /**
- * Ce qu'une photo doit respecter pour être analysée — quelle que soit la porte
- * par laquelle elle entre.
+ * What a photo must respect to be analysed - whatever the door
+ * through which it comes in.
  *
- * <h2>Pourquoi ces bornes ne vivent plus dans le fetcher</h2>
- * Il existe désormais <b>deux</b> entrées : les photos récupérées depuis une
- * annonce ({@link RecognitionImageFetcher}) et celles envoyées par
- * l'utilisateur ({@link UploadedImageReader}). Des bornes recopiées dans les
- * deux dérivent : on relève le plafond d'un côté, on l'oublie de l'autre, et
- * la porte oubliée devient la porte à forcer. Elles sont donc énoncées ici,
- * une fois.
+ * <h2>Why these limits no longer live in the fetcher</h2>
+ * There are now <b>two</b> entries: the photos fetched from a
+ * listing ({@link RecognitionImageFetcher}) and the ones sent by
+ * the user ({@link UploadedImageReader}). Limits copied into the
+ * two drift apart: the ceiling is raised on one side, forgotten on the other, and
+ * the forgotten door becomes the door to force. They are therefore stated here,
+ * once.
  *
- * <h2>Le type MIME se constate, il ne se déclare pas</h2>
- * {@link #sniff(byte[])} lit les premiers octets. C'est la différence entre
- * les deux portes : un CDN qui annonce {@code image/jpeg} engage sa
- * responsabilité, un fichier envoyé depuis un téléphone n'annonce que ce que
- * le client a bien voulu écrire. {@code Content-Type: image/png} sur un
- * exécutable est une ligne de texte, pas une garantie — et ces octets partent
- * ensuite vers un moteur externe.
+ * <h2>The MIME type is observed, not declared</h2>
+ * {@link #sniff(byte[])} reads the first bytes. This is the difference between
+ * the two doors: a CDN that announces {@code image/jpeg} commits its
+ * responsibility, a file sent from a phone announces only what
+ * the client chose to write. {@code Content-Type: image/png} on an
+ * executable is a line of text, not a guarantee - and these bytes then go
+ * to an external engine.
  */
 public final class RecognitionImageLimits {
 
@@ -28,36 +28,36 @@ public final class RecognitionImageLimits {
     }
 
     /**
-     * Au-delà, l'analyse coûte plus qu'elle ne rapporte : un lot se lit sur ses
-     * premières photos, et chaque image supplémentaire est un appel de plus au
-     * moteur. Aligné sur le plafond de photos que le provider Vinted remonte.
+     * Beyond that, the analysis costs more than it brings: a batch is read on its
+     * first photos, and each additional image is one more call to the
+     * engine. Aligned with the photo ceiling that the Vinted provider reports.
      */
     public static final int MAX_IMAGES = 8;
 
-    /** Une photo d'annonce dépasse rarement 2 Mo ; au-delà c'est autre chose. */
+    /** A listing photo rarely exceeds 2 MB; beyond that it is something else. */
     public static final int MAX_BYTES_PER_IMAGE = 3 * 1024 * 1024;
 
-    /** Plafond cumulé : huit images de 3 Mo tiendraient en mémoire, mais rien ne justifie 24 Mo. */
+    /** Cumulated ceiling: eight 3 MB images would fit in memory, but nothing justifies 24 MB. */
     public static final int MAX_TOTAL_BYTES = 12 * 1024 * 1024;
 
-    /** Ce que les moteurs savent lire, et ce que les CDN d'annonces servent. */
+    /** What the engines can read, and what the listing CDNs serve. */
     public static final Set<String> ACCEPTED_MEDIA_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
 
     /**
-     * Le type MIME réellement porté par ces octets, ou {@code null} si ce n'est
-     * aucune des trois images acceptées.
+     * The MIME type really carried by these bytes, or {@code null} if it is
+     * none of the three accepted images.
      *
-     * <p>Trois signatures, reconnues à leur en-tête :
+     * <p>Three signatures, recognised by their header:
      * <ul>
-     *   <li>JPEG : {@code FF D8 FF} ;</li>
-     *   <li>PNG : {@code 89 50 4E 47 0D 0A 1A 0A} ;</li>
-     *   <li>WebP : {@code RIFF} puis {@code WEBP} en position 8.</li>
+     *   <li>JPEG: {@code FF D8 FF};</li>
+     *   <li>PNG: {@code 89 50 4E 47 0D 0A 1A 0A};</li>
+     *   <li>WebP: {@code RIFF} then {@code WEBP} at position 8.</li>
      * </ul>
      *
-     * <p>Ce n'est pas un validateur d'image : un JPEG tronqué passe, et c'est
-     * voulu — le rôle ici est d'écarter ce qui n'est <b>pas du tout</b> une
-     * image, pas de garantir qu'elle se décode. Le moteur, lui, sait dire qu'il
-     * n'a rien vu.
+     * <p>This is not an image validator: a truncated JPEG passes, and this is
+     * intended - the role here is to discard what is <b>not at all</b> an
+     * image, not to guarantee that it decodes. The engine, for its part, knows how to say that it
+     * saw nothing.
      */
     public static String sniff(byte[] octets) {
         if (octets == null || octets.length < 12) {
@@ -77,7 +77,7 @@ public final class RecognitionImageLimits {
         return null;
     }
 
-    /** Un {@code byte} est signé en Java : sans ça, 0xFF vaut -1 et aucune comparaison ne tombe juste. */
+    /** A {@code byte} is signed in Java: without this, 0xFF is -1 and no comparison comes out right. */
     private static int u(byte b) {
         return b & 0xFF;
     }

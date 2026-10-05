@@ -4,41 +4,41 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Les trois questions d'une annonce, gardées distinctes, puis une synthèse.
+ * The three questions of a listing, kept separate, then a summary.
  *
- * <h2>Pourquoi trois</h2>
- * « Ce lot m'apporte-t-il quelque chose ? », « ce prix est-il bon ? » et
- * « cette annonce est-elle nette ? » ne se répondent pas ensemble. Un lot
- * bradé mais entièrement en doublon est un mauvais achat à bon prix. Un lot
- * cher mais qui comble exactement les trous peut valoir la dépense. Un seul
- * chiffre écraserait ces cas l'un sur l'autre, et c'est précisément là que
- * l'utilisateur a besoin de voir clair.
+ * <h2>Why three</h2>
+ * "Does this lot bring me something?", "is this price good?" and
+ * "is this listing clean?" cannot be answered together. A lot sold
+ * cheap but entirely made of duplicates is a bad purchase at a good price. An expensive lot
+ * that fills exactly the gaps can be worth the spending. A single
+ * number would crush these cases onto each other, and this is exactly where
+ * the user needs to see clearly.
  *
- * <h2>La synthèse ne remplace pas les dimensions</h2>
- * {@link #headline()} donne la phrase qui domine l'écran, mais les trois
- * dimensions restent lisibles à côté : c'est ce qui rend le verdict
- * explicable, et donc discutable.
+ * <h2>The summary does not replace the dimensions</h2>
+ * {@link #headline()} gives the sentence that dominates the screen, but the three
+ * dimensions stay readable next to it: this is what makes the verdict
+ * explainable, and therefore open to discussion.
  *
- * <h2>Indépendant de Vinted</h2>
- * Construit à partir de nombres et de texte, quelle que soit leur provenance.
- * Une annonce saisie entièrement à la main produit la même évaluation.
+ * <h2>Independent of Vinted</h2>
+ * Built from numbers and text, whatever their origin.
+ * A listing entered entirely by hand produces the same assessment.
  *
- * <h2>Deux bases, jamais échangées</h2>
- * Le positionnement prix se calcule sur le <b>prix de l'annonce</b>, hors
- * frais, parce que les comparables le sont aussi. Ce que le lot apporte
- * ({@link CollectionFit}) se calcule sur le <b>coût d'acquisition</b>, frais
- * compris, parce que c'est ce qu'on paie. La fabrique ci-dessous est le seul
- * endroit où cette séparation se joue.
+ * <h2>Two bases, never swapped</h2>
+ * The price position is computed on the <b>listing price</b>, without
+ * fees, because the comparables are too. What the lot brings
+ * ({@link CollectionFit}) is computed on the <b>acquisition cost</b>, with fees
+ * included, because this is what we pay. The factory below is the only
+ * place where this separation is played out.
  *
- * @param referenceSampleSize comparables retenus derrière {@code referencePrice} - 0 quand il n'y en a pas
- * @param referenceSource     d'où vient la référence, ou {@code NOT_RECORDED} pour une analyse antérieure
- * @param referenceGap        ce qui manque quand il n'y a pas de référence, pour le dire utilement
- * @param referenceSpreadPercent    à quel point les comparables s'accordent - écart haut/bas rapporté à
- *                                  la médiane, {@code null} sous deux comparables ou pour une analyse
- *                                  antérieure au Lot 88
- * @param referenceMostRecentObservation le plus récent des relevés retenus : la fraîcheur de la référence
- * @param referenceExaminedCount    relevés EXAMINÉS avant filtrage - dire « 3 existent, 0 comparable »
- *                                  plutôt que « aucune donnée ». 0 pour une analyse antérieure au Lot 88
+ * @param referenceSampleSize comparables kept behind {@code referencePrice} - 0 when there are none
+ * @param referenceSource     where the reference comes from, or {@code NOT_RECORDED} for an earlier analysis
+ * @param referenceGap        what is missing when there is no reference, to say it usefully
+ * @param referenceSpreadPercent    how much the comparables agree - high/low gap relative to
+ *                                  the median, {@code null} under two comparables or for an analysis
+ *                                  earlier than Batch 88
+ * @param referenceMostRecentObservation the most recent of the observations kept: the freshness of the reference
+ * @param referenceExaminedCount    observations EXAMINED before filtering - to say "3 exist, 0 comparable"
+ *                                  rather than "no data". 0 for an analysis earlier than Batch 88
  */
 public record ListingAssessment(CollectionFit collectionFit, PricePosition pricePosition,
                                  BigDecimal referencePrice, MarketReferenceConfidence referenceConfidence,
@@ -48,45 +48,45 @@ public record ListingAssessment(CollectionFit collectionFit, PricePosition price
                                  LocalDate referenceMostRecentObservation, int referenceExaminedCount) {
 
     public ListingAssessment {
-        // Analyses enregistrées avant que la provenance soit conservée : on dit
-        // qu'on l'ignore plutôt que de leur inventer une source après coup.
-        // Même règle pour les trois réserves ajoutées au Lot 88 : un instantané
-        // ancien ne les portait pas, il les relit nulles (0 pour un compte),
-        // jamais reconstituées après coup.
+        // Analyses saved before the origin was kept: we say
+        // we do not know it rather than make up a source afterwards.
+        // Same rule for the three reservations added in Batch 88: an old snapshot
+        // did not carry them, it reads them back as null (0 for a count),
+        // never rebuilt afterwards.
         referenceConfidence = referenceConfidence == null ? MarketReferenceConfidence.UNAVAILABLE : referenceConfidence;
         referenceSource = referenceSource == null ? MarketReferenceSource.NOT_RECORDED : referenceSource;
         referenceGap = referenceGap == null ? ReferenceGap.NOT_RECORDED : referenceGap;
     }
 
     /**
-     * Calcule le positionnement prix, la synthèse, et fige le tout.
+     * Computes the price position, the summary, and freezes everything.
      * <p>
-     * Composants réels plutôt que méthodes dérivées : une analyse est persistée
-     * en JSONB, et un accesseur calculé se sérialiserait sans pouvoir se relire
-     * (piège déjà rencontré sur CollectionStatus). Le figer garantit en prime
-     * qu'une analyse ancienne rendra toujours le verdict qu'elle a rendu ce
-     * jour-là, même si la règle évolue ensuite - c'est bien un instantané.
+     * Real components rather than derived methods: an analysis is saved
+     * as JSONB, and a computed accessor would be serialized without being
+     * readable back (a trap already met on CollectionStatus). Freezing it also guarantees
+     * that an old analysis will always return the verdict it returned that
+     * day, even if the rule changes later - it really is a snapshot.
      *
-     * @param askingPrice le prix DE L'ANNONCE, hors frais. Jamais le coût
-     *                    d'acquisition : les comparables étant hors frais, lui
-     *                    passer le total renverserait le verdict.
+     * @param askingPrice the price OF THE LISTING, without fees. Never the acquisition
+     *                    cost: the comparables being without fees, passing it
+     *                    the total would reverse the verdict.
      */
     public static ListingAssessment of(CollectionFit collectionFit, MarketReference reference,
                                         BigDecimal askingPrice, ListingTrustAssessment trust) {
         MarketReference ref = reference == null
                 ? MarketReference.unavailable(ReferenceGap.NO_OBSERVATION, 0)
                 : reference;
-        // Une référence inexploitable ne sort pas d'ici : ni comme prix affiché,
-        // ni comme écart en pourcentage. Un chiffre affiché est un chiffre auquel
-        // on croit.
+        // A reference that cannot be used does not leave here: neither as a displayed price,
+        // nor as a percentage gap. A displayed number is a number we
+        // believe in.
         BigDecimal prixReference = ref.isUsable() ? ref.price() : null;
         PricePosition position = DealAssessmentPolicy.positionOf(askingPrice, ref);
-        // Les réserves voyagent AVEC le prix, comme MarketReference le promet dans
-        // son propre en-tête : « 70 € » ne se discute pas, « 70 € à partir de
-        // 4 comparables, relevés récemment, resserrés à 12 % près » se discute -
-        // et se corrige. L'échantillon et la source voyageaient déjà ; la
-        // dispersion, la fraîcheur et le nombre de relevés EXAMINÉS restaient
-        // dans le calcul, donc invisibles.
+        // The reservations travel WITH the price, as MarketReference promises in
+        // its own header: "70 EUR" cannot be discussed, "70 EUR from
+        // 4 comparables, recent observations, tight within 12 %" can be discussed -
+        // and corrected. The sample and the source already travelled; the
+        // spread, the freshness and the number of EXAMINED observations stayed
+        // in the calculation, so invisible.
         return new ListingAssessment(collectionFit, position, prixReference, ref.confidence(),
                 DealAssessmentPolicy.deviationPercent(askingPrice, prixReference), trust,
                 synthese(collectionFit, position, trust),
@@ -94,32 +94,32 @@ public record ListingAssessment(CollectionFit collectionFit, PricePosition price
                 ref.spreadPercent(), ref.mostRecentObservation(), ref.examinedCount());
     }
 
-    /** La conclusion mise en avant. Elle nomme d'abord ce qui décide : l'apport, puis le prix. */
+    /** The conclusion put forward. It names first what decides: the contribution, then the price. */
     public enum Headline {
-        /** Rien de neuf pour cette collection - le prix ne rattrape pas ça. */
+        /** Nothing new for this collection - the price does not make up for that. */
         NOTHING_NEW_FOR_YOU,
-        /** Beaucoup de doublons : intérêt limité, quel que soit le prix. */
+        /** Many duplicates: limited interest, whatever the price. */
         LIMITED_INTEREST,
-        /** Un apport réel et un prix qui tient. */
+        /** A real contribution and a price that holds. */
         GOOD_FOR_YOUR_COLLECTION,
-        /** Un apport réel mais un prix trop élevé. */
+        /** A real contribution but a price that is too high. */
         USEFUL_BUT_EXPENSIVE,
-        /** Un apport réel, prix impossible à situer faute de référence. */
+        /** A real contribution, price impossible to place for lack of a reference. */
         USEFUL_PRICE_UNKNOWN,
-        /** Des signaux forts : à vérifier avant toute chose. */
+        /** Strong signals: to check before anything else. */
         CHECK_BEFORE_BUYING,
-        /** Rien d'identifié : l'utilisateur doit d'abord confirmer le contenu. */
+        /** Nothing identified: the user must first confirm the content. */
         CONTENT_TO_CONFIRM
     }
 
     /**
-     * L'ordre compte, et il est délibéré.
+     * The order matters, and it is deliberate.
      * <p>
-     * Un signal de vigilance fort passe avant tout : inutile de discuter d'un
-     * prix si l'annonce demande un virement hors plateforme. Vient ensuite
-     * l'apport à la collection, parce qu'un lot qui n'apporte rien n'est jamais
-     * une bonne affaire, si peu cher soit-il. Le prix ne tranche qu'en dernier,
-     * une fois l'intérêt établi.
+     * A strong warning signal comes before everything: no point discussing a
+     * price if the listing asks for a transfer outside the platform. Then comes
+     * the contribution to the collection, because a lot that brings nothing is never
+     * a good deal, however cheap it is. The price decides last,
+     * once the interest is established.
      */
     private static Headline synthese(CollectionFit collectionFit, PricePosition pricePosition,
                                       ListingTrustAssessment trust) {
@@ -142,9 +142,9 @@ public record ListingAssessment(CollectionFit collectionFit, PricePosition price
     }
 
     /**
-     * Vrai quand la référence marché est trop faible pour recommander un montant
-     * précis. Proposer « offre 53 € » sur deux observations douteuses donnerait
-     * à un chiffre inventé l'autorité d'un calcul.
+     * True when the market reference is too weak to recommend a precise amount.
+     * Proposing "offer 53 EUR" on two doubtful observations would give
+     * a made-up number the authority of a calculation.
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean referenceTooWeakForAnOffer() {

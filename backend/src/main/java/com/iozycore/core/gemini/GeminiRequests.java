@@ -32,39 +32,39 @@ public final class GeminiRequests {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GeminiRequests.class);
 
-    /** Les statuts qui disent « réessaie » : modèle saturé (503) ou quota de la minute (429). */
+    /** The statuses that say "try again": model overloaded (503) or per-minute quota (429). */
     static final java.util.Set<Integer> A_REESSAYER = java.util.Set.of(429, 503);
 
-    /** Trois tentatives au plus, 1,5 s puis 3 s d'attente entre elles. */
+    /** Three attempts at most, 1.5 s then 3 s of waiting between them. */
     static final int TENTATIVES_MAX = 3;
     static final long PAUSE_INITIALE_MS = 1500;
 
     private GeminiRequests() {
     }
 
-    /** Un envoi qui peut lever - la signature de {@code HttpClient.send}. */
+    /** A send that can throw - the signature of {@code HttpClient.send}. */
     interface Envoi {
         HttpResponse<String> executer() throws Exception;
     }
 
     /**
-     * Réessaie quand Google dit de réessayer.
+     * Retries when Google says to retry.
      *
-     * <p>« This model is currently experiencing high demand. Spikes in demand
-     * are usually temporary. Please try again later. » - un 503 de ce genre
-     * dure rarement plus de quelques secondes. Constaté le 2026-09-15 sur la
-     * première photo d'étagère de l'utilisateur : la lecture avait échoué net,
-     * alors que la même requête passait quinze secondes plus tard. Une
-     * reprise ou deux, avec une courte attente, évitent de rendre « n'a pas
-     * pu aboutir » pour un incident que personne n'aurait vu. Tout autre
-     * statut est rendu tel quel : un 400 ou un 401 ne changera pas en
-     * attendant.
+     * <p>"This model is currently experiencing high demand. Spikes in demand
+     * are usually temporary. Please try again later." - a 503 of this kind
+     * rarely lasts more than a few seconds. Seen on 2026-09-15 on the
+     * user's first shelf photo: the reading had failed outright,
+     * while the same request went through fifteen seconds later. One
+     * retry or two, with a short wait, avoid returning "could not
+     * complete" for an incident that nobody would have seen. Any other
+     * status is returned as is: a 400 or a 401 will not change by
+     * waiting.
      */
     static HttpResponse<String> avecReprises(Envoi envoi, long pauseInitialeMs) throws Exception {
         HttpResponse<String> reponse = envoi.executer();
         long pause = pauseInitialeMs;
         for (int tentative = 2; tentative <= TENTATIVES_MAX && A_REESSAYER.contains(reponse.statusCode()); tentative++) {
-            log.warn("Gemini a répondu {} - nouvelle tentative ({}/{}) dans {} ms", reponse.statusCode(), tentative,
+            log.warn("Gemini answered {} - new attempt ({}/{}) in {} ms", reponse.statusCode(), tentative,
                     TENTATIVES_MAX, pause);
             Thread.sleep(pause);
             pause *= 2;
@@ -73,20 +73,20 @@ public final class GeminiRequests {
         return reponse;
     }
 
-    /** Le repli quand le modèle principal sature : la variante « lite » de la même génération, moins demandée. */
+    /** The fallback when the main model is overloaded: the "lite" variant of the same generation, less in demand. */
     static final String DEFAULT_FALLBACK_MODEL = "gemini-3.5-flash-lite";
 
-    /** Un envoi vers un modèle donné - la même requête, une autre adresse. */
+    /** A send to a given model - the same request, another address. */
     interface EnvoiParModele {
         HttpResponse<String> executer(String modele) throws Exception;
     }
 
     /**
-     * Le modèle principal d'abord, avec ses reprises ; s'il reste saturé (503)
-     * ou ne répond pas à temps, le repli, une fois. Un 429 n'est pas repris
-     * ailleurs : un quota atteint vaut pour la clé, pas pour un modèle. Sans
-     * repli, la réponse du principal est rendue telle quelle et un délai
-     * dépassé remonte comme avant.
+     * The main model first, with its retries; if it stays overloaded (503)
+     * or does not answer in time, the fallback, once. A 429 is not retried
+     * elsewhere: a reached quota holds for the key, not for a model. Without a
+     * fallback, the answer of the main model is returned as is and an exceeded
+     * time limit comes up as before.
      */
     static HttpResponse<String> avecRepli(EnvoiParModele envoi, String principal, String repli) throws Exception {
         HttpResponse<String> reponse;
@@ -96,17 +96,17 @@ public final class GeminiRequests {
             if (repli == null) {
                 throw e;
             }
-            log.warn("Gemini ({}) n'a pas répondu à temps - repli sur {}", principal, repli);
+            log.warn("Gemini ({}) did not answer in time - falling back to {}", principal, repli);
             return envoi.executer(repli);
         }
         if (reponse.statusCode() == 503 && repli != null) {
-            log.warn("Gemini ({}) reste saturé après les reprises - repli sur {}", principal, repli);
+            log.warn("Gemini ({}) stays overloaded after the retries - falling back to {}", principal, repli);
             return envoi.executer(repli);
         }
         return reponse;
     }
 
-    /** Le repli effectif : le configuré, sinon {@link #DEFAULT_FALLBACK_MODEL} ; aucun s'il est le principal. */
+    /** The effective fallback: the configured one, otherwise {@link #DEFAULT_FALLBACK_MODEL}; none if it is the main one. */
     static String effectiveFallbackModel(String configured, String principal) {
         String repli = configured == null || configured.isBlank() ? DEFAULT_FALLBACK_MODEL : configured.trim();
         return repli.equals(principal) ? null : repli;
@@ -127,24 +127,24 @@ public final class GeminiRequests {
     }
 
     /**
-     * Une image à joindre au prompt. Gemini les attend en {@code inlineData},
-     * encodées en base64, dans la même liste de {@code parts} que le texte.
+     * An image to attach to the prompt. Gemini expects them as {@code inlineData},
+     * encoded in base64, in the same {@code parts} list as the text.
      *
-     * @param mediaType type MIME déjà validé par l'appelant
-     * @param bytes     le contenu - <b>jamais journalisé</b>, ni ici ni ailleurs
+     * @param mediaType MIME type already validated by the caller
+     * @param bytes     the content - <b>never logged</b>, neither here nor elsewhere
      */
     public record InlineImage(String mediaType, byte[] bytes) {
     }
 
     /**
-     * Variante multimodale : le même enveloppe, avec des images devant le
-     * prompt. L'ordre compte - le modèle lit les parts dans l'ordre donné, et
-     * poser les images d'abord puis la consigne donne de bien meilleurs
-     * résultats que l'inverse.
+     * Multimodal variant: the same envelope, with images in front of the
+     * prompt. Order matters - the model reads the parts in the given order, and
+     * putting the images first then the instruction gives much better
+     * results than the opposite.
      * <p>
-     * Le délai est paramétrable parce qu'une requête portant plusieurs mégaoctets
-     * d'images ne se compare pas à une question en texte : 20 secondes suffisent
-     * à la seconde, pas à la première.
+     * The timeout is configurable because a request carrying several megabytes
+     * of images cannot be compared to a text question: 20 seconds are enough
+     * for the second, not for the first.
      */
     public static HttpResponse<String> send(HttpClient httpClient, ObjectMapper objectMapper, String apiKey, String model,
                                       String prompt, List<InlineImage> images, Duration timeout) throws Exception {
@@ -152,12 +152,12 @@ public final class GeminiRequests {
     }
 
     /**
-     * La même enveloppe, avec un modèle de repli : quand le modèle principal
-     * reste saturé après les reprises (503) ou ne répond pas à temps, la même
-     * requête repart une fois vers {@code fallbackModel} - par défaut la
-     * variante « lite » de la même génération, moins demandée. Constaté le
-     * 2026-09-16 au soir : gemini-3.5-flash ne répondait plus du tout pendant
-     * que gemini-3.5-flash-lite répondait en une seconde.
+     * The same envelope, with a fallback model: when the main model
+     * stays overloaded after the retries (503) or does not answer in time, the same
+     * request goes out once more to {@code fallbackModel} - by default the
+     * "lite" variant of the same generation, less in demand. Seen on
+     * the evening of 2026-09-16: gemini-3.5-flash no longer answered at all while
+     * gemini-3.5-flash-lite answered in one second.
      */
     public static HttpResponse<String> send(HttpClient httpClient, ObjectMapper objectMapper, String apiKey, String model,
                                       String fallbackModel, String prompt, List<InlineImage> images,
@@ -176,8 +176,8 @@ public final class GeminiRequests {
 
         String principal = effectiveModel(model);
         String repli = effectiveFallbackModel(fallbackModel, principal);
-        // Le corps est une chaîne : la même requête se renvoie telle quelle,
-        // vers le modèle principal puis, s'il le faut, vers le repli.
+        // The body is a string: the same request is sent again as is,
+        // to the main model then, if needed, to the fallback.
         return avecRepli(modele -> avecReprises(() -> httpClient.send(
                         requete(apiKey, modele, requestBody, timeout), HttpResponse.BodyHandlers.ofString()),
                 PAUSE_INITIALE_MS), principal, repli);

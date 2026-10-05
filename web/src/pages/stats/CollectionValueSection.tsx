@@ -4,20 +4,20 @@ import { queryKeys } from '@/common/lib/queryKeys'
 import { formaterEuros } from '@/common/lib/formats'
 
 /**
- * Ce que vaut la collection, au prix NEUF.
+ * What the collection is worth, at the NEW price.
  *
- * <h2>Neuf, et non ce qu'on a payé</h2>
- * Ce total sommait les prix d'ACHAT (décision utilisateur du 2026-08-27 :
- * « la valeur de collection sera calculée par rapport à la valeur neuf »).
- * Ce que vaut une collection ne dépend pas de ce qu'elle a coûté : un tome
- * trouvé d'occasion à 2 € vaut ce que vaut ce tome. Le prix neuf vit sur
- * l'ÉDITION (`retailPriceNewPerVolume`), et se renseigne depuis l'écran
- * Éditions.
+ * <h2>New, and not what was paid</h2>
+ * This total used to sum the PURCHASE prices (user decision of 2026-08-27:
+ * "la valeur de collection sera calculée par rapport à la valeur neuf").
+ * What a collection is worth does not depend on what it cost: a volume
+ * found second-hand at 2 € is worth what that volume is worth. The new price lives on
+ * the EDITION (`retailPriceNewPerVolume`), and is filled in from the
+ * Éditions screen.
  *
- * <p>N'affiche JAMAIS ce total comme la valeur complète : la couverture
- * (X/Y tomes dont l'édition a un prix neuf) reste visible à côté, même
- * faible - jamais de donnée inventée ni présentée comme plus certaine
- * qu'elle ne l'est.
+ * <p>NEVER shows this total as the full value: the coverage
+ * (X/Y volumes whose edition has a new price) stays visible next to it, even
+ * when low - never invented data nor presented as more certain
+ * than it is.
  */
 export function CollectionValueSection() {
   const valueQuery = useQuery({ queryKey: queryKeys.insights.value, queryFn: getCollectionValue })

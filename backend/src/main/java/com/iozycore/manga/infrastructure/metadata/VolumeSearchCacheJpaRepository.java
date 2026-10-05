@@ -15,7 +15,7 @@ public interface VolumeSearchCacheJpaRepository extends JpaRepository<VolumeSear
 
     List<VolumeSearchCacheJpaEntity> findAllByEntityTypeIdAndSeriesTitleIn(UUID entityTypeId, Collection<String> seriesTitles);
 
-    /** La clé et la fraîcheur seules : le JSON des tomes n'est pas chargé (projection d'interface). */
+    /** The key and the freshness only: the JSON of the volumes is not loaded (projection interface). */
     List<CacheKeyView> findAllByEntityTypeId(UUID entityTypeId);
 
     interface CacheKeyView {

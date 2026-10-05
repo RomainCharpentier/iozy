@@ -5,16 +5,16 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * L'édition nommée dans un titre d'annonce.
+ * The edition named in a listing title.
  *
- * <p>Les tests qui comptent le plus ici ne sont pas ceux qui lisent une
- * édition : ce sont ceux qui <b>refusent</b> d'en lire une. Un indice inventé
- * ferait chercher au catalogue une édition qui n'existe pas, et ferait passer
- * un élément parfaitement identifié en « édition à confirmer ».
+ * <p>The tests that matter most here are not the ones that read an
+ * edition: they are the ones that <b>refuse</b> to read one. An invented hint
+ * would make the catalogue look for an edition that does not exist, and would turn
+ * a perfectly identified item into an "edition to confirm".
  */
 class EditionMentionTest {
 
-    // ============================================ Avec le mot « édition »
+    // ============================================ With the word "édition"
 
     @Test
     void reads_an_edition_named_before_the_word() {
@@ -34,23 +34,23 @@ class EditionMentionTest {
 
     @Test
     void an_unknown_qualifier_is_accepted_only_AFTER_the_word_edition() {
-        // Cette position leve l'ambiguite a elle seule : personne n'ecrit le nom
-        // de l'oeuvre apres le mot « edition ». L'accent n'y change rien - les
-        // vendeurs ecrivent « edition Hokage » aussi souvent qu'« edition ».
+        // This position removes the ambiguity by itself: nobody writes the name
+        // of the work after the word "edition". The accent changes nothing -
+        // sellers write "edition Hokage" as often as "édition".
         assertThat(EditionMention.lire("Naruto édition Hokage").hint()).isEqualTo("Hokage Edition");
         assertThat(EditionMention.lire("Naruto edition Hokage").hint()).isEqualTo("Hokage Edition");
 
-        // Ailleurs, le qualifiant doit être reconnu. « Star » ne l'est pas, et
-        // c'est un manque assumé : l'élément restera « édition à confirmer »,
-        // ce qui vaut infiniment mieux qu'une édition inventée.
+        // Elsewhere, the qualifier must be recognised. "Star" is not, and
+        // this is an accepted gap: the item will stay "edition to confirm",
+        // which is far better than an invented edition.
         assertThat(EditionMention.lire("Dragon Ball Star Edition").trouvee()).isFalse();
     }
 
     @Test
     void a_two_word_series_is_not_mistaken_for_an_edition() {
-        // Le piège qui a fait abandonner la première version : rien dans
-        // « Death Note edition » ne dit lequel des deux mots est l'œuvre.
-        // « Note » n'étant pas un qualifiant connu, rien n'est proposé.
+        // The trap that made us drop the first version: nothing in
+        // "Death Note edition" says which of the two words is the work.
+        // "Note" is not a known qualifier, so nothing is proposed.
         assertThat(EditionMention.lire("Death Note edition").trouvee()).isFalse();
     }
 
@@ -63,12 +63,12 @@ class EditionMentionTest {
 
     @Test
     void the_label_is_written_as_one_would_write_it_not_as_it_was_typed() {
-        // Ce libellé finit dans le lot puis dans l'analyse enregistrée : « PERFECT
-        // edition » y ferait tache à côté des éditions du catalogue.
+        // This label ends up in the batch and then in the saved analysis: "PERFECT
+        // edition" would look bad next to the editions of the catalogue.
         assertThat(EditionMention.lire("Naruto PERFECT EDITION").hint()).isEqualTo("Perfect Edition");
     }
 
-    // ============================================ Un rang employé seul
+    // ============================================ A rank used alone
 
     @Test
     void reads_a_tier_used_on_its_own() {
@@ -87,42 +87,42 @@ class EditionMentionTest {
 
     @Test
     void integrale_alone_is_a_completeness_claim_not_an_edition() {
-        // Ce mot porte deja un sens ici : MENTION_INTEGRALE en fait un signal
-        // de completude. L'avoir traite comme une edition faisait rendre
-        // VINGT-SIX tomes pour « Platinum End integrale tomes 1 a 14 » - le
-        // texte proposant quatorze « Integrale » et les photos douze
-        // « Standard », que la consolidation refuse a juste titre de fondre.
+        // This word already has a meaning here: MENTION_INTEGRALE makes it a signal
+        // of completeness. Treating it as an edition made the engine return
+        // TWENTY-SIX volumes for "Platinum End integrale tomes 1 a 14" - the
+        // text proposing fourteen "Integrale" and the photos twelve
+        // "Standard", which the consolidation rightly refuses to merge.
         assertThat(EditionMention.estUnRangConnu("intégrale")).isFalse();
         assertThat(EditionMention.lire("Platinum End intégrale").trouvee()).isFalse();
 
-        // Accole au mot « edition », il nomme bien un tirage.
+        // Attached to the word "edition", it does name a print run.
         assertThat(EditionMention.lire("Platinum End édition intégrale").hint())
                 .isEqualTo("Intégrale Edition");
     }
 
-    // ============================================ Ce qu'il faut REFUSER
+    // ============================================ What must be REFUSED
 
     @Test
     void a_series_whose_name_contains_a_tier_like_word_is_not_amputated() {
-        // « Black » n'est PAS un rang employé seul, et c'est délibéré : Black
-        // Butler, Black Clover, Black Lagoon sont des séries. Un mot de plus
-        // dans la liste, c'est un mot qui cesse d'appartenir aux titres.
+        // "Black" is NOT a rank used alone, and this is deliberate: Black
+        // Butler, Black Clover, Black Lagoon are series. One more word
+        // in the list is one more word that stops belonging to titles.
         assertThat(EditionMention.lire("Black Butler").trouvee()).isFalse();
         assertThat(EditionMention.lire("Black Clover").trouvee()).isFalse();
     }
 
     @Test
     void an_empty_qualifier_is_refused() {
-        // « belle édition » ne nomme aucune édition. Proposer « Belle Edition »
-        // ferait chercher au catalogue une chose qui n'y est pas.
+        // "belle édition" names no edition. Proposing "Belle Edition"
+        // would make the catalogue look for something that is not there.
         assertThat(EditionMention.lire("Naruto belle édition").trouvee()).isFalse();
         assertThat(EditionMention.lire("Naruto cette édition").trouvee()).isFalse();
     }
 
     @Test
     void packaging_and_condition_are_not_editions() {
-        // « Coffret » décrit un emballage, « TBE » un état. Ni l'un ni l'autre
-        // n'est une édition, et le catalogue n'en connaît aucune de ce nom.
+        // "Coffret" describes a packaging, "TBE" a condition. Neither
+        // is an edition, and the catalogue knows none with that name.
         assertThat(EditionMention.lire("Naruto coffret").trouvee()).isFalse();
         assertThat(EditionMention.lire("Naruto TBE").trouvee()).isFalse();
         assertThat(EditionMention.lire("Naruto neuf").trouvee()).isFalse();

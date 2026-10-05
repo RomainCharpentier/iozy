@@ -21,32 +21,31 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!--
-            Compilation : javac décide seul de ce qui est périmé.
+            Compilation: javac decides alone what is out of date.
 
-            Le nom trompe. « incrementalCompilation » à true - le défaut de
-            maven-compiler-plugin - ne veut pas dire « ne recompiler que ce qui
-            a changé » : il veut dire « si QUELQUE CHOSE a changé, tout
-            recompiler ». Et sa détection se trompe volontiers quand les
-            sources vivent sur un montage lié (le cas ici : le projet est monté
-            depuis Windows dans le conteneur Maven), si bien qu'elle conclut
-            toujours au changement.
+            The name is misleading. "incrementalCompilation" set to true - the
+            default of maven-compiler-plugin - does not mean "only recompile what
+            changed": it means "if ANYTHING changed, recompile everything". Its
+            detection also tends to be wrong when the sources live on a bind
+            mount (the case here: the project is mounted from Windows into the
+            Maven container), so it always concludes that something changed.
 
-            Mesuré sur cette machine : `mvn -o test-compile` sans rien avoir
-            modifié prenait 51 s, deux fois de suite. À false, javac fait la
-            vraie comparaison fichier par fichier : 15 s, et 15 s à vide.
-            Trente-six secondes rendues à CHAQUE invocation, tests compris.
+            Measured on this machine: `mvn -o test-compile` with nothing
+            modified took 51 s, twice in a row. With false, javac does the
+            real file-by-file comparison: 15 s, and 15 s when idle.
+            Thirty-six seconds given back on EVERY run, tests included.
         -->
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
     </properties>
 
     <!--
-        Note d'architecture (étape 10-11 de la conception) : seul le
-        package com.iozycore.infrastructure dépend de Spring/JPA. Le
-        domaine (com.iozycore.domain) et l'application
-        (com.iozycore.application) restent des POJO purs à l'exception
-        des annotations Spring légères (@Service) sur les services
-        applicatifs, qui orchestrent mais ne contiennent aucune logique
-        métier propre.
+        Architecture note (step 10-11 of the design): only the
+        package com.iozycore.infrastructure depends on Spring/JPA. The
+        domain (com.iozycore.domain) and the application
+        (com.iozycore.application) stay pure POJOs, except for the
+        light Spring annotations (@Service) on the application
+        services, which orchestrate but hold no business logic
+        of their own.
     -->
     <dependencies>
         <dependency>
@@ -58,10 +57,10 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <!--
-            L'API n'était protégée par rien : n'importe qui l'atteignant
-            pouvait tout lire et tout écrire. Acceptable tant qu'elle ne
-            sortait pas de localhost, intenable dès qu'elle en sort (décision
-            du 2026-08-29 : plusieurs personnes, chacune sa collection).
+            The API was protected by nothing: anyone who could reach it
+            could read and write everything. Acceptable while it did not
+            leave localhost, impossible as soon as it does (decision
+            of 2026-08-29: several people, each with their own collection).
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -87,17 +86,17 @@
         </dependency>
 
         <!--
-            Lecture des codes-barres sur les photos, en local.
+            Reading barcodes on photos, locally.
 
-            `core` seul, délibérément : `zxing:javase` n'apporte qu'un
-            LuminanceSource pour BufferedImage - une trentaine de lignes - au
-            prix de deux dépendances transitives (jcommander, jai-imageio) dont
-            ce projet n'a aucun usage. La conversion est écrite dans
+            `core` alone, on purpose: `zxing:javase` only brings a
+            LuminanceSource for BufferedImage - about thirty lines - at the
+            price of two transitive dependencies (jcommander, jai-imageio) that
+            this project has no use for. The conversion is written in
             BarcodeImageDecoder.
 
-            Aucun appel réseau, aucun modèle, aucun euro : un EAN se lit avec
-            des règles, comme le texte d'une annonce. C'est ce qui permet à la
-            reconnaissance de fonctionner même sans moteur de vision configuré.
+            No network call, no model, no euro: an EAN is read with
+            rules, like the text of a listing. This is what lets the
+            recognition work even without a configured vision engine.
         -->
         <dependency>
             <groupId>com.google.zxing</groupId>
@@ -125,9 +124,9 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Un coeur et quatre univers (Lot 133) : les annotations de module, et le test qui verifie
-             les frontieres (pas de dependance du coeur vers un univers, ni entre univers, pas de cycle)
-             et dessine la carte des modules dans target/spring-modulith-docs. -->
+        <!-- One core and four universes (Batch 133): the module annotations, and the test that checks
+             the boundaries (no dependency from the core to a universe, none between universes, no cycle)
+             and draws the module map in target/spring-modulith-docs. -->
         <dependency>
             <groupId>org.springframework.modulith</groupId>
             <artifactId>spring-modulith-api</artifactId>
@@ -146,7 +145,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Spring Modulith 1.2.x : la ligne compatible avec Spring Boot 3.3 (Lot 133). -->
+            <!-- Spring Modulith 1.2.x: the line compatible with Spring Boot 3.3 (Batch 133). -->
             <dependency>
                 <groupId>org.springframework.modulith</groupId>
                 <artifactId>spring-modulith-bom</artifactId>

@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Système de design de l'app, direction validée avec l'utilisateur :
-/// fond sombre, accent vert-jaune vif, typographie Space Grotesk (titres)
-/// + Inter (texte courant), grille de couvertures en dégradé plutôt que
-/// des listes système.
+/// Design system of the app, direction validated with the user:
+/// dark background, bright yellow-green accent, Space Grotesk typography
+/// (titles) + Inter (body text), grid of gradient covers instead of
+/// system lists.
 ///
-/// Polices : référencées par leur nom PostScript. Si les fichiers .ttf ne
-/// sont pas encore ajoutés au projet Xcode, SwiftUI se rabat silencieusement
-/// sur la police système (pas de crash) - voir le README pour les ajouter.
+/// Fonts: referenced by their PostScript name. If the .ttf files are not
+/// yet added to the Xcode project, SwiftUI silently falls back
+/// to the system font (no crash) - see the README to add them.
 enum Theme {
     static let background = Color(hex: "131316")
     static let surface = Color(hex: "1D1D21")
@@ -20,7 +20,7 @@ enum Theme {
     static let violet = Color(hex: "8B7FFF")
     static let pink = Color(hex: "FF6FA5")
 
-    // MARK: - Typographie
+    // MARK: - Typography
 
     static func display(_ size: CGFloat) -> Font {
         .custom("SpaceGrotesk-Bold", size: size)
@@ -42,11 +42,11 @@ enum Theme {
         .custom("Inter-SemiBold", size: size)
     }
 
-    // MARK: - Dégradés de couverture
+    // MARK: - Cover gradients
 
-    /// Palettes de dégradés curatées (2 couleurs chacune), assignées de
-    /// façon déterministe par titre - la même œuvre a toujours le même
-    /// dégradé, sans avoir besoin de stocker de couleur en base.
+    /// Curated gradient palettes (2 colors each), assigned
+    /// deterministically by title - the same work always gets the same
+    /// gradient, with no need to store a color in the database.
     private static let gradientPalettes: [[String]] = [
         ["FF6FA5", "8B3E5C"],
         ["8B7FFF", "3E3480"],
@@ -65,12 +65,12 @@ enum Theme {
         )
     }
 
-    // MARK: - Icône de type (éditeur de types dynamique)
+    // MARK: - Type icon (dynamic type editor)
 
-    /// Un type créé par l'utilisateur n'a pas d'icône SF Symbol curatée
-    /// (contrairement aux 3 types MVP historiques : book.closed/gamecontroller/
-    /// dice) - même principe que gradient(for:) : hash déterministe du code
-    /// vers une petite liste d'icônes génériques, zéro décision à la création.
+    /// A type created by the user has no curated SF Symbol icon
+    /// (unlike the 3 historical MVP types: book.closed/gamecontroller/
+    /// dice) - same principle as gradient(for:): deterministic hash of the code
+    /// into a small list of generic icons, zero decisions at creation.
     private static let iconFallbacks: [String] = [
         "tag", "square.stack", "shippingbox", "folder", "bookmark",
         "cube", "square.grid.3x3", "puzzlepiece", "archivebox",
@@ -82,7 +82,7 @@ enum Theme {
 }
 
 extension Color {
-    /// Initialise une Color depuis un hex "RRGGBB" (sans #).
+    /// Initializes a Color from a "RRGGBB" hex (without #).
     init(hex: String) {
         var hexValue = UInt64()
         Scanner(string: hex).scanHexInt64(&hexValue)

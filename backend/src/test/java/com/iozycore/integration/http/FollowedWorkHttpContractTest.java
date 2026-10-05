@@ -19,8 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Suivre une œuvre par l'API, et la trinité tenue : Possédé, Suivi, Envie,
- * un état à la fois pour l'ŒUVRE - un tome, lui, ne change rien à sa série.
+ * Following a work through the API, and the trinity kept: Owned, Followed, Wish,
+ * one state at a time for the WORK - a volume, for its part, changes nothing to its series.
  */
 class FollowedWorkHttpContractTest extends HttpContractTestBase {
 
@@ -84,12 +84,12 @@ class FollowedWorkHttpContractTest extends HttpContractTestBase {
         mockMvc.perform(put("/api/followed-works").contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("entityId", jeuId))))
                 .andExpect(status().isOk());
-        // L'œuvre d'une pièce, acquise : possédée, donc plus suivie.
+        // The work of a single piece, acquired: owned, so no longer followed.
         quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.BOARD_GAME.id(), jeu, OwnershipCondition.NEW);
         mockMvc.perform(get("/api/followed-works"))
                 .andExpect(jsonPath("$[?(@.entityId == '" + jeuId + "')]").doesNotExist());
 
-        // Un tome de plus dans une série suivie : c'est exactement ce que suivre veut dire.
+        // One more volume in a followed series: this is exactly what following means.
         String serie = "Naruto " + UUID.randomUUID();
         UUID serieId = quickAddService.addNewEntityWithOwnership(EntityTypeFixtures.MANGA.id(), serie + " - Tome 1",
                 OwnershipCondition.NEW).entityId();
@@ -101,7 +101,7 @@ class FollowedWorkHttpContractTest extends HttpContractTestBase {
                 .andExpect(jsonPath("$[?(@.entityId == '" + serieId + "')]", hasSize(1)));
     }
 
-    /** Une œuvre née d'une envie, sous ce titre exact : une fiche sans possession, l'état de départ le plus simple. */
+    /** A work born from a wish, under this exact title: a detail page without ownership, the simplest starting state. */
     private UUID oeuvreVoulue(String titre) throws Exception {
         String reponse = mockMvc.perform(post("/api/wishlist").contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("entityTypeId", EntityTypeFixtures.BOARD_GAME.id(),

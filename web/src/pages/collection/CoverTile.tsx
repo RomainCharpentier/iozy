@@ -5,54 +5,54 @@ import { TexteCoupe } from '@/common/components/TexteCoupe'
 
 interface CoverTileProps {
   title: string
-  /** Jaquette réelle (Jikan/Google Books/Open Library), si une correspondance
-   * a été trouvée lors de l'ajout. Absente pour un ajout en saisie libre, ou
-   * si la recherche de métadonnées n'a rien renvoyé - le dégradé reste alors
-   * le repli, jamais une image cassée. */
+  /** Real cover (Jikan/Google Books/Open Library), if a match
+   * was found when adding. Absent for a free-text add, or
+   * if the metadata search returned nothing - the gradient then stays
+   * the fallback, never a broken image. */
   imageUrl?: string | null
   showBadge?: boolean
-  /** Ligne secondaire sous le titre (ex: "17/26 tomes" en vue groupée par
-   * série sur Ma collection, "Tome 3 · Perfect Edition" en vue non groupée,
-   * "Possédé" pour un type sans notion de tome) - absente par défaut,
-   * n'affecte pas les autres usages de ce composant (Relations). */
+  /** Secondary line under the title (e.g. "17/26 tomes" in the grouped view by
+   * series on My collection, "Tome 3 · Perfect Edition" in the ungrouped view,
+   * "Possédé" for a type without the notion of volume) - absent by default,
+   * does not affect the other uses of this component (Relations). */
   subtitle?: string
-  /** Petit badge de type ("Manga", "Jeu vidéo"...) sous le sous-titre - un
-   * élément distinct de `subtitle`, jamais un repli l'un pour l'autre (voir
-   * la refonte layout demandée : une tuile doit rester reconnaissable par
-   * objet/type/état, 3 informations séparées, pas 2 qui se partagent une
-   * seule ligne). Absent si le type n'est pas connu à cet endroit. */
+  /** Small type badge ("Manga", "Jeu vidéo"...) under the subtitle - a
+   * separate element from `subtitle`, never a fallback for one another (see
+   * the layout redesign that was asked: a tile must stay recognizable by
+   * object/type/state, 3 separate pieces of information, not 2 sharing one
+   * single line). Absent if the type is not known at this place. */
   typeLabel?: string
-  /** ex: "aspect-[2/3]" (défaut) ou "aspect-square" pour les listes horizontales. */
+  /** e.g. "aspect-[2/3]" (default) or "aspect-square" for horizontal lists. */
   aspectClassName?: string
-  /** Signal prioritaire unique (voir la maquette V1.2 - "un seul signal par
-   * carte, jamais empilé" : chaque source potentielle de badge choisit
-   * elle-même LE signal le plus pertinent avant de le passer ici, ce
-   * composant ne fait qu'afficher ce qu'on lui donne, jamais d'empilement
-   * de plusieurs signaux indépendants). */
+  /** Single priority signal (see the V1.2 mockup - "one single signal per
+   * card, never stacked": each potential badge source chooses
+   * ITSELF the most relevant signal before passing it here, this
+   * component only shows what it is given, never stacking
+   * several independent signals). */
   signal?: string
-  /** Clé utilisée pour le dégradé de repli (voir gradientFor) - `title` par
-   * défaut. À surcharger quand plusieurs tuiles partagent le même titre mais
-   * doivent rester visuellement distinctes sans jaquette réelle (ex: les
-   * tomes d'une même série en vue non groupée - voir `aplatirEnElements`, qui y
-   * ajoute le sous-titre "Tome N" pour ne pas afficher le même dégradé sur
-   * chaque tome faute de jaquette propre au tome). */
+  /** Key used for the fallback gradient (see gradientFor) - `title` by
+   * default. To override when several tiles share the same title but
+   * must stay visually distinct without a real cover (e.g. the
+   * volumes of the same series in the ungrouped view - see `aplatirEnElements`, which
+   * adds the subtitle "Tome N" there so as not to show the same gradient on
+   * every volume for lack of a cover of its own). */
   gradientKey?: string
   onClick?: () => void
 }
 
 /**
- * Jaquette réelle quand une source externe en a fourni une (Jikan / Google
- * Books via scan ISBN / Open Library), avec le dégradé déterministe (calculé
- * depuis le titre) comme repli - saisie libre, échec de recherche, ou simple
- * échec de chargement de l'image.
+ * Real cover when an external source provided one (Jikan / Google
+ * Books via ISBN scan / Open Library), with the deterministic gradient (computed
+ * from the title) as a fallback - free-text entry, search failure, or simple
+ * image loading failure.
  * <p>
- * Cadre image et métadonnées SÉPARÉS (voir la refonte layout demandée) :
- * plus de titre/sous-titre en overlay sur la jaquette (lisible seulement
- * grâce à un dégradé sombre par-dessus l'image, qui l'assombrissait pour
- * rien) - le texte vit maintenant sous l'image, en texte normal. Seule
- * exception : le petit badge "possédé" (`showBadge`), qui reste par nature
- * une info attachée à la jaquette elle-même. Miroir de CoverTile.swift
- * (à réconcilier séparément si besoin, hors périmètre ici).
+ * Image frame and metadata SEPARATED (see the layout redesign that was asked):
+ * no more title/subtitle as an overlay on the cover (readable only
+ * thanks to a dark gradient over the image, which darkened it for
+ * nothing) - the text now lives under the image, as normal text. Only
+ * exception: the small "owned" badge (`showBadge`), which stays by nature
+ * information attached to the cover itself. Mirror of CoverTile.swift
+ * (to be reconciled separately if needed, out of scope here).
  */
 export function CoverTile({
   title,
@@ -75,9 +75,9 @@ export function CoverTile({
         style={showImage ? undefined : { background: gradientFor(gradientKey ?? title) }}
       >
         {showImage && (
-          // Chargée quand elle approche de l'écran, pas toutes d'un coup : une
-          // collection de 300 séries, c'est 300 jaquettes chez Google Books
-          // au premier rendu (lot 141).
+          // Loaded when it gets close to the screen, not all at once: a
+          // collection of 300 series is 300 covers from Google Books
+          // at the first render (batch 141).
           <img
             src={imageUrl}
             alt=""
@@ -93,8 +93,8 @@ export function CoverTile({
           </span>
         )}
       </div>
-      {/* Espacement littéral demandé : cadre -> 8px -> titre -> 4px ->
-          sous-titre -> 6px -> badge de type. */}
+      {/* Literal spacing that was asked: frame -> 8px -> title -> 4px ->
+          subtitle -> 6px -> badge. */}
       <div className="mt-2 flex min-w-0 flex-col">
         <TexteCoupe texte={title} className="line-clamp-2 text-sm font-semibold text-textPrimary" />
         {subtitle && <TexteCoupe texte={subtitle} className="mt-1 line-clamp-1 text-xs text-textDim" />}

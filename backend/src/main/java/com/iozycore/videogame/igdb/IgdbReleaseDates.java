@@ -7,11 +7,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Les dates de sortie de jeux connus d'IGDB, par identifiant. Un jeu sans
- * date exploitable (« TBD », une année ou un trimestre seuls) répond vide ;
- * un jeu absent de la réponse, ou qu'une panne a empêché de lire, n'apparaît
- * pas dans la carte - c'est ce qui permet de ne jamais mettre en cache une
- * panne (voir IgdbReleaseDatesFetcher).
+ * The release dates of games known to IGDB, by identifier. A game with no
+ * usable date ("TBD", only a year or a quarter) answers empty;
+ * a game missing from the response, or that an outage prevented from reading, does not appear
+ * in the map - this is what makes it possible to never cache an
+ * outage (see IgdbReleaseDatesFetcher).
  */
 public interface IgdbReleaseDates {
 

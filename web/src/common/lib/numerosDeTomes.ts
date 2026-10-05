@@ -1,9 +1,9 @@
 /**
- * « 11, 48, 51 à 74 » : une liste de numéros de tomes lisible d'un coup d'œil.
+ * "11, 48, 51 à 74": a list of volume numbers readable at a glance.
  *
- * Une suite de trois numéros ou plus se lit d'un trait ; deux numéros qui se
- * suivent restent écrits tels quels (« 1, 2 » plutôt que « 1 à 2 »). Les
- * doublons disparaissent, l'ordre est celui des numéros.
+ * A run of three or more numbers reads in one go; two consecutive numbers
+ * stay written as they are ("1, 2" rather than "1 à 2"). Duplicates
+ * disappear, the order is the one of the numbers.
  */
 export function resumerNumeros(numeros: number[]): string {
   const tries = [...new Set(numeros)].sort((a, b) => a - b)

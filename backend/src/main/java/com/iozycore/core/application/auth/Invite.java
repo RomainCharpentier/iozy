@@ -1,35 +1,35 @@
 package com.iozycore.core.application.auth;
 
 /**
- * Un visiteur sans compte : quelqu'un qui consulte le <b>catalogue</b>, et
- * rien d'autre.
+ * A visitor without an account: someone who browses the <b>catalog</b>, and
+ * nothing else.
  *
- * <h2>Il ne porte AUCUN propriétaire, et c'est tout le sujet</h2>
- * Une première version le faisait entrer « chez » quelqu'un : il portait
- * l'identifiant d'une collection, et lisait les possessions, les notes et les
- * classements de cette personne. Ce n'était pas ce qu'on voulait montrer. Un
- * visiteur doit voir les <b>œuvres</b> que l'instance connaît - titre,
- * jaquette, éditions - et rien de ce que quelqu'un en a fait.
+ * <h2>It carries NO owner, and that is the whole point</h2>
+ * A first version made it enter "at" someone's place: it carried the
+ * id of a collection, and read that person's ownerships, ratings and
+ * rankings. This was not what we wanted to show. A
+ * visitor must see the <b>works</b> that the instance knows - title,
+ * cover, editions - and nothing of what someone made of them.
  *
- * <p>Or le cloisonnement rend déjà exactement cela à qui n'est personne :
- * le catalogue est <b>partagé</b> (aucune colonne de propriétaire, voir
- * {@code ProprietaireCourant}), tandis que possessions, envies, expériences et
- * classements sont filtrés par propriétaire. Un principal qui ne nomme aucun
- * propriétaire retombe sur {@link com.iozycore.core.domain.shared.DefaultOwner#PERSONNE},
- * <b>à qui rien n'appartient</b> - donc le catalogue entier, et pas une ligne
- * de données personnelles.
+ * <p>Now the partitioning already returns exactly that to whoever is nobody:
+ * the catalog is <b>shared</b> (no owner column, see
+ * {@code ProprietaireCourant}), while ownerships, wishes, experiences and
+ * rankings are filtered by owner. A principal that names no
+ * owner falls back to {@link com.iozycore.core.domain.shared.DefaultOwner#PERSONNE},
+ * <b>who owns nothing</b> - so the whole catalog, and not one row
+ * of personal data.
  *
- * <p>C'est pour cette raison que cet enregistrement est <b>vide</b>. Ce n'est
- * pas un oubli : lui donner un champ « propriétaire » serait rouvrir la porte
- * qu'on vient de fermer, et il faudrait alors se demander à chaque écran ce
- * qu'il a le droit d'en lire. Il ne le porte pas, donc la question ne se pose
- * plus nulle part.
+ * <p>This is why this record is <b>empty</b>. It is
+ * not an oversight: giving it an "owner" field would reopen the door
+ * that we just closed, and we would then have to ask at each screen what
+ * it is allowed to read from it. It does not carry it, so the question is no longer
+ * asked anywhere.
  *
- * <h2>Ce qu'il sert encore à dire</h2>
- * Deux choses, et elles suffisent : que la session est <b>authentifiée</b>
- * (sans quoi le cloisonnement ne la laisserait rien lire du tout) et qu'elle
- * est en <b>lecture seule</b> (voir {@code SecurityConfig}). Le type lui-même
- * porte l'information ; il n'a pas besoin de données.
+ * <h2>What it still serves to say</h2>
+ * Two things, and they are enough: that the session is <b>authenticated</b>
+ * (otherwise the partitioning would let it read nothing at all) and that it
+ * is <b>read-only</b> (see {@code SecurityConfig}). The type itself
+ * carries the information; it does not need data.
  */
 public record Invite() {
 }

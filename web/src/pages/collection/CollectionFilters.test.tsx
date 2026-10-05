@@ -1,18 +1,18 @@
 /**
- * <b>Le panneau de filtres, et le tag qu'on pouvait poser sans jamais s'en
- * servir.</b>
+ * <b>The filter panel, and the tag that could be set without ever being
+ * used.</b>
  *
- * <p>Les tags se créaient et s'attachaient depuis une fiche, et aucun écran ne
- * les relisait ensuite. Ce panneau est l'endroit où ce classement redevient
- * utile - trois règles s'y cassent en silence, parce qu'à chaque fois le
- * panneau <b>s'affiche quand même</b> :
+ * <p>Tags were created and attached from a detail page, and no screen
+ * read them back afterwards. This panel is where this sorting becomes
+ * useful again - three rules break silently here, because each time the
+ * panel <b>is shown anyway</b>:
  * <ul>
- *   <li>la section « Tag » apparaît alors qu'aucun tag n'existe : un filtre qui
- *       ne peut rien retenir, qui laisse croire qu'il manque quelque chose ;</li>
- *   <li>« Tous » ne revient pas à l'absence de filtre : plus aucun moyen de
- *       revoir toute la collection sans recharger ;</li>
- *   <li>« Réinitialiser » n'écoute que l'état de la collection : un tag seul
- *       actif, et le bouton reste invisible.</li>
+ *   <li>the "Tag" section appears although no tag exists: a filter that
+ *       cannot keep anything, which suggests that something is missing;</li>
+ *   <li>"Tous" does not come back to the absence of a filter: no more way to
+ *       see the whole collection again without reloading;</li>
+ *   <li>"Réinitialiser" only listens to the collection state: a tag alone
+ *       active, and the button stays invisible.</li>
  * </ul>
  */
 import { render, screen } from '@testing-library/react'
@@ -44,8 +44,8 @@ function panneau(props: Partial<Parameters<typeof CollectionFilters>[0]> = {}) {
   return { onTagChange, onStatusChange, onReset }
 }
 
-describe('la section Tag', () => {
-  it('liste les tags existants, précédés de « Tous »', () => {
+describe('the Tag section', () => {
+  it('lists the existing tags, preceded by "Tous"', () => {
     panneau()
 
     const groupe = screen.getByRole('radiogroup', { name: 'Tag' })
@@ -55,16 +55,16 @@ describe('la section Tag', () => {
     expect(screen.getByRole('radio', { name: 'À relire' })).toBeInTheDocument()
   })
 
-  it("n'apparaît pas tant qu'aucun tag n'existe", () => {
+  it("does not appear while no tag exists", () => {
     panneau({ tags: [] })
 
     expect(screen.queryByRole('radiogroup', { name: 'Tag' })).not.toBeInTheDocument()
-    // Le filtre d'état, lui, est toujours là : c'est bien la section Tag qui
-    // s'efface, pas le panneau.
+    // The state filter is always there: it is the Tag section that
+    // disappears, not the panel.
     expect(screen.getByRole('radiogroup', { name: 'État de la collection' })).toBeInTheDocument()
   })
 
-  it('remonte le tag choisi', async () => {
+  it('reports the chosen tag', async () => {
     const { onTagChange } = panneau()
 
     await userEvent.click(screen.getByRole('radio', { name: 'Lu' }))
@@ -72,7 +72,7 @@ describe('la section Tag', () => {
     expect(onTagChange).toHaveBeenCalledWith(LU.id)
   })
 
-  it('« Tous » remonte l’absence de filtre, pas un identifiant', async () => {
+  it('"Tous" reports the absence of a filter, not an identifier', async () => {
     const { onTagChange } = panneau({ tagId: LU.id })
 
     await userEvent.click(screen.getByRole('radio', { name: 'Tous' }))
@@ -80,7 +80,7 @@ describe('la section Tag', () => {
     expect(onTagChange).toHaveBeenCalledWith(null)
   })
 
-  it('marque le tag actif, et lui seul', () => {
+  it('marks the active tag, and only it', () => {
     panneau({ tagId: LU.id })
 
     expect(screen.getByRole('radio', { name: 'Lu' })).toHaveAttribute('aria-checked', 'true')
@@ -89,14 +89,14 @@ describe('la section Tag', () => {
   })
 })
 
-describe('« Réinitialiser »', () => {
-  it('reste absent quand rien ne filtre', () => {
+describe('"Réinitialiser"', () => {
+  it('stays absent when nothing filters', () => {
     panneau()
 
     expect(screen.queryByRole('button', { name: 'Réinitialiser' })).not.toBeInTheDocument()
   })
 
-  it('apparaît pour un tag seul, sans filtre d’état', async () => {
+  it('appears for a tag alone, without a state filter', async () => {
     const { onReset } = panneau({ tagId: LU.id })
 
     await userEvent.click(screen.getByRole('button', { name: 'Réinitialiser' }))
@@ -104,7 +104,7 @@ describe('« Réinitialiser »', () => {
     expect(onReset).toHaveBeenCalled()
   })
 
-  it('apparaît pour un filtre d’état seul, sans tag', () => {
+  it('appears for a state filter alone, without a tag', () => {
     panneau({ status: 'INCOMPLETE' })
 
     expect(screen.getByRole('button', { name: 'Réinitialiser' })).toBeInTheDocument()

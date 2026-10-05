@@ -1,16 +1,16 @@
-// Miroir 1:1 des DTOs Java du backend (mêmes noms de champs en camelCase -
-// voir backend/src/main/java/com/iozycore/api/dto/*.java et les records de
-// domaine exposés directement, comme Tag/Relationship). Les champs LocalDate
-// (acquiredAt, occurredAt, addedAt) voyagent en "YYYY-MM-DD", pas en
-// ISO8601 complet - à traiter comme de simples chaînes, pas des Date.
+// 1:1 mirror of the Java DTOs of the backend (same field names in camelCase -
+// see backend/src/main/java/com/iozycore/api/dto/*.java and the domain
+// records exposed directly, like Tag/Relationship). The LocalDate fields
+// (acquiredAt, occurredAt, addedAt) travel as "YYYY-MM-DD", not as full
+// ISO8601 - to be handled as simple strings, not as Date.
 
 export type UUID = string
 export type LocalDateString = string // "YYYY-MM-DD"
 
 // --- Entity ---
-// volumeNumber/edition sont réservés au cas "tome d'une série" (Manga) : voir
-// QuickAddService côté backend pour la distinction série (Entity) / tome
-// précis d'une édition (Variant).
+// volumeNumber/edition are reserved for the "volume of a series" case (Manga):
+// see QuickAddService on the backend side for the distinction series (Entity) /
+// precise volume of an edition (Variant).
 export interface QuickAddRequest {
   entityTypeId: UUID
   title: string
@@ -18,14 +18,14 @@ export interface QuickAddRequest {
   attributes?: Record<string, unknown>
   volumeNumber?: number
   edition?: string
-  // Jaquette de CE tome précis (voir VolumeCandidateDto), distincte de la
-  // jaquette de la série éventuellement présente dans `attributes`.
+  // Cover of THIS precise volume (see VolumeCandidateDto), distinct from the
+  // cover of the series possibly present in `attributes`.
   volumeImageUrl?: string
-  // Optionnel, jamais deviné - reste modifiable après coup (voir ownerships.ts updatePurchasePrice).
+  // Optional, never guessed - stays editable afterwards (see ownerships.ts updatePurchasePrice).
   purchasePrice?: number
-  /** Un seul usage : annuler un retrait de tome en rendant sa date d'origine
-   *  plutôt qu'en la remplaçant par aujourd'hui (voir EntityDetailPage).
-   *  Absente = aujourd'hui, comme n'importe quel ajout. */
+  /** One single use: canceling the removal of a volume by giving back its
+   *  original date rather than replacing it with today (see EntityDetailPage).
+   *  Absent = today, like any add. */
   acquiredAt?: string
 }
 
@@ -33,9 +33,9 @@ export interface QuickAddResponse {
   entityId: UUID
   matchedExistingEntity: boolean
   variantId: UUID | null
-  // Une Ownership active référence déjà ce même Variant (ce tome précis) -
-  // ne bloque jamais l'ajout (un 2e exemplaire du même tome est légitime),
-  // sert seulement à avertir l'utilisateur.
+  // An active Ownership already references this same Variant (this precise
+  // volume) - never blocks the add (a 2nd copy of the same volume is
+  // legitimate), only serves to warn the user.
   matchedExistingVariant: boolean
 }
 
@@ -43,7 +43,7 @@ export interface VariantDto {
   id: UUID
   label: string
   attributes: Record<string, unknown>
-  /** Édition catalogue liée à ce tome, quand elle est connue (modèle Série -> Édition -> Tome). */
+  /** Catalog edition linked to this volume, when it is known (Series -> Edition -> Volume model). */
   mangaEditionId: UUID | null
 }
 
@@ -54,8 +54,8 @@ export interface EntityResponse {
   attributes: Record<string, unknown>
   tagIds: UUID[]
   variants: VariantDto[]
-  /** Les clés d'`attributes` saisies à la main : « Recharger depuis la
-   *  source » ne les écrase pas (Lot 130). */
+  /** The `attributes` keys entered by hand: "Recharger depuis la
+   *  source" does not overwrite them (Batch 130). */
   champsSaisis: string[]
 }
 
@@ -74,8 +74,8 @@ export interface OwnershipResponse {
 // --- Experience ---
 export interface RecordExperienceRequest {
   entityId: UUID
-  // Facultatif : quel tome précis cette expérience concerne (voir Experience
-  // côté backend) - absent = la série entière, ou un type sans notion de tome.
+  // Optional: which precise volume this experience concerns (see Experience
+  // on the backend side) - absent = the whole series, or a type without a notion of volume.
   variantId?: UUID
   experienceType: string
   occurredAt: LocalDateString
@@ -95,16 +95,16 @@ export interface ExperienceResponse {
 
 // --- Wishlist ---
 export interface WishlistEntryResponse {
-  /** Le TOME voulu. Absent quand l'envie porte sur l'œuvre entière - le cas
-   *  des types sans notion de tome, où l'œuvre EST l'objet collectionnable
-   *  (voir com.iozycore.domain.wishlist.WishlistEntry). */
+  /** The wanted VOLUME. Absent when the wish applies to the whole work - the
+   *  case of types without a notion of volume, where the work IS the
+   *  collectible object (see com.iozycore.domain.wishlist.WishlistEntry). */
   variantId?: UUID | null
   id: UUID
   entityId: UUID
   addedAt: LocalDateString
 }
 
-// --- Tag / Relationship (records de domaine exposés tels quels) ---
+// --- Tag / Relationship (domain records exposed as they are) ---
 export interface TagDto {
   id: UUID
   label: string
@@ -141,8 +141,8 @@ export interface StatsSummaryDto {
   topTags: TagCountDto[]
 }
 
-/** "Évolution de ma collection" - un mois, voir StatsService.computeTimeline côté backend.
- * month au format "YYYY-MM". Comptages uniquement, aucune valeur monétaire. */
+/** "Évolution de ma collection" - one month, see StatsService.computeTimeline on the backend side.
+ * month in the "YYYY-MM" format. Counts only, no monetary value. */
 export interface MonthlyPointDto {
   month: string
   tomesAdded: number
@@ -160,10 +160,10 @@ export interface TypeValueDto {
   totalCount: number
 }
 
-/** "Calcul automatique de la valeur de la collection" (§15 V2) - voir
- * StatsService.computeCollectionValue côté backend. totalKnownValue n'est
- * JAMAIS la valeur réelle complète : pricedOwnershipCount/totalActiveOwnershipCount
- * indique toujours combien de possessions ont un prix renseigné. */
+/** "Calcul automatique de la valeur de la collection" (§15 V2) - see
+ * StatsService.computeCollectionValue on the backend side. totalKnownValue is
+ * NEVER the full real value: pricedOwnershipCount/totalActiveOwnershipCount
+ * always tells how many ownerships have a price filled in. */
 export interface CollectionValueDto {
   totalKnownValue: number
   pricedOwnershipCount: number
@@ -171,8 +171,8 @@ export interface CollectionValueDto {
   byType: TypeValueDto[]
 }
 
-/** "Bilan annuel" - voir StatsService.computeYearlyRecap côté backend. Pas d'endpoint
- * public/non-authentifié : le partage se fait en téléchargeant l'image générée côté client. */
+/** "Bilan annuel" - see StatsService.computeYearlyRecap on the backend side. No
+ * public/unauthenticated endpoint: sharing is done by downloading the image generated on the client side. */
 export interface YearlyRecapDto {
   year: number
   acquisitionsCount: number
@@ -202,46 +202,46 @@ export interface MetadataCandidateDto {
   attributes: Record<string, unknown>
 }
 
-/** Un tome précis d'une édition réelle d'une série (voir VolumeCandidate
- * côté backend) - pour la sélection visuelle des tomes possédés. */
+/** A precise volume of a real edition of a series (see VolumeCandidate
+ * on the backend side) - for the visual selection of owned volumes. */
 export interface VolumeCandidateDto {
   edition: string
   volumeNumber: number
   imageUrl: string | null
   title: string
-  // Une Ownership active référence déjà le Variant correspondant (série déjà
-  // présente dans la collection) - purement indicatif, ne bloque jamais la
-  // sélection (un 2e exemplaire du même tome reste possible).
+  // An active Ownership already references the matching Variant (series already
+  // present in the collection) - purely indicative, never blocks the
+  // selection (a 2nd copy of the same volume remains possible).
   alreadyOwned: boolean
 }
 
-/** Réponse de GET /metadata/volumes (voir VolumesResponse côté backend) -
- * `quotaExceeded` distingue une liste vide "aucune édition trouvée" d'un
- * échec TRANSITOIRE du fournisseur : quota dépassé sur toutes les clés, ou
- * source qui n'a pas répondu du tout (503, délai dépassé). Dans les deux cas
- * l'écran doit dire "réessaie" plutôt que de laisser croire qu'il n'y a rien.
- * Le nom du champ ne parle que du quota par compatibilité (il est décodé tel
- * quel par le client iOS) - côté serveur il se nomme `providerUnavailable`. */
+/** Response of GET /metadata/volumes (see VolumesResponse on the backend side) -
+ * `quotaExceeded` tells an empty list "no edition found" apart from a
+ * TRANSIENT failure of the provider: quota exceeded on all keys, or a
+ * source that did not answer at all (503, timeout). In both cases
+ * the screen must say "réessaie" rather than let people believe there is nothing.
+ * The name of the field only speaks of the quota for compatibility (it is decoded as
+ * it is by the iOS client) - on the server side it is named `providerUnavailable`. */
 export interface VolumesResponseDto {
   volumes: VolumeCandidateDto[]
   quotaExceeded: boolean
 }
 
 /**
- * « Combien de tomes possédés sur combien », calculé PAR LE SERVEUR.
+ * "How many owned volumes out of how many", computed BY THE SERVER.
  *
- * Miroir de com.iozycore.insights.CollectionProgress. La règle - notamment le
- * rattachement des tomes sans édition précisée à l'unique édition nommée d'une
- * série - vit là-bas et nulle part ailleurs : la recalculer ici a déjà produit
- * deux divergences (voir docs/DESIGN_MIGRATION_V1.2.md, lots 31 et 49).
+ * Mirror of com.iozycore.insights.CollectionProgress. The rule - notably the
+ * attachment of volumes without a given edition to the only named edition of a
+ * series - lives there and nowhere else: recomputing it here has already
+ * produced two divergences (see docs/DESIGN_MIGRATION_V1.2.md, batches 31 and 49).
  */
 export interface EditionProgressDto {
-  /** `''` = les tomes sans édition précisée, quand ils forment un groupe à part. */
+  /** `''` = the volumes without a given edition, when they form a separate group. */
   editionName: string
   sourceEditions: string[]
   ownedVolumeNumbers: number[]
   cataloguedVolumeNumbers: number[]
-  /** null tant que le total de l'édition n'est pas renseigné - jamais deviné. */
+  /** null as long as the total of the edition is not filled in - never guessed. */
   totalVolumes: number | null
 }
 
@@ -249,36 +249,36 @@ export interface CollectionProgressDto {
   entityId: UUID
   title: string
   editions: EditionProgressDto[]
-  /** L'édition qui représente cette œuvre - null quand elle n'a aucun tome. */
+  /** The edition that represents this work - null when it has no volume. */
   dominantEdition: EditionProgressDto | null
   ownedVolumeCount: number
 }
 
-// --- EntityType (éditeur de types dynamique) ---
+// --- EntityType (dynamic type editor) ---
 export interface EntityTypeDto {
   id: UUID
   code: string
   label: string
   allowedExperienceTypes: string[]
   customFieldKeys: string[]
-  // Au moins un fournisseur de métadonnées (Jikan/BGG/IGDB) supporte ce
-  // type - jamais le cas pour un type personnalisé créé via cet éditeur.
+  // At least one metadata provider (Jikan/BGG/IGDB) supports this
+  // type - never the case for a custom type created through this editor.
   hasMetadataProvider: boolean
-  /** L'univers sait proposer des découvertes à partir de ce qu'on possède
-   *  (même auteur, jeux proches, jeux en vue…). C'est le type qui le dit,
-   *  jamais une liste de codes dans un écran (lot 142). */
+  /** The universe can offer discoveries from what one owns
+   *  (same author, similar games, games in view...). It is the type that says so,
+   *  never a list of codes in a screen (batch 142). */
   hasDiscoverySource: boolean
-  /** L'univers sait dater les sorties de cette catégorie sans qu'on les
-   *  saisisse (Google Books pour les tomes, IGDB pour les jeux vidéo). Sans
-   *  source, seules les dates saisies sur une fiche entrent au calendrier
-   *  (lot 146). */
+  /** The universe can date the releases of this category without them being
+   *  entered (Google Books for volumes, IGDB for video games). Without a
+   *  source, only the dates entered on a detail page enter the calendar
+   *  (batch 146). */
   hasReleaseSource: boolean
-  /** Identité visuelle choisie (voir lib/entityTypeVisuals) - null = visuel
-   * par défaut. Des CLÉS, jamais des couleurs : seul le client sait les
-   * traduire, et lui seul sait s'adapter au thème clair/sombre. */
+  /** Chosen visual identity (see lib/entityTypeVisuals) - null = default visual.
+   * KEYS, never colors: only the client knows how to translate them, and
+   * only it knows how to adapt to the light/dark theme. */
   colorKey: string | null
   iconKey: string | null
-  /** Format de jaquette (voir UNIVERSE_ASPECTS) - null = format par défaut du type. */
+  /** Cover format (see UNIVERSE_ASPECTS) - null = default format of the type. */
   aspectKey: string | null
 }
 
@@ -292,13 +292,13 @@ export interface CreateEntityTypeRequest {
   aspectKey?: string
 }
 
-/** Le code n'est jamais modifiable après création (voir EntityTypeService côté backend). */
+/** The code can never be changed after creation (see EntityTypeService on the backend side). */
 export interface UpdateEntityTypeRequest {
   label: string
   allowedExperienceTypes: string[]
   customFieldKeys: string[]
-  /** Absent = retour au visuel par défaut : l'appelant envoie l'état voulu en
-   * entier, jamais un delta (voir EntityTypeController.update). */
+  /** Absent = back to the default visual: the caller sends the whole wanted
+   * state, never a delta (see EntityTypeController.update). */
   colorKey?: string
   iconKey?: string
   aspectKey?: string
@@ -311,12 +311,12 @@ export interface BggImportResult {
   failed: number
 }
 
-/** Ce qu'un import ferait (analyse) ou vient de faire (appliqué) - voir ImportReport côté backend. */
+/** What an import would do (analysis) or just did (applied) - see ImportReport on the backend side. */
 export interface ImportReport {
   applique: boolean
   sections: ImportSection[]
   remarques: ImportRemarque[]
-  /** Au-delà d'un plafond, les remarques ne sont plus listées, seulement comptées. */
+  /** Beyond a ceiling, the remarks are no longer listed, only counted. */
   remarquesNonListees: number
 }
 
@@ -335,24 +335,24 @@ export interface ImportRemarque {
   detail: string
 }
 
-// --- Calendrier des sorties (lot 146) ---
+// --- Release calendar (batch 146) ---
 export type ReleaseRelation = 'OWNED' | 'MISSING' | 'WANTED'
 
 export interface ReleaseEntryDto {
-  /** « 2026-10-14 » au jour près, « 2026-10 » au mois près - jamais une année seule. */
+  /** "2026-10-14" to the day, "2026-10" to the month - never a year alone. */
   date: string
   precision: 'DAY' | 'MONTH'
   entityId: UUID
   entityTitle: string
   entityTypeId: UUID
-  /** Ce qui sort au sein de l'œuvre (« Tome 42 · Kana »), vide quand c'est l'œuvre elle-même. */
+  /** What is released within the work ("Tome 42 · Kana"), empty when it is the work itself. */
   label: string
   volumeNumber: number | null
   editionName: string | null
   coverImageUrl: string | null
-  /** Ce que cette sortie représente pour la collection - toujours écrit. */
+  /** What this release represents for the collection - always written. */
   relation: ReleaseRelation
-  /** D'où vient la date : GOOGLE_BOOKS, IGDB, ou MANUAL pour une date saisie sur la fiche. */
+  /** Where the date comes from: GOOGLE_BOOKS, IGDB, or MANUAL for a date entered on the detail page. */
   source: string
 }
 

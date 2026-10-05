@@ -15,33 +15,33 @@ import com.iozycore.core.metadata.CoverImageCheck;
 import java.util.List;
 
 /**
- * Identifier-ou-créer le TOME d'une œuvre, sans aucune possession.
+ * Identify-or-create the VOLUME of a work, without any ownership.
  * <p>
- * Pendant exact de {@link CatalogEntityResolver} un cran plus bas : celui-ci
- * fait exister la fiche de l'œuvre, celui-là fait exister le tome. Même
- * raison d'être, et même histoire - la règle vivait dans
- * {@link QuickAddService}, donc le seul moyen de faire entrer un tome au
- * catalogue était d'en acquérir un exemplaire.
+ * Exact counterpart of {@link CatalogEntityResolver} one level down: that one
+ * makes the page of the work exist, this one makes the volume exist. Same
+ * reason to exist, and same story - the rule lived in
+ * {@link QuickAddService}, so the only way to bring a volume into the
+ * catalog was to acquire a copy of it.
  * <p>
- * Ce qui l'a rendue nécessaire : depuis que l'envie porte sur un tome
- * (migration V21), « je veux le tome 7 » a besoin d'un tome à désigner. Or
- * sur une fiche, la plupart des tomes manquants ne sont catalogués nulle
- * part - ils sont <em>déduits</em> du nombre total de tomes de l'édition (voir
- * {@code buildTiles}, statut {@code virtualMissing}). Sans ce point d'entrée,
- * « Je le veux » n'aurait fonctionné que sur les rares tomes déjà catalogués,
- * c'est-à-dire presque jamais.
+ * What made it necessary: since the wish is about a volume
+ * (migration V21), "I want volume 7" needs a volume to point to. But
+ * on a detail page, most missing volumes are cataloged nowhere
+ * - they are <em>deduced</em> from the total number of volumes of the edition (see
+ * {@code buildTiles}, status {@code virtualMissing}). Without this entry point,
+ * "I want it" would only have worked on the few volumes already cataloged,
+ * that is almost never.
  * <p>
- * La déduplication est celle de QuickAdd, inchangée : le libellé
- * {@link VariantLabels#of} fait foi, si bien qu'acheter ensuite un tome
- * qu'on avait mis en envies retombe sur le MÊME Variant - et referme donc
- * bien l'envie (voir {@code QuickAddService.retirerDesEnvies}).
+ * The deduplication is the one of QuickAdd, unchanged: the label
+ * {@link VariantLabels#of} is the reference, so that buying afterwards a volume
+ * that was put in wishes lands on the SAME Variant - and so really closes
+ * the wish (see {@code QuickAddService.retirerDesEnvies}).
  */
 @Service
 public class TomeResolver {
 
     private final EntityRepository entityRepository;
 
-    /** Les univers qui vérifient une jaquette, ceux qui tiennent des éditions - aucun n'est connu d'ici (Lot 133). */
+    /** The universes that check a cover, those that keep editions - none is known from here (Batch 133). */
     private final List<CoverImageCheck> coverChecks;
     private final List<EditionLinker> editionLinkers;
 
@@ -52,19 +52,19 @@ public class TomeResolver {
         this.editionLinkers = editionLinkers;
     }
 
-    /** Le Tome canonique de cette œuvre, et s'il existait déjà. */
+    /** The canonical Volume of this work, and whether it already existed. */
     public record Resolution(Variant variant, boolean matchedExisting) {
     }
 
     /**
-     * Rend le tome {@code volumeNumber} de cette œuvre dans cette édition, en
-     * le créant s'il n'est pas encore catalogué, et en le reliant à son
-     * Édition catalogue le cas échéant.
+     * Returns volume {@code volumeNumber} of this work in this edition,
+     * creating it if it is not yet cataloged, and linking it to its
+     * catalog Edition when applicable.
      * <p>
-     * <b>Mute l'agrégat reçu et ne le sauvegarde pas</b> : l'appelant a
-     * souvent d'autres modifications à y apporter dans la même transaction
-     * (QuickAdd y ajoute une possession). Voir {@link #resoudreEtSauver} pour
-     * l'appelant qui n'a que ça à faire.
+     * <b>Mutates the received aggregate and does not save it</b>: the caller
+     * often has other changes to make to it in the same transaction
+     * (QuickAdd adds an ownership to it). See {@link #resoudreEtSauver} for
+     * the caller that has only that to do.
      */
     public Resolution resoudre(Entity oeuvre, int volumeNumber, String edition, String jaquetteUrl) {
         String libelle = VariantLabels.of(volumeNumber, edition);
@@ -83,7 +83,7 @@ public class TomeResolver {
         return new Resolution(tome, existant.isPresent());
     }
 
-    /** Variante sauvegardée, pour l'appelant dont c'est la seule écriture. */
+    /** Saved variant, for the caller whose only write this is. */
     @Transactional
     public Resolution resoudreEtSauver(Entity oeuvre, int volumeNumber, String edition) {
         Resolution resolution = resoudre(oeuvre, volumeNumber, edition, null);
@@ -92,21 +92,21 @@ public class TomeResolver {
     }
 
     /**
-     * Identifier-ou-créer pour l'Édition catalogue, symétrique de la
-     * déduplication Série/Tome. Cherche par entityId D'ABORD - entity.id() est
-     * connu avec certitude ici, jamais besoin de repasser par une
-     * correspondance de titre pour UNE Entity qu'on a déjà en main. Le repli
-     * par titre ne sert plus que pour une édition pas encore reliée (ex: créée
-     * depuis l'Analyse d'achat avant que cette série soit en collection) -
-     * reliée ici même, opportunistement, dès qu'elle est retrouvée ainsi :
-     * jamais l'inverse, on ne force jamais un entityId sur une édition qui en
-     * a déjà un différent. Sans ce repli par ID en premier, un renommage de
-     * Série aurait rendu une édition déjà reliée introuvable par
-     * entity.title() (désormais différent de l'ancien MangaEdition.seriesTitle,
-     * jamais mis à jour en cascade) et en aurait créé un doublon vide à chaque
-     * nouvel ajout. Une édition réellement nouvelle est créée avec le strict
-     * minimum connu (nom + tier OTHER, tout le reste null) - à enrichir plus
-     * tard, jamais deviné à la création.
+     * Identify-or-create for the catalog Edition, symmetric to the
+     * Series/Volume deduplication. Searches by entityId FIRST - entity.id() is
+     * known for sure here, no need to go back through a
+     * title match for ONE Entity that we already have in hand. The title
+     * fallback now only serves for an edition not yet linked (e.g. created
+     * from the Purchase Analysis before this series was in the collection) -
+     * linked right here, opportunistically, as soon as it is found this way:
+     * never the reverse, we never force an entityId on an edition that
+     * already has a different one. Without this ID lookup first, a renaming of
+     * the Series would have made an already linked edition impossible to find by
+     * entity.title() (now different from the old MangaEdition.seriesTitle,
+     * never updated in cascade) and would have created an empty duplicate at each
+     * new add. A really new edition is created with the strict
+     * minimum known (name + tier OTHER, everything else null) - to be enriched later,
+     * never guessed at creation.
      */
     private Map<String, Object> attributsDuTome(int volumeNumber, String edition, String jaquetteUrl) {
         Map<String, Object> attributs = new HashMap<>();
@@ -114,15 +114,15 @@ public class TomeResolver {
         if (edition != null && !edition.isBlank()) {
             attributs.put("edition", edition.trim());
         }
-        // Même clé que COVER_IMAGE_ATTRIBUTE_KEY côté web/iOS (voir
-        // lib/coverImage.ts) - convention partagée pour qu'une jaquette de
-        // Variant se lise avec exactement la même fonction qu'une jaquette
-        // d'Entity, seule la source (Entity.attributes vs Variant.attributes)
-        // change à l'appel.
-        // Une couverture est verifiee ICI, au moment de la garder, et non a
-        // l'affichage (Lot 127) : une adresse morte n'est pas enregistree, le
-        // tome reste sans image et le rattrapage pourra retenter. Qui sait
-        // verifier quoi, c'est l'affaire des univers (CoverImageCheck).
+        // Same key as COVER_IMAGE_ATTRIBUTE_KEY on the web/iOS side (see
+        // lib/coverImage.ts) - shared convention so that a cover of a
+        // Variant is read with exactly the same function as a cover
+        // of an Entity, only the source (Entity.attributes vs Variant.attributes)
+        // changes at the call.
+        // A cover is checked HERE, when it is kept, and not at
+        // display time (Batch 127): a dead address is not saved, the
+        // volume stays without an image and the catch-up can try again. Who knows how to
+        // check what is the business of the universes (CoverImageCheck).
         if (jaquetteUrl != null && !jaquetteUrl.isBlank() && coverChecks.stream().allMatch(c -> c.estUtilisable(jaquetteUrl))) {
             attributs.put("coverImageUrl", jaquetteUrl);
         }

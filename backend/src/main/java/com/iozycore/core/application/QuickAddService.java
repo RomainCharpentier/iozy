@@ -18,30 +18,30 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Orchestration du parcours 1 ("le collectionneur pressé", étape 5) :
- * créer une Entity et son Ownership initiale en une seule opération,
- * puis publier les domain events accumulés sur les deux agrégats.
+ * Orchestration of path 1 ("the hurried collector", step 5):
+ * create an Entity and its initial Ownership in a single operation,
+ * then publish the domain events accumulated on both aggregates.
  * <p>
- * Implémente la déduplication prévue dès UC1 (étape 6) : si une Entity du
- * même type porte déjà exactement le même titre (insensible à la casse),
- * on ne recrée pas de doublon dans le Catalog - on rattache simplement une
- * nouvelle Ownership à l'Entity existante (typiquement : un deuxième
- * exemplaire du même tome, ou un re-scan accidentel du même code-barres).
+ * Implements the deduplication planned since UC1 (step 6): if an Entity of the
+ * same type already has exactly the same title (case insensitive),
+ * no duplicate is created in the Catalog - a new Ownership is simply attached to
+ * the existing Entity (typically: a second
+ * copy of the same volume, or an accidental re-scan of the same barcode).
  * <p>
- * Distinction série / tome (Manga) : le titre identifie la SÉRIE (l'Entity),
- * jamais un tome précis - "L'Attaque des Titans" reste une seule fiche que
- * l'on possède en plusieurs tomes, pas une fiche par tome. Un tome précis
- * d'une édition précise (volumeNumber + edition, tous deux optionnels) est
- * modélisé comme un Variant de cette Entity (voir Variant, "ex: Tome 3") et
- * l'Ownership créée y est rattachée via variantId - c'est ce qui permet de
- * distinguer "je possède le tome 3" de "je possède le tome 7" au lieu
- * d'empiler des Ownership anonymes indiscernables sous la même fiche.
+ * Series / volume distinction (Manga): the title identifies the SERIES (the Entity),
+ * never a specific volume - "L'Attaque des Titans" stays one single page that
+ * we own in several volumes, not one page per volume. A specific volume
+ * of a specific edition (volumeNumber + edition, both optional) is
+ * modeled as a Variant of this Entity (see Variant, "e.g. Tome 3") and
+ * the created Ownership is attached to it via variantId - this is what lets us
+ * tell "I own volume 3" from "I own volume 7" instead
+ * of piling up anonymous, indistinguishable Ownerships under the same page.
  * <p>
- * Modèle catalogue cible Série -> Édition -> Tome (étape 3) : quand une
- * édition est renseignée, ce Variant est aussi relié à l'Édition catalogue
- * ({@code MangaEdition}) correspondante - identifiée-ou-créée avec la même
- * logique de déduplication que la Série/le Tome (voir {@link TomeResolver}),
- * jamais un doublon d'Édition.
+ * Target catalog model Series -> Edition -> Volume (step 3): when an
+ * edition is given, this Variant is also linked to the matching catalog Edition
+ * ({@code MangaEdition}) - identified-or-created with the same
+ * deduplication logic as the Series/Volume (see {@link TomeResolver}),
+ * never a duplicate Edition.
  */
 @Service
 public class QuickAddService {
@@ -67,10 +67,10 @@ public class QuickAddService {
         this.eventPublisher = eventPublisher;
     }
 
-    /** Résultat de l'ajout rapide : indique si un doublon a été évité en réutilisant
-     * une Entity existante, et de même pour le Variant (tome) le cas échéant -
-     * variantId est null si aucun numéro de tome n'a été fourni (ex: jeu vidéo,
-     * jeu de société, ou manga ajouté sans préciser de tome). */
+    /** Result of the quick add: tells whether a duplicate was avoided by reusing
+     * an existing Entity, and likewise for the Variant (volume) if any -
+     * variantId is null if no volume number was given (e.g. video game,
+     * board game, or manga added without giving a volume). */
     public record QuickAddResult(UUID entityId, boolean matchedExistingEntity,
                                   UUID variantId, boolean matchedExistingVariant) {
     }
@@ -81,11 +81,11 @@ public class QuickAddService {
     }
 
     /**
-     * Variante acceptant des attributs pré-remplis - typiquement issus
-     * d'un MetadataCandidate choisi après une recherche via
-     * MetadataSearchService (module Metadata Enrichment). Reste
-     * volontairement découplée de ce module : QuickAddService ne connaît
-     * que des attributs génériques, jamais Jikan/BGG directement.
+     * Variant accepting pre-filled attributes - typically coming from
+     * a MetadataCandidate chosen after a search through
+     * MetadataSearchService (Metadata Enrichment module). Stays
+     * deliberately decoupled from this module: QuickAddService only knows
+     * generic attributes, never Jikan/BGG directly.
      */
     @Transactional
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
@@ -94,11 +94,11 @@ public class QuickAddService {
     }
 
     /**
-     * Variante complète, utilisée par le formulaire d'ajout rapide : volumeNumber
-     * et edition sont tous deux optionnels (null si non renseignés, ex: un jeu
-     * vidéo n'a pas de tome). Quand volumeNumber est fourni, l'Ownership créée
-     * référence un Variant "Tome N" (ou "Tome N — édition" si edition est
-     * renseigné) plutôt que de rester anonyme.
+     * Full variant, used by the quick add form: volumeNumber
+     * and edition are both optional (null if not given, e.g. a video
+     * game has no volume). When volumeNumber is given, the created Ownership
+     * references a "Tome N" Variant (or "Tome N — edition" if edition is
+     * given) rather than staying anonymous.
      */
     @Transactional
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
@@ -108,12 +108,12 @@ public class QuickAddService {
     }
 
     /**
-     * Variante complète avec jaquette propre au tome (voir VolumeCandidate,
-     * module Metadata Enrichment) - typiquement une jaquette réelle trouvée
-     * via la sélection visuelle des tomes (Google Books), distincte de la
-     * jaquette de la SÉRIE dans prefilledAttributes (celle de Jikan/MAL).
-     * Stockée sur le Variant, jamais sur l'Entity : chaque tome garde sa
-     * propre jaquette plutôt que d'écraser celle de la série.
+     * Full variant with a cover of the volume's own (see VolumeCandidate,
+     * Metadata Enrichment module) - typically a real cover found
+     * through the visual selection of volumes (Google Books), different from the
+     * cover of the SERIES in prefilledAttributes (the one from Jikan/MAL).
+     * Stored on the Variant, never on the Entity: each volume keeps its
+     * own cover rather than overwriting the one of the series.
      */
     @Transactional
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
@@ -124,8 +124,8 @@ public class QuickAddService {
     }
 
     /**
-     * Variante complète avec prix d'achat optionnel (voir Ownership.updatePurchasePrice) -
-     * jamais deviné : null si non renseigné à l'ajout, reste modifiable ensuite
+     * Full variant with optional purchase price (see Ownership.updatePurchasePrice) -
+     * never guessed: null if not given when adding, stays editable afterwards
      * via PATCH /api/ownerships/{id}/purchase-price.
      */
     @Transactional
@@ -138,29 +138,29 @@ public class QuickAddService {
     }
 
     /**
-     * Variante acceptant une DATE d'acquisition, pour un seul usage : annuler un
-     * retrait.
+     * Variant accepting an acquisition DATE, for one single use: undoing a
+     * removal.
      * <p>
-     * Retirer un tome supprime son Ownership ; le rajouter en cree une neuve, donc
-     * datee d'aujourd'hui. Un aller-retour perdait ainsi la date reelle
-     * d'acquisition sans que rien ne le dise - constate le 2026-08-28 sur un tome
-     * passe du 26/08 au 28/08 apres un simple clic de trop. L'annulation propose
-     * par l'ecran (voir EntityDetailPage) rend donc la date d'origine plutot que
-     * d'en inventer une.
+     * Removing a volume deletes its Ownership; adding it back creates a new one, so
+     * dated today. A round trip thus lost the real acquisition date
+     * without anything saying so - noticed on 2026-08-28 on a volume
+     * that went from 26/08 to 28/08 after one click too many. The undo offered
+     * by the screen (see EntityDetailPage) therefore gives back the original date rather than
+     * making one up.
      * <p>
-     * {@code null} = aujourd'hui, comme avant : c'est un ajout ordinaire.
+     * {@code null} = today, as before: it is an ordinary add.
      */
     public QuickAddResult addNewEntityWithOwnership(UUID entityTypeId, String title, OwnershipCondition condition,
                                                       Map<String, Object> prefilledAttributes,
                                                       Integer volumeNumber, String edition, String volumeImageUrl,
                                                       BigDecimal purchasePrice, LocalDate acquiredAt) {
-        // « Faire exister la fiche catalogue » est désormais extrait dans
-        // CatalogEntityResolver, partagé avec le parcours Envies : la règle de
-        // déduplication (type + titre) et la fusion d'attributs ne vivent qu'à
-        // un seul endroit, donc les deux chemins ne peuvent pas produire deux
-        // Entity différentes pour la même œuvre. La sauvegarde y est immédiate,
-        // ce dont TomeResolver a besoin : une Entity toute neuve doit exister en
-        // base avant qu'un MangaEdition ne référence son id (contrainte FK
+        // "Make the catalog page exist" is now extracted into
+        // CatalogEntityResolver, shared with the Wishes path: the
+        // deduplication rule (type + title) and the attribute merge live in only
+        // one place, so the two paths cannot produce two different
+        // Entities for the same work. The save there is immediate,
+        // which TomeResolver needs: a brand new Entity must exist in the
+        // database before a MangaEdition references its id (FK constraint
         // manga_edition.entity_id).
         CatalogEntityResolver.Resolution resolution =
                 catalogEntityResolver.resolveOrCreate(entityTypeId, title, prefilledAttributes);
@@ -170,16 +170,16 @@ public class QuickAddService {
         UUID variantId = null;
         boolean matchedExistingVariant = false;
         if (volumeNumber != null) {
-            // « Faire exister le tome » vit désormais dans TomeResolver, partagé
-            // avec le parcours Envies : la déduplication par libellé et le
-            // rattachement à l'Édition catalogue ne sont écrits qu'une fois, donc
-            // vouloir puis acheter un tome retombe forcément sur le MÊME Variant.
+            // "Make the volume exist" now lives in TomeResolver, shared
+            // with the Wishes path: the deduplication by label and the
+            // link to the catalog Edition are written only once, so
+            // wanting then buying a volume necessarily lands on the SAME Variant.
             TomeResolver.Resolution tome = tomeResolver.resoudre(entity, volumeNumber, edition, volumeImageUrl);
             variantId = tome.variant().id();
-            // Un Variant déjà présent sur l'Entity ne veut pas forcément dire que ce
-            // tome précis est déjà possédé (il a pu être vendu/perdu depuis, ou
-            // n'avoir jamais été que voulu) - on ne signale un doublon que s'il en
-            // existe encore une Ownership active.
+            // A Variant already present on the Entity does not necessarily mean that this
+            // specific volume is already owned (it may have been sold/lost since, or
+            // may have only ever been wanted) - a duplicate is only reported if an
+            // active Ownership of it still exists.
             UUID finalVariantId = variantId;
             matchedExistingVariant = tome.matchedExisting() && ownershipRepository.findByEntityId(entity.id()).stream()
                     .anyMatch(ownership -> ownership.isActive()
@@ -203,28 +203,28 @@ public class QuickAddService {
     }
 
     /**
-     * Une œuvre qu'on vient d'acquérir n'est plus une envie.
+     * A work that was just acquired is no longer a wish.
      * <p>
-     * Constaté à l'audit : « Death Note » et « Naruto » apparaissaient à la
-     * fois « Possédé » et « Dans vos envies » dans la recherche, faute d'un
-     * point où l'envie se referme. Placé ICI et non côté web parce que
-     * plusieurs chemins créent une Ownership (ajout depuis une fiche, depuis
-     * un aperçu, depuis le scan, saisie manuelle) : les traiter un par un
-     * garantissait d'en oublier un.
+     * Found during the audit: "Death Note" and "Naruto" appeared both
+     * "Owned" and "In your wishes" in the search, for lack of a
+     * point where the wish closes. Placed HERE and not on the web side because
+     * several paths create an Ownership (adding from a detail page, from
+     * a preview, from the scan, manual entry): handling them one by one
+     * guaranteed that one would be forgotten.
      * <p>
-     * Décision produit tranchée avec l'utilisateur : retirer plutôt que
-     * signaler. La conséquence gênante de la première version - acheter un
-     * tome effaçait l'envie de TOUTE la série - a disparu avec V21 : l'envie
-     * porte désormais sur un tome, et seul celui-là se referme.
+     * Product decision settled with the user: remove rather than
+     * report. The annoying consequence of the first version - buying a
+     * volume erased the wish of the WHOLE series - disappeared with V21: the wish
+     * now is about a volume, and only that one closes.
      * <p>
-     * Idempotent et silencieux : aucune envie pour cette œuvre est le cas de
-     * loin le plus fréquent, ce n'est pas une anomalie.
+     * Idempotent and silent: no wish for this work is by far the
+     * most frequent case, it is not an anomaly.
      */
     private void retirerDesEnvies(UUID entityId, UUID variantId) {
-        // L'envie qui se referme est celle de l'objet qu'on vient d'acquérir :
-        // le TOME s'il y en a un, l'œuvre sinon (type sans notion de tome).
-        // Acheter le tome 3 ne doit rien changer à l'envie du tome 7 - c'est
-        // tout l'intérêt d'avoir descendu l'envie au tome (voir V21).
+        // The wish that closes is the one of the item that was just acquired:
+        // the VOLUME if there is one, the work otherwise (type with no notion of volume).
+        // Buying volume 3 must change nothing to the wish of volume 7 - that is
+        // the whole point of having moved the wish down to the volume (see V21).
         Optional<WishlistEntry> aReferner = variantId != null
                 ? wishlistEntryRepository.findByVariantId(variantId)
                 : wishlistEntryRepository.findByEntityId(entityId);

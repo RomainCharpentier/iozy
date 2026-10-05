@@ -1,18 +1,18 @@
 import { execFileSync } from 'node:child_process'
 
 /**
- * Démarre la pile jetable avant le premier test.
+ * Starts the throwaway stack before the first test.
  *
- * <p>`--wait` attend les contrôles de santé, pas le simple démarrage des
- * conteneurs : l'API n'est déclarée prête que lorsqu'elle RÉPOND, migrations
- * Flyway comprises. Sans ça, le premier test frapperait une API qui démarre
- * encore, et échouerait pour une raison qui n'a rien à voir avec lui.
+ * <p>`--wait` waits for the health checks, not just the start of the
+ * containers: the API is declared ready only when it ANSWERS, Flyway
+ * migrations included. Without it, the first test would hit an API that is
+ * still starting, and would fail for a reason that has nothing to do with it.
  *
- * <p>Le premier lancement construit l'image (une à deux minutes) ; les suivants
- * repartent du cache Docker.
+ * <p>The first run builds the image (one to two minutes); the following ones
+ * start again from the Docker cache.
  */
 export default function demarrerLaPile() {
-  console.log('E2E : démarrage de la pile jetable (base + API sur :8090)…')
+  console.log('E2E: starting the throwaway stack (database + API on :8090)…')
   execFileSync(
     'docker',
     [

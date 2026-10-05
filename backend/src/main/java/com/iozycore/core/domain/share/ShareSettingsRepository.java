@@ -3,21 +3,21 @@ package com.iozycore.core.domain.share;
 import java.util.Optional;
 
 /**
- * Port du partage d'espace. Une seule ligne (application mono-utilisateur, voir
- * {@link com.iozycore.core.domain.shared.DefaultOwner}), donc {@link #find()} sans
- * argument, comme les autres réglages du projet.
+ * Port for space sharing. A single row (single-user application, see
+ * {@link com.iozycore.core.domain.shared.DefaultOwner}), so {@link #find()} without
+ * arguments, like the other settings of the project.
  */
 public interface ShareSettingsRepository {
 
-    /** Les réglages courants, ou l'état « aucun lien » si rien n'a jamais été créé. */
+    /** The current settings, or the "no link" state if nothing was ever created. */
     ShareSettings find();
 
     ShareSettings save(ShareSettings settings);
 
     /**
-     * Le seul point d'entrée de la lecture publique : résout un jeton, ou rien.
-     * Un jeton nul, vide ou révoqué ne doit JAMAIS retomber sur la ligne du
-     * propriétaire (dont le champ token vaut null une fois le lien supprimé).
+     * The only entry point of public reading: resolves a token, or nothing.
+     * A null, empty or revoked token must NEVER fall back to the owner's
+     * row (whose token field is null once the link is deleted).
      */
     Optional<ShareSettings> findByToken(String token);
 

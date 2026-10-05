@@ -6,16 +6,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Point d'extension du cœur : un univers qui tient des ÉDITIONS DE RÉFÉRENCE
- * rattache un tome à la sienne.
+ * Extension point of the core: a universe that keeps REFERENCE EDITIONS
+ * links a volume to its own.
  *
- * <p>Le cœur sait qu'un tome porte un nom d'édition (« Perfect Edition ») ;
- * il ne sait pas ce qu'est une édition. Le module manga, lui, la retrouve ou
- * la crée, et rend son identifiant - le tome y est relié par identifiant
- * seulement (voir Variant.mangaEditionId), jamais par la classe (Lot 133).
+ * <p>The core knows that a volume carries an edition name ("Perfect Edition");
+ * it does not know what an edition is. The manga module finds or
+ * creates it, and returns its id - the volume is linked to it by id
+ * only (see Variant.mangaEditionId), never by the class (Batch 133).
  */
 public interface EditionLinker {
 
-    /** L'identifiant de l'édition de cette œuvre qui porte ce nom, si cet univers en tient une. */
+    /** The id of the edition of this work that carries this name, if this universe keeps one. */
     Optional<UUID> editionIdPour(Entity oeuvre, String nomEdition);
 }

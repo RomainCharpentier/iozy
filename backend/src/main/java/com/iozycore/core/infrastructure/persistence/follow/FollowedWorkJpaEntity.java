@@ -19,8 +19,8 @@ public class FollowedWorkJpaEntity {
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
-    // Cloisonnement par propriétaire, comme une envie : Hibernate ajoute cette
-    // colonne à toute requête et la remplit à l'insertion (ProprietaireCourant).
+    // Isolation by owner, like a wish: Hibernate adds this
+    // column to every query and fills it on insert (ProprietaireCourant).
     @TenantId
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;

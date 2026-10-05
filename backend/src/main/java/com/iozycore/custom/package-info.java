@@ -1,14 +1,14 @@
 /**
- * Les types de collection définis DANS iozycore - le quatrième univers, celui
- * qui n'a aucun fournisseur (Lot 133).
+ * The collection types defined INSIDE iozycore - the fourth universe, the one
+ * with no provider (Batch 133).
  *
- * <p>Mangas, jeux vidéo et jeux de société ont chacun leur module et leurs
- * sources. Tout autre type (figurines, vinyles, ce que l'utilisateur veut
- * collectionner) est créé ici, avec ses champs personnalisés ; ses fiches se
- * saisissent à la main et se retrouvent par la seule base iozycore. Le cœur
- * ne fait aucune différence : une œuvre d'un type personnalisé est une œuvre
- * comme les autres, sans point d'extension à implémenter - c'est précisément
- * ce qui permet d'ajouter un type sans écrire de code.
+ * <p>Mangas, video games and board games each have their own module and their
+ * sources. Any other type (figurines, vinyl records, whatever the user wants to
+ * collect) is created here, with its custom fields; its work pages are
+ * entered by hand and found only through the iozycore database. The core
+ * makes no difference: a work of a custom type is a work
+ * like any other, with no extension point to implement - this is exactly
+ * what makes it possible to add a type without writing code.
  */
 @org.springframework.modulith.ApplicationModule(displayName = "Types personnalisés")
 package com.iozycore.custom;

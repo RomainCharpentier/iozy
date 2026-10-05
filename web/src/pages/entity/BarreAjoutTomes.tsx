@@ -2,22 +2,22 @@ import { Check, Loader2 } from 'lucide-react'
 import { ErrorBanner } from '@/common/components/ErrorBanner'
 
 /**
- * Ce qui accompagne une sélection de tomes à ajouter : l'état des
- * exemplaires, leur prix, et le bouton qui valide.
+ * What goes with a selection of volumes to add: the condition of the
+ * copies, their price, and the button that confirms.
  *
- * <h2>Pourquoi elle n'apparaît qu'une fois quelque chose de coché</h2>
- * C'était un formulaire permanent sur l'ancien écran `/add/draft`, où
- * l'ajout était la seule raison d'être de la page. Sur la fiche, ajouter
- * n'est qu'une chose parmi d'autres : demander l'état et le prix avant
- * même de savoir s'il y aura un ajout ferait de la fiche un formulaire.
+ * <h2>Why it only appears once something is checked</h2>
+ * It was a permanent form on the old `/add/draft` screen, where
+ * adding was the only purpose of the page. On the detail page, adding
+ * is only one thing among others: asking for the condition and price before
+ * even knowing whether there will be an add would turn the page into a form.
  *
- * <h2>Un clic, et rien d'autre</h2>
- * Elle demandait l'état des exemplaires et leur prix avant de laisser ajouter.
- * C'est deux questions de trop au moment où l'on veut simplement dire « je les
- * ai » (décision utilisateur du 2026-08-27) : l'état est stocké à `NEW`, comme
- * c'était déjà la valeur par défaut, et les deux se corrigent ensuite sur
- * chaque exemplaire (voir OwnershipDetails) - là où ils décrivent quelque
- * chose de réel plutôt qu'un formulaire à remplir d'avance.
+ * <h2>One click, and nothing else</h2>
+ * It asked for the condition of the copies and their price before allowing the add.
+ * That is two questions too many when the user simply wants to say "I have
+ * them" (user decision of 2026-08-27): the condition is stored as `NEW`, as
+ * it already was the default value, and both are fixed later on
+ * each copy (see OwnershipDetails) - where they describe some
+ * real thing rather than a form to fill in advance.
  */
 export function BarreAjoutTomes({
   nombre,
@@ -30,11 +30,11 @@ export function BarreAjoutTomes({
   nombre: number
   onAjouter: () => void
   enCours: boolean
-  /** Les informations de l'œuvre ne sont pas encore connues. Ajouter
-   *  maintenant créerait une fiche sans jaquette ni auteur - constaté en
-   *  direct : deux tomes ajoutés depuis un aperçu ouvert par URL, dont la
-   *  recherche de métadonnées n'avait pas encore répondu, ont donné une œuvre
-   *  aux attributs vides. */
+  /** The information about the work is not known yet. Adding
+   *  now would create a page without a cover or author - seen
+   *  live: two volumes added from a preview opened by URL, whose
+   *  metadata search had not answered yet, gave a work
+   *  with empty attributes. */
   attente: boolean
   erreur: string | null
   onToutDeselectionner: () => void

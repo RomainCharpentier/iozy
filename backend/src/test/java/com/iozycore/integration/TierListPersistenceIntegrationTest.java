@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Valide le module de persistance Tier Lists (Flyway V12 + JPA) contre un vrai PostgreSQL. */
+/** Validates the Tier Lists persistence module (Flyway V12 + JPA) against a real PostgreSQL. */
 class TierListPersistenceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -66,7 +66,7 @@ class TierListPersistenceIntegrationTest extends PostgresIntegrationTest {
         tierListItemRepository.save(ranked);
         TierListItem unranked = tierListItemRepository.findByTierListIdAndEntityId(list.id(), entityId).orElseThrow();
         assertThat(unranked.rank()).isEmpty();
-        // Toujours membre de la liste malgré le déclassement (voir la doc de TierListItem.setRank).
+        // Still a member of the list despite the demotion (see the doc of TierListItem.setRank).
         assertThat(tierListItemRepository.findByTierListId(list.id())).hasSize(1);
     }
 

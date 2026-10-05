@@ -7,13 +7,13 @@ import { CLASSE_CARTE } from '@/common/components/Carte'
 import { useDonneesTierLists } from '@/common/hooks/useDonneesTierLists'
 
 /**
- * "Mes Tier Lists" sur Profil (voir DS v1.1 §44 écran Profil) : une rangée
- * par univers réellement classé (jaquettes des œuvres classées + compteur)
- * + une rangée par Tier List perso (compteur d'éléments, sans jaquette -
- * même réduction déjà appliquée sur TierListsScreen : éviter une requête de
- * détail par liste juste pour 3 miniatures). "Tout voir" -> `/tier-lists`.
- * Absente entièrement si rien n'est classé nulle part ET aucune Tier List
- * perso n'existe - jamais une carte vide.
+ * "Mes Tier Lists" on Profil (see DS v1.1 section 44 Profil screen): one row
+ * per universe that is really ranked (covers of the ranked works + counter)
+ * + one row per custom Tier List (item counter, without cover -
+ * same reduction already applied on TierListsScreen: avoid a detail
+ * request per list just for 3 thumbnails). "Tout voir" -> `/tier-lists`.
+ * Absent entirely if nothing is ranked anywhere AND no custom Tier List
+ * exists - never an empty card.
  */
 export function ProfileTierListsSection() {
   const donnees = useDonneesTierLists()
@@ -24,8 +24,8 @@ export function ProfileTierListsSection() {
     .map((u) => ({ entityType: u.entityType, counts: u.counts, covers: flatRankedCovers(u.board, 3) }))
     .filter((u) => u.counts.ranked > 0)
 
-  // Les listes « toutes catégories » comprises : cette carte les oubliait,
-  // alors qu'elle annonce « Mes Tier Lists » et propose « Tout voir ».
+  // The "toutes catégories" lists included: this card forgot them,
+  // while it announces "Mes Tier Lists" and offers "Tout voir".
   const customLists = donnees.toutesLesListes
 
   if (universeRows.length === 0 && customLists.length === 0) return null
